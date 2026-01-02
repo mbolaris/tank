@@ -32,44 +32,69 @@ A future refactoring could:
 For now, we keep the explicit phase logic in update() for clarity.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import random
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Protocol
 
-from core import entities, environment, movement_strategy
-from core.agents_wrapper import AgentsWrapper
-from core.collision_system import CollisionSystem
 from core.config.simulation_config import SimulationConfig
-from core.ecosystem import EcosystemManager
-from core.entities.plant import Plant, PlantNectar
+from core.sim.energy_ledger import EnergyDelta, EnergyLedger
+from core.sim.events import SimEvent
 from core.simulation import diagnostics
-
-from core.entity_factory import create_initial_population
-from core.genetics import Genome, PlantGenome
-from core.plant_manager import PlantManager
-from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-from core.poker_interaction import PokerInteraction
-from core.poker_system import PokerSystem
-from core.reproduction_service import ReproductionService
-from core.reproduction_system import ReproductionSystem
-from core.root_spots import RootSpotManager
-from core.services.stats_calculator import StatsCalculator
 from core.simulation.entity_manager import EntityManager
-from core.simulation.system_registry import SystemRegistry
 from core.simulation.entity_mutation_queue import EntityMutationQueue
-
-
+from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
-from core.systems.entity_lifecycle import EntityLifecycleSystem
-from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
-from core.systems.poker_proximity import PokerProximitySystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
 
+if TYPE_CHECKING:
+    from core import entities, environment
+    from core.collision_system import CollisionSystem
+    from core.ecosystem import EcosystemManager
+    from core.plant_manager import PlantManager
+    from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+    from core.poker_interaction import PokerInteraction
+    from core.poker_system import PokerSystem
+    from core.reproduction_service import ReproductionService
+    from core.reproduction_system import ReproductionSystem
+    from core.systems.entity_lifecycle import EntityLifecycleSystem
+    from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
+    from core.systems.poker_proximity import PokerProximitySystem
+    from core.worlds.system_pack import SystemPack
+
 logger = logging.getLogger(__name__)
+
+
+class PackableEngine(Protocol):
+    """Minimal interface that a SystemPack expects from the engine."""
+
+    config: SimulationConfig
+    rng: random.Random
+    event_bus: Any
+    code_pool: Any
+    environment: environment.Environment | None
+    ecosystem: EcosystemManager | None
+    plant_manager: PlantManager | None
+    food_spawning_system: FoodSpawningSystem | None
+    time_system: TimeSystem
+    lifecycle_system: EntityLifecycleSystem
+    collision_system: CollisionSystem
+    reproduction_system: ReproductionSystem
+    poker_system: PokerSystem
+    poker_proximity_system: PokerProximitySystem
+
+    def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
+    def _queue_sim_event(self, event: Any) -> None: ...
+    def _apply_entity_mutations(self, stage: str) -> None: ...
+    def create_initial_entities(self) -> None: ...
+    def _block_root_spots_with_obstacles(self) -> None: ...
+    def _build_spawn_rate_config(self) -> SpawnRateConfig: ...
 
 
 class SimulationEngine:
@@ -102,22 +127,14 @@ class SimulationEngine:
 
     def __init__(
         self,
-        config: Optional[SimulationConfig] = None,
+        config: SimulationConfig | None = None,
         *,
-        headless: Optional[bool] = None,
-        rng: Optional[random.Random] = None,
-        seed: Optional[int] = None,
-        enable_poker_benchmarks: Optional[bool] = None,
+        headless: bool | None = None,
+        rng: random.Random | None = None,
+        seed: int | None = None,
+        enable_poker_benchmarks: bool | None = None,
     ) -> None:
-        """Initialize the simulation engine.
-
-        Args:
-            config: Aggregate simulation configuration
-            headless: Override headless mode (for backward compatibility)
-            rng: Shared random number generator for deterministic runs
-            seed: Optional seed (used if rng is not provided)
-            enable_poker_benchmarks: Override poker benchmark toggle
-        """
+        """Initialize the simulation engine."""
         self.frame_count: int = 0
         self.paused: bool = False
         self.config = config or SimulationConfig.production(headless=True)
@@ -130,8 +147,7 @@ class SimulationEngine:
         self.config.validate()
         self.headless = self.config.headless
 
-        # RNG handling: prefer explicit rng, then seed, then fresh RNG
-        # NOTE: Do not seed the global random module to avoid cross-engine contamination.
+        # RNG handling
         if rng is not None:
             self.rng: random.Random = rng
             self.seed = None
@@ -142,11 +158,10 @@ class SimulationEngine:
             self.rng = random.Random()
             self.seed = None
 
-        # Observability: Unique identifier for this simulation run
         self.run_id: str = str(uuid.uuid4())
         logger.info(f"SimulationEngine initialized with run_id={self.run_id}")
 
-        # Entity management (delegated to EntityManager)
+        # Components (delegated to managers)
         self._entity_manager = EntityManager(
             rng=self.rng,
             get_environment=lambda: self.environment,
@@ -154,64 +169,57 @@ class SimulationEngine:
             get_root_spot_manager=lambda: self.root_spot_manager,
         )
 
-        # Backward compatibility: expose entities_list
-        # This is a property that delegates to EntityManager
+        from core.agents_wrapper import AgentsWrapper
+
         self.agents = AgentsWrapper(self)
-
-        # System registry (delegated to SystemRegistry)
         self._system_registry = SystemRegistry()
-
-        # Central mutation queue for spawns/removals
         self._entity_mutations = EntityMutationQueue()
 
         # Core state
-        self.environment: Optional[environment.Environment] = None
-        self.ecosystem: Optional[EcosystemManager] = None
+        self.environment: environment.Environment | None = None
+        self.ecosystem: EcosystemManager | None = None
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
 
-
-        # NOTE: EventBus was removed as dead code. It subscribed to events
-        # that were never emitted, and emitted events with no subscribers.
-        # If we need pub/sub in the future, re-add it with actual use cases.
-
-        # Systems - initialized here, registered in setup()
-        self.collision_system = CollisionSystem(self)
-        self.reproduction_service = ReproductionService(self)
-        self.reproduction_system = ReproductionSystem(self)
-        self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
-        self.poker_system.enabled = self.config.server.poker_activity_enabled
-        self.poker_events = self.poker_system.poker_events
-        self.lifecycle_system = EntityLifecycleSystem(self)
-        self.poker_proximity_system = PokerProximitySystem(self)
-
-        # Food spawning (initialized in setup after environment exists)
-        self.food_spawning_system: Optional[FoodSpawningSystem] = None
-
-        # Plant management (initialized in setup)
-        self.plant_manager: Optional[PlantManager] = None
-
-        # Periodic poker benchmark evaluation
-        self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
-        if self.config.poker.enable_periodic_benchmarks:
-            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
-                self.config.poker.benchmark_config
-            )
-
         # Services
+        from core.services.stats.calculator import StatsCalculator
+
         self.stats_calculator = StatsCalculator(self)
 
+        # Systems - these will be optionally initialized by the SystemPack in setup()
+        # but we keep them as Optional attributes for type safety and backward compat.
+        self.collision_system: CollisionSystem | None = None
+        self.reproduction_service: ReproductionService | None = None
+        self.reproduction_system: ReproductionSystem | None = None
+        self.poker_system: PokerSystem | None = None
+        self.lifecycle_system: EntityLifecycleSystem | None = None
+        self.poker_proximity_system: PokerProximitySystem | None = None
+        self.food_spawning_system: FoodSpawningSystem | None = None
+        self.plant_manager: PlantManager | None = None
+        self.poker_events: list[Any] = []
+
+        # Periodic poker benchmark evaluation
+        self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
+
+        # Energy Ledger integration
+        self.energy_ledger = EnergyLedger()
+        self.pending_sim_events: list[SimEvent] = []
 
         # Phase tracking for debugging
-        self._current_phase: Optional[UpdatePhase] = None
+        self._current_phase: UpdatePhase | None = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
+
+        # Pipeline (set during setup())
+        from core.simulation.pipeline import EnginePipeline
+
+        self.pipeline: EnginePipeline | None = None
 
     # =========================================================================
     # Properties for Backward Compatibility
     # =========================================================================
 
     @property
-    def entities_list(self) -> List[entities.Agent]:
+    def entities_list(self) -> list[entities.Agent]:
         """All entities in the simulation (delegates to EntityManager)."""
         return self._entity_manager.entities_list
 
@@ -221,7 +229,7 @@ class SimulationEngine:
         return self._entity_manager.food_pool
 
     @property
-    def root_spot_manager(self) -> Optional[RootSpotManager]:
+    def root_spot_manager(self) -> RootSpotManager | None:
         """Backward-compatible access to root spot manager via PlantManager."""
         if self.plant_manager is None:
             return None
@@ -231,65 +239,67 @@ class SimulationEngine:
     # Setup
     # =========================================================================
 
-    def setup(self) -> None:
-        """Setup the simulation."""
-        display = self.config.display
-        eco_config = self.config.ecosystem
+    def setup(self, pack: SystemPack | None = None) -> None:
+        """Setup the simulation using the provided SystemPack.
 
-        # Initialize environment
-        self.environment = environment.Environment(
-            self._entity_manager.entities_list,
-            display.screen_width,
-            display.screen_height,
-            self.time_system,
-            rng=self.rng,
-        )
-        self.environment.set_spawn_requester(self.request_spawn)
-        self.environment.set_remove_requester(self.request_remove)
+        If no pack is provided, it tries to use the default Tank logic
+        (via TankPack) for backward compatibility.
+        """
+        # Clear global poker participant state to prevent cross-engine contamination
+        from core.poker_participant_manager import _global_manager
 
-        # Initialize ecosystem manager
-        self.ecosystem = EcosystemManager(max_population=eco_config.max_population)
+        _global_manager.clear_all()
 
-        # Initialize plant management
-        if self.config.server.plants_enabled:
-            self.plant_manager = PlantManager(
-                environment=self.environment,
-                ecosystem=self.ecosystem,
-                entity_adder=self,
-                rng=self.rng,
+        # Fallback to TankPack if no pack provided (backward compat)
+        if pack is None:
+            from core.worlds.tank.pack import TankPack
+
+            pack = TankPack(self.config)
+
+        # 1. Initialize core systems that every engine has
+        from core.collision_system import CollisionSystem
+        from core.poker_system import PokerSystem
+        from core.reproduction_service import ReproductionService
+        from core.reproduction_system import ReproductionSystem
+        from core.systems.entity_lifecycle import EntityLifecycleSystem
+        from core.systems.poker_proximity import PokerProximitySystem
+
+        self.lifecycle_system = EntityLifecycleSystem(self)
+        self.collision_system = CollisionSystem(self)
+        self.reproduction_service = ReproductionService(self)
+        self.reproduction_system = ReproductionSystem(self)
+        self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
+        self.poker_system.enabled = self.config.server.poker_activity_enabled
+        self.poker_events = self.poker_system.poker_events
+        self.poker_proximity_system = PokerProximitySystem(self)
+
+        if self.config.poker.enable_periodic_benchmarks:
+            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+
+            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
+                self.config.poker.benchmark_config
             )
 
-        # Initialize food spawning system
-        self.food_spawning_system = FoodSpawningSystem(
-            self,
-            rng=self.rng,
-            spawn_rate_config=self._build_spawn_rate_config(),
-            auto_food_enabled=self.config.food.auto_food_enabled,
-            display_config=display,
-        )
+        # 2. Let the pack build the environment
+        self.environment = pack.build_environment(self)
 
-        # Register systems in execution order
-        self._system_registry.register(self.lifecycle_system)
-        self._system_registry.register(self.time_system)
-        self._system_registry.register(self.food_spawning_system)
-        self._system_registry.register(self.collision_system)
-        self._system_registry.register(self.poker_proximity_system)
-        self._system_registry.register(self.reproduction_system)
-        self._system_registry.register(self.poker_system)
+        # 3. Let the pack register systems
+        pack.register_systems(self)
         self._validate_system_phase_declarations()
 
+        # 4. Wire up the pipeline (pack can override or use default)
+        from core.simulation.pipeline import default_pipeline
 
-        # Create initial entities
-        self.create_initial_entities()
+        custom_pipeline = pack.get_pipeline() if hasattr(pack, "get_pipeline") else None
+        self.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
 
-        # Create initial fractal plants
-        if self.plant_manager is not None:
-            self._block_root_spots_with_obstacles()
-            self.plant_manager.create_initial_plants(self._entity_manager.entities_list)
-            self._apply_entity_mutations("setup_plants")
+        # 5. Let the pack seed entities
+        pack.seed_entities(self)
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
+        from core.systems.food_spawning import SpawnRateConfig
+
         food_cfg = self.config.food
         return SpawnRateConfig(
             base_rate=food_cfg.spawn_rate,
@@ -341,26 +351,25 @@ class SimulationEngine:
                     declared_phase.name,
                 )
 
-
     # =========================================================================
     # System Registry Methods (delegate to SystemRegistry)
     # =========================================================================
 
-    def get_systems(self) -> List[BaseSystem]:
+    def get_systems(self) -> list[BaseSystem]:
         """Get all registered systems in execution order."""
         return self._system_registry.get_all()
 
     # Also expose via private attribute for backward compat
     @property
-    def _systems(self) -> List[BaseSystem]:
+    def _systems(self) -> list[BaseSystem]:
         """Backward compatible access to systems list."""
         return self._system_registry.get_all()
 
-    def get_system(self, name: str) -> Optional[BaseSystem]:
+    def get_system(self, name: str) -> BaseSystem | None:
         """Get a system by name."""
         return self._system_registry.get(name)
 
-    def get_systems_debug_info(self) -> Dict[str, Any]:
+    def get_systems_debug_info(self) -> dict[str, Any]:
         """Get debug information from all registered systems."""
         return self._system_registry.get_debug_info()
 
@@ -368,16 +377,15 @@ class SimulationEngine:
         """Enable or disable a system by name."""
         return self._system_registry.set_enabled(name, enabled)
 
-
     # =========================================================================
     # Phase Tracking
     # =========================================================================
 
-    def get_current_phase(self) -> Optional[UpdatePhase]:
+    def get_current_phase(self) -> UpdatePhase | None:
         """Get the current update phase (None if not in update loop)."""
         return self._current_phase
 
-    def get_phase_description(self, phase: Optional[UpdatePhase] = None) -> str:
+    def get_phase_description(self, phase: UpdatePhase | None = None) -> str:
         """Get a human-readable description of a phase."""
         if phase is None:
             phase = self._current_phase
@@ -390,9 +398,11 @@ class SimulationEngine:
     # =========================================================================
 
     def create_initial_entities(self) -> None:
-        """Create initial entities in the fish tank with multiple species."""
+        """Create initial entities in the simulation."""
         if self.environment is None or self.ecosystem is None:
             return
+
+        from core.entity_factory import create_initial_population
 
         display = self.config.display
         population = create_initial_population(
@@ -416,15 +426,13 @@ class SimulationEngine:
     # Utility Methods
     # =========================================================================
 
-
-
-    def get_all_entities(self) -> List[entities.Agent]:
+    def get_all_entities(self) -> list[entities.Agent]:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
 
     def _add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation (INTERNAL USE ONLY).
-        
+
         This method should only be called by the engine when applying
         queued mutations from _apply_entity_mutations(). External code
         should use request_spawn() to queue spawns for safe processing.
@@ -435,7 +443,7 @@ class SimulationEngine:
 
     def _remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation (INTERNAL USE ONLY).
-        
+
         This method should only be called by the engine when applying
         queued mutations from _apply_entity_mutations(). External code
         should use request_remove() to queue removals for safe processing.
@@ -444,10 +452,10 @@ class SimulationEngine:
 
     def add_entity(self, entity: entities.Agent) -> None:
         """Add an entity to the simulation (PRIVILEGED API).
-        
+
         WARNING: This bypasses the mutation queue. Only use from privileged
         infrastructure code like tank persistence, migration handlers, etc.
-        
+
         Game systems should use request_spawn() to queue spawns for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
@@ -460,10 +468,10 @@ class SimulationEngine:
 
     def remove_entity(self, entity: entities.Agent) -> None:
         """Remove an entity from the simulation (PRIVILEGED API).
-        
+
         WARNING: This bypasses the mutation queue. Only use from privileged
         infrastructure code like tank persistence, migration handlers, etc.
-        
+
         Game systems should use request_remove() to queue removals for safe
         processing between phases. Calling this mid-frame can cause subtle bugs.
         """
@@ -479,24 +487,20 @@ class SimulationEngine:
         entity: entities.Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a spawn request to be applied by the engine."""
-        return self._entity_mutations.request_spawn(
-            entity, reason=reason, metadata=metadata
-        )
+        return self._entity_mutations.request_spawn(entity, reason=reason, metadata=metadata)
 
     def request_remove(
         self,
         entity: entities.Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a removal request to be applied by the engine."""
-        return self._entity_mutations.request_remove(
-            entity, reason=reason, metadata=metadata
-        )
+        return self._entity_mutations.request_remove(entity, reason=reason, metadata=metadata)
 
     def is_pending_removal(self, entity: entities.Agent) -> bool:
         """Check if an entity is queued for removal."""
@@ -512,11 +516,11 @@ class SimulationEngine:
         for mutation in spawns:
             self._add_entity(mutation.entity)
 
-    def get_fish_list(self) -> List[entities.Fish]:
+    def get_fish_list(self) -> list[entities.Fish]:
         """Get cached list of all fish in the simulation."""
         return self._entity_manager.get_fish()
 
-    def get_food_list(self) -> List[entities.Food]:
+    def get_food_list(self) -> list[entities.Food]:
         """Get cached list of all food in the simulation."""
         return self._entity_manager.get_food()
 
@@ -532,7 +536,7 @@ class SimulationEngine:
     # Lifecycle Delegation
     # =========================================================================
 
-    def record_fish_death(self, fish: entities.Agent, cause: Optional[str] = None) -> None:
+    def record_fish_death(self, fish: entities.Agent, cause: str | None = None) -> None:
         """Delegate fish death recording to the lifecycle system."""
         self.lifecycle_system.record_fish_death(fish, cause)
 
@@ -586,35 +590,42 @@ class SimulationEngine:
     def update(self) -> None:
         """Update the state of the simulation.
 
-        The update loop executes in well-defined phases (see UpdatePhase enum).
-        Each phase is implemented as a separate method for readability and testability.
+        The update loop executes via the configured pipeline, which defines
+        the sequence of phases. Different modes can provide custom pipelines
+        to modify the update behavior.
 
-        Phase Order:
+        The default pipeline (used by Tank mode) executes phases in this order:
             1. FRAME_START: Reset counters, increment frame
             2. TIME_UPDATE: Advance day/night cycle
             3. ENVIRONMENT: Update ecosystem and detection modifiers
             4. ENTITY_ACT: Update all entities, collect spawns/deaths
-            5. LIFECYCLE: Process deaths, add/remove entities
-            6. SPAWN: Auto-spawn food
-            7. COLLISION: Handle collisions
-            8. REPRODUCTION: Handle mating and emergency spawns
-            9. FRAME_END: Update stats, rebuild caches
+            5. RESOLVE_ENERGY: Process energy deltas
+            6. LIFECYCLE: Process deaths, add/remove entities
+            7. SPAWN: Auto-spawn food
+            8. COLLISION: Handle collisions
+            9. INTERACTION: Handle social interactions (poker)
+            10. REPRODUCTION: Handle mating and emergency spawns
+            11. FRAME_END: Update stats, rebuild caches
         """
         if self.paused:
             return
 
-        # Execute each phase in order
-        # Time values are returned from TIME_UPDATE and passed to ENTITY_ACT
-        self._phase_frame_start()
-        time_modifier, time_of_day = self._phase_time_update()
-        self._phase_environment()
-        new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
-        self._phase_lifecycle(new_entities, entities_to_remove)
-        self._phase_spawn()
-        self._phase_collision()
-        self._phase_interaction()
-        self._phase_reproduction()
-        self._phase_frame_end()
+        if self.pipeline is not None:
+            self.pipeline.run(self)
+        else:
+            # Fallback for edge cases where setup() wasn't called
+            # (defensive - should not happen in normal use)
+            self._phase_frame_start()
+            time_modifier, time_of_day = self._phase_time_update()
+            self._phase_environment()
+            new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+            self._resolve_energy()
+            self._phase_lifecycle(new_entities, entities_to_remove)
+            self._phase_spawn()
+            self._phase_collision()
+            self._phase_interaction()
+            self._phase_reproduction()
+            self._phase_frame_end()
 
     # -------------------------------------------------------------------------
     # Phase Implementations
@@ -631,14 +642,12 @@ class SimulationEngine:
             self.plant_manager.reconcile_plants(
                 self._entity_manager.entities_list, self.frame_count
             )
-            self.plant_manager.respawn_if_low(
-                self._entity_manager.entities_list, self.frame_count
-            )
+            self.plant_manager.respawn_if_low(self._entity_manager.entities_list, self.frame_count)
         self._apply_entity_mutations("frame_start")
 
     def _phase_time_update(self) -> tuple:
         """TIME_UPDATE: Advance day/night cycle.
-        
+
         Returns:
             Tuple of (time_modifier, time_of_day) for use by entity updates
         """
@@ -658,24 +667,23 @@ class SimulationEngine:
         if self.environment is not None:
             self.environment.update_detection_modifier()
 
-    def _phase_entity_act(
-        self, time_modifier: float, time_of_day: float
-    ) -> tuple:
+    def _phase_entity_act(self, time_modifier: float, time_of_day: float) -> tuple:
         """ENTITY_ACT: Update all entities, collect spawns/deaths.
-        
+
         Args:
             time_modifier: Activity modifier from day/night cycle
             time_of_day: Current time of day (0-1)
-            
+
         Returns:
             Tuple of (new_entities, entities_to_remove)
         """
         self._current_phase = UpdatePhase.ENTITY_ACT
-        new_entities: List[entities.Agent] = []
-        entities_to_remove: List[entities.Agent] = []
+        new_entities: list[entities.Agent] = []
+        entities_to_remove: list[entities.Agent] = []
 
         # Performance: Pre-fetch type references
-        Fish = entities.Fish
+        from core.entities import Fish
+        from core.entities.plant import Plant, PlantNectar
 
         ecosystem = self.ecosystem
         fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
@@ -716,11 +724,11 @@ class SimulationEngine:
 
     def _phase_lifecycle(
         self,
-        new_entities: List[entities.Agent],
-        entities_to_remove: List[entities.Agent],
+        new_entities: list[entities.Agent],
+        entities_to_remove: list[entities.Agent],
     ) -> None:
         """LIFECYCLE: Process deaths, add/remove entities.
-        
+
         This phase is the SINGLE OWNER of entity removal decisions:
         - Entities marked for removal in entity_act phase
         - Food expiry and off-screen removal
@@ -729,15 +737,17 @@ class SimulationEngine:
         Removals/spawns are queued and applied between phases by the engine.
         """
         self._current_phase = UpdatePhase.LIFECYCLE
-        
+
         # Remove entities collected during entity_act phase
         for entity in entities_to_remove:
             self.request_remove(entity, reason="entity_act")
 
         # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
+        from core.entities import Food
+
         screen_height = self.config.display.screen_height
         for entity in list(self._entity_manager.entities_list):
-            if isinstance(entity, entities.Food):
+            if isinstance(entity, Food):
                 self.lifecycle_system.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation
@@ -752,7 +762,7 @@ class SimulationEngine:
     def _phase_spawn(self) -> None:
         """SPAWN: Auto-spawn food and update spatial positions."""
         self._current_phase = UpdatePhase.SPAWN
-        
+
         if self.food_spawning_system:
             self.food_spawning_system.update(self.frame_count)
 
@@ -766,12 +776,12 @@ class SimulationEngine:
 
     def _phase_collision(self) -> None:
         """COLLISION: Handle physical collisions between entities.
-        
+
         CollisionSystem handles physical collision logic:
         - Fish-Food collisions (eating)
         - Fish-Crab collisions (predation)
         - Food-Crab collisions
-        
+
         Note: Fish-Fish poker proximity is handled by PokerProximitySystem
         in _phase_interaction().
         """
@@ -782,19 +792,81 @@ class SimulationEngine:
 
     def _phase_interaction(self) -> None:
         """INTERACTION: Handle social interactions between entities.
-        
+
         Systems in this phase:
         - PokerProximitySystem: Detects fish groups and triggers poker games
-        - PokerSystem (mixed): Handles fish-plant and plant-plant poker
+        - PokerSystem: Processes game outcomes, updates Elo, handles mixed poker
         """
         self._current_phase = UpdatePhase.INTERACTION
         # Fish-fish poker proximity detection
         self.poker_proximity_system.update(self.frame_count)
-        # PokerSystem is event-driven but still participates in phase accounting
+
+        # PokerSystem processes game outcomes
         self.poker_system.update(self.frame_count)
-        # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
+        # Mixed poker (fish-plant, plant-plant)
         self.handle_mixed_poker_games()
+
         self._apply_entity_mutations("interaction")
+
+    # =========================================================================
+    # Energy Ledger Methods
+    # =========================================================================
+
+    def _queue_sim_event(self, event: Any) -> None:
+        """Queue a simulation event for processing."""
+        if isinstance(event, SimEvent):
+            self.pending_sim_events.append(event)
+
+    def _resolve_energy(self) -> None:
+        """Process pending energy events and apply deltas."""
+        if not self.pending_sim_events:
+            return
+
+        deltas = []
+        for event in self.pending_sim_events:
+            deltas.extend(self.energy_ledger.apply(event))
+
+        self.pending_sim_events.clear()
+
+        if deltas:
+            self._apply_energy_deltas(deltas)
+
+    def _apply_energy_deltas(self, deltas: list[EnergyDelta]) -> None:
+        """Apply energy deltas to entities."""
+        # Map entity_id to entity for fast lookup
+        # Currently we iterate list, which is O(N).
+        # Optimization: use entity_manager map if available or build temp map?
+        # EntityManager doesn't expose ID map cleanly yet.
+        # But we can assume entity existence from ID?
+        # Let's iterate linearly for now or rely on EntityManager get_by_id if it existed.
+
+        # Build temp map for this batch
+        # Note: Assuming only Fish act on the ledger for now.
+        # TODO: Implement globally unique IDs or type-aware ledger for Plants.
+        entity_map = {e.fish_id: e for e in self.get_fish_list()}
+
+        for delta in deltas:
+            entity = entity_map.get(delta.entity_id)
+            if entity:
+                # We need a standard way to apply energy delta.
+                # If entity has `apply_energy_delta`, use it.
+                if hasattr(entity, "apply_energy_delta"):
+                    entity.apply_energy_delta(delta)
+                else:
+                    # Fallback for entities without specific handler
+                    # Use gain/lose methods ?
+                    # Caution: calling gain_energy might re-emit events!
+                    # So we need "internal" methods or property set.
+                    # Safe fallback: direct property modification (blind application)
+                    current = getattr(entity, "energy", 0.0)
+                    new_val = current + delta.delta
+
+                    # Basic clamping if max_energy exists
+                    max_e = getattr(entity, "max_energy", float("inf"))
+                    new_val = max(0.0, min(new_val, max_e))
+
+                    # Set checking for property setter logic (e.g. death check)
+                    entity.energy = new_val
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.
@@ -823,8 +895,7 @@ class SimulationEngine:
 
         # Record energy snapshot for delta calculations
         total_fish_energy = sum(
-            f.energy + f._reproduction_component.overflow_energy_bank
-            for f in fish_list
+            f.energy + f._reproduction_component.overflow_energy_bank for f in fish_list
         )
         ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 
@@ -845,21 +916,15 @@ class SimulationEngine:
     # Emergency Spawning
     # =========================================================================
 
-
-
     # =========================================================================
     # Poker Events
     # =========================================================================
-
-
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Delegate event creation to the poker system."""
         self.poker_system.add_poker_event(poker)
 
-    def get_recent_poker_events(
-        self, max_age_frames: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
         max_age = max_age_frames or self.config.poker.poker_event_max_age_frames
         return self.poker_system.get_recent_poker_events(max_age)
@@ -887,9 +952,9 @@ class SimulationEngine:
     # Statistics
     # =========================================================================
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Get current simulation statistics."""
-        return self.stats_calculator.get_stats()
+        return self.stats_calculator.get_stats(include_distributions=include_distributions)
 
     def export_stats_json(self, filename: str) -> None:
         """Export comprehensive simulation statistics to JSON file."""
@@ -907,7 +972,7 @@ class SimulationEngine:
         self,
         max_frames: int = 10000,
         stats_interval: int = 300,
-        export_json: Optional[str] = None,
+        export_json: str | None = None,
     ) -> None:
         """Run the simulation in headless mode without visualization."""
         sep = self.config.display.separator_width
@@ -958,7 +1023,7 @@ class SimulationEngine:
                 logger.info("=" * sep)
                 self.export_stats_json(export_json)
 
-    def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
+    def run_collect_stats(self, max_frames: int = 100) -> dict[str, Any]:
         """Run the engine for `max_frames` frames and return final stats."""
         self.setup()
         for _ in range(max_frames):

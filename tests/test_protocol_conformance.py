@@ -23,8 +23,8 @@ Test Categories:
 
 import pytest
 
-from core.environment import Environment
 from core.entities.base import Agent
+from core.environment import Environment
 
 
 class TestBehaviorStrategyProtocol:
@@ -59,9 +59,7 @@ class TestBehaviorStrategyProtocol:
         seen_ids = set()
         for algo_class in ALL_ALGORITHMS:
             instance = algo_class.random_instance()
-            assert hasattr(
-                instance, "algorithm_id"
-            ), f"{algo_class.__name__} missing algorithm_id"
+            assert hasattr(instance, "algorithm_id"), f"{algo_class.__name__} missing algorithm_id"
             assert isinstance(
                 instance.algorithm_id, str
             ), f"{algo_class.__name__}.algorithm_id should be str"
@@ -223,8 +221,8 @@ class TestEnergyHolderProtocol:
 
     def test_fish_implements_energy_holder(self):
         """Fish should implement EnergyHolder protocol."""
-        from core.interfaces import EnergyHolder
         from core.entities.fish import Fish
+        from core.interfaces import EnergyHolder
         from core.movement_strategy import AlgorithmicMovement
 
         env = Environment(agents=[], width=800, height=600)
@@ -278,7 +276,6 @@ class TestWorldProtocolConformance:
 
     def test_environment_has_all_world_methods(self):
         """Environment should have all World protocol methods."""
-        from core.world import World
 
         env = Environment(width=800, height=600)
 
@@ -293,9 +290,7 @@ class TestWorldProtocolConformance:
         ]
 
         for method_name in world_methods:
-            assert hasattr(
-                env, method_name
-            ), f"Environment missing World method: {method_name}"
+            assert hasattr(env, method_name), f"Environment missing World method: {method_name}"
 
     def test_spatial_query_methods_return_lists(self):
         """All spatial query methods should return lists."""
@@ -375,7 +370,7 @@ class TestProtocolEvolution:
 
     def test_algorithm_count_matches_registry(self):
         """Number of algorithms should match registry count."""
-        from core.algorithms.registry import ALL_ALGORITHMS, ALGORITHM_REGISTRY
+        from core.algorithms.registry import ALGORITHM_REGISTRY, ALL_ALGORITHMS
 
         assert len(ALL_ALGORITHMS) == len(
             ALGORITHM_REGISTRY

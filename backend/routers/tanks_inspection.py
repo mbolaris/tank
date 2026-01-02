@@ -1,11 +1,14 @@
 """Tank inspection operations (lineage, evaluation, benchmark, stats, snapshot)."""
 
 import logging
+from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from backend.routers.world_guards import get_tank_manager_or_error
 from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +16,7 @@ logger = logging.getLogger(__name__)
 def setup_inspection_subrouter(
     router: APIRouter,
     tank_registry: TankRegistry,
+    world_manager: Optional[WorldManager] = None,
 ) -> None:
     """Attach inspection endpoints to the router.
 
@@ -25,25 +29,29 @@ def setup_inspection_subrouter(
     """
 
     @router.get("/{tank_id}/evaluation-history")
-    async def get_tank_evaluation_history(tank_id: str):
+    async def get_tank_evaluation_history(tank_id: str, request: Request):
         """Get the full auto-evaluation history for a specific tank."""
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
         return JSONResponse(manager.runner.get_full_evaluation_history())
 
     @router.get("/{tank_id}/evolution-benchmark")
-    async def get_tank_evolution_benchmark(tank_id: str):
+    async def get_tank_evolution_benchmark(tank_id: str, request: Request):
         """Get evolution benchmark tracking data for a specific tank."""
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         data = manager.runner.get_evolution_benchmark_data()
         if isinstance(data, dict):
@@ -55,20 +63,22 @@ def setup_inspection_subrouter(
         return JSONResponse(data)
 
     @router.get("/{tank_id}/lineage")
-    async def get_tank_lineage(tank_id: str):
+    async def get_tank_lineage(tank_id: str, request: Request):
         """Get phylogenetic lineage data for a specific tank."""
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         try:
             from core.entities import Fish
+
             alive_fish_ids = {
-                fish.fish_id for fish in manager.world.entities_list
-                if isinstance(fish, Fish)
+                fish.fish_id for fish in manager.world.entities_list if isinstance(fish, Fish)
             }
             lineage_data = manager.world.ecosystem.get_lineage_data(alive_fish_ids)
             return JSONResponse(lineage_data)
@@ -77,14 +87,16 @@ def setup_inspection_subrouter(
             return JSONResponse({"error": str(e)}, status_code=500)
 
     @router.get("/{tank_id}/snapshot")
-    async def get_tank_snapshot(tank_id: str):
+    async def get_tank_snapshot(tank_id: str, request: Request):
         """Get a single state snapshot for a tank (for thumbnails)."""
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse(
-                {"error": f"Tank not found: {tank_id}"},
-                status_code=404,
-            )
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         try:
             # Get current state (force full state, no delta)
@@ -95,17 +107,24 @@ def setup_inspection_subrouter(
             return JSONResponse({"error": str(e)}, status_code=500)
 
     @router.get("/{tank_id}/transfer-stats")
-    async def get_tank_transfer_stats(tank_id: str):
+    async def get_tank_transfer_stats(tank_id: str, request: Request):
         """Get transfer statistics for a tank."""
         from backend.transfer_history import get_tank_transfer_stats
 
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            return JSONResponse({"error": f"Tank not found: {tank_id}"}, status_code=404)
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
 
         stats = get_tank_transfer_stats(tank_id)
-        return JSONResponse({
-            "tank_id": tank_id,
-            "tank_name": manager.tank_info.name,
-            **stats,
-        })
+        return JSONResponse(
+            {
+                "tank_id": tank_id,
+                "tank_name": manager.tank_info.name,
+                **stats,
+            }
+        )

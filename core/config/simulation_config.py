@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
-from typing import Dict, List
 
 from core.config.display import (
     FILES,
@@ -40,9 +39,18 @@ from core.config.food import (
     AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
     LIVE_FOOD_SPAWN_CHANCE,
 )
+from core.config.plants import PLANT_MIN_ENERGY_GAIN
 from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
 from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
+
+
+@dataclass
+class PlantConfig:
+    """Configuration for plant energy and growth."""
+
+    # Minimum energy gain per frame - adjustable at runtime by user
+    plant_energy_input_rate: float = PLANT_MIN_ENERGY_GAIN
 
 
 @dataclass
@@ -66,8 +74,8 @@ class DisplayConfig:
     screen_height: int = SCREEN_HEIGHT
     frame_rate: int = FRAME_RATE
     separator_width: int = SEPARATOR_WIDTH
-    files: Dict[str, List[str]] = field(default_factory=lambda: deepcopy(FILES))
-    init_pos: Dict[str, tuple] = field(default_factory=lambda: deepcopy(INIT_POS))
+    files: dict[str, list[str]] = field(default_factory=lambda: deepcopy(FILES))
+    init_pos: dict[str, tuple] = field(default_factory=lambda: deepcopy(INIT_POS))
 
 
 @dataclass
@@ -105,6 +113,19 @@ class FoodConfig:
 
 
 @dataclass
+class TankConfig:
+    """Tank-specific configuration.
+
+    Attributes:
+        brain_mode: Control how fish decisions are made.
+            - "legacy": Fish use their built-in movement strategies (default)
+            - "external": Fish receive actions from an external brain
+    """
+
+    brain_mode: str = "legacy"  # "legacy" | "external"
+
+
+@dataclass
 class SimulationConfig:
     """Aggregate configuration for running a simulation."""
 
@@ -113,6 +134,8 @@ class SimulationConfig:
     server: ServerConfig = field(default_factory=ServerConfig)
     poker: PokerConfig = field(default_factory=PokerConfig)
     food: FoodConfig = field(default_factory=FoodConfig)
+    plant: PlantConfig = field(default_factory=PlantConfig)
+    tank: TankConfig = field(default_factory=TankConfig)
     headless: bool = True
     enable_phase_debug: bool = False
 
@@ -127,12 +150,12 @@ class SimulationConfig:
             raise ValueError("; ".join(errors))
 
     @classmethod
-    def production(cls, *, headless: bool = False) -> "SimulationConfig":
+    def production(cls, *, headless: bool = False) -> SimulationConfig:
         """Preset matching production defaults."""
         return cls(headless=headless)
 
     @classmethod
-    def headless_fast(cls) -> "SimulationConfig":
+    def headless_fast(cls) -> SimulationConfig:
         """Preset optimized for fast, deterministic tests."""
         return cls(
             headless=True,
@@ -168,7 +191,7 @@ class SimulationConfig:
         )
 
     @classmethod
-    def debug_trace(cls) -> "SimulationConfig":
+    def debug_trace(cls) -> SimulationConfig:
         """Preset for deep debugging and tracing."""
         return cls(
             headless=True,
@@ -186,6 +209,6 @@ class SimulationConfig:
             ),
         )
 
-    def with_overrides(self, **kwargs) -> "SimulationConfig":
+    def with_overrides(self, **kwargs) -> SimulationConfig:
         """Return a copy of the config with updated fields."""
         return replace(self, **kwargs)

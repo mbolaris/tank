@@ -11,12 +11,11 @@ number prediction). Solutions are preserved so they can be:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import hashlib
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import asdict, dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -36,18 +35,18 @@ class SolutionMetadata:
     # Source tracking
     generation: int = 0  # Fish generation when captured
     simulation_frames: int = 0  # Total frames simulated
-    fish_id: Optional[int] = None  # Original fish ID (if applicable)
+    fish_id: int | None = None  # Original fish ID (if applicable)
 
     # Git tracking
-    commit_sha: Optional[str] = None  # Git commit where solution was captured
-    branch: Optional[str] = None  # Git branch
+    commit_sha: str | None = None  # Git commit where solution was captured
+    branch: str | None = None  # Git branch
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SolutionMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> SolutionMetadata:
         """Create from dictionary."""
         return cls(**data)
 
@@ -57,7 +56,7 @@ class BenchmarkResult:
     """Results from benchmarking a solution against standard opponents."""
 
     # Per-opponent results (bb/100 win rate)
-    per_opponent: Dict[str, float] = field(default_factory=dict)
+    per_opponent: dict[str, float] = field(default_factory=dict)
 
     # Aggregate metrics
     weighted_bb_per_100: float = 0.0
@@ -65,30 +64,30 @@ class BenchmarkResult:
     elo_rating: float = 1200.0
 
     # Confidence intervals
-    confidence_intervals: Dict[str, Tuple[float, float]] = field(default_factory=dict)
+    confidence_intervals: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     # Skill tier classification
-    skill_tier: str = "beginner"  # failing, novice, beginner, intermediate, advanced, expert, master
+    skill_tier: str = (
+        "beginner"  # failing, novice, beginner, intermediate, advanced, expert, master
+    )
 
     # Timestamp of evaluation
     evaluated_at: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "per_opponent": self.per_opponent,
             "weighted_bb_per_100": self.weighted_bb_per_100,
             "total_hands_played": self.total_hands_played,
             "elo_rating": self.elo_rating,
-            "confidence_intervals": {
-                k: list(v) for k, v in self.confidence_intervals.items()
-            },
+            "confidence_intervals": {k: list(v) for k, v in self.confidence_intervals.items()},
             "skill_tier": self.skill_tier,
             "evaluated_at": self.evaluated_at,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BenchmarkResult":
+    def from_dict(cls, data: dict[str, Any]) -> BenchmarkResult:
         """Create from dictionary."""
         ci = data.get("confidence_intervals", {})
         if isinstance(ci, dict):
@@ -119,19 +118,19 @@ class SolutionRecord:
     metadata: SolutionMetadata
 
     # Behavioral algorithm (serialized)
-    behavior_algorithm: Dict[str, Any] = field(default_factory=dict)
+    behavior_algorithm: dict[str, Any] = field(default_factory=dict)
 
     # Poker strategy (if applicable)
-    poker_strategy: Dict[str, Any] = field(default_factory=dict)
+    poker_strategy: dict[str, Any] = field(default_factory=dict)
 
     # Composable behavior configuration
-    composable_behavior: Optional[Dict[str, Any]] = None
+    composable_behavior: dict[str, Any] | None = None
 
     # Performance at capture time
-    capture_stats: Dict[str, Any] = field(default_factory=dict)
+    capture_stats: dict[str, Any] = field(default_factory=dict)
 
     # Benchmark results (populated after evaluation)
-    benchmark_result: Optional[BenchmarkResult] = None
+    benchmark_result: BenchmarkResult | None = None
 
     def compute_hash(self) -> str:
         """Compute a deterministic hash of the solution's strategy.
@@ -147,7 +146,7 @@ class SolutionRecord:
         content = json.dumps(strategy_data, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "metadata": self.metadata.to_dict(),
@@ -161,7 +160,7 @@ class SolutionRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SolutionRecord":
+    def from_dict(cls, data: dict[str, Any]) -> SolutionRecord:
         """Create from dictionary."""
         metadata = SolutionMetadata.from_dict(data["metadata"])
         benchmark_data = data.get("benchmark_result")
@@ -195,7 +194,7 @@ class SolutionRecord:
         return filepath
 
     @classmethod
-    def load(cls, filepath: str) -> "SolutionRecord":
+    def load(cls, filepath: str) -> SolutionRecord:
         """Load solution from a JSON file."""
         with open(filepath) as f:
             data = json.load(f)
@@ -227,34 +226,32 @@ class SolutionComparison:
     """Results from comparing multiple solutions."""
 
     # Solutions compared (by ID)
-    solution_ids: List[str] = field(default_factory=list)
+    solution_ids: list[str] = field(default_factory=list)
 
     # Rankings (1st place = best)
-    rankings: Dict[str, int] = field(default_factory=dict)
+    rankings: dict[str, int] = field(default_factory=dict)
 
     # Head-to-head results (solution_id -> opponent_id -> win_rate)
-    head_to_head: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    head_to_head: dict[str, dict[str, float]] = field(default_factory=dict)
 
     # Statistical significance of differences
-    significant_differences: List[Tuple[str, str, float]] = field(default_factory=list)
+    significant_differences: list[tuple[str, str, float]] = field(default_factory=list)
 
     # Comparison timestamp
     compared_at: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "solution_ids": self.solution_ids,
             "rankings": self.rankings,
             "head_to_head": self.head_to_head,
-            "significant_differences": [
-                list(diff) for diff in self.significant_differences
-            ],
+            "significant_differences": [list(diff) for diff in self.significant_differences],
             "compared_at": self.compared_at,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SolutionComparison":
+    def from_dict(cls, data: dict[str, Any]) -> SolutionComparison:
         """Create from dictionary."""
         return cls(
             solution_ids=data.get("solution_ids", []),

@@ -164,12 +164,25 @@ class PokerStrategyEngine:
 
     # Rank and suit mappings for converting tuple format to Card objects
     _RANK_MAP = {
-        "2": Rank.TWO, "3": Rank.THREE, "4": Rank.FOUR, "5": Rank.FIVE,
-        "6": Rank.SIX, "7": Rank.SEVEN, "8": Rank.EIGHT, "9": Rank.NINE,
-        "T": Rank.TEN, "J": Rank.JACK, "Q": Rank.QUEEN, "K": Rank.KING, "A": Rank.ACE,
+        "2": Rank.TWO,
+        "3": Rank.THREE,
+        "4": Rank.FOUR,
+        "5": Rank.FIVE,
+        "6": Rank.SIX,
+        "7": Rank.SEVEN,
+        "8": Rank.EIGHT,
+        "9": Rank.NINE,
+        "T": Rank.TEN,
+        "J": Rank.JACK,
+        "Q": Rank.QUEEN,
+        "K": Rank.KING,
+        "A": Rank.ACE,
     }
     _SUIT_MAP = {
-        "c": Suit.CLUBS, "d": Suit.DIAMONDS, "h": Suit.HEARTS, "s": Suit.SPADES,
+        "c": Suit.CLUBS,
+        "d": Suit.DIAMONDS,
+        "h": Suit.HEARTS,
+        "s": Suit.SPADES,
     }
 
     def evaluate_starting_hand_strength(self, hole_cards: List[Tuple[str, str]]) -> float:
@@ -182,10 +195,7 @@ class PokerStrategyEngine:
 
         # Convert tuple format (rank, suit) to Card objects
         try:
-            cards = [
-                Card(self._RANK_MAP[r], self._SUIT_MAP[s.lower()])
-                for r, s in hole_cards
-            ]
+            cards = [Card(self._RANK_MAP[r], self._SUIT_MAP[s.lower()]) for r, s in hole_cards]
         except (KeyError, AttributeError):
             return 0.5  # Invalid card format
 
@@ -277,7 +287,7 @@ class PokerStrategyEngine:
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
-        
+
         # Base bluff frequency
         bluff_chance = self.bluff_frequency
 

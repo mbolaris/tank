@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
-
-from core.environment import Environment
-from core.movement_strategy import AlgorithmicMovement
 
 from core.entities.fish import Fish
+from core.environment import Environment
+from core.movement_strategy import AlgorithmicMovement
 from core.state_machine import EntityState
 
 
 @dataclass
 class FakeMigrationHandler:
     result: bool = True
-    last_call: Optional[Tuple[str, str, str]] = None
+    last_call: tuple[str, str, str] | None = None
 
     def attempt_entity_migration(self, entity, direction: str, source_tank_id: str) -> bool:
         self.last_call = (type(entity).__name__, direction, source_tank_id)

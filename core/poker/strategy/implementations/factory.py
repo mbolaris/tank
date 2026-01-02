@@ -3,25 +3,25 @@
 import random
 from typing import List, Optional, Type
 
-from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
-from core.poker.strategy.implementations.standard import (
-    TightAggressiveStrategy,
-    LooseAggressiveStrategy,
-    TightPassiveStrategy,
-    BalancedStrategy,
-    ManiacStrategy,
-    LoosePassiveStrategy,
-)
 from core.poker.strategy.implementations.advanced import (
     AdaptiveStrategy,
+    MathematicalStrategy,
     PositionalExploiter,
     TrapSetterStrategy,
-    MathematicalStrategy,
 )
-from core.poker.strategy.implementations.expert import GTOExpertStrategy
+from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.poker.strategy.implementations.baseline import (
     AlwaysFoldStrategy,
     RandomStrategy,
+)
+from core.poker.strategy.implementations.expert import GTOExpertStrategy
+from core.poker.strategy.implementations.standard import (
+    BalancedStrategy,
+    LooseAggressiveStrategy,
+    LoosePassiveStrategy,
+    ManiacStrategy,
+    TightAggressiveStrategy,
+    TightPassiveStrategy,
 )
 
 # Registry of all EVOLVING strategy classes
@@ -45,16 +45,18 @@ BASELINE_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
     RandomStrategy,
     TightPassiveStrategy,  # "Rock" - also useful as baseline
     LoosePassiveStrategy,  # "Calling Station" - also useful as baseline
-    GTOExpertStrategy,     # Expert baseline
+    GTOExpertStrategy,  # Expert baseline
 ]
+
 
 def get_all_poker_strategies() -> List[Type[PokerStrategyAlgorithm]]:
     """Get list of all evolving poker strategy classes."""
     return ALL_POKER_STRATEGIES
 
+
 def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
     """Get random poker strategy.
-    
+
     Args:
         rng: Random number generator. If None, creates a new Random() instance.
     """
@@ -120,16 +122,21 @@ def crossover_poker_strategies(
 
     crossover_rng = require_rng_param(rng, "crossover_poker_strategies")
 
-    if isinstance(parent1, ComposablePokerStrategy) and isinstance(parent2, ComposablePokerStrategy):
+    if isinstance(parent1, ComposablePokerStrategy) and isinstance(
+        parent2, ComposablePokerStrategy
+    ):
         cfg = POKER_EVOLUTION_CONFIG
         if mutation_rate is None:
             mutation_rate = cfg["default_mutation_rate"]
         if mutation_strength is None:
             mutation_strength = cfg["default_mutation_strength"]
         if winner_weight is None:
-            winner_weight = cfg["default_winner_weight"] if cfg["winner_biased_inheritance"] else 0.5
+            winner_weight = (
+                cfg["default_winner_weight"] if cfg["winner_biased_inheritance"] else 0.5
+            )
         return ComposablePokerStrategy.from_parents(
-            parent1, parent2,
+            parent1,
+            parent2,
             weight1=winner_weight,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
@@ -187,10 +194,9 @@ def crossover_poker_strategies(
                 if param_key in parent2.parameters:
                     # Use winner-biased weighted average
                     # winner_weight determines parent1's contribution
-                    offspring.parameters[param_key] = (
-                        parent1.parameters[param_key] * winner_weight +
-                        parent2.parameters[param_key] * (1.0 - winner_weight)
-                    )
+                    offspring.parameters[param_key] = parent1.parameters[
+                        param_key
+                    ] * winner_weight + parent2.parameters[param_key] * (1.0 - winner_weight)
                 else:
                     offspring.parameters[param_key] = parent1.parameters[param_key]
         else:

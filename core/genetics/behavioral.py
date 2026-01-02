@@ -6,7 +6,7 @@ including aggression, social tendencies, and algorithm selection.
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -20,11 +20,11 @@ from core.genetics.trait import (
 )
 
 if TYPE_CHECKING:
-    from core.algorithms.base import BehaviorAlgorithm
     from core.algorithms.composable import ComposableBehavior
-    from core.poker.strategy.implementations import PokerStrategyAlgorithm
-    from core.poker.strategy.composable import ComposablePokerStrategy
     from core.genetics.physical import PhysicalTraits
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
+
+from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 
 # Type alias for poker strategy (can be monolithic or composable)
 PokerStrategyType = "PokerStrategyAlgorithm | ComposablePokerStrategy"
@@ -61,9 +61,7 @@ MATE_PREFERENCE_TRAIT_NAMES = (
 )
 
 MATE_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
-    spec.name: spec
-    for spec in PHYSICAL_TRAIT_SPECS
-    if spec.name in MATE_PREFERENCE_TRAIT_NAMES
+    spec.name: spec for spec in PHYSICAL_TRAIT_SPECS if spec.name in MATE_PREFERENCE_TRAIT_NAMES
 }
 
 
@@ -200,7 +198,24 @@ class BehavioralTraits:
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
+    # ==========================================================================
+    # Code Policy Traits (for linking to CodePool components)
+    # ==========================================================================
+    # These traits allow a genome to carry references into the CodePool,
+    # enabling fish to use evolved code policies. This is purely data plumbing;
+    # the actual code execution happens elsewhere.
 
+    # The kind of policy this genome references (e.g. "movement_policy", "foraging_policy")
+    # Must be set if code_policy_component_id is set.
+    code_policy_kind: Optional[GeneticTrait[Optional[str]]] = None
+
+    # The component ID from the CodePool. This references an existing component;
+    # genetics does NOT generate new component IDs (that's CodePool's job).
+    code_policy_component_id: Optional[GeneticTrait[Optional[str]]] = None
+
+    # Optional tuning parameters for the code policy.
+    # Keys are parameter names, values are floats in [-10.0, 10.0] range.
+    code_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
 
     @classmethod
     def random(
@@ -230,6 +245,10 @@ class BehavioralTraits:
         mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
         traits["mate_preferences"] = random_genetic_trait(mate_preferences, rng)
 
+        traits["code_policy_kind"] = random_genetic_trait("movement_policy", rng)
+        traits["code_policy_component_id"] = random_genetic_trait(BUILTIN_SEEK_NEAREST_FOOD_ID, rng)
+        traits["code_policy_params"] = random_genetic_trait(None, rng)
+
         return cls(**traits)
 
     @classmethod
@@ -242,6 +261,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
+        available_policies: Optional[List[str]] = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits from two parents.
 
@@ -254,7 +274,6 @@ class BehavioralTraits:
             mutation_strength: Mutation magnitude
             rng: Random number generator
         """
-        from core.algorithms.composable import ComposableBehavior
 
         # Inherit numeric traits using specs
         inherited = inherit_traits_from_specs(
@@ -310,6 +329,26 @@ class BehavioralTraits:
             parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
         )
 
+        # Inherit code policy traits
+        cp_kind, cp_id, cp_params = _inherit_code_policy(
+            parent1,
+            parent2,
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+            available_policies=available_policies,
+        )
+        inherited["code_policy_kind"] = _inherit_trait_meta(
+            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
+        )
+        inherited["code_policy_component_id"] = _inherit_trait_meta(
+            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
+        )
+        inherited["code_policy_params"] = _inherit_trait_meta(
+            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
+        )
+
         return cls(**inherited)
 
     @classmethod
@@ -322,6 +361,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
+        available_policies: Optional[List[str]] = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = inherit_traits_from_specs_recombination(
@@ -365,10 +405,7 @@ class BehavioralTraits:
         prefs2 = parent2.mate_preferences.value if parent2.mate_preferences else {}
         mate_prefs = {}
         keys = (
-            set(DEFAULT_MATE_PREFERENCES)
-            | set(MATE_PREFERENCE_SPECS)
-            | set(prefs1)
-            | set(prefs2)
+            set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
         )
         for pref_key in sorted(keys):
             pref_weight1 = 1.0 if rng.random() < parent1_probability else 0.0
@@ -388,7 +425,29 @@ class BehavioralTraits:
             parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
         )
 
+        # Inherit code policy traits (using recombination weight)
+        recomb_weight = 1.0 if rng.random() < parent1_probability else 0.0
+        cp_kind, cp_id, cp_params = _inherit_code_policy(
+            parent1,
+            parent2,
+            weight1=recomb_weight,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+            available_policies=available_policies,
+        )
+        inherited["code_policy_kind"] = _inherit_trait_meta(
+            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
+        )
+        inherited["code_policy_component_id"] = _inherit_trait_meta(
+            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
+        )
+        inherited["code_policy_params"] = _inherit_trait_meta(
+            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
+        )
+
         return cls(**inherited)
+
 
 def _inherit_composable_behavior(
     behavior1: Optional["ComposableBehavior"],
@@ -535,7 +594,9 @@ def _inherit_mate_preferences(
 ) -> Dict[str, float]:
     """Inherit mate preferences from parents."""
     result = {}
-    keys = sorted(set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2))
+    keys = sorted(
+        set(DEFAULT_MATE_PREFERENCES) | set(MATE_PREFERENCE_SPECS) | set(prefs1) | set(prefs2)
+    )
     for pref_key in keys:
         default_val = _default_preference_for_key(pref_key)
         p1_val = prefs1.get(pref_key, default_val)
@@ -550,3 +611,195 @@ def _inherit_mate_preferences(
             rng=rng,
         )
     return result
+
+
+# =============================================================================
+# Code Policy Inheritance Constants
+# =============================================================================
+# Probability thresholds for code policy inheritance and mutation.
+
+CODE_POLICY_DROP_PROBABILITY: float = 0.02  # 2% chance to drop code policy
+CODE_POLICY_PARAM_MUTATION_RATE: float = 0.15  # 15% chance to mutate each param
+CODE_POLICY_PARAM_MUTATION_STRENGTH: float = 0.1  # Gaussian sigma for param changes
+CODE_POLICY_PARAM_MIN: float = -10.0  # Minimum allowed param value
+CODE_POLICY_PARAM_MAX: float = 10.0  # Maximum allowed param value
+
+
+def _inherit_code_policy(
+    parent1: "BehavioralTraits",
+    parent2: "BehavioralTraits",
+    weight1: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+    available_policies: Optional[List[str]] = None,
+) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
+    """Inherit code policy traits from parents.
+
+    Rules:
+    - If both parents have code policies, inherit one based on weight1 probability.
+    - If only one parent has a code policy, child may inherit it with probability.
+    - Mutation can drop the code policy (set to None) with small probability.
+    - Mutation can duplicate params if not swapping policy.
+    - If available_policies is provided, small chance to swap to a random policy from the list.
+
+    Returns:
+        Tuple of (code_policy_kind, code_policy_component_id, code_policy_params)
+    """
+    # Extract parent values
+    p1_kind = (
+        parent1.code_policy_kind.value
+        if parent1.code_policy_kind and parent1.code_policy_kind.value
+        else None
+    )
+    p1_id = (
+        parent1.code_policy_component_id.value
+        if parent1.code_policy_component_id and parent1.code_policy_component_id.value
+        else None
+    )
+    p1_params = (
+        parent1.code_policy_params.value
+        if parent1.code_policy_params and parent1.code_policy_params.value
+        else None
+    )
+
+    p2_kind = (
+        parent2.code_policy_kind.value
+        if parent2.code_policy_kind and parent2.code_policy_kind.value
+        else None
+    )
+    p2_id = (
+        parent2.code_policy_component_id.value
+        if parent2.code_policy_component_id and parent2.code_policy_component_id.value
+        else None
+    )
+    p2_params = (
+        parent2.code_policy_params.value
+        if parent2.code_policy_params and parent2.code_policy_params.value
+        else None
+    )
+
+    # Both parents have no code policy
+    if p1_id is None and p2_id is None:
+        return None, None, None
+
+    # Determine which parent's code policy to inherit
+    if p1_id is not None and p2_id is not None:
+        # Both have code policies - use weighted selection
+        if rng.random() < weight1:
+            kind, component_id, params = p1_kind, p1_id, p1_params
+        else:
+            kind, component_id, params = p2_kind, p2_id, p2_params
+    elif p1_id is not None:
+        # Only parent1 has a code policy
+        # Inherit with probability proportional to weight1
+        if rng.random() < weight1:
+            kind, component_id, params = p1_kind, p1_id, p1_params
+        else:
+            # Small chance to inherit anyway (gene flow)
+            if rng.random() < 0.3:
+                kind, component_id, params = p1_kind, p1_id, p1_params
+            else:
+                return None, None, None
+    else:
+        # Only parent2 has a code policy
+        weight2 = 1.0 - weight1
+        if rng.random() < weight2:
+            kind, component_id, params = p2_kind, p2_id, p2_params
+        else:
+            # Small chance to inherit anyway
+            if rng.random() < 0.3:
+                kind, component_id, params = p2_kind, p2_id, p2_params
+            else:
+                return None, None, None
+
+    # Mutation: chance to drop the code policy entirely
+    if rng.random() < CODE_POLICY_DROP_PROBABILITY * mutation_rate:
+        return None, None, None
+
+    # Mutation: chance to swap to a different available policy
+    if available_policies and rng.random() < mutation_rate * 0.1:  # 10% of mutation rate
+        # Pick a random policy from available ones
+        new_id = rng.choice(available_policies)
+        # If we swapped, reset params or keep? Let's reset to None for fresh start
+        return "movement_policy", new_id, None
+
+    # Mutation: mutate params if present
+    mutated_params = _mutate_code_policy_params(params, mutation_rate, mutation_strength, rng)
+
+    return kind, component_id, mutated_params
+
+
+def _mutate_code_policy_params(
+    params: Optional[Dict[str, float]],
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+) -> Optional[Dict[str, float]]:
+    """Mutate code policy parameters slightly.
+
+    Each parameter has a chance to be mutated using Gaussian noise.
+    Values are clamped to [CODE_POLICY_PARAM_MIN, CODE_POLICY_PARAM_MAX].
+    """
+    if params is None:
+        return None
+
+    mutated = dict(params)
+    eff_mutation_rate = CODE_POLICY_PARAM_MUTATION_RATE * mutation_rate
+    eff_strength = CODE_POLICY_PARAM_MUTATION_STRENGTH * mutation_strength
+
+    for key in mutated:
+        if rng.random() < eff_mutation_rate:
+            old_val = mutated[key]
+            delta = rng.gauss(0, eff_strength)
+            new_val = old_val + delta
+            # Clamp to valid range
+            new_val = max(CODE_POLICY_PARAM_MIN, min(CODE_POLICY_PARAM_MAX, new_val))
+            mutated[key] = new_val
+
+    return mutated
+
+
+def validate_code_policy(
+    kind: Optional[str],
+    component_id: Optional[str],
+    params: Optional[Dict[str, float]],
+) -> List[str]:
+    """Validate code policy fields and return a list of issues.
+
+    Validation rules:
+    - If code_policy_component_id is set, code_policy_kind must be set.
+    - params must have finite numbers, bounded in [CODE_POLICY_PARAM_MIN, CODE_POLICY_PARAM_MAX].
+
+    Returns:
+        List of issue strings (empty if valid).
+    """
+    import math
+
+    issues: List[str] = []
+
+    # If component_id is set, kind must also be set
+    if component_id is not None and kind is None:
+        issues.append("code_policy_component_id is set but code_policy_kind is not set")
+
+    # Validate params if present
+    if params is not None:
+        if not isinstance(params, dict):
+            issues.append(f"code_policy_params must be a dict, got {type(params).__name__}")
+        else:
+            for key, val in params.items():
+                if not isinstance(key, str):
+                    issues.append(f"code_policy_params key must be str, got {type(key).__name__}")
+                if not isinstance(val, (int, float)):
+                    issues.append(
+                        f"code_policy_params[{key!r}] must be numeric, got {type(val).__name__}"
+                    )
+                elif math.isnan(val) or math.isinf(val):
+                    issues.append(f"code_policy_params[{key!r}] must be finite, got {val}")
+                elif val < CODE_POLICY_PARAM_MIN or val > CODE_POLICY_PARAM_MAX:
+                    issues.append(
+                        f"code_policy_params[{key!r}]={val} out of range "
+                        f"[{CODE_POLICY_PARAM_MIN}, {CODE_POLICY_PARAM_MAX}]"
+                    )
+
+    return issues

@@ -101,12 +101,14 @@ def _run_connection_persistence():
             continue
 
         # Check all fields match
-        if (original.source_tank_id != restored.source_tank_id or
-            original.destination_tank_id != restored.destination_tank_id or
-            original.probability != restored.probability or
-            original.direction != restored.direction or
-            original.source_server_id != restored.source_server_id or
-            original.destination_server_id != restored.destination_server_id):
+        if (
+            original.source_tank_id != restored.source_tank_id
+            or original.destination_tank_id != restored.destination_tank_id
+            or original.probability != restored.probability
+            or original.direction != restored.direction
+            or original.source_server_id != restored.source_server_id
+            or original.destination_server_id != restored.destination_server_id
+        ):
             print(f"  ❌ Connection {original.id} fields don't match")
             print(f"     Original: {original}")
             print(f"     Restored: {restored}")

@@ -1,0 +1,43 @@
+============================================================
+TankWorld AI Tournament (Best Solution Per Author)
+Generated: 2025-12-30T15:57:03.492800
+Git Branch: master
+Git Commit: 6e7ba126d411f16d8e52fb1d63fa00960943410a
+
+CONFIG
+------------------------------------------------------------
+solutions_dir: solutions
+benchmark_hands_per_opponent: 300
+benchmark_duplicate_sets: 10
+benchmark_base_seed: 42
+head_to_head_hands_per_matchup: 1000
+
+SELECTED (best per author after re-eval)
+------------------------------------------------------------
+- Haiku-4.5          | Haiku-4.5 Poker Stratege       | Elo  1582.7 (expert  ) | bb/100  +480.97 | id 3c8ae847_20251229_191554
+- Opus-4.5           | Opus-4.5 Poker Champion        | Elo  1582.7 (expert  ) | bb/100  +826.75 | id 133de727_20251229_173918
+- GPT-5.2-Codex-Max  | GPT-5.2-Codex-Max Poker Master | Elo  1582.7 (expert  ) | bb/100  +496.71 | id 603bca97_20251229_185408
+- Sonnet-4.5         | Sonnet-4.5 Poker Master        | Elo  1518.9 (advanced) | bb/100  +569.05 | id 603bca97_20251229_182751
+- Gemini 3.0         | Gemini 3.0 Poker Supreme       | Elo  1459.3 (advanced) | bb/100  +742.00 | id 802f6384_20251229_213007
+- GPT-5.2-Codex-Prime | GPT-5.2-Codex-Prime Poker Overlord | Elo  1432.8 (intermediate) | bb/100  +605.99 | id 2e9c6046_20251229_222622
+
+TOURNAMENT STANDINGS (avg head-to-head win rate)
+------------------------------------------------------------
+#1  GPT-5.2-Codex-Max  | WR   67.3% | Elo  1582.7 | bb/100  +496.71 | GPT-5.2-Codex-Max Poker Master
+#2  Opus-4.5           | WR   65.6% | Elo  1582.7 | bb/100  +826.75 | Opus-4.5 Poker Champion
+#3  Haiku-4.5          | WR   65.4% | Elo  1582.7 | bb/100  +480.97 | Haiku-4.5 Poker Stratege
+#4  Sonnet-4.5         | WR   59.0% | Elo  1518.9 | bb/100  +569.05 | Sonnet-4.5 Poker Master
+#5  GPT-5.2-Codex-Prime | WR   21.9% | Elo  1432.8 | bb/100  +605.99 | GPT-5.2-Codex-Prime Poker Overlord
+#6  Gemini 3.0         | WR   20.8% | Elo  1459.3 | bb/100  +742.00 | Gemini 3.0 Poker Supreme
+
+HEAD-TO-HEAD MATRIX (row beats column)
+------------------------------------------------------------
+                   Haiku-4.5   Opus-4.5 GPT-5.2-Co Sonnet-4.5 Gemini 3.0 GPT-5.2-Co
+Haiku-4.5            --          43.3%      90.0%      35.4%      87.4%      70.9%
+Opus-4.5              56.7%     --          23.9%      47.4%     100.0%     100.0%
+GPT-5.2-Codex-Ma      10.0%      76.1%     --          97.1%     100.0%      53.3%
+Sonnet-4.5            64.6%      52.6%       2.9%     --          74.8%     100.0%
+Gemini 3.0            12.6%       0.0%       0.0%      25.2%     --          66.0%
+GPT-5.2-Codex-Pr      29.1%       0.0%      46.7%       0.0%      34.0%     --    
+
+============================================================

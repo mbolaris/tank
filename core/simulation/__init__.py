@@ -11,13 +11,13 @@ the Single Responsibility Principle.
 
 Usage:
     from core.simulation import SimulationEngine
-    
+
     engine = SimulationEngine(config)
     engine.setup()
     engine.run_headless(max_frames=1000)
 """
 
-from core.simulation.engine import SimulationEngine, HeadlessSimulator
+from core.simulation.engine import HeadlessSimulator, SimulationEngine
 from core.simulation.entity_manager import EntityManager
 from core.simulation.system_registry import SystemRegistry
 

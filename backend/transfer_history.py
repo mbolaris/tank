@@ -94,7 +94,9 @@ def log_transfer(
     # Update migration counters (for summary stats)
     if success:
         _migration_out_counts[source_tank_id] = _migration_out_counts.get(source_tank_id, 0) + 1
-        _migration_in_counts[destination_tank_id] = _migration_in_counts.get(destination_tank_id, 0) + 1
+        _migration_in_counts[destination_tank_id] = (
+            _migration_in_counts.get(destination_tank_id, 0) + 1
+        )
 
     # Log at DEBUG level to reduce noise (summary appears in Simulation Status)
     status = "success" if success else f"failed: {error}"
@@ -146,9 +148,7 @@ def get_transfer_history(
     # Apply filters
     if tank_id:
         records = [
-            r
-            for r in records
-            if r.source_tank_id == tank_id or r.destination_tank_id == tank_id
+            r for r in records if r.source_tank_id == tank_id or r.destination_tank_id == tank_id
         ]
 
     if success_only:
@@ -267,7 +267,7 @@ def record_migration_in(tank_id: Optional[str] = None) -> None:
 
 def get_and_reset_migration_counts(tank_id: Optional[str] = None) -> tuple:
     """Get migration counts since last reset and reset them.
-    
+
     Returns:
         Tuple of (migrations_in, migrations_out)
     """

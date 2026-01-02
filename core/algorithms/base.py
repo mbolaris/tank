@@ -722,11 +722,11 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 f"mutate_parameters requires an RNG for {self.algorithm_id}. "
                 "Pass rng= explicitly or ensure self.rng was set at construction."
             )
-        
+
         # Optimization: If mutation is disabled, return early
         if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:
             return
-        
+
         for key, current_value in list(self.parameters.items()):
             # Skip non-numeric parameters (they shouldn't be mutated)
             if not isinstance(current_value, (int, float)):

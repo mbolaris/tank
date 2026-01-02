@@ -7,11 +7,13 @@ for agents in the simulation.
 import math
 import random
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 from core.interfaces import MigrationHandler
-from core.world import World, World2D  # Import World protocols
+
+if TYPE_CHECKING:
+    from core.code_pool import CodePool
 
 
 class SpatialGrid:
@@ -45,7 +47,13 @@ class SpatialGrid:
 
         # Grid storage: dict of (col, row) -> dict of type -> list of agents
         # Using list instead of set for faster iteration in tight loops
-        self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(lambda: defaultdict(list))
+        self.grid: Dict[Tuple[int, int], Dict[Type[Agent], List[Agent]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+
+        # Cache deterministic per-cell type order to avoid sorting on every query.
+        # Key: cell tuple, Value: list of types sorted by __name__.
+        self._cell_type_order: Dict[Tuple[int, int], List[Type[Agent]]] = {}
 
         # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
         # These contain the SAME agent objects as self.grid, just indexed differently for speed
@@ -54,6 +62,35 @@ class SpatialGrid:
 
         # Agent to cell mapping for quick updates
         self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
+
+    def _insert_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
+        """Insert a type into the cached order list for a cell."""
+        order = self._cell_type_order.get(cell)
+        if order is None:
+            self._cell_type_order[cell] = [agent_type]
+            return
+
+        type_name = agent_type.__name__
+        # Insert into sorted position by name (small list; linear insert is fine).
+        for index, existing in enumerate(order):
+            if type_name < existing.__name__:
+                order.insert(index, agent_type)
+                return
+        order.append(agent_type)
+
+    def _remove_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
+        """Remove a type from the cached order list for a cell if present."""
+        order = self._cell_type_order.get(cell)
+        if not order:
+            return
+
+        try:
+            order.remove(agent_type)
+        except ValueError:
+            return
+
+        if not order:
+            del self._cell_type_order[cell]
 
     def _get_cell(self, x: float, y: float) -> Tuple[int, int]:
         """Get the grid cell coordinates for a position."""
@@ -71,12 +108,16 @@ class SpatialGrid:
         # But we need to be careful about inheritance if we query by base class
         # For now, we'll store by exact type
         agent_type = type(agent)
-        self.grid[cell][agent_type].append(agent)
+        cell_map = self.grid[cell]
+        is_new_type = agent_type not in cell_map
+        cell_map[agent_type].append(agent)
+        if is_new_type:
+            self._insert_type_order(cell, agent_type)
 
         # Update dedicated grids
         # We use string names to avoid circular imports or heavy isinstance checks
         type_name = agent_type.__name__
-        if type_name == 'Fish':
+        if type_name == "Fish":
             self.fish_grid[cell].append(agent)
         elif issubclass(agent_type, self._food_base_type):
             self.food_grid[cell].append(agent)
@@ -94,12 +135,13 @@ class SpatialGrid:
                     # Clean up empty lists to keep iteration fast
                     if not self.grid[cell][agent_type]:
                         del self.grid[cell][agent_type]
+                        self._remove_type_order(cell, agent_type)
                 except ValueError:
                     pass  # Agent might not be in the list if something went wrong
 
             # Remove from dedicated grids
             type_name = agent_type.__name__
-            if type_name == 'Fish':
+            if type_name == "Fish":
                 if agent in self.fish_grid[cell]:
                     self.fish_grid[cell].remove(agent)
                     if not self.fish_grid[cell]:
@@ -130,12 +172,13 @@ class SpatialGrid:
                         self.grid[old_cell][agent_type].remove(agent)
                         if not self.grid[old_cell][agent_type]:
                             del self.grid[old_cell][agent_type]
+                            self._remove_type_order(old_cell, agent_type)
                     except ValueError:
                         pass
 
                 # Remove from dedicated grids (old cell)
                 type_name = agent_type.__name__
-                if type_name == 'Fish':
+                if type_name == "Fish":
                     if agent in self.fish_grid[old_cell]:
                         self.fish_grid[old_cell].remove(agent)
                         if not self.fish_grid[old_cell]:
@@ -147,11 +190,15 @@ class SpatialGrid:
                             del self.food_grid[old_cell]
 
             # Add to new cell
-            self.grid[new_cell][agent_type].append(agent)
+            new_cell_map = self.grid[new_cell]
+            is_new_type = agent_type not in new_cell_map
+            new_cell_map[agent_type].append(agent)
+            if is_new_type:
+                self._insert_type_order(new_cell, agent_type)
 
             # Add to dedicated grids (new cell)
             type_name = agent_type.__name__
-            if type_name == 'Fish':
+            if type_name == "Fish":
                 self.fish_grid[new_cell].append(agent)
             elif issubclass(agent_type, self._food_base_type):
                 self.food_grid[new_cell].append(agent)
@@ -168,9 +215,7 @@ class SpatialGrid:
 
         # Pre-allocate list size if possible or just use list comprehension which is faster than append loop
         return [
-            (col, row)
-            for col in range(min_col, max_col + 1)
-            for row in range(min_row, max_row + 1)
+            (col, row) for col in range(min_col, max_col + 1) for row in range(min_row, max_row + 1)
         ]
 
     def query_radius(self, agent: Agent, radius: float) -> List[Agent]:
@@ -201,14 +246,18 @@ class SpatialGrid:
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference to append
         grid = self.grid
+        type_order = self._cell_type_order
 
         # Iterate ranges directly - OPTIMIZATION: Filter inline
         for col in range(min_col, max_col + 1):
             for row in range(min_row, max_row + 1):
-                cell_agents = grid.get((col, row))
+                cell = (col, row)
+                cell_agents = grid.get(cell)
                 if cell_agents:
-                    # Sort keys to ensure deterministic iteration order
-                    sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
+                    sorted_types = type_order.get(cell)
+                    if sorted_types is None:
+                        sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
+                        type_order[cell] = sorted_types
                     for type_key in sorted_types:
                         type_list = cell_agents[type_key]
                         for other in type_list:
@@ -303,7 +352,9 @@ class SpatialGrid:
 
         return result
 
-    def query_interaction_candidates(self, agent: Agent, radius: float, crab_type: Type[Agent]) -> List[Agent]:
+    def query_interaction_candidates(
+        self, agent: Agent, radius: float, crab_type: Type[Agent]
+    ) -> List[Agent]:
         """
         Optimized query for collision candidates (Fish, Food, Crabs).
         Performs a single grid traversal to collect all relevant entities.
@@ -433,6 +484,7 @@ class SpatialGrid:
         self.fish_grid.clear()
         self.food_grid.clear()
         self.agent_cells.clear()
+        self._cell_type_order.clear()
 
     def rebuild(self, agents: Iterable[Agent]):
         """Rebuild the entire grid from scratch."""
@@ -452,7 +504,15 @@ class Environment:
     _subclass_cache: Dict[Tuple[Type, Type], bool] = {}
 
     def __init__(
-        self, agents: Optional[Iterable[Agent]] = None, width: int = 800, height: int = 600, time_system: Optional[Any] = None, rng: Optional[random.Random] = None
+        self,
+        agents: Optional[Iterable[Agent]] = None,
+        width: int = 800,
+        height: int = 600,
+        time_system: Optional[Any] = None,
+        rng: Optional[random.Random] = None,
+        event_bus: Optional[Any] = None,
+        code_pool: Optional["CodePool"] = None,
+        simulation_config: Optional[Any] = None,
     ):
         """
         Initialize the environment.
@@ -462,21 +522,38 @@ class Environment:
             width (int): Width of the environment in pixels. Defaults to 800.
             height (int): Height of the environment in pixels. Defaults to 600.
             time_system (TimeSystem, optional): Time system for day/night cycle effects
+            rng: Random number generator for deterministic behavior
+            event_bus: Optional EventBus for domain event dispatch
+            simulation_config: Optional SimulationConfig for runtime parameters
         """
         self.agents = agents
         self.width = width
         self.height = height
         self.time_system = time_system
+        self.event_bus = event_bus  # Domain event dispatch
+        self.simulation_config = simulation_config  # Runtime config access
         from core.util.rng import require_rng_param
 
         self._rng = require_rng_param(rng, "__init__")
+        if code_pool is None:
+            # Default to GenomeCodePool with all builtins for better safety + determinism
+            from core.code_pool import create_default_genome_code_pool
+
+            self.genome_code_pool = create_default_genome_code_pool()
+            self.code_pool = self.genome_code_pool.pool  # Backward compatibility
+        else:
+            # Legacy CodePool provided
+            self.code_pool = code_pool
+            self.genome_code_pool = None  # Set explicitly if needed
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
         self.tank_registry: Any = None  # Set by backend if migrations enabled
         self.tank_id: Optional[str] = None  # Set by backend if migrations enabled
         self.tank_name: Optional[str] = None  # Set by backend for lineage tracking
-        self.migration_handler: Optional[MigrationHandler] = None  # Set by backend if migrations enabled
+        self.migration_handler: Optional[MigrationHandler] = (
+            None  # Set by backend if migrations enabled
+        )
 
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
@@ -514,7 +591,9 @@ class Environment:
         """
         self._remove_requester = requester
 
-    def request_spawn(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+    def request_spawn(
+        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Request an entity spawn via the engine's mutation queue.
 
         Prefer core.util.mutations.request_spawn for entity-owned spawn requests.
@@ -525,7 +604,9 @@ class Environment:
             return False
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
-    def request_remove(self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None) -> bool:
+    def request_remove(
+        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Request an entity removal via the engine's mutation queue.
 
         Prefer core.util.mutations.request_remove for entity-owned removal requests.
@@ -659,6 +740,7 @@ class Environment:
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
         grid_dict = grid.grid
+        type_order = grid._cell_type_order
         subclass_cache = Environment._subclass_cache
 
         # Iterate cells
@@ -670,14 +752,16 @@ class Environment:
                 if not cell_buckets:
                     continue
 
-                # Sort keys to ensure deterministic iteration order
-                # Using type name as sort key
-                sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
+                # Use cached deterministic order per cell to avoid sorting repeatedly
+                sorted_types = type_order.get((col, row))
+                if sorted_types is None:
+                    sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
+                    type_order[(col, row)] = sorted_types
 
                 # Iterate over sorted type buckets
                 for type_key in sorted_types:
                     agents = cell_buckets[type_key]
-                    
+
                     # OPTIMIZATION: Use cached issubclass check
                     cache_key = (type_key, agent_class)
                     is_match = subclass_cache.get(cache_key)
@@ -694,26 +778,28 @@ class Environment:
                             other_pos = other.pos
                             dx = other_pos.x - agent_x
                             dy = other_pos.y - agent_y
-                            if dx*dx + dy*dy <= radius_sq:
+                            if dx * dx + dy * dy <= radius_sq:
                                 result_append(other)
 
         return result
 
     def nearby_evolving_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby evolving agents (entities that can reproduce).
-        
+
         In the fish tank domain, returns Fish entities.
         """
         return self.spatial_grid.query_fish(agent, radius)
 
     def nearby_resources(self, agent: Agent, radius: int) -> List[Agent]:
         """Get nearby consumable resources.
-        
+
         In the fish tank domain, returns Food entities.
         """
         return self.spatial_grid.query_food(agent, radius)
 
-    def nearby_interaction_candidates(self, agent: Agent, radius: int, crab_type: Type[Agent]) -> List[Agent]:
+    def nearby_interaction_candidates(
+        self, agent: Agent, radius: int, crab_type: Type[Agent]
+    ) -> List[Agent]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
@@ -730,7 +816,7 @@ class Environment:
     # =========================================================================
     # Caching Architecture Note
     # =========================================================================
-    # 
+    #
     # Two separate caches exist for different access patterns:
     #
     # 1. CacheManager (in EntityManager): Caches fish_list and food_list for
@@ -744,55 +830,55 @@ class Environment:
     # Both caches are invalidated when entities are added/removed.
     # The SpatialGrid provides O(k) proximity queries and is separate.
     # =========================================================================
-    
+
     # --- World Protocol Implementation ---
     # The following methods/properties implement the World Protocol,
     # making Environment usable as an abstract World in generic simulation code.
-    
+
     @property
     def dimensions(self) -> Tuple[float, ...]:
         """Get environment dimensions (implements World Protocol).
-        
+
         Returns:
             Tuple of (width, height) for 2D environment
         """
         return (float(self.width), float(self.height))
-    
+
     def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Get environment boundaries (implements World Protocol).
-        
+
         Returns:
             ((min_x, min_y), (max_x, max_y)) for 2D environment
         """
         return ((0.0, 0.0), (float(self.width), float(self.height)))
-    
+
     def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Get 2D boundaries (implements World2D Protocol).
-        
+
         Returns:
             ((min_x, min_y), (max_x, max_y))
         """
         return self.get_bounds()
-    
+
     def is_valid_position(self, position: Tuple[float, float]) -> bool:
         """Check if a position is valid within this environment (implements World Protocol).
-        
+
         Args:
             position: (x, y) tuple to check
-            
+
         Returns:
             True if position is within bounds [0, width) x [0, height)
         """
         if not isinstance(position, (tuple, list)) or len(position) != 2:
             return False
-        
+
         x, y = position
         return 0 <= x < self.width and 0 <= y < self.height
 
     @property
     def rng(self) -> random.Random:
         """Get the shared RNG (implements World Protocol).
-        
+
         Returns:
             Random instance for deterministic simulation
         """

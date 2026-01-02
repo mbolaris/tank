@@ -91,8 +91,7 @@ def load_connections(connection_manager) -> int:
             except Exception as e:
                 # Unexpected error
                 logger.error(
-                    f"Failed to restore connection {conn_data.get('id')}: {e}",
-                    exc_info=True
+                    f"Failed to restore connection {conn_data.get('id')}: {e}", exc_info=True
                 )
                 continue
 

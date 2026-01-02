@@ -118,7 +118,9 @@ class FakeDiscoveryService:
 
 
 class FakeServerClient:
-    def __init__(self, remote_tanks: Optional[List[Dict[str, object]]] = None, should_fail: bool = False):
+    def __init__(
+        self, remote_tanks: Optional[List[Dict[str, object]]] = None, should_fail: bool = False
+    ):
         self.remote_tanks = remote_tanks or []
         self.should_fail = should_fail
 
@@ -170,7 +172,9 @@ def build_tanks_client(tank_registry, start_calls: Optional[List[str]] = None):
             tank_registry=tank_registry,
             server_id="local-server",
             start_broadcast_callback=(
-                (lambda manager: tracking_broadcast(manager, start_calls)) if start_calls is not None else noop_broadcast
+                (lambda manager: tracking_broadcast(manager, start_calls))
+                if start_calls is not None
+                else noop_broadcast
             ),
             stop_broadcast_callback=noop_broadcast,
         )
@@ -329,9 +333,7 @@ def test_discovery_registration_and_listing():
     client = build_discovery_client(service)
 
     server_info = make_server_info("discovery-test", True)
-    register_response = client.post(
-        "/api/discovery/register", json=server_info.model_dump()
-    )
+    register_response = client.post("/api/discovery/register", json=server_info.model_dump())
     assert register_response.status_code == 200
 
     list_response = client.get("/api/discovery/servers")

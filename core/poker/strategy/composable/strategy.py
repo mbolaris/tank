@@ -6,44 +6,30 @@ definitions from definitions.py and opponent models from opponent.py.
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Set
+from typing import Any, Dict, Optional, Set, Tuple
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable.definitions import (
-    HandSelection,
-    BettingStyle,
-    BluffingApproach,
-    PositionAwareness,
-    ShowdownTendency,
-    SUB_BEHAVIOR_COUNTS,
-    POKER_SUB_BEHAVIOR_PARAMS,
     CFR_ACTIONS,
+    CFR_HAND_STRENGTH_BUCKETS,
     CFR_INHERITANCE_DECAY,
     CFR_MAX_INFO_SETS,
     CFR_MIN_VISITS_FOR_INHERITANCE,
-    CFR_HAND_STRENGTH_BUCKETS,
     CFR_POT_RATIO_BUCKETS,
+    POKER_SUB_BEHAVIOR_PARAMS,
+    BettingStyle,
+    BluffingApproach,
+    HandSelection,
+    PositionAwareness,
+    ShowdownTendency,
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
+from core.util import coerce_enum
 
 
 def _random_params(rng: random.Random) -> Dict[str, float]:
     """Generate random parameters within bounds."""
     return {key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()}
-
-
-def _coerce_enum(enum_cls, value, default: int = 0):
-    try:
-        return enum_cls(value)
-    except (TypeError, ValueError):
-        try:
-            index = int(value)
-        except (TypeError, ValueError):
-            index = default
-        size = len(enum_cls)
-        if size <= 0:
-            return enum_cls(default)
-        return enum_cls(index % size)
 
 
 def _blend_regret_tables(
@@ -133,19 +119,15 @@ class ComposablePokerStrategy:
 
         rng = require_rng_param(rng, "__init__")
         return cls(
-            hand_selection=_coerce_enum(
-                HandSelection, rng.randint(0, len(HandSelection) - 1)
-            ),
-            betting_style=_coerce_enum(
-                BettingStyle, rng.randint(0, len(BettingStyle) - 1)
-            ),
-            bluffing_approach=_coerce_enum(
+            hand_selection=coerce_enum(HandSelection, rng.randint(0, len(HandSelection) - 1)),
+            betting_style=coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1)),
+            bluffing_approach=coerce_enum(
                 BluffingApproach, rng.randint(0, len(BluffingApproach) - 1)
             ),
-            position_awareness=_coerce_enum(
+            position_awareness=coerce_enum(
                 PositionAwareness, rng.randint(0, len(PositionAwareness) - 1)
             ),
-            showdown_tendency=_coerce_enum(
+            showdown_tendency=coerce_enum(
                 ShowdownTendency, rng.randint(0, len(ShowdownTendency) - 1)
             ),
             parameters=_random_params(rng),
@@ -220,13 +202,21 @@ class ComposablePokerStrategy:
 
         # Step 2: Should we bet/raise?
         if self._should_bet_or_raise(
-            adjusted_strength, pot, player_energy, call_amount, is_desperate, opponent_adjustment, _rng
+            adjusted_strength,
+            pot,
+            player_energy,
+            call_amount,
+            is_desperate,
+            opponent_adjustment,
+            _rng,
         ):
             sizing = self._calculate_bet_sizing(adjusted_strength, pot, player_energy, call_amount)
             return (BettingAction.RAISE, sizing)
 
         # Step 3: Call or fold based on showdown tendency
-        return self._call_or_fold(adjusted_strength, call_amount, pot, player_energy, opponent_adjustment, _rng)
+        return self._call_or_fold(
+            adjusted_strength, call_amount, pot, player_energy, opponent_adjustment, _rng
+        )
 
     # -------------------------------------------------------------------------
     # Sub-behavior Execution Methods
@@ -470,23 +460,21 @@ class ComposablePokerStrategy:
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
-            self.hand_selection = _coerce_enum(
+            self.hand_selection = coerce_enum(
                 HandSelection, rng.randint(0, len(HandSelection) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.betting_style = _coerce_enum(
-                BettingStyle, rng.randint(0, len(BettingStyle) - 1)
-            )
+            self.betting_style = coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1))
         if rng.random() < sub_behavior_switch_rate:
-            self.bluffing_approach = _coerce_enum(
+            self.bluffing_approach = coerce_enum(
                 BluffingApproach, rng.randint(0, len(BluffingApproach) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.position_awareness = _coerce_enum(
+            self.position_awareness = coerce_enum(
                 PositionAwareness, rng.randint(0, len(PositionAwareness) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.showdown_tendency = _coerce_enum(
+            self.showdown_tendency = coerce_enum(
                 ShowdownTendency, rng.randint(0, len(ShowdownTendency) - 1)
             )
 
@@ -522,7 +510,9 @@ class ComposablePokerStrategy:
             String key for regret table lookup
         """
         # Hand strength bucket (0-4)
-        hs_bucket = min(CFR_HAND_STRENGTH_BUCKETS - 1, int(hand_strength * CFR_HAND_STRENGTH_BUCKETS))
+        hs_bucket = min(
+            CFR_HAND_STRENGTH_BUCKETS - 1, int(hand_strength * CFR_HAND_STRENGTH_BUCKETS)
+        )
         # Pot ratio bucket (0-4)
         pr_bucket = min(CFR_POT_RATIO_BUCKETS - 1, int(pot_ratio * CFR_POT_RATIO_BUCKETS / 2))
         # Position
@@ -554,7 +544,9 @@ class ComposablePokerStrategy:
 
         return {a: r / total for a, r in positive.items()}
 
-    def sample_cfr_action(self, info_set: str, rng: Optional[random.Random] = None) -> Optional[str]:
+    def sample_cfr_action(
+        self, info_set: str, rng: Optional[random.Random] = None
+    ) -> Optional[str]:
         """Sample an action from the regret-matched strategy.
 
         Args:
@@ -569,7 +561,6 @@ class ComposablePokerStrategy:
             return None
 
         from core.util.rng import require_rng_param
-
 
         rng = require_rng_param(rng, "__init__")
         roll = rng.random()
@@ -594,9 +585,9 @@ class ComposablePokerStrategy:
             action_values: Dict mapping each action -> counterfactual value
         """
         if info_set not in self.regret:
-            self.regret[info_set] = {a: 0.0 for a in CFR_ACTIONS}
+            self.regret[info_set] = dict.fromkeys(CFR_ACTIONS, 0.0)
         if info_set not in self.strategy_sum:
-            self.strategy_sum[info_set] = {a: 0.0 for a in CFR_ACTIONS}
+            self.strategy_sum[info_set] = dict.fromkeys(CFR_ACTIONS, 0.0)
 
         # Update visit count
         self.visit_count[info_set] = self.visit_count.get(info_set, 0) + 1
@@ -627,9 +618,7 @@ class ComposablePokerStrategy:
 
         # Sort by visit count, keep most visited
         sorted_sets = sorted(
-            self.regret.keys(),
-            key=lambda k: self.visit_count.get(k, 0),
-            reverse=True
+            self.regret.keys(), key=lambda k: self.visit_count.get(k, 0), reverse=True
         )
 
         # Keep top half
@@ -670,18 +659,17 @@ class ComposablePokerStrategy:
         """Serialize to dictionary for storage/transmission."""
         # Only include well-visited info sets in serialization
         inheritable_regret = {
-            k: v for k, v in self.regret.items()
+            k: v
+            for k, v in self.regret.items()
             if self.visit_count.get(k, 0) >= CFR_MIN_VISITS_FOR_INHERITANCE
         }
         inheritable_strategy_sum = {
-            k: v for k, v in self.strategy_sum.items()
-            if k in inheritable_regret
+            k: v for k, v in self.strategy_sum.items() if k in inheritable_regret
         }
         inheritable_visit_count = {
-            k: v for k, v in self.visit_count.items()
-            if k in inheritable_regret
+            k: v for k, v in self.visit_count.items() if k in inheritable_regret
         }
-        
+
         return {
             "type": "ComposablePokerStrategy",
             "strategy_id": self.strategy_id,
@@ -703,11 +691,11 @@ class ComposablePokerStrategy:
         """Deserialize from dictionary."""
         return cls(
             strategy_id=data.get("strategy_id", "composable"),
-            hand_selection=_coerce_enum(HandSelection, data.get("hand_selection", 2)),
-            betting_style=_coerce_enum(BettingStyle, data.get("betting_style", 1)),
-            bluffing_approach=_coerce_enum(BluffingApproach, data.get("bluffing_approach", 1)),
-            position_awareness=_coerce_enum(PositionAwareness, data.get("position_awareness", 1)),
-            showdown_tendency=_coerce_enum(ShowdownTendency, data.get("showdown_tendency", 1)),
+            hand_selection=coerce_enum(HandSelection, data.get("hand_selection", 2)),
+            betting_style=coerce_enum(BettingStyle, data.get("betting_style", 1)),
+            bluffing_approach=coerce_enum(BluffingApproach, data.get("bluffing_approach", 1)),
+            position_awareness=coerce_enum(PositionAwareness, data.get("position_awareness", 1)),
+            showdown_tendency=coerce_enum(ShowdownTendency, data.get("showdown_tendency", 1)),
             parameters=data.get("parameters", {}),
             learning_rate=data.get("learning_rate", 1.0),
             regret=data.get("regret", {}),
@@ -739,9 +727,7 @@ class ComposablePokerStrategy:
         hand_selection = (
             parent1.hand_selection if rng.random() < weight1 else parent2.hand_selection
         )
-        betting_style = (
-            parent1.betting_style if rng.random() < weight1 else parent2.betting_style
-        )
+        betting_style = parent1.betting_style if rng.random() < weight1 else parent2.betting_style
         bluffing_approach = (
             parent1.bluffing_approach if rng.random() < weight1 else parent2.bluffing_approach
         )
@@ -764,7 +750,8 @@ class ComposablePokerStrategy:
 
         # Lamarckian inheritance: blend and decay regret tables
         inherited_regret = _blend_regret_tables(
-            parent1.regret, parent2.regret,
+            parent1.regret,
+            parent2.regret,
             weight1=weight1,
             decay=CFR_INHERITANCE_DECAY,
             min_visits=CFR_MIN_VISITS_FOR_INHERITANCE,
@@ -772,7 +759,8 @@ class ComposablePokerStrategy:
             visit_count2=parent2.visit_count,
         )
         inherited_strategy_sum = _blend_regret_tables(
-            parent1.strategy_sum, parent2.strategy_sum,
+            parent1.strategy_sum,
+            parent2.strategy_sum,
             weight1=weight1,
             decay=CFR_INHERITANCE_DECAY,
             min_visits=CFR_MIN_VISITS_FOR_INHERITANCE,
@@ -780,8 +768,8 @@ class ComposablePokerStrategy:
             visit_count2=parent2.visit_count,
         )
         # Blend learning rates
-        inherited_learning_rate = (
-            parent1.learning_rate * weight1 + parent2.learning_rate * (1 - weight1)
+        inherited_learning_rate = parent1.learning_rate * weight1 + parent2.learning_rate * (
+            1 - weight1
         )
 
         # Create offspring with inherited regret

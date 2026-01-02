@@ -1,8 +1,8 @@
 """Baseline poker strategies (AlwaysFold, Random)."""
 
 import random
-from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
@@ -14,7 +14,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("AlwaysFoldStrategy: RNG is None")
+            raise RuntimeError("AlwaysFoldStrategy: RNG is None")
         _rng = rng
         super().__init__(strategy_id="always_fold", parameters={}, _rng=_rng)
 
@@ -44,7 +44,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
 
     def __init__(self, rng: Optional[random.Random] = None):
         if rng is None:
-             raise RuntimeError("RandomStrategy: RNG is None")
+            raise RuntimeError("RandomStrategy: RNG is None")
         _rng = rng
         parameters = {
             "fold_prob": 0.33,

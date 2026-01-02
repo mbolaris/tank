@@ -12,11 +12,12 @@ from typing import Any, Optional
 
 from fastapi import APIRouter
 
-from backend.tank_registry import TankRegistry
 from backend.routers.tanks_crud import setup_crud_subrouter
+from backend.routers.tanks_inspection import setup_inspection_subrouter
 from backend.routers.tanks_lifecycle import setup_lifecycle_subrouter
 from backend.routers.tanks_persistence import setup_persistence_subrouter
-from backend.routers.tanks_inspection import setup_inspection_subrouter
+from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ def setup_router(
     start_broadcast_callback,
     stop_broadcast_callback,
     auto_save_service: Optional[Any] = None,
+    world_manager: Optional[WorldManager] = None,
 ) -> APIRouter:
     """Setup the tanks router with required dependencies.
 
@@ -51,20 +53,24 @@ def setup_router(
         start_broadcast_callback,
         stop_broadcast_callback,
         auto_save_service,
+        world_manager=world_manager,
     )
     setup_lifecycle_subrouter(
         router,
         tank_registry,
         start_broadcast_callback,
         stop_broadcast_callback,
+        world_manager=world_manager,
     )
     setup_persistence_subrouter(
         router,
         tank_registry,
+        world_manager=world_manager,
     )
     setup_inspection_subrouter(
         router,
         tank_registry,
+        world_manager=world_manager,
     )
 
     return router

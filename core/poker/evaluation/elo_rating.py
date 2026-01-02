@@ -14,11 +14,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
 
 # Fixed Elo ratings for baseline opponents based on difficulty tier
 # These are calibrated so that a "break-even" player is around 1500
-BASELINE_ELO_RATINGS: Dict[str, float] = {
+BASELINE_ELO_RATINGS: dict[str, float] = {
     # Trivial opponents (very easy to beat)
     "always_fold": 800.0,
     "random": 900.0,
@@ -56,7 +55,7 @@ class EloRating:
 
     rating: float = INITIAL_RATING
     games_played: int = 0
-    rating_history: List[float] = field(default_factory=list)
+    rating_history: list[float] = field(default_factory=list)
 
     # Performance tracking for confidence
     wins: int = 0  # Games where bb/100 > 5 (clearly winning)
@@ -76,7 +75,7 @@ class EloRating:
         else:
             return BASE_K_FACTOR  # Stable rating
 
-    def get_confidence_interval(self) -> Tuple[float, float]:
+    def get_confidence_interval(self) -> tuple[float, float]:
         """Get 95% confidence interval for rating.
 
         Confidence narrows as more games are played.
@@ -189,9 +188,9 @@ def update_elo_from_benchmark(
 
 
 def compute_elo_from_benchmarks(
-    benchmark_results: Dict[str, float],
-    hands_per_benchmark: Dict[str, int],
-    initial_rating: Optional[EloRating] = None,
+    benchmark_results: dict[str, float],
+    hands_per_benchmark: dict[str, int],
+    initial_rating: EloRating | None = None,
 ) -> EloRating:
     """Compute Elo rating from a full set of benchmark results.
 
@@ -276,11 +275,11 @@ class PopulationEloStats:
     max_rating: float = INITIAL_RATING
 
     # Distribution by tier
-    tier_distribution: Dict[str, int] = field(default_factory=dict)
+    tier_distribution: dict[str, int] = field(default_factory=dict)
 
     # Best performer
     best_rating: float = INITIAL_RATING
-    best_fish_id: Optional[int] = None
+    best_fish_id: int | None = None
 
     # Confidence metrics
     avg_games_played: float = 0.0
@@ -288,7 +287,7 @@ class PopulationEloStats:
 
 
 def compute_population_elo_stats(
-    fish_ratings: Dict[int, EloRating],
+    fish_ratings: dict[int, EloRating],
 ) -> PopulationEloStats:
     """Compute population-level Elo statistics.
 
@@ -311,12 +310,12 @@ def compute_population_elo_stats(
 
     if len(ratings) > 1:
         variance = sum((r - mean_rating) ** 2 for r in ratings) / len(ratings)
-        std_rating = variance ** 0.5
+        std_rating = variance**0.5
     else:
         std_rating = 0.0
 
     # Tier distribution
-    tier_counts: Dict[str, int] = {}
+    tier_counts: dict[str, int] = {}
     for rating in ratings:
         tier = rating_to_skill_tier(rating)
         tier_counts[tier] = tier_counts.get(tier, 0) + 1

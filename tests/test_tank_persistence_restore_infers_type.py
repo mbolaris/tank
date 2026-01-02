@@ -51,4 +51,3 @@ def test_restore_snapshot_infers_missing_type_for_plants() -> None:
     restored = [e for e in dest.entities_list if isinstance(e, Plant)]
     assert len(restored) == 1
     assert restored[0].plant_id == original_id
-

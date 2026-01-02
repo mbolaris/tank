@@ -14,20 +14,23 @@ This hierarchy ensures decorative entities don't inherit unnecessary
 movement methods while maintaining backward compatibility.
 """
 
-import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
+from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import (
     ALIGNMENT_SPEED_CHANGE,
     AVOIDANCE_SPEED_CHANGE,
 )
-from core.config.display import DEFAULT_AGENT_SIZE
 from core.math_utils import Vector2
-from core.world import World
 
 # Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import LifeStage, EntityState, create_entity_state_machine  # noqa: F401 - re-exported
+from core.state_machine import (
+    EntityState,
+    LifeStage,  # noqa: F401 - re-exported via core.entities.__init__
+    create_entity_state_machine,
+)
+from core.world import World
 
 
 @dataclass
@@ -38,6 +41,7 @@ class EntityUpdateResult:
         spawned_entities: List of new entities spawned by this entity
         events: List of events emitted by this entity (e.g. death, interaction)
     """
+
     spawned_entities: List["Entity"] = field(default_factory=list)
     events: List[Any] = field(default_factory=list)
 
@@ -132,7 +136,9 @@ class Entity:
         self.rect.width = width
         self.rect.height = height
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the entity state (pure logic, no rendering).
 
         Returns:
@@ -157,11 +163,19 @@ class Entity:
         self._groups.clear()
 
     def _emit_event(self, event: object) -> None:
-        """Emit a telemetry event if a sink is available.
+        """Emit a telemetry event via EventBus or direct ecosystem recording.
 
-        Subclasses that have an ecosystem attribute (Fish, Plant) can use this
-        to emit events. Entities without ecosystem will silently skip emission.
+        Prefers EventBus if available (enables decoupled telemetry subscribers).
+        Falls back to direct ecosystem.record_event() for backward compatibility.
+        Silently skips if neither is available.
         """
+        # Try EventBus first (preferred path for decoupled telemetry)
+        event_bus = getattr(self.environment, "event_bus", None)
+        if event_bus is not None:
+            event_bus.emit(event)
+            return
+
+        # Fallback to direct ecosystem recording (backward compatibility)
         telemetry = getattr(self, "ecosystem", None)
         if telemetry is None:
             return
@@ -286,7 +300,9 @@ class Agent(Entity):
 
         return False
 
-    def update(self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None) -> "EntityUpdateResult":
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
         """Update the agent state (pure logic, no rendering).
 
         Returns:
@@ -295,17 +311,13 @@ class Agent(Entity):
         self.update_position()
         return EntityUpdateResult()
 
-
-
-
-
-
     def add_random_velocity_change(self, probabilities: List[float], divisor: float) -> None:
         """Add a random direction change to the agent.
 
         Uses environment's RNG for deterministic behavior.
         """
         from core.util.rng import require_rng
+
         _rng = require_rng(self.environment, "Agent.add_random_velocity_change")
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]

@@ -137,6 +137,8 @@ class TankRegistry:
         server_id: str = "local-server",
         persistent: bool = True,
         auto_save_interval: float = 300.0,
+        tank_id: Optional[str] = None,
+        world_type: str = "tank",
     ) -> SimulationManager:
         """Create a new tank and add it to the registry.
 
@@ -150,6 +152,7 @@ class TankRegistry:
             server_id: Which server this tank should run on (default: local-server)
             persistent: Whether this tank should auto-save and restore
             auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
+            world_type: Type of world to create (tank, petri, soccer_training, soccer)
 
         Returns:
             The newly created SimulationManager
@@ -160,6 +163,8 @@ class TankRegistry:
             seed=seed,
             persistent=persistent,
             auto_save_interval=auto_save_interval,
+            tank_id=tank_id,
+            world_type=world_type,
         )
 
         # Update tank info with additional fields
@@ -289,9 +294,7 @@ class TankRegistry:
                 if deleted:
                     logger.info("Deleted persisted data for tank: %s", tank_id)
             except Exception as e:
-                logger.warning(
-                    "Failed to delete persisted data for tank %s: %s", tank_id, e
-                )
+                logger.warning("Failed to delete persisted data for tank %s: %s", tank_id, e)
 
         logger.info("Removed tank: %s", tank_id)
         return True
@@ -362,6 +365,7 @@ class TankRegistry:
             seed=metadata.get("seed"),
             persistent=True,  # Restored tanks are persistent by default
             auto_save_interval=300.0,
+            tank_id=tank_id,
         )
 
         # Override the tank_id to match the snapshot
@@ -376,7 +380,13 @@ class TankRegistry:
             manager.runner.set_tank_identity(tank_id=tank_id, tank_name=metadata.get("name"))
         except Exception:
             # Restoration should still succeed even if runner identity update fails
-            logger.exception("Failed to update runner tank identity during restore for %s", tank_id[:8])
+            logger.exception(
+                "Failed to update runner tank identity during restore for %s", tank_id[:8]
+            )
+
+        # Initialize world backend to ensure engine and RNG are available for restoration
+        if hasattr(manager.world, "setup"):
+            manager.world.setup()
 
         # Restore state into the tank
         if not restore_tank_from_snapshot(snapshot, manager.world):
@@ -498,15 +508,10 @@ class TankRegistry:
                         if remote_tanks:
                             # Filter private tanks if needed
                             if not include_private:
-                                remote_tanks = [
-                                    t for t in remote_tanks
-                                    if t.get("is_public", True)
-                                ]
+                                remote_tanks = [t for t in remote_tanks if t.get("is_public", True)]
                             result[server.server_id] = remote_tanks
                     except Exception as e:
-                        logger.error(
-                            f"Error fetching tanks from {server.server_id}: {e}"
-                        )
+                        logger.error(f"Error fetching tanks from {server.server_id}: {e}")
 
             except Exception as e:
                 logger.error(f"Error listing distributed tanks: {e}")

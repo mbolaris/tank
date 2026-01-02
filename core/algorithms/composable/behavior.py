@@ -3,32 +3,20 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from core.algorithms.base import BehaviorHelpersMixin
+from core.util import coerce_enum
+
 from .actions import BehaviorActionsMixin
 from .definitions import (
-    ThreatResponse,
-    FoodApproach,
-    SocialMode,
-    PokerEngagement,
     SUB_BEHAVIOR_PARAMS,
+    FoodApproach,
+    PokerEngagement,
+    SocialMode,
+    ThreatResponse,
     _random_params,
 )
 
 if TYPE_CHECKING:
     from core.entities import Fish
-
-
-def _coerce_enum(enum_cls, value, default: int = 0):
-    try:
-        return enum_cls(value)
-    except (TypeError, ValueError):
-        try:
-            index = int(value)
-        except (TypeError, ValueError):
-            index = default
-        size = len(enum_cls)
-        if size <= 0:
-            return enum_cls(default)
-        return enum_cls(index % size)
 
 
 @dataclass
@@ -44,7 +32,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         social_mode: Which social interaction mode to use
         poker_engagement: Which poker engagement style to use
         parameters: Continuous parameters that tune sub-behavior execution
-    
+
     NOTE: EnergyStyle was removed - speed modulation now uses a simple formula.
     """
 
@@ -62,12 +50,14 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @property
     def behavior_id(self) -> str:
         """Get a unique string identifier for this behavior configuration."""
-        return "-".join([
-            self.threat_response.name,
-            self.food_approach.name,
-            self.social_mode.name,
-            self.poker_engagement.name,
-        ]).lower()
+        return "-".join(
+            [
+                self.threat_response.name,
+                self.food_approach.name,
+                self.social_mode.name,
+                self.poker_engagement.name,
+            ]
+        ).lower()
 
     @property
     def short_description(self) -> str:
@@ -85,18 +75,13 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     def create_random(cls, rng: Optional["random.Random"] = None) -> "ComposableBehavior":
         """Create a random composable behavior."""
         from core.util.rng import require_rng_param
+
         rng = require_rng_param(rng, "ComposableBehavior.create_random")
         return cls(
-            threat_response=_coerce_enum(
-                ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)
-            ),
-            food_approach=_coerce_enum(
-                FoodApproach, rng.randint(0, len(FoodApproach) - 1)
-            ),
-            social_mode=_coerce_enum(
-                SocialMode, rng.randint(0, len(SocialMode) - 1)
-            ),
-            poker_engagement=_coerce_enum(
+            threat_response=coerce_enum(ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)),
+            food_approach=coerce_enum(FoodApproach, rng.randint(0, len(FoodApproach) - 1)),
+            social_mode=coerce_enum(SocialMode, rng.randint(0, len(SocialMode) - 1)),
+            poker_engagement=coerce_enum(
                 PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)
             ),
             parameters=_random_params(rng),
@@ -177,23 +162,20 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     ) -> None:
         """Mutate the composable behavior."""
         from core.util.rng import require_rng_param
+
         rng = require_rng_param(rng, "ComposableBehavior.mutate")
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
-            self.threat_response = _coerce_enum(
+            self.threat_response = coerce_enum(
                 ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)
             )
         if rng.random() < sub_behavior_switch_rate:
-            self.food_approach = _coerce_enum(
-                FoodApproach, rng.randint(0, len(FoodApproach) - 1)
-            )
+            self.food_approach = coerce_enum(FoodApproach, rng.randint(0, len(FoodApproach) - 1))
         if rng.random() < sub_behavior_switch_rate:
-            self.social_mode = _coerce_enum(
-                SocialMode, rng.randint(0, len(SocialMode) - 1)
-            )
+            self.social_mode = coerce_enum(SocialMode, rng.randint(0, len(SocialMode) - 1))
         if rng.random() < sub_behavior_switch_rate:
-            self.poker_engagement = _coerce_enum(
+            self.poker_engagement = coerce_enum(
                 PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)
             )
 
@@ -224,14 +206,14 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ComposableBehavior":
         """Deserialize from dictionary.
-        
+
         NOTE: energy_style is ignored if present in data (removed from behavior system).
         """
         return cls(
-            threat_response=_coerce_enum(ThreatResponse, data.get("threat_response", 0)),
-            food_approach=_coerce_enum(FoodApproach, data.get("food_approach", 0)),
-            social_mode=_coerce_enum(SocialMode, data.get("social_mode", 0)),
-            poker_engagement=_coerce_enum(PokerEngagement, data.get("poker_engagement", 1)),
+            threat_response=coerce_enum(ThreatResponse, data.get("threat_response", 0)),
+            food_approach=coerce_enum(FoodApproach, data.get("food_approach", 0)),
+            social_mode=coerce_enum(SocialMode, data.get("social_mode", 0)),
+            poker_engagement=coerce_enum(PokerEngagement, data.get("poker_engagement", 1)),
             parameters=data.get("parameters", {}),
         )
 
@@ -252,18 +234,15 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     ) -> "ComposableBehavior":
         """Create offspring by crossing over two parent behaviors."""
         from core.util.rng import require_rng_param
+
         rng = require_rng_param(rng, "ComposableBehavior.from_parents")
 
         # Mendelian inheritance for discrete sub-behaviors
         threat_response = (
             parent1.threat_response if rng.random() < weight1 else parent2.threat_response
         )
-        food_approach = (
-            parent1.food_approach if rng.random() < weight1 else parent2.food_approach
-        )
-        social_mode = (
-            parent1.social_mode if rng.random() < weight1 else parent2.social_mode
-        )
+        food_approach = parent1.food_approach if rng.random() < weight1 else parent2.food_approach
+        social_mode = parent1.social_mode if rng.random() < weight1 else parent2.social_mode
         poker_engagement = (
             parent1.poker_engagement if rng.random() < weight1 else parent2.poker_engagement
         )

@@ -25,7 +25,9 @@ FOOD_SINK_ACCELERATION = 0.01  # Pixels/frame². Slow sink gives fish time to in
 #
 # Trade-off: Faster spawning = easier survival but weaker selection pressure.
 #            Slower spawning = stronger selection but risk of extinction.
-AUTO_FOOD_SPAWN_RATE = 18  # Faster spawns (~1.7 food/sec) to reduce starvation and keep poker active
+AUTO_FOOD_SPAWN_RATE = (
+    18  # Faster spawns (~1.7 food/sec) to reduce starvation and keep poker active
+)
 AUTO_FOOD_ENABLED = True
 
 # Dynamic Spawn Scaling
@@ -36,11 +38,11 @@ AUTO_FOOD_ENABLED = True
 # Energy thresholds are based on total ecosystem energy (sum of all fish energy).
 # A healthy ecosystem of 80 fish at 50 energy each = 4000 total energy.
 AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 2200  # Crisis: 4x spawn rate (population near collapse)
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 4200       # Struggling: 3x spawn rate
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 5200    # Comfortable: reduce spawn rate
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 7500    # Thriving: further reduce (prevent overpopulation)
-AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80         # 80 fish: reduce spawning
-AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 90         # 90 fish: further reduce (approaching MAX_POPULATION)
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 4200  # Struggling: 3x spawn rate
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 5200  # Comfortable: reduce spawn rate
+AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 7500  # Thriving: further reduce (prevent overpopulation)
+AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80  # 80 fish: reduce spawning
+AUTO_FOOD_HIGH_POP_THRESHOLD_2 = 90  # 90 fish: further reduce (approaching MAX_POPULATION)
 
 # Live food moves unpredictably, rewarding prediction_skill and pursuit_aggression traits.
 # Higher values create more dynamic hunting scenarios but increase CPU load.
@@ -60,8 +62,8 @@ FOOD_TYPES = {
     "algae": {
         "name": "Algae Flake",
         "files": ["food_algae1.png", "food_algae2.png"],
-        "energy": 50.0,   # Low energy: common but inefficient food source
-        "rarity": 0.35,   # Most common: baseline food, available even to weak foragers
+        "energy": 50.0,  # Low energy: common but inefficient food source
+        "rarity": 0.35,  # Most common: baseline food, available even to weak foragers
         "sink_multiplier": 0.5,  # Slow sink: stays in upper water longer
         "stationary": False,
     },
@@ -69,7 +71,7 @@ FOOD_TYPES = {
         "name": "Protein Flake",
         "files": ["food_protein1.png", "food_protein2.png"],
         "energy": 100.0,  # Good energy: worth chasing
-        "rarity": 0.25,   # Common: reliable food source for capable hunters
+        "rarity": 0.25,  # Common: reliable food source for capable hunters
         "sink_multiplier": 1.2,  # Fast sink: rewards bottom-feeders
         "stationary": False,
     },
@@ -77,7 +79,7 @@ FOOD_TYPES = {
         "name": "Vitamin Flake",
         "files": ["food_vitamin1.png", "food_vitamin2.png"],
         "energy": 120.0,  # High energy: valuable target
-        "rarity": 0.20,   # Moderate: competition creates selection pressure
+        "rarity": 0.20,  # Moderate: competition creates selection pressure
         "sink_multiplier": 0.9,  # Slightly slow: more time to intercept
         "stationary": False,
     },
@@ -85,7 +87,7 @@ FOOD_TYPES = {
         "name": "Energy Flake",
         "files": ["food_energy1.png", "food_energy2.png"],
         "energy": 100.0,  # Good energy: standard nutritious food
-        "rarity": 0.15,   # Less common: rewards active searching
+        "rarity": 0.15,  # Less common: rewards active searching
         "sink_multiplier": 1.0,  # Normal sink: baseline physics
         "stationary": False,
     },
@@ -93,7 +95,7 @@ FOOD_TYPES = {
         "name": "Rainbow Flake",
         "files": ["food_rare1.png", "food_rare2.png"],
         "energy": 150.0,  # Highest energy: jackpot food
-        "rarity": 0.05,   # Very rare: creates high-value targets worth competing for
+        "rarity": 0.05,  # Very rare: creates high-value targets worth competing for
         "sink_multiplier": 1.1,  # Slightly fast: time pressure to catch
         "stationary": False,
     },
@@ -101,7 +103,7 @@ FOOD_TYPES = {
         "name": "Plant Nectar",
         "files": ["food_vitamin1.png", "food_vitamin2.png"],
         "energy": 100.0,  # Good reward for plant interaction
-        "rarity": 0.15,   # Weight for plant-only spawning (not in regular food pool)
+        "rarity": 0.15,  # Weight for plant-only spawning (not in regular food pool)
         "sink_multiplier": 0.0,  # Stationary: attached to plant
         "stationary": True,
     },
@@ -109,7 +111,7 @@ FOOD_TYPES = {
         "name": "Live Treat",
         "files": ["food_energy1.png", "food_energy2.png"],
         "energy": 100.0,  # Worth the chase
-        "rarity": 0.12,   # Occasional: adds variety without dominating
+        "rarity": 0.12,  # Occasional: adds variety without dominating
         "sink_multiplier": 0.0,  # Self-propelled: uses its own movement
         "stationary": False,
     },
@@ -124,14 +126,14 @@ FOOD_TYPES = {
 # Trade-off: Longer chase = higher catch rate but more energy burned.
 #            Tuned so desperate fish can recover, but wasteful chasing is punished.
 CHASE_DISTANCE_CRITICAL = 400  # Desperate: will chase almost anything
-CHASE_DISTANCE_LOW = 250       # Hungry: extends range moderately
-CHASE_DISTANCE_SAFE_BASE = 150 # Comfortable: only chases nearby food (efficient)
+CHASE_DISTANCE_LOW = 250  # Hungry: extends range moderately
+CHASE_DISTANCE_SAFE_BASE = 150  # Comfortable: only chases nearby food (efficient)
 
 # Speed boost mechanics when closing on food
-PROXIMITY_BOOST_DIVISOR = 100   # Normalizes distance for boost calculation
+PROXIMITY_BOOST_DIVISOR = 100  # Normalizes distance for boost calculation
 PROXIMITY_BOOST_MULTIPLIER = 0.5  # Max 50% speed boost when very close
-URGENCY_BOOST_CRITICAL = 0.3    # 30% speed boost when starving
-URGENCY_BOOST_LOW = 0.15        # 15% speed boost when hungry
+URGENCY_BOOST_CRITICAL = 0.3  # 30% speed boost when starving
+URGENCY_BOOST_LOW = 0.15  # 15% speed boost when hungry
 
 # =============================================================================
 # FOOD DETECTION RANGE
@@ -155,32 +157,32 @@ BASE_FOOD_DETECTION_RANGE = 450.0  # Daytime: full visibility (pixels)
 
 # Predator Detection
 PREDATOR_DEFAULT_FAR_DISTANCE = 999  # Sentinel: "no predator nearby"
-PREDATOR_PROXIMITY_THRESHOLD = 100   # Within 100px = "predator is close"
-PREDATOR_GUARDING_FOOD_DISTANCE = 80 # Predator within 80px of food = "food is guarded"
-PREDATOR_DANGER_ZONE_RADIUS = 120    # Food within 120px of predator = risky
-PREDATOR_DANGER_ZONE_DIVISOR = 1.2   # Scales danger score (higher = less scared)
+PREDATOR_PROXIMITY_THRESHOLD = 100  # Within 100px = "predator is close"
+PREDATOR_GUARDING_FOOD_DISTANCE = 80  # Predator within 80px of food = "food is guarded"
+PREDATOR_DANGER_ZONE_RADIUS = 120  # Food within 120px of predator = risky
+PREDATOR_DANGER_ZONE_DIVISOR = 1.2  # Scales danger score (higher = less scared)
 
 # Flee Distance Spectrum (higher = more cautious)
 # Desperate fish get close before fleeing, comfortable fish flee early.
-PREDATOR_FLEE_DISTANCE_DESPERATE = 50     # Starving: risks getting very close
-PREDATOR_FLEE_DISTANCE_CAUTIOUS = 75      # Hungry but careful
-PREDATOR_FLEE_DISTANCE_NORMAL = 80        # Standard caution
-PREDATOR_FLEE_DISTANCE_SAFE = 85          # Well-fed: slightly cautious
+PREDATOR_FLEE_DISTANCE_DESPERATE = 50  # Starving: risks getting very close
+PREDATOR_FLEE_DISTANCE_CAUTIOUS = 75  # Hungry but careful
+PREDATOR_FLEE_DISTANCE_NORMAL = 80  # Standard caution
+PREDATOR_FLEE_DISTANCE_SAFE = 85  # Well-fed: slightly cautious
 PREDATOR_FLEE_DISTANCE_CONSERVATIVE = 90  # Conservative personality
-PREDATOR_FLEE_DISTANCE_VERY_SAFE = 110    # Paranoid: flees early
+PREDATOR_FLEE_DISTANCE_VERY_SAFE = 110  # Paranoid: flees early
 
 # =============================================================================
 # FOOD PURSUIT BEHAVIOR
 # =============================================================================
 # Fine-grained control over hunting mechanics.
-FOOD_MEMORY_RECORD_DISTANCE = 50   # Remember food locations from 50px away
-FOOD_VELOCITY_THRESHOLD = 0.1      # Food moving <0.1 px/frame = "stationary"
-FOOD_SPEED_BOOST_DISTANCE = 100    # Sprint when within 100px of food
-FOOD_STRIKE_DISTANCE = 80          # Final lunge distance
+FOOD_MEMORY_RECORD_DISTANCE = 50  # Remember food locations from 50px away
+FOOD_VELOCITY_THRESHOLD = 0.1  # Food moving <0.1 px/frame = "stationary"
+FOOD_SPEED_BOOST_DISTANCE = 100  # Sprint when within 100px of food
+FOOD_STRIKE_DISTANCE = 80  # Final lunge distance
 FOOD_CIRCLING_APPROACH_DISTANCE = 200  # CircularHunter starts orbiting at 200px
-FOOD_PURSUIT_RANGE_DESPERATE = 200 # Starving: detect food from 200px
-FOOD_PURSUIT_RANGE_NORMAL = 150    # Normal: 150px detection
-FOOD_PURSUIT_RANGE_CLOSE = 80      # Close range: guaranteed detection
+FOOD_PURSUIT_RANGE_DESPERATE = 200  # Starving: detect food from 200px
+FOOD_PURSUIT_RANGE_NORMAL = 150  # Normal: 150px detection
+FOOD_PURSUIT_RANGE_CLOSE = 80  # Close range: guaranteed detection
 FOOD_PURSUIT_RANGE_EXTENDED = 250  # Extended range for special algorithms
 
 # =============================================================================
@@ -189,11 +191,11 @@ FOOD_PURSUIT_RANGE_EXTENDED = 250  # Extended range for special algorithms
 # FoodQualityOptimizer algorithm uses these to score food targets.
 # Score = (energy_value - distance_cost - danger_cost)
 # Negative thresholds allow pursuing risky food when desperate.
-FOOD_SAFETY_BONUS = 20             # +20 score if food is far from predators
-FOOD_SAFETY_DISTANCE_RATIO = 0.7   # Food is "safe" if predator is 1.4x farther
+FOOD_SAFETY_BONUS = 20  # +20 score if food is far from predators
+FOOD_SAFETY_DISTANCE_RATIO = 0.7  # Food is "safe" if predator is 1.4x farther
 FOOD_SCORE_THRESHOLD_CRITICAL = -80  # Starving: pursue even terrible options
-FOOD_SCORE_THRESHOLD_LOW = -60       # Hungry: accept poor options
-FOOD_SCORE_THRESHOLD_NORMAL = -50    # Normal: moderately selective
+FOOD_SCORE_THRESHOLD_LOW = -60  # Hungry: accept poor options
+FOOD_SCORE_THRESHOLD_NORMAL = -50  # Normal: moderately selective
 
 # =============================================================================
 # DANGER ASSESSMENT WEIGHTS
@@ -204,14 +206,14 @@ FOOD_SCORE_THRESHOLD_NORMAL = -50    # Normal: moderately selective
 # Starving fish ignore danger (must eat or die anyway).
 # Well-fed fish are cautious (survival > small energy gain).
 DANGER_WEIGHT_CRITICAL = 0.1  # Nearly ignore danger when starving
-DANGER_WEIGHT_LOW = 0.4       # Moderate risk tolerance when hungry
-DANGER_WEIGHT_NORMAL = 0.7    # Prioritize safety when comfortable
+DANGER_WEIGHT_LOW = 0.4  # Moderate risk tolerance when hungry
+DANGER_WEIGHT_NORMAL = 0.7  # Prioritize safety when comfortable
 
 # =============================================================================
 # SOCIAL FORAGING
 # =============================================================================
 # CooperativeForager algorithm uses these to follow successful foragers.
 # Creates emergent schooling around food sources.
-SOCIAL_FOLLOW_MAX_DISTANCE = 200      # Follow fish up to 200px away
+SOCIAL_FOLLOW_MAX_DISTANCE = 200  # Follow fish up to 200px away
 SOCIAL_FOOD_PROXIMITY_THRESHOLD = 80  # Fish within 80px of food = "found food"
-SOCIAL_SIGNAL_DETECTION_RANGE = 250   # Detect feeding behavior from 250px
+SOCIAL_SIGNAL_DETECTION_RANGE = 250  # Detect feeding behavior from 250px

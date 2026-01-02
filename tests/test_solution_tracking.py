@@ -4,7 +4,6 @@ This module tests the core functionality of the solution tracking system,
 including solution creation, serialization, benchmarking, and comparison.
 """
 
-import json
 import os
 import tempfile
 from datetime import datetime
@@ -213,7 +212,7 @@ class TestSolutionTracker:
     def test_tracker_initialization(self):
         """Test tracker initialization."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            tracker = SolutionTracker(solutions_dir=tmpdir)
+            SolutionTracker(solutions_dir=tmpdir)
             assert os.path.exists(tmpdir)
 
     def test_save_and_load_solutions(self):
@@ -278,11 +277,13 @@ class TestSolutionTracker:
             tracker = SolutionTracker(solutions_dir=tmpdir)
 
             # Create solutions with different ratings
-            for i, (name, elo) in enumerate([
-                ("Best", 1600),
-                ("Middle", 1400),
-                ("Worst", 1200),
-            ]):
+            for i, (name, elo) in enumerate(
+                [
+                    ("Best", 1600),
+                    ("Middle", 1400),
+                    ("Worst", 1200),
+                ]
+            ):
                 metadata = SolutionMetadata(
                     solution_id=f"lead_{i}",
                     name=name,
@@ -344,6 +345,23 @@ class TestSolutionBenchmark:
     Note: These tests use minimal settings for speed.
     Full benchmarks are done separately.
     """
+
+    def _make_solution(self, solution_id: str) -> SolutionRecord:
+        metadata = SolutionMetadata(
+            solution_id=solution_id,
+            name=f"Test {solution_id}",
+            description="Test solution",
+            author="test_runner",
+            submitted_at=datetime.utcnow().isoformat(),
+        )
+        return SolutionRecord(
+            metadata=metadata,
+            benchmark_result=BenchmarkResult(
+                elo_rating=1200.0,
+                skill_tier="beginner",
+                evaluated_at=datetime.utcnow().isoformat(),
+            ),
+        )
 
     @pytest.fixture
     def fast_config(self):
@@ -413,6 +431,36 @@ class TestSolutionBenchmark:
             assert "First" in report
             assert "Second" in report
             assert "#1" in report
+
+    def test_head_to_head_is_order_invariant(self):
+        """Same pair should produce same result regardless of argument ordering."""
+        benchmark = SolutionBenchmark(SolutionBenchmarkConfig())
+
+        sol_a = self._make_solution("h2h_a")
+        sol_b = self._make_solution("h2h_b")
+
+        a_vs_b = benchmark.run_head_to_head(sol_a, sol_b, num_hands=80)
+        b_vs_a = benchmark.run_head_to_head(sol_b, sol_a, num_hands=80)
+
+        assert a_vs_b[0] == pytest.approx(b_vs_a[1], abs=1e-12)
+        assert a_vs_b[1] == pytest.approx(b_vs_a[0], abs=1e-12)
+
+    def test_compare_solutions_invariant_to_input_order(self):
+        """compare_solutions should not change if the input list is permuted."""
+        benchmark = SolutionBenchmark(SolutionBenchmarkConfig())
+
+        sol_a = self._make_solution("cmp_a")
+        sol_b = self._make_solution("cmp_b")
+        sol_c = self._make_solution("cmp_c")
+
+        c1 = benchmark.compare_solutions([sol_a, sol_b, sol_c], hands_per_matchup=80)
+        c2 = benchmark.compare_solutions([sol_c, sol_a, sol_b], hands_per_matchup=80)
+
+        assert set(c1.head_to_head.keys()) == set(c2.head_to_head.keys())
+        for row_id, row in c1.head_to_head.items():
+            assert set(row.keys()) == set(c2.head_to_head[row_id].keys())
+            for col_id, wr in row.items():
+                assert wr == pytest.approx(c2.head_to_head[row_id][col_id], abs=1e-12)
 
 
 class TestIntegration:

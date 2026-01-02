@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES
 
@@ -15,36 +15,32 @@ class EnergyTracker:
         self.frame_count: int = 0
 
         # Cumulative energy gains by source.
-        self.energy_sources: Dict[str, float] = defaultdict(float)
+        self.energy_sources: dict[str, float] = defaultdict(float)
 
         # Rolling per-frame energy gains.
-        self.recent_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(
-            maxlen=window_maxlen
-        )
-        self._current_frame_gains: Dict[str, float] = defaultdict(float)
+        self.recent_energy_gains: deque[tuple[int, dict[str, float]]] = deque(maxlen=window_maxlen)
+        self._current_frame_gains: dict[str, float] = defaultdict(float)
 
         # Rolling per-frame energy burns.
-        self.energy_burn: Dict[str, float] = defaultdict(float)
-        self.recent_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(
-            maxlen=window_maxlen
-        )
-        self._current_frame_burns: Dict[str, float] = defaultdict(float)
+        self.energy_burn: dict[str, float] = defaultdict(float)
+        self.recent_energy_burns: deque[tuple[int, dict[str, float]]] = deque(maxlen=window_maxlen)
+        self._current_frame_burns: dict[str, float] = defaultdict(float)
 
         # Plant energy tracking (separate pool).
-        self.plant_energy_sources: Dict[str, float] = defaultdict(float)
-        self.recent_plant_energy_gains: deque[Tuple[int, Dict[str, float]]] = deque(
+        self.plant_energy_sources: dict[str, float] = defaultdict(float)
+        self.recent_plant_energy_gains: deque[tuple[int, dict[str, float]]] = deque(
             maxlen=window_maxlen
         )
-        self._current_frame_plant_gains: Dict[str, float] = defaultdict(float)
+        self._current_frame_plant_gains: dict[str, float] = defaultdict(float)
 
-        self.plant_energy_burn: Dict[str, float] = defaultdict(float)
-        self.recent_plant_energy_burns: deque[Tuple[int, Dict[str, float]]] = deque(
+        self.plant_energy_burn: dict[str, float] = defaultdict(float)
+        self.recent_plant_energy_burns: deque[tuple[int, dict[str, float]]] = deque(
             maxlen=window_maxlen
         )
-        self._current_frame_plant_burns: Dict[str, float] = defaultdict(float)
+        self._current_frame_plant_burns: dict[str, float] = defaultdict(float)
 
         # Historical energy snapshots for true delta calculations.
-        self.energy_history: deque[Tuple[int, float, int]] = deque(maxlen=window_maxlen)
+        self.energy_history: deque[tuple[int, float, int]] = deque(maxlen=window_maxlen)
         self._last_snapshot_frame: int = 0
         self._snapshot_interval: int = snapshot_interval
 
@@ -88,7 +84,7 @@ class EnergyTracker:
         self._current_frame_burns[source] += amount
 
     def record_energy_delta(
-        self, source: str, delta: float, *, negative_source: Optional[str] = None
+        self, source: str, delta: float, *, negative_source: str | None = None
     ) -> None:
         """Record a signed energy delta as either a gain or a burn."""
         if delta > 0:
@@ -118,7 +114,7 @@ class EnergyTracker:
         self._current_frame_plant_burns[source] += amount
 
     def record_plant_energy_delta(
-        self, source: str, delta: float, *, negative_source: Optional[str] = None
+        self, source: str, delta: float, *, negative_source: str | None = None
     ) -> None:
         """Record a signed plant energy delta as either a gain or a burn."""
         if delta > 0:
@@ -133,23 +129,23 @@ class EnergyTracker:
         self.record_plant_energy_gain(source, amount)
         self.record_plant_energy_burn(source, amount)
 
-    def get_energy_source_summary(self) -> Dict[str, float]:
+    def get_energy_source_summary(self) -> dict[str, float]:
         """Return a snapshot of accumulated energy gains."""
         return dict(self.energy_sources)
 
-    def get_plant_energy_source_summary(self) -> Dict[str, float]:
+    def get_plant_energy_source_summary(self) -> dict[str, float]:
         """Return a snapshot of accumulated plant energy gains."""
         return dict(self.plant_energy_sources)
 
     def get_recent_energy_breakdown(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get energy source breakdown over recent frames."""
         if window_frames <= 0:
             return {}
 
         cutoff_frame = self.frame_count - window_frames + 1
-        recent_totals: Dict[str, float] = defaultdict(float)
+        recent_totals: dict[str, float] = defaultdict(float)
 
         for frame, gains in self.recent_energy_gains:
             if frame >= cutoff_frame:
@@ -163,13 +159,13 @@ class EnergyTracker:
 
     def get_recent_plant_energy_breakdown(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get plant energy source breakdown over recent frames."""
         if window_frames <= 0:
             return {}
 
         cutoff_frame = self.frame_count - window_frames + 1
-        recent_totals: Dict[str, float] = defaultdict(float)
+        recent_totals: dict[str, float] = defaultdict(float)
 
         for frame, gains in self.recent_plant_energy_gains:
             if frame >= cutoff_frame:
@@ -183,13 +179,13 @@ class EnergyTracker:
 
     def get_recent_energy_burn(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get energy consumption breakdown over recent frames."""
         if window_frames <= 0:
             return {}
 
         cutoff_frame = self.frame_count - window_frames + 1
-        recent_totals: Dict[str, float] = defaultdict(float)
+        recent_totals: dict[str, float] = defaultdict(float)
 
         for frame, burns in self.recent_energy_burns:
             if frame >= cutoff_frame:
@@ -203,13 +199,13 @@ class EnergyTracker:
 
     def get_recent_plant_energy_burn(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get plant energy consumption breakdown over recent frames."""
         if window_frames <= 0:
             return {}
 
         cutoff_frame = self.frame_count - window_frames + 1
-        recent_totals: Dict[str, float] = defaultdict(float)
+        recent_totals: dict[str, float] = defaultdict(float)
 
         for frame, burns in self.recent_plant_energy_burns:
             if frame >= cutoff_frame:
@@ -229,9 +225,7 @@ class EnergyTracker:
             self.energy_history.append((self.frame_count, total_fish_energy, fish_count))
             self._last_snapshot_frame = self.frame_count
 
-    def get_energy_delta(
-        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, Any]:
+    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> dict[str, Any]:
         """Calculate the true change in fish population energy over a time window."""
         if not self.energy_history:
             return {

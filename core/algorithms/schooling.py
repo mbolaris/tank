@@ -16,7 +16,10 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.entities import Crab
@@ -65,11 +68,7 @@ class TightSchooler(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Tight schoolers stay close, so use a moderate radius
         QUERY_RADIUS = 200
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # OPTIMIZATION: Inline center calculation to avoid Vector2.__add__ overhead
             center_x, center_y = 0.0, 0.0
@@ -112,11 +111,7 @@ class LooseSchooler(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Loose schoolers maintain distance, so use a larger radius
         QUERY_RADIUS = 300
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # OPTIMIZATION: Inline center calculation to avoid Vector2.__add__ overhead
             center_x, center_y = 0.0, 0.0
@@ -163,11 +158,7 @@ class LeaderFollower(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Query a bit beyond max_follow_distance to find potential leaders
         QUERY_RADIUS = 250
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # Find "leader" (fish with most energy)
             leader = max(allies, key=lambda f: f.energy)
@@ -298,11 +289,7 @@ class FrontRunner(BehaviorAlgorithm):
         # Front runners lead from ahead, check reasonable radius
         QUERY_RADIUS = 250
         # Move in a consistent direction
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # OPTIMIZATION: Inline center calculation
             center_x, center_y = 0.0, 0.0
@@ -351,11 +338,7 @@ class PerimeterGuard(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Query beyond orbit_radius to find the school center
         QUERY_RADIUS = int(self.parameters["orbit_radius"] * 2)
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # OPTIMIZATION: Inline center calculation
             center_x, center_y = 0.0, 0.0
@@ -459,11 +442,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
 
         fish_x = fish.pos.x
         fish_y = fish.pos.y
@@ -649,11 +628,7 @@ class DynamicSchooler(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use danger_threshold as radius since that's the maximum interaction range
         QUERY_RADIUS = int(self.parameters["danger_threshold"] * 1.5)
-        allies = [
-            f
-            for f in _get_nearby_fish(fish, QUERY_RADIUS)
-            if f.species == fish.species
-        ]
+        allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
         if allies:
             # OPTIMIZATION: Inline center calculation
             center_x, center_y = 0.0, 0.0

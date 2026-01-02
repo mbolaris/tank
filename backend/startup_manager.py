@@ -300,9 +300,7 @@ class StartupManager:
 
             # Parse discovery hub URL if provided
             if self.discovery_server_url:
-                self._discovery_hub_info = self._parse_discovery_url(
-                    self.discovery_server_url
-                )
+                self._discovery_hub_info = self._parse_discovery_url(self.discovery_server_url)
                 if self._discovery_hub_info:
                     logger.info(
                         f"Discovery hub configured: "
@@ -362,9 +360,7 @@ class StartupManager:
         """Configure tank registry for distributed operations."""
         logger.info("Configuring TankRegistry for distributed operations...")
         try:
-            self.tank_registry.set_distributed_services(
-                self.discovery_service, self.server_client
-            )
+            self.tank_registry.set_distributed_services(self.discovery_service, self.server_client)
             self.tank_registry.set_connection_manager(self.connection_manager)
             logger.info(
                 "TankRegistry configured for distributed operations and connection management"
@@ -568,9 +564,7 @@ class StartupManager:
         except Exception as e:
             logger.error(f"Error getting task exception: {e}", exc_info=True)
 
-    async def _heartbeat_loop(
-        self, get_server_info_callback: Callable[[], ServerInfo]
-    ) -> None:
+    async def _heartbeat_loop(self, get_server_info_callback: Callable[[], ServerInfo]) -> None:
         """Background task to send periodic heartbeats to discovery service."""
         while True:
             try:
@@ -605,4 +599,3 @@ class StartupManager:
                 break
             except Exception as e:
                 logger.error(f"Error in heartbeat loop: {e}", exc_info=True)
-

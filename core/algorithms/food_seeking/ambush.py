@@ -1,12 +1,15 @@
 """AmbushFeeder food-seeking behavior."""
 
-
 import random
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.predictive_movement import predict_intercept_point, predict_falling_intercept
+from core.predictive_movement import predict_falling_intercept, predict_intercept_point
+
 
 @dataclass
 class AmbushFeeder(BehaviorAlgorithm):
@@ -41,30 +44,33 @@ class AmbushFeeder(BehaviorAlgorithm):
                 target_pos = nearest_food.pos
 
                 if hasattr(nearest_food, "vel") and nearest_food.vel.length() > 0.01:
-                     is_accelerating = False
-                     acceleration = 0.0
-                     if hasattr(nearest_food, "food_properties"):
-                         from core.config.food import FOOD_SINK_ACCELERATION
-                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
-                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-                         if acceleration > 0 and nearest_food.vel.y >= 0:
-                             is_accelerating = True
+                    is_accelerating = False
+                    acceleration = 0.0
+                    if hasattr(nearest_food, "food_properties"):
+                        from core.config.food import FOOD_SINK_ACCELERATION
 
-                     if is_accelerating:
-                         target_pos, _ = predict_falling_intercept(
+                        sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
+                        acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+                        if acceleration > 0 and nearest_food.vel.y >= 0:
+                            is_accelerating = True
+
+                    if is_accelerating:
+                        target_pos, _ = predict_falling_intercept(
                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel, acceleration
-                         )
-                     else:
-                         # Simple lead - now using intercept point properly
-                         intercept_point, _ = predict_intercept_point(
-                             fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
-                         )
-                         if intercept_point:
+                        )
+                    else:
+                        # Simple lead - now using intercept point properly
+                        intercept_point, _ = predict_intercept_point(
+                            fish.pos, fish.speed, nearest_food.pos, nearest_food.vel
+                        )
+                        if intercept_point:
                             # Blend based on skill - ambushers need good timing
                             skill_factor = 0.4 + (prediction_skill * 0.6)
                             target_pos = Vector2(
-                                nearest_food.pos.x * (1 - skill_factor) + intercept_point.x * skill_factor,
-                                nearest_food.pos.y * (1 - skill_factor) + intercept_point.y * skill_factor,
+                                nearest_food.pos.x * (1 - skill_factor)
+                                + intercept_point.x * skill_factor,
+                                nearest_food.pos.y * (1 - skill_factor)
+                                + intercept_point.y * skill_factor,
                             )
 
                 direction = self._safe_normalize(target_pos - fish.pos)

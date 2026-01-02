@@ -29,7 +29,10 @@ def _base_result(**overrides):
         "is_tie": True,
         "player_ids": [1, 2],
         "loser_ids": [],  # Empty for ties
-        "player_hands": [SimpleNamespace(description="Pair of Aces"), SimpleNamespace(description="Two Pair")],
+        "player_hands": [
+            SimpleNamespace(description="Pair of Aces"),
+            SimpleNamespace(description="Two Pair"),
+        ],
         "hand1": SimpleNamespace(description="Pair of Aces"),
         "hand2": SimpleNamespace(description="Two Pair"),
         "winner_hand": SimpleNamespace(description="Pair of Aces"),
@@ -78,7 +81,14 @@ def test_add_poker_event_records_win_message():
     engine = DummyEngine()
     system = PokerSystem(engine, max_events=10)
 
-    result = _base_result(winner_id=1, loser_id=2, loser_ids=[2], is_tie=False, winner_actual_gain=12.5, energy_transferred=7.5)
+    result = _base_result(
+        winner_id=1,
+        loser_id=2,
+        loser_ids=[2],
+        is_tie=False,
+        winner_actual_gain=12.5,
+        energy_transferred=7.5,
+    )
     poker = _poker(result)
 
     system.add_poker_event(poker)
@@ -132,4 +142,3 @@ def test_plant_event_adds_metadata():
     assert event["is_plant"] is True
     assert event["plant_id"] == 8
     assert event["winner_id"] == -3
-

@@ -5,6 +5,16 @@ This package contains poker strategy engines and evolving strategy algorithms.
 """
 
 from core.poker.strategy.base import HandStrength, OpponentModel, PokerStrategyEngine
+
+# Re-export from new location but maintain backward compatibility
+from core.poker.strategy.composable import (
+    BettingStyle,
+    BluffingApproach,
+    ComposablePokerStrategy,
+    HandSelection,
+    PositionAwareness,
+    ShowdownTendency,
+)
 from core.poker.strategy.implementations import (
     ALL_POKER_STRATEGIES,
     BASELINE_STRATEGIES,
@@ -17,15 +27,6 @@ from core.poker.strategy.implementations import (
     TightPassiveStrategy,
     crossover_poker_strategies,
     get_random_poker_strategy,
-)
-# Re-export from new location but maintain backward compatibility
-from core.poker.strategy.composable import (
-    ComposablePokerStrategy,
-    HandSelection,
-    BettingStyle,
-    BluffingApproach,
-    PositionAwareness,
-    ShowdownTendency,
 )
 
 __all__ = [

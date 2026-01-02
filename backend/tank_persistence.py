@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 # Current schema version for saved snapshots
-SCHEMA_VERSION = "2.0"
+from core.worlds.tank.schema import SCHEMA_VERSION
 
 # Base directory for all tank data
 DATA_DIR = Path("data/tanks")
@@ -72,7 +72,9 @@ def save_snapshot_data(tank_id: str, snapshot: Dict[str, Any]) -> Optional[str]:
         with open(snapshot_file, "w") as f:
             json.dump(snapshot, f, indent=2)
 
-        logger.info(f"Saved tank {tank_id[:8]} state to {snapshot_file.name} ({len(snapshot.get('entities', []))} entities)")
+        logger.info(
+            f"Saved tank {tank_id[:8]} state to {snapshot_file.name} ({len(snapshot.get('entities', []))} entities)"
+        )
         return str(snapshot_file)
 
     except Exception as e:
@@ -124,7 +126,16 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
         - v2.0 snapshots: max_energy computed from fish size
     """
     try:
-        with open(snapshot_path) as f:
+        resolved_path = Path(snapshot_path).resolve()
+        data_root = DATA_DIR.resolve()
+
+        try:
+            resolved_path.relative_to(data_root)
+        except ValueError:
+            logger.error("Rejected snapshot load outside data directory: %s", resolved_path)
+            return None
+
+        with open(resolved_path) as f:
             snapshot = json.load(f)
 
         # Validate snapshot format
@@ -137,7 +148,9 @@ def load_tank_state(snapshot_path: str) -> Optional[Dict[str, Any]]:
         # Log version info for debugging
         version = snapshot.get("version", "unknown")
         if version != SCHEMA_VERSION:
-            logger.info(f"Loading snapshot with schema version {version} (current: {SCHEMA_VERSION})")
+            logger.info(
+                f"Loading snapshot with schema version {version} (current: {SCHEMA_VERSION})"
+            )
 
         logger.info(
             f"Loaded snapshot for tank {snapshot['tank_id'][:8]} "
@@ -161,8 +174,8 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         True if restoration succeeded, False otherwise
     """
     try:
-        from backend.entity_transfer import deserialize_entity
         from core.entities import Food, PlantNectar
+        from core.transfer.entity_transfer import deserialize_entity
 
         def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:
             # Regression-safe inference for snapshots created during a brief window where
@@ -173,14 +186,57 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 return "plant"
             return None
 
+        # Resolve engine from target_world (which might be an adapter)
+        engine = None
+        if hasattr(target_world, "world") and hasattr(target_world.world, "engine"):
+            engine = target_world.world.engine
+        elif hasattr(target_world, "engine"):
+            engine = target_world.engine
+
+        if engine is None:
+            logger.error("Failed to resolve engine for restoration")
+            return False
+
+        # Restore code pool components FIRST (before entities that reference them)
+        if "code_pool" in snapshot:
+            from core.code_pool import (
+                BUILTIN_SEEK_NEAREST_FOOD_ID,
+                CodePool,
+                GenomeCodePool,
+                seek_nearest_food_policy,
+            )
+
+            try:
+                restored_pool = CodePool.from_dict(snapshot["code_pool"])
+                # Re-register builtin policies (not serialized)
+                restored_pool.register(BUILTIN_SEEK_NEAREST_FOOD_ID, seek_nearest_food_policy)
+                engine.code_pool = restored_pool
+
+                # Rebuild GenomeCodePool wrapper with restored components
+                if engine.environment and hasattr(engine.environment, "genome_code_pool"):
+                    if engine.environment.genome_code_pool is not None:
+                        # Create fresh GenomeCodePool with existing pool data
+                        genome_pool = GenomeCodePool(code_pool=restored_pool)
+                        engine.environment.genome_code_pool = genome_pool
+                        engine.environment.code_pool = genome_pool.pool
+                    else:
+                        # Legacy Environment without GenomeCodePool - just update code_pool
+                        engine.environment.code_pool = engine.code_pool
+
+                component_count = len(restored_pool.list_components())
+                if component_count > 0:
+                    logger.info(f"Restored {component_count} code pool components")
+            except Exception as e:
+                logger.warning(f"Failed to restore code pool: {e}")
+
         # Clear existing entities
-        target_world.engine.entities_list.clear()
-        if target_world.engine.environment:
-            target_world.engine.environment.spatial_grid.clear()
+        engine.entities_list.clear()
+        if engine.environment:
+            engine.environment.spatial_grid.clear()
 
         # Reset root spots
-        if hasattr(target_world.engine, "root_spot_manager") and target_world.engine.root_spot_manager:
-            for spot in target_world.engine.root_spot_manager.spots:
+        if hasattr(engine, "root_spot_manager") and engine.root_spot_manager:
+            for spot in engine.root_spot_manager.spots:
                 spot.release()
 
         # Restore entities
@@ -194,7 +250,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot["entities"]:
             entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
-            
+
             if entity_type and "type" not in entity_data:
                 entity_data["type"] = entity_type
 
@@ -210,12 +266,12 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     if isinstance(entity, Plant) and "id" in entity_data:
                         entity.plant_id = entity_data["id"]
                         # Ensure plant_manager's ID counter is higher than this ID to avoid collisions
-                        plant_manager = getattr(target_world.engine, "plant_manager", None)
+                        plant_manager = getattr(engine, "plant_manager", None)
                         if plant_manager is not None and hasattr(plant_manager, "_next_plant_id"):
                             if entity.plant_id >= plant_manager._next_plant_id:
                                 plant_manager._next_plant_id = entity.plant_id + 1
 
-                    target_world.engine.add_entity(entity)
+                    engine.add_entity(entity)
                     restored_count += 1
                     if isinstance(entity, Plant):
                         plants_by_id[entity.plant_id] = entity
@@ -231,7 +287,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 if food_type == "live":
                     # Create LiveFood instance to preserve movement behavior
                     food = LiveFood(
-                        environment=target_world.engine.environment,
+                        environment=engine.environment,
                         x=x,
                         y=y,
                     )
@@ -241,11 +297,11 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                         x=x,
                         y=y,
                         food_type=food_type,
-                        environment=target_world.engine.environment,
+                        environment=engine.environment,
                     )
 
                 food.energy = entity_data["energy"]
-                target_world.engine.add_entity(food)
+                engine.add_entity(food)
                 restored_count += 1
 
             elif entity_type == "castle":
@@ -253,14 +309,14 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 from core.entities.base import Castle
 
                 castle = Castle(
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                     x=entity_data["x"],
                     y=entity_data["y"],
                 )
                 # Restore size if it was saved
                 if "width" in entity_data and "height" in entity_data:
                     castle.set_size(entity_data["width"], entity_data["height"])
-                target_world.engine.add_entity(castle)
+                engine.add_entity(castle)
                 restored_count += 1
 
             elif entity_type == "crab":
@@ -273,13 +329,14 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 # Create genome using random() then override with saved values
                 # Use a seeded RNG for determinism during restoration
                 import random as pyrandom
+
                 restore_rng = pyrandom.Random(entity_data.get("x", 0) + entity_data.get("y", 0))
                 genome = Genome.random(rng=restore_rng)
                 genome.physical.size_modifier.value = genome_data.get("size_modifier", 1.0)
                 genome.physical.color_hue.value = genome_data.get("color_hue", 0.5)
 
                 crab = Crab(
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                     genome=genome,
                     x=entity_data["x"],
                     y=entity_data["y"],
@@ -287,10 +344,11 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 crab.energy = entity_data.get("energy", crab.max_energy)
                 crab.max_energy = entity_data.get("max_energy", crab.max_energy)
                 crab.hunt_cooldown = entity_data.get("hunt_cooldown", 0)
-                target_world.engine.add_entity(crab)
+                engine.add_entity(crab)
                 restored_count += 1
 
         # Pass 2: Restore nectar
+        orphaned_nectar_count = 0
         for entity_data in nectar_data_list:
             source_plant_id = entity_data.get("source_plant_id")
             source_plant = plants_by_id.get(source_plant_id)
@@ -300,20 +358,24 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                     x=entity_data["x"],
                     y=entity_data["y"],
                     source_plant=source_plant,
-                    environment=target_world.engine.environment,
+                    environment=engine.environment,
                 )
                 nectar.energy = entity_data["energy"]
-                target_world.engine.add_entity(nectar)
+                engine.add_entity(nectar)
                 restored_count += 1
             else:
-                logger.warning(f"Skipping nectar restoration: missing source plant {source_plant_id}")
+                orphaned_nectar_count += 1
+
+        # Log orphaned nectar once (not per-nectar spam)
+        if orphaned_nectar_count > 0:
+            logger.warning(f"Skipped {orphaned_nectar_count} nectar(s) with missing source plants")
 
         # Restore frame number
-        target_world.engine.frame_count = snapshot["frame"]
+        engine.frame_count = snapshot["frame"]
 
         # Restore ecosystem statistics
         if "ecosystem" in snapshot:
-            eco = target_world.engine.ecosystem
+            eco = engine.ecosystem
             eco_data = snapshot["ecosystem"]
             eco.total_births = eco_data.get("total_births", 0)
             eco.total_deaths = eco_data.get("total_deaths", 0)
@@ -363,14 +425,16 @@ def list_tank_snapshots(tank_id: str) -> List[Dict[str, Any]]:
             # Read just the metadata without loading full state
             with open(snapshot_file) as f:
                 data = json.load(f)
-                snapshots.append({
-                    "filename": snapshot_file.name,
-                    "filepath": str(snapshot_file),
-                    "saved_at": data.get("saved_at"),
-                    "frame": data.get("frame"),
-                    "entity_count": len(data.get("entities", [])),
-                    "size_bytes": snapshot_file.stat().st_size,
-                })
+                snapshots.append(
+                    {
+                        "filename": snapshot_file.name,
+                        "filepath": str(snapshot_file),
+                        "saved_at": data.get("saved_at"),
+                        "frame": data.get("frame"),
+                        "entity_count": len(data.get("entities", [])),
+                        "size_bytes": snapshot_file.stat().st_size,
+                    }
+                )
         except Exception as e:
             logger.warning(f"Failed to read snapshot {snapshot_file.name}: {e}")
             continue
@@ -468,7 +532,10 @@ def find_all_tank_snapshots() -> Dict[str, str]:
         Dictionary mapping tank_id to latest snapshot path
     """
     if not DATA_DIR.exists():
+        logger.warning(f"DATA_DIR not found at {DATA_DIR.resolve()} (CWD: {Path.cwd()})")
         return {}
+
+    logger.info(f"Scanning for snapshots in {DATA_DIR.resolve()}")
 
     tank_snapshots = {}
 

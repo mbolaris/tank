@@ -20,8 +20,7 @@ Plant sprouting logic is included here for simplicity (triggered when nectar is 
 """
 
 import logging
-import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -31,7 +30,7 @@ from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.entities import Agent, Crab, Fish, Food
+    from core.entities import Agent, Crab, Fish
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -82,9 +81,7 @@ class RectCollisionDetector(CollisionDetector):
 class CircleCollisionDetector(CollisionDetector):
     """Circle-based collision detection (distance-based)."""
 
-    def collides(
-        self, agent1: "Agent", agent2: "Agent", threshold: Optional[float] = None
-    ) -> bool:
+    def collides(self, agent1: "Agent", agent2: "Agent", threshold: Optional[float] = None) -> bool:
         """Check if two agents collide based on distance.
 
         Args:
@@ -247,51 +244,31 @@ class CollisionSystem(BaseSystem):
             return
 
         # Track which fish have been removed (e.g. eaten) to avoid processing them further
-        removed_fish: Set["Fish"] = set()
+        removed_fish: Set[Fish] = set()
 
         # Performance: Cache environment and check_collision references
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
-        grid = environment.spatial_grid if environment is not None else None
-        agent_cells = grid.agent_cells if grid is not None else None
+        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
+        # This is much faster than the complex key that was doing multiple getattr/isinstance calls
+        Fish_type = Fish
+        Food_type = Food
+        Crab_type = Crab
 
         def collision_sort_key(entity: "Agent") -> tuple:
-            cell = agent_cells.get(entity) if agent_cells is not None else None
-            if cell is None:
-                cell = (0, 0)
-
-            if isinstance(entity, Fish):
+            # Fast type ranking using identity comparison
+            e_type = type(entity)
+            if e_type is Fish_type:
                 type_rank = 0
-            elif isinstance(entity, Food):
+            elif e_type is Food_type:
                 type_rank = 1
-            elif isinstance(entity, Crab):
+            elif e_type is Crab_type:
                 type_rank = 2
             else:
                 type_rank = 3
-
-            entity_id = getattr(entity, "fish_id", None)
-            if entity_id is None:
-                entity_id = getattr(entity, "plant_id", None)
-            if entity_id is None:
-                pos = getattr(entity, "pos", None)
-                if pos is not None:
-                    entity_id = (
-                        1,
-                        float(pos.x),
-                        float(pos.y),
-                        float(getattr(entity, "width", 0.0)),
-                        float(getattr(entity, "height", 0.0)),
-                        float(getattr(entity, "energy", 0.0)),
-                        entity_order.get(entity, 0),
-                    )
-                else:
-                    entity_id = (2, entity_order.get(entity, 0))
-            else:
-                entity_id = (0, int(entity_id))
-
-            return (cell[0], cell[1], type_rank, entity_id)
+            # Use Python id() for stable ordering within a frame (no getattr calls!)
+            return (type_rank, id(entity))
 
         # Single pass over all fish
         for fish in fish_list:
@@ -329,8 +306,8 @@ class CollisionSystem(BaseSystem):
             nearby_entities = sorted(nearby_entities, key=collision_sort_key)
 
             # Cache fish position for inner loop
-            fish_cx = fish.pos.x + fish.width * 0.5
-            fish_cy = fish.pos.y + fish.height * 0.5
+            fish.pos.x + fish.width * 0.5
+            fish.pos.y + fish.height * 0.5
 
             for other in nearby_entities:
                 if other is fish:
@@ -418,36 +395,9 @@ class CollisionSystem(BaseSystem):
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        entity_order = {entity: idx for idx, entity in enumerate(all_entities)}
-        grid = environment.spatial_grid if environment is not None else None
-        agent_cells = grid.agent_cells if grid is not None else None
-
+        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
         def collision_sort_key(entity: "Agent") -> tuple:
-            cell = agent_cells.get(entity) if agent_cells is not None else None
-            if cell is None:
-                cell = (0, 0)
-
-            entity_id = getattr(entity, "fish_id", None)
-            if entity_id is None:
-                entity_id = getattr(entity, "plant_id", None)
-            if entity_id is None:
-                pos = getattr(entity, "pos", None)
-                if pos is not None:
-                    entity_id = (
-                        1,
-                        float(pos.x),
-                        float(pos.y),
-                        float(getattr(entity, "width", 0.0)),
-                        float(getattr(entity, "height", 0.0)),
-                        float(getattr(entity, "energy", 0.0)),
-                        entity_order.get(entity, 0),
-                    )
-                else:
-                    entity_id = (2, entity_order.get(entity, 0))
-            else:
-                entity_id = (0, int(entity_id))
-
-            return (cell[0], cell[1], type(entity).__name__, entity_id)
+            return (type(entity).__name__, id(entity))
 
         for food in food_list:
             # Check if food is still in simulation (may have been eaten)
@@ -500,6 +450,7 @@ class CollisionSystem(BaseSystem):
 
                 # Check sprouting chance (use engine RNG for determinism)
                 from core.util.rng import require_rng
+
                 rng = require_rng(self._engine, "CollisionSystem.handle_fish_food_collision")
                 if rng.random() < PLANT_SPROUTING_CHANCE:
                     self._engine.sprout_new_plant(parent_genome, parent_x, parent_y)

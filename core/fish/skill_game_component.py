@@ -9,7 +9,10 @@ Selection happens naturally through energy gains/losses from games.
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, Optional
+from typing import TYPE_CHECKING, Any, Deque, Dict, Optional
+
+if TYPE_CHECKING:
+    from random import Random
 
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
@@ -232,9 +235,7 @@ class SkillGameComponent:
             return strategy.get_parameters()
         return {}
 
-    def set_strategy_parameters(
-        self, game_type: SkillGameType, params: Dict[str, float]
-    ) -> None:
+    def set_strategy_parameters(self, game_type: SkillGameType, params: Dict[str, float]) -> None:
         """Set strategy parameters (e.g., from parent).
 
         Args:
@@ -245,9 +246,7 @@ class SkillGameComponent:
         if strategy is not None:
             strategy.set_parameters(params)
 
-    def mutate_strategy(
-        self, game_type: SkillGameType, mutation_rate: float = 0.1
-    ) -> None:
+    def mutate_strategy(self, game_type: SkillGameType, mutation_rate: float = 0.1) -> None:
         """Apply mutation to a strategy.
 
         Args:
@@ -260,16 +259,13 @@ class SkillGameComponent:
 
     def get_all_stats_dict(self) -> Dict[str, Any]:
         """Get all game stats as dictionary."""
-        return {
-            game_type.value: stats.get_stats_dict()
-            for game_type, stats in self._stats.items()
-        }
+        return {game_type.value: stats.get_stats_dict() for game_type, stats in self._stats.items()}
 
     def inherit_from_parent(
         self,
         parent_component: "SkillGameComponent",
         mutation_rate: float = 0.1,
-        rng: Optional["random.Random"] = None,
+        rng: Optional["Random"] = None,
     ) -> None:
         """Inherit strategies from parent with mutation.
 

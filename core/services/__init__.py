@@ -8,6 +8,6 @@ entity or system categories. They typically:
 """
 
 from core.services.energy_tracker import EnergyTracker
-from core.services.stats_calculator import StatsCalculator
+from core.services.stats.calculator import StatsCalculator
 
 __all__ = ["EnergyTracker", "StatsCalculator"]

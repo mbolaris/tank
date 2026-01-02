@@ -251,6 +251,7 @@ git push
 Solutions are stored in `solutions/` directory as JSON files containing:
 - **metadata**: Author, timestamp, fish ID, generation
 - **behavior_algorithm**: The evolved behavioral strategy
+- **poker_strategy**: The evolved poker betting strategy (serialized)
 - **capture_stats**: Performance metrics when captured
 - **benchmark_result**: Evaluation against standard opponents
 
@@ -269,3 +270,105 @@ First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
 5. **Test with quick runs** - 10k frames validates basic functionality
 6. **Long runs for evolution** - 100k+ frames shows evolutionary trends
 7. **Submit your best solution** - Use `scripts/capture_first_solution.py` to capture and submit your best evolved strategy
+
+## CI Compatibility Notes
+
+- CI still runs Python 3.8 for tests. Use `from __future__ import annotations` or `typing.Tuple`/`typing.Dict` instead of builtin generics in new test modules to avoid `TypeError: 'type' object is not subscriptable`.
+
+## Pre-commit Hooks: Prevent Errors Before Committing
+
+**IMPORTANT:** Always set up pre-commit hooks to catch formatting, linting, and type errors locally before committing.
+
+### Initial Setup (One Time)
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files  # Validate on existing code
+```
+
+### What Hooks Check
+
+Pre-commit hooks automatically run on every commit:
+- **black**: Code formatting (100-char line length)
+- **ruff**: Linting (unused variables, imports, type issues)
+- **trailing-whitespace**: Removes trailing spaces
+- **end-of-file-fixer**: Ensures files end with newlines
+
+### Common Fixes
+
+When hooks fail, they often auto-fix issues. Just re-stage and commit:
+
+```bash
+git add .
+git commit -m "Your message"  # Will succeed on second attempt
+```
+
+### Manual Fixes
+
+If auto-fix doesn't work, run formatters manually:
+
+```bash
+black core/ tests/ tools/          # Auto-format Python
+ruff check --fix --unsafe-fixes core/ tests/ tools/  # Fix linting errors
+```
+
+**Why This Matters:** Agents that skip pre-commit setup consistently introduce formatting and type errors that fail CI. Using hooks prevents 95% of these issues.
+
+## AI Tournament (Best Per Author)
+
+TankWorld includes a tournament runner that selects the best solution per author and runs a head-to-head round robin.
+
+```bash
+# Run tournament (does NOT modify solution JSON files)
+python scripts/run_ai_tournament.py
+
+# Include the best fish from your currently-running local tank (requires server running on localhost:8000)
+python scripts/run_ai_tournament.py --include-live-tank --write-back
+
+# Stronger live-tank capture: select the fish most likely to win the tournament field
+python scripts/run_ai_tournament.py --include-live-tank --live-selection tournament --live-candidate-pool 20 --live-hands-per-matchup 800 --write-back
+
+# Run tournament and write results back into solution files + regenerate solutions/benchmark_report.txt
+python scripts/run_ai_tournament.py --write-back
+
+# More stable (slower) run
+python scripts/run_ai_tournament.py --benchmark-hands 800 --benchmark-duplicates 25 --matchup-hands 5000 --write-back
+```
+
+Outputs:
+- `solutions/ai_tournament_report.txt` (human-readable standings + head-to-head matrix)
+- `results/ai_tournament_results.json` (optional; pass `--json-output results/ai_tournament_results.json`)
+
+Re-running the tournament on the same git commit should produce the same head-to-head matrix (deterministic seeding is based on solution IDs).
+
+## Prompt Template: Submit Your Next Attempt
+
+Copy/paste the following prompt into your agent session (edit placeholders):
+
+```
+You are an AI agent working in the TankWorld repo. Your goal is to submit a new poker solution that improves your author’s best standing in the AI tournament.
+
+Rules:
+- Use your model name as `author` and include it in the solution `name`.
+- Do not modify unrelated files.
+- Prefer reproducible runs: always record the seed(s) used.
+
+Workflow:
+1) Baseline: run `python scripts/run_ai_tournament.py` and note current standings.
+2) Evolve: run a longer headless simulation (50k–150k frames) and try multiple seeds.
+   - Example: `python main.py --headless --max-frames 100000 --seed 4242`
+3) Capture: capture the best poker fish into a solution JSON (create a capture script if needed).
+4) Evaluate: run a stronger benchmark evaluation:
+   - `python scripts/submit_solution.py evaluate <solution_id> --hands 800 --duplicates 25`
+5) Save: ensure the solution JSON exists under `solutions/` and has `metadata.author` and `metadata.name` set correctly.
+6) Verify: rerun the tournament including your new solution:
+   - `python scripts/run_ai_tournament.py --write-back`
+7) Submit: commit only the new/updated solution JSON and any intentional supporting changes.
+   - `git add solutions/<solution_id>.json`
+   - `git commit -m "Submit solution: <solution_name>\n\nAuthor: <author>\nElo: <elo>\nSkill Tier: <tier>\nbb/100: <bb_per_100>\n"`
+   - `git push`
+
+Deliverable:
+- The new `solution_id`, Elo, tier, bb/100, and your position in the tournament standings.
+```

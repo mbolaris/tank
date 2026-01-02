@@ -67,7 +67,9 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         if hand_strength < fold_threshold:
             return (BettingAction.FOLD, 0.0)
 
-        if hand_strength > 0.7 or (hand_strength > 0.5 and self._rng.random() < adjusted_aggression):
+        if hand_strength > 0.7 or (
+            hand_strength > 0.5 and self._rng.random() < adjusted_aggression
+        ):
             raise_amt = pot * self._rng.uniform(0.5, 1.0) * self.parameters["stack_depth_factor"]
             raise_amt = min(raise_amt, player_energy * 0.4)
             return (BettingAction.RAISE, max(raise_amt, call_amount * 1.5))
@@ -128,7 +130,9 @@ class PositionalExploiter(PokerStrategyAlgorithm):
                 raise_amt = min(raise_amt, player_energy * 0.4)
                 return (BettingAction.RAISE, max(raise_amt, call_amount * 1.5))
 
-            return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            return (
+                (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            )
         else:
             # Out of position: play tight
             if hand_strength < self.parameters["oop_fold_threshold"]:
@@ -138,7 +142,9 @@ class PositionalExploiter(PokerStrategyAlgorithm):
                 raise_amt = pot * self.parameters["value_sizing"] * 0.8
                 return (BettingAction.RAISE, min(raise_amt, player_energy * 0.35))
 
-            return (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            return (
+                (BettingAction.CALL, call_amount) if call_amount > 0 else (BettingAction.CHECK, 0.0)
+            )
 
 
 @dataclass
@@ -221,7 +227,9 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
         super().__init__(
             strategy_id="mathematical",
             parameters={
-                "required_equity_multiplier": _rng.uniform(1.0, 1.4),  # How much equity needed vs pot odds
+                "required_equity_multiplier": _rng.uniform(
+                    1.0, 1.4
+                ),  # How much equity needed vs pot odds
                 "implied_odds_factor": _rng.uniform(1.2, 2.0),
                 "value_bet_threshold": _rng.uniform(0.55, 0.70),
                 "bet_sizing_pot_fraction": _rng.uniform(0.5, 0.8),
@@ -250,7 +258,11 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
             return (BettingAction.FOLD, 0.0)
 
         # Calculate pot odds
-        pot_odds = call_amount / (pot + call_amount) if (pot + call_amount) > 0 and call_amount > 0 else 0.0
+        pot_odds = (
+            call_amount / (pot + call_amount)
+            if (pot + call_amount) > 0 and call_amount > 0
+            else 0.0
+        )
 
         # Implied odds adjustment
         effective_pot_odds = pot_odds / self.parameters["implied_odds_factor"]
@@ -269,7 +281,10 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
                 return (BettingAction.CALL, call_amount)
             else:
                 # Consider fold equity (semi-bluff)
-                if hand_strength > self.parameters["fold_equity_threshold"] and self._rng.random() < 0.25:
+                if (
+                    hand_strength > self.parameters["fold_equity_threshold"]
+                    and self._rng.random() < 0.25
+                ):
                     bluff_amt = pot * self.parameters["bet_sizing_pot_fraction"]
                     return (BettingAction.RAISE, min(bluff_amt, player_energy * 0.3))
                 return (BettingAction.FOLD, 0.0)

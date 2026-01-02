@@ -7,18 +7,17 @@ These tests verify that:
 """
 
 import random
-import pytest
 from typing import List
+
+import pytest
 
 from core.genetics import Genome
 from core.genetics.behavioral import _inherit_poker_strategy
 from core.poker.strategy.implementations import (
-    ALL_POKER_STRATEGIES,
     POKER_EVOLUTION_CONFIG,
+    LooseAggressiveStrategy,
     PokerStrategyAlgorithm,
     TightAggressiveStrategy,
-    LooseAggressiveStrategy,
-    BalancedStrategy,
     crossover_poker_strategies,
     get_random_poker_strategy,
 )
@@ -39,7 +38,8 @@ class TestWinnerBiasedInheritance:
 
         for _ in range(n_trials):
             offspring = crossover_poker_strategies(
-                winner, loser,
+                winner,
+                loser,
                 mutation_rate=0.12,
                 mutation_strength=0.15,
                 winner_weight=0.80,
@@ -78,7 +78,8 @@ class TestWinnerBiasedInheritance:
 
         for _ in range(n_trials):
             offspring = crossover_poker_strategies(
-                winner, loser,
+                winner,
+                loser,
                 mutation_rate=0.12,
                 mutation_strength=0.15,
                 winner_weight=0.80,
@@ -158,7 +159,8 @@ class TestNoveltyInjectionRates:
 
         for _ in range(n_trials):
             offspring = crossover_poker_strategies(
-                parent, parent,  # Same type
+                parent,
+                parent,  # Same type
                 mutation_rate=0.12,
                 mutation_strength=0.15,
                 rng=rng,
@@ -211,7 +213,8 @@ class TestMutationRates:
 
             for _ in range(n_generations):
                 current = crossover_poker_strategies(
-                    current, current,
+                    current,
+                    current,
                     mutation_rate=0.12,
                     mutation_strength=0.15,
                     rng=rng,
@@ -244,13 +247,13 @@ class TestEvolutionSimulation:
 
         # Start with diverse population
         rng = random.Random(42)  # rng for initial pop and mutation
-        # Note: get_random_poker_strategy might need rng param if it supports it, 
+        # Note: get_random_poker_strategy might need rng param if it supports it,
         # checking signature... likely yes given recent changes
         population: List[PokerStrategyAlgorithm] = [
             get_random_poker_strategy(rng=rng) for _ in range(population_size)
         ]
 
-        initial_types = len(set(s.strategy_id for s in population))
+        len({s.strategy_id for s in population})
 
         # Simulate evolution with selection (fittest reproduce more)
         # We'll use a simple fitness function: strategies with certain IDs
@@ -268,7 +271,7 @@ class TestEvolutionSimulation:
             fitness_scores.sort(key=lambda x: x[1], reverse=True)
 
             # Top 50% reproduce
-            survivors = [f[0] for f in fitness_scores[:population_size // 2]]
+            survivors = [f[0] for f in fitness_scores[: population_size // 2]]
 
             # Create next generation with winner-biased crossover
             next_gen = []
@@ -277,7 +280,8 @@ class TestEvolutionSimulation:
                 parent1 = random.choice(survivors[:5])  # Top 5
                 parent2 = random.choice(survivors)
                 offspring = crossover_poker_strategies(
-                    parent1, parent2,
+                    parent1,
+                    parent2,
                     winner_weight=0.80,
                     rng=rng,
                 )
@@ -286,7 +290,7 @@ class TestEvolutionSimulation:
             population = next_gen
 
         # After selection, population should have converged
-        final_types = len(set(s.strategy_id for s in population))
+        len({s.strategy_id for s in population})
 
         # Count fitter strategies
         fitter_count = sum(1 for s in population if s.strategy_id in FITTER_STRATEGIES)

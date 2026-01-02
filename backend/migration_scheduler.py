@@ -180,7 +180,10 @@ class MigrationScheduler:
 
         # Perform the migration
         try:
-            from backend.entity_transfer import try_deserialize_entity, serialize_entity_for_transfer
+            from backend.entity_transfer import (
+                serialize_entity_for_transfer,
+                try_deserialize_entity,
+            )
             from backend.transfer_history import log_transfer
 
             # Serialize entity
@@ -190,7 +193,11 @@ class MigrationScheduler:
                 return
 
             # Track energy leaving the tank (for fish only)
-            if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
+            if (
+                isinstance(entity, Fish)
+                and hasattr(entity, "ecosystem")
+                and entity.ecosystem is not None
+            ):
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             # Check destination first (Check)
@@ -210,7 +217,11 @@ class MigrationScheduler:
                     destination_tank_id=connection.destination_tank_id,
                     destination_tank_name=dest_manager.tank_info.name,
                     success=False,
-                    error=outcome.error.message if outcome.error else "Failed to deserialize in destination",
+                    error=(
+                        outcome.error.message
+                        if outcome.error
+                        else "Failed to deserialize in destination"
+                    ),
                 )
                 return
 
@@ -221,7 +232,11 @@ class MigrationScheduler:
             dest_manager.world.engine.request_spawn(new_entity, reason="migration_in")
 
             # Track energy entering the destination tank (for fish only)
-            if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
+            if (
+                isinstance(new_entity, Fish)
+                and hasattr(new_entity, "ecosystem")
+                and new_entity.ecosystem is not None
+            ):
                 new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
 
             # Try to invalidate cached SimulationRunner state so frontends update
@@ -268,13 +283,17 @@ class MigrationScheduler:
         """
         # Check if we have the necessary services
         if not self.discovery_service or not self.server_client:
-            logger.warning("Cannot perform remote migration: discovery service or server client not available")
+            logger.warning(
+                "Cannot perform remote migration: discovery service or server client not available"
+            )
             return
 
         # Get source tank (must be local)
         source_manager = self.tank_registry.get_tank(connection.source_tank_id)
         if not source_manager:
-            logger.warning(f"Remote migration failed: source tank not found: {connection.source_tank_id[:8]}")
+            logger.warning(
+                f"Remote migration failed: source tank not found: {connection.source_tank_id[:8]}"
+            )
             return
 
         # Check if source tank allows transfers
@@ -312,11 +331,17 @@ class MigrationScheduler:
             # Get destination server info
             dest_server = await self.discovery_service.get_server(connection.destination_server_id)
             if not dest_server:
-                logger.warning(f"Remote migration failed: destination server not found: {connection.destination_server_id}")
+                logger.warning(
+                    f"Remote migration failed: destination server not found: {connection.destination_server_id}"
+                )
                 return
 
             # Track energy leaving the tank (for fish only)
-            if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
+            if (
+                isinstance(entity, Fish)
+                and hasattr(entity, "ecosystem")
+                and entity.ecosystem is not None
+            ):
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             # Remove from source tank
@@ -356,15 +381,21 @@ class MigrationScheduler:
 
                 restored = deserialize_entity(entity_data, source_manager.world)
                 if restored:
-                    source_manager.world.engine.request_spawn(restored, reason="remote_migration_restore")
+                    source_manager.world.engine.request_spawn(
+                        restored, reason="remote_migration_restore"
+                    )
 
-                error_msg = result.get("error", "Unknown error") if result else "No response from remote server"
-                
+                error_msg = (
+                    result.get("error", "Unknown error")
+                    if result
+                    else "No response from remote server"
+                )
+
                 # SILENT FAIL check
                 if error_msg == "no_root_spots":
                     # Restore silently
                     return
-                
+
                 logger.warning(f"Remote migration failed: {error_msg}")
 
                 log_transfer(
@@ -390,7 +421,9 @@ class MigrationScheduler:
                 if entity_data:
                     restored = deserialize_entity(entity_data, source_manager.world)
                     if restored:
-                        source_manager.world.engine.request_spawn(restored, reason="remote_migration_restore_error")
+                        source_manager.world.engine.request_spawn(
+                            restored, reason="remote_migration_restore_error"
+                        )
             except Exception as restore_error:
                 logger.error(
                     f"Failed to restore entity {entity.id} after migration failure: {restore_error}",

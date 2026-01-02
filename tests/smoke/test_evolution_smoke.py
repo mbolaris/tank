@@ -5,25 +5,26 @@ run a quick sequence of genome crossovers and mutations. The goal is to
 provide a fun, low-friction way to observe evolutionary drift without
 needing rendering or the full game loop.
 """
+
 from __future__ import annotations
 
 import math
 import random
-from typing import Dict, List, Sequence
+from typing import Sequence
 
 from core.genetics import Genome
 
 
-def _summarize_population(population: Sequence[Genome]) -> Dict[str, float]:
+def _summarize_population(population: Sequence[Genome]) -> dict[str, float]:
     """Calculate simple metrics for a population snapshot."""
     speeds = [g.speed_modifier for g in population]
     aggression = [g.behavioral.aggression.value for g in population]
     metabolism = [g.metabolism_rate for g in population]
 
-    def _mean(values: List[float]) -> float:
+    def _mean(values: list[float]) -> float:
         return sum(values) / len(values)
 
-    def _stdev(values: List[float]) -> float:
+    def _stdev(values: list[float]) -> float:
         mu = _mean(values)
         return math.sqrt(sum((v - mu) ** 2 for v in values) / len(values))
 
@@ -42,7 +43,7 @@ def run_evolution_smoke_test(
     seed: int = 7,
     population_size: int = 12,
     generations: int = 6,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Run a playful evolution loop over a handful of generations.
 
     Returns a report dictionary that can be rendered for humans or asserted
@@ -50,14 +51,14 @@ def run_evolution_smoke_test(
     """
     rng = random.Random(seed)
     population = [Genome.random(use_algorithm=False, rng=rng) for _ in range(population_size)]
-    generation_reports: List[Dict[str, float]] = []
+    generation_reports: list[dict[str, float]] = []
 
     for gen in range(generations):
         snapshot = _summarize_population(population)
         snapshot["generation"] = gen
         generation_reports.append(snapshot)
 
-        next_population: List[Genome] = []
+        next_population: list[Genome] = []
         for _ in range(population_size):
             parent1, parent2 = rng.sample(population, 2)
             child = Genome.from_parents(parent1, parent2, rng=rng)
@@ -77,7 +78,7 @@ def run_evolution_smoke_test(
     }
 
 
-def format_report(report: Dict[str, object]) -> str:
+def format_report(report: dict[str, object]) -> str:
     """Create a friendly multi-line string showing evolutionary drift."""
     lines = [
         "🚀 Evolution smoke test",

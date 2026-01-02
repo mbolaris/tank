@@ -7,17 +7,17 @@ from core.algorithms.base import (
     Vector2,
 )
 from core.algorithms.composable import (
+    SUB_BEHAVIOR_COUNTS,
+    SUB_BEHAVIOR_PARAMS,
     ComposableBehavior,
     FoodApproach,
     PokerEngagement,
     SocialMode,
-    SUB_BEHAVIOR_COUNTS,
-    SUB_BEHAVIOR_PARAMS,
     ThreatResponse,
 )
 from core.algorithms.registry import (
-    ALL_ALGORITHMS,
     ALGORITHM_REGISTRY,
+    ALL_ALGORITHMS,
     behavior_from_dict,
     calculate_adaptive_mutation_factor,
     crossover_algorithms,

@@ -161,9 +161,7 @@ class StateMachine(Generic[S]):
         valid_targets = self._transitions.get(self._state, [])
         return target in valid_targets
 
-    def try_transition(
-        self, target: S, frame: int = 0, reason: str = ""
-    ) -> Result[S, str]:
+    def try_transition(self, target: S, frame: int = 0, reason: str = "") -> Result[S, str]:
         """Attempt to transition to a new state.
 
         Returns Ok(new_state) if successful, Err(message) if invalid.
@@ -231,9 +229,7 @@ class StateMachine(Generic[S]):
         if self._track_history:
             self._record_transition(old_state, state, frame, f"[FORCED] {reason}")
 
-    def _record_transition(
-        self, from_state: S, to_state: S, frame: int, reason: str
-    ) -> None:
+    def _record_transition(self, from_state: S, to_state: S, frame: int, reason: str) -> None:
         """Record a transition in history."""
         self._history.append(
             StateTransition(

@@ -12,9 +12,11 @@ Note: All reproduction is instant (no pregnancy/gestation period). Asexual repro
 triggers immediately when conditions are met, and offspring are created in the same frame.
 """
 
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 if TYPE_CHECKING:
+    from random import Random
+
     from core.entities.base import LifeStage
     from core.genetics import Genome
 
@@ -111,7 +113,7 @@ class ReproductionComponent:
         max_energy: float,
     ) -> bool:
         """Check if the fish can trigger asexual reproduction.
-        
+
         Asexual reproduction requires higher energy than sexual reproduction,
         as the parent must fund the entire offspring alone.
         """
@@ -122,9 +124,10 @@ class ReproductionComponent:
         return energy >= max_energy * self.ASEXUAL_REPRODUCTION_THRESHOLD
 
     def trigger_asexual_reproduction(
-        self, 
-        own_genome: "Genome", 
-        rng: Optional["pyrandom.Random"] = None
+        self,
+        own_genome: "Genome",
+        rng: Optional["Random"] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> Tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 
@@ -134,6 +137,7 @@ class ReproductionComponent:
         Args:
             own_genome: This fish's genome
             rng: Random number generator for deterministic mutation
+            available_policies: Optional list of available code policy IDs for mutation
 
         Returns:
             Tuple of (offspring_genome, energy_transfer_fraction)
@@ -144,7 +148,9 @@ class ReproductionComponent:
         self.reproduction_cooldown = self.REPRODUCTION_COOLDOWN
 
         # Create mutated clone
-        offspring_genome = Genome.clone_with_mutation(own_genome, rng=rng)
+        offspring_genome = Genome.clone_with_mutation(
+            own_genome, rng=rng, available_policies=available_policies
+        )
 
         return offspring_genome, self.ENERGY_TRANSFER_TO_BABY
 

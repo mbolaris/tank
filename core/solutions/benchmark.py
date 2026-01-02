@@ -7,24 +7,18 @@ user-submitted solutions.
 
 from __future__ import annotations
 
+import hashlib
 import logging
-import os
 import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
-    BenchmarkSuiteResult,
-    SingleBenchmarkResult,
-    create_standard_strategy,
     evaluate_vs_benchmark_suite,
-    evaluate_vs_single_benchmark_duplicate,
 )
 from core.poker.evaluation.elo_rating import (
-    EloRating,
     compute_elo_from_benchmarks,
     rating_to_skill_tier,
 )
@@ -65,9 +59,7 @@ class SolutionBenchmarkConfig:
     starting_stack: int = 10_000
 
     # Which opponents to include
-    opponents: List[str] = field(
-        default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy()
-    )
+    opponents: list[str] = field(default_factory=lambda: SOLUTION_BENCHMARK_OPPONENTS.copy())
 
     # Parallel execution
     max_workers: int = 4
@@ -83,7 +75,7 @@ class SolutionBenchmark:
     4. Elo rating computation and skill tier classification
     """
 
-    def __init__(self, config: Optional[SolutionBenchmarkConfig] = None):
+    def __init__(self, config: SolutionBenchmarkConfig | None = None):
         """Initialize the benchmark system.
 
         Args:
@@ -108,7 +100,9 @@ class SolutionBenchmark:
         # Create strategy from solution
         strategy = self._create_strategy_from_solution(solution)
         if strategy is None:
-            logger.warning(f"Could not create strategy for solution {solution.metadata.solution_id}")
+            logger.warning(
+                f"Could not create strategy for solution {solution.metadata.solution_id}"
+            )
             return BenchmarkResult(evaluated_at=datetime.utcnow().isoformat())
 
         # Create evaluation config
@@ -138,8 +132,7 @@ class SolutionBenchmark:
 
         # Compute Elo rating
         hands_per_benchmark = {
-            opp_id: result.hands_played
-            for opp_id, result in suite_result.per_benchmark.items()
+            opp_id: result.hands_played for opp_id, result in suite_result.per_benchmark.items()
         }
         elo = compute_elo_from_benchmarks(per_opponent, hands_per_benchmark)
 
@@ -157,10 +150,10 @@ class SolutionBenchmark:
 
     def evaluate_all_solutions(
         self,
-        solutions: List[SolutionRecord],
+        solutions: list[SolutionRecord],
         parallel: bool = True,
         verbose: bool = False,
-    ) -> Dict[str, BenchmarkResult]:
+    ) -> dict[str, BenchmarkResult]:
         """Evaluate all solutions and update their benchmark results.
 
         Args:
@@ -176,8 +169,7 @@ class SolutionBenchmark:
         if parallel and len(solutions) > 1:
             with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
                 futures = {
-                    executor.submit(self.evaluate_solution, sol, verbose): sol
-                    for sol in solutions
+                    executor.submit(self.evaluate_solution, sol, verbose): sol for sol in solutions
                 }
 
                 for future in as_completed(futures):
@@ -206,7 +198,7 @@ class SolutionBenchmark:
 
     def compare_solutions(
         self,
-        solutions: List[SolutionRecord],
+        solutions: list[SolutionRecord],
         hands_per_matchup: int = 500,
         verbose: bool = False,
     ) -> SolutionComparison:
@@ -233,7 +225,7 @@ class SolutionBenchmark:
 
         # Build head-to-head matrix
         solution_ids = [s.metadata.solution_id for s in solutions]
-        head_to_head: Dict[str, Dict[str, float]] = {sid: {} for sid in solution_ids}
+        head_to_head: dict[str, dict[str, float]] = {sid: {} for sid in solution_ids}
 
         for i, sol1 in enumerate(solutions):
             for j, sol2 in enumerate(solutions):
@@ -266,16 +258,18 @@ class SolutionBenchmark:
 
                 if sol1.benchmark_result and sol2.benchmark_result:
                     diff = (
-                        sol1.benchmark_result.weighted_bb_per_100 -
-                        sol2.benchmark_result.weighted_bb_per_100
+                        sol1.benchmark_result.weighted_bb_per_100
+                        - sol2.benchmark_result.weighted_bb_per_100
                     )
                     # Rough significance check: difference > 5 bb/100
                     if abs(diff) > 5.0:
-                        significant_differences.append((
-                            sol1.metadata.solution_id,
-                            sol2.metadata.solution_id,
-                            diff,
-                        ))
+                        significant_differences.append(
+                            (
+                                sol1.metadata.solution_id,
+                                sol2.metadata.solution_id,
+                                diff,
+                            )
+                        )
 
         return SolutionComparison(
             solution_ids=solution_ids,
@@ -284,6 +278,16 @@ class SolutionBenchmark:
             significant_differences=significant_differences,
             compared_at=datetime.utcnow().isoformat(),
         )
+
+    def run_head_to_head(
+        self,
+        sol1: SolutionRecord,
+        sol2: SolutionRecord,
+        num_hands: int,
+        verbose: bool = False,
+    ) -> tuple[float, float]:
+        """Run a deterministic head-to-head match between two solutions."""
+        return self._run_head_to_head(sol1, sol2, num_hands, verbose)
 
     def _create_strategy_from_solution(self, solution: SolutionRecord):
         """Create a poker strategy from a solution record.
@@ -295,20 +299,40 @@ class SolutionBenchmark:
             PokerStrategyAlgorithm,
         )
 
-        # Create a deterministic RNG based on solution ID
-        rng = random.Random(hash(solution.metadata.solution_id))
+        # Create a deterministic RNG based on solution ID (avoid Python's salted hash()).
+        seed_material = f"strategy|{solution.metadata.solution_id}".encode()
+        seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
+        rng = random.Random(seed)
 
         # If the solution has poker strategy config, use it
         poker_config = solution.poker_strategy
-        if poker_config and poker_config.get("class"):
-            # Try to reconstruct the specific strategy
+        if poker_config:
+            # Newer format: full strategy dict.
             try:
-                from core.poker.strategy import implementations as impl
-                strategy_class = getattr(impl, poker_config["class"], None)
-                if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
-                    return strategy_class(rng=rng)
+                if poker_config.get("type") == "ComposablePokerStrategy":
+                    from core.poker.strategy.composable import ComposablePokerStrategy
+
+                    return ComposablePokerStrategy.from_dict(poker_config)
+
+                # Legacy/monolithic implementations identified by strategy_id + parameters.
+                if "strategy_id" in poker_config:
+                    strategy = PokerStrategyAlgorithm.from_dict(poker_config)
+                    if hasattr(strategy, "_rng"):
+                        strategy._rng = rng
+                    return strategy
             except Exception:
                 pass
+
+            # Oldest format: class name only.
+            if poker_config.get("class"):
+                try:
+                    from core.poker.strategy import implementations as impl
+
+                    strategy_class = getattr(impl, poker_config["class"], None)
+                    if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
+                        return strategy_class(rng=rng)
+                except Exception:
+                    pass
 
         # If we have behavior algorithm, try to create a strategy from its parameters
         behavior = solution.behavior_algorithm
@@ -333,12 +357,15 @@ class SolutionBenchmark:
         sol2: SolutionRecord,
         num_hands: int,
         verbose: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Run a head-to-head match between two solutions.
 
         Returns (win_rate_1, win_rate_2) tuple.
         """
         from core.auto_evaluate_poker import AutoEvaluatePokerGame
+
+        if sol1.metadata.solution_id == sol2.metadata.solution_id:
+            return (0.5, 0.5)
 
         strategy1 = self._create_strategy_from_solution(sol1)
         strategy2 = self._create_strategy_from_solution(sol2)
@@ -346,15 +373,31 @@ class SolutionBenchmark:
         if strategy1 is None or strategy2 is None:
             return (0.5, 0.5)
 
-        # Run matches with position rotation
-        seed = hash(sol1.metadata.solution_id + sol2.metadata.solution_id) & 0xFFFFFFFF
+        # Run matches with position rotation.
+        #
+        # Important: seed must be invariant to solution list ordering so that
+        # the same pair produces the same match (boards/deals) regardless of
+        # where the solutions appear in a tournament bracket.
+        a_id, b_id = sorted([sol1.metadata.solution_id, sol2.metadata.solution_id])
+        seed_material = f"{a_id}|{b_id}".encode()
+        seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little")
+
+        hands_total = num_hands - (num_hands % 4)
+        if hands_total >= 4:
+            hands_orientation = hands_total // 2
+            hands_seat = hands_orientation // 2
+        else:
+            hands_total = num_hands - (num_hands % 2)
+            if hands_total < 2:
+                return (0.5, 0.5)
+            hands_seat = hands_total // 2
 
         # Position 1: sol1 as player 0
         stats1 = AutoEvaluatePokerGame.run_heads_up(
             candidate_algo=strategy1,
             benchmark_algo=strategy2,
             candidate_seat=0,
-            num_hands=num_hands // 2,
+            num_hands=hands_seat,
             small_blind=self.config.small_blind,
             big_blind=self.config.big_blind,
             starting_stack=self.config.starting_stack,
@@ -366,32 +409,65 @@ class SolutionBenchmark:
             candidate_algo=strategy1,
             benchmark_algo=strategy2,
             candidate_seat=1,
-            num_hands=num_hands // 2,
+            num_hands=hands_seat,
             small_blind=self.config.small_blind,
             big_blind=self.config.big_blind,
             starting_stack=self.config.starting_stack,
             rng_seed=seed + 1,
         )
 
-        total_hands = stats1.hands_played + stats2.hands_played
-        total_net_bb = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
+        if hands_total >= 4:
+            # Reverse roles (sol2 as candidate) using the same deals/seed so the
+            # matchup is invariant to solution ordering.
+            stats3 = AutoEvaluatePokerGame.run_heads_up(
+                candidate_algo=strategy2,
+                benchmark_algo=strategy1,
+                candidate_seat=0,
+                num_hands=hands_seat,
+                small_blind=self.config.small_blind,
+                big_blind=self.config.big_blind,
+                starting_stack=self.config.starting_stack,
+                rng_seed=seed,
+            )
+
+            stats4 = AutoEvaluatePokerGame.run_heads_up(
+                candidate_algo=strategy2,
+                benchmark_algo=strategy1,
+                candidate_seat=1,
+                num_hands=hands_seat,
+                small_blind=self.config.small_blind,
+                big_blind=self.config.big_blind,
+                starting_stack=self.config.starting_stack,
+                rng_seed=seed + 1,
+            )
+
+            total_hands = (
+                stats1.hands_played
+                + stats2.hands_played
+                + stats3.hands_played
+                + stats4.hands_played
+            )
+            net_bb_sol1_candidate = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
+            net_bb_sol2_candidate = stats3.net_bb_for_candidate + stats4.net_bb_for_candidate
+            total_net_bb_sol1 = net_bb_sol1_candidate - net_bb_sol2_candidate
+        else:
+            total_hands = stats1.hands_played + stats2.hands_played
+            total_net_bb_sol1 = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
 
         if total_hands == 0:
             return (0.5, 0.5)
 
         # Convert bb/hand to win rate approximation
-        bb_per_hand = total_net_bb / total_hands
+        bb_per_hand = total_net_bb_sol1 / total_hands
         # Rough conversion: +1 bb/hand ≈ 60% win rate
         win_rate_1 = 0.5 + bb_per_hand * 0.1
         win_rate_1 = max(0.0, min(1.0, win_rate_1))
-        win_rate_2 = 1.0 - win_rate_1
-
-        return (win_rate_1, win_rate_2)
+        return (win_rate_1, 1.0 - win_rate_1)
 
     def generate_report(
         self,
-        solutions: List[SolutionRecord],
-        output_path: Optional[str] = None,
+        solutions: list[SolutionRecord],
+        output_path: str | None = None,
     ) -> str:
         """Generate a comprehensive benchmark report.
 
@@ -431,9 +507,7 @@ class SolutionBenchmark:
                     f"bb/100: {result.weighted_bb_per_100:>+7.2f}"
                 )
             else:
-                lines.append(
-                    f"#{rank:<2}  {solution.metadata.name:<30} [Not Evaluated]"
-                )
+                lines.append(f"#{rank:<2}  {solution.metadata.name:<30} [Not Evaluated]")
 
         lines.append("")
         lines.append("DETAILED RESULTS")

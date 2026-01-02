@@ -8,10 +8,10 @@ forcing fish to evolve strategies to beat them. Successful plants
 (those that win poker and accumulate energy) reproduce as exact clones.
 """
 
-from enum import Enum
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
 import random
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
 
 
 class PlantStrategyType(Enum):
@@ -20,6 +20,7 @@ class PlantStrategyType(Enum):
     Each type maps to a poker strategy implementation and has a distinct
     visual appearance (L-system parameters, color palette).
     """
+
     ALWAYS_FOLD = "always_fold"
     RANDOM = "random"
     LOOSE_PASSIVE = "loose_passive"
@@ -39,31 +40,32 @@ class PlantStrategyType(Enum):
 @dataclass
 class PlantVisualConfig:
     """Visual configuration for a plant strategy type.
-    
+
     Defines the L-system parameters and color palette that give each
     strategy type a distinctive appearance.
     """
+
     # L-system structure
     axiom: str
     angle_range: Tuple[float, float]  # (min, max) angle in degrees
     length_ratio_range: Tuple[float, float]
     branch_probability_range: Tuple[float, float]
     curve_factor_range: Tuple[float, float]
-    
+
     # Color palette
     color_hue_range: Tuple[float, float]  # HSL hue (0-1)
     color_saturation_range: Tuple[float, float]
-    
+
     # Physical traits
     stem_thickness_range: Tuple[float, float]
     leaf_density_range: Tuple[float, float]
-    
+
     # Production rules template (optional override)
     production_rules: Optional[List[Tuple[str, str, float]]] = None
-    
+
     # Display name for UI
     display_name: str = ""
-    
+
     # Description for UI
     description: str = ""
 
@@ -72,7 +74,6 @@ class PlantVisualConfig:
     floral_petals: int = 5
     floral_layers: int = 3
     floral_spin: float = 1.0
-
 
 
 # Visual configurations for each strategy type
@@ -99,7 +100,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=2,
         floral_spin=0.5,
     ),
-    
     PlantStrategyType.RANDOM: PlantVisualConfig(
         axiom="X",
         angle_range=(20.0, 70.0),  # VERY wide range for chaotic look
@@ -124,7 +124,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=4,
         floral_spin=5.0,
     ),
-    
     PlantStrategyType.LOOSE_PASSIVE: PlantVisualConfig(
         axiom="X",
         angle_range=(18.0, 25.0),  # Wide, bushy
@@ -147,7 +146,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=3,
         floral_spin=1.0,
     ),
-    
     PlantStrategyType.TIGHT_PASSIVE: PlantVisualConfig(
         axiom="F",
         angle_range=(12.0, 18.0),  # Tight, compact
@@ -169,7 +167,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=2,
         floral_spin=0.2,
     ),
-    
     PlantStrategyType.TIGHT_AGGRESSIVE: PlantVisualConfig(
         axiom="X",
         angle_range=(35.0, 50.0),  # Sharp angles
@@ -193,7 +190,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=3,
         floral_spin=3.0,
     ),
-    
     PlantStrategyType.LOOSE_AGGRESSIVE: PlantVisualConfig(
         axiom="X",
         angle_range=(20.0, 32.0),
@@ -217,7 +213,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=4,
         floral_spin=2.5,
     ),
-    
     PlantStrategyType.BALANCED: PlantVisualConfig(
         axiom="X",
         angle_range=(22.0, 28.0),
@@ -240,7 +235,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=5,
         floral_spin=1.0,
     ),
-    
     PlantStrategyType.MANIAC: PlantVisualConfig(
         axiom="X",
         angle_range=(50.0, 75.0),  # EXTREME angles
@@ -265,7 +259,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=5,
         floral_spin=8.0,
     ),
-    
     PlantStrategyType.GTO_EXPERT: PlantVisualConfig(
         axiom="X",
         angle_range=(20.0, 26.0),
@@ -289,7 +282,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=6,
         floral_spin=0.5,
     ),
-
     # Advanced strategies
     PlantStrategyType.ADAPTIVE: PlantVisualConfig(
         axiom="X",
@@ -314,7 +306,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=4,
         floral_spin=1.5,
     ),
-
     PlantStrategyType.POSITIONAL_EXPLOITER: PlantVisualConfig(
         axiom="X",
         angle_range=(30.0, 45.0),  # Asymmetric angles for position awareness
@@ -339,7 +330,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=4,
         floral_spin=2.0,
     ),
-
     PlantStrategyType.TRAP_SETTER: PlantVisualConfig(
         axiom="X",
         angle_range=(15.0, 22.0),  # Tight, deceptive angles
@@ -363,7 +353,6 @@ PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
         floral_layers=5,
         floral_spin=0.3,
     ),
-
     PlantStrategyType.MATHEMATICAL: PlantVisualConfig(
         axiom="X",
         angle_range=(25.0, 30.0),  # Precise, geometric angles
@@ -407,7 +396,9 @@ def get_all_strategy_types() -> List[PlantStrategyType]:
     return list(PlantStrategyType)
 
 
-def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: Optional[random.Random] = None):
+def get_poker_strategy_for_type(
+    strategy_type: PlantStrategyType, rng: Optional[random.Random] = None
+):
     """Get the corresponding poker strategy implementation for a plant strategy type.
 
     Returns:
@@ -415,21 +406,21 @@ def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: Optional[
     """
     from core.poker.strategy.implementations import (
         AlwaysFoldStrategy,
-        RandomStrategy,
-        LoosePassiveStrategy,
-        TightPassiveStrategy,
-        TightAggressiveStrategy,
-        LooseAggressiveStrategy,
         BalancedStrategy,
+        LooseAggressiveStrategy,
+        LoosePassiveStrategy,
         ManiacStrategy,
+        RandomStrategy,
+        TightAggressiveStrategy,
+        TightPassiveStrategy,
     )
-    from core.poker.strategy.implementations.expert import GTOExpertStrategy
     from core.poker.strategy.implementations.advanced import (
         AdaptiveStrategy,
+        MathematicalStrategy,
         PositionalExploiter,
         TrapSetterStrategy,
-        MathematicalStrategy,
     )
+    from core.poker.strategy.implementations.expert import GTOExpertStrategy
 
     strategy_map = {
         PlantStrategyType.ALWAYS_FOLD: AlwaysFoldStrategy,

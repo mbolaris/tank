@@ -8,11 +8,11 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional
 
-from core.config.plants import PLANT_ROOT_SPOT_COUNT
 from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
+from core.config.plants import PLANT_ROOT_SPOT_COUNT
 
 if TYPE_CHECKING:
     from core.entities.base import Agent
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 # Root spot configuration
-ROOT_SPOT_COUNT = PLANT_ROOT_SPOT_COUNT if 'PLANT_ROOT_SPOT_COUNT' in globals() else 25
+ROOT_SPOT_COUNT = PLANT_ROOT_SPOT_COUNT if "PLANT_ROOT_SPOT_COUNT" in globals() else 25
 ROOT_SPOT_Y_BASE = SCREEN_HEIGHT - 40  # Position near tank bottom
 ROOT_SPOT_Y_VARIANCE = 8  # Slight y variation for natural look
 ROOT_SPOT_MIN_SPACING = 8  # Minimum pixels between spots
@@ -333,7 +333,10 @@ class RootSpotManager:
         return result
 
     def find_spot_for_sprouting(
-        self, parent_x: float, parent_y: float, max_distance: float = 200.0,
+        self,
+        parent_x: float,
+        parent_y: float,
+        max_distance: float = 200.0,
         rng: Optional[random.Random] = None,
     ) -> Optional[RootSpot]:
         """Find a suitable spot for a new plant to sprout.
@@ -350,11 +353,9 @@ class RootSpotManager:
             Suitable RootSpot for sprouting, or None
         """
         _rng = rng if rng is not None else self.rng
-        
+
         # First try to find spots within preferred range
-        nearby_spots = self.get_spots_in_range(
-            parent_x, parent_y, max_distance, only_empty=True
-        )
+        nearby_spots = self.get_spots_in_range(parent_x, parent_y, max_distance, only_empty=True)
 
         if nearby_spots:
             # Prefer spots at medium distance (not too close, not too far)
@@ -377,7 +378,9 @@ class RootSpotManager:
         # Fall back to any empty spot
         return self.get_random_empty_spot(rng=_rng)
 
-    def get_edge_empty_spot(self, direction: str, rng: Optional[random.Random] = None) -> Optional[RootSpot]:
+    def get_edge_empty_spot(
+        self, direction: str, rng: Optional[random.Random] = None
+    ) -> Optional[RootSpot]:
         """Get an empty spot at the specified edge of the tank.
 
         Used for plant migration - plants migrating from the left should appear
@@ -391,7 +394,7 @@ class RootSpotManager:
             Empty RootSpot at the specified edge, or None if all spots are occupied
         """
         _rng = rng if rng is not None else self.rng
-        
+
         empty_spots = [s for s in self.spots if not s.occupied and not s.blocked]
         if not empty_spots:
             return None

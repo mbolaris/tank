@@ -54,7 +54,18 @@ export function useWebSocket(tankId?: string) {
                     const data = JSON.parse(jsonString);
 
                     if (data.type === 'update') {
-                        setState(data as SimulationUpdate);
+                        const update = data as SimulationUpdate;
+                        // Normalize: Ensure legacy fields are populated from snapshot for backward compatibility
+                        if (update.snapshot) {
+                            update.frame = update.snapshot.frame;
+                            update.elapsed_time = update.snapshot.elapsed_time;
+                            update.entities = update.snapshot.entities;
+                            update.stats = update.snapshot.stats;
+                            update.poker_events = update.snapshot.poker_events;
+                            update.poker_leaderboard = update.snapshot.poker_leaderboard;
+                            update.auto_evaluation = update.snapshot.auto_evaluation;
+                        }
+                        setState(update);
                     } else if (data.type === 'delta') {
                         setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
                     } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
@@ -167,31 +178,91 @@ export function useWebSocket(tankId?: string) {
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
-    const entityMap = new Map(state.entities.map((e) => [e.id, { ...e }]));
+    // Optimization: Only create copies of entities that are actually modified.
+    // Previously we spread-copied ALL entities every frame, creating ~45 objects x 30fps = 1350 allocations/sec.
 
-    delta.removed.forEach((id) => entityMap.delete(id));
-    delta.added.forEach((entity) => entityMap.set(entity.id, entity));
+    // Resolve delta inputs (support both nested snapshot and legacy fields)
+    const updates = delta.snapshot?.updates ?? delta.updates ?? [];
+    const added = delta.snapshot?.added ?? delta.added ?? [];
+    const removed = delta.snapshot?.removed ?? delta.removed ?? [];
 
-    delta.updates.forEach((update) => {
-        const existing = entityMap.get(update.id);
-        if (existing) {
-            existing.x = update.x;
-            existing.y = update.y;
-            existing.vel_x = update.vel_x;
-            existing.vel_y = update.vel_y;
-            if (update.poker_effect_state !== undefined) {
-                existing.poker_effect_state = update.poker_effect_state;
+    // Resolve state inputs
+    const currentEntities = state.snapshot?.entities ?? state.entities ?? [];
+
+    // Build a set of IDs to remove for O(1) lookup
+    const removedIds = new Set(removed);
+
+    // Build a map of updates for O(1) lookup
+    const updateMap = new Map(updates.map(u => [u.id, u]));
+
+    // Filter out removed entities and update existing ones IN PLACE where possible
+    const entities = currentEntities
+        .filter(e => !removedIds.has(e.id))
+        .map(e => {
+            const update = updateMap.get(e.id);
+            if (update) {
+                // Only create a new object if there's actually an update
+                return {
+                    ...e,
+                    x: update.x,
+                    y: update.y,
+                    vel_x: update.vel_x,
+                    vel_y: update.vel_y,
+                    ...(update.poker_effect_state !== undefined && { poker_effect_state: update.poker_effect_state }),
+                };
             }
+            // No update - reuse the same object reference
+            return e;
+        });
+
+    // Add new entities
+    added.forEach(entity => {
+        // Only add if not already in the list (shouldn't happen but defensive)
+        if (!entities.some(e => e.id === entity.id)) {
+            entities.push(entity);
         }
     });
+
+    // Resolve other fields
+    const nextFrame = delta.snapshot?.frame ?? delta.frame ?? state.snapshot?.frame ?? state.frame ?? 0;
+    const nextElapsedTime = delta.snapshot?.elapsed_time ?? delta.elapsed_time ?? state.snapshot?.elapsed_time ?? state.elapsed_time ?? 0;
+
+    // Handle stats
+    const nextStats = delta.snapshot?.stats ?? delta.stats ?? state.snapshot?.stats ?? state.stats!;
+
+    // Handle poker events
+    const deltaEvents = delta.snapshot?.poker_events ?? delta.poker_events;
+    const currentEvents = state.snapshot?.poker_events ?? state.poker_events ?? [];
+    const nextEvents = (deltaEvents && deltaEvents.length > 0) ? deltaEvents.slice(-100) : currentEvents;
+
+    // Construct new snapshot if one exists or if we want to start maintaining one
+    const nextSnapshot = state.snapshot ? {
+        ...state.snapshot,
+        frame: nextFrame,
+        elapsed_time: nextElapsedTime,
+        entities,
+        stats: nextStats,
+        poker_events: nextEvents,
+        // Preserve leaderboard if not in delta (commonly isn't)
+        poker_leaderboard: state.snapshot.poker_leaderboard,
+    } : undefined;
 
     return {
         ...state,
         tank_id: delta.tank_id ?? state.tank_id,
-        frame: delta.frame,
-        elapsed_time: delta.elapsed_time,
-        entities: Array.from(entityMap.values()),
-        poker_events: (delta.poker_events && delta.poker_events.length > 0) ? delta.poker_events.slice(-100) : state.poker_events,
-        stats: delta.stats ?? state.stats,
+        world_type: delta.world_type ?? state.world_type,
+        view_mode: delta.view_mode ?? state.view_mode,
+
+        // Nested snapshot
+        snapshot: nextSnapshot,
+
+        // Sync Legacy fields (kept for compatibility)
+        frame: nextFrame,
+        elapsed_time: nextElapsedTime,
+        entities,
+        poker_events: nextEvents,
+        stats: nextStats,
+        // poker_leaderboard isn't usually in delta, so preserve state's
+        poker_leaderboard: state.poker_leaderboard,
     };
 }

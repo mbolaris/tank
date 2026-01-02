@@ -102,9 +102,7 @@ async def start_with_registration(
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run a Tank World server for distributed testing"
-    )
+    parser = argparse.ArgumentParser(description="Run a Tank World server for distributed testing")
     parser.add_argument(
         "--port",
         type=int,
@@ -166,6 +164,7 @@ def main():
 
     # Override data directory for discovery service
     from pathlib import Path
+
     backend_main.discovery_service._data_dir = Path(data_dir)
     backend_main.discovery_service._registry_file = Path(data_dir) / "server_registry.json"
 
@@ -188,6 +187,7 @@ def main():
 
     # Start the server
     import uvicorn
+
     # Suppress uvicorn access logs for test runs to avoid noisy output
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.error").setLevel(logging.WARNING)

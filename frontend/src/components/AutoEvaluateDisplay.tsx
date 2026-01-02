@@ -314,26 +314,36 @@ export function AutoEvaluateDisplay({
             try {
                 setHistoryError(null);
                 const response = await fetch('/api/evaluation-history');
-                
+
                 // Check content type before parsing
                 const contentType = response.headers.get('content-type');
                 if (!contentType?.includes('application/json')) {
                     // Silently fall back to stats history - API might not be proxied
                     if (stats.performance_history) {
-                        setFullHistory(stats.performance_history);
+                        // Limit to most recent 200 to prevent memory growth
+                        const limited = stats.performance_history.length > 200
+                            ? stats.performance_history.slice(-200)
+                            : stats.performance_history;
+                        setFullHistory(limited);
                     }
                     return;
                 }
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 const data = await response.json();
-                setFullHistory(data);
+                // Limit to most recent 200 to prevent memory growth
+                const limited = Array.isArray(data) && data.length > 200 ? data.slice(-200) : data;
+                setFullHistory(limited);
             } catch {
                 // Silently fall back to stats history on error
                 if (stats.performance_history) {
-                    setFullHistory(stats.performance_history);
+                    // Limit to most recent 200 to prevent memory growth
+                    const limited = stats.performance_history.length > 200
+                        ? stats.performance_history.slice(-200)
+                        : stats.performance_history;
+                    setFullHistory(limited);
                 }
             }
         };
@@ -343,7 +353,11 @@ export function AutoEvaluateDisplay({
             fetchHistory();
         } else if (stats.performance_history) {
             // If we have the full history in stats (e.g. start of game), use it
-            setFullHistory(stats.performance_history);
+            // Limit to most recent 200 to prevent memory growth
+            const limited = stats.performance_history.length > 200
+                ? stats.performance_history.slice(-200)
+                : stats.performance_history;
+            setFullHistory(limited);
         }
     }, [stats, stats?.performance_history]);
 

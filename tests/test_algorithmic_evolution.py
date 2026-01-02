@@ -48,13 +48,17 @@ def test_genome_with_algorithm():
     assert genome.behavioral.behavior.value is not None, "Genome should have a composable behavior"
 
     behavior = genome.behavioral.behavior.value
-    print(f"✓ Genome created with composable behavior")
-    print(f"  Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}")
+    print("✓ Genome created with composable behavior")
+    print(
+        f"  Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}"
+    )
     print(f"  Food approach: {behavior.food_approach.name if behavior.food_approach else 'None'}")
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False, rng=rng)
-    assert genome_no_algo.behavioral.behavior.value is None, "Genome should NOT have a composable behavior"
+    assert (
+        genome_no_algo.behavioral.behavior.value is None
+    ), "Genome should NOT have a composable behavior"
 
     print("✓ Genome created without algorithm")
 
@@ -70,24 +74,36 @@ def test_algorithm_inheritance():
 
     behavior1 = parent1.behavioral.behavior.value
     behavior2 = parent2.behavioral.behavior.value
-    
-    print(f"Parent 1 composable behavior:")
-    print(f"  Threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}")
+
+    print("Parent 1 composable behavior:")
+    print(
+        f"  Threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}"
+    )
     print(f"  Food approach: {behavior1.food_approach.name if behavior1.food_approach else 'None'}")
-    print(f"Parent 2 composable behavior:")
-    print(f"  Threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}")
+    print("Parent 2 composable behavior:")
+    print(
+        f"  Threat response: {behavior2.threat_response.name if behavior2.threat_response else 'None'}"
+    )
     print(f"  Food approach: {behavior2.food_approach.name if behavior2.food_approach else 'None'}")
 
     # Create offspring
-    offspring = Genome.from_parents(parent1, parent2, mutation_rate=0.3, mutation_strength=0.2, rng=rng)
+    offspring = Genome.from_parents(
+        parent1, parent2, mutation_rate=0.3, mutation_strength=0.2, rng=rng
+    )
 
     assert offspring.behavioral.behavior is not None, "Offspring should have a behavior trait"
-    assert offspring.behavioral.behavior.value is not None, "Offspring should have a composable behavior"
+    assert (
+        offspring.behavioral.behavior.value is not None
+    ), "Offspring should have a composable behavior"
 
     offspring_behavior = offspring.behavioral.behavior.value
-    print(f"\nOffspring composable behavior:")
-    print(f"  Threat response: {offspring_behavior.threat_response.name if offspring_behavior.threat_response else 'None'}")
-    print(f"  Food approach: {offspring_behavior.food_approach.name if offspring_behavior.food_approach else 'None'}")
+    print("\nOffspring composable behavior:")
+    print(
+        f"  Threat response: {offspring_behavior.threat_response.name if offspring_behavior.threat_response else 'None'}"
+    )
+    print(
+        f"  Food approach: {offspring_behavior.food_approach.name if offspring_behavior.food_approach else 'None'}"
+    )
 
     # Check that offspring inherited from a parent (with possible mutations)
     print("✓ Offspring inherited composable behavior from parents")
@@ -124,7 +140,9 @@ def test_parameter_mutation():
     mutations_found = 0
     for key in original_params:
         if key in mutated_algo.parameters:
-            if isinstance(original_params[key], (int, float)) and isinstance(mutated_algo.parameters[key], (int, float)):
+            if isinstance(original_params[key], (int, float)) and isinstance(
+                mutated_algo.parameters[key], (int, float)
+            ):
                 if abs(original_params[key] - mutated_algo.parameters[key]) > 0.01:
                     mutations_found += 1
                     print(
@@ -154,7 +172,7 @@ def test_multiple_generations():
         population.append(genome)
 
     print(f"Generation 0: {len(population)} fish")
-    
+
     # Track behavior distribution using behavior
     behavior_distribution = {}
     for genome in population:

@@ -13,38 +13,28 @@ import random
 
 import pytest
 
-from core.evolution.mutation import (
-    mutate_continuous_trait,
-    mutate_discrete_trait,
-    calculate_adaptive_mutation_rate,
-    should_switch_algorithm,
-    MutationConfig,
+from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.algorithms.registry import (
+    crossover_algorithms,
 )
 from core.evolution.crossover import (
     CrossoverMode,
-    blend_values,
     blend_discrete,
-    crossover_dict_values,
+    blend_values,
 )
-from core.evolution.inheritance import (
-    inherit_trait,
-    inherit_discrete_trait,
-    inherit_algorithm,
+from core.evolution.mutation import (
+    MutationConfig,
+    calculate_adaptive_mutation_rate,
+    mutate_continuous_trait,
+    mutate_discrete_trait,
+    should_switch_algorithm,
 )
-from core.genetics import Genome, GeneticTrait, PhysicalTraits, BehavioralTraits
-from core.genetics import PlantGenome
-from core.algorithms.base import BehaviorAlgorithm
-from core.algorithms.food_seeking import GreedyFoodSeeker
-from core.algorithms.poker import PokerChallenger
-from core.algorithms.registry import (
-    crossover_algorithms,
-    crossover_algorithms_weighted,
-)
+from core.genetics import BehavioralTraits, GeneticTrait, Genome, PhysicalTraits, PlantGenome
 from core.poker.strategy.implementations import (
-    crossover_poker_strategies,
-    TightAggressiveStrategy,
     LooseAggressiveStrategy,
     ManiacStrategy,
+    TightAggressiveStrategy,
+    crossover_poker_strategies,
 )
 
 
@@ -57,7 +47,9 @@ class TestEdgeCasesAndBoundaries:
         original = 0.5
         mutated_count = 0
         for _ in range(100):
-            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=0.0, mutation_strength=0.1, rng=rng)
+            result = mutate_continuous_trait(
+                original, 0.0, 1.0, mutation_rate=0.0, mutation_strength=0.1, rng=rng
+            )
             if result != original:
                 mutated_count += 1
         assert mutated_count == 0, "Zero mutation rate should never mutate"
@@ -68,11 +60,15 @@ class TestEdgeCasesAndBoundaries:
         original = 0.5
         mutated_count = 0
         for _ in range(100):
-            result = mutate_continuous_trait(original, 0.0, 1.0, mutation_rate=1.0, mutation_strength=0.1, rng=rng)
+            result = mutate_continuous_trait(
+                original, 0.0, 1.0, mutation_rate=1.0, mutation_strength=0.1, rng=rng
+            )
             if result != original:
                 mutated_count += 1
         # With 1.0 rate, most should mutate (allow some due to Gaussian randomness)
-        assert mutated_count > 90, f"Max mutation rate should mutate most times, got {mutated_count}/100"
+        assert (
+            mutated_count > 90
+        ), f"Max mutation rate should mutate most times, got {mutated_count}/100"
 
     def test_mutation_respects_bounds(self):
         """Mutation should never exceed min/max bounds."""
@@ -93,15 +89,11 @@ class TestEdgeCasesAndBoundaries:
         """Test adaptive mutation clamps to configured bounds."""
         config = MutationConfig()
 
-        rate_low, strength_low = calculate_adaptive_mutation_rate(
-            0.0, 0.0, config=config
-        )
+        rate_low, strength_low = calculate_adaptive_mutation_rate(0.0, 0.0, config=config)
         assert rate_low == config.min_rate
         assert strength_low == config.min_strength
 
-        rate_high, strength_high = calculate_adaptive_mutation_rate(
-            1.0, 1.0, config=config
-        )
+        rate_high, strength_high = calculate_adaptive_mutation_rate(1.0, 1.0, config=config)
         assert rate_high == config.max_rate
         assert strength_high == config.max_strength
 
@@ -136,8 +128,9 @@ class TestEdgeCasesAndBoundaries:
         # Should be within reasonable range (use 3 sigma for 99.7% confidence)
         expected = trials * effective_switch_rate
         std_dev = (trials * effective_switch_rate * (1 - effective_switch_rate)) ** 0.5
-        assert abs(switch_count - expected) < 3 * std_dev, \
-            f"Algorithm switch rate {switch_count/trials:.3f} deviates from expected {effective_switch_rate:.3f}"
+        assert (
+            abs(switch_count - expected) < 3 * std_dev
+        ), f"Algorithm switch rate {switch_count/trials:.3f} deviates from expected {effective_switch_rate:.3f}"
 
     def test_crossover_modes(self):
         """Test different crossover modes."""
@@ -158,28 +151,30 @@ class TestEdgeCasesAndBoundaries:
             physical=PhysicalTraits(
                 size_modifier=GeneticTrait(0.5),  # Min (valid range is 0.5-2.0)
                 color_hue=GeneticTrait(0.5),
-                template_id=GeneticTrait(1),      # Streamlined (1.2x speed)
-                fin_size=GeneticTrait(1.4),       # Max fins
-                tail_size=GeneticTrait(1.4),      # Max tail
-                body_aspect=GeneticTrait(0.8),    # Optimal for speed
-                eye_size=GeneticTrait(1.3),       # Max eyes (affects vision_range)
+                template_id=GeneticTrait(1),  # Streamlined (1.2x speed)
+                fin_size=GeneticTrait(1.4),  # Max fins
+                tail_size=GeneticTrait(1.4),  # Max tail
+                body_aspect=GeneticTrait(0.8),  # Optimal for speed
+                eye_size=GeneticTrait(1.3),  # Max eyes (affects vision_range)
                 pattern_intensity=GeneticTrait(0.5),
                 pattern_type=GeneticTrait(0),
                 lifespan_modifier=GeneticTrait(1.0),
             ),
             behavioral=BehavioralTraits(
-                aggression=GeneticTrait(1.0),       # Max
+                aggression=GeneticTrait(1.0),  # Max
                 social_tendency=GeneticTrait(0.0),  # Min
                 pursuit_aggression=GeneticTrait(0.5),
                 prediction_skill=GeneticTrait(0.5),
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(None),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -209,8 +204,9 @@ class TestEdgeCasesAndBoundaries:
         # Use 4 sigma for robustness if seed changes (99.994% confidence)
         expected = trials * 0.7
         std_dev = (trials * 0.7 * 0.3) ** 0.5
-        assert abs(parent1_count - expected) < 4 * std_dev, \
-            f"Discrete blend {parent1_count/trials:.3f} deviates from expected 0.7"
+        assert (
+            abs(parent1_count - expected) < 4 * std_dev
+        ), f"Discrete blend {parent1_count/trials:.3f} deviates from expected 0.7"
 
 
 class TestMultiGenerationEvolution:
@@ -244,8 +240,9 @@ class TestMultiGenerationEvolution:
         # Evolution should maintain some diversity
         assert len(population) == 20
         final_speeds = [g.speed_modifier for g in population]
-        assert max(final_speeds) - min(final_speeds) > 0.01, \
-            "Evolution should maintain genetic diversity"
+        assert (
+            max(final_speeds) - min(final_speeds) > 0.01
+        ), "Evolution should maintain genetic diversity"
 
     def test_weighted_evolution_favors_winner(self):
         """Test that weighted crossover favors winner's traits."""
@@ -265,7 +262,8 @@ class TestMultiGenerationEvolution:
         offspring = []
         for _ in range(100):
             child = Genome.from_parents_weighted(
-                winner, loser,
+                winner,
+                loser,
                 parent1_weight=0.8,  # Corrected parameter name
                 rng=rng,
             )
@@ -292,8 +290,9 @@ class TestMultiGenerationEvolution:
 
         # All should maintain Claude variant type (most important characteristic)
         for child in offspring:
-            assert child.type == "claude", \
-                f"Offspring type {child.type} should maintain parent's 'claude' type"
+            assert (
+                child.type == "claude"
+            ), f"Offspring type {child.type} should maintain parent's 'claude' type"
 
         # Color should still have some variety across offspring
         colors = [child.color_hue for child in offspring]
@@ -317,7 +316,7 @@ class TestPokerEvolution:
             offspring_algos.append(child_algo)
 
         # Should get a mix of strategy types
-        strategy_types = set(type(algo).__name__ for algo in offspring_algos)
+        strategy_types = {type(algo).__name__ for algo in offspring_algos}
         assert len(strategy_types) > 1, "Should inherit different strategy types from parents"
 
     def test_poker_weighted_genome_crossover(self):
@@ -344,11 +343,13 @@ class TestPokerEvolution:
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(TightAggressiveStrategy(rng=rng)),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -373,11 +374,13 @@ class TestPokerEvolution:
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(ManiacStrategy(rng=rng)),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -385,7 +388,8 @@ class TestPokerEvolution:
         offspring = []
         for _ in range(100):
             child = Genome.from_parents_weighted(
-                winner, loser,
+                winner,
+                loser,
                 parent1_weight=0.75,  # Corrected parameter name
                 rng=rng,
             )
@@ -393,19 +397,22 @@ class TestPokerEvolution:
 
         # Offspring should inherit more from winner
         avg_aggression = sum(o.behavioral.aggression.value for o in offspring) / len(offspring)
-        assert avg_aggression > 0.5, \
-            f"Offspring aggression {avg_aggression:.3f} should favor winner's 0.9"
+        assert (
+            avg_aggression > 0.5
+        ), f"Offspring aggression {avg_aggression:.3f} should favor winner's 0.9"
 
         # Check strategy distribution
         # Note: With 10% novelty injection in poker crossover, we expect fewer direct inheritances
         # With parent1_weight=0.75 and 10% random replacement among 10 strategies,
         # we expect roughly 90% * 75% = 68% max, but with added strategy switching we lower the bar
         tight_aggressive_count = sum(
-            1 for o in offspring
+            1
+            for o in offspring
             if isinstance(o.behavioral.poker_strategy.value, TightAggressiveStrategy)
         )
-        assert tight_aggressive_count > 25, \
-            f"Should inherit winner's strategy somewhat often (with novelty injection), got {tight_aggressive_count}/100"
+        assert (
+            tight_aggressive_count > 25
+        ), f"Should inherit winner's strategy somewhat often (with novelty injection), got {tight_aggressive_count}/100"
 
 
 class TestPlantGenetics:
@@ -454,7 +461,7 @@ class TestPlantGenetics:
             offspring.append(child)
 
         # Discrete traits should sometimes mutate
-        floral_types = set(o.floral_type for o in offspring)
+        floral_types = {o.floral_type for o in offspring}
         assert len(floral_types) > 1, "Floral type should mutate"
 
         # Continuous traits should vary
@@ -472,12 +479,15 @@ class TestPlantGenetics:
 
         # Evolve it
         val_rng = random.Random(42)
-        offspring = [PlantGenome.from_parent(fern, mutation_rate=0.2, rng=val_rng) for _ in range(50)]
+        offspring = [
+            PlantGenome.from_parent(fern, mutation_rate=0.2, rng=val_rng) for _ in range(50)
+        ]
 
         # All should maintain cosmic_fern variant type (most important)
         for child in offspring:
-            assert child.type == "cosmic_fern", \
-                f"Offspring type {child.type} should maintain parent's 'cosmic_fern' type"
+            assert (
+                child.type == "cosmic_fern"
+            ), f"Offspring type {child.type} should maintain parent's 'cosmic_fern' type"
 
         # Color should vary across offspring (shows mutation is working)
         colors = [child.color_hue for child in offspring]
@@ -492,7 +502,9 @@ class TestPlantGenetics:
         )
 
         rng = random.Random(42)
-        offspring = [PlantGenome.from_parent(parent, mutation_rate=0.5, rng=rng) for _ in range(100)]
+        offspring = [
+            PlantGenome.from_parent(parent, mutation_rate=0.5, rng=rng) for _ in range(100)
+        ]
 
         # Energy parameters should evolve
         energy_rates = [o.base_energy_rate for o in offspring]
@@ -560,13 +572,15 @@ class TestStatisticalProperties:
         speeds = [g.speed_modifier for g in population]
         aggression = [g.behavioral.aggression.value for g in population]
 
-        speed_variance = sum((s - sum(speeds)/50) ** 2 for s in speeds) / 50
-        aggression_variance = sum((a - sum(aggression)/50) ** 2 for a in aggression) / 50
+        speed_variance = sum((s - sum(speeds) / 50) ** 2 for s in speeds) / 50
+        aggression_variance = sum((a - sum(aggression) / 50) ** 2 for a in aggression) / 50
 
         # Should maintain diversity (not converge to single value)
         # Threshold of 0.0008 is conservative - typical variance is 0.003-0.01
         assert speed_variance > 0.0008, f"Speed variance {speed_variance:.4f} too low"
-        assert aggression_variance > 0.0008, f"Aggression variance {aggression_variance:.4f} too low"
+        assert (
+            aggression_variance > 0.0008
+        ), f"Aggression variance {aggression_variance:.4f} too low"
 
     def test_trait_correlation_in_offspring(self):
         """Test that offspring traits correlate with parents."""
@@ -583,10 +597,7 @@ class TestStatisticalProperties:
         parent2.physical.size_modifier.value = 0.5
 
         rng = random.Random(42)
-        offspring = [
-            Genome.from_parents(parent1, parent2, rng=rng)
-            for _ in range(200)
-        ]
+        offspring = [Genome.from_parents(parent1, parent2, rng=rng) for _ in range(200)]
 
         # Offspring fin_size and sizes should correlate with parents
         avg_fin_size = sum(o.physical.fin_size.value for o in offspring) / len(offspring)
@@ -624,11 +635,13 @@ class TestComplexIntegration:
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(None),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -654,11 +667,13 @@ class TestComplexIntegration:
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(None),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -684,11 +699,13 @@ class TestComplexIntegration:
                 hunting_stamina=GeneticTrait(0.5),
                 asexual_reproduction_chance=GeneticTrait(0.5),
                 poker_strategy=GeneticTrait(None),
-                mate_preferences=GeneticTrait({
-                    "prefer_similar_size": 0.5,
-                    "prefer_different_color": 0.5,
-                    "prefer_high_energy": 0.5,
-                }),
+                mate_preferences=GeneticTrait(
+                    {
+                        "prefer_similar_size": 0.5,
+                        "prefer_different_color": 0.5,
+                        "prefer_high_energy": 0.5,
+                    }
+                ),
             ),
         )
 
@@ -696,8 +713,9 @@ class TestComplexIntegration:
         attraction_different = fish1.calculate_mate_attraction(fish3)
 
         # Similar fish should have higher attraction score (higher is better)
-        assert attraction_similar > attraction_different, \
-            f"Similar fish attraction {attraction_similar:.3f} should be greater than different fish {attraction_different:.3f}"
+        assert (
+            attraction_similar > attraction_different
+        ), f"Similar fish attraction {attraction_similar:.3f} should be greater than different fish {attraction_different:.3f}"
 
     # Note: test_fitness_tracking_updates removed - fitness_score tracking was deprecated
     # Fitness is now implicit through survival and reproduction success
@@ -714,7 +732,8 @@ class TestComplexIntegration:
         # Crossover (disable algorithm_switch_rate to ensure type preservation)
         rng = random.Random(42)
         child_algo = crossover_algorithms(
-            parent1_algo, parent2_algo,
+            parent1_algo,
+            parent2_algo,
             mutation_rate=0.5,
             mutation_strength=0.1,
             algorithm_switch_rate=0.0,  # Disable random algorithm switching for this test

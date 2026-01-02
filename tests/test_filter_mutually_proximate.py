@@ -4,9 +4,7 @@ This function is used by CollisionSystem and PokerSystem to ensure
 poker game participants are all within mutual proximity (no chain connections).
 """
 
-import pytest
 from types import SimpleNamespace
-
 
 from core.poker_interaction import filter_mutually_proximate
 
@@ -45,7 +43,7 @@ class TestFilterMutuallyProximate:
 
     def test_two_entities_returns_both_regardless_of_distance(self):
         """Two entities are returned unchanged (assumes pre-verified).
-        
+
         The filter_mutually_proximate function is designed to be called after
         initial proximity verification. For <= 2 entities, it returns them
         unchanged since there's no "chain connection" issue possible.
@@ -58,7 +56,7 @@ class TestFilterMutuallyProximate:
 
     def test_chain_connection_filters_outlier(self):
         """Chain-connected entities (A-B-C where A far from C) exclude outlier.
-        
+
         This is the key scenario: A is near B, B is near C, but A is far from C.
         The algorithm should exclude one end of the chain.
         """
@@ -68,12 +66,12 @@ class TestFilterMutuallyProximate:
         a = MockEntity(0, 0)
         b = MockEntity(40, 0)
         c = MockEntity(80, 0)
-        
+
         result = filter_mutually_proximate([a, b, c], 50.0)
-        
+
         # Should return at most 2 entities (the largest mutually proximate subset)
         assert len(result) <= 2
-        
+
         # If B is in result, at most one of A or C should be included
         if b in result:
             a_in_result = a in result
@@ -86,7 +84,7 @@ class TestFilterMutuallyProximate:
         e1 = MockEntity(0, 0)
         e2 = MockEntity(30, 0)
         e3 = MockEntity(15, 26)  # Equilateral-ish triangle
-        
+
         result = filter_mutually_proximate([e1, e2, e3], 50.0)
         assert len(result) == 3
 
@@ -95,10 +93,10 @@ class TestFilterMutuallyProximate:
         # Create 4 entities: 3 clustered together, 1 far away
         cluster = [MockEntity(0, 0), MockEntity(20, 0), MockEntity(10, 17)]
         outlier = MockEntity(200, 200)
-        
+
         all_entities = cluster + [outlier]
         result = filter_mutually_proximate(all_entities, 50.0)
-        
+
         # Should return the 3 clustered entities
         assert len(result) == 3
         for e in cluster:
@@ -110,8 +108,8 @@ class TestFilterMutuallyProximate:
         e1 = MockEntity(0, 0)
         e2 = MockEntity(10, 0)
         e3 = MockEntity(20, 0)
-        
+
         result = filter_mutually_proximate([e1, e2, e3], 100.0)
-        
+
         # All within distance, should preserve order
         assert result == [e1, e2, e3]

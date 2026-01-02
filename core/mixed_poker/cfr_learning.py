@@ -14,8 +14,7 @@ CFR learning is separated from the core interaction logic because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
-
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
@@ -36,7 +35,7 @@ def update_cfr_learning(
     winner_idx: int,
     tied_players: List[int],
     players: List[Any],
-    get_player_energy: callable,
+    get_player_energy: Callable[[Any], float],
     initial_player_energies: List[float],
 ) -> None:
     """Update CFR learning for fish with composable strategies.
@@ -83,17 +82,15 @@ def update_cfr_learning(
                 hand_strength = 0.5
         else:
             # Pre-flop fold - use starting hand strength
-            position_on_button = (i == game_state.button_position)
+            position_on_button = i == game_state.button_position
             hand_strength = evaluate_starting_hand_strength(hole_cards, position_on_button)
 
         # Pot ratio relative to initial energy
         pot_ratio = game_state.pot / max(1.0, initial_energy)
-        position_on_button = (i == game_state.button_position)
+        position_on_button = i == game_state.button_position
 
         # Get info set
-        info_set = ctx.strategy.get_info_set(
-            hand_strength, pot_ratio, position_on_button, street=0
-        )
+        info_set = ctx.strategy.get_info_set(hand_strength, pot_ratio, position_on_button, street=0)
 
         # Determine what action we effectively took
         action_taken = _infer_action_taken(i, game_state)
@@ -114,7 +111,8 @@ def _infer_action_taken(player_idx: int, game_state: "MultiplayerGameState") -> 
     """
     # Look for this player's actions in history
     player_actions = [
-        (action, amount) for (idx, action, amount) in game_state.betting_history
+        (action, amount)
+        for (idx, action, amount) in game_state.betting_history
         if idx == player_idx
     ]
 
@@ -153,7 +151,7 @@ def _estimate_counterfactual_values(
         Dict mapping action -> estimated counterfactual value
     """
     my_bet = game_state.player_total_bets[player_idx]
-    i_won = (player_idx == winner_idx)
+    i_won = player_idx == winner_idx
     i_folded = contexts[player_idx].folded
 
     # Base values - what we could have won/lost

@@ -3,9 +3,9 @@ import random
 import pytest
 
 from core.poker.betting.actions import BettingAction, BettingRound
+from core.poker.core import evaluate_hand
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.core.game_state import PokerGameState
-from core.poker.core import evaluate_hand
 from core.poker.simulation import engine as simulation_engine
 from core.poker.simulation import hand_engine
 

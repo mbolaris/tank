@@ -62,7 +62,7 @@ operations more explicit and debuggable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Generic, List, TypeVar, Union
+from typing import Callable, Generic, TypeVar, Union
 
 # Type variables for Result
 T = TypeVar("T")  # Success value type
@@ -115,7 +115,7 @@ class Ok(Generic[T]):
         """Ok has no error, returns None."""
         return None
 
-    def map(self, f: Callable[[T], U]) -> "Ok[U]":
+    def map(self, f: Callable[[T], U]) -> Ok[U]:
         """Transform the success value.
 
         Example:
@@ -123,11 +123,11 @@ class Ok(Generic[T]):
         """
         return Ok(f(self.value))
 
-    def map_err(self, f: Callable[[E], F]) -> "Ok[T]":
+    def map_err(self, f: Callable[[E], F]) -> Ok[T]:
         """Transform error (no-op for Ok, returns self)."""
         return self
 
-    def and_then(self, f: Callable[[T], "Result[U, E]"]) -> "Result[U, E]":
+    def and_then(self, f: Callable[[T], Result[U, E]]) -> Result[U, E]:
         """Chain another Result-returning operation.
 
         Example:
@@ -183,11 +183,11 @@ class Err(Generic[E]):
         """Err has no value, returns None."""
         return None
 
-    def map(self, f: Callable[[T], U]) -> "Err[E]":
+    def map(self, f: Callable[[T], U]) -> Err[E]:
         """Transform value (no-op for Err, returns self)."""
         return self
 
-    def map_err(self, f: Callable[[E], F]) -> "Err[F]":
+    def map_err(self, f: Callable[[E], F]) -> Err[F]:
         """Transform the error.
 
         Example:
@@ -195,7 +195,7 @@ class Err(Generic[E]):
         """
         return Err(f(self.error))
 
-    def and_then(self, f: Callable[[T], "Result[U, E]"]) -> "Err[E]":
+    def and_then(self, f: Callable[[T], Result[U, E]]) -> Err[E]:
         """Chain another operation (no-op for Err, returns self)."""
         return self
 
@@ -234,7 +234,7 @@ def try_result(f: Callable[[], T], error_type: type = Exception) -> Result[T, st
         return Err(str(e))
 
 
-def collect_results(results: List[Result[T, E]]) -> Result[List[T], E]:
+def collect_results(results: list[Result[T, E]]) -> Result[list[T], E]:
     """Collect a list of Results into a Result of list.
 
     If all results are Ok, returns Ok with list of values.
@@ -250,7 +250,7 @@ def collect_results(results: List[Result[T, E]]) -> Result[List[T], E]:
     Returns:
         Ok([values]) if all Ok, first Err otherwise
     """
-    values: List[T] = []
+    values: list[T] = []
     for result in results:
         if isinstance(result, Err):
             return result

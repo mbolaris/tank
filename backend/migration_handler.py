@@ -30,9 +30,7 @@ class MigrationHandler:
         self.connection_manager = connection_manager
         self.tank_registry = tank_registry
 
-    def attempt_entity_migration(
-        self, entity: Any, direction: str, source_tank_id: str
-    ) -> bool:
+    def attempt_entity_migration(self, entity: Any, direction: str, source_tank_id: str) -> bool:
         """Attempt to migrate an entity to a connected tank.
 
         Args:
@@ -44,9 +42,7 @@ class MigrationHandler:
             True if migration successful, False otherwise
         """
         # Find connections for this tank and direction
-        connections = self.connection_manager.get_connections_for_tank(
-            source_tank_id, direction
-        )
+        connections = self.connection_manager.get_connections_for_tank(source_tank_id, direction)
 
         if not connections:
             return False  # No connection in this direction
@@ -67,9 +63,7 @@ class MigrationHandler:
 
         # Check if destination allows transfers
         if not dest_manager.tank_info.allow_transfers:
-            logger.debug(
-                f"Destination tank {dest_manager.tank_info.name} does not allow transfers"
-            )
+            logger.debug(f"Destination tank {dest_manager.tank_info.name} does not allow transfers")
             return False
 
         # Get source manager for logging
@@ -109,12 +103,19 @@ class MigrationHandler:
             # Track energy leaving the source tank (for fish only)
             from core.entities.fish import Fish
             from core.entities.plant import Plant
-            if isinstance(entity, Fish) and hasattr(entity, 'ecosystem') and entity.ecosystem is not None:
+
+            if (
+                isinstance(entity, Fish)
+                and hasattr(entity, "ecosystem")
+                and entity.ecosystem is not None
+            ):
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             if isinstance(entity, Plant):
                 # If destination has no available root spots, fail fast to avoid churn.
-                dest_root_spot_manager = getattr(dest_manager.world.engine, "root_spot_manager", None)
+                dest_root_spot_manager = getattr(
+                    dest_manager.world.engine, "root_spot_manager", None
+                )
                 if dest_root_spot_manager is None or dest_root_spot_manager.get_empty_count() <= 0:
                     return False
                 original_root_spot = getattr(entity, "root_spot", None)
@@ -141,9 +142,9 @@ class MigrationHandler:
                 # Failed to deserialize in destination (e.g. no root spots)
                 # Just return False, no need to restore since we haven't removed yet.
                 if new_entity_outcome.error and new_entity_outcome.error.code == "no_root_spots":
-                     # Silent fail for plants
-                     return False
-                
+                    # Silent fail for plants
+                    return False
+
                 log_transfer(
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
@@ -167,9 +168,7 @@ class MigrationHandler:
 
             # Position entity at opposite edge of destination tank
             if direction == "left":
-                new_entity.pos.x = (
-                    dest_manager.world.config.screen_width - new_entity.width - 10
-                )
+                new_entity.pos.x = dest_manager.world.config.screen_width - new_entity.width - 10
             else:  # right
                 new_entity.pos.x = 10
 
@@ -177,7 +176,11 @@ class MigrationHandler:
             added_to_destination = True
 
             # Track energy entering the destination tank (for fish only)
-            if isinstance(new_entity, Fish) and hasattr(new_entity, 'ecosystem') and new_entity.ecosystem is not None:
+            if (
+                isinstance(new_entity, Fish)
+                and hasattr(new_entity, "ecosystem")
+                and new_entity.ecosystem is not None
+            ):
                 new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
 
             # Invalidate cached state on destination and source runners so
@@ -235,7 +238,9 @@ class MigrationHandler:
                                 source_tank_id[:8],
                                 exc_info=True,
                             )
-                    source_manager.world.engine.request_spawn(entity, reason="migration_restore_error")
+                    source_manager.world.engine.request_spawn(
+                        entity, reason="migration_restore_error"
+                    )
                 except Exception:
                     logger.debug(
                         "Failed to restore entity after migration error (tank=%s)",
@@ -251,7 +256,9 @@ class MigrationHandler:
                     source_tank_id=source_tank_id,
                     source_tank_name=source_manager.tank_info.name if source_manager else "unknown",
                     destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_manager.tank_info.name if dest_manager else "unknown",
+                    destination_tank_name=(
+                        dest_manager.tank_info.name if dest_manager else "unknown"
+                    ),
                     success=False,
                     error=str(e),
                     generation=getattr(entity, "generation", None),

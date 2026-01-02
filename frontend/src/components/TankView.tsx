@@ -1,8 +1,4 @@
-/**
- * TankView component - displays a single tank simulation with controls
- */
-
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { Canvas } from './Canvas';
 import { ControlPanel } from './ControlPanel';
@@ -14,6 +10,10 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { ViewModeToggle } from './ViewModeToggle';
+import { useViewMode } from '../hooks/useViewMode';
+import { rendererRegistry } from '../rendering/registry';
+import { initRenderers } from '../renderers/init';
 import { CollapsibleSection, Button } from './ui';
 
 import type { PokerGameState } from '../types/simulation';
@@ -29,6 +29,15 @@ export function TankView({ tankId }: TankViewProps) {
     const [pokerLoading, setPokerLoading] = useState(false);
     const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
 
+    // Plant energy input control
+    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15); // Default from PLANT_MIN_ENERGY_GAIN
+
+    const handlePlantEnergyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const rate = parseFloat(e.target.value);
+        setPlantEnergyInput(rate);
+        sendCommand({ command: 'set_plant_energy_input', data: { rate } });
+    }, [sendCommand]);
+
     // Entity transfer state
     const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
     const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
@@ -37,6 +46,18 @@ export function TankView({ tankId }: TankViewProps) {
 
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
+
+    const { effectiveViewMode, setOverrideViewMode } = useViewMode(state?.view_mode as any);
+
+    // Derive worldType from state (default to 'tank' for backwards compatibility)
+    const worldType = state?.world_type ?? 'tank';
+
+    // Ensure renderers are initialized so hasRenderer works
+    initRenderers();
+
+    // Only show view mode toggle if top-down renderer exists for this world
+    const hasTopDownRenderer = rendererRegistry.hasRenderer(worldType, 'topdown');
+
 
     const handlePokerError = (message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
@@ -204,6 +225,54 @@ export function TankView({ tankId }: TankViewProps) {
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
+
+                {hasTopDownRenderer && (
+                    <ViewModeToggle
+                        worldType={worldType}
+                        viewMode={effectiveViewMode}
+                        onChange={setOverrideViewMode}
+                    />
+                )}
+
+                {/* Plant Energy Input Control */}
+                <div className="glass-panel" style={{
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                }}>
+                    <span style={{
+                        color: 'var(--color-text-dim)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        letterSpacing: '0.05em',
+                        whiteSpace: 'nowrap'
+                    }}>
+                        🌱 PLANT ENERGY
+                    </span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={plantEnergyInput}
+                        onChange={handlePlantEnergyChange}
+                        disabled={!isConnected}
+                        style={{
+                            width: '80px',
+                            accentColor: '#4ade80',
+                            cursor: isConnected ? 'pointer' : 'not-allowed',
+                        }}
+                    />
+                    <span style={{
+                        color: 'var(--color-text-main)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '12px',
+                        minWidth: '40px',
+                    }}>
+                        {plantEnergyInput.toFixed(2)}
+                    </span>
+                </div>
             </div>
 
             {/* Simulation Stats Panel - Moved Above Tank */}
@@ -273,6 +342,7 @@ export function TankView({ tankId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
+                        viewMode={effectiveViewMode}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>
@@ -456,7 +526,7 @@ export function TankView({ tankId }: TankViewProps) {
                                         padding: '16px',
                                         border: '1px solid #334155'
                                     }}>
-                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.frame} />
+                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.snapshot?.frame ?? state.frame ?? 0} />
                                     </div>
                                 </div>
                             </div>

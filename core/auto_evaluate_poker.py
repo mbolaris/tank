@@ -25,8 +25,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-
-
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
@@ -194,7 +192,7 @@ class AutoEvaluatePokerGame:
         self.winner: Optional[str] = None
         self.last_hand_message = ""
         self.performance_history: List[Dict[str, Any]] = []
-        
+
         # Decision RNG for deterministic standard algorithm decisions
         self._decision_rng = random.Random(rng_seed)
 
@@ -354,9 +352,7 @@ class AutoEvaluatePokerGame:
             win_rate = round((player.hands_won / hands_played) * 100, 1)
             showdown_played = player.showdowns_played
             showdown_win_rate = (
-                round((player.showdowns_won / showdown_played) * 100, 1)
-                if showdown_played
-                else 0.0
+                round((player.showdowns_won / showdown_played) * 100, 1) if showdown_played else 0.0
             )
 
             net_energy = player.energy - player.starting_energy
@@ -459,17 +455,21 @@ class AutoEvaluatePokerGame:
                     "total_energy_won": round(player.total_energy_won, 1),
                     "total_energy_lost": round(player.total_energy_lost, 1),
                     "net_energy": round(net_energy, 1),
-                    "win_rate": round((player.hands_won / total_games) * 100, 1)
-                    if total_games
-                    else 0.0,
-                    "bb_per_100": round((net_energy / self.big_blind) * (100 / hands_played), 2)
-                    if self.big_blind > 0 and hands_played
-                    else 0.0,
+                    "win_rate": (
+                        round((player.hands_won / total_games) * 100, 1) if total_games else 0.0
+                    ),
+                    "bb_per_100": (
+                        round((net_energy / self.big_blind) * (100 / hands_played), 2)
+                        if self.big_blind > 0 and hands_played
+                        else 0.0
+                    ),
                     "showdowns_played": player.showdowns_played,
                     "showdowns_won": player.showdowns_won,
-                    "showdown_win_rate": round((player.showdowns_won / showdown_played) * 100, 1)
-                    if showdown_played
-                    else 0.0,
+                    "showdown_win_rate": (
+                        round((player.showdowns_won / showdown_played) * 100, 1)
+                        if showdown_played
+                        else 0.0
+                    ),
                 }
             )
 

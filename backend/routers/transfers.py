@@ -6,13 +6,15 @@ This module composes sub-routers for transfer operations:
 """
 
 import logging
+from typing import Optional
 
 from fastapi import APIRouter
 
 from backend.connection_manager import ConnectionManager
-from backend.tank_registry import TankRegistry
-from backend.routers.transfers_ops import setup_transfer_ops_subrouter
 from backend.routers.transfers_connections import setup_connections_subrouter
+from backend.routers.transfers_ops import setup_transfer_ops_subrouter
+from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ router = APIRouter(tags=["transfers"])
 def setup_router(
     tank_registry: TankRegistry,
     connection_manager: ConnectionManager,
+    world_manager: Optional[WorldManager] = None,
 ) -> APIRouter:
     """Setup the transfers router with required dependencies.
 
@@ -34,7 +37,7 @@ def setup_router(
         Configured APIRouter
     """
     # Attach sub-routers
-    setup_transfer_ops_subrouter(router, tank_registry)
+    setup_transfer_ops_subrouter(router, tank_registry, world_manager=world_manager)
     setup_connections_subrouter(router, connection_manager)
 
     return router

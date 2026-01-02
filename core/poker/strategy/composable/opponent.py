@@ -5,6 +5,7 @@ This module contains the SimpleOpponentModel dataclass.
 
 from dataclasses import dataclass
 
+
 @dataclass
 class SimpleOpponentModel:
     """Lightweight opponent tracking for composable strategy."""

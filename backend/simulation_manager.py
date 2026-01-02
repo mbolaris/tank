@@ -31,6 +31,7 @@ class TankInfo:
     tank_id: str
     name: str
     description: str = ""
+    world_type: str = "tank"  # Mode type: tank, petri, soccer_training, soccer
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     owner: Optional[str] = None
     server_id: str = "local-server"  # Which server this tank is running on
@@ -50,6 +51,7 @@ class TankInfo:
             "tank_id": self.tank_id,
             "name": self.name,
             "description": self.description,
+            "world_type": self.world_type,
             "created_at": self.created_at.isoformat(),
             "owner": self.owner,
             "server_id": self.server_id,
@@ -76,6 +78,8 @@ class SimulationManager:
         seed: Optional[int] = None,
         persistent: bool = True,
         auto_save_interval: float = 300.0,
+        tank_id: Optional[str] = None,
+        world_type: str = "tank",
     ):
         """Initialize the simulation manager.
 
@@ -85,12 +89,14 @@ class SimulationManager:
             seed: Optional random seed for deterministic behavior
             persistent: Whether this tank should auto-save and restore
             auto_save_interval: Auto-save interval in seconds (default: 5 minutes)
+            world_type: Type of world to create (tank, petri, soccer_training, soccer)
         """
         # Generate unique tank ID
         self.tank_info = TankInfo(
-            tank_id=str(uuid.uuid4()),
+            tank_id=tank_id if tank_id else str(uuid.uuid4()),
             name=tank_name,
             description=tank_description,
+            world_type=world_type,
             seed=seed,
             persistent=persistent,
             auto_save_interval=auto_save_interval,
@@ -98,7 +104,10 @@ class SimulationManager:
 
         # Create simulation runner
         self._runner = SimulationRunner(
-            seed=seed, tank_id=self.tank_info.tank_id, tank_name=self.tank_info.name
+            seed=seed,
+            tank_id=self.tank_info.tank_id,
+            tank_name=self.tank_info.name,
+            world_type=world_type,
         )
 
         # Track connected WebSocket clients
@@ -247,9 +256,7 @@ class SimulationManager:
         Returns:
             State payload with tank_id included
         """
-        state = await self._runner.get_state_async(
-            force_full=force_full, allow_delta=allow_delta
-        )
+        state = await self._runner.get_state_async(force_full=force_full, allow_delta=allow_delta)
         # Inject tank_id for network identification
         state.tank_id = self.tank_id
         return state
@@ -286,7 +293,9 @@ class SimulationManager:
             # This is critical because this runs in the main thread (via auto_save_service)
             lock_acquired = self._runner.lock.acquire(timeout=0.5)
             if not lock_acquired:
-                logger.warning(f"capture_state_for_save: Lock acquisition timed out for tank {self.tank_id}")
+                logger.warning(
+                    f"capture_state_for_save: Lock acquisition timed out for tank {self.tank_id}"
+                )
                 return None
 
             try:
@@ -300,7 +309,18 @@ class SimulationManager:
                 from core.entities.predators import Crab
 
                 world = self.world
-                engine = world.engine
+
+                # Resolve engine from world, handling adapter layer if present
+                engine = None
+                if hasattr(world, "world") and hasattr(world.world, "engine"):
+                    # TankWorldBackendAdapter wraps TankWorld which has engine
+                    engine = world.world.engine
+                elif hasattr(world, "engine"):
+                    # TankWorld has engine directly
+                    engine = world.engine
+                else:
+                    logger.error(f"Could not resolve engine for tank {self.tank_id} - save aborted")
+                    return None
 
                 # 1. Capture metadata
                 captured_data["version"] = "2.0"
@@ -334,13 +354,21 @@ class SimulationManager:
                 # 3. Capture entities (mutable state only)
                 for entity in engine.entities_list:
                     if isinstance(entity, Fish):
-                        captured_entities.append(("fish", entity, capture_fish_mutable_state(entity)))
+                        captured_entities.append(
+                            ("fish", entity, capture_fish_mutable_state(entity))
+                        )
                     elif isinstance(entity, Plant):
-                        captured_entities.append(("plant", entity, capture_plant_mutable_state(entity)))
+                        captured_entities.append(
+                            ("plant", entity, capture_plant_mutable_state(entity))
+                        )
                     elif isinstance(entity, (PlantNectar, Food, Castle, Crab)):
                         # For simple entities, we can just capture them directly or copy needed data
                         # Since they are small/few, full copy here is fine
                         captured_entities.append(("other", entity, None))
+
+                # 4. Capture code pool components (for policy persistence)
+                if hasattr(engine, "code_pool") and engine.code_pool is not None:
+                    captured_data["code_pool"] = engine.code_pool.to_dict()
             finally:
                 self._runner.lock.release()
 
@@ -365,33 +393,51 @@ class SimulationManager:
                     else:
                         # Manual serialization for other types (same as before)
                         if isinstance(entity, PlantNectar):
-                            entities_data.append({
-                                "type": "plant_nectar",
-                                "id": id(entity),
-                                "x": entity.pos.x,
-                                "y": entity.pos.y,
-                                "energy": entity.energy,
-                                "source_plant_id": getattr(entity, "source_plant_id", None),
-                                "source_plant_x": getattr(entity, "source_plant_x", entity.pos.x),
-                                "source_plant_y": getattr(entity, "source_plant_y", entity.pos.y),
-                            })
+                            source_plant = getattr(entity, "source_plant", None)
+                            entities_data.append(
+                                {
+                                    "type": "plant_nectar",
+                                    "id": id(entity),
+                                    "x": entity.pos.x,
+                                    "y": entity.pos.y,
+                                    "energy": entity.energy,
+                                    # Use plant_id (stable) instead of ephemeral id()
+                                    "source_plant_id": (
+                                        source_plant.plant_id if source_plant else None
+                                    ),
+                                    "source_plant_x": (
+                                        source_plant.pos.x + source_plant.width / 2
+                                        if source_plant
+                                        else entity.pos.x
+                                    ),
+                                    "source_plant_y": (
+                                        source_plant.pos.y + source_plant.height
+                                        if source_plant
+                                        else entity.pos.y
+                                    ),
+                                }
+                            )
                         elif isinstance(entity, Food):
-                            entities_data.append({
-                                "type": "food",
-                                "id": id(entity),
-                                "x": entity.pos.x,
-                                "y": entity.pos.y,
-                                "energy": entity.energy,
-                                "food_type": entity.food_type,
-                            })
+                            entities_data.append(
+                                {
+                                    "type": "food",
+                                    "id": id(entity),
+                                    "x": entity.pos.x,
+                                    "y": entity.pos.y,
+                                    "energy": entity.energy,
+                                    "food_type": entity.food_type,
+                                }
+                            )
                         elif isinstance(entity, Castle):
-                            entities_data.append({
-                                "type": "castle",
-                                "x": entity.pos.x,
-                                "y": entity.pos.y,
-                                "width": entity.width,
-                                "height": entity.height,
-                            })
+                            entities_data.append(
+                                {
+                                    "type": "castle",
+                                    "x": entity.pos.x,
+                                    "y": entity.pos.y,
+                                    "width": entity.width,
+                                    "height": entity.height,
+                                }
+                            )
                         elif isinstance(entity, Crab):
                             # Serialize crab with genome
                             genome_data = {
@@ -401,15 +447,17 @@ class SimulationManager:
                                 "color_hue": entity.genome.physical.color_hue.value,
                                 "vision_range": entity.genome.vision_range,
                             }
-                            entities_data.append({
-                                "type": "crab",
-                                "x": entity.pos.x,
-                                "y": entity.pos.y,
-                                "energy": entity.energy,
-                                "max_energy": entity.max_energy,
-                                "genome": genome_data,
-                                "hunt_cooldown": entity.hunt_cooldown,
-                            })
+                            entities_data.append(
+                                {
+                                    "type": "crab",
+                                    "x": entity.pos.x,
+                                    "y": entity.pos.y,
+                                    "energy": entity.energy,
+                                    "max_energy": entity.max_energy,
+                                    "genome": genome_data,
+                                    "hunt_cooldown": entity.hunt_cooldown,
+                                }
+                            )
                 except Exception as e:
                     logger.warning(f"Failed to serialize entity {type(entity).__name__}: {e}")
                     continue
@@ -425,9 +473,7 @@ class SimulationManager:
             logger.error(f"Failed to capture state for tank {self.tank_id}: {e}", exc_info=True)
             return None
 
-    async def handle_command_async(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ):
+    async def handle_command_async(self, command: str, data: Optional[Dict[str, Any]] = None):
         """Handle a command from a client.
 
         Args:
@@ -456,7 +502,7 @@ class SimulationManager:
                 if runner_lock:
                     lock_acquired = runner_lock.acquire(timeout=0.1)
 
-                world_stats = self.world.get_stats()
+                world_stats = self.world.get_stats(include_distributions=False)
                 stats = {
                     "fish_count": world_stats.get("fish_count", 0),
                     "generation": world_stats.get("current_generation", 0),
@@ -469,17 +515,27 @@ class SimulationManager:
                     "plant_energy": world_stats.get("plant_energy", 0.0),
                     "poker_stats": world_stats.get("poker_stats", {}),
                 }
-            
+
                 # Add poker score from evolution benchmark tracker
                 tracker = getattr(self._runner, "evolution_benchmark_tracker", None)
                 if tracker is not None:
                     latest = tracker.get_latest_snapshot()
-                    if latest is not None and latest.confidence_vs_strong is not None:
-                        stats["poker_score"] = latest.confidence_vs_strong
-                        history = tracker.get_history()
-                        if history:
-                            valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
-                            stats["poker_score_history"] = valid_scores[-20:]
+                    if latest is not None:
+                        if latest.confidence_vs_strong is not None:
+                            stats["poker_score"] = latest.confidence_vs_strong
+                        if latest.pop_mean_elo is not None:
+                            stats["poker_elo"] = latest.pop_mean_elo
+
+                    history = tracker.get_history()
+                    if history:
+                        valid_scores = [
+                            s.confidence_vs_strong
+                            for s in history
+                            if s.confidence_vs_strong is not None
+                        ]
+                        stats["poker_score_history"] = valid_scores[-20:]
+                        valid_elos = [s.pop_mean_elo for s in history if s.pop_mean_elo is not None]
+                        stats["poker_elo_history"] = valid_elos[-20:]
 
                 # Cache a copy of last-good stats for fallback
                 try:
@@ -505,9 +561,7 @@ class SimulationManager:
             "client_count": self.client_count,
             "frame": self.world.frame_count if self.running else 0,
             "paused": self.world.paused if self.running else True,
-            "fps": round(self._runner.current_actual_fps, 1)
-            if self.running
-            else 0.0,
+            "fps": round(self._runner.current_actual_fps, 1) if self.running else 0.0,
             "stats": stats,
             "fast_forward": self._runner.fast_forward if self.running else False,
         }

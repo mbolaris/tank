@@ -27,13 +27,13 @@ NUM_SCHOOLING_FISH = 10  # Small founding population, allows genetic diversity t
 #
 # Trade-off: Higher target = more fish, more CPU load, weaker per-fish selection.
 #            Lower target = stronger selection, but less genetic diversity.
-TARGET_POPULATION = 80   # Sweet spot: enough diversity, manageable performance
-MAX_POPULATION = 100     # Hard cap: prevents runaway population growth
+TARGET_POPULATION = 80  # Sweet spot: enough diversity, manageable performance
+MAX_POPULATION = 100  # Hard cap: prevents runaway population growth
 
 # Emergency spawning prevents extinction events.
 # Below CRITICAL threshold, the ecosystem force-spawns fish to recover.
 CRITICAL_POPULATION_THRESHOLD = 10  # Below 10 fish = extinction risk
-EMERGENCY_SPAWN_COOLDOWN = 180      # 6 seconds between emergency spawns (prevents flood)
+EMERGENCY_SPAWN_COOLDOWN = 180  # 6 seconds between emergency spawns (prevents flood)
 
 # =============================================================================
 # ALGORITHM & SPECIES DIVERSITY
@@ -41,7 +41,7 @@ EMERGENCY_SPAWN_COOLDOWN = 180      # 6 seconds between emergency spawns (preven
 # These track the diversity of behavior strategies in the population.
 # Used for statistics and diversity-aware spawning.
 TOTAL_ALGORITHM_COUNT = 50  # 50 unique behavior algorithms available
-TOTAL_SPECIES_COUNT = 4     # Visual species variations (affects appearance only)
+TOTAL_SPECIES_COUNT = 4  # Visual species variations (affects appearance only)
 
 # =============================================================================
 # EVENT TRACKING
@@ -89,6 +89,6 @@ MATING_QUERY_RADIUS = 150  # 150px allows reasonable mate search range
 #
 # Trade-off: Tighter range = fewer games, more intentional poker-seeking.
 #            Wider range = more games, more incidental poker encounters.
-FISH_POKER_MIN_DISTANCE = 10   # Must be at least 10px apart (not overlapping)
-FISH_POKER_MAX_DISTANCE = 160   # Wider range to trigger more poker encounters
+FISH_POKER_MIN_DISTANCE = 10  # Must be at least 10px apart (not overlapping)
+FISH_POKER_MAX_DISTANCE = 160  # Wider range to trigger more poker encounters
 POKER_PROXIMITY_QUERY_RADIUS = 140  # Larger search radius for poker partner lookup

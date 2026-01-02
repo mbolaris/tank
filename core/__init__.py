@@ -26,9 +26,9 @@ from . import simulation as simulation
 
 # Public API of the core package. Keep this list intentionally small.
 __all__ = [
-	"algorithms",
-	"entities",
-	"genetics",
-	"interfaces",
-	"simulation",
+    "algorithms",
+    "entities",
+    "genetics",
+    "interfaces",
+    "simulation",
 ]

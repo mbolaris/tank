@@ -43,7 +43,7 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
         Tuple of (nearest_fish, distance_squared) or (None, inf)
     """
     env: World = fish.environment  # Type hint as World Protocol
-    
+
     # Use generic method if available, fall back to type query
     if hasattr(env, "nearby_evolving_agents"):
         nearby = env.nearby_evolving_agents(fish, radius)
@@ -51,12 +51,12 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
 
     if not nearby:
-        return None, float('inf')
+        return None, float("inf")
 
     fish_x, fish_y = fish.pos.x, fish.pos.y
     fish_id = fish.fish_id
 
-    min_dist_sq = float('inf')
+    min_dist_sq = float("inf")
     nearest = None
 
     for other in nearby:
@@ -118,6 +118,7 @@ class PokerChallenger(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # First check for predators - survival comes first
@@ -188,6 +189,7 @@ class PokerDodger(BehaviorAlgorithm):
             dist_sq = dx * dx + dy * dy
             if dist_sq < 14400:  # 120^2
                 import math
+
                 dist = math.sqrt(dist_sq)
                 if dist > 0:
                     return -dx / dist * 1.2, -dy / dist * 1.2
@@ -211,6 +213,7 @@ class PokerDodger(BehaviorAlgorithm):
 
             if dist_sq > 0 and dist_sq < avoidance_radius_sq:
                 import math
+
                 distance = math.sqrt(dist_sq)
                 # Avoid this fish - direction away from other
                 inv_dist = 1.0 / distance
@@ -226,6 +229,7 @@ class PokerDodger(BehaviorAlgorithm):
         if fish_nearby > 0:
             # Normalize avoidance vector
             import math
+
             avoid_len = math.sqrt(avoidance_x * avoidance_x + avoidance_y * avoidance_y)
             if avoid_len > 0:
                 avoidance_x /= avoid_len
@@ -289,6 +293,7 @@ class PokerGambler(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Check for predators
@@ -359,6 +364,7 @@ class SelectivePoker(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Check for predators
@@ -420,6 +426,7 @@ class PokerOpportunist(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Check for predators
@@ -516,6 +523,7 @@ class PokerStrategist(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Check for predators first
@@ -637,6 +645,7 @@ class PokerBluffer(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Check for predators
@@ -763,6 +772,7 @@ class PokerConservative(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         import math
+
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Always flee from predators

@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class FishVisualState:
     """Transient rendering-only state for fish.
-    
+
     This class encapsulates all visual effects and their timers, separating
     rendering concerns from the main entity logic.
     """
 
     def __init__(self) -> None:
-        self.poker_effect_state: Optional[Dict[str, Any]] = None
+        self.poker_effect_state: dict[str, Any] | None = None
         self.poker_effect_timer: int = 0
         self.birth_effect_timer: int = 0
-        self.death_effect_state: Optional[Dict[str, Any]] = None
+        self.death_effect_state: dict[str, Any] | None = None
         self.death_effect_timer: int = 0
 
     def update(self) -> None:
@@ -41,8 +40,8 @@ class FishVisualState:
         status: str,
         amount: float = 0.0,
         duration: int = 15,
-        target_id: Optional[int] = None,
-        target_type: Optional[str] = None
+        target_id: int | None = None,
+        target_type: str | None = None,
     ) -> None:
         """Set a visual effect for poker status."""
         self.poker_effect_state = {

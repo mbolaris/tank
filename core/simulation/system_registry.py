@@ -66,7 +66,7 @@ class SystemRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty system registry."""
-        self._systems: List["BaseSystem"] = []
+        self._systems: List[BaseSystem] = []
 
     def register(self, system: "BaseSystem") -> None:
         """Register a system for execution.
@@ -139,10 +139,7 @@ class SystemRegistry:
         Returns:
             Dictionary mapping system names to their debug info
         """
-        return {
-            system.name: system.get_debug_info()
-            for system in self._systems
-        }
+        return {system.name: system.get_debug_info() for system in self._systems}
 
     def __len__(self) -> int:
         """Get the number of registered systems."""

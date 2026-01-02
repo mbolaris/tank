@@ -111,6 +111,9 @@ export interface EntityData {
 
     // Crab-specific
     can_hunt?: boolean;  // True if crab can kill fish (not on cooldown)
+
+    // Rendering hints (used by alternative modes like Petri)
+    render_hint?: Record<string, unknown>;
 }
 
 export interface PokerEventData {
@@ -275,6 +278,8 @@ export interface StatsData {
     max_fish_energy: number;
     poker_score?: number;
     poker_score_history?: number[];
+    poker_elo?: number;
+    poker_elo_history?: number[];
     // Max Energy Capacity Stats (Genetic)
     min_max_energy_capacity: number;
     max_max_energy_capacity: number;
@@ -381,24 +386,54 @@ export interface StatsData {
 export interface SimulationUpdate {
     type: 'update';
     tank_id?: string;  // Tank World Net identifier
-    frame: number;
-    elapsed_time: number;
-    entities: EntityData[];
-    stats: StatsData;
-    poker_events: PokerEventData[];
-    poker_leaderboard: PokerLeaderboardEntry[];
+    world_type?: string;
+    view_mode?: string;
+
+    // New nested snapshot
+    snapshot?: {
+        frame: number;
+        elapsed_time: number;
+        entities: EntityData[];
+        stats: StatsData;
+        poker_events: PokerEventData[];
+        poker_leaderboard: PokerLeaderboardEntry[];
+        auto_evaluation?: AutoEvaluateStats;
+    };
+
+    // Legacy fields (optional for backward compatibility)
+    frame?: number;
+    elapsed_time?: number;
+    entities?: EntityData[];
+    stats?: StatsData;
+    poker_events?: PokerEventData[];
+    poker_leaderboard?: PokerLeaderboardEntry[];
     auto_evaluation?: AutoEvaluateStats;
 }
 
 export interface DeltaUpdate {
     type: 'delta';
     tank_id?: string;  // Tank World Net identifier
-    frame: number;
-    elapsed_time: number;
-    updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
-    added: EntityData[];
-    removed: number[];
-    poker_events: PokerEventData[];
+    world_type?: string;
+    view_mode?: string;
+
+    // New nested snapshot
+    snapshot?: {
+        frame: number;
+        elapsed_time: number;
+        updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
+        added: EntityData[];
+        removed: number[];
+        poker_events: PokerEventData[];
+        stats?: StatsData;
+    };
+
+    // Legacy fields (optional for backward compatibility)
+    frame?: number;
+    elapsed_time?: number;
+    updates?: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
+    added?: EntityData[];
+    removed?: number[];
+    poker_events?: PokerEventData[];
     stats?: StatsData;
 }
 

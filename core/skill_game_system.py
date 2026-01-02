@@ -15,7 +15,6 @@ The system:
 """
 
 import logging
-import random
 from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
@@ -265,8 +264,10 @@ class SkillGameSystem:
             game_type=game.game_type.value,
             player1_id=fish1.fish_id,
             player2_id=fish2.fish_id if fish2 else None,
-            winner_id=fish1.fish_id if result1.won else (
-                fish2.fish_id if fish2 and result2 and result2.won else None
+            winner_id=(
+                fish1.fish_id
+                if result1.won
+                else (fish2.fish_id if fish2 and result2 and result2.won else None)
             ),
             energy_transferred=abs(energy_transferred),
             player1_was_optimal=result1.was_optimal,
@@ -318,7 +319,9 @@ class SkillGameSystem:
             # Two-player: transfer energy between fish
             if energy_change > 0:
                 # Fish1 wins, takes energy from fish2
-                actual_transfer = min(energy_change, fish2.energy * 0.5)  # Cap at 50% of loser's energy
+                actual_transfer = min(
+                    energy_change, fish2.energy * 0.5
+                )  # Cap at 50% of loser's energy
                 fish1.modify_energy(actual_transfer)  # Route overflow to reproduction/food
                 fish2.modify_energy(-actual_transfer)
                 if ecosystem is not None and actual_transfer != 0:
@@ -375,8 +378,10 @@ class SkillGameSystem:
                     if i >= j:  # Avoid duplicate pairs
                         continue
 
-                    pair_key = (min(fish1.fish_id, fish2.fish_id),
-                                max(fish1.fish_id, fish2.fish_id))
+                    pair_key = (
+                        min(fish1.fish_id, fish2.fish_id),
+                        max(fish1.fish_id, fish2.fish_id),
+                    )
                     if pair_key in processed_pairs:
                         continue
 
@@ -427,7 +432,8 @@ class SkillGameSystem:
             "total_energy_transferred": self._total_energy_transferred,
             "avg_energy_per_game": (
                 self._total_energy_transferred / self._total_games_played
-                if self._total_games_played > 0 else 0.0
+                if self._total_games_played > 0
+                else 0.0
             ),
             "config": {
                 "stake_multiplier": self.config.stake_multiplier,

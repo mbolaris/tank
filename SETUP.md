@@ -57,16 +57,20 @@ This will install all required packages including React, Vite, and other depende
 
 ### Step 2: Start the Application
 
-After installing dependencies, you can start the application:
+You need to run the backend and frontend in separate terminals.
 
+**Terminal 1 (Backend):**
 ```bash
 # From the root tank/ directory
 python3 main.py
 ```
 
-This will start both:
-- Backend API server on http://localhost:8000
-- Frontend dev server on http://localhost:3000
+**Terminal 2 (Frontend):**
+```bash
+# From the root tank/ directory
+cd frontend
+npm run dev
+```
 
 ### Step 3: Open Browser
 
@@ -89,8 +93,6 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
 
    # Preferred: read dependencies from pyproject
    pip install -e .
-   # Legacy fallback (still works):
-   # pip install -r backend/requirements.txt
    ```
 
 3. **Install Frontend dependencies**
@@ -101,8 +103,16 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
    ```
 
 4. **Run the application**
+   
+   **Terminal 1:**
    ```bash
    python3 main.py
+   ```
+
+   **Terminal 2:**
+   ```bash
+   cd frontend
+   npm run dev
    ```
 
 5. **Open browser**
@@ -110,9 +120,16 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
 
 ## Troubleshooting
 
+### Extensive Logs / High CPU on Startup
+- **Cause**: The server is restoring many old simulations found in `data/tanks`. This often happens if test runs created persistent snapshots.
+- **Fix**: Stop the server and delete the `data/tanks` directory to start fresh:
+  ```bash
+  rm -rf data/tanks/*
+  ```
+
 ### Blank UI / White Screen
-- **Cause**: Frontend dependencies not installed
-- **Fix**: Run `npm install` in the `frontend` directory
+- **Cause**: Frontend dependencies not installed or frontend server not running
+- **Fix**: Run `npm install` in `frontend/`, then `npm run dev`
 
 ### Connection Error / "Waiting" Status
 - **Cause**: Backend server not running
@@ -124,7 +141,7 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
 
 ### Module Not Found Errors
 - **Cause**: Python dependencies not installed
-- **Fix**: Run `pip install -r requirements.txt`
+- **Fix**: Run `pip install -e .`
 
 ## Development
 

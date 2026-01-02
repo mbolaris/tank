@@ -1,15 +1,15 @@
 import math
-import random
 from typing import TYPE_CHECKING, List, Tuple
 
-from core.math_utils import Vector2
 from core.config.food import FOOD_SINK_ACCELERATION
+from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
+
 from .definitions import (
-    ThreatResponse,
     FoodApproach,
-    SocialMode,
     PokerEngagement,
+    SocialMode,
+    ThreatResponse,
 )
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 class BehaviorActionsMixin:
     """Implementations of sub-behavior execution logic.
-    
+
     This mixin assumes the main class has:
     - parameters: Dict[str, float]
     - threat_response: ThreatResponse
@@ -106,11 +106,11 @@ class BehaviorActionsMixin:
 
         # Base speed from behavior parameters, boosted by pursuit_aggression
         base_speed = self.parameters.get("pursuit_speed", 0.9)
-        base_speed *= (1.0 + pursuit_aggression * 0.4)  # Up to 40% speed boost
-        
+        base_speed *= 1.0 + pursuit_aggression * 0.4  # Up to 40% speed boost
+
         # Calculate target position - use prediction for moving food
         target_pos = nearest_food.pos  # Default: current position
-        
+
         # prediction_skill affects how accurately the fish can predict food movement
         # Low skill = aim at current position, high skill = aim at predicted intercept
         if hasattr(nearest_food, "vel") and hasattr(nearest_food, "food_properties"):
@@ -157,7 +157,7 @@ class BehaviorActionsMixin:
                     nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
                     nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
                 )
-        
+
         # Now calculate direction to predicted target position
         direction = self._safe_normalize(target_pos - fish.pos)
         predicted_distance = (target_pos - fish.pos).length()
@@ -350,11 +350,9 @@ class BehaviorActionsMixin:
 
         return 0.0, 0.0, False
 
-    def _get_energy_speed_modifier(
-        self, fish: "Fish", is_critical: bool, is_low: bool
-    ) -> float:
+    def _get_energy_speed_modifier(self, fish: "Fish", is_critical: bool, is_low: bool) -> float:
         """Get speed modifier based on current energy state.
-        
+
         SIMPLIFIED: Removed EnergyStyle enum (CONSERVATIVE, BURST_REST, BALANCED).
         Now uses a simple formula:
         - Critical energy: 1.2x speed (desperation boost)
@@ -362,7 +360,7 @@ class BehaviorActionsMixin:
         - Comfortable: 0.8x speed (conserve energy)
         """
         base_mod = self.parameters.get("base_speed_multiplier", 0.8)
-        
+
         if is_critical:
             return base_mod * 1.2  # Speed up when desperate
         elif is_low:
@@ -391,10 +389,7 @@ class BehaviorActionsMixin:
         else:
             nearby = env.nearby_agents_by_type(fish, int(radius), FishClass)
 
-        return sorted(
-            [f for f in nearby if f.fish_id != fish_id],
-            key=lambda f: f.fish_id
-        )
+        return sorted([f for f in nearby if f.fish_id != fish_id], key=lambda f: f.fish_id)
 
     def _boids_behavior(
         self,
@@ -411,9 +406,7 @@ class BehaviorActionsMixin:
         # Cohesion: steer toward center of neighbors
         center_x = sum(f.pos.x for f in neighbors) / len(neighbors)
         center_y = sum(f.pos.y for f in neighbors) / len(neighbors)
-        cohesion_dir = self._safe_normalize(
-            Vector2(center_x - fish.pos.x, center_y - fish.pos.y)
-        )
+        cohesion_dir = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
 
         # Alignment: match average heading (approximate from positions)
         # Simplified: move toward where neighbors are heading (their forward direction)

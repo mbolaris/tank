@@ -2,25 +2,25 @@ from __future__ import annotations
 
 import math
 import random
-from typing import List, Tuple
 
+from core.sim.events import EnergyBurned
 from core.telemetry.events import EnergyBurnEvent
 
 
 class _EnvironmentStub:
     def __init__(self) -> None:
-        self.added: List[object] = []
+        self.added: list[object] = []
         self.rng = random.Random(42)  # Deterministic RNG for tests
 
     def add_entity(self, entity: object) -> None:
         self.added.append(entity)
 
-    def request_spawn(self, entity: object, *, reason: str = "") -> bool:
+    def request_spawn(self, entity: object, *, reason: str = "", metadata=None) -> bool:
         """Spawn request API for overflow food spawning."""
         self.added.append(entity)
         return True
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Return default environment bounds."""
         return ((0.0, 0.0), (500.0, 500.0))
 
@@ -32,7 +32,7 @@ class _ReproductionManagerStub:
 
 class _EcosystemStub:
     def __init__(self) -> None:
-        self.burns: List[Tuple[str, float]] = []
+        self.burns: list[tuple[str, float]] = []
         self.reproduction_manager = _ReproductionManagerStub()
         self._next_fish_id = 100
 
@@ -42,6 +42,8 @@ class _EcosystemStub:
     def record_event(self, event) -> None:
         if isinstance(event, EnergyBurnEvent):
             self.burns.append((event.source, float(event.amount)))
+        elif isinstance(event, EnergyBurned):
+            self.burns.append((event.reason, float(event.amount)))
 
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""
@@ -108,7 +110,9 @@ def test_overflow_prefers_reproduction_bank_over_food(simulation_env):
     fish.modify_energy(50.0)
     entities_after = len(env.added)
 
-    assert math.isclose(fish._reproduction_component.overflow_energy_bank, 50.0, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        fish._reproduction_component.overflow_energy_bank, 50.0, rel_tol=0, abs_tol=1e-9
+    )
     # Note: overflow_reproduction is NOT tracked as a burn because the energy stays in the fish population (in the bank)
     # Only overflow_food (dropped as food) is a true external outflow
     assert not any(k == "overflow_food" for k, _v in eco.burns)
@@ -133,7 +137,12 @@ def test_overflow_spills_to_food_when_bank_is_full(simulation_env):
     fish.modify_energy(50.0)  # should bank 10, spill 40
     entities_after = len(env.added)
 
-    assert math.isclose(fish._reproduction_component.overflow_energy_bank, max_bank, rel_tol=0, abs_tol=1e-9)
+    assert math.isclose(
+        fish._reproduction_component.overflow_energy_bank, max_bank, rel_tol=0, abs_tol=1e-9
+    )
     # Note: overflow_reproduction is NOT tracked (internal), only overflow_food is tracked
-    assert any(k == "overflow_food" and math.isclose(v, 40.0, rel_tol=0, abs_tol=1e-6) for k, v in eco.burns)
+    assert any(
+        k == "overflow_food" and math.isclose(v, 40.0, rel_tol=0, abs_tol=1e-6)
+        for k, v in eco.burns
+    )
     assert entities_after == entities_before + 1

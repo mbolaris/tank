@@ -306,12 +306,14 @@ class PhaseRunner:
                 for phase, systems in self._systems_by_phase.items()
                 if systems
             },
-            "timings": {
-                phase.name: f"{timing*1000:.2f}ms"
-                for phase, timing in self._phase_timings.items()
-            }
-            if self._debug_mode
-            else {},
+            "timings": (
+                {
+                    phase.name: f"{timing*1000:.2f}ms"
+                    for phase, timing in self._phase_timings.items()
+                }
+                if self._debug_mode
+                else {}
+            ),
         }
 
 

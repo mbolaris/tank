@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
-from core.config.ecosystem import MAX_ECOSYSTEM_EVENTS, TOTAL_ALGORITHM_COUNT
+from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import (
     AlgorithmStats,
     EcosystemEvent,
@@ -41,8 +41,8 @@ class PopulationTracker:
     def __init__(
         self,
         max_population: int = 75,
-        add_event_callback: Optional[Callable[[EcosystemEvent], None]] = None,
-        frame_provider: Optional[Callable[[], int]] = None,
+        add_event_callback: Callable[[EcosystemEvent], None] | None = None,
+        frame_provider: Callable[[], int] | None = None,
     ):
         """Initialize the population tracker.
 
@@ -61,15 +61,13 @@ class PopulationTracker:
         self._get_frame = frame_provider or (lambda: 0)
 
         # Generation statistics
-        self.generation_stats: Dict[int, GenerationStats] = {
-            0: GenerationStats(generation=0)
-        }
+        self.generation_stats: dict[int, GenerationStats] = {0: GenerationStats(generation=0)}
 
         # Death cause tracking
-        self.death_causes: Dict[str, int] = defaultdict(int)
+        self.death_causes: dict[str, int] = defaultdict(int)
 
         # Algorithm performance tracking
-        self.algorithm_stats: Dict[int, AlgorithmStats] = {}
+        self.algorithm_stats: dict[int, AlgorithmStats] = {}
         self._init_algorithm_stats()
 
         # Extinction tracking
@@ -86,9 +84,7 @@ class PopulationTracker:
 
             for i, algo_class in enumerate(ALL_ALGORITHMS):
                 algo_name = algo_class.__name__
-                self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i, algorithm_name=algo_name
-                )
+                self.algorithm_stats[i] = AlgorithmStats(algorithm_id=i, algorithm_name=algo_name)
         except ImportError:
             for i in range(TOTAL_ALGORITHM_COUNT):
                 self.algorithm_stats[i] = AlgorithmStats(
@@ -120,11 +116,11 @@ class PopulationTracker:
         self,
         fish_id: int,
         generation: int,
-        parent_ids: Optional[List[int]] = None,
-        algorithm_id: Optional[int] = None,
-        color: Optional[str] = None,
-        lineage_log: Optional[List[Dict[str, Any]]] = None,
-        enhanced_stats: Optional[Any] = None,
+        parent_ids: list[int] | None = None,
+        algorithm_id: int | None = None,
+        color: str | None = None,
+        lineage_log: list[dict[str, Any]] | None = None,
+        enhanced_stats: Any | None = None,
     ) -> None:
         """Record a fish birth.
 
@@ -196,11 +192,11 @@ class PopulationTracker:
         generation: int,
         age: int,
         cause: str = "unknown",
-        genome: Optional["Genome"] = None,
-        algorithm_id: Optional[int] = None,
+        genome: Genome | None = None,
+        algorithm_id: int | None = None,
         remaining_energy: float = 0.0,
-        enhanced_stats: Optional[Any] = None,
-        record_energy_burn: Optional[Callable[[str, float], None]] = None,
+        enhanced_stats: Any | None = None,
+        record_energy_burn: Callable[[str, float], None] | None = None,
     ) -> None:
         """Record a fish death.
 
@@ -264,8 +260,8 @@ class PopulationTracker:
 
     def update_population_stats(
         self,
-        fish_list: List["Fish"],
-        enhanced_stats: Optional[Any] = None,
+        fish_list: list[Fish],
+        enhanced_stats: Any | None = None,
     ) -> None:
         """Update population statistics from current fish list.
 
@@ -276,7 +272,7 @@ class PopulationTracker:
         if not fish_list:
             return
 
-        gen_fish: Dict[int, List["Fish"]] = defaultdict(list)
+        gen_fish: dict[int, list[Fish]] = defaultdict(list)
         for fish in fish_list:
             if hasattr(fish, "generation"):
                 gen_fish[fish.generation].append(fish)
@@ -290,9 +286,9 @@ class PopulationTracker:
 
             fishes_with_genome = [f for f in fishes if hasattr(f, "genome")]
             if fishes_with_genome:
-                stats.avg_speed = sum(
-                    f.genome.speed_modifier for f in fishes_with_genome
-                ) / len(fishes)
+                stats.avg_speed = sum(f.genome.speed_modifier for f in fishes_with_genome) / len(
+                    fishes
+                )
                 stats.avg_size = sum(
                     f.genome.physical.size_modifier.value for f in fishes_with_genome
                 ) / len(fishes)
@@ -313,9 +309,7 @@ class PopulationTracker:
         Args:
             frame: Current frame number
         """
-        alive_generations = [
-            g for g, s in self.generation_stats.items() if s.population > 0
-        ]
+        alive_generations = [g for g, s in self.generation_stats.items() if s.population > 0]
         current_max_gen = max(alive_generations) if alive_generations else 0
 
         if self._last_max_generation > 0 and current_max_gen == 0:
@@ -326,7 +320,7 @@ class PopulationTracker:
 
         self._last_max_generation = current_max_gen
 
-    def get_population_by_generation(self) -> Dict[int, int]:
+    def get_population_by_generation(self) -> dict[int, int]:
         """Get current population counts by generation.
 
         Returns:

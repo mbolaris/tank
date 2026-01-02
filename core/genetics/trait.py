@@ -35,11 +35,13 @@ META_MUTATION_RATE_MAX: float = 3.0  # Allow much higher rates (up from 2.0)
 META_MUTATION_STRENGTH_MIN: float = 0.4  # Allow slightly lower strength
 META_MUTATION_STRENGTH_MAX: float = 3.0  # Allow much stronger mutations (up from 2.0)
 
+
 def _coerce_float(value: Any, default: float) -> float:
     try:
         return float(value)
     except (TypeError, ValueError):
         return default
+
 
 def _coerce_int(value: Any, default: int) -> int:
     try:
@@ -55,15 +57,15 @@ def random_genetic_trait(
     hgt_max: float = 0.2,
 ) -> "GeneticTrait":
     """Create a GeneticTrait with randomized meta-genetic values.
-    
+
     Use this factory when creating traits for the founding population
     to ensure initial genetic diversity in evolvability parameters.
-    
+
     Args:
         value: The trait value
         rng: Random number generator
         hgt_max: Maximum initial HGT probability (default 0.2 = 20%)
-    
+
     Returns:
         GeneticTrait with randomized mutation_rate, mutation_strength, hgt_probability
     """
@@ -102,7 +104,7 @@ class GeneticTrait(Generic[T]):
 
     def mutate_meta(self, rng: Optional[pyrandom.Random] = None) -> None:
         """Mutate the metadata itself (evolution of evolution).
-        
+
         Uses dampened mutation rates to prevent runaway evolvability changes.
         See module-level META_* constants for tuning parameters.
         """
@@ -117,7 +119,10 @@ class GeneticTrait(Generic[T]):
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_strength = max(
                 META_MUTATION_STRENGTH_MIN,
-                min(META_MUTATION_STRENGTH_MAX, self.mutation_strength + rng.gauss(0, META_MUTATION_SIGMA)),
+                min(
+                    META_MUTATION_STRENGTH_MAX,
+                    self.mutation_strength + rng.gauss(0, META_MUTATION_SIGMA),
+                ),
             )
         if rng.random() < META_HGT_MUTATION_CHANCE:
             self.hgt_probability = max(
@@ -148,7 +153,7 @@ class TraitSpec:
 
     def random_value(self, rng: pyrandom.Random) -> GeneticTrait:
         """Generate a random trait value within bounds.
-        
+
         Also randomizes meta-genetic values (mutation_rate, mutation_strength,
         hgt_probability) to ensure the founding population has genetic diversity
         that can drift over evolution.
@@ -168,7 +173,7 @@ class TraitSpec:
             default_val = (self.min_val + self.max_val) / 2.0
             val = _coerce_float(val, default_val)
             val = max(self.min_val, min(self.max_val, float(val)))
-        
+
         # Randomize meta-genetic values to seed initial diversity
         mutation_rate = _coerce_float(
             rng.uniform(META_MUTATION_RATE_MIN, META_MUTATION_RATE_MAX),
@@ -327,7 +332,9 @@ def trait_meta_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Dict
     return out
 
 
-def apply_trait_values_from_dict(specs: List[TraitSpec], traits: object, data: Dict[str, Any]) -> None:
+def apply_trait_values_from_dict(
+    specs: List[TraitSpec], traits: object, data: Dict[str, Any]
+) -> None:
     """Apply primitive values from *data* onto *traits* using TraitSpec definitions."""
     for spec in specs:
         if spec.name not in data:

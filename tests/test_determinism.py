@@ -2,7 +2,6 @@ import json
 
 from core.simulation.engine import SimulationEngine
 
-
 # Fields that depend on wall-clock time or other non-deterministic factors
 NON_DETERMINISTIC_FIELDS = {
     "elapsed_real_time",
@@ -24,7 +23,7 @@ def test_simulation_seed_determinism():
     - Initial entity positions and energies are deterministic with a seed
     """
     seed = 12345
-    
+
     engine1 = SimulationEngine(seed=seed)
     stats1 = engine1.run_collect_stats(max_frames=50)
 

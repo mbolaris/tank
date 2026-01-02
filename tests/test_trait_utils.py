@@ -1,6 +1,5 @@
 """Tests for core.genetics.trait_utils module."""
 
-import pytest
 from core.genetics.trait import GeneticTrait
 from core.genetics.trait_utils import get_trait_value, has_trait_value
 

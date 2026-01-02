@@ -3,13 +3,8 @@
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-
-# Ensure consistent module aliasing whether imported as `state_payloads` or `backend.state_payloads`
-sys.modules.setdefault("state_payloads", sys.modules[__name__])
-sys.modules.setdefault("backend.state_payloads", sys.modules[__name__])
 
 try:  # Prefer faster serializer when available
     import orjson
@@ -27,7 +22,10 @@ def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
     slots = getattr(dataclass_obj, "__slots__", None)
     if slots:
         return {name: getattr(dataclass_obj, name) for name in slots}
-    return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
+    return {
+        field.name: getattr(dataclass_obj, field.name)
+        for field in dataclass_obj.__dataclass_fields__.values()
+    }
 
 
 @dataclass
@@ -74,6 +72,8 @@ class EntitySnapshot:
     death_effect_state: Optional[Dict[str, Any]] = None
     # Crab hunt state
     can_hunt: Optional[bool] = None
+    # Rendering metadata hints
+    render_hint: Optional[Dict[str, Any]] = None
 
     def to_full_dict(self) -> Dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -139,6 +139,8 @@ class EntitySnapshot:
             data["death_effect_state"] = self.death_effect_state
         if self.can_hunt is not None:
             data["can_hunt"] = self.can_hunt
+        if self.render_hint is not None:
+            data["render_hint"] = self.render_hint
 
         return data
 
@@ -253,9 +255,9 @@ class StatsPayload:
     median_max_energy_capacity: float = 0.0
     # Fish health status counts (by energy ratio)
     fish_health_critical: int = 0  # <15% energy
-    fish_health_low: int = 0       # 15-30% energy
-    fish_health_healthy: int = 0   # 30-80% energy
-    fish_health_full: int = 0      # >80% energy
+    fish_health_low: int = 0  # 15-30% energy
+    fish_health_healthy: int = 0  # 30-80% energy
+    fish_health_full: int = 0  # >80% energy
     # Adult size statistics (multipliers / absolute sizes)
     adult_size_min: float = 0.0
     adult_size_max: float = 0.0
@@ -332,22 +334,26 @@ class StatsPayload:
     lifespan_modifier_bin_edges: List[float] = field(default_factory=list)
     # Dynamic gene distributions (physical + behavioral), for dashboards
     gene_distributions: Dict[str, Any] = field(default_factory=dict)
-    poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
-        total_games=0,
-        total_fish_games=0,
-        total_plant_games=0,
-        total_plant_energy_transferred=0.0,
-        total_wins=0,
-        total_losses=0,
-        total_ties=0,
-        total_energy_won=0.0,
-        total_energy_lost=0.0,
-        net_energy=0.0,
-        best_hand_rank=0,
-        best_hand_name="",
-    ))
+    poker_stats: PokerStatsPayload = field(
+        default_factory=lambda: PokerStatsPayload(
+            total_games=0,
+            total_fish_games=0,
+            total_plant_games=0,
+            total_plant_energy_transferred=0.0,
+            total_wins=0,
+            total_losses=0,
+            total_ties=0,
+            total_energy_won=0.0,
+            total_energy_lost=0.0,
+            net_energy=0.0,
+            best_hand_rank=0,
+            best_hand_name="",
+        )
+    )
     poker_score: Optional[float] = None
     poker_score_history: List[float] = field(default_factory=list)
+    poker_elo: Optional[float] = None
+    poker_elo_history: List[float] = field(default_factory=list)
     meta_stats: Dict[str, float] = field(default_factory=dict)
     total_sexual_births: int = 0
     total_asexual_births: int = 0
@@ -488,6 +494,10 @@ class StatsPayload:
             data["poker_score"] = self.poker_score
         if self.poker_score_history:
             data["poker_score_history"] = self.poker_score_history
+        if self.poker_elo is not None:
+            data["poker_elo"] = self.poker_elo
+        if self.poker_elo_history:
+            data["poker_elo_history"] = self.poker_elo_history
         if self.meta_stats:
             data.update(self.meta_stats)
         return data
@@ -565,10 +575,13 @@ class FullStatePayload:
     auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
     type: str = "update"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    mode_id: Optional[str] = "tank"
+    world_type: Optional[str] = "tank"
+    view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
-        data = {
-            "type": self.type,
+        # Build snapshot containing all simulation state
+        snapshot = {
             "frame": self.frame,
             "elapsed_time": self.elapsed_time,
             "entities": [e.to_full_dict() for e in self.entities],
@@ -576,10 +589,22 @@ class FullStatePayload:
             "poker_events": [e.to_dict() for e in self.poker_events],
             "poker_leaderboard": [e.to_dict() for e in self.poker_leaderboard],
         }
+        if self.auto_evaluation:
+            snapshot["auto_evaluation"] = self.auto_evaluation.to_dict()
+
+        # Top-level payload with metadata and nested snapshot
+        data: Dict[str, Any] = {
+            "type": self.type,
+            "snapshot": snapshot,
+        }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
-        if self.auto_evaluation:
-            data["auto_evaluation"] = self.auto_evaluation.to_dict()
+        if self.mode_id is not None:
+            data["mode_id"] = self.mode_id
+        if self.world_type is not None:
+            data["world_type"] = self.world_type
+        if self.view_mode is not None:
+            data["view_mode"] = self.view_mode
         return data
 
     def to_json(self) -> str:
@@ -602,10 +627,13 @@ class DeltaStatePayload:
     stats: Optional[StatsPayload] = None
     type: str = "delta"
     tank_id: Optional[str] = None  # Tank World Net identifier
+    mode_id: Optional[str] = "tank"
+    world_type: Optional[str] = "tank"
+    view_mode: Optional[str] = "side"
 
     def to_dict(self) -> Dict[str, Any]:
-        data = {
-            "type": self.type,
+        # Build snapshot containing delta simulation state
+        snapshot: Dict[str, Any] = {
             "frame": self.frame,
             "elapsed_time": self.elapsed_time,
             "updates": self.updates,
@@ -613,11 +641,23 @@ class DeltaStatePayload:
             "removed": self.removed,
         }
         if self.poker_events is not None:
-             data["poker_events"] = [e.to_dict() for e in self.poker_events]
+            snapshot["poker_events"] = [e.to_dict() for e in self.poker_events]
+        if self.stats:
+            snapshot["stats"] = self.stats.to_dict()
+
+        # Top-level payload with metadata and nested snapshot
+        data: Dict[str, Any] = {
+            "type": self.type,
+            "snapshot": snapshot,
+        }
         if self.tank_id is not None:
             data["tank_id"] = self.tank_id
-        if self.stats:
-            data["stats"] = self.stats.to_dict()
+        if self.mode_id is not None:
+            data["mode_id"] = self.mode_id
+        if self.world_type is not None:
+            data["world_type"] = self.world_type
+        if self.view_mode is not None:
+            data["view_mode"] = self.view_mode
         return data
 
     def to_json(self) -> str:

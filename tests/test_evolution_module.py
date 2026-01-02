@@ -39,7 +39,9 @@ class TestMutation:
 
         for _ in range(100):
             mutated = mutate_continuous_trait(
-                original, 0.0, 1.0,
+                original,
+                0.0,
+                1.0,
                 mutation_rate=1.0,  # Always mutate
                 mutation_strength=0.2,
                 rng=rng,
@@ -56,7 +58,9 @@ class TestMutation:
 
         for _ in range(100):
             mutated = mutate_continuous_trait(
-                0.5, 0.0, 1.0,
+                0.5,
+                0.0,
+                1.0,
                 mutation_rate=1.0,
                 mutation_strength=0.5,
                 rng=rng,
@@ -71,7 +75,9 @@ class TestMutation:
         mutations = set()
         for _ in range(100):
             mutated = mutate_discrete_trait(
-                original, 0, 10,
+                original,
+                0,
+                10,
                 mutation_rate=1.0,
                 rng=rng,
             )
@@ -87,7 +93,9 @@ class TestMutation:
 
         for _ in range(100):
             mutated = mutate_continuous_trait(
-                original, 0.0, 1.0,
+                original,
+                0.0,
+                1.0,
                 mutation_rate=0.0,
                 mutation_strength=0.5,
                 rng=rng,
@@ -146,7 +154,8 @@ class TestCrossover:
         rng = random.Random(42)
 
         result = crossover_dict_values(
-            parent1, parent2,
+            parent1,
+            parent2,
             weight1=0.5,
             mode=CrossoverMode.AVERAGING,
             rng=rng,
@@ -165,7 +174,10 @@ class TestInheritance:
 
         # Equal weight, no mutation
         inherited = inherit_trait(
-            0.2, 0.8, 0.0, 1.0,
+            0.2,
+            0.8,
+            0.0,
+            1.0,
             weight1=0.5,
             mutation_rate=0.0,
             rng=rng,
@@ -178,7 +190,10 @@ class TestInheritance:
         rng = random.Random(42)
 
         inherited = inherit_trait(
-            0.0, 1.0, 0.0, 1.0,
+            0.0,
+            1.0,
+            0.0,
+            1.0,
             weight1=0.8,  # Parent 1 gets 80% weight
             mutation_rate=0.0,
             rng=rng,
@@ -195,7 +210,10 @@ class TestInheritance:
         values = set()
         for _ in range(100):
             inherited = inherit_discrete_trait(
-                1, 5, 0, 10,
+                1,
+                5,
+                0,
+                10,
                 weight1=0.5,
                 mutation_rate=0.0,
                 rng=rng,
@@ -222,7 +240,8 @@ class TestAlgorithmInheritance:
         types_seen = set()
         for _ in range(20):
             child_alg = inherit_algorithm(
-                alg1, alg2,
+                alg1,
+                alg2,
                 weight1=0.5,
                 mutation_rate=0.0,
                 algorithm_switch_rate=0.0,  # No random switching
@@ -263,7 +282,8 @@ class TestFullGenomeEvolution:
         parent2 = Genome.random(rng=rng)
 
         offspring = Genome.from_parents(
-            parent1, parent2,
+            parent1,
+            parent2,
             mutation_rate=0.1,
             mutation_strength=0.1,
             rng=rng,
@@ -295,7 +315,8 @@ class TestFullGenomeEvolution:
 
         for _ in range(trials):
             offspring = Genome.from_parents_weighted(
-                parent1, parent2,
+                parent1,
+                parent2,
                 parent1_weight=0.8,  # Parent1 contributes 80%
                 mutation_rate=0.0,  # No mutation for clearer test
                 rng=rng,
@@ -325,7 +346,8 @@ class TestFullGenomeEvolution:
 
                 # Create offspring
                 offspring = Genome.from_parents(
-                    parent1, parent2,
+                    parent1,
+                    parent2,
                     mutation_rate=0.15,
                     mutation_strength=0.15,
                     rng=rng,

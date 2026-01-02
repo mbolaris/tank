@@ -79,4 +79,3 @@ def test_poker_winner_not_killed_mid_hand_settlement():
             assert not fish.is_dead(), "Winning players should not die mid-hand"
         else:
             assert fish.is_dead()
-

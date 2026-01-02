@@ -1,8 +1,10 @@
 import unittest
 from unittest.mock import MagicMock
+
 from core.entities.fish import Fish
 from core.entities.plant import Plant
 from core.serializers import FishSerializer, PlantSerializer
+
 
 class TestSerializers(unittest.TestCase):
     def setUp(self):
@@ -59,6 +61,7 @@ class TestSerializers(unittest.TestCase):
         self.assertEqual(data["plant_id"], 456)
         self.assertEqual(data["energy"], 200.0)
         self.assertEqual(data["species"], "plant")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,7 @@ from backend.tank_registry import TankRegistry
 # Configure logging to show info during tests
 logging.basicConfig(level=logging.INFO)
 
+
 class TestConnectorLogic(unittest.TestCase):
     def setUp(self):
         self.connection_manager = ConnectionManager()
@@ -21,7 +22,7 @@ class TestConnectorLogic(unittest.TestCase):
             source_tank_id="tank_a",
             destination_tank_id="tank_b",
             probability=25,
-            direction="right"
+            direction="right",
         )
         self.connection_manager.add_connection(conn1)
 
@@ -35,7 +36,7 @@ class TestConnectorLogic(unittest.TestCase):
             source_tank_id="tank_b",
             destination_tank_id="tank_a",
             probability=50,
-            direction="left"
+            direction="left",
         )
         self.connection_manager.add_connection(conn2)
 
@@ -49,16 +50,20 @@ class TestConnectorLogic(unittest.TestCase):
             source_tank_id="tank_a",
             destination_tank_id="tank_b",
             probability=75,
-            direction="right"
+            direction="right",
         )
         self.connection_manager.add_connection(conn3)
 
         # Verify still 2 connections (duplicate replaced, opposite direction preserved)
         connections = self.connection_manager.list_connections()
         self.assertEqual(len(connections), 2)
-        
+
         # The A->B connection should have the new ID and probability
-        a_to_b = [c for c in connections if c.source_tank_id == "tank_a" and c.destination_tank_id == "tank_b"]
+        a_to_b = [
+            c
+            for c in connections
+            if c.source_tank_id == "tank_a" and c.destination_tank_id == "tank_b"
+        ]
         self.assertEqual(len(a_to_b), 1)
         self.assertEqual(a_to_b[0].id, "A->B-v2")
         self.assertEqual(a_to_b[0].probability, 75)
@@ -74,10 +79,7 @@ class TestConnectorLogic(unittest.TestCase):
 
         # Create connection
         conn = TankConnection(
-            id="A->B",
-            source_tank_id=id_a,
-            destination_tank_id=id_b,
-            probability=25
+            id="A->B", source_tank_id=id_a, destination_tank_id=id_b, probability=25
         )
         self.connection_manager.add_connection(conn)
 
@@ -94,10 +96,7 @@ class TestConnectorLogic(unittest.TestCase):
         """Test that validate_connections removes connections to missing tanks."""
         # Create connection between non-existent tanks
         conn = TankConnection(
-            id="X->Y",
-            source_tank_id="tank_x",
-            destination_tank_id="tank_y",
-            probability=25
+            id="X->Y", source_tank_id="tank_x", destination_tank_id="tank_y", probability=25
         )
         self.connection_manager.add_connection(conn)
 
@@ -111,5 +110,6 @@ class TestConnectorLogic(unittest.TestCase):
         self.assertEqual(removed, 1)
         self.assertEqual(len(self.connection_manager.list_connections()), 0)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

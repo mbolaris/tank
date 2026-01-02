@@ -83,4 +83,3 @@ def test_collect_prunes_stale_ids() -> None:
     # If this object ever re-enters collection, it should get a new stable ID.
     snap2 = builder.collect([food])[0]
     assert snap2.id > snap1.id
-

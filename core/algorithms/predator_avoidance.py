@@ -16,7 +16,10 @@ This module contains 10 algorithms focused on avoiding and escaping from predato
 import math
 import random
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import (

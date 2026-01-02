@@ -15,7 +15,7 @@ Design Principles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 if TYPE_CHECKING:
     from core import entities
@@ -121,11 +121,11 @@ class CacheManager:
         self._get_entities = get_entities_fn
 
         # Entity type caches
-        self._fish_cache: CachedList["entities.Fish"] = CachedList(
+        self._fish_cache: CachedList[entities.Fish] = CachedList(
             name="fish_list",
             compute_fn=self._compute_fish_list,
         )
-        self._food_cache: CachedList["entities.Food"] = CachedList(
+        self._food_cache: CachedList[entities.Food] = CachedList(
             name="food_list",
             compute_fn=self._compute_food_list,
         )
@@ -136,11 +136,13 @@ class CacheManager:
     def _compute_fish_list(self) -> List["entities.Fish"]:
         """Compute the fish list from entities."""
         from core import entities as entity_module
+
         return [e for e in self._get_entities() if isinstance(e, entity_module.Fish)]
 
     def _compute_food_list(self) -> List["entities.Food"]:
         """Compute the food list from entities."""
         from core import entities as entity_module
+
         return [e for e in self._get_entities() if isinstance(e, entity_module.Food)]
 
     def get_fish(self) -> List["entities.Fish"]:
@@ -189,7 +191,7 @@ class CacheManager:
             rebuilt = True
         return rebuilt
 
-    def get_stats(self) -> Dict[str, any]:
+    def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics for debugging.
 
         Returns:

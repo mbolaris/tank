@@ -7,31 +7,31 @@ These tests verify that:
 4. Energy flows correctly through games
 """
 
-import pytest
 import random
 
-from core.skills.base import SkillGameType, SkillEvaluationMetrics
+import pytest
+
+from core.fish.skill_game_component import SkillGameComponent
+from core.skills.base import SkillGameType
 from core.skills.config import (
     SkillGameConfig,
-    get_skill_game_config,
-    set_skill_game_config,
     get_active_skill_game,
     set_active_skill_game,
-)
-from core.skills.games.rock_paper_scissors import (
-    RockPaperScissorsGame,
-    RPSAction,
-    RPSStrategy,
-    OptimalRPSStrategy,
-    ExploitingRPSStrategy,
+    set_skill_game_config,
 )
 from core.skills.games.number_guessing import (
     NumberGuessingGame,
     NumberGuessingStrategy,
-    PatternType,
     PatternGenerator,
+    PatternType,
 )
-from core.fish.skill_game_component import SkillGameComponent, FishSkillGameStats
+from core.skills.games.rock_paper_scissors import (
+    ExploitingRPSStrategy,
+    OptimalRPSStrategy,
+    RockPaperScissorsGame,
+    RPSAction,
+    RPSStrategy,
+)
 
 
 class TestRPSGame:
@@ -284,7 +284,9 @@ class TestSkillGameComponent:
                 mutation_detected = True
                 break
 
-        assert mutation_detected, f"Expected mutation after multiple attempts, got parent={parent_params}, child={child_params}"
+        assert (
+            mutation_detected
+        ), f"Expected mutation after multiple attempts, got parent={parent_params}, child={child_params}"
 
 
 class TestConfig:

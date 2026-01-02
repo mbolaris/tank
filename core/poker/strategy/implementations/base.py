@@ -35,7 +35,7 @@ class PokerStrategyAlgorithm:
         rng: Optional[random.Random] = None,
     ) -> None:
         """Mutate parameters for evolution.
-        
+
         Args:
             mutation_rate: Probability of mutating each parameter
             mutation_strength: Standard deviation of Gaussian mutation
@@ -67,23 +67,26 @@ class PokerStrategyAlgorithm:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PokerStrategyAlgorithm":
         """Deserialize strategy from dictionary."""
-        from core.poker.strategy.implementations.factory import get_all_poker_strategies, get_random_poker_strategy
-        
+        from core.poker.strategy.implementations.factory import (
+            get_all_poker_strategies,
+            get_random_poker_strategy,
+        )
+
         strategy_id = data.get("strategy_id")
         parameters = data.get("parameters", {})
 
         # Map IDs to classes
-        strategy_map = {
-            s("").strategy_id: s for s in get_all_poker_strategies()
-        }
-        
+        strategy_map = {s("").strategy_id: s for s in get_all_poker_strategies()}
+
         # Add baseline/random just in case
-        strategy_map["always_fold"] = lambda r=None: None # Handled dynamically below if not in list
-        
+        strategy_map["always_fold"] = (
+            lambda r=None: None
+        )  # Handled dynamically below if not in list
+
         # We need to access the class but we only have instances in get_all_poker_strategies usually?
         # Actually strategy_map above constructs instances to check ID. Not ideal.
         # But get_all_poker_strategies returns classes.
-        
+
         strategy_map = {
             cls(rng=random.Random(0)).strategy_id: cls for cls in get_all_poker_strategies()
         }

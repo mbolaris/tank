@@ -21,7 +21,6 @@ from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_tra
 
 if TYPE_CHECKING:
     from core.algorithms.base import BehaviorAlgorithm
-    from core.genetics import Genome
 
 
 def inherit_trait(
@@ -61,8 +60,7 @@ def inherit_trait(
 
     # Apply mutation
     inherited = mutate_continuous_trait(
-        inherited, min_val, max_val,
-        mutation_rate, mutation_strength, rng
+        inherited, min_val, max_val, mutation_rate, mutation_strength, rng
     )
 
     return inherited
@@ -99,10 +97,7 @@ def inherit_discrete_trait(
     inherited = val1 if rng.random() < weight1 else val2
 
     # Apply mutation
-    inherited = mutate_discrete_trait(
-        inherited, min_val, max_val,
-        mutation_rate, rng
-    )
+    inherited = mutate_discrete_trait(inherited, min_val, max_val, mutation_rate, rng)
 
     return inherited
 

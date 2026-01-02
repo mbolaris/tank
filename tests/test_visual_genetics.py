@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Test script to verify visual genetics inheritance"""
 
+import random
+
 from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
     FISH_PATTERN_COUNT,
     FISH_TEMPLATE_COUNT,
 )
-from core.config.fish import (
-    EYE_SIZE_MIN, EYE_SIZE_MAX,
-    BODY_ASPECT_MIN, BODY_ASPECT_MAX,
-)
-import random
 from core.genetics import Genome
 
 
@@ -29,7 +30,9 @@ def test_visual_traits():
     print(f"   Template ID: {phys1.template_id.value} (should be 0-{FISH_TEMPLATE_COUNT - 1})")
     print(f"   Fin Size: {phys1.fin_size.value:.2f} (should be 0.5-2.0)")
     print(f"   Tail Size: {phys1.tail_size.value:.2f} (should be 0.5-2.0)")
-    print(f"   Body Aspect: {phys1.body_aspect.value:.2f} (should be {BODY_ASPECT_MIN}-{BODY_ASPECT_MAX})")
+    print(
+        f"   Body Aspect: {phys1.body_aspect.value:.2f} (should be {BODY_ASPECT_MIN}-{BODY_ASPECT_MAX})"
+    )
     print(f"   Eye Size: {phys1.eye_size.value:.2f} (should be {EYE_SIZE_MIN}-{EYE_SIZE_MAX})")
     print(f"   Pattern Intensity: {phys1.pattern_intensity.value:.2f} (should be 0.0-1.0)")
     print(f"   Pattern Type: {phys1.pattern_type.value} (should be 0-{FISH_PATTERN_COUNT - 1})")
@@ -56,14 +59,18 @@ def test_visual_traits():
         f"      Template: {phys1.template_id.value}, Fin: {phys1.fin_size.value:.2f}, Tail: {phys1.tail_size.value:.2f}"
     )
     print(f"      Body Aspect: {phys1.body_aspect.value:.2f}, Eye: {phys1.eye_size.value:.2f}")
-    print(f"      Pattern: Type {phys1.pattern_type.value}, Intensity {phys1.pattern_intensity.value:.2f}")
+    print(
+        f"      Pattern: Type {phys1.pattern_type.value}, Intensity {phys1.pattern_intensity.value:.2f}"
+    )
 
     print("\n   Parent 2:")
     print(
         f"      Template: {phys2.template_id.value}, Fin: {phys2.fin_size.value:.2f}, Tail: {phys2.tail_size.value:.2f}"
     )
     print(f"      Body Aspect: {phys2.body_aspect.value:.2f}, Eye: {phys2.eye_size.value:.2f}")
-    print(f"      Pattern: Type {phys2.pattern_type.value}, Intensity {phys2.pattern_intensity.value:.2f}")
+    print(
+        f"      Pattern: Type {phys2.pattern_type.value}, Intensity {phys2.pattern_intensity.value:.2f}"
+    )
 
     # Test 3: Create offspring
     offspring = Genome.from_parents(
@@ -91,9 +98,15 @@ def test_visual_traits():
     ), "offspring template_id out of range"
     assert 0.5 <= offspring_phys.fin_size.value <= 2.0, "offspring fin_size out of range"
     assert 0.5 <= offspring_phys.tail_size.value <= 2.0, "offspring tail_size out of range"
-    assert BODY_ASPECT_MIN <= offspring_phys.body_aspect.value <= BODY_ASPECT_MAX, "offspring body_aspect out of range"
-    assert EYE_SIZE_MIN <= offspring_phys.eye_size.value <= EYE_SIZE_MAX, "offspring eye_size out of range"
-    assert 0.0 <= offspring_phys.pattern_intensity.value <= 1.0, "offspring pattern_intensity out of range"
+    assert (
+        BODY_ASPECT_MIN <= offspring_phys.body_aspect.value <= BODY_ASPECT_MAX
+    ), "offspring body_aspect out of range"
+    assert (
+        EYE_SIZE_MIN <= offspring_phys.eye_size.value <= EYE_SIZE_MAX
+    ), "offspring eye_size out of range"
+    assert (
+        0.0 <= offspring_phys.pattern_intensity.value <= 1.0
+    ), "offspring pattern_intensity out of range"
     assert (
         0 <= offspring_phys.pattern_type.value <= FISH_PATTERN_COUNT - 1
     ), "offspring pattern_type out of range"
@@ -141,7 +154,9 @@ def test_visual_traits():
     stressed_phys = stressed_offspring.physical
     print("   Stressed offspring:")
     print(f"      Template: {stressed_phys.template_id.value}")
-    print(f"      Fin: {stressed_phys.fin_size.value:.2f}, Tail: {stressed_phys.tail_size.value:.2f}")
+    print(
+        f"      Fin: {stressed_phys.fin_size.value:.2f}, Tail: {stressed_phys.tail_size.value:.2f}"
+    )
     print(
         f"      Pattern: Type {stressed_phys.pattern_type.value}, "
         f"Intensity {stressed_phys.pattern_intensity.value:.2f}"

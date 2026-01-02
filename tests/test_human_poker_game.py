@@ -51,7 +51,9 @@ def test_all_in_bet_still_requires_action_from_opponent():
     """An all-in bettor should not short-circuit the betting round."""
 
     game = HumanPokerGame(
-        game_id="test", human_energy=100.0, ai_fish=[{"name": "AI One"}, {"name": "AI Two"}, {"name": "AI Three"}]
+        game_id="test",
+        human_energy=100.0,
+        ai_fish=[{"name": "AI One"}, {"name": "AI Two"}, {"name": "AI Three"}],
     )
 
     human = game.players[0]

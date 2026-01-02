@@ -24,7 +24,10 @@ Key design principles:
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar
+
+if TYPE_CHECKING:
+    from random import Random
 
 
 class SkillGameType(Enum):
@@ -189,7 +192,7 @@ class SkillStrategy(ABC, Generic[ActionType]):
         """
         pass
 
-    def mutate(self, mutation_rate: float = 0.1, rng: Optional["random.Random"] = None) -> None:
+    def mutate(self, mutation_rate: float = 0.1, rng: Optional["Random"] = None) -> None:
         """Apply random mutation to strategy parameters.
 
         Default implementation mutates all parameters slightly.
@@ -199,7 +202,6 @@ class SkillStrategy(ABC, Generic[ActionType]):
             mutation_rate: Probability and magnitude of mutations
             rng: Optional random number generator for deterministic mutations
         """
-        import random
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")

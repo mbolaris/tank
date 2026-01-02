@@ -716,7 +716,11 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
     }, [tankId]);
 
     const latest = data?.latest ?? null;
-    const history = useMemo(() => data?.history ?? [], [data?.history]);
+    const history = useMemo(() => {
+        const fullHistory = data?.history ?? [];
+        // Limit to most recent 200 snapshots to prevent memory growth
+        return fullHistory.length > 200 ? fullHistory.slice(-200) : fullHistory;
+    }, [data?.history]);
     const improvementValue = data?.improvement ?? {};
     const improvement: BenchmarkImprovementMetrics = isImprovementMetrics(improvementValue)
         ? (improvementValue as BenchmarkImprovementMetrics)
@@ -759,7 +763,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
                 >
                     <div style={styles.noData}>
                         {data?.status === 'not_available'
-                            ? 'Benchmark is disabled on the server.'
+                            ? 'Benchmark is disabled on the server (TANK_EVOLUTION_BENCHMARK_ENABLED=0).'
                             : (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{

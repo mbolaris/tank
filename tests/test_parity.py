@@ -11,11 +11,11 @@ from core.simulation.engine import SimulationEngine
 )
 def test_simulation_determinism():
     """Verify two runs with the same seed produce identical results.
-    
+
     ROOT CAUSES (Phase 1 cleanup targets):
     1. Some decision paths still depend on iteration order and stochastic ties
     2. RNG threading is improved but not yet enforced everywhere
-    
+
     FIX: Keep threading RNGs through all core paths and stabilize ordering.
     """
     print("=" * 80)

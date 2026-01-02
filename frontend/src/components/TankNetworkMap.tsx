@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef, memo } from 'react';
 import { config, type ServerWithTanks } from '../config';
 import { useErrorNotification } from '../hooks/useErrorNotification';
 import { ErrorNotification } from './ErrorNotification';
@@ -37,7 +37,7 @@ interface TransferRecord {
     success: boolean;
 }
 
-export function TankNetworkMap({ servers }: TankNetworkMapProps) {
+const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkMapProps) {
     const { errors, addError, clearError } = useErrorNotification();
 
     const tanks = useMemo(() => {
@@ -733,3 +733,5 @@ export function TankNetworkMap({ servers }: TankNetworkMapProps) {
         </div>
     );
 }
+
+export const TankNetworkMap = memo(TankNetworkMapInternal);

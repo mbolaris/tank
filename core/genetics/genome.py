@@ -8,18 +8,17 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, Tuple
-
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.genetics import expression
-from core.genetics.behavioral import BehavioralTraits, normalize_mate_preferences
+from core.genetics.behavioral import BehavioralTraits
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
 from core.genetics.validation import validate_traits_from_specs
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 1
+GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
 
 
 class GeneticCrossoverMode(Enum):
@@ -42,8 +41,6 @@ class Genome:
     physical: PhysicalTraits
     behavioral: BehavioralTraits
 
-
-
     # =========================================================================
     # Derived Properties (computed from base traits with caching)
     # =========================================================================
@@ -57,9 +54,9 @@ class Genome:
         """Calculate speed modifier based on physical traits (cached)."""
         if self._speed_modifier_cache is not None:
             return self._speed_modifier_cache
-            
+
         result = expression.calculate_speed_modifier(self.physical)
-        object.__setattr__(self, '_speed_modifier_cache', result)
+        object.__setattr__(self, "_speed_modifier_cache", result)
         return result
 
     @property
@@ -72,15 +69,15 @@ class Genome:
         """Calculate metabolism rate based on physical traits (cached)."""
         if self._metabolism_rate_cache is not None:
             return self._metabolism_rate_cache
-            
+
         result = expression.calculate_metabolism_rate(self.physical, self.speed_modifier)
-        object.__setattr__(self, '_metabolism_rate_cache', result)
+        object.__setattr__(self, "_metabolism_rate_cache", result)
         return result
 
     def invalidate_caches(self) -> None:
         """Invalidate cached computed properties when traits change."""
-        object.__setattr__(self, '_speed_modifier_cache', None)
-        object.__setattr__(self, '_metabolism_rate_cache', None)
+        object.__setattr__(self, "_speed_modifier_cache", None)
+        object.__setattr__(self, "_metabolism_rate_cache", None)
 
     def to_dict(
         self,
@@ -122,14 +119,40 @@ class Genome:
 
     def validate(self) -> Dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
-        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+        from core.genetics.behavioral import (
+            BEHAVIORAL_TRAIT_SPECS,
+            validate_code_policy,
+        )
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
         issues = []
-        issues.extend(validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical"))
         issues.extend(
-            validate_traits_from_specs(BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral")
+            validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical")
         )
+        issues.extend(
+            validate_traits_from_specs(
+                BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral"
+            )
+        )
+
+        # Validate code policy fields only if they exist
+        cp_kind = None
+        if (
+            self.behavioral.code_policy_kind is not None
+            and self.behavioral.code_policy_kind.value is not None
+        ):
+            cp_kind = self.behavioral.code_policy_kind.value
+        cp_id = (
+            self.behavioral.code_policy_component_id.value
+            if self.behavioral.code_policy_component_id
+            else None
+        )
+        cp_params = (
+            self.behavioral.code_policy_params.value if self.behavioral.code_policy_params else None
+        )
+        cp_issues = validate_code_policy(cp_kind, cp_id, cp_params)
+        for issue in cp_issues:
+            issues.append(f"genome.behavioral.{issue}")
 
         return {"ok": not issues, "issues": issues}
 
@@ -146,9 +169,7 @@ class Genome:
     # =========================================================================
 
     @classmethod
-    def random(
-        cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None
-    ) -> "Genome":
+    def random(cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None) -> "Genome":
         """Create a random genome."""
         from core.util.rng import require_rng_param
 
@@ -168,6 +189,7 @@ class Genome:
         *,
         params: ReproductionParams,
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -177,6 +199,7 @@ class Genome:
             mutation_rate=params.mutation_rate,
             mutation_strength=params.mutation_strength,
             rng=rng,
+            available_policies=available_policies,
         )
 
     @classmethod
@@ -188,6 +211,7 @@ class Genome:
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -221,6 +245,7 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            available_policies=available_policies,
         )
 
         return cls._assemble_offspring(
@@ -235,6 +260,7 @@ class Genome:
         cls,
         parent: "Genome",
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -243,6 +269,7 @@ class Genome:
             parent1_weight=1.0,
             params=ReproductionParams(),
             rng=rng,
+            available_policies=available_policies,
         )
 
     @classmethod
@@ -254,6 +281,7 @@ class Genome:
         mutation_strength: float = 0.15,  # Increased from 0.1
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: Optional[pyrandom.Random] = None,
+        available_policies: Optional[List[str]] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         from core.util.rng import require_rng_param
@@ -271,6 +299,7 @@ class Genome:
                 parent1_weight=0.5,
                 params=params,
                 rng=rng,
+                available_policies=available_policies,
             )
 
         if crossover_mode is GeneticCrossoverMode.DOMINANT_RECESSIVE:
@@ -345,6 +374,7 @@ class Genome:
             physical=physical,
             behavioral=behavioral,
         )
+
     # =========================================================================
     # Instance Methods
     # =========================================================================
@@ -355,11 +385,7 @@ class Genome:
         Attraction is based on how closely the mate matches this fish's
         preferred physical trait values, plus a bonus for higher pattern intensity.
         """
-        return expression.calculate_mate_attraction(
-            self.physical,
-            self.behavioral,
-            other.physical
-        )
+        return expression.calculate_mate_attraction(self.physical, self.behavioral, other.physical)
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""

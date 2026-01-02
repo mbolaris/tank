@@ -3,12 +3,12 @@
 This module contains the runtime state tracking classes.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
+from core.mixed_poker.types import MultiplayerBettingRound, Player
 from core.poker.betting.actions import BettingAction
 from core.poker.core import Deck, PokerHand, evaluate_hand
-from core.mixed_poker.types import Player, MultiplayerBettingRound
 
 if TYPE_CHECKING:
     pass
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 @dataclass
 class MultiplayerPlayerContext:
     """Runtime state for a player in multiplayer poker."""
+
     player: Player
     player_idx: int  # 0-indexed position at table
     remaining_energy: float
@@ -124,14 +125,14 @@ class MultiplayerGameState:
     def get_max_current_bet(self) -> float:
         """Get the highest current bet among active players."""
         return max(
-            bet for i, bet in enumerate(self.player_current_bets)
-            if not self.player_folded[i]
+            bet for i, bet in enumerate(self.player_current_bets) if not self.player_folded[i]
         )
 
     def is_betting_complete(self) -> bool:
         """Check if betting round is complete."""
         active_players = [
-            i for i in range(self.num_players)
+            i
+            for i in range(self.num_players)
             if not self.player_folded[i] and not self.player_all_in[i]
         ]
 
@@ -139,16 +140,12 @@ class MultiplayerGameState:
             return True
 
         max_bet = self.get_max_current_bet()
-        return all(
-            self.player_current_bets[i] == max_bet
-            for i in active_players
-        )
+        return all(self.player_current_bets[i] == max_bet for i in active_players)
 
     def evaluate_hands(self) -> None:
         """Evaluate hands for all active players."""
         for i in range(self.num_players):
             if not self.player_folded[i]:
                 self.player_hands[i] = evaluate_hand(
-                    self.player_hole_cards[i],
-                    self.community_cards
+                    self.player_hole_cards[i], self.community_cards
                 )

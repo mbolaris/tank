@@ -15,17 +15,15 @@ Design Decisions:
 """
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, List
 
 from core import entities
 from core.cache_manager import CacheManager
-from core.entities.plant import Plant, PlantNectar
+from core.entities.plant import Plant
 from core.object_pool import FoodPool
 
 if TYPE_CHECKING:
     import random
-    from core.environment import Environment
-    from core.root_spots import RootSpotManager
 
 
 logger = logging.getLogger(__name__)
@@ -54,9 +52,9 @@ class EntityManager:
     def __init__(
         self,
         rng: "random.Random",
-        get_environment: callable,
-        get_ecosystem: callable,
-        get_root_spot_manager: callable,
+        get_environment: Callable[[], Any],
+        get_ecosystem: Callable[[], Any],
+        get_root_spot_manager: Callable[[], Any],
     ) -> None:
         """Initialize the entity manager.
 

@@ -21,13 +21,16 @@ from core.config.poker import (
 )
 from core.mixed_poker.betting_round import play_betting_round
 from core.mixed_poker.cfr_learning import update_cfr_learning
-from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext, MultiplayerBettingRound
+from core.mixed_poker.state import (
+    MultiplayerBettingRound,
+    MultiplayerGameState,
+    MultiplayerPlayerContext,
+)
 from core.mixed_poker.types import MixedPokerResult, Player
 from core.poker.core import PokerHand
 
 if TYPE_CHECKING:
-    from core.entities import Fish
-    from core.entities.plant import Plant
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +79,11 @@ class MixedPokerInteraction:
         except Exception:
             pass
 
-        return hasattr(player, "plant_id") and hasattr(player, "gain_energy") and hasattr(player, "lose_energy")
+        return (
+            hasattr(player, "plant_id")
+            and hasattr(player, "gain_energy")
+            and hasattr(player, "lose_energy")
+        )
 
     def __init__(self, players: List[Player], rng: Optional[Any] = None):
         """Initialize a mixed poker interaction.
@@ -84,7 +91,7 @@ class MixedPokerInteraction:
         Args:
             players: List of Fish and/or Plant objects (2-6 players)
             rng: Optional RNG for deterministic shuffling
-        
+
         Raises:
             ValueError: If fewer than 2 players, more than max players,
                        or no fish players are present.
@@ -179,7 +186,7 @@ class MixedPokerInteraction:
         won: bool,
         amount: float = 0.0,
         target_id: Optional[int] = None,
-        target_type: Optional[str] = None
+        target_type: Optional[str] = None,
     ) -> None:
         """Set visual poker effect on a player."""
         from core.entities import Fish
@@ -190,7 +197,9 @@ class MixedPokerInteraction:
         if isinstance(player, Fish):
             # Fish uses set_poker_effect method
             if hasattr(player, "set_poker_effect"):
-                player.set_poker_effect(status, amount, target_id=target_id, target_type=target_type)
+                player.set_poker_effect(
+                    status, amount, target_id=target_id, target_type=target_type
+                )
             else:
                 player.visual_state.poker_effect_state = {
                     "status": status,
@@ -298,7 +307,13 @@ class MixedPokerInteraction:
         # Create game state
         small_blind = bet_amount / 2
         big_blind = bet_amount
-        button_position = 0  # First player has the button
+
+        # Randomize button position for fairness
+        # This ensures all players get equal positional advantage over many games
+        from core.util.rng import require_rng_param
+
+        rng = require_rng_param(self.rng, "play_poker")
+        button_position = rng.randint(0, self.num_players - 1)
 
         game_state = MultiplayerGameState(
             num_players=self.num_players,
@@ -451,7 +466,7 @@ class MixedPokerInteraction:
                 won=True,
                 amount=energy_transferred,
                 target_id=first_loser_id,
-                target_type=first_loser_type
+                target_type=first_loser_type,
             )
 
             # Collect loser info
@@ -482,7 +497,7 @@ class MixedPokerInteraction:
                         won=False,
                         amount=loser_contribution,
                         target_id=winner_id,
-                        target_type=winner_type
+                        target_type=winner_type,
                     )
 
             self.result = MixedPokerResult(
@@ -519,7 +534,7 @@ class MixedPokerInteraction:
                     won=True,
                     amount=0.0,  # No net gain in tie
                     target_id=self._get_player_id(self.players[other_tied]),
-                    target_type=self._get_player_type(self.players[other_tied])
+                    target_type=self._get_player_type(self.players[other_tied]),
                 )
 
             # Non-tied players are losers
@@ -527,7 +542,9 @@ class MixedPokerInteraction:
             loser_types = []
             loser_hands = []
             first_winner_id = tied_ids[0] if tied_ids else None
-            first_winner_type = self._get_player_type(self.players[tied_players[0]]) if tied_players else None
+            first_winner_type = (
+                self._get_player_type(self.players[tied_players[0]]) if tied_players else None
+            )
 
             # Calculate total lost by non-tied players (goes to tied players)
             total_loser_bets = sum(
@@ -548,7 +565,7 @@ class MixedPokerInteraction:
                         won=False,
                         amount=loser_bet,
                         target_id=first_winner_id,
-                        target_type=first_winner_type
+                        target_type=first_winner_type,
                     )
 
             self.result = MixedPokerResult(
@@ -581,8 +598,10 @@ class MixedPokerInteraction:
         for player in self.players:
             self._set_player_cooldown(player)
 
-        # Update poker stats
-        self._update_poker_stats(best_hand_idx, tied_players, game_state.player_total_bets)
+        # Update poker stats (pass actual button position for correct stats)
+        self._update_poker_stats(
+            best_hand_idx, tied_players, game_state.player_total_bets, game_state.button_position
+        )
 
         # Update CFR learning for fish with composable strategies (delegated)
         update_cfr_learning(
@@ -605,7 +624,11 @@ class MixedPokerInteraction:
         return True
 
     def _update_poker_stats(
-        self, winner_idx: int, tied_players: List[int], player_bets: List[float]
+        self,
+        winner_idx: int,
+        tied_players: List[int],
+        player_bets: List[float],
+        button_position: int = 0,
     ) -> None:
         """Update poker statistics for fish players."""
         from core.entities import Fish
@@ -616,12 +639,12 @@ class MixedPokerInteraction:
         house_cut = 0.0
         won_by_fold = False
         players_folded = [False] * self.num_players
-        
+
         if self.result:
             house_cut = self.result.house_cut
             won_by_fold = self.result.won_by_fold
             players_folded = self.result.players_folded
-        
+
         active_players_count = sum(1 for f in players_folded if not f)
         reached_showdown = not won_by_fold and active_players_count >= 2
 
@@ -631,19 +654,19 @@ class MixedPokerInteraction:
                 # Ensure component exists
                 if not hasattr(player, "poker_stats") or player.poker_stats is None:
                     player.poker_stats = FishPokerStats()
-                
+
                 stats = player.poker_stats
                 is_winner = i == winner_idx or i in tied_players
                 is_tie = len(tied_players) > 1 and i in tied_players
-                
+
                 # Determine hand rank
                 hand_rank = 0
                 if self.player_hands[i]:
                     hand_rank = self.player_hands[i].rank_value
-                
-                # Button position is fixed at 0 in play_poker()
-                on_button = (i == 0)
-                
+
+                # Use actual button position from the game state
+                on_button = i == button_position
+
                 if is_winner and not is_tie:
                     # Winner
                     energy_won = 0.0
@@ -653,42 +676,39 @@ class MixedPokerInteraction:
                         # But record_win expects gross or net? FishPokerStats uses it for total_energy_won
                         # Let's use the net gain recorded in result
                         energy_won = self.result.energy_transferred
-                    
+
                     won_at_showdown = not won_by_fold
-                    
+
                     stats.record_win(
                         energy_won=energy_won,
                         house_cut=house_cut,
                         hand_rank=hand_rank,
                         won_at_showdown=won_at_showdown,
-                        on_button=on_button
+                        on_button=on_button,
                     )
-                    
+
                     # Also update legacy/simple stats if they exist
                     if hasattr(player, "poker_wins"):
                         player.poker_wins = getattr(player, "poker_wins", 0) + 1
-                        
+
                 elif is_tie:
                     # Tie
-                    stats.record_tie(
-                        hand_rank=hand_rank,
-                        on_button=on_button
-                    )
-                    
+                    stats.record_tie(hand_rank=hand_rank, on_button=on_button)
+
                 else:
                     # Loser
                     energy_lost = player_bets[i] if i < len(player_bets) else 0.0
-                    
+
                     stats.record_loss(
                         energy_lost=energy_lost,
                         hand_rank=hand_rank,
                         folded=players_folded[i],
                         reached_showdown=reached_showdown,
-                        on_button=on_button
+                        on_button=on_button,
                     )
-                    
+
                     if hasattr(player, "poker_losses"):
-                         player.poker_losses = getattr(player, "poker_losses", 0) + 1
+                        player.poker_losses = getattr(player, "poker_losses", 0) + 1
 
             # 2. Update Plant Stats
             elif isinstance(player, Plant):

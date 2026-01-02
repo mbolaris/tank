@@ -27,4 +27,3 @@ def test_apply_trait_meta_to_trait_clamps_and_round_trips() -> None:
         "mutation_strength": 0.75,
         "hgt_probability": 1.0,
     }
-
