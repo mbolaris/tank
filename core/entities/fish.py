@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
-    from core.genetics import Genome
     from core.movement_strategy import MovementStrategy
     from core.world import World
 
