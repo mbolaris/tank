@@ -8,9 +8,7 @@ policies while maintaining backward compatibility.
 from __future__ import annotations
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
-
-from core.policies.interfaces import build_movement_observation
+from typing import TYPE_CHECKING, Any, Callable, Tuple
 
 if TYPE_CHECKING:
     from core.algorithms.composable.behavior import ComposableBehavior
@@ -32,8 +30,8 @@ class BehaviorToMovementPolicyAdapter:
 
     def __init__(
         self,
-        behavior: "ComposableBehavior",
-        fish: "Fish",
+        behavior: ComposableBehavior,
+        fish: Fish,
     ):
         """Initialize the adapter.
 

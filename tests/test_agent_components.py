@@ -6,8 +6,6 @@ in isolation and with basic integration scenarios.
 
 from __future__ import annotations
 
-import pytest
-
 from core.agents.components import (
     FeedingComponent,
     LocomotionComponent,

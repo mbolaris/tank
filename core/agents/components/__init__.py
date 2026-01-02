@@ -9,9 +9,9 @@ Components:
 - FeedingComponent: Food consumption and nutrition tracking
 """
 
-from core.agents.components.perception_component import PerceptionComponent
-from core.agents.components.locomotion_component import LocomotionComponent
 from core.agents.components.feeding_component import FeedingComponent
+from core.agents.components.locomotion_component import LocomotionComponent
+from core.agents.components.perception_component import PerceptionComponent
 
 __all__ = [
     "PerceptionComponent",

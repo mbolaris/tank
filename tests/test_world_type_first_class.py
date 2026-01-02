@@ -1,12 +1,11 @@
 """Tests verifying world_type is first-class throughout the stack."""
 
-import pytest
 
 from backend.simulation_manager import SimulationManager
-from backend.tank_registry import TankRegistry
-from backend.world_registry import create_world
 from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
+from backend.tank_registry import TankRegistry
+from backend.world_registry import create_world
 
 
 class TestWorldTypeFirstClass:

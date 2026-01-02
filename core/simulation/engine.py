@@ -39,9 +39,11 @@ import os
 import random
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol
 
 from core.config.simulation_config import SimulationConfig
+from core.sim.energy_ledger import EnergyDelta, EnergyLedger
+from core.sim.events import SimEvent
 from core.simulation import diagnostics
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue
@@ -49,12 +51,9 @@ from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.time_system import TimeSystem
 from core.update_phases import PHASE_DESCRIPTIONS, UpdatePhase
-from core.sim.energy_ledger import EnergyLedger, EnergyDelta
-from core.sim.events import SimEvent, AteFood, Moved, EnergyBurned, PokerGamePlayed
 
 if TYPE_CHECKING:
     from core import entities, environment
-    from core.agents_wrapper import AgentsWrapper
     from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
     from core.plant_manager import PlantManager
@@ -63,11 +62,10 @@ if TYPE_CHECKING:
     from core.poker_system import PokerSystem
     from core.reproduction_service import ReproductionService
     from core.reproduction_system import ReproductionSystem
-    from core.services.stats.calculator import StatsCalculator
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
     from core.systems.poker_proximity import PokerProximitySystem
-    from core.worlds.system_pack import EnvironmentLike, SystemPack
+    from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
 
@@ -79,16 +77,16 @@ class PackableEngine(Protocol):
     rng: random.Random
     event_bus: Any
     code_pool: Any
-    environment: Optional["environment.Environment"]
-    ecosystem: Optional["EcosystemManager"]
-    plant_manager: Optional["PlantManager"]
-    food_spawning_system: Optional["FoodSpawningSystem"]
-    time_system: "TimeSystem"
-    lifecycle_system: "EntityLifecycleSystem"
-    collision_system: "CollisionSystem"
-    reproduction_system: "ReproductionSystem"
-    poker_system: "PokerSystem"
-    poker_proximity_system: "PokerProximitySystem"
+    environment: Optional[environment.Environment]
+    ecosystem: Optional[EcosystemManager]
+    plant_manager: Optional[PlantManager]
+    food_spawning_system: Optional[FoodSpawningSystem]
+    time_system: TimeSystem
+    lifecycle_system: EntityLifecycleSystem
+    collision_system: CollisionSystem
+    reproduction_system: ReproductionSystem
+    poker_system: PokerSystem
+    poker_proximity_system: PokerProximitySystem
 
     def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
     def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
@@ -96,7 +94,7 @@ class PackableEngine(Protocol):
     def _apply_entity_mutations(self, stage: str) -> None: ...
     def create_initial_entities(self) -> None: ...
     def _block_root_spots_with_obstacles(self) -> None: ...
-    def _build_spawn_rate_config(self) -> "SpawnRateConfig": ...
+    def _build_spawn_rate_config(self) -> SpawnRateConfig: ...
 
 
 class SimulationEngine:
@@ -178,8 +176,8 @@ class SimulationEngine:
         self._entity_mutations = EntityMutationQueue()
 
         # Core state
-        self.environment: Optional["environment.Environment"] = None
-        self.ecosystem: Optional["EcosystemManager"] = None
+        self.environment: Optional[environment.Environment] = None
+        self.ecosystem: Optional[EcosystemManager] = None
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
 
@@ -190,18 +188,18 @@ class SimulationEngine:
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
         # but we keep them as Optional attributes for type safety and backward compat.
-        self.collision_system: Optional["CollisionSystem"] = None
-        self.reproduction_service: Optional["ReproductionService"] = None
-        self.reproduction_system: Optional["ReproductionSystem"] = None
-        self.poker_system: Optional["PokerSystem"] = None
-        self.lifecycle_system: Optional["EntityLifecycleSystem"] = None
-        self.poker_proximity_system: Optional["PokerProximitySystem"] = None
-        self.food_spawning_system: Optional["FoodSpawningSystem"] = None
-        self.plant_manager: Optional["PlantManager"] = None
+        self.collision_system: Optional[CollisionSystem] = None
+        self.reproduction_service: Optional[ReproductionService] = None
+        self.reproduction_system: Optional[ReproductionSystem] = None
+        self.poker_system: Optional[PokerSystem] = None
+        self.lifecycle_system: Optional[EntityLifecycleSystem] = None
+        self.poker_proximity_system: Optional[PokerProximitySystem] = None
+        self.food_spawning_system: Optional[FoodSpawningSystem] = None
+        self.plant_manager: Optional[PlantManager] = None
         self.poker_events: List[Any] = []
 
         # Periodic poker benchmark evaluation
-        self.benchmark_evaluator: Optional["PeriodicBenchmarkEvaluator"] = None
+        self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
 
         # Energy Ledger integration
         self.energy_ledger = EnergyLedger()
@@ -236,7 +234,7 @@ class SimulationEngine:
     # Setup
     # =========================================================================
 
-    def setup(self, pack: Optional["SystemPack"] = None) -> None:
+    def setup(self, pack: Optional[SystemPack] = None) -> None:
         """Setup the simulation using the provided SystemPack.
 
         If no pack is provided, it tries to use the default Tank logic
@@ -254,11 +252,11 @@ class SimulationEngine:
             pack = TankPack(self.config)
 
         # 1. Initialize core systems that every engine has
-        from core.systems.entity_lifecycle import EntityLifecycleSystem
         from core.collision_system import CollisionSystem
+        from core.poker_system import PokerSystem
         from core.reproduction_service import ReproductionService
         from core.reproduction_system import ReproductionSystem
-        from core.poker_system import PokerSystem
+        from core.systems.entity_lifecycle import EntityLifecycleSystem
         from core.systems.poker_proximity import PokerProximitySystem
 
         self.lifecycle_system = EntityLifecycleSystem(self)
@@ -287,7 +285,7 @@ class SimulationEngine:
         # 4. Let the pack seed entities
         pack.seed_entities(self)
 
-    def _build_spawn_rate_config(self) -> "SpawnRateConfig":
+    def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
         from core.systems.food_spawning import SpawnRateConfig
 
@@ -854,7 +852,7 @@ class SimulationEngine:
                     new_val = max(0.0, min(new_val, max_e))
 
                     # Set checking for property setter logic (e.g. death check)
-                    setattr(entity, "energy", new_val)
+                    entity.energy = new_val
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.

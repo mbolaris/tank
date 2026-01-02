@@ -3,8 +3,8 @@ from __future__ import annotations
 import math
 import random
 
-from core.telemetry.events import EnergyBurnEvent
 from core.sim.events import EnergyBurned
+from core.telemetry.events import EnergyBurnEvent
 
 
 class _EnvironmentStub:

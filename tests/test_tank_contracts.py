@@ -7,9 +7,7 @@ import random
 
 import pytest
 
-from core.config.simulation_config import SimulationConfig
 from core.sim.contracts import Action, Observation, WorldTickResult
-from core.simulation.engine import SimulationEngine
 from core.worlds.tank import TankWorldBackendAdapter
 
 
@@ -155,9 +153,9 @@ class TestLegacyBrainAdapter:
 
     def test_action_velocities_match_fish_velocities(self):
         """Action velocities should match actual fish velocities."""
+        from core.entities import Fish
         from core.worlds.tank.legacy_brain_adapter import decide_actions
         from core.worlds.tank.observation_builder import build_tank_observations
-        from core.entities import Fish
 
         adapter = TankWorldBackendAdapter(seed=42)
         adapter.reset(seed=42)

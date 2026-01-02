@@ -1,5 +1,5 @@
 from pathlib import Path
-import backend.tank_persistence
+
 from backend.tank_persistence import DATA_DIR, find_all_tank_snapshots
 
 print(f"DATA_DIR from module: {DATA_DIR}")

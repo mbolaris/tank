@@ -4,7 +4,6 @@ These tests verify the end-to-end action pipeline works correctly and
 that the simulation runs without regressions.
 """
 
-import pytest
 
 from core.config.simulation_config import SimulationConfig, TankConfig
 from core.worlds.tank import TankWorldBackendAdapter

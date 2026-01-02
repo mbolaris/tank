@@ -1,14 +1,11 @@
 """Tests for fish policy adapter and runtime policy swapping."""
 
 import random
-from unittest.mock import MagicMock, Mock
-
-import pytest
+from unittest.mock import Mock
 
 from core.algorithms.composable.behavior import ComposableBehavior
 from core.entities import Fish
 from core.policies.behavior_adapter import BehaviorToMovementPolicyAdapter, SimplePolicy
-from core.policies.interfaces import MovementPolicy
 
 
 class TestPolicyAdapter:

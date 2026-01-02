@@ -41,6 +41,8 @@ from core.fish.skill_game_component import SkillGameComponent
 from core.fish_memory import FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
+from core.sim.energy_ledger import EnergyDelta
+from core.sim.events import AteFood, EnergyBurned
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 from core.telemetry.events import (
     BirthEvent,
@@ -48,8 +50,6 @@ from core.telemetry.events import (
     FoodEatenEvent,
     ReproductionEvent,
 )
-from core.sim.events import AteFood, EnergyBurned
-from core.sim.energy_ledger import EnergyDelta
 
 
 class Fish(Agent):

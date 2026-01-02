@@ -25,7 +25,7 @@ DEFAULT_PERCEPTION_RADIUS = 200.0
 
 
 def build_tank_observations(
-    world: "TankWorld",
+    world: TankWorld,
     config: Optional[Dict[str, Any]] = None,
 ) -> ObservationMap:
     """Build per-agent observations from Tank world state.
@@ -91,7 +91,7 @@ def build_tank_observations(
 
 
 def _build_food_observations(
-    fish: "Fish",
+    fish: Fish,
     env: Any,
     radius: float,
     food_type: type,
@@ -122,7 +122,7 @@ def _build_food_observations(
 
 
 def _build_fish_observations(
-    fish: "Fish",
+    fish: Fish,
     env: Any,
     radius: float,
 ) -> List[Dict[str, Any]]:
@@ -167,7 +167,7 @@ def _build_fish_observations(
 
 
 def _build_threat_observations(
-    fish: "Fish",
+    fish: Fish,
     env: Any,
     radius: float,
 ) -> List[Dict[str, Any]]:
@@ -209,7 +209,7 @@ def _build_threat_observations(
     return threat_obs
 
 
-def _is_threat(fish: "Fish", other: "Fish") -> bool:
+def _is_threat(fish: Fish, other: Fish) -> bool:
     """Check if another fish is a threat (larger = potential predator)."""
     # Use size comparison - larger fish are threats
     fish_size = getattr(fish, "size", 1.0)

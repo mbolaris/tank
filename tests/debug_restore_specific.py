@@ -1,7 +1,7 @@
-import sys
 import logging
+import sys
+
 from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
-from core.worlds.tank.backend import TankWorldBackendAdapter
 from core.simulation.engine import SimulationEngine
 
 # Setup logging

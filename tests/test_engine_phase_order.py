@@ -1,6 +1,5 @@
 """Tests for engine phase ordering correctness."""
 
-import pytest
 
 
 def test_poker_runs_every_frame_regardless_of_energy_events(simulation_engine):

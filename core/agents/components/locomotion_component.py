@@ -26,19 +26,19 @@ class LocomotionComponent:
 
     def __init__(self) -> None:
         """Initialize locomotion component."""
-        self._last_direction: Optional["Vector2"] = None
+        self._last_direction: Optional[Vector2] = None
 
     @property
-    def last_direction(self) -> Optional["Vector2"]:
+    def last_direction(self) -> Optional[Vector2]:
         """Get the last recorded movement direction."""
         return self._last_direction
 
     @last_direction.setter
-    def last_direction(self, value: Optional["Vector2"]) -> None:
+    def last_direction(self, value: Optional[Vector2]) -> None:
         """Set the last movement direction."""
         self._last_direction = value
 
-    def update_direction(self, velocity: "Vector2") -> Optional["Vector2"]:
+    def update_direction(self, velocity: Vector2) -> Optional[Vector2]:
         """Update direction tracking from current velocity.
 
         Args:
@@ -58,8 +58,8 @@ class LocomotionComponent:
 
     def calculate_turn_cost(
         self,
-        previous_direction: Optional["Vector2"],
-        new_direction: Optional["Vector2"],
+        previous_direction: Optional[Vector2],
+        new_direction: Optional[Vector2],
         size: float,
         base_cost: float,
         size_multiplier: float,
@@ -101,8 +101,8 @@ class LocomotionComponent:
 
     def handle_boundaries(
         self,
-        pos: "Vector2",
-        vel: "Vector2",
+        pos: Vector2,
+        vel: Vector2,
         bounds: Tuple[Tuple[float, float], Tuple[float, float]],
         visual_offsets: Tuple[float, float, float, float],
         top_margin: float = 0.0,
