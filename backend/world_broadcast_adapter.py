@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import Any, Dict, Optional, Protocol, Set, Union, runtime_checkable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, Set, Union, runtime_checkable
 
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState
@@ -51,7 +51,7 @@ class WorldSnapshotAdapter:
     def __init__(
         self,
         world_id: str,
-        runner: Union["WorldRunner", "TankWorldAdapter"],
+        runner: Union[WorldRunner, TankWorldAdapter],
         *,
         world_type: str,
         mode_id: str,

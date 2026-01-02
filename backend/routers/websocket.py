@@ -43,7 +43,7 @@ def _get_client_ip(websocket: WebSocket) -> str:
 
 async def _handle_websocket_for_adapter(
     websocket: WebSocket,
-    adapter: "WorldBroadcastAdapter",
+    adapter: WorldBroadcastAdapter,
     world_id: str,
 ) -> None:
     """Handle WebSocket connection using TankWorldAdapter interface.
@@ -132,7 +132,7 @@ async def _handle_websocket_for_adapter(
 
 async def _handle_websocket(
     websocket: WebSocket,
-    tank_registry: "TankRegistry",
+    tank_registry: TankRegistry,
     tank_id: Optional[str] = None,
 ) -> None:
     """Handle WebSocket connection for tank worlds (legacy interface).
@@ -165,7 +165,7 @@ async def _handle_websocket(
 
 async def _handle_websocket_for_world(
     websocket: WebSocket,
-    world_manager: "WorldManager",
+    world_manager: WorldManager,
     world_id: str,
 ) -> None:
     """Handle WebSocket connection for any world type.
@@ -210,8 +210,8 @@ async def _handle_websocket_for_world(
 
 
 def setup_router(
-    tank_registry: "TankRegistry",
-    world_manager: Optional["WorldManager"] = None,
+    tank_registry: TankRegistry,
+    world_manager: Optional[WorldManager] = None,
 ) -> APIRouter:
     """Create the websocket router with registry dependencies.
 

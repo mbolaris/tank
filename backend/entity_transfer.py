@@ -5,16 +5,17 @@ This module is a compatibility shim exporting symbols from core.transfer.entity_
 
 from core.transfer.entity_transfer import (
     DEFAULT_REGISTRY,
+    TRANSFER_SCHEMA_VERSION,
     EntityTransferCodec,
     FishTransferCodec,
     NoRootSpotsError,
     PlantTransferCodec,
     SerializedEntity,
-    TRANSFER_SCHEMA_VERSION,
     TransferContext,
     TransferError,
     TransferOutcome,
     TransferRegistry,
+    _deserialize_fish,
     capture_fish_mutable_state,
     capture_plant_mutable_state,
     deserialize_entity,
@@ -24,7 +25,6 @@ from core.transfer.entity_transfer import (
     serialize_entity_for_transfer,
     try_deserialize_entity,
     try_serialize_entity_for_transfer,
-    _deserialize_fish,
 )
 
 # Re-export for compatibility

@@ -53,7 +53,7 @@ class WorldInstance:
     persistent: bool = True
     view_mode: str = "side"
     description: str = ""
-    broadcast_adapter: Optional["WorldBroadcastAdapter"] = None
+    broadcast_adapter: Optional[WorldBroadcastAdapter] = None
 
     def is_tank(self) -> bool:
         """Check if this is a tank world."""
@@ -109,7 +109,7 @@ class WorldManager:
 
     def __init__(
         self,
-        tank_registry: Optional["TankRegistry"] = None,
+        tank_registry: Optional[TankRegistry] = None,
     ) -> None:
         """Initialize the world manager.
 
@@ -122,11 +122,11 @@ class WorldManager:
         self._stop_broadcast_callback: Optional[BroadcastCallback] = None
 
     @property
-    def tank_registry(self) -> Optional["TankRegistry"]:
+    def tank_registry(self) -> Optional[TankRegistry]:
         """Get the tank registry for tank-specific operations."""
         return self._tank_registry
 
-    def set_tank_registry(self, tank_registry: "TankRegistry") -> None:
+    def set_tank_registry(self, tank_registry: TankRegistry) -> None:
         """Set the tank registry for tank world operations.
 
         Also registers any existing tanks from the registry as world instances.
@@ -385,7 +385,7 @@ class WorldManager:
 
         return None
 
-    def get_broadcast_adapter(self, world_id: str) -> Optional["WorldBroadcastAdapter"]:
+    def get_broadcast_adapter(self, world_id: str) -> Optional[WorldBroadcastAdapter]:
         """Get or create the broadcast adapter for a world."""
         instance = self.get_world(world_id)
         if instance is None:
@@ -411,7 +411,7 @@ class WorldManager:
         instance.broadcast_adapter = adapter
         return adapter
 
-    def get_tank_adapter(self, world_id: str) -> Optional["TankWorldAdapter"]:
+    def get_tank_adapter(self, world_id: str) -> Optional[TankWorldAdapter]:
         """Get the TankWorldAdapter for a tank world.
 
         This is a convenience method for code that needs tank-specific
@@ -572,7 +572,7 @@ class WorldManager:
     # Tank-specific operations (for backward compatibility)
     # =========================================================================
 
-    def get_tank_or_default(self, tank_id: Optional[str] = None) -> Optional["TankWorldAdapter"]:
+    def get_tank_or_default(self, tank_id: Optional[str] = None) -> Optional[TankWorldAdapter]:
         """Get a tank adapter by ID or return the default tank.
 
         This is for backward compatibility with code that expects to work

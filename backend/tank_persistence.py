@@ -174,8 +174,8 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         True if restoration succeeded, False otherwise
     """
     try:
-        from core.transfer.entity_transfer import deserialize_entity
         from core.entities import Food, PlantNectar
+        from core.transfer.entity_transfer import deserialize_entity
 
         def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:
             # Regression-safe inference for snapshots created during a brief window where
