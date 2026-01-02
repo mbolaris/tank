@@ -3,13 +3,8 @@
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-
-# Ensure consistent module aliasing whether imported as `state_payloads` or `backend.state_payloads`
-sys.modules.setdefault("state_payloads", sys.modules[__name__])
-sys.modules.setdefault("backend.state_payloads", sys.modules[__name__])
 
 try:  # Prefer faster serializer when available
     import orjson
