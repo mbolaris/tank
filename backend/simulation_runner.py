@@ -19,6 +19,7 @@ from backend.runner.state_builders import (
     build_physical_stats,
     collect_poker_stats_payload,
 )
+from backend.runner.world_hooks import get_hooks_for_world
 from backend.state_payloads import (
     AutoEvaluateStatsPayload,
     DeltaStatePayload,
@@ -73,6 +74,9 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_type = metadata.world_type if metadata else world_type
         self.view_mode = metadata.view_mode if metadata else "side"
 
+        # Create world-specific hooks for feature extensions
+        self.world_hooks = get_hooks_for_world(world_type)
+
         # Worlds start unpaused by default - they run as soon as the server starts
         self.world.paused = False
 
@@ -122,41 +126,21 @@ class SimulationRunner(CommandHandlerMixin):
         if self._distribution_interval_seconds < 0:
             self._distribution_interval_seconds = 0.0
 
-        # Human poker game management
-        self.human_poker_game: Optional[HumanPokerGame] = None
+        # Initialize world-specific hooks and features
+        self.world_hooks.warmup(self)
 
-        # Static benchmark poker series management
-        self.standard_poker_series: Optional[AutoEvaluatePokerGame] = None
-
-        # Evolution benchmark tracker for longitudinal skill measurement
-        # Enabled by default (can cause FPS drops during benchmark); set TANK_EVOLUTION_BENCHMARK_ENABLED=0 to disable.
-        self.evolution_benchmark_tracker = None
-        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        ):
-            from core.poker.evaluation.evolution_benchmark_tracker import (
-                EvolutionBenchmarkTracker,
-            )
-
-            self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
-                eval_interval_frames=int(
-                    os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "27000")
-                ),
-                export_path=self._get_evolution_benchmark_export_path(),
-                use_quick_benchmark=True,
-            )
-            self._evolution_benchmark_guard = threading.Lock()
-            # Initialize to (now - interval + 60 seconds) so first benchmark runs after ~60 seconds of startup
-            # This gives the simulation time to populate fish before the first evaluation
-            initial_delay = 60.0
-            interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
-            self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
-        else:
-            self._evolution_benchmark_guard = None
-            self._evolution_benchmark_last_completed_time = 0.0
+        # Expose hooks attributes for backward compatibility (tank-specific features)
+        self.human_poker_game = getattr(self.world_hooks, "human_poker_game", None)
+        self.standard_poker_series = getattr(self.world_hooks, "standard_poker_series", None)
+        self.evolution_benchmark_tracker = getattr(
+            self.world_hooks, "evolution_benchmark_tracker", None
+        )
+        self._evolution_benchmark_guard = getattr(
+            self.world_hooks, "_evolution_benchmark_guard", None
+        )
+        self._evolution_benchmark_last_completed_time = getattr(
+            self.world_hooks, "_evolution_benchmark_last_completed_time", 0.0
+        )
 
         # Migration support
         self.connection_manager = None  # Set after initialization
@@ -185,9 +169,14 @@ class SimulationRunner(CommandHandlerMixin):
         if tank_name is not None:
             self.tank_name = tank_name
 
-        tracker = getattr(self, "evolution_benchmark_tracker", None)
-        if tracker is not None:
-            tracker.export_path = self._get_evolution_benchmark_export_path()
+        # Update hooks with new tank identity
+        if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
+            self.world_hooks.update_benchmark_tracker_path(self)
+
+        # Update cached references for backward compatibility
+        self.evolution_benchmark_tracker = getattr(
+            self.world_hooks, "evolution_benchmark_tracker", None
+        )
 
         self._update_environment_migration_context()
 
@@ -742,22 +731,30 @@ class SimulationRunner(CommandHandlerMixin):
     def _build_full_state(self, frame: int, elapsed_time: int) -> FullStatePayload:
         entities = self._collect_entities()
         stats = self._collect_stats(frame)
-        poker_events = self._collect_poker_events()
-        poker_leaderboard = self._collect_poker_leaderboard()
-        auto_eval = self._collect_auto_eval()
 
-        return FullStatePayload(
-            frame=frame,
-            elapsed_time=elapsed_time,
-            entities=entities,
-            stats=stats,
-            poker_events=poker_events,
-            poker_leaderboard=poker_leaderboard,
-            auto_evaluation=auto_eval,
-            mode_id=self.mode_id,
-            world_type=self.world_type,
-            view_mode=self.view_mode,
-        )
+        # Build universal state
+        state_dict = {
+            "frame": frame,
+            "elapsed_time": elapsed_time,
+            "entities": entities,
+            "stats": stats,
+            "mode_id": self.mode_id,
+            "world_type": self.world_type,
+            "view_mode": self.view_mode,
+        }
+
+        # Add world-specific extras (poker, leaderboard, etc.) from hooks
+        try:
+            extras = self.world_hooks.build_world_extras(self)
+            state_dict.update(extras)
+        except Exception as e:
+            logger.warning(f"Error building world extras from hooks: {e}")
+            # Provide defaults for backward compatibility
+            state_dict["poker_events"] = []
+            state_dict["poker_leaderboard"] = []
+            state_dict["auto_evaluation"] = None
+
+        return FullStatePayload(**state_dict)
 
     def _collect_entities(self) -> List[EntitySnapshot]:
         return self._entity_snapshot_builder.collect(self.world.entities_list)
@@ -901,45 +898,62 @@ class SimulationRunner(CommandHandlerMixin):
     def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None):
         """Handle a command from the client.
 
+        Commands can be:
+        1. Universal: pause, resume, reset, fast_forward (supported by all worlds)
+        2. World-specific: poker, human poker, etc. (delegated to hooks)
+        3. Tank-specific: add_food, spawn_fish, set_plant_energy_input (backward compatible)
+
         Args:
-            command: Command type ('add_food', 'spawn_fish', 'pause', 'resume', 'reset')
+            command: Command type
             data: Optional command data
         """
-        # Map commands to handler methods
-        tank_only_commands = {
-            "add_food",
-            "spawn_fish",
-            "start_poker",
-            "poker_action",
-            "poker_process_ai_turn",
-            "poker_new_round",
-            "poker_autopilot_action",
-            "standard_poker_series",
-            "set_plant_energy_input",
-        }
-        if self.world_type != "tank" and command in tank_only_commands:
-            return self._create_error_response(f"Unsupported for world_type={self.world_type}")
+        data = data or {}
 
-        handlers = {
-            "add_food": self._cmd_add_food,
-            "spawn_fish": self._cmd_spawn_fish,
-            "pause": self._cmd_pause,
-            "resume": self._cmd_resume,
-            "reset": self._cmd_reset,
-            "fast_forward": self._cmd_fast_forward,
-            "start_poker": self._cmd_start_poker,
-            "poker_action": self._cmd_poker_action,
-            "poker_process_ai_turn": self._cmd_poker_process_ai_turn,
-            "poker_new_round": self._cmd_poker_new_round,
-            "poker_autopilot_action": self._cmd_poker_autopilot_action,
-            "standard_poker_series": self._cmd_standard_poker_series,
-            "set_plant_energy_input": self._cmd_set_plant_energy_input,
-        }
-
+        # Try world-specific hooks first
         with self.lock:
-            handler = handlers.get(command)
+            # Check if hooks handle this command
+            if self.world_hooks.supports_command(command):
+                try:
+                    result = self.world_hooks.handle_command(self, command, data)
+                    if result is not None:
+                        return result
+                except Exception as e:
+                    logger.error(f"Error handling command {command} via hooks: {e}")
+                    return self._create_error_response(f"Error handling {command}: {e}")
+
+            # Map universal and tank commands to handler methods
+            universal_handlers = {
+                "pause": self._cmd_pause,
+                "resume": self._cmd_resume,
+                "reset": self._cmd_reset,
+                "fast_forward": self._cmd_fast_forward,
+            }
+
+            tank_handlers = {
+                "add_food": self._cmd_add_food,
+                "spawn_fish": self._cmd_spawn_fish,
+                "start_poker": self._cmd_start_poker,
+                "poker_action": self._cmd_poker_action,
+                "poker_process_ai_turn": self._cmd_poker_process_ai_turn,
+                "poker_new_round": self._cmd_poker_new_round,
+                "poker_autopilot_action": self._cmd_poker_autopilot_action,
+                "standard_poker_series": self._cmd_standard_poker_series,
+                "set_plant_energy_input": self._cmd_set_plant_energy_input,
+            }
+
+            # Try universal handlers first
+            handler = universal_handlers.get(command)
             if handler:
-                return handler(data or {})
+                return handler(data)
+
+            # Try tank-specific handlers (backward compatibility)
+            if command in tank_handlers:
+                if self.world_type != "tank":
+                    return self._create_error_response(
+                        f"Command '{command}' not supported for world_type={self.world_type}"
+                    )
+                handler = tank_handlers[command]
+                return handler(data)
 
             # Log unknown command
             logger.warning(f"Unknown command received: {command}")
