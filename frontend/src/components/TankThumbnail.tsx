@@ -104,6 +104,7 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
                         state={state}
                         width={320}
                         height={180}
+                        showEffects={false}
                         style={{ width: '100%', height: '100%', display: 'block' }}
                     />
                 ) : (

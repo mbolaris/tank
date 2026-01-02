@@ -67,12 +67,11 @@ export class TankSideRenderer implements Renderer {
             ctx.scale(scaleX, scaleY);
 
             // Clear background & draw environment
-            r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, stats?.time);
+            // Pass showEffects to control decorative features like light rays
+            const showEffects = frame.options?.showEffects ?? true;
+            r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, stats?.time, showEffects);
 
             // Render entities
-            // Read showEffects from frame options (defaults to true if not specified)
-            const showEffects = frame.options?.showEffects ?? true;
-
             entities.forEach((entity: EntityData) => {
                 r.renderEntity(entity, elapsedTime, entities, showEffects);
             });

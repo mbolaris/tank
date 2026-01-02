@@ -110,6 +110,9 @@ export class Renderer {
     // a new canvas per entity draw which can cause memory pressure.
     private _tintCanvas: HTMLCanvasElement | null = null;
     private _tintCtx: CanvasRenderingContext2D | null = null;
+    // Cache for seabed rocks to prevent shimmering
+    private seabedRocks: { x: number, y: number, size: number }[] = [];
+    private seabedWidth: number = 0;
 
     // Track live instances to help detect leaked Renderer objects
     private static _instances = 0;
@@ -152,6 +155,7 @@ export class Renderer {
         this.entityFacingLeft.clear();
         this.pokerEffectStartTime.clear();
         this.pathCache.clear();
+        this.seabedRocks = [];
 
         Renderer._instances = Math.max(0, Renderer._instances - 1);
     }
@@ -312,7 +316,7 @@ export class Renderer {
         }
     }
 
-    clear(width: number, height: number, timeOfDay?: string) {
+    clear(width: number, height: number, timeOfDay?: string, showDecorative: boolean = true) {
         this.initParticles();
         const time = Date.now();
         const palette = this.getTimeOfDayPalette(timeOfDay);
@@ -328,37 +332,39 @@ export class Renderer {
         this.ctx.fillRect(0, 0, width, height);
 
         // Animated light rays with caustics effect
-        this.ctx.save();
-        const causticsOffset = Math.sin(time * CAUSTICS_SPEED) * CAUSTICS_AMPLITUDE;
-        for (let i = 0; i < LIGHT_RAY_COUNT; i += 1) {
-            const baseX = (width / LIGHT_RAY_COUNT) * i + causticsOffset;
-            const wobble = Math.sin(time * WOBBLE_SPEED + i) * WOBBLE_AMPLITUDE;
+        if (showDecorative) {
+            this.ctx.save();
+            const causticsOffset = Math.sin(time * CAUSTICS_SPEED) * CAUSTICS_AMPLITUDE;
+            for (let i = 0; i < LIGHT_RAY_COUNT; i += 1) {
+                const baseX = (width / LIGHT_RAY_COUNT) * i + causticsOffset;
+                const wobble = Math.sin(time * WOBBLE_SPEED + i) * WOBBLE_AMPLITUDE;
 
-            // Main light ray
-            this.ctx.globalAlpha = palette.rayOpacityMain;
-            this.ctx.beginPath();
-            this.ctx.moveTo(baseX + 60 + wobble, 0);
-            this.ctx.lineTo(baseX + 180 + wobble, 0);
-            this.ctx.lineTo(baseX + wobble, height);
-            this.ctx.closePath();
-            const rayGradient = this.ctx.createLinearGradient(baseX, 0, baseX, height);
-            rayGradient.addColorStop(0, palette.rayColorMain);
-            rayGradient.addColorStop(0.6, palette.rayColorMain);
-            rayGradient.addColorStop(1, 'rgba(61, 213, 255, 0)');
-            this.ctx.fillStyle = rayGradient;
-            this.ctx.fill();
+                // Main light ray
+                this.ctx.globalAlpha = palette.rayOpacityMain;
+                this.ctx.beginPath();
+                this.ctx.moveTo(baseX + 60 + wobble, 0);
+                this.ctx.lineTo(baseX + 180 + wobble, 0);
+                this.ctx.lineTo(baseX + wobble, height);
+                this.ctx.closePath();
+                const rayGradient = this.ctx.createLinearGradient(baseX, 0, baseX, height);
+                rayGradient.addColorStop(0, palette.rayColorMain);
+                rayGradient.addColorStop(0.6, palette.rayColorMain);
+                rayGradient.addColorStop(1, 'rgba(61, 213, 255, 0)');
+                this.ctx.fillStyle = rayGradient;
+                this.ctx.fill();
 
-            // Secondary highlight for caustics
-            this.ctx.globalAlpha = palette.rayOpacitySecondary;
-            this.ctx.beginPath();
-            this.ctx.moveTo(baseX + 80 + wobble * 1.5, 0);
-            this.ctx.lineTo(baseX + 120 + wobble * 1.5, 0);
-            this.ctx.lineTo(baseX + 40 + wobble, height * 0.4);
-            this.ctx.closePath();
-            this.ctx.fillStyle = palette.rayColorSecondary;
-            this.ctx.fill();
+                // Secondary highlight for caustics
+                this.ctx.globalAlpha = palette.rayOpacitySecondary;
+                this.ctx.beginPath();
+                this.ctx.moveTo(baseX + 80 + wobble * 1.5, 0);
+                this.ctx.lineTo(baseX + 120 + wobble * 1.5, 0);
+                this.ctx.lineTo(baseX + 40 + wobble, height * 0.4);
+                this.ctx.closePath();
+                this.ctx.fillStyle = palette.rayColorSecondary;
+                this.ctx.fill();
+            }
+            this.ctx.restore();
         }
-        this.ctx.restore();
 
         // Apply subtle global overlay for time-of-day mood
         if (palette.overlayAlpha > 0) {
@@ -370,8 +376,10 @@ export class Renderer {
         }
 
         // Update and draw floating particles
-        this.updateParticles(width, height);
-        this.drawParticles();
+        if (showDecorative) {
+            this.updateParticles(width, height);
+            this.drawParticles();
+        }
 
         // Enhanced seabed with texture
         const seabedHeight = Math.max(SEABED_MIN_HEIGHT, height * SEABED_HEIGHT_RATIO);
@@ -385,16 +393,27 @@ export class Renderer {
         this.ctx.fillStyle = seabedGradient;
         this.ctx.fillRect(0, seabedY, width, seabedHeight);
 
-        // Add seabed texture (rocks/pebbles)
+        // Add seabed texture (rocks/pebbles) - Stabilized (cached)
         this.ctx.save();
         this.ctx.globalAlpha = SEABED_TEXTURE_OPACITY;
-        for (let x = 0; x < width; x += SEABED_TEXTURE_SPACING) {
-            const rockSize = Math.random() * SEABED_ROCK_SIZE_RANGE + SEABED_ROCK_SIZE_MIN;
-            const rockX = x + Math.random() * 30;
-            const rockY = seabedY + seabedHeight * 0.6 + Math.random() * 15;
-            this.ctx.fillStyle = '#8b6f47';
+
+        // Re-generate if width changes or not initialized
+        if (this.seabedRocks.length === 0 || this.seabedWidth !== width) {
+            this.seabedRocks = [];
+            this.seabedWidth = width;
+            for (let x = 0; x < width; x += SEABED_TEXTURE_SPACING) {
+                const rockSize = Math.random() * SEABED_ROCK_SIZE_RANGE + SEABED_ROCK_SIZE_MIN;
+                const rockX = x + Math.random() * 30;
+                const rockY = seabedY + seabedHeight * 0.6 + Math.random() * 15;
+                this.seabedRocks.push({ x: rockX, y: rockY, size: rockSize });
+            }
+        }
+
+        // Render cached rocks
+        this.ctx.fillStyle = '#8b6f47';
+        for (const rock of this.seabedRocks) {
             this.ctx.beginPath();
-            this.ctx.ellipse(rockX, rockY, rockSize, rockSize * 0.7, 0, 0, Math.PI * 2);
+            this.ctx.ellipse(rock.x, rock.y, rock.size, rock.size * 0.7, 0, 0, Math.PI * 2);
             this.ctx.fill();
         }
         this.ctx.restore();
