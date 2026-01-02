@@ -31,10 +31,12 @@ def setup_connections_subrouter(
         else:
             connections = connection_manager.list_connections()
 
-        return JSONResponse({
-            "connections": [c.to_dict() for c in connections],
-            "count": len(connections),
-        })
+        return JSONResponse(
+            {
+                "connections": [c.to_dict() for c in connections],
+                "count": len(connections),
+            }
+        )
 
     @router.post("/api/connections")
     async def create_connection(connection_data: Dict):
@@ -46,6 +48,7 @@ def setup_connections_subrouter(
             # Save connections to disk
             try:
                 from backend.connection_persistence import save_connections
+
                 save_connections(connection_manager)
             except Exception as save_error:
                 logger.warning(f"Failed to save connections after create: {save_error}")
@@ -62,6 +65,7 @@ def setup_connections_subrouter(
             # Save connections to disk
             try:
                 from backend.connection_persistence import save_connections
+
                 save_connections(connection_manager)
             except Exception as save_error:
                 logger.warning(f"Failed to save connections after delete: {save_error}")

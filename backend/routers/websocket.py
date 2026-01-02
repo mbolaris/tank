@@ -192,10 +192,12 @@ async def _handle_websocket_for_world(
     if adapter is None:
         try:
             await websocket.accept()
-            await websocket.send_json({
-                "success": False,
-                "error": f"World type '{instance.world_type}' does not support WebSocket connections."
-            })
+            await websocket.send_json(
+                {
+                    "success": False,
+                    "error": f"World type '{instance.world_type}' does not support WebSocket connections.",
+                }
+            )
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         except Exception:
             pass
@@ -248,6 +250,7 @@ def setup_router(
     # =========================================================================
 
     if world_manager is not None:
+
         @router.websocket("/ws/world/{world_id}")
         async def websocket_world(websocket: WebSocket, world_id: str) -> None:
             """Unified WebSocket endpoint for any world type.

@@ -94,7 +94,9 @@ def create_world(
     world = WorldRegistry.create_world(mode_pack.mode_id, seed=seed, config=combined)
     world.reset(seed=seed, config=combined)
 
-    builder_factory = _SNAPSHOT_BUILDERS.get(mode_pack.mode_id) or mode_pack.snapshot_builder_factory
+    builder_factory = (
+        _SNAPSHOT_BUILDERS.get(mode_pack.mode_id) or mode_pack.snapshot_builder_factory
+    )
     if builder_factory is None:
         raise ValueError(f"No snapshot builder registered for mode '{mode_pack.mode_id}'")
     snapshot_builder = builder_factory()
@@ -165,6 +167,7 @@ _register_petri_mode()
 
 def _register_soccer_mode() -> None:
     from backend.snapshots.soccer_snapshot_builder import SoccerSnapshotBuilder
+
     register_snapshot_builder("soccer", SoccerSnapshotBuilder)
 
 

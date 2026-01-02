@@ -76,9 +76,9 @@ def setup_inspection_subrouter(
 
         try:
             from core.entities import Fish
+
             alive_fish_ids = {
-                fish.fish_id for fish in manager.world.entities_list
-                if isinstance(fish, Fish)
+                fish.fish_id for fish in manager.world.entities_list if isinstance(fish, Fish)
             }
             lineage_data = manager.world.ecosystem.get_lineage_data(alive_fish_ids)
             return JSONResponse(lineage_data)
@@ -121,8 +121,10 @@ def setup_inspection_subrouter(
             return error
 
         stats = get_tank_transfer_stats(tank_id)
-        return JSONResponse({
-            "tank_id": tank_id,
-            "tank_name": manager.tank_info.name,
-            **stats,
-        })
+        return JSONResponse(
+            {
+                "tank_id": tank_id,
+                "tank_name": manager.tank_info.name,
+                **stats,
+            }
+        )

@@ -46,7 +46,5 @@ def configure_logging(
         for logger_name in extra_loggers:
             logging.getLogger(logger_name).setLevel(resolved_level)
 
-    app_logger.debug(
-        "Logging configured", extra={"level": resolved_level, "format": format}
-    )
+    app_logger.debug("Logging configured", extra={"level": resolved_level, "format": format})
     return app_logger

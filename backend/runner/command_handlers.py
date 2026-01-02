@@ -55,12 +55,8 @@ class CommandHandlerMixin:
         try:
             logger.info("Spawn fish command received")
             # Random spawn position (avoid edges)
-            x = self.world.rng.randint(
-                SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS
-            )
-            y = self.world.rng.randint(
-                SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS
-            )
+            x = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+            y = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
             logger.info(f"Creating fish at position ({x}, {y})")
 
@@ -110,14 +106,18 @@ class CommandHandlerMixin:
         logger.info("Simulation reset")
         return None
 
-    def _cmd_fast_forward(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_fast_forward(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'fast_forward' command."""
         enabled = data.get("enabled", False) if data else False
         self.fast_forward = enabled
         logger.info(f"Fast forward {'enabled' if enabled else 'disabled'}")
         return None
 
-    def _cmd_start_poker(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_start_poker(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'start_poker' command."""
         logger.info("Starting human poker game...")
         try:
@@ -125,7 +125,9 @@ class CommandHandlerMixin:
             fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
 
             if len(fish_list) < 3:
-                logger.warning(f"Not enough fish to start poker game (need 3, have {len(fish_list)})")
+                logger.warning(
+                    f"Not enough fish to start poker game (need 3, have {len(fish_list)})"
+                )
                 return self._create_error_response(
                     f"Need at least 3 fish to play poker (currently {len(fish_list)})"
                 )
@@ -175,7 +177,9 @@ class CommandHandlerMixin:
             logger.error(f"Error starting poker game: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start poker game: {str(e)}")
 
-    def _cmd_poker_action(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_action(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'poker_action' command."""
         if not self.human_poker_game:
             logger.warning("Poker action received but no game active")
@@ -191,7 +195,9 @@ class CommandHandlerMixin:
 
         return self.human_poker_game.handle_action("human", action, amount)
 
-    def _cmd_poker_process_ai_turn(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_process_ai_turn(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'poker_process_ai_turn' command."""
         if not self.human_poker_game:
             logger.warning("AI turn processing requested but no game active")
@@ -199,7 +205,9 @@ class CommandHandlerMixin:
 
         return self.human_poker_game.process_single_ai_turn()
 
-    def _cmd_poker_new_round(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_new_round(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'poker_new_round' command."""
         if not self.human_poker_game:
             logger.warning("New round requested but no game active")
@@ -208,7 +216,9 @@ class CommandHandlerMixin:
         logger.info("Starting new poker hand...")
         return self.human_poker_game.start_new_hand()
 
-    def _cmd_poker_autopilot_action(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_autopilot_action(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'poker_autopilot_action' command."""
         if not self.human_poker_game:
             logger.warning("Autopilot action requested but no game active")
@@ -245,7 +255,7 @@ class CommandHandlerMixin:
             hole_cards=human_player.hole_cards,
             community_cards=game.community_cards,
             position_on_button=(game.current_player_index == game.button_index),
-            rng=getattr(self.world, 'rng', None)  # Pass world RNG for determinism
+            rng=getattr(self.world, "rng", None),  # Pass world RNG for determinism
         )
 
         # Convert BettingAction enum to string
@@ -264,7 +274,9 @@ class CommandHandlerMixin:
         logger.info(f"Autopilot recommends: {action_str}, amount: {bet_amount}")
         return {"success": True, "action": action_str, "amount": bet_amount}
 
-    def _cmd_standard_poker_series(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_standard_poker_series(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'standard_poker_series' command."""
         logger.info("Starting standard poker benchmark series...")
         try:
@@ -288,10 +300,11 @@ class CommandHandlerMixin:
                     # Use leaderboard entry
                     entry = leaderboard[i]
                     fish = next(
-                        (f for f in fish_list if f.fish_id == entry["fish_id"]),
-                        fish_list[i]
+                        (f for f in fish_list if f.fish_id == entry["fish_id"]), fish_list[i]
                     )
-                    fish_name = f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
+                    fish_name = (
+                        f"{entry['algorithm'][:15]} (Gen {entry['generation']}) #{entry['fish_id']}"
+                    )
                 else:
                     # Fallback to fish from list
                     fish = fish_list[i]
@@ -301,12 +314,18 @@ class CommandHandlerMixin:
                         algo_name = behavior_algorithm.algorithm_id
                     fish_name = f"{algo_name[:15]} (Gen {fish.generation}) #{fish.fish_id}"
 
-                fish_players.append({
-                    "name": fish_name,
-                    "fish_id": fish.fish_id,
-                    "generation": fish.generation,
-                    "poker_strategy": fish.genome.behavioral.poker_strategy.value if fish.genome.behavioral.poker_strategy else None,
-                })
+                fish_players.append(
+                    {
+                        "name": fish_name,
+                        "fish_id": fish.fish_id,
+                        "generation": fish.generation,
+                        "poker_strategy": (
+                            fish.genome.behavioral.poker_strategy.value
+                            if fish.genome.behavioral.poker_strategy
+                            else None
+                        ),
+                    }
+                )
 
             # Create benchmark series with multiple fish
             game_id = str(uuid.uuid4())
@@ -354,22 +373,24 @@ class CommandHandlerMixin:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
             return self._create_error_response(f"Failed to run benchmark series: {str(e)}")
 
-    def _cmd_set_plant_energy_input(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_set_plant_energy_input(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Handle 'set_plant_energy_input' command.
-        
+
         Adjusts the runtime plant energy input rate (minimum energy gain per frame).
-        
+
         Args:
             data: Dictionary with 'rate' key (float, 0.0-1.0 suggested range)
         """
         if not data or "rate" not in data:
             return self._create_error_response("Missing 'rate' parameter")
-        
+
         rate = float(data["rate"])
-        
+
         # Clamp to reasonable range (0.0 to 2.0)
         rate = max(0.0, min(2.0, rate))
-        
+
         # Access the simulation config through the world's engine
         if hasattr(self.world, "engine") and hasattr(self.world.engine, "config"):
             config = self.world.engine.config
@@ -383,5 +404,5 @@ class CommandHandlerMixin:
                 config.plant.plant_energy_input_rate = rate
                 logger.info(f"Plant energy input rate set to {rate:.3f}")
                 return {"success": True, "rate": rate}
-        
+
         return self._create_error_response("Could not access plant configuration")

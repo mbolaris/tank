@@ -147,14 +147,18 @@ class TankSnapshotBuilder:
                 if hasattr(entity, "genome"):
                     genome_data = {
                         "speed": round(entity.genome.speed_modifier, 2),
-                        "size": round(entity._lifecycle_component.size, 2),  # Includes baby stage growth
+                        "size": round(
+                            entity._lifecycle_component.size, 2
+                        ),  # Includes baby stage growth
                         "color_hue": round(entity.genome.physical.color_hue.value, 3),
                         "template_id": entity.genome.physical.template_id.value,
                         "fin_size": round(entity.genome.physical.fin_size.value, 2),
                         "tail_size": round(entity.genome.physical.tail_size.value, 2),
                         "body_aspect": round(entity.genome.physical.body_aspect.value, 2),
                         "eye_size": round(entity.genome.physical.eye_size.value, 2),
-                        "pattern_intensity": round(entity.genome.physical.pattern_intensity.value, 2),
+                        "pattern_intensity": round(
+                            entity.genome.physical.pattern_intensity.value, 2
+                        ),
                         "pattern_type": entity.genome.physical.pattern_type.value,
                     }
 
@@ -182,16 +186,24 @@ class TankSnapshotBuilder:
                     age=entity._lifecycle_component.age,
                     species=species_label,
                     genome_data=genome_data,
-                    poker_effect_state=entity.visual_state.poker_effect_state
-                    if hasattr(entity, "visual_state")
-                    else None,
-                    birth_effect_timer=entity.visual_state.birth_effect_timer
-                    if hasattr(entity, "visual_state")
-                    else 0,
-                    death_effect_state=entity.visual_state.death_effect_state
-                    if hasattr(entity, "visual_state")
-                    else None,
-                    max_energy=round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100.0,
+                    poker_effect_state=(
+                        entity.visual_state.poker_effect_state
+                        if hasattr(entity, "visual_state")
+                        else None
+                    ),
+                    birth_effect_timer=(
+                        entity.visual_state.birth_effect_timer
+                        if hasattr(entity, "visual_state")
+                        else 0
+                    ),
+                    death_effect_state=(
+                        entity.visual_state.death_effect_state
+                        if hasattr(entity, "visual_state")
+                        else None
+                    ),
+                    max_energy=(
+                        round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100.0
+                    ),
                     **base_data,
                 )
 
@@ -275,24 +287,32 @@ class TankSnapshotBuilder:
                 return EntitySnapshot(
                     type="plant",
                     energy=round(entity.energy, 1) if hasattr(entity, "energy") else 0,
-                    max_energy=round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100,
+                    max_energy=(
+                        round(entity.max_energy, 1) if hasattr(entity, "max_energy") else 100
+                    ),
                     genome=genome_dict,
-                    size_multiplier=entity.get_size_multiplier()
-                    if hasattr(entity, "get_size_multiplier")
-                    else 1.0,
-                    iterations=entity.get_fractal_iterations()
-                    if hasattr(entity, "get_fractal_iterations")
-                    else 3,
-                    nectar_ready=entity.nectar_cooldown == 0
-                    and entity.energy >= 50.0
-                    and entity.energy / entity.max_energy >= 0.90
-                    if hasattr(entity, "nectar_cooldown")
-                    else False,
+                    size_multiplier=(
+                        entity.get_size_multiplier()
+                        if hasattr(entity, "get_size_multiplier")
+                        else 1.0
+                    ),
+                    iterations=(
+                        entity.get_fractal_iterations()
+                        if hasattr(entity, "get_fractal_iterations")
+                        else 3
+                    ),
+                    nectar_ready=(
+                        entity.nectar_cooldown == 0
+                        and entity.energy >= 50.0
+                        and entity.energy / entity.max_energy >= 0.90
+                        if hasattr(entity, "nectar_cooldown")
+                        else False
+                    ),
                     age=entity.age if hasattr(entity, "age") else 0,
                     plant_type=2,  # Mark as fractal-capable for backward compat if needed
-                    poker_effect_state=entity.poker_effect_state
-                    if hasattr(entity, "poker_effect_state")
-                    else None,
+                    poker_effect_state=(
+                        entity.poker_effect_state if hasattr(entity, "poker_effect_state") else None
+                    ),
                     **base_data,
                 )
 

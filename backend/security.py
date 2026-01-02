@@ -23,14 +23,12 @@ RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))  # requests pe
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in seconds
 
 # Whitelist for internal/development IPs
-IP_WHITELIST = set(
-    filter(None, os.getenv("IP_WHITELIST", "127.0.0.1,::1").split(","))
-)
+IP_WHITELIST = set(filter(None, os.getenv("IP_WHITELIST", "127.0.0.1,::1").split(",")))
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple in-memory rate limiting middleware.
-    
+
     For production with multiple workers, use Redis-based rate limiting instead.
     """
 
@@ -141,7 +139,7 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
 
 def setup_security_middleware(app, enable_rate_limiting: bool = True):
     """Setup all security middleware for the FastAPI app.
-    
+
     Args:
         app: FastAPI application instance
         enable_rate_limiting: Whether to enable rate limiting
@@ -161,7 +159,7 @@ def setup_security_middleware(app, enable_rate_limiting: bool = True):
 # Decorator for endpoint-specific rate limiting
 def rate_limit(max_requests: int = 10, window_seconds: int = 60):
     """Decorator for endpoint-specific rate limiting.
-    
+
     Usage:
         @app.get("/api/expensive-operation")
         @rate_limit(max_requests=5, window_seconds=60)
@@ -206,6 +204,7 @@ def rate_limit(max_requests: int = 10, window_seconds: int = 60):
             return await func(request, *args, **kwargs)
 
         return wrapper
+
     return decorator
 
 

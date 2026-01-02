@@ -35,11 +35,13 @@ def setup_crud_subrouter(
     async def list_tanks(include_private: bool = False):
         """List all tanks in the registry."""
         tanks = tank_registry.list_tanks(include_private=include_private)
-        return JSONResponse({
-            "tanks": tanks,
-            "count": len(tanks),
-            "default_tank_id": tank_registry.default_tank_id,
-        })
+        return JSONResponse(
+            {
+                "tanks": tanks,
+                "count": len(tanks),
+                "default_tank_id": tank_registry.default_tank_id,
+            }
+        )
 
     @router.post("")
     async def create_tank(
@@ -75,7 +77,7 @@ def setup_crud_subrouter(
             )
 
             # Inject connection manager and tank registry for migrations
-            if hasattr(tank_registry, '_connection_manager'):
+            if hasattr(tank_registry, "_connection_manager"):
                 manager.runner.connection_manager = tank_registry._connection_manager
             manager.runner.tank_registry = tank_registry
             manager.runner.tank_id = manager.tank_id
@@ -87,7 +89,9 @@ def setup_crud_subrouter(
             # Start broadcast task for the new tank
             await start_broadcast_callback(manager)
 
-            logger.info(f"Created new tank via API: {manager.tank_id[:8]} ({name}) on server {server_id_param}")
+            logger.info(
+                f"Created new tank via API: {manager.tank_id[:8]} ({name}) on server {server_id_param}"
+            )
 
             return JSONResponse(manager.get_status(), status_code=201)
         except Exception as e:

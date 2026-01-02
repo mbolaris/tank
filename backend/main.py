@@ -3,6 +3,7 @@
 This module initializes the application using the factory pattern.
 It serves as the entry point for uvicorn.
 """
+
 import os
 
 import uvicorn
@@ -30,7 +31,7 @@ def main() -> None:
         reload=not is_production,
         log_level="info",
         # Use safe defaults for loop policy on Windows
-        loop="asyncio" if os.name == "nt" else "auto"
+        loop="asyncio" if os.name == "nt" else "auto",
     )
 
 

@@ -80,8 +80,12 @@ def build_base_stats(
         "plant_count": stats.get("plant_count", 0),
         "fps": round(fps, 1),
         "fast_forward": fast_forward,
-        "total_sexual_births": stats.get("reproduction_stats", {}).get("total_sexual_reproductions", 0),
-        "total_asexual_births": stats.get("reproduction_stats", {}).get("total_asexual_reproductions", 0),
+        "total_sexual_births": stats.get("reproduction_stats", {}).get(
+            "total_sexual_reproductions", 0
+        ),
+        "total_asexual_births": stats.get("reproduction_stats", {}).get(
+            "total_asexual_reproductions", 0
+        ),
     }
 
 
@@ -221,13 +225,23 @@ def build_meta_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
     """Build meta stats (mutation rate, strength, HGT) dictionary."""
     meta_stats = {}
     traits = [
-        "adult_size", "eye_size", "fin_size", "tail_size",
-        "body_aspect", "template_id", "pattern_type",
-        "pattern_intensity", "lifespan_modifier"
+        "adult_size",
+        "eye_size",
+        "fin_size",
+        "tail_size",
+        "body_aspect",
+        "template_id",
+        "pattern_type",
+        "pattern_intensity",
+        "lifespan_modifier",
     ]
     meta_fields = [
-        "mut_rate_mean", "mut_rate_std", "mut_strength_mean",
-        "mut_strength_std", "hgt_prob_mean", "hgt_prob_std"
+        "mut_rate_mean",
+        "mut_rate_std",
+        "mut_strength_mean",
+        "mut_strength_std",
+        "hgt_prob_mean",
+        "hgt_prob_std",
     ]
     for trait in traits:
         for meta in meta_fields:

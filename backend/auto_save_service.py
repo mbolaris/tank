@@ -79,10 +79,7 @@ class AutoSaveService:
             logger.warning(f"Auto-save task already exists for tank {tank_id[:8]}")
             return
 
-        task = asyncio.create_task(
-            self._autosave_loop(manager),
-            name=f"autosave_{tank_id[:8]}"
-        )
+        task = asyncio.create_task(self._autosave_loop(manager), name=f"autosave_{tank_id[:8]}")
         self._tasks[tank_id] = task
         logger.info(
             f"Started auto-save for tank {tank_id[:8]} "
@@ -133,9 +130,7 @@ class AutoSaveService:
                         )
 
                         if snapshot_path:
-                            logger.info(
-                                f"Auto-saved tank {tank_id[:8]} to {snapshot_path}"
-                            )
+                            logger.info(f"Auto-saved tank {tank_id[:8]} to {snapshot_path}")
 
                             # Cleanup old snapshots (keep last 10)
                             # Also run in executor as it involves file I/O
@@ -149,12 +144,13 @@ class AutoSaveService:
                         else:
                             logger.error(f"Auto-save failed for tank {tank_id[:8]}")
                     else:
-                        logger.warning(f"Could not capture state for auto-save of tank {tank_id[:8]}")
+                        logger.warning(
+                            f"Could not capture state for auto-save of tank {tank_id[:8]}"
+                        )
 
                 except Exception as e:
                     logger.error(
-                        f"Error during auto-save for tank {tank_id[:8]}: {e}",
-                        exc_info=True
+                        f"Error during auto-save for tank {tank_id[:8]}: {e}", exc_info=True
                     )
 
         except asyncio.CancelledError:
@@ -162,8 +158,7 @@ class AutoSaveService:
             raise
         except Exception as e:
             logger.error(
-                f"Fatal error in auto-save loop for tank {tank_id[:8]}: {e}",
-                exc_info=True
+                f"Fatal error in auto-save loop for tank {tank_id[:8]}: {e}", exc_info=True
             )
 
     async def save_tank_now(self, tank_id: str) -> Optional[str]:
@@ -196,9 +191,7 @@ class AutoSaveService:
 
                 if snapshot_path:
                     logger.info(f"Manual save completed for tank {tank_id[:8]}")
-                    await loop.run_in_executor(
-                        None, cleanup_old_snapshots, tank_id, 10
-                    )
+                    await loop.run_in_executor(None, cleanup_old_snapshots, tank_id, 10)
                     return snapshot_path
                 else:
                     logger.error(f"Manual save failed for tank {tank_id[:8]}")

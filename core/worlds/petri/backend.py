@@ -21,15 +21,11 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         config: Any | None = None,
         **config_overrides: Any,
     ) -> None:
-        self._tank_backend = TankWorldBackendAdapter(
-            seed=seed, config=config, **config_overrides
-        )
+        self._tank_backend = TankWorldBackendAdapter(seed=seed, config=config, **config_overrides)
         self.supports_fast_step = True
         self._last_step_result: StepResult | None = None
 
-    def reset(
-        self, seed: int | None = None, config: dict[str, Any] | None = None
-    ) -> StepResult:
+    def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         from core.worlds.petri.pack import PetriPack
 
         # Create a PetriPack from current config or provided overrides
@@ -143,4 +139,3 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def restore_state_from_save(self, state: dict[str, Any]) -> None:
         """Restore world state from a saved snapshot (protocol method)."""
         self._tank_backend.restore_state_from_save(state)
-

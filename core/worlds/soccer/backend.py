@@ -546,4 +546,3 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         Soccer matches are ephemeral and don't support restoration.
         """
         pass
-

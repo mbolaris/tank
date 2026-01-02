@@ -129,10 +129,12 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             List of world statuses
         """
         worlds = world_manager.list_worlds(world_type=world_type)
-        return JSONResponse({
-            "worlds": [w.to_dict() for w in worlds],
-            "count": len(worlds),
-        })
+        return JSONResponse(
+            {
+                "worlds": [w.to_dict() for w in worlds],
+                "count": len(worlds),
+            }
+        )
 
     @router.get("/{world_id}")
     async def get_world(world_id: str):
@@ -148,17 +150,19 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
         if instance is None:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
-        return JSONResponse({
-            "world_id": instance.world_id,
-            "world_type": instance.world_type,
-            "mode_id": instance.mode_id,
-            "name": instance.name,
-            "view_mode": instance.view_mode,
-            "persistent": instance.persistent,
-            "frame_count": instance.runner.frame_count,
-            "paused": instance.runner.paused,
-            "description": instance.description,
-        })
+        return JSONResponse(
+            {
+                "world_id": instance.world_id,
+                "world_type": instance.world_type,
+                "mode_id": instance.mode_id,
+                "name": instance.name,
+                "view_mode": instance.view_mode,
+                "persistent": instance.persistent,
+                "frame_count": instance.runner.frame_count,
+                "paused": instance.runner.paused,
+                "description": instance.description,
+            }
+        )
 
     @router.delete("/{world_id}")
     async def delete_world(world_id: str):
@@ -188,10 +192,12 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
         """
         if world_manager.step_world(world_id, actions):
             instance = world_manager.get_world(world_id)
-            return JSONResponse({
-                "world_id": world_id,
-                "frame_count": instance.runner.frame_count if instance else 0,
-            })
+            return JSONResponse(
+                {
+                    "world_id": world_id,
+                    "frame_count": instance.runner.frame_count if instance else 0,
+                }
+            )
         else:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 

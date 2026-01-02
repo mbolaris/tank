@@ -161,6 +161,7 @@ class AutoEvaluateStats(BaseModel):
 
 class StatsData(BaseModel):
     """Ecosystem statistics."""
+
     model_config = ConfigDict(extra="allow")
 
     frame: int

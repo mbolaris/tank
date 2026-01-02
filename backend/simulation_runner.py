@@ -140,8 +140,11 @@ class SimulationRunner(CommandHandlerMixin):
             from core.poker.evaluation.evolution_benchmark_tracker import (
                 EvolutionBenchmarkTracker,
             )
+
             self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
-                eval_interval_frames=int(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "27000")),
+                eval_interval_frames=int(
+                    os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_FRAMES", "27000")
+                ),
                 export_path=self._get_evolution_benchmark_export_path(),
                 use_quick_benchmark=True,
             )
@@ -190,7 +193,7 @@ class SimulationRunner(CommandHandlerMixin):
 
     def _update_environment_migration_context(self) -> None:
         """Update the environment with current migration context."""
-        if hasattr(self.world, 'engine') and hasattr(self.world.engine, 'environment'):
+        if hasattr(self.world, "engine") and hasattr(self.world.engine, "environment"):
             env = self.world.engine.environment
             if env:
                 env.connection_manager = self.connection_manager
@@ -225,7 +228,9 @@ class SimulationRunner(CommandHandlerMixin):
             else:
                 logger.warning("Cannot update migration context: environment is None")
         else:
-            logger.warning("Cannot update migration context: world.engine or world.engine.environment not found")
+            logger.warning(
+                "Cannot update migration context: world.engine or world.engine.environment not found"
+            )
 
     def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
         """Create a standardized error response.
@@ -264,7 +269,9 @@ class SimulationRunner(CommandHandlerMixin):
 
         return self.world.engine
 
-    def _create_fish_player_data(self, fish: Fish, include_aggression: bool = False) -> Dict[str, Any]:
+    def _create_fish_player_data(
+        self, fish: Fish, include_aggression: bool = False
+    ) -> Dict[str, Any]:
         """Create fish player data dictionary.
 
         Args:
@@ -275,16 +282,19 @@ class SimulationRunner(CommandHandlerMixin):
             Dictionary with fish player data
         """
         from core.serializers import FishSerializer
+
         return FishSerializer.to_player_data(fish, include_aggression)
 
     def _create_plant_player_data(self, plant: Plant) -> Dict[str, Any]:
         """Create benchmark player metadata for a plant."""
         from core.serializers import PlantSerializer
+
         return PlantSerializer.to_player_data(plant)
 
     def _get_fish_genome_data(self, fish: Fish) -> Optional[Dict[str, Any]]:
         """Extract visual genome data for a fish to mirror tank rendering."""
         from core.serializers import FishSerializer
+
         return FishSerializer.to_genome_data(fish)
 
     def start(self, start_paused: bool = False):
@@ -358,7 +368,9 @@ class SimulationRunner(CommandHandlerMixin):
                     self.fps_frame_count += 1
                     current_time = time.time()
                     if current_time - self.last_fps_time >= 5.0:
-                        self.current_actual_fps = self.fps_frame_count / (current_time - self.last_fps_time)
+                        self.current_actual_fps = self.fps_frame_count / (
+                            current_time - self.last_fps_time
+                        )
                         self.fps_frame_count = 0
                         self.last_fps_time = current_time
                         # Log stats periodically
@@ -381,9 +393,9 @@ class SimulationRunner(CommandHandlerMixin):
 
                         tank_label = self.tank_name or self.tank_id or "Unknown Tank"
 
-
                         # Get migration counts since last report
                         from backend.transfer_history import get_and_reset_migration_counts
+
                         migrations_in, migrations_out = get_and_reset_migration_counts(self.tank_id)
                         migration_str = ""
                         if migrations_in > 0 or migrations_out > 0:
@@ -438,7 +450,10 @@ class SimulationRunner(CommandHandlerMixin):
                         time.sleep(0)
 
                 except Exception as e:
-                    logger.error(f"Simulation loop: Unexpected error at frame {loop_iteration_count}: {e}", exc_info=True)
+                    logger.error(
+                        f"Simulation loop: Unexpected error at frame {loop_iteration_count}: {e}",
+                        exc_info=True,
+                    )
                     # Use simple sleep on error to prevent tight loops
                     time.sleep(self.frame_time)
                     # Reset timing target after error recovery
@@ -478,7 +493,9 @@ class SimulationRunner(CommandHandlerMixin):
 
         interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
         now = time.time()
-        last_completed = float(getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0)
+        last_completed = float(
+            getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0
+        )
         if now - last_completed < interval_seconds:
             return
 
@@ -503,7 +520,9 @@ class SimulationRunner(CommandHandlerMixin):
                                 if actual_gain > 0 and fish.ecosystem is not None:
                                     # We reuse the auto_eval metric for tracking
                                     fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
-                                logger.info(f"Benchmark Reward: Fish #{fish.fish_id} ({getattr(fish, 'generation', 0)}) gained {actual_gain:.1f} energy")
+                                logger.info(
+                                    f"Benchmark Reward: Fish #{fish.fish_id} ({getattr(fish, 'generation', 0)}) gained {actual_gain:.1f} energy"
+                                )
 
                     tracker.run_and_record(
                         fish_population=fish_list,
@@ -530,8 +549,6 @@ class SimulationRunner(CommandHandlerMixin):
     # Original _run_auto_evaluation and _reward_auto_eval_winners are removed
     # as they are now handled by the AutoEvalService.
 
-
-
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
 
@@ -548,7 +565,11 @@ class SimulationRunner(CommandHandlerMixin):
         # Check if we can access the engine's elapsed_time directly or via adapter
         if hasattr(self.world, "engine") and hasattr(self.world.engine, "elapsed_time"):
             elapsed_time = self.world.engine.elapsed_time
-        elif hasattr(self.world, "world") and hasattr(self.world.world, "engine") and hasattr(self.world.world.engine, "elapsed_time"):
+        elif (
+            hasattr(self.world, "world")
+            and hasattr(self.world.world, "engine")
+            and hasattr(self.world.world.engine, "elapsed_time")
+        ):
             # Handle TankWorldBackendAdapter
             elapsed_time = self.world.world.engine.elapsed_time
 
@@ -603,9 +624,7 @@ class SimulationRunner(CommandHandlerMixin):
             )
 
             start_stats = time.perf_counter()
-            stats = self._collect_stats(
-                current_frame, include_distributions=include_distributions
-            )
+            stats = self._collect_stats(current_frame, include_distributions=include_distributions)
             if self._enable_perf_logging:
                 duration_ms = (time.perf_counter() - start_stats) * 1000
                 mst = self._perf_stats["stats"]
@@ -638,14 +657,14 @@ class SimulationRunner(CommandHandlerMixin):
                 self._last_entities = {e.id: e for e in entity_snapshots}
 
                 state = FullStatePayload(
-                    frame=current_frame, # Using current_frame as self.world.step_count
-                    elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
+                    frame=current_frame,  # Using current_frame as self.world.step_count
+                    elapsed_time=elapsed_time,  # Using elapsed_time as self.world.time
                     entities=entity_snapshots,
                     stats=stats,
-                    poker_events=poker_events, # Include events in full update
-                    auto_evaluation=self._collect_auto_eval(), # Re-using existing _collect_auto_eval
+                    poker_events=poker_events,  # Include events in full update
+                    auto_evaluation=self._collect_auto_eval(),  # Re-using existing _collect_auto_eval
                     tank_id=self.tank_id,
-                    poker_leaderboard=self._collect_poker_leaderboard(), # Re-using existing _collect_poker_leaderboard
+                    poker_leaderboard=self._collect_poker_leaderboard(),  # Re-using existing _collect_poker_leaderboard
                     mode_id=self.mode_id,
                     world_type=self.world_type,
                     view_mode=self.view_mode,
@@ -659,13 +678,17 @@ class SimulationRunner(CommandHandlerMixin):
                 # Frontend will persist the last known list.
 
                 current_entities = {entity.id: entity for entity in entity_snapshots}
-                added = [entity.to_full_dict() for eid, entity in current_entities.items() if eid not in self._last_entities]
+                added = [
+                    entity.to_full_dict()
+                    for eid, entity in current_entities.items()
+                    if eid not in self._last_entities
+                ]
                 removed = [eid for eid in self._last_entities if eid not in current_entities]
                 updates = [entity.to_delta_dict() for entity in entity_snapshots]
 
                 state = DeltaStatePayload(
-                    frame=current_frame, # Using current_frame as self.world.step_count
-                    elapsed_time=elapsed_time, # Using elapsed_time as self.world.time
+                    frame=current_frame,  # Using current_frame as self.world.step_count
+                    elapsed_time=elapsed_time,  # Using elapsed_time as self.world.time
                     updates=updates,
                     added=added,
                     removed=removed,
@@ -688,9 +711,7 @@ class SimulationRunner(CommandHandlerMixin):
         """Async wrapper to fetch simulation state without blocking the event loop."""
 
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None, self.get_state, force_full, allow_delta
-        )
+        return await loop.run_in_executor(None, self.get_state, force_full, allow_delta)
 
     def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
         """Serialize a state payload with fast JSON and log slow frames."""
@@ -778,7 +799,9 @@ class SimulationRunner(CommandHandlerMixin):
                 poker_score = latest.confidence_vs_strong
             history = self.evolution_benchmark_tracker.get_history()
             if history:
-                valid_scores = [s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None]
+                valid_scores = [
+                    s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None
+                ]
                 poker_score_history = valid_scores[-20:]
 
         # Get Poker Elo from evolution benchmark tracker
@@ -875,9 +898,6 @@ class SimulationRunner(CommandHandlerMixin):
 
         return self._entity_snapshot_builder.to_snapshot(entity)
 
-
-
-
     def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None):
         """Handle a command from the client.
 
@@ -898,9 +918,7 @@ class SimulationRunner(CommandHandlerMixin):
             "set_plant_energy_input",
         }
         if self.world_type != "tank" and command in tank_only_commands:
-            return self._create_error_response(
-                f"Unsupported for world_type={self.world_type}"
-            )
+            return self._create_error_response(f"Unsupported for world_type={self.world_type}")
 
         handlers = {
             "add_food": self._cmd_add_food,
@@ -927,9 +945,7 @@ class SimulationRunner(CommandHandlerMixin):
             logger.warning(f"Unknown command received: {command}")
             return self._create_error_response(f"Unknown command: {command}")
 
-    async def handle_command_async(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ):
+    async def handle_command_async(self, command: str, data: Optional[Dict[str, Any]] = None):
         """Async wrapper to route commands off the event loop thread."""
 
         loop = asyncio.get_running_loop()

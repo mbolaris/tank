@@ -294,9 +294,7 @@ class TankRegistry:
                 if deleted:
                     logger.info("Deleted persisted data for tank: %s", tank_id)
             except Exception as e:
-                logger.warning(
-                    "Failed to delete persisted data for tank %s: %s", tank_id, e
-                )
+                logger.warning("Failed to delete persisted data for tank %s: %s", tank_id, e)
 
         logger.info("Removed tank: %s", tank_id)
         return True
@@ -382,7 +380,9 @@ class TankRegistry:
             manager.runner.set_tank_identity(tank_id=tank_id, tank_name=metadata.get("name"))
         except Exception:
             # Restoration should still succeed even if runner identity update fails
-            logger.exception("Failed to update runner tank identity during restore for %s", tank_id[:8])
+            logger.exception(
+                "Failed to update runner tank identity during restore for %s", tank_id[:8]
+            )
 
         # Initialize world backend to ensure engine and RNG are available for restoration
         if hasattr(manager.world, "setup"):
@@ -508,15 +508,10 @@ class TankRegistry:
                         if remote_tanks:
                             # Filter private tanks if needed
                             if not include_private:
-                                remote_tanks = [
-                                    t for t in remote_tanks
-                                    if t.get("is_public", True)
-                                ]
+                                remote_tanks = [t for t in remote_tanks if t.get("is_public", True)]
                             result[server.server_id] = remote_tanks
                     except Exception as e:
-                        logger.error(
-                            f"Error fetching tanks from {server.server_id}: {e}"
-                        )
+                        logger.error(f"Error fetching tanks from {server.server_id}: {e}")
 
             except Exception as e:
                 logger.error(f"Error listing distributed tanks: {e}")

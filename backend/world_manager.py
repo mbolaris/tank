@@ -426,6 +426,7 @@ class WorldManager:
         instance = self.get_world(world_id)
         if instance is not None and instance.is_tank():
             from backend.tank_world_adapter import TankWorldAdapter
+
             if isinstance(instance.runner, TankWorldAdapter):
                 return instance.runner
         return None
@@ -560,6 +561,7 @@ class WorldManager:
         # Tank worlds have their own capture method
         if instance.is_tank():
             from backend.tank_world_adapter import TankWorldAdapter
+
             if isinstance(instance.runner, TankWorldAdapter):
                 return instance.runner.capture_state_for_save()
 

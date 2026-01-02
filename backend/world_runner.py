@@ -88,7 +88,7 @@ class WorldRunner:
     @property
     def paused(self) -> bool:
         """Whether the world is paused.
-        
+
         Uses the protocol's is_paused property for world-agnostic access.
         """
         return self.world.is_paused
@@ -96,7 +96,7 @@ class WorldRunner:
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set the world's paused state.
-        
+
         Uses the protocol's set_paused method for world-agnostic access.
         """
         self.world.set_paused(value)
@@ -104,7 +104,7 @@ class WorldRunner:
     @property
     def entities_list(self) -> List[Any]:
         """Get all entities from the world.
-        
+
         Uses the protocol's get_entities_for_snapshot method.
         Prefer using get_entities_snapshot() for frontend rendering.
         """
@@ -180,7 +180,7 @@ class WorldRunner:
     @property
     def last_step_result(self) -> Optional[StepResult]:
         """Get the last StepResult from reset() or step().
-        
+
         Returns:
             The most recent StepResult, or None if never reset/stepped
         """
