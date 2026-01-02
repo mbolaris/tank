@@ -7,7 +7,7 @@ logic for the standard fish tank simulation.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from core import environment
 from core.config.simulation_config import SimulationConfig
@@ -117,7 +117,7 @@ class TankPack(SystemPack):
             engine.plant_manager.create_initial_plants(engine._entity_manager.entities_list)
             engine._apply_entity_mutations("setup_plants")
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """Return Tank-specific metadata."""
         return {
             "world_type": "tank",

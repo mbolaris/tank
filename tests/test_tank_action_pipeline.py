@@ -114,8 +114,6 @@ class TestSnapshotBackwardCompat:
         for _ in range(50):
             adapter.step()
 
-        frame_before_reset = adapter.frame_count
-
         # Reset and run again (simulates loading a snapshot)
         adapter.reset(seed=42)
         assert adapter.frame_count == 0

@@ -13,7 +13,7 @@ Design Notes:
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 from core.sim.contracts import Action, ActionMap, ObservationMap
 
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 def decide_actions(
     observations: ObservationMap,
     world: TankWorld,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> ActionMap:
     """Call existing fish decision path and translate to Actions.
 
@@ -49,7 +49,7 @@ def decide_actions(
     actions: ActionMap = {}
 
     # Build fish lookup by ID for efficient access
-    fish_by_id: Dict[str, Fish] = {}
+    fish_by_id: dict[str, Fish] = {}
     from core.entities import Fish
 
     for entity in world.entities_list:
@@ -92,7 +92,7 @@ def apply_actions(
     from core.entities import Fish
 
     # Build fish lookup
-    fish_by_id: Dict[str, Fish] = {}
+    fish_by_id: dict[str, Fish] = {}
     for entity in world.entities_list:
         if isinstance(entity, Fish) and not entity.is_dead():
             fish_by_id[str(entity.fish_id)] = entity

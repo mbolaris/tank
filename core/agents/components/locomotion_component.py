@@ -6,7 +6,7 @@ and energy costs associated with locomotion.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from core.math_utils import Vector2
@@ -26,19 +26,19 @@ class LocomotionComponent:
 
     def __init__(self) -> None:
         """Initialize locomotion component."""
-        self._last_direction: Optional[Vector2] = None
+        self._last_direction: Vector2 | None = None
 
     @property
-    def last_direction(self) -> Optional[Vector2]:
+    def last_direction(self) -> Vector2 | None:
         """Get the last recorded movement direction."""
         return self._last_direction
 
     @last_direction.setter
-    def last_direction(self, value: Optional[Vector2]) -> None:
+    def last_direction(self, value: Vector2 | None) -> None:
         """Set the last movement direction."""
         self._last_direction = value
 
-    def update_direction(self, velocity: Vector2) -> Optional[Vector2]:
+    def update_direction(self, velocity: Vector2) -> Vector2 | None:
         """Update direction tracking from current velocity.
 
         Args:
@@ -58,8 +58,8 @@ class LocomotionComponent:
 
     def calculate_turn_cost(
         self,
-        previous_direction: Optional[Vector2],
-        new_direction: Optional[Vector2],
+        previous_direction: Vector2 | None,
+        new_direction: Vector2 | None,
         size: float,
         base_cost: float,
         size_multiplier: float,
@@ -103,11 +103,11 @@ class LocomotionComponent:
         self,
         pos: Vector2,
         vel: Vector2,
-        bounds: Tuple[Tuple[float, float], Tuple[float, float]],
-        visual_offsets: Tuple[float, float, float, float],
+        bounds: tuple[tuple[float, float], tuple[float, float]],
+        visual_offsets: tuple[float, float, float, float],
         top_margin: float = 0.0,
-        attempt_migration: Optional[Callable[[str], bool]] = None,
-    ) -> Tuple[bool, str]:
+        attempt_migration: Callable[[str], bool] | None = None,
+    ) -> tuple[bool, str]:
         """Handle agent hitting screen/world boundaries.
 
         Args:
