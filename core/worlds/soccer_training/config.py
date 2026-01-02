@@ -66,6 +66,11 @@ class SoccerTrainingConfig:
 
     headless: bool = True
 
+    @property
+    def physics_timestep(self) -> float:
+        """Compute physics timestep from frame rate."""
+        return 1.0 / self.frame_rate
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "field_width": self.field_width,

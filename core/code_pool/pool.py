@@ -63,6 +63,10 @@ class CodePool:
         entrypoint: str = "policy",
         metadata: dict[str, Any] | None = None,
     ) -> str:
+        # Validate source before storing - fail fast on unsafe code
+        from .safety import SafetyConfig, validate_source_safety
+        validate_source_safety(source, SafetyConfig())
+        
         component_id = str(uuid.uuid4())
         component = CodeComponent(
             component_id=component_id,

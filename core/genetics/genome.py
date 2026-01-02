@@ -136,6 +136,7 @@ class Genome:
         )
 
         # Validate code policy fields only if they exist
+        cp_kind = None
         if (
             self.behavioral.code_policy_kind is not None
             and self.behavioral.code_policy_kind.value is not None

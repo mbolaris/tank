@@ -170,8 +170,11 @@ def validate_source_safety(source: str, config: SafetyConfig) -> None:
         SourceTooLongError: If source is too long
         ASTTooComplexError: If AST is too complex
         NestingTooDeepError: If nesting is too deep
-        ValidationError: If source has syntax errors
+        ValidationError: If source has syntax errors or disallowed constructs
     """
+    # Import here to avoid circular imports
+    from .sandbox import ASTValidator
+
     # Check source length
     if len(source) > config.max_source_length:
         raise SourceTooLongError(
@@ -184,6 +187,10 @@ def validate_source_safety(source: str, config: SafetyConfig) -> None:
     except SyntaxError as exc:
         raise ValidationError(f"Syntax error: {exc.msg}") from exc
 
+    # Validate AST against safety rules (imports, loops, etc.)
+    ASTValidator().validate(tree)
+
+    # Check complexity limits
     checker = ASTComplexityChecker(config)
     checker.check(tree)
 

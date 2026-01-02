@@ -72,20 +72,21 @@ def test_builtin_not_serialized():
 
 
 def test_fallback_when_component_compilation_fails():
-    """Test graceful handling of broken components."""
+    """Test graceful handling of broken components.
+    
+    Now that validation happens at add_component time, this test verifies
+    that unsafe source is rejected immediately at insertion time.
+    """
     pool = CodePool()
 
-    # Add a component that will fail validation when compiled due to loop
-    component_id = pool.add_component(
-        kind="movement_policy",
-        name="Broken Policy",
-        source="def policy(obs, rng):\n    for i in range(10):\n        pass\n    return (0.0, 0.0)\n",
-        entrypoint="policy",
-    )
-
-    # Compile should raise ValidationError
+    # Add a component that will fail validation due to loop
     with pytest.raises(ValidationError):
-        pool.get_callable(component_id)
+        pool.add_component(
+            kind="movement_policy",
+            name="Broken Policy",
+            source="def policy(obs, rng):\n    for i in range(10):\n        pass\n    return (0.0, 0.0)\n",
+            entrypoint="policy",
+        )
 
 
 def test_determinism_compilation_no_global_state():

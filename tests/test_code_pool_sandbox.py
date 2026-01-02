@@ -31,9 +31,15 @@ def _make_component(source: str) -> tuple[CodePool, str]:
     ],
 )
 def test_rejects_imports_exec_eval_open_and_dunder(source: str) -> None:
-    pool, component_id = _make_component(source)
+    """Test that dangerous code is rejected at add_component time."""
+    pool = CodePool()
     with pytest.raises(ValidationError):
-        pool.compile(component_id)
+        pool.add_component(
+            kind="test_policy",
+            name="Test Policy",
+            source=source,
+            entrypoint="policy",
+        )
 
 
 @pytest.mark.parametrize(
@@ -46,9 +52,15 @@ def test_rejects_imports_exec_eval_open_and_dunder(source: str) -> None:
     ],
 )
 def test_rejects_loops_and_comprehensions(source: str) -> None:
-    pool, component_id = _make_component(source)
+    """Test that loops and comprehensions are rejected at add_component time."""
+    pool = CodePool()
     with pytest.raises(ValidationError):
-        pool.compile(component_id)
+        pool.add_component(
+            kind="test_policy",
+            name="Test Policy",
+            source=source,
+            entrypoint="policy",
+        )
 
 
 def test_allows_basic_policy() -> None:

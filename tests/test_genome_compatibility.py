@@ -41,24 +41,33 @@ def test_cache_invalidation_on_trait_change():
 # =============================================================================
 
 
-def test_code_policy_defaults_to_none():
-    """New genomes should have no code policy by default."""
+def test_code_policy_has_defaults():
+    """New genomes should have a default movement policy."""
+    from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+
     rng = random.Random(42)
     g = Genome.random(use_algorithm=False, rng=rng)
 
-    # Code policy traits exist but have None values
+    # Code policy traits exist and have default values
     assert g.behavioral.code_policy_kind is not None
-    assert g.behavioral.code_policy_kind.value is None
+    assert g.behavioral.code_policy_kind.value == "movement_policy"
 
     assert g.behavioral.code_policy_component_id is not None
-    assert g.behavioral.code_policy_component_id.value is None
+    assert g.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
+    # Params should be None by default (no tuning yet)
     assert g.behavioral.code_policy_params is not None
     assert g.behavioral.code_policy_params.value is None
 
 
 def test_old_genome_loads_without_code_policy():
-    """Old genomes (schema v1) without code policy should load correctly."""
+    """Old genomes (schema v1) without code policy get default policy assigned.
+    
+    When loading old genomes that don't have code_policy fields, the factory
+    creates a new genome with defaults, which includes the default movement policy.
+    """
+    from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+
     rng = random.Random(123)
 
     # Simulate an old genome without code policy fields
@@ -81,15 +90,15 @@ def test_old_genome_loads_without_code_policy():
         "prediction_skill": 0.5,
         "hunting_stamina": 0.5,
         "asexual_reproduction_chance": 0.1,
-        # No code_policy_* fields
+        # No code_policy_* fields - they get defaults from factory
     }
 
     # Should load without crashing
     g = Genome.from_dict(old_genome_data, rng=rng, use_algorithm=False)
 
-    # Code policy should be None
-    assert g.behavioral.code_policy_kind.value is None
-    assert g.behavioral.code_policy_component_id.value is None
+    # Code policy defaults from factory (not None)
+    assert g.behavioral.code_policy_kind.value == "movement_policy"
+    assert g.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
     assert g.behavioral.code_policy_params.value is None
 
     # Other traits should be loaded
@@ -187,31 +196,35 @@ def test_code_policy_inheritance_deterministic():
 
 
 def test_code_policy_inheritance_from_single_parent():
-    """Code policy inheritance when only one parent has it."""
-    # Parent with code policy
+    """Code policy inheritance when one parent has custom policy, other has default."""
+    from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+
+    # Parent with custom code policy
     parent1 = Genome.random(use_algorithm=False, rng=random.Random(10))
     parent1.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    parent1.behavioral.code_policy_component_id = GeneticTrait("only_parent_comp")
+    parent1.behavioral.code_policy_component_id = GeneticTrait("custom_parent_comp")
     parent1.behavioral.code_policy_params = GeneticTrait({"z": 3.0})
 
-    # Parent without code policy
+    # Parent with default code policy (from Genome.random)
     parent2 = Genome.random(use_algorithm=False, rng=random.Random(20))
-    # code_policy fields are already None by default
+    # parent2 has default: movement_policy + BUILTIN_SEEK_NEAREST_FOOD_ID
 
-    # Create multiple offspring to check probability
-    inherited_count = 0
+    # Create multiple offspring to check probability distribution
+    custom_count = 0
+    default_count = 0
     total = 100
     for i in range(total):
         rng = random.Random(1000 + i)
         child = Genome.from_parents_weighted(parent1, parent2, parent1_weight=0.5, rng=rng)
         if child.behavioral.code_policy_component_id.value is not None:
-            inherited_count += 1
-            # If inherited, should be from parent1
-            assert child.behavioral.code_policy_kind.value == "movement_policy"
-            assert child.behavioral.code_policy_component_id.value == "only_parent_comp"
+            if child.behavioral.code_policy_component_id.value == "custom_parent_comp":
+                custom_count += 1
+            elif child.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID:
+                default_count += 1
 
-    # Should inherit sometimes but not always (probabilistic)
-    assert 10 < inherited_count < 90, f"Inheritance rate {inherited_count}% seems extreme"
+    # Both policies should be inherited sometimes (probabilistic)
+    assert custom_count > 10, f"Custom policy inherited only {custom_count} times"
+    assert default_count > 10, f"Default policy inherited only {default_count} times"
 
 
 def test_code_policy_params_mutation():
