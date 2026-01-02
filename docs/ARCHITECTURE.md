@@ -24,6 +24,19 @@ Tank is an advanced artificial life (ALife) ecosystem simulation featuring param
 ```
 tank/
 |-- core/                          # Pure Python simulation (no UI dependencies)
+|   |-- agents/                    # Reusable agent components
+|   |   |-- components/            # PerceptionComponent, LocomotionComponent, FeedingComponent
+|   |   `-- petri_agent.py         # PetriMicrobeAgent stub
+|   |-- modes/                     # Mode pack definitions and rulesets
+|   |   |-- interfaces.py          # ModePack, ModePackDefinition protocols
+|   |   |-- rulesets.py            # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
+|   |   |-- tank.py, petri.py, soccer.py  # Mode configurations
+|   |-- worlds/                    # World backend implementations
+|   |   |-- interfaces.py          # MultiAgentWorldBackend, StepResult
+|   |   |-- registry.py            # WorldRegistry (factory for world backends)
+|   |   |-- tank/                  # TankWorldBackendAdapter + TankSystemPack
+|   |   |-- petri/                 # PetriWorldBackendAdapter
+|   |   `-- soccer/                # SoccerWorldBackendAdapter (pure-Python physics)
 |   |-- algorithms/                # Behavior strategy library + registry
 |   |-- entities/                  # Fish, plant, predator, and resource models
 |   |-- fish/                      # Componentized fish systems (energy, lifecycle, reproduction, poker stats)
@@ -36,12 +49,6 @@ tank/
 |   |   `-- diagnostics.py         # Stats printing/export helpers
 |   |-- systems/                   # BaseSystem + system implementations
 |   |-- config/                    # Simulation configuration modules
-|   |-- collision_system.py        # Collision detection (BaseSystem)
-|   |-- reproduction_service.py    # Central reproduction rules
-|   |-- reproduction_system.py     # Asexual + emergency reproduction (BaseSystem)
-|   |-- poker_system.py            # Poker events + history (BaseSystem)
-|   |-- time_system.py             # Day/night cycles (BaseSystem)
-|   |-- skill_game_system.py       # Skill game orchestration (optional)
 |   |-- environment.py             # Spatial queries (implements World Protocol)
 |   `-- tank_world.py              # Simulation wrapper with config + RNG
 |-- backend/                       # FastAPI WebSocket server
@@ -75,6 +82,51 @@ tank/
 - **fish_communication.py / fish_memory.py**: Shared memory and communication helpers for strategies
 - **tank_world.py**: Entry wrapper that wires config, RNG, and engine setup
 - **simulation/engine.py**: Central loop with system registry, plant management, and deterministic RNG plumbing
+
+### World Backends (core/worlds/)
+
+The codebase uses a domain-agnostic world abstraction to support multiple simulation types:
+
+- **MultiAgentWorldBackend** (`interfaces.py`): Abstract base for all world types
+  - `reset(seed, config) -> StepResult`: Initialize/reset the world
+  - `step(actions) -> StepResult`: Advance simulation by one tick
+  - `get_current_snapshot() -> Dict`: Get current state for rendering
+  - `get_current_metrics() -> Dict`: Get performance metrics
+
+- **WorldRegistry** (`registry.py`): Factory for creating worlds from mode IDs
+  - `create_world(mode_id, seed, config) -> MultiAgentWorldBackend`
+  - `list_world_types() -> List[str]`
+  - `get_mode_pack(mode_id) -> ModePack`
+
+- **Built-in backends**:
+  - `TankWorldBackendAdapter` - Fish ecosystem simulation
+  - `PetriWorldBackendAdapter` - Microbe simulation (same rules, different visuals)
+  - `SoccerWorldBackendAdapter` - Soccer RL training with pure-Python physics
+
+### Mode System (core/modes/)
+
+Modes define configuration, capabilities, and game rules:
+
+- **ModePack** (`interfaces.py`): Mode configuration protocol
+  - `mode_id`, `display_name`, `world_type`
+  - Capability flags: `supports_persistence`, `supports_actions`, `has_fish`
+  - Config normalization and defaults
+
+- **ModeRuleSet** (`rulesets.py`): Game rules abstraction
+  - `EnergyModel`: Existence cost, movement cost, overflow banking
+  - `ScoringModel`: Primary/secondary metrics, reward weights
+  - `ActionSpace`: Allowed actions, movement config
+  - Built-in: `TankRuleSet`, `PetriRuleSet`, `SoccerRuleSet`
+
+### Agent Components (core/agents/components/)
+
+Reusable components for building different agent types:
+
+- **PerceptionComponent**: Memory queries, food/danger location tracking
+- **LocomotionComponent**: Movement, turn cost calculation, boundary handling
+- **FeedingComponent**: Bite size, food consumption, nutrition tracking
+
+Example usage: `PetriMicrobeAgent` composes these components to create a simple microbe agent.
 
 ### Behavior Algorithms & Registry
 
@@ -428,5 +480,6 @@ The simulation uses **Protocols** (PEP 544) for defining interfaces:
 
 ## Change Log
 
+- **2026-01-01**: Added World Backends, Mode System, Agent Components sections. Updated project structure.
 - **2025-12-25**: Pruned stale documentation, archived historical analysis docs.
 - **2025-12-23**: Aligned architecture doc with current module layout (algorithm registry counts, system registry order, poker systems) and linked to README structure section for ongoing authority.

@@ -322,6 +322,21 @@ tank/
 |   `-- src/                 # Components, hooks, rendering utilities
 |-- core/                    # Shared simulation logic
 |   |-- tank_world.py        # Simulation wrapper with config + RNG
+|   |-- agents/              # Reusable agent components
+|   |   |-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
+|   |   `-- petri_agent.py   # PetriMicrobeAgent stub (component composition example)
+|   |-- modes/               # Mode pack definitions and rulesets
+|   |   |-- interfaces.py    # ModePack, ModePackDefinition protocols
+|   |   |-- rulesets.py      # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
+|   |   |-- tank.py          # Tank mode pack configuration
+|   |   |-- petri.py         # Petri mode pack configuration
+|   |   `-- soccer.py        # Soccer mode pack configuration
+|   |-- worlds/              # World backend implementations
+|   |   |-- interfaces.py    # MultiAgentWorldBackend, StepResult
+|   |   |-- registry.py      # WorldRegistry (factory for world backends)
+|   |   |-- tank/            # Tank world backend + system pack
+|   |   |-- petri/           # Petri world backend
+|   |   `-- soccer/          # Soccer world backend (pure-Python physics)
 |   |-- simulation/          # Engine orchestration + diagnostics
 |   |   |-- engine.py        # Simulation engine used by both modes
 |   |   |-- entity_manager.py
@@ -342,9 +357,6 @@ tank/
 |   |   |-- core/            # Card, Hand, PokerEngine
 |   |   |-- evaluation/      # Hand evaluation logic
 |   |   |-- simulation/      # Shared hand engine + simulation adapters
-|   |   |   |-- hand_engine.py
-|   |   |   |-- engine.py
-|   |   |   `-- multiplayer_engine.py
 |   |   `-- strategy/        # AI poker strategies
 |   |-- algorithms/          # Behavior algorithm library (58 strategies)
 |   |-- genetics/            # Fish/plant genome, traits, inheritance
@@ -361,6 +373,7 @@ tank/
 |-- QUICK_REFERENCE.md       # Quick command reference
 `-- README.md                # This file
 ```
+
 
 ## Web UI Controls
 
@@ -493,6 +506,9 @@ This simulation demonstrates:
 ## Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
+- [✅] **Multi-World Backend Architecture** - WorldRegistry + MultiAgentWorldBackend for Tank/Petri/Soccer worlds
+- [✅] **Mode RuleSet Abstraction** - TankRuleSet, PetriRuleSet, SoccerRuleSet with energy/scoring models
+- [✅] **Agent Component System** - PerceptionComponent, LocomotionComponent, FeedingComponent for reuse
 - [✅] **Fractal Plants with L-System Genetics** - Procedurally generated plants with genetic evolution!
 - [✅] **Plant Nectar System** - Plants produce floral nectar food with unique patterns
 - [✅] **Plant Poker** - Fish can play poker against plants for energy rewards
@@ -530,11 +546,27 @@ Potential Future Additions:
 
 The simulation uses a clean architecture with separation of concerns:
 
-- **TankWorld** (`tank_world.py`): Simulation wrapper
+- **Multi-World Backend** (`core/worlds/`): Domain-agnostic world abstraction
+  - `MultiAgentWorldBackend` interface for all world types (Tank, Petri, Soccer)
+  - `WorldRegistry` factory for creating worlds from mode IDs
+  - Each world type has its own backend adapter (e.g., `TankWorldBackendAdapter`)
+  - Enables easy addition of new world types
+
+- **Mode System** (`core/modes/`): Mode configuration and rules
+  - `ModePack` defines mode configs, display names, and capabilities
+  - `ModeRuleSet` encapsulates game rules (energy models, scoring, allowed actions)
+  - Built-in modes: Tank (fish ecosystem), Petri (microbes), Soccer (RL training)
+
+- **Agent Components** (`core/agents/components/`): Reusable agent building blocks
+  - `PerceptionComponent` - memory queries, food/danger tracking
+  - `LocomotionComponent` - movement, turn costs, boundary handling
+  - `FeedingComponent` - bite size, food consumption
+  - Enables composition of new agent types (Fish, PetriMicrobe, SoccerPlayer)
+
+- **TankWorld** (`tank_world.py`): Tank simulation wrapper
   - Clean interface for configuration management
   - Random number generator (RNG) management for deterministic behavior
   - Unified API for both headless and web modes
-  - Wraps SimulationEngine with easy-to-use controls
 
 - **Core Logic** (`core/`): Pure Python simulation engine
   - No UI dependencies (pygame removed)
@@ -555,6 +587,7 @@ The simulation uses a clean architecture with separation of concerns:
   - Real-time stats and controls
   - Responsive design
   - WebSocket connection for live updates
+
 
 ## License
 
