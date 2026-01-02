@@ -189,8 +189,9 @@ class TankWorldHooks:
                     EvolutionBenchmarkTracker,
                 )
 
+                # Write to shared benchmarks directory to avoid creating orphan tank directories
                 export_path = (
-                    Path("data") / "tanks" / runner.tank_id / "poker_evolution_benchmark.json"
+                    Path("data") / "benchmarks" / f"poker_evolution_{runner.tank_id[:8]}.json"
                 )
                 self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
                     eval_interval_frames=int(
@@ -227,7 +228,8 @@ class TankWorldHooks:
         if self.evolution_benchmark_tracker is not None:
             from pathlib import Path
 
-            export_path = Path("data") / "tanks" / runner.tank_id / "poker_evolution_benchmark.json"
+            # Write to shared benchmarks directory to avoid creating orphan tank directories
+            export_path = Path("data") / "benchmarks" / f"poker_evolution_{runner.tank_id[:8]}.json"
             self.evolution_benchmark_tracker.export_path = export_path
 
     # =========================================================================

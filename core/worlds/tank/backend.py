@@ -153,6 +153,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return []
         return self._world.entities_list
 
+    @property
+    def world_type(self) -> str:
+        """The world type identifier (protocol method)."""
+        return "tank"
+
     def setup(self) -> None:
         """Initialize the world using the backend reset."""
         self.reset(seed=self._seed)
@@ -295,6 +300,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             "paused": self._world.paused,
             "width": self._world.config.screen_width,
             "height": self._world.config.screen_height,
+            "render_hint": {
+                "style": "side",
+                "entity_style": "fish",
+            },
         }
 
     def get_debug_snapshot(self) -> Dict[str, Any]:

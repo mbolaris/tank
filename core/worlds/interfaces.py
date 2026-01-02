@@ -25,6 +25,12 @@ class StepResult:
         metrics: Aggregate metrics/statistics for this step
         done: Whether the episode/simulation has terminated
         info: Additional backend-specific metadata
+
+    Extended Fields (World Loop Contract):
+        spawns: Entity spawn records from this step (optional)
+        removals: Entity removal records from this step (optional)
+        energy_deltas: Energy transfer records from this step (optional)
+        render_hint: Frontend-agnostic rendering metadata (optional)
     """
 
     obs_by_agent: Dict[str, Any] = field(default_factory=dict)
@@ -33,6 +39,11 @@ class StepResult:
     metrics: Dict[str, Any] = field(default_factory=dict)
     done: bool = False
     info: Dict[str, Any] = field(default_factory=dict)
+    # Extended fields for world loop contract (all optional for backward compat)
+    spawns: List[Any] = field(default_factory=list)
+    removals: List[Any] = field(default_factory=list)
+    energy_deltas: List[Any] = field(default_factory=list)
+    render_hint: Optional[Dict[str, Any]] = None
 
 
 class MultiAgentWorldBackend(ABC):

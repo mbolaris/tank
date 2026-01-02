@@ -157,7 +157,8 @@ class SimulationRunner(CommandHandlerMixin):
     def _get_evolution_benchmark_export_path(self) -> Path:
         """Get the benchmark export path scoped to this tank."""
         tank_id = getattr(self, "tank_id", None) or "default"
-        return Path("data") / "tanks" / tank_id / "poker_evolution_benchmark.json"
+        # Write to shared benchmarks directory to avoid creating orphan tank directories
+        return Path("data") / "benchmarks" / f"poker_evolution_{tank_id[:8]}.json"
 
     def set_tank_identity(self, tank_id: str, tank_name: Optional[str] = None) -> None:
         """Update tank identity for restored/renamed tanks.

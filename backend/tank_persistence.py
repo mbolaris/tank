@@ -553,3 +553,45 @@ def find_all_tank_snapshots() -> Dict[str, str]:
 
     logger.info(f"Found {len(tank_snapshots)} tanks with saved snapshots")
     return tank_snapshots
+
+
+def cleanup_orphaned_tank_directories() -> int:
+    """Remove tank directories that have no snapshots.
+
+    This cleans up orphaned directories that may have been created by
+    benchmark files or other non-snapshot data without actual tank state.
+
+    Returns:
+        Number of orphaned directories removed
+    """
+    if not DATA_DIR.exists():
+        return 0
+
+    orphaned_count = 0
+
+    for tank_dir in list(DATA_DIR.iterdir()):
+        if not tank_dir.is_dir():
+            continue
+
+        tank_id = tank_dir.name
+        snapshots_dir = tank_dir / "snapshots"
+
+        # Check if this directory has any snapshots
+        has_snapshots = (
+            snapshots_dir.exists()
+            and any(snapshots_dir.glob("snapshot_*.json"))
+        )
+
+        if not has_snapshots:
+            # This is an orphaned directory (no snapshots)
+            try:
+                shutil.rmtree(tank_dir)
+                logger.info(f"Removed orphaned tank directory: {tank_id[:8]}")
+                orphaned_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to remove orphaned directory {tank_id[:8]}: {e}")
+
+    if orphaned_count > 0:
+        logger.info(f"Cleaned up {orphaned_count} orphaned tank directories")
+
+    return orphaned_count

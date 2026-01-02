@@ -190,7 +190,15 @@ class StartupManager:
         """Restore tanks from saved snapshots."""
         logger.info("Checking for saved tank snapshots...")
         try:
-            from backend.tank_persistence import find_all_tank_snapshots
+            from backend.tank_persistence import (
+                cleanup_orphaned_tank_directories,
+                find_all_tank_snapshots,
+            )
+
+            # Clean up orphaned tank directories first (those without snapshots)
+            orphaned_removed = cleanup_orphaned_tank_directories()
+            if orphaned_removed > 0:
+                logger.info(f"Removed {orphaned_removed} orphaned tank directories")
 
             tank_snapshots = find_all_tank_snapshots()
             if tank_snapshots:

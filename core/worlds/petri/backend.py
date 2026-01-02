@@ -49,6 +49,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
+            snapshot["render_hint"] = {
+                "style": "topdown",
+                "entity_style": "microbe",
+            }
         return snapshot
 
     def get_current_metrics(self) -> dict[str, Any]:
@@ -59,7 +63,16 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
+            snapshot["render_hint"] = {
+                "style": "topdown",
+                "entity_style": "microbe",
+            }
         return snapshot
+
+    @property
+    def world_type(self) -> str:
+        """The world type identifier (protocol method)."""
+        return "petri"
 
     @property
     def entities_list(self) -> list[Any]:
@@ -106,6 +119,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def _patch_step_result(self, result: StepResult) -> StepResult:
         snapshot = dict(result.snapshot)
         snapshot["world_type"] = "petri"
+        snapshot["render_hint"] = {
+            "style": "topdown",
+            "entity_style": "microbe",
+        }
         return StepResult(
             obs_by_agent=result.obs_by_agent,
             snapshot=snapshot,
@@ -113,6 +130,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             metrics=result.metrics,
             done=result.done,
             info=result.info,
+            spawns=result.spawns,
+            removals=result.removals,
+            energy_deltas=result.energy_deltas,
+            render_hint=snapshot["render_hint"],
         )
 
     # ========================================================================
