@@ -1,5 +1,6 @@
 
 import type { EntityData } from '../../types/simulation';
+import type { FishGenomeData } from '../../types/simulation';
 
 export interface PokerEffectState {
     status: string;
@@ -12,11 +13,22 @@ export interface TankEntity {
     id: number;
     x: number;
     y: number;
+    width: number;
+    height: number;
     radius: number;
     headingRad?: number; // Not always available in snapshot, but maybe inferred from velocity?
     kind: string; // 'fish', 'food', etc.
     energy?: number;
-    colorHue?: number;
+    food_type?: string;
+    plant_type?: number;
+    genome_data?: FishGenomeData;
+    plant_genome?: Record<string, unknown>;
+    size_multiplier?: number;
+    iterations?: number;
+    nectar_ready?: boolean;
+    vel_x?: number;
+    vel_y?: number;
+    death_effect_state?: { cause: string };
     poker_effect_state?: PokerEffectState;
     birth_effect_timer?: number;
 }
@@ -51,13 +63,24 @@ export function buildTankScene(snapshot: any): TankScene {
 
             entities.push({
                 id: e.id,
-                x: e.x,
-                y: e.y,
+                x: e.x + e.width / 2,
+                y: e.y + e.height / 2,
+                width: e.width,
+                height: e.height,
                 radius: getRadius(e.width, e.height),
                 headingRad,
                 kind: e.type,
                 energy: e.energy,
-                colorHue: e.genome_data?.color_hue,
+                food_type: e.food_type,
+                plant_type: e.plant_type,
+                genome_data: e.genome_data,
+                plant_genome: (e as any).genome as Record<string, unknown> | undefined,
+                size_multiplier: (e as any).size_multiplier as number | undefined,
+                iterations: (e as any).iterations as number | undefined,
+                nectar_ready: (e as any).nectar_ready as boolean | undefined,
+                vel_x: e.vel_x,
+                vel_y: e.vel_y,
+                death_effect_state: (e as any).death_effect_state as { cause: string } | undefined,
                 poker_effect_state: e.poker_effect_state,
                 birth_effect_timer: e.birth_effect_timer,
             });
