@@ -111,7 +111,7 @@ class AlgorithmicMovement(MovementStrategy):
                 )
             except Exception:
                 desired_velocity = None
-            
+
             # If policy returned valid velocity, we use it directly
             # If it failed/returned None, we fall back to genome behavior below
         else:

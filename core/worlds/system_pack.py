@@ -1,6 +1,6 @@
 """Interfaces for multi-agent world system packs.
 
-SystemPacks encapsulate the wiring, system registration, and entity seeding 
+SystemPacks encapsulate the wiring, system registration, and entity seeding
 logic for specific world modes (Tank, Petri, Soccer, etc.).
 """
 
@@ -15,18 +15,18 @@ if TYPE_CHECKING:
 @runtime_checkable
 class EnvironmentLike(Protocol):
     """Protocol for environment-like objects.
-    
+
     This allows different world modes to provide their own environment
     implementations as long as they satisfy the basic interface needed by the engine.
     """
-    
+
     def update_agent_position(self, agent: Any) -> None: ...
     def update_detection_modifier(self) -> None: ...
 
 
 class SystemPack(Protocol):
     """Protocol for world mode setup packs.
-    
+
     A SystemPack is responsible for:
     1. Building the environment
     2. Registering systems in the correct order

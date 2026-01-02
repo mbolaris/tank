@@ -39,7 +39,7 @@ def test_overflow_energy_spawns_food_via_queue(simulation_engine):
 
     # gain_energy now uses deferred energy model - emits event, applies later
     fish.gain_energy(10.0)
-    
+
     # Process the energy events to apply deltas (triggers overflow spawning)
     engine._resolve_energy()
 

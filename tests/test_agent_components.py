@@ -103,7 +103,9 @@ class TestLocomotionComponent:
         dir1 = Vector2(1.0, 0.0)
         dir2 = Vector2(1.0, 0.0)
 
-        cost = locomotion.calculate_turn_cost(dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5)
+        cost = locomotion.calculate_turn_cost(
+            dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5
+        )
         assert cost == 0.0
 
     def test_calculate_turn_cost_90_degree(self):
@@ -113,7 +115,9 @@ class TestLocomotionComponent:
         dir1 = Vector2(1.0, 0.0)
         dir2 = Vector2(0.0, 1.0)
 
-        cost = locomotion.calculate_turn_cost(dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5)
+        cost = locomotion.calculate_turn_cost(
+            dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5
+        )
         assert cost > 0.0
         assert cost < 0.2  # Should be reasonable
 
@@ -124,8 +128,12 @@ class TestLocomotionComponent:
         dir1 = Vector2(1.0, 0.0)
         dir2 = Vector2(-1.0, 0.0)
 
-        cost_180 = locomotion.calculate_turn_cost(dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5)
-        cost_90 = locomotion.calculate_turn_cost(dir1, Vector2(0.0, 1.0), size=1.0, base_cost=0.1, size_multiplier=1.5)
+        cost_180 = locomotion.calculate_turn_cost(
+            dir1, dir2, size=1.0, base_cost=0.1, size_multiplier=1.5
+        )
+        cost_90 = locomotion.calculate_turn_cost(
+            dir1, Vector2(0.0, 1.0), size=1.0, base_cost=0.1, size_multiplier=1.5
+        )
 
         assert cost_180 > cost_90
 
@@ -136,8 +144,12 @@ class TestLocomotionComponent:
         dir1 = Vector2(1.0, 0.0)
         dir2 = Vector2(0.0, 1.0)
 
-        cost_small = locomotion.calculate_turn_cost(dir1, dir2, size=0.5, base_cost=0.1, size_multiplier=1.5)
-        cost_large = locomotion.calculate_turn_cost(dir1, dir2, size=2.0, base_cost=0.1, size_multiplier=1.5)
+        cost_small = locomotion.calculate_turn_cost(
+            dir1, dir2, size=0.5, base_cost=0.1, size_multiplier=1.5
+        )
+        cost_large = locomotion.calculate_turn_cost(
+            dir1, dir2, size=2.0, base_cost=0.1, size_multiplier=1.5
+        )
 
         assert cost_large > cost_small
 

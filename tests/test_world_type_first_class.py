@@ -69,11 +69,11 @@ class TestWorldTypeFirstClass:
                 name="Soccer Training Test",
                 world_type="soccer_training",
             )
-            
+
             # Verify world_type is correctly set
             assert manager.tank_info.world_type == "soccer_training"
             assert manager._runner.world_type == "soccer_training"
-            
+
             # Verify world was created (adapter may not have frame_count)
             assert manager.world is not None
         finally:

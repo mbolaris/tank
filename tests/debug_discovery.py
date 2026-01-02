@@ -1,4 +1,3 @@
-
 import logging
 import sys
 from pathlib import Path
@@ -18,11 +17,11 @@ if DATA_DIR.exists():
     for p in DATA_DIR.iterdir():
         print(f"  {p.name} (is_dir={p.is_dir()})")
         if p.is_dir():
-             snap_dir = p / "snapshots"
-             print(f"    Checking {snap_dir} (exists={snap_dir.exists()})")
-             if snap_dir.exists():
-                 for s in snap_dir.iterdir():
-                     print(f"      {s.name}")
+            snap_dir = p / "snapshots"
+            print(f"    Checking {snap_dir} (exists={snap_dir.exists()})")
+            if snap_dir.exists():
+                for s in snap_dir.iterdir():
+                    print(f"      {s.name}")
 
 print("\nCalling find_all_tank_snapshots()...")
 snapshots = find_all_tank_snapshots()
