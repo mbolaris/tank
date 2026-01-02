@@ -1,7 +1,6 @@
 """Tests for engine phase ordering correctness."""
 
 
-
 def test_poker_runs_every_frame_regardless_of_energy_events(simulation_engine):
     """Poker system must run every frame, even with zero energy events."""
     engine = simulation_engine

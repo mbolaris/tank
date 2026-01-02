@@ -1,6 +1,5 @@
 """Tests verifying world_type is first-class throughout the stack."""
 
-
 from backend.simulation_manager import SimulationManager
 from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
