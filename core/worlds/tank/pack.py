@@ -124,3 +124,11 @@ class TankPack(SystemPack):
             "width": self.config.display.screen_width,
             "height": self.config.display.screen_height,
         }
+
+    def get_pipeline(self):
+        """Return None to use the default pipeline.
+
+        Tank uses the canonical default pipeline that exactly reproduces
+        the hard-coded phase order originally in SimulationEngine.update().
+        """
+        return None

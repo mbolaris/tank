@@ -209,6 +209,11 @@ class SimulationEngine:
         self._current_phase: UpdatePhase | None = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
 
+        # Pipeline (set during setup())
+        from core.simulation.pipeline import EnginePipeline
+
+        self.pipeline: EnginePipeline | None = None
+
     # =========================================================================
     # Properties for Backward Compatibility
     # =========================================================================
@@ -282,7 +287,13 @@ class SimulationEngine:
         pack.register_systems(self)
         self._validate_system_phase_declarations()
 
-        # 4. Let the pack seed entities
+        # 4. Wire up the pipeline (pack can override or use default)
+        from core.simulation.pipeline import default_pipeline
+
+        custom_pipeline = pack.get_pipeline() if hasattr(pack, "get_pipeline") else None
+        self.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
+
+        # 5. Let the pack seed entities
         pack.seed_entities(self)
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
@@ -579,39 +590,42 @@ class SimulationEngine:
     def update(self) -> None:
         """Update the state of the simulation.
 
-        The update loop executes in well-defined phases (see UpdatePhase enum).
-        Each phase is implemented as a separate method for readability and testability.
+        The update loop executes via the configured pipeline, which defines
+        the sequence of phases. Different modes can provide custom pipelines
+        to modify the update behavior.
 
-        Phase Order:
+        The default pipeline (used by Tank mode) executes phases in this order:
             1. FRAME_START: Reset counters, increment frame
             2. TIME_UPDATE: Advance day/night cycle
             3. ENVIRONMENT: Update ecosystem and detection modifiers
             4. ENTITY_ACT: Update all entities, collect spawns/deaths
-            5. LIFECYCLE: Process deaths, add/remove entities
-            6. SPAWN: Auto-spawn food
-            7. COLLISION: Handle collisions
-            8. REPRODUCTION: Handle mating and emergency spawns
-            9. FRAME_END: Update stats, rebuild caches
+            5. RESOLVE_ENERGY: Process energy deltas
+            6. LIFECYCLE: Process deaths, add/remove entities
+            7. SPAWN: Auto-spawn food
+            8. COLLISION: Handle collisions
+            9. INTERACTION: Handle social interactions (poker)
+            10. REPRODUCTION: Handle mating and emergency spawns
+            11. FRAME_END: Update stats, rebuild caches
         """
         if self.paused:
             return
 
-        # Execute each phase in order
-        # Time values are returned from TIME_UPDATE and passed to ENTITY_ACT
-        self._phase_frame_start()
-        time_modifier, time_of_day = self._phase_time_update()
-        self._phase_environment()
-        new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
-
-        # Resolve energy deltas before lifecycle so starvation is caught immediately
-        self._resolve_energy()
-
-        self._phase_lifecycle(new_entities, entities_to_remove)
-        self._phase_spawn()
-        self._phase_collision()
-        self._phase_interaction()
-        self._phase_reproduction()
-        self._phase_frame_end()
+        if self.pipeline is not None:
+            self.pipeline.run(self)
+        else:
+            # Fallback for edge cases where setup() wasn't called
+            # (defensive - should not happen in normal use)
+            self._phase_frame_start()
+            time_modifier, time_of_day = self._phase_time_update()
+            self._phase_environment()
+            new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+            self._resolve_energy()
+            self._phase_lifecycle(new_entities, entities_to_remove)
+            self._phase_spawn()
+            self._phase_collision()
+            self._phase_interaction()
+            self._phase_reproduction()
+            self._phase_frame_end()
 
     # -------------------------------------------------------------------------
     # Phase Implementations

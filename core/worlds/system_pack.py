@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
+    from core.simulation.pipeline import EnginePipeline
 
 
 @runtime_checkable
@@ -31,6 +32,7 @@ class SystemPack(Protocol):
     1. Building the environment
     2. Registering systems in the correct order
     3. Seeding initial entities
+    4. Optionally providing a custom pipeline
     """
 
     @property
@@ -52,4 +54,12 @@ class SystemPack(Protocol):
 
     def get_metadata(self) -> dict[str, Any]:
         """Return mode-specific metadata for snapshots."""
+        ...
+
+    def get_pipeline(self) -> EnginePipeline | None:
+        """Return custom pipeline or None for default.
+
+        If None is returned, the engine will use default_pipeline().
+        Override this to provide a custom update loop for your mode.
+        """
         ...

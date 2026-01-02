@@ -15,7 +15,10 @@ Modes may accept additional keys specific to their worlds.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Dict, Protocol
+
+if TYPE_CHECKING:
+    from core.simulation.pipeline import EnginePipeline
 
 ModeConfig = Dict[str, Any]
 
@@ -42,6 +45,9 @@ class ModePack(Protocol):
     supports_websocket: bool
     supports_transfer: bool
     has_fish: bool
+
+    # Pipeline customization (None = use default_pipeline())
+    pipeline_factory: Callable[[], EnginePipeline] | None
 
     def configure(self, config: ModeConfig | None) -> ModeConfig:
         """Normalize config keys and fill defaults for the mode."""
@@ -73,6 +79,7 @@ class ModePackDefinition:
     # Optional customization
     snapshot_builder_factory: Callable[[], Any] | None = None
     normalizer: Callable[[ModeConfig], ModeConfig] | None = None
+    pipeline_factory: Callable[[], EnginePipeline] | None = None
 
     def configure(self, config: ModeConfig | None) -> ModeConfig:
         normalized = dict(config or {})

@@ -103,6 +103,8 @@ def create_soccer_mode_pack(
     Returns:
         ModePackDefinition for soccer mode
     """
+    from core.simulation.pipeline import default_pipeline
+
     return ModePackDefinition(
         mode_id="soccer",
         world_type="soccer",
@@ -115,4 +117,5 @@ def create_soccer_mode_pack(
         has_fish=False,
         snapshot_builder_factory=snapshot_builder_factory,
         normalizer=_normalize_soccer_config,
+        pipeline_factory=default_pipeline,  # Uses default for now; can customize later
     )
