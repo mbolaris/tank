@@ -42,4 +42,3 @@ class PokerGamePlayed(SimEvent):
     opponent_type: str = field(default="")  # "fish" or "plant"
     won: bool = field(default=False)
     hand_rank: str = ""
-
