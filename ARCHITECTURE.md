@@ -63,25 +63,100 @@ class UpdatePhase(Enum):
 
 **Location:** [`core/simulation/entity_mutation_queue.py`](file:///c:/shared/bolaris/tank/core/simulation/entity_mutation_queue.py)
 
-Safe entity addition/removal during iteration:
+**Rule:** Only the engine applies entity mutations, at explicit commit points between phases.
+
+#### Safe entity addition/removal
 
 ```python
-# ❌ NEVER do this during ENTITY_ACT phase:
+# ❌ NEVER do this during update phases:
 environment.entities.remove(entity)
+engine.add_entity(entity)  # Raises RuntimeError if _current_phase is set
 
-# ✅ ALWAYS use the request pattern:
-environment.request_remove(entity)
+# ✅ ALWAYS use the request pattern in game systems:
+engine.request_remove(entity, reason="collision")
+engine.request_spawn(entity, reason="overflow_food")
 ```
 
-**Why?** Direct modification during iteration causes `RuntimeError`. The queue batches changes and applies them between phases.
+**Why?** Direct modification during iteration causes `RuntimeError`. The queue batches changes and applies them at safe commit points.
 
-**Usage in systems:**
+#### Commit Points (6 per frame)
+
+The engine applies queued mutations at strategic points in the update loop:
+
 ```python
-def update(self, frame: int):
-    for entity in self.get_entities():
-        if entity.should_die():
-            self.engine.request_remove(entity)  # Queued, not immediate
+def update(self):
+    self._phase_frame_start()
+        self._apply_entity_mutations("frame_start")    # 1. After plant reconciliation
+
+    # ... time, environment phases ...
+
+    self._phase_lifecycle(...)
+        self._apply_entity_mutations("lifecycle")      # 2. After death processing
+
+    self._phase_spawn()
+        self._apply_entity_mutations("spawn")          # 3. After food spawning
+
+    self._phase_collision()
+        self._apply_entity_mutations("collision")      # 4. After collision handling
+
+    self._phase_interaction()
+        self._apply_entity_mutations("interaction")    # 5. After poker games
+
+    self._phase_reproduction()
+        self._apply_entity_mutations("reproduction")   # 6. After mating
 ```
+
+**Design rationale:** Frequent commits minimize the window where entities are "pending" but not yet applied.
+
+#### Usage in game systems
+
+```python
+# In CollisionSystem
+def handle_fish_food_collision(self, fish, food):
+    fish.eat(food)
+    if food.is_fully_consumed():
+        self._engine.request_remove(food, reason="food_consumed")
+
+# In FoodSpawningSystem
+def _spawn_food(self):
+    food = Food(...)
+    self._engine.request_spawn(food, reason="auto_food_spawn")
+
+# In Fish entity (overflow spawning)
+from core.util.mutations import request_spawn_in
+
+def handle_overflow_energy(self):
+    food = Food(...)
+    request_spawn_in(self.environment, food, reason="overflow_food")
+```
+
+#### API Decision Tree
+
+```
+Do you need to spawn/remove an entity?
+├─ Is this a game system/entity?
+│  └─ Use request_spawn() / request_remove()
+├─ Is this persistence/migration?
+│  └─ Use add_entity() / remove_entity() (outside tick only)
+└─ Is this a test?
+   └─ Use add_entity() / remove_entity() in setup
+```
+
+#### Phase Guards
+
+Direct mutation methods block mid-tick calls:
+
+```python
+def add_entity(self, entity):
+    if self._current_phase is not None:
+        raise RuntimeError(
+            f"Unsafe call to add_entity during phase {self._current_phase}. "
+            "Use request_spawn() instead."
+        )
+    self._add_entity(entity)
+```
+
+This prevents game systems from accidentally bypassing the queue during update().
 
 ### 4. Facade Pattern
 
