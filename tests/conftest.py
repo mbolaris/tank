@@ -14,20 +14,20 @@ def seeded_rng():
 @pytest.fixture(autouse=True)
 def mock_data_dir(tmp_path):
     """Patch DATA_DIR to use a temporary directory for all tests.
-    
+
     This prevents tests from polluting the real data/tanks directory.
     """
     import backend.tank_persistence
-    
+
     # Store original value
     original_data_dir = backend.tank_persistence.DATA_DIR
-    
+
     # Patch with tmp_path
     backend.tank_persistence.DATA_DIR = tmp_path / "data" / "tanks"
     backend.tank_persistence.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     yield backend.tank_persistence.DATA_DIR
-    
+
     # Restore original value
     backend.tank_persistence.DATA_DIR = original_data_dir
 

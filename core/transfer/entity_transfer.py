@@ -23,6 +23,7 @@ class TransferError:
 
 class NoRootSpotsError(Exception):
     """Raised when an entity cannot be deserialized because the target tank lacks root spots."""
+
     pass
 
 
@@ -93,7 +94,9 @@ def _normalize_migration_direction(direction: Optional[str]) -> Optional[str]:
         return None
     if direction in {"left", "right"}:
         return direction
-    logger.warning("Ignoring invalid migration_direction=%r (expected 'left' or 'right')", direction)
+    logger.warning(
+        "Ignoring invalid migration_direction=%r (expected 'left' or 'right')", direction
+    )
     return None
 
 
@@ -139,9 +142,7 @@ class TransferRegistry:
                 )
         return None
 
-    def try_serialize_entity(
-        self, entity: Any, ctx: TransferContext
-    ) -> TransferOutcome:
+    def try_serialize_entity(self, entity: Any, ctx: TransferContext) -> TransferOutcome:
         codec = self.codec_for_entity(entity)
         if codec is None:
             return TransferOutcome(
@@ -369,12 +370,16 @@ def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> S
     return finalize_plant_serialization(plant, mutable_state)
 
 
-def capture_plant_mutable_state(plant: Any, migration_direction: Optional[str] = None) -> Dict[str, Any]:
+def capture_plant_mutable_state(
+    plant: Any, migration_direction: Optional[str] = None
+) -> Dict[str, Any]:
     """Capture mutable state of a plant that must be read under lock."""
     # Get plant ID - try both id and plant_id
-    plant_id = getattr(plant, 'id', getattr(plant, 'plant_id', None))
+    plant_id = getattr(plant, "id", getattr(plant, "plant_id", None))
     # Get root spot ID if available
-    root_spot_id = plant.root_spot.spot_id if hasattr(plant, 'root_spot') and plant.root_spot else None
+    root_spot_id = (
+        plant.root_spot.spot_id if hasattr(plant, "root_spot") and plant.root_spot else None
+    )
 
     return {
         "id": plant_id,
@@ -551,7 +556,7 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             return None
 
         # Get root spot manager
-        root_spot_manager = getattr(target_world.engine, 'root_spot_manager', None)
+        root_spot_manager = getattr(target_world.engine, "root_spot_manager", None)
         if root_spot_manager is None:
             logger.error("Cannot deserialize plant: root_spot_manager not available")
             return None
@@ -565,7 +570,9 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
             # Plant migrating left appears on right edge, and vice versa
             preferred_edge = "right" if migration_direction == "left" else "left"
             root_spot = root_spot_manager.get_edge_empty_spot(preferred_edge)
-            logger.debug(f"Plant migrating from {migration_direction}, placing at {preferred_edge} edge")
+            logger.debug(
+                f"Plant migrating from {migration_direction}, placing at {preferred_edge} edge"
+            )
 
         # Fall back to exact spot ID if not migrating
         if root_spot is None:
@@ -617,7 +624,9 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
 
         # Claim the spot for this plant (may race with concurrent sprouting/migration).
         if not root_spot.claim(plant):
-            raise NoRootSpotsError(f"Failed to claim root spot (spot_id={getattr(root_spot, 'spot_id', None)})")
+            raise NoRootSpotsError(
+                f"Failed to claim root spot (spot_id={getattr(root_spot, 'spot_id', None)})"
+            )
 
         # Restore additional state
         plant.age = data.get("age", 0)

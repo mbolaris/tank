@@ -45,4 +45,3 @@ __all__ = [
     "list_rulesets",
     "register_ruleset",
 ]
-

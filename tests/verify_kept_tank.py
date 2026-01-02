@@ -1,6 +1,9 @@
-
 import logging
-from backend.tank_persistence import find_all_tank_snapshots, load_tank_state, restore_tank_from_snapshot
+from backend.tank_persistence import (
+    find_all_tank_snapshots,
+    load_tank_state,
+    restore_tank_from_snapshot,
+)
 from core.simulation.engine import SimulationEngine
 
 logging.basicConfig(level=logging.INFO)
@@ -24,12 +27,14 @@ if not snapshot:
 engine = SimulationEngine(headless=True)
 engine.setup()
 
+
 # Mock world wrapper
 class MockWorld:
     def __init__(self, engine):
         self.engine = engine
         self.paused = True
-        self.rng = engine.rng # Emulate adapter check
+        self.rng = engine.rng  # Emulate adapter check
+
 
 world = MockWorld(engine)
 
@@ -42,4 +47,5 @@ try:
 except Exception as e:
     print(f"CRASH: {e}")
     import traceback
+
     traceback.print_exc()

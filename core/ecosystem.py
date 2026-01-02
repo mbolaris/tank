@@ -134,6 +134,7 @@ class EcosystemManager:
 
         # Subscribe to new EnergyLedger events (SimEvents)
         from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
+
         event_bus.subscribe(AteFood, self._on_sim_ate_food)
         event_bus.subscribe(EnergyBurned, self._on_sim_energy_burned)
         event_bus.subscribe(Moved, self._on_sim_moved)
@@ -152,7 +153,7 @@ class EcosystemManager:
         # Note: food_type mapping to source string
         source = event.food_type
         self.record_energy_gain(source, event.energy_gained)
-        
+
         # Also record food eaten stats if applicable
         if event.algorithm_id is not None:
             if event.food_type == "nectar":

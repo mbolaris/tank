@@ -54,7 +54,9 @@ class TestActionPipeline:
         result = adapter.step()
         assert isinstance(result.obs_by_agent, dict)
         # In legacy mode, obs_by_agent should be empty (fish make their own decisions)
-        assert result.obs_by_agent == {}, "Legacy mode should not build observations for performance"
+        assert (
+            result.obs_by_agent == {}
+        ), "Legacy mode should not build observations for performance"
 
     def test_step_returns_brain_mode_in_info(self):
         """Step should return brain_mode in info."""
@@ -77,6 +79,7 @@ class TestActionPipeline:
 
     def test_simulation_determinism(self):
         """Same seed should produce same results with action pipeline."""
+
         def run_simulation(seed: int, frames: int) -> dict:
             adapter = TankWorldBackendAdapter(seed=seed)
             adapter.reset(seed=seed)

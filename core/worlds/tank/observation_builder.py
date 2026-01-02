@@ -107,14 +107,16 @@ def _build_food_observations(
         dy = food.pos.y - fish.pos.y
         distance = (dx * dx + dy * dy) ** 0.5
 
-        food_obs.append({
-            "x": food.pos.x,
-            "y": food.pos.y,
-            "energy": getattr(food, "energy_value", 10.0),
-            "distance": distance,
-            "dx": dx,
-            "dy": dy,
-        })
+        food_obs.append(
+            {
+                "x": food.pos.x,
+                "y": food.pos.y,
+                "energy": getattr(food, "energy_value", 10.0),
+                "distance": distance,
+                "dx": dx,
+                "dy": dy,
+            }
+        )
 
     return food_obs
 
@@ -146,18 +148,20 @@ def _build_fish_observations(
         dy = other.pos.y - fish.pos.y
         distance = (dx * dx + dy * dy) ** 0.5
 
-        fish_obs.append({
-            "fish_id": other.fish_id,
-            "x": other.pos.x,
-            "y": other.pos.y,
-            "vx": other.vel.x,
-            "vy": other.vel.y,
-            "energy": other.energy,
-            "species": other.species,
-            "distance": distance,
-            "dx": dx,
-            "dy": dy,
-        })
+        fish_obs.append(
+            {
+                "fish_id": other.fish_id,
+                "x": other.pos.x,
+                "y": other.pos.y,
+                "vx": other.vel.x,
+                "vy": other.vel.y,
+                "energy": other.energy,
+                "species": other.species,
+                "distance": distance,
+                "dx": dx,
+                "dy": dy,
+            }
+        )
 
     return fish_obs
 
@@ -188,17 +192,19 @@ def _build_threat_observations(
         dy = other.pos.y - fish.pos.y
         distance = (dx * dx + dy * dy) ** 0.5
 
-        threat_obs.append({
-            "fish_id": other.fish_id,
-            "x": other.pos.x,
-            "y": other.pos.y,
-            "vx": other.vel.x,
-            "vy": other.vel.y,
-            "size": getattr(other, "size", 1.0),
-            "distance": distance,
-            "dx": dx,
-            "dy": dy,
-        })
+        threat_obs.append(
+            {
+                "fish_id": other.fish_id,
+                "x": other.pos.x,
+                "y": other.pos.y,
+                "vx": other.vel.x,
+                "vy": other.vel.y,
+                "size": getattr(other, "size", 1.0),
+                "distance": distance,
+                "dx": dx,
+                "dy": dy,
+            }
+        )
 
     return threat_obs
 

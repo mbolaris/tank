@@ -74,6 +74,7 @@ logger = logging.getLogger(__name__)
 
 class PackableEngine(Protocol):
     """Minimal interface that a SystemPack expects from the engine."""
+
     config: SimulationConfig
     rng: random.Random
     event_bus: Any
@@ -88,6 +89,7 @@ class PackableEngine(Protocol):
     reproduction_system: "ReproductionSystem"
     poker_system: "PokerSystem"
     poker_proximity_system: "PokerProximitySystem"
+
     def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
     def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
     def _queue_sim_event(self, event: Any) -> None: ...
@@ -170,6 +172,7 @@ class SimulationEngine:
         )
 
         from core.agents_wrapper import AgentsWrapper
+
         self.agents = AgentsWrapper(self)
         self._system_registry = SystemRegistry()
         self._entity_mutations = EntityMutationQueue()
@@ -182,6 +185,7 @@ class SimulationEngine:
 
         # Services
         from core.services.stats.calculator import StatsCalculator
+
         self.stats_calculator = StatsCalculator(self)
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
@@ -198,7 +202,7 @@ class SimulationEngine:
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: Optional["PeriodicBenchmarkEvaluator"] = None
-        
+
         # Energy Ledger integration
         self.energy_ledger = EnergyLedger()
         self.pending_sim_events: List[SimEvent] = []
@@ -240,11 +244,13 @@ class SimulationEngine:
         """
         # Clear global poker participant state to prevent cross-engine contamination
         from core.poker_participant_manager import _global_manager
+
         _global_manager.clear_all()
 
         # Fallback to TankPack if no pack provided (backward compat)
         if pack is None:
             from core.worlds.tank.pack import TankPack
+
             pack = TankPack(self.config)
 
         # 1. Initialize core systems that every engine has
@@ -266,6 +272,7 @@ class SimulationEngine:
 
         if self.config.poker.enable_periodic_benchmarks:
             from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+
             self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
                 self.config.poker.benchmark_config
             )
@@ -283,6 +290,7 @@ class SimulationEngine:
     def _build_spawn_rate_config(self) -> "SpawnRateConfig":
         """Translate SimulationConfig food settings into SpawnRateConfig."""
         from core.systems.food_spawning import SpawnRateConfig
+
         food_cfg = self.config.food
         return SpawnRateConfig(
             base_rate=food_cfg.spawn_rate,
@@ -386,6 +394,7 @@ class SimulationEngine:
             return
 
         from core.entity_factory import create_initial_population
+
         display = self.config.display
         population = create_initial_population(
             self.environment,
@@ -595,10 +604,10 @@ class SimulationEngine:
         time_modifier, time_of_day = self._phase_time_update()
         self._phase_environment()
         new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
-        
+
         # Resolve energy deltas before lifecycle so starvation is caught immediately
         self._resolve_energy()
-        
+
         self._phase_lifecycle(new_entities, entities_to_remove)
         self._phase_spawn()
         self._phase_collision()
@@ -723,6 +732,7 @@ class SimulationEngine:
 
         # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
         from core.entities import Food
+
         screen_height = self.config.display.screen_height
         for entity in list(self._entity_manager.entities_list):
             if isinstance(entity, Food):
@@ -778,12 +788,12 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.INTERACTION
         # Fish-fish poker proximity detection
         self.poker_proximity_system.update(self.frame_count)
-        
+
         # PokerSystem processes game outcomes
         self.poker_system.update(self.frame_count)
         # Mixed poker (fish-plant, plant-plant)
         self.handle_mixed_poker_games()
-        
+
         self._apply_entity_mutations("interaction")
 
     # =========================================================================
@@ -803,9 +813,9 @@ class SimulationEngine:
         deltas = []
         for event in self.pending_sim_events:
             deltas.extend(self.energy_ledger.apply(event))
-        
+
         self.pending_sim_events.clear()
-        
+
         if deltas:
             self._apply_energy_deltas(deltas)
 
@@ -814,15 +824,15 @@ class SimulationEngine:
         # Map entity_id to entity for fast lookup
         # Currently we iterate list, which is O(N).
         # Optimization: use entity_manager map if available or build temp map?
-        # EntityManager doesn't expose ID map cleanly yet. 
+        # EntityManager doesn't expose ID map cleanly yet.
         # But we can assume entity existence from ID?
         # Let's iterate linearly for now or rely on EntityManager get_by_id if it existed.
-        
+
         # Build temp map for this batch
-        # Note: Assuming only Fish act on the ledger for now. 
+        # Note: Assuming only Fish act on the ledger for now.
         # TODO: Implement globally unique IDs or type-aware ledger for Plants.
         entity_map = {e.fish_id: e for e in self.get_fish_list()}
-        
+
         for delta in deltas:
             entity = entity_map.get(delta.entity_id)
             if entity:
@@ -838,11 +848,11 @@ class SimulationEngine:
                     # Safe fallback: direct property modification (blind application)
                     current = getattr(entity, "energy", 0.0)
                     new_val = current + delta.delta
-                    
+
                     # Basic clamping if max_energy exists
-                    max_e = getattr(entity, "max_energy", float('inf'))
+                    max_e = getattr(entity, "max_energy", float("inf"))
                     new_val = max(0.0, min(new_val, max_e))
-                    
+
                     # Set checking for property setter logic (e.g. death check)
                     setattr(entity, "energy", new_val)
 

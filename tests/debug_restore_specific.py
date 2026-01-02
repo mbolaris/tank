@@ -1,4 +1,3 @@
-
 import sys
 import logging
 from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
@@ -21,12 +20,15 @@ print(f"Snapshot loaded. Version: {snapshot.get('version')}")
 # Create a mock/real storage for restoration
 print("Creating Engine...")
 engine = SimulationEngine(headless=True)
-engine.setup() # Initialize managers including root_spot_manager
+engine.setup()  # Initialize managers including root_spot_manager
+
+
 # Adapter wrapper as expected by restore_tank_from_snapshot
 class MockWorld:
     def __init__(self, engine):
         self.engine = engine
         self.paused = True
+
 
 world = MockWorld(engine)
 
@@ -41,5 +43,5 @@ try:
 except Exception as e:
     print(f"Restoration CRASHED: {e}")
     import traceback
-    traceback.print_exc()
 
+    traceback.print_exc()
