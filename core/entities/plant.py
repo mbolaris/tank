@@ -493,7 +493,7 @@ class Plant(Agent):
             return
 
         try:
-            from core.util.mutations import request_spawn
+            from core.util.mutations import request_spawn_in
 
             rng = getattr(self.environment, "rng", None)
             if rng is None:
@@ -507,7 +507,7 @@ class Plant(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            if not request_spawn(food, reason="plant_overflow_food"):
+            if not request_spawn_in(self.environment, food, reason="plant_overflow_food"):
                 logger.warning("spawn requester unavailable, plant overflow food lost")
 
             self._emit_event(EnergyBurnEvent("plant_overflow_food", food.energy))

@@ -17,7 +17,7 @@ from core.code_pool import (
     create_default_genome_code_pool,
     validate_source_safety,
 )
-from core.code_pool.safety import SourceTooLongError
+from core.code_pool.safety import SafetyConfig, SourceTooLongError
 
 
 class TestSandboxValidation:
@@ -32,7 +32,7 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="import"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_open_is_blocked(self):
         """Code attempting file I/O should be rejected."""
@@ -43,7 +43,7 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="open"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_exec_is_blocked(self):
         """Code attempting exec/eval should be rejected."""
@@ -53,7 +53,7 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="exec"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_while_loop_is_blocked(self):
         """Infinite loops should be blocked at parse time."""
@@ -64,7 +64,7 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="while"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_lambda_is_blocked(self):
         """Lambdas should be blocked to prevent code injection."""
@@ -74,7 +74,7 @@ def policy(observation, rng):
     return (f(1.0), 0.0)
 """
         with pytest.raises(ValidationError, match="lambda"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_list_comprehension_is_blocked(self):
         """List comprehensions should be blocked for safety."""
@@ -84,7 +84,7 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="comprehension"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_class_definition_is_blocked(self):
         """Class definitions should be blocked."""
@@ -97,14 +97,14 @@ def policy(observation, rng):
     return (0.0, 0.0)
 """
         with pytest.raises(ValidationError, match="class"):
-            validate_source_safety(dangerous_code)
+            validate_source_safety(dangerous_code, SafetyConfig())
 
     def test_source_length_limit(self):
         """Extremely long source code should be rejected."""
         # Create source that exceeds 10,000 character limit
         long_code = "def policy(observation, rng):\n" + "    x = 1.0\n" * 5000
         with pytest.raises(SourceTooLongError):
-            validate_source_safety(long_code)
+            validate_source_safety(long_code, SafetyConfig())
 
 
 class TestAllowedOperations:
@@ -120,7 +120,7 @@ def policy(observation, rng):
     return (x, z)
 """
         # Should not raise
-        validate_source_safety(safe_code)
+        validate_source_safety(safe_code, SafetyConfig())
 
         pool = CodePool()
         component_id = pool.add_component(
@@ -143,7 +143,7 @@ def policy(observation, rng):
     else:
         return (0.0, 1.0)
 """
-        validate_source_safety(safe_code)
+        validate_source_safety(safe_code, SafetyConfig())
 
         pool = CodePool()
         component_id = pool.add_component(
@@ -170,7 +170,7 @@ def policy(observation, rng):
     y = math.sin(angle)
     return (x, y)
 """
-        validate_source_safety(safe_code)
+        validate_source_safety(safe_code, SafetyConfig())
 
         pool = CodePool()
         component_id = pool.add_component(

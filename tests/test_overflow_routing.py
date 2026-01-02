@@ -4,6 +4,7 @@ import math
 import random
 
 from core.telemetry.events import EnergyBurnEvent
+from core.sim.events import EnergyBurned
 
 
 class _EnvironmentStub:
@@ -14,7 +15,7 @@ class _EnvironmentStub:
     def add_entity(self, entity: object) -> None:
         self.added.append(entity)
 
-    def request_spawn(self, entity: object, *, reason: str = "") -> bool:
+    def request_spawn(self, entity: object, *, reason: str = "", metadata=None) -> bool:
         """Spawn request API for overflow food spawning."""
         self.added.append(entity)
         return True
@@ -41,6 +42,8 @@ class _EcosystemStub:
     def record_event(self, event) -> None:
         if isinstance(event, EnergyBurnEvent):
             self.burns.append((event.source, float(event.amount)))
+        elif isinstance(event, EnergyBurned):
+            self.burns.append((event.reason, float(event.amount)))
 
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""

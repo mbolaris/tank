@@ -773,11 +773,18 @@ class SimulationEngine:
 
         Systems in this phase:
         - PokerProximitySystem: Detects fish groups and triggers poker games
-        - PokerSystem (mixed): Handles fish-plant and plant-plant poker
+        - PokerSystem: Processes game outcomes, updates Elo, handles mixed poker
         """
         self._current_phase = UpdatePhase.INTERACTION
         # Fish-fish poker proximity detection
         self.poker_proximity_system.update(self.frame_count)
+        
+        # PokerSystem processes game outcomes
+        self.poker_system.update(self.frame_count)
+        # Mixed poker (fish-plant, plant-plant)
+        self.handle_mixed_poker_games()
+        
+        self._apply_entity_mutations("interaction")
 
     # =========================================================================
     # Energy Ledger Methods
@@ -838,11 +845,6 @@ class SimulationEngine:
                     
                     # Set checking for property setter logic (e.g. death check)
                     setattr(entity, "energy", new_val)
-        # PokerSystem is event-driven but still participates in phase accounting
-        self.poker_system.update(self.frame_count)
-        # Mixed poker (fish-plant, plant-plant) handled by PokerSystem
-        self.handle_mixed_poker_games()
-        self._apply_entity_mutations("interaction")
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.

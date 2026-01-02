@@ -37,7 +37,11 @@ def test_overflow_energy_spawns_food_via_queue(simulation_engine):
     before = sum(isinstance(e, Food) for e in engine.get_all_entities())
     assert engine._entity_mutations.pending_spawn_count() == 0
 
+    # gain_energy now uses deferred energy model - emits event, applies later
     fish.gain_energy(10.0)
+    
+    # Process the energy events to apply deltas (triggers overflow spawning)
+    engine._resolve_energy()
 
     assert engine._entity_mutations.pending_spawn_count() == 1
     engine._apply_entity_mutations("test_overflow")

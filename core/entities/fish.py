@@ -503,7 +503,7 @@ class Fish(Agent):
 
         try:
             from core.entities.resources import Food
-            from core.util.mutations import request_spawn
+            from core.util.mutations import request_spawn_in
             from core.util.rng import require_rng
 
             rng = require_rng(self.environment, "Fish._spawn_overflow_food")
@@ -516,7 +516,7 @@ class Fish(Agent):
             food.energy = min(overflow, food.max_energy)
             food.max_energy = food.energy
 
-            if not request_spawn(food, reason="overflow_food"):
+            if not request_spawn_in(self.environment, food, reason="overflow_food"):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
             self._emit_event(EnergyBurned(
@@ -1215,7 +1215,8 @@ class Fish(Agent):
 
         # Take a bite from the food (only what we can hold)
         potential_energy = food.take_bite(effective_bite_size)
-        actual_energy = self.gain_energy(potential_energy)
+        # Apply energy immediately (modify_energy handles overflow banking)
+        actual_energy = self.modify_energy(potential_energy)
 
         # Record food location in memory
         from core.fish_memory import MemoryType
