@@ -388,6 +388,7 @@ export interface SimulationUpdate {
     tank_id?: string;  // Tank World Net identifier
     world_type?: string;
     view_mode?: string;
+    mode_id?: string;
 
     // New nested snapshot
     snapshot?: {
@@ -415,6 +416,7 @@ export interface DeltaUpdate {
     tank_id?: string;  // Tank World Net identifier
     world_type?: string;
     view_mode?: string;
+    mode_id?: string;
 
     // New nested snapshot
     snapshot?: {

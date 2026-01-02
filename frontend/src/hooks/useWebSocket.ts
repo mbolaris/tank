@@ -65,6 +65,9 @@ export function useWebSocket(tankId?: string) {
                             update.poker_leaderboard = update.snapshot.poker_leaderboard;
                             update.auto_evaluation = update.snapshot.auto_evaluation;
                         }
+                        // Preserve mode fields from server (with backward-compatible defaults)
+                        update.view_mode = update.view_mode ?? 'side';
+                        update.mode_id = update.mode_id ?? 'tank';
                         setState(update);
                     } else if (data.type === 'delta') {
                         setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
@@ -252,6 +255,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         tank_id: delta.tank_id ?? state.tank_id,
         world_type: delta.world_type ?? state.world_type,
         view_mode: delta.view_mode ?? state.view_mode,
+        mode_id: (delta as any).mode_id ?? (state as any).mode_id ?? 'tank',
 
         // Nested snapshot
         snapshot: nextSnapshot,

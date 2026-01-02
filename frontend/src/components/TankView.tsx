@@ -311,6 +311,21 @@ export function TankView({ tankId }: TankViewProps) {
                         </>
                     )}
 
+                    {/* Mode/View Debug Badge */}
+                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                    <span style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        letterSpacing: '0.05em',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        color: '#60a5fa',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        fontFamily: 'var(--font-mono)',
+                    }}>
+                        Mode: {state?.mode_id ?? 'tank'} | View: {effectiveViewMode}
+                    </span>
+
                     <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
