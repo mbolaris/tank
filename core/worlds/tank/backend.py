@@ -328,7 +328,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return []
 
         # Import locally to avoid circular imports
-        from backend.entity_transfer import serialize_entity_for_transfer
+        from core.transfer.entity_transfer import serialize_entity_for_transfer
         from core.entities import Fish, Plant, PlantNectar, Food
         from core.entities.predators import Crab
         from core.entities.base import Castle
@@ -533,10 +533,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return {}
 
         # Import locally to avoid circular imports (backend -> core)
-        try:
-            from backend.tank_persistence import SCHEMA_VERSION
-        except ImportError:
-            SCHEMA_VERSION = "2.0"
+        from core.worlds.tank.schema import SCHEMA_VERSION
 
         return {
             "version": SCHEMA_VERSION,

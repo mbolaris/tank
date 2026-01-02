@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 # Current schema version for saved snapshots
-SCHEMA_VERSION = "2.0"
+from core.worlds.tank.schema import SCHEMA_VERSION
 
 # Base directory for all tank data
 DATA_DIR = Path("data/tanks")
@@ -170,7 +170,7 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
         True if restoration succeeded, False otherwise
     """
     try:
-        from backend.entity_transfer import deserialize_entity
+        from core.transfer.entity_transfer import deserialize_entity
         from core.entities import Food, PlantNectar
 
         def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:

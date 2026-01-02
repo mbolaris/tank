@@ -222,6 +222,14 @@ See `docs/architecture/python_code_pool.md` for sandbox and safety details.
 - `/tank/:tankId` - Specific tank view
 - `/network` - Tank World Net dashboard
 
+
+### 4. Layering Rules
+
+To maintain a clean separation between simulation logic and infrastructure:
+
+*   **`core/` must never import `backend/`**: The simulation core is pure Python domain logic and should not depend on infrastructure adapters, IO, or web frameworks.
+*   **`backend/` adapts `core/`**: The backend layer is responsible for adapting the core simulation to outer layers specific to IO, web serving, persistence, and distributed coordination.
+
 ## Execution Modes
 
 ### Web Mode (Default)
