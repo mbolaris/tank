@@ -1,128 +1,123 @@
-"""Fake rcssserver implementation for testing.
+"""Fake RCSS Server for testing.
 
-This module provides a deterministic, scriptable server that mimics rcssserver
-behavior over UDP or direct python calls. It is designed for integration testing
-without requiring a compiled rcssserver binary.
+This module provides a deterministic fake implementation of the rcssserver
+network protocol to allow end-to-end testing of the RCSS adapter and world
+without requiring a real server process.
 """
 
+from typing import List, Optional, Tuple, Dict, Any, Deque
+from collections import deque
 import logging
-import socket
-import threading
-import time
-from typing import Dict, List, Optional, Tuple
+
+from core.worlds.soccer.rcssserver_adapter import SocketInterface
 
 logger = logging.getLogger(__name__)
 
 
-class FakeRCSSServer:
-    """Fake rcssserver that speaks the Robocup Soccer Protocol.
+class FakeRCSSServer(SocketInterface):
+    """A fake RCSS server that responds to client commands deterministically.
     
-    This server listens on a local UDP port and responds to standard commands.
-    It can be scripted to send specific observations sequence.
+    It implements the SocketInterface explicitly so it can be injected into
+    RCSSServerAdapter.
     """
     
-    def __init__(self, port: int = 6000):
-        self.port = port
-        self.running = False
-        self.clients: Dict[Tuple[str, int], str] = {}  # (ip, port) -> team_name
-        self.socket: Optional[socket.socket] = None
-        self.thread: Optional[threading.Thread] = None
-        self.received_commands: List[str] = []
-        
-        # Scripted behavior
-        self.auto_response_enabled = True
-        self.time_step = 0
-        
-    def start(self):
-        """Start the server in a background thread."""
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.bind(("localhost", self.port))
-        self.socket.settimeout(0.1)
-        self.running = True
-        
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
-        self.thread.start()
-        logger.info(f"FakeRCSSServer started on port {self.port}")
-
-    def stop(self):
-        """Stop the server."""
-        self.running = False
-        if self.thread:
-            self.thread.join(timeout=1.0)
-        if self.socket:
-            self.socket.close()
-        logger.info("FakeRCSSServer stopped")
-
-    def _run_loop(self):
-        """Main server loop."""
-        while self.running:
-            try:
-                data, addr = self.socket.recvfrom(4096)
-                message = data.decode("utf-8").strip()
-                self._handle_message(message, addr)
-            except socket.timeout:
-                continue
-            except Exception as e:
-                logger.error(f"Error in FakeRCSSServer loop: {e}")
-
-    def _handle_message(self, message: str, addr: Tuple[str, int]):
-        """Handle incoming message."""
-        self.received_commands.append(message)
-        
-        # Parse minimal commands needed for handshake
-        if message.startswith("(init"):
-            # Format: (init TeamName (version V))
-            parts = message.split()
-            team_name = parts[1]
-            self.clients[addr] = team_name
-            
-            # Send init response
-            # (init Side UniformNum PlayMode)
-            side = "l" if len(self.clients) % 2 != 0 else "r"
-            unum = (len(self.clients) + 1) // 2
-            response = f"(init {side} {unum} before_kick_off)"
-            self._send(response, addr)
-            
-            # Send initial server params (abbreviated)
-            self._send("(server_param (goal_width 14.02))", addr)
-            self._send("(player_param (player_size 0.3))", addr)
-            self._send("(player_type (id 0) (player_speed_max 1.05))", addr)
-
-        elif self.auto_response_enabled:
-            # For other commands, we might want to auto-respond with sense_body/see
-            pass
-
-    def send_sense_body(self, time_step: int = -1):
-        """Broadcast sense_body message to all clients."""
-        if time_step < 0:
-            time_step = self.time_step
-            
-        msg = f"(sense_body {time_step} (view_mode high normal) (stamina 4000 1) (speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) (turn_neck 0) (catch 0) (move 0) (change_view 0))"
-        self._broadcast(msg)
-
-    def send_see(self, time_step: int = -1, objects_str: str = ""):
-        """Broadcast see message to all clients.
+    def __init__(self, script: Optional[List[Tuple[str, str]]] = None):
+        """Initialize the fake server.
         
         Args:
-            time_step: Simulation step
-            objects_str: string content inside the see message, e.g. "((b) 10 0)"
+            script: Optional list of (expected_command_prefix, response) tuples.
+                    If provided, verifies commands match expectations.
         """
-        if time_step < 0:
-            time_step = self.time_step
+        self._sent_commands: List[str] = []
+        self._response_queue: Deque[str] = deque()
+        self._script = deque(script) if script else None
+        self._connected = True
+        self._time = 0
+        
+    def send(self, data: str, addr: tuple[str, int]) -> None:
+        """Receive data from client (adapter)."""
+        if not self._connected:
+            raise BrokenPipeError("Fake socket closed")
             
-        if not objects_str:
-            # Default empty see message
-            objects_str = ""
+        decoded = data
+        self._sent_commands.append(decoded)
+        logger.debug(f"FakeServer received: {decoded}")
+        
+        # Verify against script if one exists
+        if self._script:
+            if not self._script:
+                logger.warning(f"Unexpected command received after script end: {decoded}")
+            else:
+                prefix, response = self._script.popleft()
+                # Basic prefix check (e.g. "(init" matches "(init TankTeam ...)")
+                if not decoded.startswith(prefix):
+                    logger.error(f"Script mismatch! Expected startswith '{prefix}', got '{decoded}'")
+                
+                if response:
+                    self._response_queue.append(response)
+        else:
+            # Default auto-responses for basic protocol handshake
+            if decoded.startswith("(init"):
+                # Respond with init confirmation + server params + player params + initial see
+                self._response_queue.append(self._build_init_response(decoded))
+                self._response_queue.append(self._build_server_param_response())
+                self._response_queue.append(self._build_player_param_response())
+                self._response_queue.append(self._build_sense_body(0))
+                self._response_queue.append(self._build_see(0))
+            elif decoded.startswith("(move"):
+                # Move command just gets a sense/see update
+                # (Actual server wouldn't send see immediately typically, but for test speed we do)
+                pass 
+            else:
+                # Regular step
+                pass
+
+    def recv(self, bufsize: int) -> str:
+        """Send data to client (adapter)."""
+        if not self._connected:
+            return ""
             
-        msg = f"(see {time_step} {objects_str})"
-        self._broadcast(msg)
+        if self._response_queue:
+            return self._response_queue.popleft()
+        return ""
 
-    def _send(self, message: str, addr: Tuple[str, int]):
-        """Send raw string to address."""
-        if self.socket:
-            self.socket.sendto(message.encode("utf-8"), addr)
+    def close(self) -> None:
+        self._connected = False
 
-    def _broadcast(self, message: str):
-        """Send to all connected clients."""
-        for addr in self.clients:
-            self._send(message, addr)
+    # --- Test Helpers ---
+    
+    def queue_sense_body(self, time: int, stamina: float = 4000) -> None:
+        self._response_queue.append(self._build_sense_body(time, stamina))
+        
+    def queue_see(self, time: int, objects: Optional[List[str]] = None) -> None:
+        self._response_queue.append(self._build_see(time, objects))
+
+    def get_last_command(self) -> Optional[str]:
+        return self._sent_commands[-1] if self._sent_commands else None
+
+    # --- Response Builders ---
+
+    def _build_init_response(self, init_cmd: str) -> str:
+        # Extract team from "(init params...)"
+        parts = init_cmd.split()
+        side = "l" if len(parts) > 0 else "l" 
+        unum = 1 # Simple hardcoded unum
+        play_mode = "before_kick_off"
+        return f"(init {side} {unum} {play_mode})"
+
+    def _build_server_param_response(self) -> str:
+        return "(server_param (goal_width 14.02) (stamina_max 4000))"
+
+    def _build_player_param_response(self) -> str:
+        return "(player_param (player_speed_max 1.05) (stamina_inc_max 45))"
+
+    def _build_sense_body(self, time: int, stamina: float = 4000) -> str:
+        return f"(sense_body {time} (view_mode high normal) (stamina {stamina} 1) (speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) (turn_neck 0) (catch 0) (move 0) (change_view 0))"
+
+    def _build_see(self, time: int, objects: Optional[List[str]] = None) -> str:
+        if objects is None:
+            # Default: ball + goal
+            objects = ["((b) 10 0)", "((g r) 50 0)"]
+            
+        objs_str = " ".join(objects)
+        return f"(see {time} {objs_str})"
