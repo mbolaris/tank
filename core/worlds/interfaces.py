@@ -6,7 +6,10 @@ These interfaces are implemented by specific world backends (Tank, Petri, Soccer
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 
 FAST_STEP_ACTION = "__fast_step__"
 # Reserved meta-action key for internal fast stepping (non-gameplay).
@@ -40,9 +43,9 @@ class StepResult:
     done: bool = False
     info: Dict[str, Any] = field(default_factory=dict)
     # Extended fields for world loop contract (all optional for backward compat)
-    spawns: List[Any] = field(default_factory=list)
-    removals: List[Any] = field(default_factory=list)
-    energy_deltas: List[Any] = field(default_factory=list)
+    spawns: List["SpawnRequest"] = field(default_factory=list)
+    removals: List["RemovalRequest"] = field(default_factory=list)
+    energy_deltas: List["EnergyDeltaRecord"] = field(default_factory=list)
     render_hint: Optional[Dict[str, Any]] = None
 
 

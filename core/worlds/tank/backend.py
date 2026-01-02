@@ -101,6 +101,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             metrics=self.get_current_metrics(),
             done=False,
             info={"frame": self._current_frame, "seed": reset_seed},
+            spawns=[],
+            removals=[],
+            energy_deltas=[],
+            render_hint=self._build_snapshot().get("render_hint"),
         )
         return self._last_step_result
 
@@ -241,6 +245,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             metrics={} if fast_step else self.get_current_metrics(include_distributions=False),
             done=False,
             info={"frame": self._current_frame, "brain_mode": brain_mode},
+            spawns=self.engine._frame_spawns if hasattr(self.engine, "_frame_spawns") else [],
+            removals=self.engine._frame_removals if hasattr(self.engine, "_frame_removals") else [],
+            energy_deltas=self.engine._frame_energy_deltas if hasattr(self.engine, "_frame_energy_deltas") else [],
+            render_hint=self._build_snapshot().get("render_hint"),
         )
         return self._last_step_result
 

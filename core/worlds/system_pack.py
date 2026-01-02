@@ -56,6 +56,14 @@ class SystemPack(Protocol):
         """Return mode-specific metadata for snapshots."""
         ...
 
+    def build_core_systems(self, engine: SimulationEngine) -> dict[str, Any]:
+        """Build and return core systems for the engine.
+
+        The engine will wire these systems into its historical attributes
+        for backward compatibility.
+        """
+        ...
+
     def get_pipeline(self) -> EnginePipeline | None:
         """Return custom pipeline or None for default.
 

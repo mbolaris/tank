@@ -209,6 +209,13 @@ class SimulationEngine:
         self._current_phase: UpdatePhase | None = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
 
+        # Delta log (reset every frame)
+        from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
+
+        self._frame_spawns: list[SpawnRequest] = []
+        self._frame_removals: list[RemovalRequest] = []
+        self._frame_energy_deltas: list[EnergyDeltaRecord] = []
+
         # Pipeline (set during setup())
         from core.simulation.pipeline import EnginePipeline
 
@@ -256,29 +263,10 @@ class SimulationEngine:
 
             pack = TankPack(self.config)
 
-        # 1. Initialize core systems that every engine has
-        from core.collision_system import CollisionSystem
-        from core.poker_system import PokerSystem
-        from core.reproduction_service import ReproductionService
-        from core.reproduction_system import ReproductionSystem
-        from core.systems.entity_lifecycle import EntityLifecycleSystem
-        from core.systems.poker_proximity import PokerProximitySystem
-
-        self.lifecycle_system = EntityLifecycleSystem(self)
-        self.collision_system = CollisionSystem(self)
-        self.reproduction_service = ReproductionService(self)
-        self.reproduction_system = ReproductionSystem(self)
-        self.poker_system = PokerSystem(self, max_events=self.config.poker.max_poker_events)
-        self.poker_system.enabled = self.config.server.poker_activity_enabled
-        self.poker_events = self.poker_system.poker_events
-        self.poker_proximity_system = PokerProximitySystem(self)
-
-        if self.config.poker.enable_periodic_benchmarks:
-            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-
-            self.benchmark_evaluator = PeriodicBenchmarkEvaluator(
-                self.config.poker.benchmark_config
-            )
+        # 1. Let the pack build core systems (wiring them into self for backward compat)
+        systems = pack.build_core_systems(self)
+        for attr, system in systems.items():
+            setattr(self, attr, system)
 
         # 2. Let the pack build the environment
         self.environment = pack.build_environment(self)
@@ -508,13 +496,49 @@ class SimulationEngine:
 
     def _apply_entity_mutations(self, stage: str) -> None:
         """Apply queued spawns/removals at a safe point in the frame."""
+        from core.worlds.contracts import RemovalRequest, SpawnRequest
+        from core.entities import Fish
+        from core.entities.plant import Plant
+
         removals = self._entity_mutations.drain_removals()
         for mutation in removals:
-            self._remove_entity(mutation.entity)
+            entity = mutation.entity
+            entity_type = entity.__class__.__name__.lower()
+            entity_id = str(id(entity))
+            if isinstance(entity, Fish):
+                entity_id = str(entity.fish_id)
+            elif isinstance(entity, Plant):
+                entity_id = str(entity.plant_id)
+
+            self._frame_removals.append(
+                RemovalRequest(
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    reason=mutation.reason,
+                    metadata=mutation.metadata,
+                )
+            )
+            self._remove_entity(entity)
 
         spawns = self._entity_mutations.drain_spawns()
         for mutation in spawns:
-            self._add_entity(mutation.entity)
+            entity = mutation.entity
+            entity_type = entity.__class__.__name__.lower()
+            entity_id = str(id(entity))
+            if isinstance(entity, Fish):
+                entity_id = str(entity.fish_id)
+            elif isinstance(entity, Plant):
+                entity_id = str(entity.plant_id)
+
+            self._frame_spawns.append(
+                SpawnRequest(
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    reason=mutation.reason,
+                    metadata=mutation.metadata,
+                )
+            )
+            self._add_entity(entity)
 
     def get_fish_list(self) -> list[entities.Fish]:
         """Get cached list of all fish in the simulation."""
@@ -609,6 +633,11 @@ class SimulationEngine:
         """
         if self.paused:
             return
+
+        # Reset frame deltas
+        self._frame_spawns.clear()
+        self._frame_removals.clear()
+        self._frame_energy_deltas.clear()
 
         if self.pipeline is not None:
             self.pipeline.run(self)
@@ -829,6 +858,18 @@ class SimulationEngine:
         self.pending_sim_events.clear()
 
         if deltas:
+            from core.worlds.contracts import EnergyDeltaRecord
+
+            for delta in deltas:
+                self._frame_energy_deltas.append(
+                    EnergyDeltaRecord(
+                        entity_id=str(delta.entity_id),
+                        delta=delta.delta,
+                        source=delta.reason,
+                        metadata=delta.metadata or {},
+                    )
+                )
+
             self._apply_energy_deltas(deltas)
 
     def _apply_energy_deltas(self, deltas: list[EnergyDelta]) -> None:

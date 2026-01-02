@@ -29,6 +29,40 @@ class TankPack(SystemPack):
     def mode_id(self) -> str:
         return "tank"
 
+    def build_core_systems(self, engine: SimulationEngine) -> dict[str, Any]:
+        """Build Tank-specific core systems."""
+        from core.collision_system import CollisionSystem
+        from core.poker_system import PokerSystem
+        from core.reproduction_service import ReproductionService
+        from core.reproduction_system import ReproductionSystem
+        from core.systems.entity_lifecycle import EntityLifecycleSystem
+        from core.systems.poker_proximity import PokerProximitySystem
+
+        systems = {}
+        systems["lifecycle_system"] = EntityLifecycleSystem(engine)
+        systems["collision_system"] = CollisionSystem(engine)
+        
+        # Wiring service manually before system to resolve circular dependency
+        service = ReproductionService(engine)
+        engine.reproduction_service = service
+        systems["reproduction_service"] = service
+        systems["reproduction_system"] = ReproductionSystem(engine)
+
+        poker = PokerSystem(engine, max_events=self.config.poker.max_poker_events)
+        poker.enabled = self.config.server.poker_activity_enabled
+        systems["poker_system"] = poker
+        systems["poker_events"] = poker.poker_events
+        systems["poker_proximity_system"] = PokerProximitySystem(engine)
+
+        if self.config.poker.enable_periodic_benchmarks:
+            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+
+            systems["benchmark_evaluator"] = PeriodicBenchmarkEvaluator(
+                self.config.poker.benchmark_config
+            )
+
+        return systems
+
     def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
         """Create the Tank environment with EventBus and GenomeCodePool."""
         from core.events import EventBus

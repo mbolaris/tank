@@ -187,6 +187,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             metrics=self.get_current_metrics(),
             done=False,
             info={"frame": self._frame, "seed": reset_seed},
+            spawns=[],
+            removals=[],
+            energy_deltas=[],
+            render_hint={
+                "style": "topdown",
+                "entity_style": "player",
+            },
         )
 
     def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
@@ -223,6 +230,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             metrics=metrics,
             done=done,
             info={"frame": self._frame},
+            spawns=[],
+            removals=[],
+            energy_deltas=[],
+            render_hint={
+                "style": "topdown",
+                "entity_style": "player",
+            },
         )
 
     def get_current_snapshot(self) -> dict[str, Any]:
