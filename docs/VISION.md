@@ -115,6 +115,8 @@ This “AI oceanographer” doesn’t change the core two-layer evolution paradi
 
 ## Long-Term Goals
 
+> See [ROADMAP.md](ROADMAP.md) for current implementation priorities and near-term task tracking.
+
 Tank World development proceeds in phases, each building toward fully automated Alife research:
 
 ### Phase 1: Foundation (Current)
