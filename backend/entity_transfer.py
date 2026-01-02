@@ -24,6 +24,7 @@ from core.transfer.entity_transfer import (
     serialize_entity_for_transfer,
     try_deserialize_entity,
     try_serialize_entity_for_transfer,
+    _deserialize_fish,
 )
 
 # Re-export for compatibility
@@ -48,4 +49,5 @@ __all__ = [
     "serialize_entity_for_transfer",
     "try_deserialize_entity",
     "try_serialize_entity_for_transfer",
+    "_deserialize_fish",
 ]
