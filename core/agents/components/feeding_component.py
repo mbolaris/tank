@@ -6,11 +6,10 @@ bite size calculations, and nutrition tracking.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.entities.resources import Food
-    from core.math_utils import Vector2
 
 
 class FeedingComponent:
@@ -85,7 +84,7 @@ class FeedingComponent:
 
     def consume_food(
         self,
-        food: "Food",
+        food: Food,
         bite_size: float,
     ) -> float:
         """Take a bite from food and return potential energy gain.

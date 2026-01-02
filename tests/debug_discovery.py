@@ -1,7 +1,7 @@
 import logging
-import sys
 from pathlib import Path
-from backend.tank_persistence import find_all_tank_snapshots, DATA_DIR
+
+from backend.tank_persistence import DATA_DIR, find_all_tank_snapshots
 
 # Setup logging to stdout
 logging.basicConfig(level=logging.INFO, format="%(message)s")

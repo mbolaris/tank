@@ -6,7 +6,7 @@ providing a reusable abstraction for different agent types (Fish, PetriMicrobe, 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from core.fish_memory import FishMemorySystem
@@ -25,7 +25,7 @@ class PerceptionComponent:
     making it easy to compose into different agent types.
     """
 
-    def __init__(self, memory_system: "FishMemorySystem") -> None:
+    def __init__(self, memory_system: FishMemorySystem) -> None:
         """Initialize perception component.
 
         Args:
@@ -34,11 +34,11 @@ class PerceptionComponent:
         self._memory_system = memory_system
 
     @property
-    def memory_system(self) -> "FishMemorySystem":
+    def memory_system(self) -> FishMemorySystem:
         """Get the underlying memory system."""
         return self._memory_system
 
-    def get_food_locations(self, min_strength: float = 0.1) -> List["Vector2"]:
+    def get_food_locations(self, min_strength: float = 0.1) -> List[Vector2]:
         """Get remembered food locations above minimum strength threshold.
 
         Args:
@@ -54,7 +54,7 @@ class PerceptionComponent:
         )
         return [m.location for m in memories]
 
-    def record_food_discovery(self, location: "Vector2") -> None:
+    def record_food_discovery(self, location: Vector2) -> None:
         """Record a food discovery in memory.
 
         Args:
@@ -64,7 +64,7 @@ class PerceptionComponent:
 
         self._memory_system.add_memory(MemoryType.FOOD_LOCATION, location)
 
-    def get_danger_locations(self, min_strength: float = 0.1) -> List["Vector2"]:
+    def get_danger_locations(self, min_strength: float = 0.1) -> List[Vector2]:
         """Get remembered danger zone locations (predator encounters, etc.).
 
         Args:
@@ -80,7 +80,7 @@ class PerceptionComponent:
         )
         return [m.location for m in memories]
 
-    def record_danger(self, location: "Vector2") -> None:
+    def record_danger(self, location: Vector2) -> None:
         """Record a dangerous location in memory (predator encounter, etc.).
 
         Args:
@@ -98,7 +98,7 @@ class PerceptionComponent:
         """
         self._memory_system.update(age)
 
-    def get_danger_zones(self, min_strength: float = 0.3) -> List["Vector2"]:
+    def get_danger_zones(self, min_strength: float = 0.3) -> List[Vector2]:
         """Get locations to avoid based on negative experiences.
 
         Combines predator encounters and other danger memories.

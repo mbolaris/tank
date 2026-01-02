@@ -1,6 +1,7 @@
-from typing import List, Optional
 from dataclasses import dataclass, field
-from core.sim.events import SimEvent, AteFood, Moved, EnergyBurned, PokerGamePlayed
+from typing import List, Optional
+
+from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed, SimEvent
 
 
 @dataclass(frozen=True)

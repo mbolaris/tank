@@ -15,7 +15,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING, Dict, Optional
 
-from core.sim.contracts import Action, ActionMap, Observation, ObservationMap
+from core.sim.contracts import Action, ActionMap, ObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 def decide_actions(
     observations: ObservationMap,
-    world: "TankWorld",
+    world: TankWorld,
     rng: Optional[random.Random] = None,
 ) -> ActionMap:
     """Call existing fish decision path and translate to Actions.
@@ -49,7 +49,7 @@ def decide_actions(
     actions: ActionMap = {}
 
     # Build fish lookup by ID for efficient access
-    fish_by_id: Dict[str, "Fish"] = {}
+    fish_by_id: Dict[str, Fish] = {}
     from core.entities import Fish
 
     for entity in world.entities_list:
@@ -78,7 +78,7 @@ def decide_actions(
 
 def apply_actions(
     actions: ActionMap,
-    world: "TankWorld",
+    world: TankWorld,
 ) -> None:
     """Apply actions to fish entities.
 
@@ -92,7 +92,7 @@ def apply_actions(
     from core.entities import Fish
 
     # Build fish lookup
-    fish_by_id: Dict[str, "Fish"] = {}
+    fish_by_id: Dict[str, Fish] = {}
     for entity in world.entities_list:
         if isinstance(entity, Fish) and not entity.is_dead():
             fish_by_id[str(entity.fish_id)] = entity

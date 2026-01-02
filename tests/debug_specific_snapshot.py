@@ -9,7 +9,7 @@ print(f"Checking {path}")
 if path.exists():
     print(f"Size: {path.stat().st_size} bytes")
     try:
-        with open(path, "r") as f:
+        with open(path) as f:
             data = json.load(f)
         print("JSON Load Success")
         print("Keys:", list(data.keys()))
@@ -17,7 +17,7 @@ if path.exists():
     except Exception as e:
         print(f"JSON Load Failed: {e}")
         # Print first 100 chars
-        with open(path, "r") as f:
+        with open(path) as f:
             print("Head:", f.read(100))
 else:
     print("File not found")

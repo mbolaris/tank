@@ -328,10 +328,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return []
 
         # Import locally to avoid circular imports
-        from core.transfer.entity_transfer import serialize_entity_for_transfer
-        from core.entities import Fish, Plant, PlantNectar, Food
-        from core.entities.predators import Crab
+        from core.entities import Fish, Food, Plant, PlantNectar
         from core.entities.base import Castle
+        from core.entities.predators import Crab
+        from core.transfer.entity_transfer import serialize_entity_for_transfer
 
         entities_snapshot = []
 
@@ -339,9 +339,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             entity_dict = None
 
             # Use transfer codecs for Fish and Plant (full serialization)
-            if isinstance(entity, Fish):
-                entity_dict = serialize_entity_for_transfer(entity)
-            elif isinstance(entity, Plant):
+            if isinstance(entity, Fish) or isinstance(entity, Plant):
                 entity_dict = serialize_entity_for_transfer(entity)
             elif isinstance(entity, PlantNectar):
                 # PlantNectar needs special handling - include source_plant_id

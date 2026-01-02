@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import pytest
-from core.tank_world import TankWorldConfig
-from core.worlds.tank.backend import TankWorldBackendAdapter
 from backend.tank_persistence import restore_tank_from_snapshot
 from core.entities import Fish, Plant, PlantNectar
-from core.movement_strategy import AlgorithmicMovement
 from core.genetics import PlantGenome
+from core.movement_strategy import AlgorithmicMovement
+from core.tank_world import TankWorldConfig
+from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
 def test_persistence_round_trip():

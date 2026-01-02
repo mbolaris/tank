@@ -35,7 +35,7 @@ class PetriMicrobeAgent(Agent):
 
     def __init__(
         self,
-        environment: "World",
+        environment: World,
         x: float,
         y: float,
         speed: float,

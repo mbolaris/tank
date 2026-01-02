@@ -6,12 +6,13 @@ and action spaces for different simulation modes.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from core.modes.rulesets import (
     ActionSpace,
     EnergyModel,
-    ModeRuleSet,
     PetriRuleSet,
     ScoringModel,
     SoccerRuleSet,
@@ -36,7 +37,7 @@ class TestEnergyModel:
     def test_immutable(self):
         """Should be frozen/immutable."""
         model = EnergyModel()
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
             model.existence_cost = 0.1
 
 

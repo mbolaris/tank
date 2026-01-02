@@ -1,9 +1,5 @@
-import pytest
-import math
-from core.simulation.engine import SimulationEngine
 from core.entities.fish import Fish
-from core.sim.events import AteFood
-from core.entities.base import EntityState
+from core.simulation.engine import SimulationEngine
 
 
 class DummyMovement:

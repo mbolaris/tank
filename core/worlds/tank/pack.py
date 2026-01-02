@@ -7,7 +7,7 @@ logic for the standard fish tank simulation.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict
 
 from core import environment
 from core.config.simulation_config import SimulationConfig
@@ -32,7 +32,7 @@ class TankPack(SystemPack):
     def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
         """Create the Tank environment with EventBus and GenomeCodePool."""
         from core.events import EventBus
-        from core.sim.events import AteFood, Moved, EnergyBurned, PokerGamePlayed
+        from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
 
         # 1. Initialize EventBus for domain events
         engine.event_bus = EventBus()

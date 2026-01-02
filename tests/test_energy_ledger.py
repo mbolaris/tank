@@ -1,6 +1,7 @@
 import pytest
-from core.sim.events import AteFood, Moved, EnergyBurned, PokerGamePlayed
-from core.sim.energy_ledger import EnergyLedger, EnergyDelta
+
+from core.sim.energy_ledger import EnergyLedger
+from core.sim.events import AteFood, Moved, PokerGamePlayed
 
 
 @pytest.fixture

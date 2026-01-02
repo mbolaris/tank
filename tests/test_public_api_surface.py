@@ -1,4 +1,3 @@
-import pytest
 import backend.entity_transfer
 import core.transfer.entity_transfer
 
