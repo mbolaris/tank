@@ -62,7 +62,7 @@ def test_code_policy_has_defaults():
 
 def test_old_genome_loads_without_code_policy():
     """Old genomes (schema v1) without code policy get default policy assigned.
-    
+
     When loading old genomes that don't have code_policy fields, the factory
     creates a new genome with defaults, which includes the default movement policy.
     """

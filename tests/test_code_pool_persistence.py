@@ -73,7 +73,7 @@ def test_builtin_not_serialized():
 
 def test_fallback_when_component_compilation_fails():
     """Test graceful handling of broken components.
-    
+
     Now that validation happens at add_component time, this test verifies
     that unsafe source is rejected immediately at insertion time.
     """

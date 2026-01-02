@@ -316,7 +316,7 @@ class TestGenomePolicySetOperations:
 
     def test_multi_policy_genome(self):
         """Genome stores primary policy when multiple are set in GenomePolicySet.
-        
+
         Currently, behavioral traits only store ONE primary policy.
         Movement policy takes precedence over others.
         """
