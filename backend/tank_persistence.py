@@ -200,7 +200,6 @@ def restore_tank_from_snapshot(snapshot: Dict[str, Any], target_world: Any) -> b
                 CodePool,
                 GenomeCodePool,
                 seek_nearest_food_policy,
-                create_default_genome_code_pool,
             )
             try:
                 restored_pool = CodePool.from_dict(snapshot["code_pool"])

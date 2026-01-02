@@ -30,7 +30,7 @@ import socket
 import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine, Dict, Optional
+from typing import Any, Callable, Coroutine, Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
