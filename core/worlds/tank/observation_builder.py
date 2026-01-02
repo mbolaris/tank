@@ -11,7 +11,7 @@ Design Notes:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.sim.contracts import Observation, ObservationMap
 
@@ -26,7 +26,7 @@ DEFAULT_PERCEPTION_RADIUS = 200.0
 
 def build_tank_observations(
     world: TankWorld,
-    config: Optional[Dict[str, Any]] = None,
+    config: dict[str, Any] | None = None,
 ) -> ObservationMap:
     """Build per-agent observations from Tank world state.
 
@@ -95,7 +95,7 @@ def _build_food_observations(
     env: Any,
     radius: float,
     food_type: type,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Build observations of nearby food items."""
     food_obs = []
 
@@ -125,7 +125,7 @@ def _build_fish_observations(
     fish: Fish,
     env: Any,
     radius: float,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Build observations of nearby fish (non-threats)."""
     fish_obs = []
 
@@ -170,7 +170,7 @@ def _build_threat_observations(
     fish: Fish,
     env: Any,
     radius: float,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Build observations of nearby threats (larger fish)."""
     threat_obs = []
 

@@ -339,7 +339,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             entity_dict = None
 
             # Use transfer codecs for Fish and Plant (full serialization)
-            if isinstance(entity, Fish) or isinstance(entity, Plant):
+            if isinstance(entity, (Fish, Plant)):
                 entity_dict = serialize_entity_for_transfer(entity)
             elif isinstance(entity, PlantNectar):
                 # PlantNectar needs special handling - include source_plant_id

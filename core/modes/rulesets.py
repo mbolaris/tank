@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ class ScoringModel:
     food_weight: float = 0.1
 
     # Mode-specific reward components
-    extra_rewards: Dict[str, float] = field(default_factory=dict)
+    extra_rewards: dict[str, float] = field(default_factory=dict)
     """Additional reward components (e.g., goal_reward for soccer)."""
 
 
@@ -143,7 +143,7 @@ class ModeRuleSet(ABC):
         """Available actions configuration for this mode."""
         ...
 
-    def get_allowed_actions(self) -> List[str]:
+    def get_allowed_actions(self) -> list[str]:
         """Get list of allowed action types.
 
         Returns:
@@ -151,7 +151,7 @@ class ModeRuleSet(ABC):
         """
         return list(self.action_space.allowed_actions)
 
-    def validate_action(self, action: Dict[str, Any]) -> bool:
+    def validate_action(self, action: dict[str, Any]) -> bool:
         """Validate an action against this mode's rules.
 
         Args:
@@ -333,7 +333,7 @@ class SoccerTrainingRuleSet(SoccerRuleSet):
 
 
 # Registry of built-in rulesets
-_RULESETS: Dict[str, ModeRuleSet] = {
+_RULESETS: dict[str, ModeRuleSet] = {
     "tank": TankRuleSet(),
     "petri": PetriRuleSet(),
     "soccer": SoccerRuleSet(),
@@ -341,7 +341,7 @@ _RULESETS: Dict[str, ModeRuleSet] = {
 }
 
 
-def get_ruleset(mode_id: str) -> Optional[ModeRuleSet]:
+def get_ruleset(mode_id: str) -> ModeRuleSet | None:
     """Get a ruleset by mode ID.
 
     Args:
@@ -362,7 +362,7 @@ def register_ruleset(ruleset: ModeRuleSet) -> None:
     _RULESETS[ruleset.mode_id] = ruleset
 
 
-def list_rulesets() -> List[str]:
+def list_rulesets() -> list[str]:
     """List all registered ruleset mode IDs.
 
     Returns:

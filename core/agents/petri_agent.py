@@ -6,7 +6,7 @@ from shared components. It serves as a template for future agent types.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.agents.components import (
     FeedingComponent,
@@ -39,7 +39,7 @@ class PetriMicrobeAgent(Agent):
         x: float,
         y: float,
         speed: float,
-        microbe_id: Optional[int] = None,
+        microbe_id: int | None = None,
     ) -> None:
         """Initialize a petri microbe agent.
 

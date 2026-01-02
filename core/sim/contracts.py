@@ -13,7 +13,7 @@ Design Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 
 @dataclass(frozen=True)
@@ -38,16 +38,16 @@ class Observation:
     """
 
     entity_id: str
-    position: Tuple[float, float]
-    velocity: Tuple[float, float]
+    position: tuple[float, float]
+    velocity: tuple[float, float]
     energy: float
     max_energy: float
     age: int
-    nearby_food: List[Dict[str, Any]] = field(default_factory=list)
-    nearby_fish: List[Dict[str, Any]] = field(default_factory=list)
-    nearby_threats: List[Dict[str, Any]] = field(default_factory=list)
+    nearby_food: list[dict[str, Any]] = field(default_factory=list)
+    nearby_fish: list[dict[str, Any]] = field(default_factory=list)
+    nearby_threats: list[dict[str, Any]] = field(default_factory=list)
     frame: int = 0
-    extra: Dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -64,8 +64,8 @@ class Action:
     """
 
     entity_id: str
-    target_velocity: Tuple[float, float] = (0.0, 0.0)
-    extra: Dict[str, Any] = field(default_factory=dict)
+    target_velocity: tuple[float, float] = (0.0, 0.0)
+    extra: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -81,9 +81,9 @@ class WorldTickResult:
         info: Additional backend-specific metadata
     """
 
-    events: List[Dict[str, Any]] = field(default_factory=list)
-    metrics: Dict[str, Any] = field(default_factory=dict)
-    info: Dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    info: dict[str, Any] = field(default_factory=dict)
 
 
 # Type aliases for clarity

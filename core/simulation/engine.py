@@ -39,7 +39,7 @@ import os
 import random
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from core.config.simulation_config import SimulationConfig
 from core.sim.energy_ledger import EnergyDelta, EnergyLedger
@@ -77,10 +77,10 @@ class PackableEngine(Protocol):
     rng: random.Random
     event_bus: Any
     code_pool: Any
-    environment: Optional[environment.Environment]
-    ecosystem: Optional[EcosystemManager]
-    plant_manager: Optional[PlantManager]
-    food_spawning_system: Optional[FoodSpawningSystem]
+    environment: environment.Environment | None
+    ecosystem: EcosystemManager | None
+    plant_manager: PlantManager | None
+    food_spawning_system: FoodSpawningSystem | None
     time_system: TimeSystem
     lifecycle_system: EntityLifecycleSystem
     collision_system: CollisionSystem
@@ -127,12 +127,12 @@ class SimulationEngine:
 
     def __init__(
         self,
-        config: Optional[SimulationConfig] = None,
+        config: SimulationConfig | None = None,
         *,
-        headless: Optional[bool] = None,
-        rng: Optional[random.Random] = None,
-        seed: Optional[int] = None,
-        enable_poker_benchmarks: Optional[bool] = None,
+        headless: bool | None = None,
+        rng: random.Random | None = None,
+        seed: int | None = None,
+        enable_poker_benchmarks: bool | None = None,
     ) -> None:
         """Initialize the simulation engine."""
         self.frame_count: int = 0
@@ -176,8 +176,8 @@ class SimulationEngine:
         self._entity_mutations = EntityMutationQueue()
 
         # Core state
-        self.environment: Optional[environment.Environment] = None
-        self.ecosystem: Optional[EcosystemManager] = None
+        self.environment: environment.Environment | None = None
+        self.ecosystem: EcosystemManager | None = None
         self.time_system: TimeSystem = TimeSystem(self)
         self.start_time: float = time.time()
 
@@ -188,25 +188,25 @@ class SimulationEngine:
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
         # but we keep them as Optional attributes for type safety and backward compat.
-        self.collision_system: Optional[CollisionSystem] = None
-        self.reproduction_service: Optional[ReproductionService] = None
-        self.reproduction_system: Optional[ReproductionSystem] = None
-        self.poker_system: Optional[PokerSystem] = None
-        self.lifecycle_system: Optional[EntityLifecycleSystem] = None
-        self.poker_proximity_system: Optional[PokerProximitySystem] = None
-        self.food_spawning_system: Optional[FoodSpawningSystem] = None
-        self.plant_manager: Optional[PlantManager] = None
-        self.poker_events: List[Any] = []
+        self.collision_system: CollisionSystem | None = None
+        self.reproduction_service: ReproductionService | None = None
+        self.reproduction_system: ReproductionSystem | None = None
+        self.poker_system: PokerSystem | None = None
+        self.lifecycle_system: EntityLifecycleSystem | None = None
+        self.poker_proximity_system: PokerProximitySystem | None = None
+        self.food_spawning_system: FoodSpawningSystem | None = None
+        self.plant_manager: PlantManager | None = None
+        self.poker_events: list[Any] = []
 
         # Periodic poker benchmark evaluation
-        self.benchmark_evaluator: Optional[PeriodicBenchmarkEvaluator] = None
+        self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
 
         # Energy Ledger integration
         self.energy_ledger = EnergyLedger()
-        self.pending_sim_events: List[SimEvent] = []
+        self.pending_sim_events: list[SimEvent] = []
 
         # Phase tracking for debugging
-        self._current_phase: Optional[UpdatePhase] = None
+        self._current_phase: UpdatePhase | None = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
 
     # =========================================================================
@@ -214,7 +214,7 @@ class SimulationEngine:
     # =========================================================================
 
     @property
-    def entities_list(self) -> List[entities.Agent]:
+    def entities_list(self) -> list[entities.Agent]:
         """All entities in the simulation (delegates to EntityManager)."""
         return self._entity_manager.entities_list
 
@@ -224,7 +224,7 @@ class SimulationEngine:
         return self._entity_manager.food_pool
 
     @property
-    def root_spot_manager(self) -> Optional[RootSpotManager]:
+    def root_spot_manager(self) -> RootSpotManager | None:
         """Backward-compatible access to root spot manager via PlantManager."""
         if self.plant_manager is None:
             return None
@@ -234,7 +234,7 @@ class SimulationEngine:
     # Setup
     # =========================================================================
 
-    def setup(self, pack: Optional[SystemPack] = None) -> None:
+    def setup(self, pack: SystemPack | None = None) -> None:
         """Setup the simulation using the provided SystemPack.
 
         If no pack is provided, it tries to use the default Tank logic
@@ -344,21 +344,21 @@ class SimulationEngine:
     # System Registry Methods (delegate to SystemRegistry)
     # =========================================================================
 
-    def get_systems(self) -> List[BaseSystem]:
+    def get_systems(self) -> list[BaseSystem]:
         """Get all registered systems in execution order."""
         return self._system_registry.get_all()
 
     # Also expose via private attribute for backward compat
     @property
-    def _systems(self) -> List[BaseSystem]:
+    def _systems(self) -> list[BaseSystem]:
         """Backward compatible access to systems list."""
         return self._system_registry.get_all()
 
-    def get_system(self, name: str) -> Optional[BaseSystem]:
+    def get_system(self, name: str) -> BaseSystem | None:
         """Get a system by name."""
         return self._system_registry.get(name)
 
-    def get_systems_debug_info(self) -> Dict[str, Any]:
+    def get_systems_debug_info(self) -> dict[str, Any]:
         """Get debug information from all registered systems."""
         return self._system_registry.get_debug_info()
 
@@ -370,11 +370,11 @@ class SimulationEngine:
     # Phase Tracking
     # =========================================================================
 
-    def get_current_phase(self) -> Optional[UpdatePhase]:
+    def get_current_phase(self) -> UpdatePhase | None:
         """Get the current update phase (None if not in update loop)."""
         return self._current_phase
 
-    def get_phase_description(self, phase: Optional[UpdatePhase] = None) -> str:
+    def get_phase_description(self, phase: UpdatePhase | None = None) -> str:
         """Get a human-readable description of a phase."""
         if phase is None:
             phase = self._current_phase
@@ -415,7 +415,7 @@ class SimulationEngine:
     # Utility Methods
     # =========================================================================
 
-    def get_all_entities(self) -> List[entities.Agent]:
+    def get_all_entities(self) -> list[entities.Agent]:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
 
@@ -476,7 +476,7 @@ class SimulationEngine:
         entity: entities.Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a spawn request to be applied by the engine."""
         return self._entity_mutations.request_spawn(entity, reason=reason, metadata=metadata)
@@ -486,7 +486,7 @@ class SimulationEngine:
         entity: entities.Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a removal request to be applied by the engine."""
         return self._entity_mutations.request_remove(entity, reason=reason, metadata=metadata)
@@ -505,11 +505,11 @@ class SimulationEngine:
         for mutation in spawns:
             self._add_entity(mutation.entity)
 
-    def get_fish_list(self) -> List[entities.Fish]:
+    def get_fish_list(self) -> list[entities.Fish]:
         """Get cached list of all fish in the simulation."""
         return self._entity_manager.get_fish()
 
-    def get_food_list(self) -> List[entities.Food]:
+    def get_food_list(self) -> list[entities.Food]:
         """Get cached list of all food in the simulation."""
         return self._entity_manager.get_food()
 
@@ -525,7 +525,7 @@ class SimulationEngine:
     # Lifecycle Delegation
     # =========================================================================
 
-    def record_fish_death(self, fish: entities.Agent, cause: Optional[str] = None) -> None:
+    def record_fish_death(self, fish: entities.Agent, cause: str | None = None) -> None:
         """Delegate fish death recording to the lifecycle system."""
         self.lifecycle_system.record_fish_death(fish, cause)
 
@@ -664,8 +664,8 @@ class SimulationEngine:
             Tuple of (new_entities, entities_to_remove)
         """
         self._current_phase = UpdatePhase.ENTITY_ACT
-        new_entities: List[entities.Agent] = []
-        entities_to_remove: List[entities.Agent] = []
+        new_entities: list[entities.Agent] = []
+        entities_to_remove: list[entities.Agent] = []
 
         # Performance: Pre-fetch type references
         from core.entities import Fish
@@ -710,8 +710,8 @@ class SimulationEngine:
 
     def _phase_lifecycle(
         self,
-        new_entities: List[entities.Agent],
-        entities_to_remove: List[entities.Agent],
+        new_entities: list[entities.Agent],
+        entities_to_remove: list[entities.Agent],
     ) -> None:
         """LIFECYCLE: Process deaths, add/remove entities.
 
@@ -817,7 +817,7 @@ class SimulationEngine:
         if deltas:
             self._apply_energy_deltas(deltas)
 
-    def _apply_energy_deltas(self, deltas: List[EnergyDelta]) -> None:
+    def _apply_energy_deltas(self, deltas: list[EnergyDelta]) -> None:
         """Apply energy deltas to entities."""
         # Map entity_id to entity for fast lookup
         # Currently we iterate list, which is O(N).
@@ -910,7 +910,7 @@ class SimulationEngine:
         """Delegate event creation to the poker system."""
         self.poker_system.add_poker_event(poker)
 
-    def get_recent_poker_events(self, max_age_frames: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
         max_age = max_age_frames or self.config.poker.poker_event_max_age_frames
         return self.poker_system.get_recent_poker_events(max_age)
@@ -938,7 +938,7 @@ class SimulationEngine:
     # Statistics
     # =========================================================================
 
-    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Get current simulation statistics."""
         return self.stats_calculator.get_stats(include_distributions=include_distributions)
 
@@ -958,7 +958,7 @@ class SimulationEngine:
         self,
         max_frames: int = 10000,
         stats_interval: int = 300,
-        export_json: Optional[str] = None,
+        export_json: str | None = None,
     ) -> None:
         """Run the simulation in headless mode without visualization."""
         sep = self.config.display.separator_width
@@ -1009,7 +1009,7 @@ class SimulationEngine:
                 logger.info("=" * sep)
                 self.export_stats_json(export_json)
 
-    def run_collect_stats(self, max_frames: int = 100) -> Dict[str, Any]:
+    def run_collect_stats(self, max_frames: int = 100) -> dict[str, Any]:
         """Run the engine for `max_frames` frames and return final stats."""
         self.setup()
         for _ in range(max_frames):

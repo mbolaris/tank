@@ -6,7 +6,7 @@ logic for specific world modes (Tank, Petri, Soccer, etc.).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -50,6 +50,6 @@ class SystemPack(Protocol):
         """Create and add initial entities to the simulation."""
         ...
 
-    def get_metadata(self) -> Dict[str, Any]:
+    def get_metadata(self) -> dict[str, Any]:
         """Return mode-specific metadata for snapshots."""
         ...

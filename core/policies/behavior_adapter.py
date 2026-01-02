@@ -8,7 +8,7 @@ policies while maintaining backward compatibility.
 from __future__ import annotations
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Callable, Tuple
+from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from core.algorithms.composable.behavior import ComposableBehavior
@@ -47,7 +47,7 @@ class BehaviorToMovementPolicyAdapter:
         """Return a stable identifier for this policy."""
         return f"behavior_adapter:{self._behavior.__class__.__name__}"
 
-    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> Tuple[float, float]:
+    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> tuple[float, float]:
         """Execute the wrapped behavior as a MovementPolicy.
 
         Note: The wrapped behavior still uses its internal fish reference,
@@ -78,7 +78,7 @@ class SimplePolicy:
 
     def __init__(
         self,
-        policy_fn: Callable[[dict[str, Any], pyrandom.Random], Tuple[float, float]],
+        policy_fn: Callable[[dict[str, Any], pyrandom.Random], tuple[float, float]],
         policy_id: str = "simple_policy",
     ):
         """Initialize the simple policy.
@@ -90,7 +90,7 @@ class SimplePolicy:
         self._policy_fn = policy_fn
         self.policy_id = policy_id
 
-    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> Tuple[float, float]:
+    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> tuple[float, float]:
         """Execute the policy function.
 
         Args:

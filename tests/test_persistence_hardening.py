@@ -22,10 +22,6 @@ def test_persistence_round_trip():
     adapter.reset()
     world = adapter.world
 
-    # Count existing entities before adding test entities
-    initial_fish_count = sum(1 for e in world.entities_list if isinstance(e, Fish))
-    initial_plant_count = sum(1 for e in world.entities_list if isinstance(e, Plant))
-
     # Add a Fish with specific properties we can verify
     test_fish = Fish(
         environment=world,

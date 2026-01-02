@@ -6,7 +6,7 @@ providing a reusable abstraction for different agent types (Fish, PetriMicrobe, 
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.fish_memory import FishMemorySystem
@@ -38,7 +38,7 @@ class PerceptionComponent:
         """Get the underlying memory system."""
         return self._memory_system
 
-    def get_food_locations(self, min_strength: float = 0.1) -> List[Vector2]:
+    def get_food_locations(self, min_strength: float = 0.1) -> list[Vector2]:
         """Get remembered food locations above minimum strength threshold.
 
         Args:
@@ -64,7 +64,7 @@ class PerceptionComponent:
 
         self._memory_system.add_memory(MemoryType.FOOD_LOCATION, location)
 
-    def get_danger_locations(self, min_strength: float = 0.1) -> List[Vector2]:
+    def get_danger_locations(self, min_strength: float = 0.1) -> list[Vector2]:
         """Get remembered danger zone locations (predator encounters, etc.).
 
         Args:
@@ -98,7 +98,7 @@ class PerceptionComponent:
         """
         self._memory_system.update(age)
 
-    def get_danger_zones(self, min_strength: float = 0.3) -> List[Vector2]:
+    def get_danger_zones(self, min_strength: float = 0.3) -> list[Vector2]:
         """Get locations to avoid based on negative experiences.
 
         Combines predator encounters and other danger memories.
