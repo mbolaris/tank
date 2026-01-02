@@ -291,6 +291,26 @@ export function TankView({ tankId }: TankViewProps) {
                         </span>
                     </div>
 
+                    {worldType !== 'tank' && (
+                        <>
+                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: 600,
+                                    letterSpacing: '0.05em',
+                                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                                    color: '#a78bfa',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    {worldType}
+                                </span>
+                            </div>
+                        </>
+                    )}
+
                     <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

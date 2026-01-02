@@ -438,7 +438,7 @@ export interface DeltaUpdate {
 }
 
 export interface Command {
-    command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_process_ai_turn' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action' | 'fast_forward';
+    command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_process_ai_turn' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action' | 'fast_forward' | 'set_plant_energy_input';
     data?: Record<string, unknown>;
 }
 

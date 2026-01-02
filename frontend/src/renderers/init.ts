@@ -2,6 +2,7 @@
 import { rendererRegistry } from '../rendering/registry';
 import { TankSideRenderer } from './tank/TankSideRenderer';
 import { TankTopDownRenderer } from './tank/TankTopDownRenderer';
+import { PetriTopDownRenderer } from './petri/PetriTopDownRenderer';
 
 let initialized = false;
 
@@ -11,7 +12,7 @@ export function initRenderers() {
 
     rendererRegistry.register('tank', 'side', () => new TankSideRenderer());
     rendererRegistry.register('tank', 'topdown', () => new TankTopDownRenderer());
-    rendererRegistry.register('petri', 'topdown', () => new TankTopDownRenderer());
+    rendererRegistry.register('petri', 'topdown', () => new PetriTopDownRenderer());
 
     console.debug('[Renderer] Registered default renderers');
 }
