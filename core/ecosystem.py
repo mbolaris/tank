@@ -117,14 +117,6 @@ class EcosystemManager:
         This enables decoupled telemetry where entities emit events and
         EcosystemManager receives them without direct coupling.
         """
-        from core.telemetry.events import (
-            BirthEvent,
-            EnergyBurnEvent,
-            EnergyGainEvent,
-            FoodEatenEvent,
-            ReproductionEvent,
-        )
-
         # Subscribe to existing telemetry event types
         event_bus.subscribe(EnergyGainEvent, self._on_energy_gain_event)
         event_bus.subscribe(EnergyBurnEvent, self._on_energy_burn_event)
@@ -389,54 +381,21 @@ class EcosystemManager:
     # =========================================================================
 
     def record_event(self, event: TelemetryEvent) -> None:
-        """Record a telemetry event emitted by domain entities."""
+        """Record a telemetry event emitted by domain entities.
+        
+        This delegates to the specific event handlers to ensure consistent logic
+        between manual recording and EventBus subscriptions.
+        """
         if isinstance(event, EnergyGainEvent):
-            if event.scope == "plant":
-                self.record_plant_energy_gain(event.source, event.amount)
-            else:
-                self.record_energy_gain(event.source, event.amount)
-            return
-
-        if isinstance(event, EnergyBurnEvent):
-            if event.scope == "plant":
-                self.record_plant_energy_burn(event.source, event.amount)
-            else:
-                self.record_energy_burn(event.source, event.amount)
-            return
-
-        if isinstance(event, FoodEatenEvent):
-            if event.food_type == "nectar":
-                self.record_nectar_eaten(event.algorithm_id, event.energy_gained)
-            elif event.food_type == "live_food":
-                self.record_live_food_eaten(
-                    event.algorithm_id,
-                    event.energy_gained,
-                    genome=event.genome,
-                    generation=event.generation,
-                )
-            elif event.food_type == "falling_food":
-                self.record_falling_food_eaten(event.algorithm_id, event.energy_gained)
-            else:
-                self.record_food_eaten(event.algorithm_id, event.energy_gained)
-            return
-
-        if isinstance(event, BirthEvent):
-            self.record_birth(
-                event.fish_id,
-                event.generation,
-                parent_ids=list(event.parent_ids) if event.parent_ids else None,
-                algorithm_id=event.algorithm_id,
-                color=event.color_hex,
-                algorithm_name=event.algorithm_name,
-                tank_name=event.tank_name,
-            )
-            if event.is_soup_spawn:
-                self.record_energy_gain("soup_spawn", event.energy)
-            return
-
-        if isinstance(event, ReproductionEvent):
-            self.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
-            return
+            self._on_energy_gain_event(event)
+        elif isinstance(event, EnergyBurnEvent):
+            self._on_energy_burn_event(event)
+        elif isinstance(event, FoodEatenEvent):
+            self._on_food_eaten_event(event)
+        elif isinstance(event, BirthEvent):
+            self._on_birth_event(event)
+        elif isinstance(event, ReproductionEvent):
+            self._on_reproduction_event(event)
 
     # =========================================================================
     # Population Recording (delegate to PopulationTracker)

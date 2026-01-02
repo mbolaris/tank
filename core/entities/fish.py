@@ -699,7 +699,6 @@ class Fish(Agent):
             target_id: ID of the opponent/target entity (for drawing arrows)
             target_type: Type of the opponent/target entity ('fish', 'plant')
         """
-        """Set a visual effect for poker status (delegates to visual_state)."""
         self.visual_state.set_poker_effect(status, amount, duration, target_id, target_type)
 
     def set_death_effect(self, cause: str, duration: int = 45) -> None:
@@ -709,7 +708,6 @@ class Fish(Agent):
             cause: 'starvation', 'old_age', 'predation', 'migration', 'unknown'
             duration: How long to show the effect in frames (default 1.5s at 30fps)
         """
-        """Set a visual effect for death cause (delegates to visual_state)."""
         self.visual_state.set_death_effect(cause, duration)
 
     def can_attempt_migration(self) -> bool:
