@@ -276,13 +276,9 @@ class TankWorldAdapter:
         Returns:
             State payload with delta compression if applicable
         """
-        return await self._manager.get_state_async(
-            force_full=force_full, allow_delta=allow_delta
-        )
+        return await self._manager.get_state_async(force_full=force_full, allow_delta=allow_delta)
 
-    def serialize_state(
-        self, state: Union["FullStatePayload", "DeltaStatePayload"]
-    ) -> bytes:
+    def serialize_state(self, state: Union["FullStatePayload", "DeltaStatePayload"]) -> bytes:
         """Serialize state payload to bytes.
 
         Args:
@@ -297,9 +293,7 @@ class TankWorldAdapter:
     # Command handling
     # =========================================================================
 
-    def handle_command(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Handle a command from a client.
 
         Args:

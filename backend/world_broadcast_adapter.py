@@ -30,27 +30,19 @@ class WorldBroadcastAdapter(Protocol):
     view_mode: str
 
     @property
-    def connected_clients(self) -> Set[WebSocket]:
-        ...
+    def connected_clients(self) -> Set[WebSocket]: ...
 
-    def add_client(self, websocket: WebSocket) -> None:
-        ...
+    def add_client(self, websocket: WebSocket) -> None: ...
 
-    def remove_client(self, websocket: WebSocket) -> None:
-        ...
+    def remove_client(self, websocket: WebSocket) -> None: ...
 
-    async def get_state_async(
-        self, force_full: bool = False, allow_delta: bool = True
-    ) -> Any:
-        ...
+    async def get_state_async(self, force_full: bool = False, allow_delta: bool = True) -> Any: ...
 
-    def serialize_state(self, state: Any) -> bytes:
-        ...
+    def serialize_state(self, state: Any) -> bytes: ...
 
     async def handle_command_async(
         self, command: str, data: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
-        ...
+    ) -> Optional[Dict[str, Any]]: ...
 
 
 class WorldSnapshotAdapter:
@@ -151,9 +143,7 @@ class WorldSnapshotAdapter:
         self, force_full: bool = False, allow_delta: bool = True
     ) -> WorldUpdatePayload:
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            None, self.get_state, force_full, allow_delta
-        )
+        return await loop.run_in_executor(None, self.get_state, force_full, allow_delta)
 
     def serialize_state(self, state: WorldUpdatePayload) -> bytes:
         return state.to_json().encode("utf-8")

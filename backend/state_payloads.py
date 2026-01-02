@@ -22,7 +22,10 @@ def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
     slots = getattr(dataclass_obj, "__slots__", None)
     if slots:
         return {name: getattr(dataclass_obj, name) for name in slots}
-    return {field.name: getattr(dataclass_obj, field.name) for field in dataclass_obj.__dataclass_fields__.values()}
+    return {
+        field.name: getattr(dataclass_obj, field.name)
+        for field in dataclass_obj.__dataclass_fields__.values()
+    }
 
 
 @dataclass
@@ -252,9 +255,9 @@ class StatsPayload:
     median_max_energy_capacity: float = 0.0
     # Fish health status counts (by energy ratio)
     fish_health_critical: int = 0  # <15% energy
-    fish_health_low: int = 0       # 15-30% energy
-    fish_health_healthy: int = 0   # 30-80% energy
-    fish_health_full: int = 0      # >80% energy
+    fish_health_low: int = 0  # 15-30% energy
+    fish_health_healthy: int = 0  # 30-80% energy
+    fish_health_full: int = 0  # >80% energy
     # Adult size statistics (multipliers / absolute sizes)
     adult_size_min: float = 0.0
     adult_size_max: float = 0.0
@@ -331,20 +334,22 @@ class StatsPayload:
     lifespan_modifier_bin_edges: List[float] = field(default_factory=list)
     # Dynamic gene distributions (physical + behavioral), for dashboards
     gene_distributions: Dict[str, Any] = field(default_factory=dict)
-    poker_stats: PokerStatsPayload = field(default_factory=lambda: PokerStatsPayload(
-        total_games=0,
-        total_fish_games=0,
-        total_plant_games=0,
-        total_plant_energy_transferred=0.0,
-        total_wins=0,
-        total_losses=0,
-        total_ties=0,
-        total_energy_won=0.0,
-        total_energy_lost=0.0,
-        net_energy=0.0,
-        best_hand_rank=0,
-        best_hand_name="",
-    ))
+    poker_stats: PokerStatsPayload = field(
+        default_factory=lambda: PokerStatsPayload(
+            total_games=0,
+            total_fish_games=0,
+            total_plant_games=0,
+            total_plant_energy_transferred=0.0,
+            total_wins=0,
+            total_losses=0,
+            total_ties=0,
+            total_energy_won=0.0,
+            total_energy_lost=0.0,
+            net_energy=0.0,
+            best_hand_rank=0,
+            best_hand_name="",
+        )
+    )
     poker_score: Optional[float] = None
     poker_score_history: List[float] = field(default_factory=list)
     poker_elo: Optional[float] = None

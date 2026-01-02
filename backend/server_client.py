@@ -30,8 +30,8 @@ class ServerClient:
 
     # Client settings
     DEFAULT_TIMEOUT = 10.0  # Default request timeout in seconds
-    MAX_RETRIES = 3         # Maximum number of retry attempts
-    RETRY_DELAY = 1.0       # Initial retry delay (doubles each retry)
+    MAX_RETRIES = 3  # Maximum number of retry attempts
+    RETRY_DELAY = 1.0  # Initial retry delay (doubles each retry)
 
     def __init__(
         self,
@@ -112,7 +112,7 @@ class ServerClient:
 
         except (httpx.TimeoutException, httpx.ConnectError) as e:
             if retries < self._max_retries:
-                delay = self.RETRY_DELAY * (2 ** retries)
+                delay = self.RETRY_DELAY * (2**retries)
                 logger.warning(
                     "Request failed (%s), retrying in %.1fs... (attempt %d/%d)",
                     type(e).__name__,

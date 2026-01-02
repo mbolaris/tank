@@ -207,11 +207,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
             if actions_by_agent:
                 external_actions = {
-                    k: v for k, v in actions_by_agent.items()
-                    if k != FAST_STEP_ACTION
+                    k: v for k, v in actions_by_agent.items() if k != FAST_STEP_ACTION
                 }
                 if external_actions:
                     from core.sim.contracts import Action
+
                     action_map = {}
                     for entity_id, action_data in external_actions.items():
                         if isinstance(action_data, Action):
@@ -348,7 +348,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "source_plant_id": entity.source_plant.plant_id if entity.source_plant else None,
+                    "source_plant_id": (
+                        entity.source_plant.plant_id if entity.source_plant else None
+                    ),
                 }
             elif isinstance(entity, Food):
                 entity_dict = {
@@ -367,8 +369,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "max_energy": entity.max_energy,
                     "hunt_cooldown": getattr(entity, "hunt_cooldown", 0),
                     "genome": {
-                        "size_modifier": entity.genome.physical.size_modifier.value if entity.genome else 1.0,
-                        "color_hue": entity.genome.physical.color_hue.value if entity.genome else 0.5,
+                        "size_modifier": (
+                            entity.genome.physical.size_modifier.value if entity.genome else 1.0
+                        ),
+                        "color_hue": (
+                            entity.genome.physical.color_hue.value if entity.genome else 0.5
+                        ),
                     },
                 }
             elif isinstance(entity, Castle):
@@ -383,8 +389,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                 # Fallback for unknown entity types
                 entity_dict = {
                     "type": entity.__class__.__name__.lower(),
-                    "x": getattr(entity, "x", getattr(entity.pos, "x", 0) if hasattr(entity, "pos") else 0),
-                    "y": getattr(entity, "y", getattr(entity.pos, "y", 0) if hasattr(entity, "pos") else 0),
+                    "x": getattr(
+                        entity, "x", getattr(entity.pos, "x", 0) if hasattr(entity, "pos") else 0
+                    ),
+                    "y": getattr(
+                        entity, "y", getattr(entity.pos, "y", 0) if hasattr(entity, "pos") else 0
+                    ),
                 }
 
             if entity_dict:
@@ -559,4 +569,3 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Restore pause state if present
         if "paused" in state:
             self._world.paused = state["paused"]
-

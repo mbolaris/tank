@@ -79,10 +79,12 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
         try:
             solutions = tracker.load_all_solutions()
             leaderboard = tracker.generate_leaderboard(solutions)
-            return JSONResponse({
-                "count": len(solutions),
-                "solutions": leaderboard,
-            })
+            return JSONResponse(
+                {
+                    "count": len(solutions),
+                    "solutions": leaderboard,
+                }
+            )
         except Exception as e:
             logger.error(f"Error listing solutions: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -120,10 +122,12 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
         try:
             solutions = tracker.load_all_solutions()
             leaderboard = tracker.generate_leaderboard(solutions)
-            return JSONResponse({
-                "leaderboard": leaderboard,
-                "generated_at": solutions[0].metadata.submitted_at if solutions else None,
-            })
+            return JSONResponse(
+                {
+                    "leaderboard": leaderboard,
+                    "generated_at": solutions[0].metadata.submitted_at if solutions else None,
+                }
+            )
         except Exception as e:
             logger.error(f"Error generating leaderboard: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
@@ -151,10 +155,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
             # Get the best fish from the tank
             from core.entities import Fish
 
-            fish_list = [
-                e for e in manager.world.entities_list
-                if isinstance(e, Fish)
-            ]
+            fish_list = [e for e in manager.world.entities_list if isinstance(e, Fish)]
 
             if not fish_list:
                 raise HTTPException(status_code=400, detail="No fish in tank")
@@ -168,7 +169,11 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
                 for sol in all_solutions:
                     author = (sol.metadata.author or "unknown").strip() or "unknown"
                     current = by_author.get(author)
-                    current_elo = current.benchmark_result.elo_rating if current and current.benchmark_result else 0.0
+                    current_elo = (
+                        current.benchmark_result.elo_rating
+                        if current and current.benchmark_result
+                        else 0.0
+                    )
                     sol_elo = sol.benchmark_result.elo_rating if sol.benchmark_result else 0.0
                     if current is None or sol_elo > current_elo:
                         by_author[author] = sol
@@ -190,8 +195,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
                 )
                 if not best_fish:
                     raise HTTPException(
-                        status_code=400,
-                        detail="No fish with sufficient games for capture"
+                        status_code=400, detail="No fish with sufficient games for capture"
                     )
 
                 fish, score = best_fish[0]
@@ -206,8 +210,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
                 best_fish = tracker.identify_best_fish(fish_list, metric="elo", top_n=1)
                 if not best_fish:
                     raise HTTPException(
-                        status_code=400,
-                        detail="No fish with sufficient games for capture"
+                        status_code=400, detail="No fish with sufficient games for capture"
                     )
 
                 fish, score = best_fish[0]
@@ -229,6 +232,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
 
             # Optionally evaluate in background
             if request.evaluate:
+
                 def evaluate_and_save():
                     result = benchmark.evaluate_solution(solution, verbose=True)
                     solution.benchmark_result = result
@@ -236,14 +240,16 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
 
                 background_tasks.add_task(evaluate_and_save)
 
-            return JSONResponse({
-                "success": True,
-                "solution_id": solution.metadata.solution_id,
-                "filepath": filepath,
-                "fish_id": fish.fish_id,
-                **selection_detail,
-                "evaluating": request.evaluate,
-            })
+            return JSONResponse(
+                {
+                    "success": True,
+                    "solution_id": solution.metadata.solution_id,
+                    "filepath": filepath,
+                    "fish_id": fish.fish_id,
+                    **selection_detail,
+                    "evaluating": request.evaluate,
+                }
+            )
 
         except HTTPException:
             raise
@@ -280,11 +286,13 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
 
             background_tasks.add_task(run_evaluation)
 
-            return JSONResponse({
-                "success": True,
-                "message": f"Evaluation started for {target.metadata.name}",
-                "solution_id": target.metadata.solution_id,
-            })
+            return JSONResponse(
+                {
+                    "success": True,
+                    "message": f"Evaluation started for {target.metadata.name}",
+                    "solution_id": target.metadata.solution_id,
+                }
+            )
 
         except HTTPException:
             raise
@@ -312,8 +320,7 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
 
             if target is None:
                 raise HTTPException(
-                    status_code=404,
-                    detail=f"Solution not found: {request.solution_id}"
+                    status_code=404, detail=f"Solution not found: {request.solution_id}"
                 )
 
             success = tracker.submit_to_git(
@@ -323,16 +330,15 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
             )
 
             if success:
-                return JSONResponse({
-                    "success": True,
-                    "message": f"Solution {target.metadata.name} submitted to git",
-                    "solution_id": target.metadata.solution_id,
-                })
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Failed to submit to git"
+                return JSONResponse(
+                    {
+                        "success": True,
+                        "message": f"Solution {target.metadata.name} submitted to git",
+                        "solution_id": target.metadata.solution_id,
+                    }
                 )
+            else:
+                raise HTTPException(status_code=500, detail="Failed to submit to git")
 
         except HTTPException:
             raise
@@ -350,19 +356,23 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
         try:
             solutions = tracker.load_all_solutions()
             if len(solutions) < 2:
-                return JSONResponse({
-                    "message": "Need at least 2 solutions to compare",
-                    "count": len(solutions),
-                })
+                return JSONResponse(
+                    {
+                        "message": "Need at least 2 solutions to compare",
+                        "count": len(solutions),
+                    }
+                )
 
             # Only compare solutions that have been evaluated
             evaluated = [s for s in solutions if s.benchmark_result is not None]
             if len(evaluated) < 2:
-                return JSONResponse({
-                    "message": "Need at least 2 evaluated solutions to compare",
-                    "evaluated_count": len(evaluated),
-                    "total_count": len(solutions),
-                })
+                return JSONResponse(
+                    {
+                        "message": "Need at least 2 evaluated solutions to compare",
+                        "evaluated_count": len(evaluated),
+                        "total_count": len(solutions),
+                    }
+                )
 
             comparison = benchmark.compare_solutions(evaluated)
             return JSONResponse(comparison.to_dict())
@@ -381,16 +391,20 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
         try:
             solutions = tracker.load_all_solutions()
             if not solutions:
-                return JSONResponse({
-                    "report": "No solutions found.",
-                    "count": 0,
-                })
+                return JSONResponse(
+                    {
+                        "report": "No solutions found.",
+                        "count": 0,
+                    }
+                )
 
             report = benchmark.generate_report(solutions)
-            return JSONResponse({
-                "report": report,
-                "count": len(solutions),
-            })
+            return JSONResponse(
+                {
+                    "report": report,
+                    "count": len(solutions),
+                }
+            )
 
         except Exception as e:
             logger.error(f"Error generating report: {e}", exc_info=True)

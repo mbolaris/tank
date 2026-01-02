@@ -49,12 +49,14 @@ def setup_persistence_subrouter(
         # Cleanup old snapshots (keep last 10)
         cleanup_old_snapshots(tank_id, max_snapshots=10)
 
-        return JSONResponse({
-            "success": True,
-            "message": "Tank saved successfully",
-            "snapshot_path": snapshot_path,
-            "tank_id": tank_id,
-        })
+        return JSONResponse(
+            {
+                "success": True,
+                "message": "Tank saved successfully",
+                "snapshot_path": snapshot_path,
+                "tank_id": tank_id,
+            }
+        )
 
     @router.post("/load")
     async def load_tank(snapshot_path: str):
@@ -74,7 +76,9 @@ def setup_persistence_subrouter(
         existing_manager = tank_registry.get_tank(tank_id)
         if existing_manager is not None:
             return JSONResponse(
-                {"error": f"Tank {tank_id} already exists. Delete it first or use a different snapshot."},
+                {
+                    "error": f"Tank {tank_id} already exists. Delete it first or use a different snapshot."
+                },
                 status_code=409,
             )
 
@@ -107,13 +111,15 @@ def setup_persistence_subrouter(
             tank_registry.remove_tank(tank_id)
             return JSONResponse({"error": "Failed to restore tank state"}, status_code=500)
 
-        return JSONResponse({
-            "success": True,
-            "message": "Tank loaded successfully",
-            "tank_id": tank_id,
-            "frame": snapshot["frame"],
-            "entity_count": len(snapshot["entities"]),
-        })
+        return JSONResponse(
+            {
+                "success": True,
+                "message": "Tank loaded successfully",
+                "tank_id": tank_id,
+                "frame": snapshot["frame"],
+                "entity_count": len(snapshot["entities"]),
+            }
+        )
 
     @router.get("/{tank_id}/snapshots")
     async def list_snapshots(tank_id: str, request: Request):
@@ -130,11 +136,13 @@ def setup_persistence_subrouter(
             return error
 
         snapshots = list_tank_snapshots(tank_id)
-        return JSONResponse({
-            "tank_id": tank_id,
-            "snapshots": snapshots,
-            "count": len(snapshots),
-        })
+        return JSONResponse(
+            {
+                "tank_id": tank_id,
+                "snapshots": snapshots,
+                "count": len(snapshots),
+            }
+        )
 
     @router.delete("/{tank_id}/snapshots/{snapshot_filename}")
     async def delete_tank_snapshot(tank_id: str, snapshot_filename: str, request: Request):
@@ -160,7 +168,9 @@ def setup_persistence_subrouter(
             return JSONResponse({"error": "Invalid snapshot filename"}, status_code=400)
 
         if not snapshot_path.exists():
-            return JSONResponse({"error": f"Snapshot not found: {snapshot_filename}"}, status_code=404)
+            return JSONResponse(
+                {"error": f"Snapshot not found: {snapshot_filename}"}, status_code=404
+            )
 
         if delete_snapshot(str(snapshot_path)):
             return JSONResponse({"message": f"Snapshot {snapshot_filename} deleted"})

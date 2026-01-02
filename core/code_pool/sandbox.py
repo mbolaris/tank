@@ -53,16 +53,19 @@ ALLOWED_BUILTINS: dict[str, Any] = {
     "tuple": tuple,
 }
 
+
 class ASTValidator(ast.NodeVisitor):
     """Validate code against the restricted sandbox rules.
-    
+
     Args:
         allowed_modules: Set of module names that can be imported.
                         Defaults to DEFAULT_ALLOWED_MODULES.
     """
 
     def __init__(self, allowed_modules: set[str] | None = None) -> None:
-        self.allowed_modules = allowed_modules if allowed_modules is not None else DEFAULT_ALLOWED_MODULES
+        self.allowed_modules = (
+            allowed_modules if allowed_modules is not None else DEFAULT_ALLOWED_MODULES
+        )
 
     def validate(self, tree: ast.AST) -> None:
         self.visit(tree)
@@ -283,9 +286,10 @@ def _count_ast_complexity(tree: ast.AST) -> tuple[int, int]:
 
 def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dict[str, Any]:
     """Create restricted globals for exec of sandboxed code.
-    
+
     Includes a safe __import__ that only allows importing whitelisted modules.
     """
+
     def safe_import(
         name: str,
         globals: dict[str, Any] | None = None,
@@ -297,24 +301,24 @@ def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dic
         # Reject relative imports
         if level != 0:
             raise ImportError("Relative imports are not allowed")
-        
+
         # Get top-level module name
         top_module = name.split(".")[0]
-        
+
         # Check allowlist
         if top_module not in DEFAULT_ALLOWED_MODULES:
             raise ImportError(f"Import of '{name}' is not allowed")
-        
+
         # Return the pre-loaded module object
         module = SAFE_MODULE_OBJECTS.get(top_module)
         if module is None:
             raise ImportError(f"Module '{top_module}' is not available")
-        
+
         return module
 
     builtins_with_import = dict(ALLOWED_BUILTINS)
     builtins_with_import["__import__"] = safe_import
-    
+
     globals_dict: dict[str, Any] = {"__builtins__": builtins_with_import}
     globals_dict.update(SAFE_MODULE_OBJECTS)
     if extra_globals:

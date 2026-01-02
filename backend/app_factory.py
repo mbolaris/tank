@@ -17,7 +17,7 @@ Usage:
 ------
     # For production (uses default settings from environment)
     app = create_app()
-    
+
     # For testing (custom configuration)
     app = create_app(server_id="test-server", production_mode=False)
 """
@@ -56,7 +56,7 @@ BroadcastCallback = Callable[..., Coroutine[Any, Any, Any]]
 @dataclass
 class AppContext:
     """Runtime context holding all application state.
-    
+
     This replaces module-level globals, making dependencies explicit
     and enabling clean testing without cross-test pollution.
     """
@@ -70,10 +70,18 @@ class AppContext:
     # Configuration
     server_id: str = field(default_factory=lambda: os.getenv("TANK_SERVER_ID", "local-server"))
     server_version: str = "1.0.0"
-    api_port: int = field(default_factory=lambda: int(os.getenv("TANK_API_PORT", str(DEFAULT_API_PORT))))
-    discovery_server_url: Optional[str] = field(default_factory=lambda: os.getenv("DISCOVERY_SERVER_URL"))
-    production_mode: bool = field(default_factory=lambda: os.getenv("PRODUCTION", "false").lower() == "true")
-    allowed_origins: list = field(default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "*").split(","))
+    api_port: int = field(
+        default_factory=lambda: int(os.getenv("TANK_API_PORT", str(DEFAULT_API_PORT)))
+    )
+    discovery_server_url: Optional[str] = field(
+        default_factory=lambda: os.getenv("DISCOVERY_SERVER_URL")
+    )
+    production_mode: bool = field(
+        default_factory=lambda: os.getenv("PRODUCTION", "false").lower() == "true"
+    )
+    allowed_origins: list = field(
+        default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    )
 
     # Runtime state (initialized during lifespan)
     startup_manager: Optional[StartupManager] = None
@@ -100,6 +108,7 @@ class AppContext:
 
         try:
             import psutil
+
             process = psutil.Process()
             cpu_percent = process.cpu_percent(interval=0.1)
             memory_mb = process.memory_info().rss / 1024 / 1024
@@ -175,16 +184,16 @@ def create_app(
     context: Optional[AppContext] = None,
 ) -> FastAPI:
     """Create and configure the FastAPI application.
-    
+
     This factory function creates the app with all dependencies properly
     initialized. Use this instead of importing `app` directly for testing.
-    
+
     Args:
         server_id: Override server ID (default: from TANK_SERVER_ID env var)
         discovery_server_url: Override discovery URL (default: from DISCOVERY_SERVER_URL env var)
         production_mode: Override production mode (default: from PRODUCTION env var)
         context: Pre-configured AppContext (for testing). If None, creates a new one.
-    
+
     Returns:
         Configured FastAPI application with context attached as app.state.context
     """
@@ -247,6 +256,7 @@ def create_app(
         finally:
             try:
                 from core.auto_evaluate_poker import request_shutdown
+
                 request_shutdown()
             except Exception:
                 pass

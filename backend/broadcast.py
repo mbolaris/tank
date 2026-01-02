@@ -280,7 +280,9 @@ async def broadcast_updates_for_world(
             try:
                 await asyncio.sleep(1 / FRAME_RATE)
             except asyncio.CancelledError:
-                logger.info("broadcast_updates[%s]: Task cancelled during sleep", resolved_world_id[:8])
+                logger.info(
+                    "broadcast_updates[%s]: Task cancelled during sleep", resolved_world_id[:8]
+                )
                 raise
 
     except asyncio.CancelledError:
