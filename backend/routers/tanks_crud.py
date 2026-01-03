@@ -5,12 +5,19 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from backend.routers.world_guards import get_tank_manager_or_error
 from backend.tank_registry import TankRegistry
 from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
+
+
+class UpdateTankModeRequest(BaseModel):
+    """Request model for updating tank world type."""
+
+    world_type: str
 
 
 def setup_crud_subrouter(
@@ -109,6 +116,41 @@ def setup_crud_subrouter(
         except Exception as e:
             logger.error(f"Error creating tank: {e}", exc_info=True)
             return JSONResponse({"error": str(e)}, status_code=500)
+
+    @router.put("/{tank_id}/mode")
+    async def update_tank_mode(
+        tank_id: str,
+        mode_request: UpdateTankModeRequest,
+        request: Request,
+    ):
+        """Update the world type of a tank (switch simulation mode)."""
+        manager, error = get_tank_manager_or_error(
+            tank_registry,
+            tank_id,
+            request=request,
+            world_manager=world_manager,
+        )
+        if error is not None:
+            return error
+
+        try:
+            # Validate mode availability (basic check)
+            # You might want to call get_registered_world_types() here but for now simple check
+            # basic validation is implicitly done by SimulationRunner/WorldRegistry which raises ValueError
+            
+            manager.change_world_type(mode_request.world_type)
+
+            # Persist immediately
+            if auto_save_service:
+                await auto_save_service.save_tank_now(tank_id)
+
+            return JSONResponse(manager.get_status())
+        except ValueError as e:
+            return JSONResponse({"error": str(e)}, status_code=400)
+        except Exception as e:
+            logger.error(f"Error changing tank mode: {e}", exc_info=True)
+            return JSONResponse({"error": str(e)}, status_code=500)
+
 
     @router.get("/{tank_id}")
     async def get_tank(tank_id: str, request: Request):

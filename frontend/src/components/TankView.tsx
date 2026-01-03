@@ -47,7 +47,11 @@ export function TankView({ tankId }: TankViewProps) {
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
 
-    const { effectiveViewMode, setOverrideViewMode, petriMode, setPetriMode } = useViewMode(state?.view_mode as any);
+    const { effectiveViewMode, setOverrideViewMode, petriMode, setPetriMode } = useViewMode(
+        state?.view_mode as any,
+        state?.world_type,
+        tankId || state?.tank_id
+    );
 
     // Effective world type for rendering - when petriMode is enabled, use 'petri' renderer
     const effectiveWorldType = petriMode ? 'petri' : 'tank';

@@ -128,6 +128,52 @@ class SimulationManager:
         # Cache last successful stats to return on transient failures
         self._last_status_cache: Optional[Dict[str, Any]] = None
 
+    def change_world_type(self, new_world_type: str) -> None:
+        """Change the world type (e.g. tank -> petri) and restart simulation.
+
+        This hot-swaps the SimulationRunner while keeping the Manager (and
+        connected clients) alive.
+        """
+        if self.tank_info.world_type == new_world_type:
+            return
+
+        logger.info(
+            "Switching tank %s from %s to %s",
+            self.tank_id,
+            self.tank_info.world_type,
+            new_world_type,
+        )
+
+        # 1. capture state of old runner
+        was_running = self.running
+        if was_running:
+            self.stop()
+        
+        # 2. Update metadata
+        self.tank_info.world_type = new_world_type
+
+        # 3. Create new runner
+        # Note: We keep the same seed/tank_id/name
+        old_runner = self._runner
+        self._runner = SimulationRunner(
+            seed=self.tank_info.seed,
+            tank_id=self.tank_info.tank_id,
+            tank_name=self.tank_info.name,
+            world_type=new_world_type,
+        )
+
+        # 4. Re-inject dependencies that were on the old runner
+        # These are usually injected by TankRegistry.create_tank
+        self._runner.connection_manager = getattr(old_runner, "connection_manager", None)
+        self._runner.tank_registry = getattr(old_runner, "tank_registry", None)
+        self._runner._update_environment_migration_context()
+
+        # 5. Restart if it was running (or if we have clients and want to auto-start)
+        # Note: If we switched modes, we probably want to ensure it's running if visible
+        if was_running or (self.client_count > 0 and not self.world.paused):
+             self.start(start_paused=False)
+
+
     @property
     def tank_id(self) -> str:
         """Get the unique tank identifier."""

@@ -15,7 +15,11 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { effectiveViewMode } = useViewMode();
+    const { effectiveViewMode } = useViewMode(
+        undefined,
+        state?.world_type || (state as any)?.snapshot?.world_type,
+        tankId
+    );
 
     const badge = useMemo(() => {
         if (status === 'stopped') {
