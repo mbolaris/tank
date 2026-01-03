@@ -906,9 +906,9 @@ class SimulationEngine:
 
     def _apply_energy_deltas(self, deltas: list[tuple[EnergyDelta, str]]) -> None:
         """Apply energy deltas to entities.
-        
+
         Uses the identity provider for mode-agnostic entity lookup.
-        Works with any entity type that has energy, not just Fish.
+        Works with any entity type that has energy.
         """
         # Sync identity provider if not already synced in _resolve_energy
         self._sync_identity_provider()
