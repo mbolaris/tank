@@ -73,6 +73,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Expose the underlying simulation environment."""
         return self._world.environment if self._world else None
 
+    def add_entity(self, entity) -> None:
+        """Add an entity to the world (compatibility shim for tests)."""
+        if self._world is None:
+            raise RuntimeError("World not initialized. Call reset() before add_entity().")
+        self._world.add_entity(entity)
+
     def reset(
         self,
         seed: Optional[int] = None,

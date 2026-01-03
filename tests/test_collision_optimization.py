@@ -11,9 +11,8 @@ def test_crab_eats_food_optimization():
 
     # Clear existing entities to ensure only our test crab and food are present
     # This prevents other fish from eating the food before the crab
-    world.engine.entities_list.clear()
-    if hasattr(world.engine, 'environment') and world.engine.environment:
-        world.engine.environment.clear()
+    # Use the entity manager's clear method for proper cleanup
+    world.engine._entity_manager.clear()
 
     # Create crab and food at same location
     # Note: Access environment via property
