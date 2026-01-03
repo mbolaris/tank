@@ -1064,12 +1064,6 @@ const styles = {
         boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         lineHeight: 1.5,
     },
-    overviewGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
-        marginBottom: '8px',
-    },
     metricCard: {
         backgroundColor: colors.bgLight,
         borderRadius: '8px',
