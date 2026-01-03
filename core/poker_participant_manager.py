@@ -82,7 +82,17 @@ class PokerParticipantManager:
 
     def __init__(self) -> None:
         """Initialize the participant manager."""
-        self._participants: Dict[int, PokerParticipant] = {}
+        self._participants: Dict[tuple[int | None, int], PokerParticipant] = {}
+
+    @staticmethod
+    def _participant_key(fish: "Fish") -> tuple[int | None, int]:
+        """Build a stable participant key scoped to the fish's environment."""
+        environment = getattr(fish, "environment", None)
+        env_key = id(environment) if environment is not None else None
+        fish_id = getattr(fish, "fish_id", None)
+        if fish_id is None:
+            fish_id = id(fish)
+        return (env_key, int(fish_id))
 
     def get_participant(self, fish: "Fish") -> PokerParticipant:
         """Get or create the poker participant for a fish.
@@ -101,7 +111,7 @@ class PokerParticipantManager:
 
         # Use Python id() as key to ensure uniqueness across engines
         # (fish_id can collide between different simulation engines)
-        fish_key = id(fish)
+        fish_key = self._participant_key(fish)
         participant = self._participants.get(fish_key)
         if participant is None:
             participant = PokerParticipant(
@@ -150,7 +160,7 @@ class PokerParticipantManager:
         Args:
             fish: The fish to clear participant data for
         """
-        self._participants.pop(id(fish), None)
+        self._participants.pop(self._participant_key(fish), None)
 
     def clear_all(self) -> None:
         """Clear all participant data."""
