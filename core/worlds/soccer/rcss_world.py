@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 from core.entities.base import Agent
 from core.interfaces import Positionable
 from core.math_utils import Vector2
+from core.util.rng import require_rng_param
 from core.world import World, World2D
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
 
@@ -37,13 +38,13 @@ class RCSSWorld:
         rng: Optional[random.Random] = None,
     ) -> None:
         """Initialize RCSSWorld.
-        
+
         Args:
             adapter: The underlying RCSSServerAdapter instance
             rng: Random number generator (optional)
         """
         self._adapter = adapter
-        self._rng = rng or random.Random()
+        self._rng = require_rng_param(rng, "RCSSWorld.__init__")
         
         # Determine field dimensions from adapter config or defaults
         # Standard RCSS field is ~105m x 68m, but we mapped to "tank units" internally or not?
