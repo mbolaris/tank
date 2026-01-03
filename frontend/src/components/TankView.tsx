@@ -10,6 +10,7 @@ import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
+import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { ViewModeToggle } from './ViewModeToggle';
 import { useViewMode } from '../hooks/useViewMode';
 import { rendererRegistry } from '../rendering/registry';
@@ -364,6 +365,21 @@ export function TankView({ tankId }: TankViewProps) {
                             {state?.stats ? (state.stats.max_generation ?? state.stats.generation ?? 0) : '0'}
                         </span>
                     </div>
+
+                    {/* Poker Score - inline display for consistency with Network Dashboard */}
+                    {(state?.stats?.poker_elo !== undefined || state?.stats?.poker_score !== undefined) && (
+                        <>
+                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                            <PokerScoreDisplay
+                                score={state.stats.poker_score}
+                                elo={state.stats.poker_elo}
+                                history={state.stats.poker_elo && state.stats.poker_elo_history && state.stats.poker_elo_history.length > 0
+                                    ? state.stats.poker_elo_history
+                                    : (state.stats.poker_score_history || [])}
+                                compact={true}
+                            />
+                        </>
+                    )}
                 </div>
             </div>
 
