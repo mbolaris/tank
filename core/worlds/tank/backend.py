@@ -63,6 +63,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._cached_brain_mode: Optional[str] = None  # Cached brain mode for hot path
         self.supports_fast_step = True
 
+    @property
+    def engine(self):
+        """Expose the underlying simulation engine."""
+        return self._world.engine if self._world else None
+
     def reset(
         self,
         seed: Optional[int] = None,
