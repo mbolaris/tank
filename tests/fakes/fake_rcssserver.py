@@ -34,7 +34,7 @@ class FakeRCSSServer(SocketInterface):
         self._connected = True
         self._time = 0
         
-    def send(self, data: str, addr: tuple[str, int]) -> None:
+    def send(self, data: str, addr: Tuple[str, int]) -> None:
         """Receive data from client (adapter)."""
         if not self._connected:
             raise BrokenPipeError("Fake socket closed")
