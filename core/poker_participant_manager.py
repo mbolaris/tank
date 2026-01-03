@@ -6,7 +6,7 @@ and easier testing.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from core.poker.strategy.base import PokerStrategyEngine
 
@@ -85,7 +85,7 @@ class PokerParticipantManager:
         self._participants: Dict[tuple[int | None, int], PokerParticipant] = {}
 
     @staticmethod
-    def _participant_key(fish: "Fish") -> tuple[Optional[int], int]:
+    def _participant_key(fish: "Fish") -> Tuple[Optional[int], int]:
         """Build a stable participant key scoped to the fish's environment."""
         environment = getattr(fish, "environment", None)
         env_key = id(environment) if environment is not None else None
