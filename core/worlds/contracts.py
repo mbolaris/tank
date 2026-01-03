@@ -186,6 +186,7 @@ class EnergyDeltaRecord:
     """
 
     entity_id: str
-    delta: float
+    entity_type: str = ""
+    delta: float = 0.0
     source: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)

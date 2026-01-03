@@ -20,6 +20,7 @@ class EntityIdentityProvider(Protocol):
     Implementations must ensure:
     - entity_id is stable across frames (not Python id())
     - entity_type is a lowercase string identifying the entity kind
+    - get_entity_by_id returns the entity for a given stable ID
     """
 
     def get_identity(self, entity: Any) -> Tuple[str, str]:
@@ -32,5 +33,30 @@ class EntityIdentityProvider(Protocol):
             Tuple of (entity_type, entity_id) where:
             - entity_type: lowercase string like "fish", "plant", "food"
             - entity_id: stable string ID (not Python id())
+        """
+        ...
+
+    def get_entity_by_id(self, entity_id: str) -> Any | None:
+        """Lookup an entity by its stable ID.
+
+        This enables mode-agnostic entity lookup for delta application
+        without requiring the engine to know about specific entity types.
+
+        Args:
+            entity_id: Stable entity ID (as returned by get_identity)
+
+        Returns:
+            The entity instance, or None if not found
+        """
+        ...
+
+    def sync_entities(self, entities: list[Any]) -> None:
+        """Synchronize the provider's internal state with the entity list.
+
+        Called by the engine before batch operations to ensure the
+        reverse-lookup mapping is current.
+
+        Args:
+            entities: Current list of all entities in the simulation
         """
         ...

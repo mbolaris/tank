@@ -37,10 +37,8 @@ def _make_fish(env: Environment, behavior: StubBehavior) -> Fish:
 
 def test_code_policy_movement_overrides_composable_behavior():
     rng = random.Random(42)
-    pool = CodePool()
-    pool.register("fixed_policy", lambda obs, rng: (0.0, 1.0))
-
-    env = Environment(width=800, height=600, rng=rng, code_pool=pool)
+    env = Environment(width=800, height=600, rng=rng)
+    env.genome_code_pool.pool.register("fixed_policy", lambda obs, rng: (0.0, 1.0))
     fish = _make_fish(env, StubBehavior(-1.0, 0.0))
     fish.genome.behavioral.code_policy_kind = GeneticTrait("movement_policy")
     fish.genome.behavioral.code_policy_component_id = GeneticTrait("fixed_policy")

@@ -755,6 +755,7 @@ class EcosystemManager:
         if algorithm_id in self.algorithm_stats:
             self.algorithm_stats[algorithm_id].total_food_eaten += 1
         self.enhanced_stats.record_energy_from_food(energy_gained)
+        self.record_energy_gain("food", energy_gained)
 
     # =========================================================================
     # Poker Recording

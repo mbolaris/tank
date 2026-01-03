@@ -92,8 +92,8 @@ def test_fish_eating_loop():
 
     # Check stats
     # Check unknown or whatever mapping EcosystemManager uses
-    # _on_sim_ate_food uses event.food_type as source
-    assert engine.ecosystem.energy_sources.get("unknown", 0) >= 10.0
+    # _on_sim_ate_food uses event.food_type as source, or "food" if generic
+    assert engine.ecosystem.energy_sources.get("food", 0) >= 10.0
 
 
 def test_starvation_via_ledger():

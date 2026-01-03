@@ -867,22 +867,34 @@ class SimulationEngine:
         if deltas:
             from core.worlds.contracts import EnergyDeltaRecord
 
-            # Build entity lookup map for ID translation
-            # Currently only Fish emit energy events, but this is extensible
-            entity_map = {e.fish_id: e for e in self.get_fish_list()}
+            # Sync identity provider with current entities for reverse lookup
+            # This enables mode-agnostic entity lookup by stable ID
+            if self._identity_provider is not None:
+                self._identity_provider.sync_entities(self._entity_manager.entities_list)
 
             for delta in deltas:
                 # Translate raw entity_id to stable ID using identity provider
-                entity = entity_map.get(delta.entity_id)
-                if entity is not None and self._identity_provider is not None:
-                    _, stable_id = self._identity_provider.get_identity(entity)
-                else:
-                    # Fallback: use raw entity_id as string
-                    stable_id = str(delta.entity_id)
+                # The identity provider maps raw IDs (like fish_id) to stable IDs
+                stable_id = str(delta.entity_id)
+                entity_type = ""
+                
+                if self._identity_provider is not None:
+                    # Look up entity by raw ID via identity provider's reverse map
+                    # First, we need to find the entity with this raw ID
+                    # For entities with intrinsic IDs (fish_id), this is the raw value
+                    entity = self._identity_provider.get_entity_by_id(stable_id)
+                    if entity is None:
+                        # Try lookup with offset (fish events use raw fish_id)
+                        from core.config.entities import FISH_ID_OFFSET
+                        offset_id = str(delta.entity_id + FISH_ID_OFFSET)
+                        entity = self._identity_provider.get_entity_by_id(offset_id)
+                        if entity is not None:
+                            entity_type, stable_id = self._identity_provider.get_identity(entity)
 
                 self._frame_energy_deltas.append(
                     EnergyDeltaRecord(
                         entity_id=stable_id,
+                        entity_type=entity_type,
                         delta=delta.delta,
                         source=delta.reason,
                         metadata=delta.metadata or {},
@@ -892,32 +904,37 @@ class SimulationEngine:
             self._apply_energy_deltas(deltas)
 
     def _apply_energy_deltas(self, deltas: list[EnergyDelta]) -> None:
-        """Apply energy deltas to entities."""
-        # Map entity_id to entity for fast lookup
-        # Currently we iterate list, which is O(N).
-        # Optimization: use entity_manager map if available or build temp map?
-        # EntityManager doesn't expose ID map cleanly yet.
-        # But we can assume entity existence from ID?
-        # Let's iterate linearly for now or rely on EntityManager get_by_id if it existed.
-
-        # Build temp map for this batch
-        # Note: Assuming only Fish act on the ledger for now.
-        # TODO: Implement globally unique IDs or type-aware ledger for Plants.
-        entity_map = {e.fish_id: e for e in self.get_fish_list()}
+        """Apply energy deltas to entities.
+        
+        Uses the identity provider for mode-agnostic entity lookup.
+        Works with any entity type that has energy, not just Fish.
+        """
+        # Sync identity provider if not already synced in _resolve_energy
+        if self._identity_provider is not None:
+            # Already synced in _resolve_energy, but sync here for safety
+            # in case _apply_energy_deltas is called independently
+            self._identity_provider.sync_entities(self._entity_manager.entities_list)
 
         for delta in deltas:
-            entity = entity_map.get(delta.entity_id)
-            if entity:
-                # We need a standard way to apply energy delta.
-                # If entity has `apply_energy_delta`, use it.
+            entity = None
+            
+            if self._identity_provider is not None:
+                # Try direct lookup first (for non-offset IDs)
+                entity = self._identity_provider.get_entity_by_id(str(delta.entity_id))
+                
+                if entity is None:
+                    # Try with offset (fish events use raw fish_id, but provider uses offset)
+                    from core.config.entities import FISH_ID_OFFSET
+                    offset_id = str(delta.entity_id + FISH_ID_OFFSET)
+                    entity = self._identity_provider.get_entity_by_id(offset_id)
+            
+            if entity is not None:
+                # Apply energy delta to the entity
                 if hasattr(entity, "apply_energy_delta"):
                     entity.apply_energy_delta(delta)
                 else:
                     # Fallback for entities without specific handler
-                    # Use gain/lose methods ?
-                    # Caution: calling gain_energy might re-emit events!
-                    # So we need "internal" methods or property set.
-                    # Safe fallback: direct property modification (blind application)
+                    # Direct property modification (safe fallback)
                     current = getattr(entity, "energy", 0.0)
                     new_val = current + delta.delta
 
@@ -925,8 +942,9 @@ class SimulationEngine:
                     max_e = getattr(entity, "max_energy", float("inf"))
                     new_val = max(0.0, min(new_val, max_e))
 
-                    # Set checking for property setter logic (e.g. death check)
+                    # Set with property setter logic (e.g. death check)
                     entity.energy = new_val
+
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.

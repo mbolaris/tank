@@ -6,7 +6,7 @@ using the same ID offset scheme as TankSnapshotBuilder for consistency.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class TankEntityIdentityProvider:
@@ -18,6 +18,8 @@ class TankEntityIdentityProvider:
     - Food: stable counter + FOOD_ID_OFFSET
     - PlantNectar: stable counter + NECTAR_ID_OFFSET
     - Other: stable counter + 5_000_000
+
+    Also provides reverse-lookup for mode-agnostic delta application.
     """
 
     def __init__(self) -> None:
@@ -26,6 +28,9 @@ class TankEntityIdentityProvider:
         self._next_food_id: int = 0
         self._next_nectar_id: int = 0
         self._next_other_id: int = 0
+        
+        # Reverse mapping for entity lookup by stable ID
+        self._stable_id_to_entity: Dict[str, Any] = {}
 
     def get_identity(self, entity: Any) -> Tuple[str, str]:
         """Return (entity_type, entity_id) for any Tank entity.
@@ -50,29 +55,68 @@ class TankEntityIdentityProvider:
 
         if isinstance(entity, Fish) and hasattr(entity, "fish_id"):
             stable_id = entity.fish_id + FISH_ID_OFFSET
-            return "fish", str(stable_id)
+            stable_id_str = str(stable_id)
+            self._stable_id_to_entity[stable_id_str] = entity
+            return "fish", stable_id_str
 
         if isinstance(entity, Plant) and hasattr(entity, "plant_id"):
             stable_id = entity.plant_id + PLANT_ID_OFFSET
-            return "plant", str(stable_id)
+            stable_id_str = str(stable_id)
+            self._stable_id_to_entity[stable_id_str] = entity
+            return "plant", stable_id_str
 
         if isinstance(entity, PlantNectar):
             if python_id not in self._entity_stable_ids:
                 self._entity_stable_ids[python_id] = self._next_nectar_id + NECTAR_ID_OFFSET
                 self._next_nectar_id += 1
-            return "plant_nectar", str(self._entity_stable_ids[python_id])
+            stable_id_str = str(self._entity_stable_ids[python_id])
+            self._stable_id_to_entity[stable_id_str] = entity
+            return "plant_nectar", stable_id_str
 
         if isinstance(entity, Food):
             if python_id not in self._entity_stable_ids:
                 self._entity_stable_ids[python_id] = self._next_food_id + FOOD_ID_OFFSET
                 self._next_food_id += 1
-            return "food", str(self._entity_stable_ids[python_id])
+            stable_id_str = str(self._entity_stable_ids[python_id])
+            self._stable_id_to_entity[stable_id_str] = entity
+            return "food", stable_id_str
 
         # Fallback for other entity types (Crab, Castle, etc.)
         if python_id not in self._entity_stable_ids:
             self._entity_stable_ids[python_id] = self._next_other_id + 5_000_000
             self._next_other_id += 1
-        return entity_type, str(self._entity_stable_ids[python_id])
+        stable_id_str = str(self._entity_stable_ids[python_id])
+        self._stable_id_to_entity[stable_id_str] = entity
+        return entity_type, stable_id_str
+
+    def get_entity_by_id(self, entity_id: str) -> Any | None:
+        """Lookup an entity by its stable ID.
+
+        Args:
+            entity_id: Stable entity ID (as returned by get_identity)
+
+        Returns:
+            The entity instance, or None if not found
+        """
+        return self._stable_id_to_entity.get(entity_id)
+
+    def sync_entities(self, entities: List[Any]) -> None:
+        """Synchronize the reverse-lookup mapping with the entity list.
+
+        This rebuilds the stable_id_to_entity mapping by calling get_identity
+        on each entity. Should be called before batch operations that need
+        reverse lookup.
+
+        Args:
+            entities: Current list of all entities in the simulation
+        """
+        # Clear stale mappings (entities may have been removed)
+        self._stable_id_to_entity.clear()
+        
+        # Rebuild by getting identity for each entity
+        # This also updates the reverse mapping as a side effect
+        for entity in entities:
+            self.get_identity(entity)
 
     def prune_stale_ids(self, current_entity_ids: set[int]) -> None:
         """Remove mappings for entities no longer present.
@@ -82,3 +126,4 @@ class TankEntityIdentityProvider:
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
         for stale_id in stale_ids:
             del self._entity_stable_ids[stale_id]
+
