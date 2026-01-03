@@ -98,6 +98,21 @@ class SpatialGrid:
         row = max(0, min(self.rows - 1, int(y / self.cell_size)))
         return (col, row)
 
+    def _get_cell_range(self, x: float, y: float, radius: float) -> Tuple[int, int, int, int]:
+        """Get the cell range for a radius query (reduces repeated min/max calls).
+
+        Returns:
+            Tuple of (min_col, max_col, min_row, max_row)
+        """
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+        min_col = max(0, int((x - radius) / cs))
+        max_col = min(cols_m1, int((x + radius) / cs))
+        min_row = max(0, int((y - radius) / cs))
+        max_row = min(rows_m1, int((y + radius) / cs))
+        return (min_col, max_col, min_row, max_row)
+
     def add_agent(self, agent: Agent):
         """Add an agent to the spatial grid."""
         if not hasattr(agent, "pos"):
@@ -286,13 +301,8 @@ class SpatialGrid:
         agent_y = pos.y
         radius_sq = radius * radius
 
-        cell_size = self.cell_size
-        cols = self.cols
-        rows = self.rows
-        min_col = max(0, int((agent_x - radius) / cell_size))
-        max_col = min(cols - 1, int((agent_x + radius) / cell_size))
-        min_row = max(0, int((agent_y - radius) / cell_size))
-        max_row = min(rows - 1, int((agent_y + radius) / cell_size))
+        # Use helper to consolidate min/max calculations
+        min_col, max_col, min_row, max_row = self._get_cell_range(agent_x, agent_y, radius)
 
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -325,13 +335,8 @@ class SpatialGrid:
         agent_y = pos.y
         radius_sq = radius * radius
 
-        cell_size = self.cell_size
-        cols = self.cols
-        rows = self.rows
-        min_col = max(0, int((agent_x - radius) / cell_size))
-        max_col = min(cols - 1, int((agent_x + radius) / cell_size))
-        min_row = max(0, int((agent_y - radius) / cell_size))
-        max_row = min(rows - 1, int((agent_y + radius) / cell_size))
+        # Use helper to consolidate min/max calculations
+        min_col, max_col, min_row, max_row = self._get_cell_range(agent_x, agent_y, radius)
 
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -716,7 +721,15 @@ class Environment:
         Returns:
             List[Agent]: The agents of the specified type within the radius.
         """
-        # Optimized implementation:
+        # OPTIMIZATION: Fast-path for common types using dedicated grids
+        # This avoids generic type-bucket iteration for the most frequent queries
+        agent_class_name = agent_class.__name__
+        if agent_class_name == "Fish":
+            return self.spatial_grid.query_fish(agent, radius)
+        if agent_class_name == "Food" or issubclass(agent_class, Food):
+            return self.spatial_grid.query_food(agent, radius)
+
+        # Generic path for other types:
         # 1. Inline spatial grid logic to avoid function call overhead
         # 2. Iterate grid cells directly to avoid creating intermediate candidate list
         # 3. Use type buckets to only iterate relevant agents
