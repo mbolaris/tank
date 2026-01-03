@@ -68,6 +68,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Expose the underlying simulation engine."""
         return self._world.engine if self._world else None
 
+    @property
+    def environment(self):
+        """Expose the underlying simulation environment."""
+        return self._world.environment if self._world else None
+
     def reset(
         self,
         seed: Optional[int] = None,

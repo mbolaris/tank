@@ -493,8 +493,10 @@ class TestWebSocketUpdates:
             # Send a pause command
             websocket.send_text(json.dumps({"command": "pause"}))
 
-            # Pause is fire-and-forget; verify via REST after closing the socket.
+            # Give the server time to process the command before closing
+            time.sleep(0.1)
 
+        # Allow time for cleanup and state propagation
         time.sleep(0.1)
         state_response = test_client.get(f"/api/worlds/{tank_id}")
         assert state_response.status_code == 200
@@ -521,7 +523,9 @@ class TestEntityCountChanges:
             data = websocket.receive_bytes()
             state = json.loads(data)
 
-            entities = state.get("entities", [])
+            # Entities are nested inside the snapshot object
+            snapshot = state.get("snapshot", state)
+            entities = snapshot.get("entities", [])
             assert len(entities) > 0, "Tank should have initial entities"
 
 

@@ -8,15 +8,21 @@ def test_crab_eats_food_optimization():
     config = TankWorldConfig(headless=True)
     world = TankWorld(config=config)
     world.setup()
-    
+
+    # Clear existing entities to ensure only our test crab and food are present
+    # This prevents other fish from eating the food before the crab
+    world.engine.entities_list.clear()
+    if hasattr(world.engine, 'environment') and world.engine.environment:
+        world.engine.environment.clear()
+
     # Create crab and food at same location
     # Note: Access environment via property
     crab = Crab(world.environment)
     crab.pos = Vector2(100.0, 100.0)
     crab.rect.topleft = (100, 100)
-    
+
     food = Food(world.environment, 100, 100)
-    
+
     # Add to world
     world.add_entity(crab)
     world.add_entity(food)
