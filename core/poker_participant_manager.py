@@ -99,15 +99,18 @@ class PokerParticipantManager:
         if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
             fish.poker_stats = FishPokerStats()
 
-        participant = self._participants.get(fish.fish_id)
-        if participant is None or participant.fish is not fish:
+        # Use Python id() as key to ensure uniqueness across engines
+        # (fish_id can collide between different simulation engines)
+        fish_key = id(fish)
+        participant = self._participants.get(fish_key)
+        if participant is None:
             participant = PokerParticipant(
                 fish=fish,
                 strategy=PokerStrategyEngine(fish),
                 stats=fish.poker_stats,
                 last_cooldown_age=getattr(fish, "age", 0),
             )
-            self._participants[fish.fish_id] = participant
+            self._participants[fish_key] = participant
 
         # Always update the stats reference in case the fish object was recreated/reloaded
         participant.stats = fish.poker_stats
@@ -141,13 +144,13 @@ class PokerParticipantManager:
         participant = self.get_participant(fish)
         participant.start_cooldown(frames)
 
-    def clear_participant(self, fish_id: int) -> None:
+    def clear_participant(self, fish: "Fish") -> None:
         """Remove participant data for a fish.
 
         Args:
-            fish_id: ID of the fish to clear
+            fish: The fish to clear participant data for
         """
-        self._participants.pop(fish_id, None)
+        self._participants.pop(id(fish), None)
 
     def clear_all(self) -> None:
         """Clear all participant data."""

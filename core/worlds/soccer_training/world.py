@@ -155,6 +155,25 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
 
     @property
+    def engine(self):
+        """Return self as the engine for compatibility with simulation runner.
+
+        Soccer training world is its own simulation engine, unlike TankWorld
+        which wraps a separate SimulationEngine.
+        """
+        return self
+
+    @property
+    def poker_events(self) -> list[dict[str, Any]]:
+        """Return empty poker events list - soccer training has no poker."""
+        return []
+
+    @property
+    def elapsed_time(self) -> float:
+        """Return elapsed time based on frame count."""
+        return self._frame * 33  # Approximate ms per frame
+
+    @property
     def frame_count(self) -> int:
         """Return the current frame count for compatibility with other backends."""
         return self._frame

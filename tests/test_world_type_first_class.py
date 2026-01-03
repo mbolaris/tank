@@ -47,9 +47,11 @@ class TestWorldTypeFirstClass:
                 name="Petri Step Test",
                 world_type="petri",
             )
-            manager.start(start_paused=False)
+            # Start paused to prevent background thread from advancing frames
+            # while we test direct stepping
+            manager.start(start_paused=True)
 
-            # Let it initialize
+            # Get initial frame before stepping
             initial_frame = manager.world.frame_count
             for _ in range(10):
                 manager.world.step()

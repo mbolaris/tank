@@ -248,12 +248,11 @@ class TestStatePayloadConsistency:
     def test_multiple_steps_dont_crash(self):
         """Runner should handle many steps without crashing."""
         runner = SimulationRunner(world_type="tank", seed=42)
-        runner.start()
 
-        # Run for several frames
+        # Step directly (synchronously) instead of using background thread
+        # to ensure deterministic frame progression
         for i in range(50):
-            state = runner.get_state()
+            runner.world.step()
+            state = runner.get_state(force_full=True)
             assert state is not None
             assert state.frame == i + 1
-
-        runner.stop()
