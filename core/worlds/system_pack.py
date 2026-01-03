@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
     from core.simulation.pipeline import EnginePipeline
+    from core.worlds.identity import EntityIdentityProvider
 
 
 @runtime_checkable
@@ -33,6 +34,7 @@ class SystemPack(Protocol):
     2. Registering systems in the correct order
     3. Seeding initial entities
     4. Optionally providing a custom pipeline
+    5. Providing an identity provider for delta tracking
     """
 
     @property
@@ -69,5 +71,15 @@ class SystemPack(Protocol):
 
         If None is returned, the engine will use default_pipeline().
         Override this to provide a custom update loop for your mode.
+        """
+        ...
+
+    def get_identity_provider(self) -> EntityIdentityProvider | None:
+        """Return the identity provider for this mode.
+
+        The identity provider is used by the engine to obtain stable
+        entity identities for delta tracking (spawns, removals, energy changes).
+
+        Return None to fall back to default behavior (class name + id()).
         """
         ...

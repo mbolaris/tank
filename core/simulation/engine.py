@@ -221,6 +221,11 @@ class SimulationEngine:
 
         self.pipeline: EnginePipeline | None = None
 
+        # Identity provider for stable delta IDs (set during setup())
+        from core.worlds.identity import EntityIdentityProvider
+
+        self._identity_provider: EntityIdentityProvider | None = None
+
     # =========================================================================
     # Properties for Backward Compatibility
     # =========================================================================
@@ -283,6 +288,10 @@ class SimulationEngine:
 
         # 5. Let the pack seed entities
         pack.seed_entities(self)
+
+        # 6. Store identity provider from pack
+        if hasattr(pack, "get_identity_provider"):
+            self._identity_provider = pack.get_identity_provider()
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
@@ -497,18 +506,16 @@ class SimulationEngine:
     def _apply_entity_mutations(self, stage: str) -> None:
         """Apply queued spawns/removals at a safe point in the frame."""
         from core.worlds.contracts import RemovalRequest, SpawnRequest
-        from core.entities import Fish
-        from core.entities.plant import Plant
 
         removals = self._entity_mutations.drain_removals()
         for mutation in removals:
             entity = mutation.entity
-            entity_type = entity.__class__.__name__.lower()
-            entity_id = str(id(entity))
-            if isinstance(entity, Fish):
-                entity_id = str(entity.fish_id)
-            elif isinstance(entity, Plant):
-                entity_id = str(entity.plant_id)
+            # Use identity provider for stable IDs, fall back to class name + id()
+            if self._identity_provider is not None:
+                entity_type, entity_id = self._identity_provider.get_identity(entity)
+            else:
+                entity_type = entity.__class__.__name__.lower()
+                entity_id = str(id(entity))
 
             self._frame_removals.append(
                 RemovalRequest(
@@ -523,12 +530,12 @@ class SimulationEngine:
         spawns = self._entity_mutations.drain_spawns()
         for mutation in spawns:
             entity = mutation.entity
-            entity_type = entity.__class__.__name__.lower()
-            entity_id = str(id(entity))
-            if isinstance(entity, Fish):
-                entity_id = str(entity.fish_id)
-            elif isinstance(entity, Plant):
-                entity_id = str(entity.plant_id)
+            # Use identity provider for stable IDs, fall back to class name + id()
+            if self._identity_provider is not None:
+                entity_type, entity_id = self._identity_provider.get_identity(entity)
+            else:
+                entity_type = entity.__class__.__name__.lower()
+                entity_id = str(id(entity))
 
             self._frame_spawns.append(
                 SpawnRequest(

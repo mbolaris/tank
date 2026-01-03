@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 from core import environment
 from core.config.simulation_config import SimulationConfig
 from core.worlds.system_pack import EnvironmentLike, SystemPack
+from core.worlds.tank.identity import TankEntityIdentityProvider
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -24,10 +25,15 @@ class TankPack(SystemPack):
 
     def __init__(self, config: SimulationConfig):
         self.config = config
+        self._identity_provider = TankEntityIdentityProvider()
 
     @property
     def mode_id(self) -> str:
         return "tank"
+
+    def get_identity_provider(self):
+        """Return the Tank identity provider."""
+        return self._identity_provider
 
     def build_core_systems(self, engine: SimulationEngine) -> dict[str, Any]:
         """Build Tank-specific core systems."""
