@@ -154,6 +154,11 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self.genome_code_pool = genome_code_pool
         self.supports_fast_step = True
 
+    @property
+    def frame_count(self) -> int:
+        """Return the current frame count for compatibility with other backends."""
+        return self._frame
+
     def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         reset_seed = seed if seed is not None else self._seed
         self._rng = random.Random(reset_seed)
