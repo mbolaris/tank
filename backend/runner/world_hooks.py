@@ -177,7 +177,7 @@ class TankWorldHooks:
         logger = logging.getLogger(__name__)
 
         # Setup evolution benchmark tracker if enabled
-        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "0").strip().lower() in (
+        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
             "1",
             "true",
             "yes",
