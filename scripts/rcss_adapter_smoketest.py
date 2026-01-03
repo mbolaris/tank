@@ -21,7 +21,8 @@ from core.worlds.soccer.rcss_protocol import (
     parse_see_message,
     parse_sense_body_message,
 )
-from core.worlds.soccer.rcssserver_adapter import FakeSocket, RCSSServerAdapter
+from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
+from core.worlds.soccer.socket_interface import FakeSocket
 
 
 def print_section(title: str) -> None:

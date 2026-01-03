@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple, Dict, Any, Deque
 from collections import deque
 import logging
 
-from core.worlds.soccer.rcssserver_adapter import SocketInterface
+from core.worlds.soccer.socket_interface import SocketInterface
 
 logger = logging.getLogger(__name__)
 
