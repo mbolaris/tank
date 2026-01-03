@@ -25,14 +25,14 @@ export function ViewModeToggle({ worldType, viewMode, onChange }: ViewModeToggle
                 onClick={() => onChange('side')}
                 style={{ fontSize: '12px', padding: '4px 12px', height: 'auto' }}
             >
-                Side View
+                Tank View
             </Button>
             <Button
                 variant={viewMode === 'topdown' ? 'primary' : 'secondary'}
                 onClick={() => onChange('topdown')}
                 style={{ fontSize: '12px', padding: '4px 12px', height: 'auto' }}
             >
-                Top Down
+                Microbe View
             </Button>
         </div>
     );

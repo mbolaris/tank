@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Canvas } from './Canvas';
 import { config } from '../config';
+import { useViewMode } from '../hooks/useViewMode';
 import type { SimulationUpdate } from '../types/simulation';
 
 const TANK_ASPECT_RATIO = '1088 / 612';
@@ -14,6 +15,7 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { effectiveViewMode } = useViewMode();
 
     const badge = useMemo(() => {
         if (status === 'stopped') {
@@ -105,6 +107,7 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
                         width={320}
                         height={180}
                         showEffects={false}
+                        viewMode={effectiveViewMode}
                         style={{ width: '100%', height: '100%', display: 'block' }}
                     />
                 ) : (
