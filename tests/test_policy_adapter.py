@@ -50,6 +50,7 @@ class TestPolicyAdapter:
         # Setup mocks
         mock_env = Mock()
         mock_env.rng = random.Random(42)
+        mock_env.world_type = "tank"  # Required for observation builder registry
         mock_env.get_detection_modifier.return_value = 1.0
         # Mock nearby_resources to return empty list to avoid iteration errors
         mock_env.nearby_resources.return_value = []
