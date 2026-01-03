@@ -83,7 +83,10 @@ def test_engine_energy_delta_tracking(simulation_engine):
     assert len(engine._frame_energy_deltas) > 0, "Energy delta not tracked in _frame_energy_deltas"
     energy_req = engine._frame_energy_deltas[0]
     assert isinstance(energy_req, EnergyDeltaRecord)
-    assert energy_req.entity_id == str(fish.fish_id)
+    assert engine._identity_provider is not None
+    _, stable_fish_id = engine._identity_provider.get_identity(fish)
+    assert energy_req.entity_id == stable_fish_id
+    assert energy_req.stable_id == stable_fish_id
     assert energy_req.delta > 0
     # Expected reason is now snake_case from EnergyLedger
     assert energy_req.source == "ate_food"

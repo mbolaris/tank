@@ -88,14 +88,9 @@ def test_delta_tracking_uses_identity_provider():
     end_line = apply_mutations_func.end_lineno  # 1-indexed, exclusive
     function_body = "\n".join(lines[start_line:end_line])
 
-    # Check that identity_provider is used
-    assert "_identity_provider" in function_body, (
-        "_apply_entity_mutations should use self._identity_provider for entity identity"
-    )
-
-    # Check that get_identity is called
-    assert "get_identity" in function_body, (
-        "_apply_entity_mutations should call get_identity() on the identity provider"
+    # Check that the identity helper is used
+    assert "_get_entity_identity" in function_body, (
+        "_apply_entity_mutations should use _get_entity_identity() for stable identity"
     )
 
 
@@ -207,4 +202,37 @@ def test_apply_energy_deltas_does_not_use_fish_only_patterns():
     # Should use get_entity_by_id
     assert "get_entity_by_id" in func_body, (
         "_apply_energy_deltas should use get_entity_by_id for reverse lookup"
+    )
+
+
+def test_energy_delta_functions_avoid_fish_only_identity():
+    """Verify energy delta functions avoid fish-only identity assumptions."""
+    engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
+    source = engine_path.read_text(encoding="utf-8")
+    lines = source.split("\n")
+    tree = ast.parse(source, filename=str(engine_path))
+
+    simulation_engine_class = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "SimulationEngine":
+            simulation_engine_class = node
+            break
+
+    assert simulation_engine_class is not None, "SimulationEngine class not found"
+
+    target_funcs = {}
+    for node in ast.walk(simulation_engine_class):
+        if isinstance(node, ast.FunctionDef) and node.name in {"_resolve_energy", "_apply_energy_deltas"}:
+            target_funcs[node.name] = node
+
+    assert "_resolve_energy" in target_funcs, "_resolve_energy not found"
+    assert "_apply_energy_deltas" in target_funcs, "_apply_energy_deltas not found"
+
+    violations = []
+    for name, func_node in target_funcs.items():
+        violations.extend(_check_function_for_fish_only_patterns(func_node, lines, name))
+
+    assert not violations, (
+        "Energy delta functions should avoid fish-only identity patterns:\n"
+        + "\n".join(violations)
     )

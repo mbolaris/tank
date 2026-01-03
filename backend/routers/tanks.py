@@ -22,9 +22,6 @@ from backend.world_manager import WorldManager
 logger = logging.getLogger(__name__)
 
 
-router = APIRouter(prefix="/api/tanks", tags=["tanks"])
-
-
 def setup_router(
     tank_registry: TankRegistry,
     server_id: str,
@@ -45,6 +42,7 @@ def setup_router(
     Returns:
         Configured APIRouter
     """
+    router = APIRouter(prefix="/api/tanks", tags=["tanks"])
     # Attach sub-routers
     setup_crud_subrouter(
         router,

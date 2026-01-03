@@ -25,9 +25,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
-
-
 def _get_client_ip(websocket: WebSocket) -> str:
     """Extract client IP from WebSocket connection."""
     forwarded_for = websocket.headers.get("x-forwarded-for")
@@ -222,6 +219,7 @@ def setup_router(
     Returns:
         Configured APIRouter
     """
+    router = APIRouter()
 
     # =========================================================================
     # Legacy tank-specific endpoints (backward compatible)

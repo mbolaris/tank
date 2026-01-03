@@ -31,6 +31,16 @@ class TankEntityIdentityProvider:
         
         # Reverse mapping for entity lookup by stable ID
         self._stable_id_to_entity: Dict[str, Any] = {}
+        # Legacy ID lookup (fish_id, plant_id) for backward compatibility
+        self._legacy_id_to_entity: Dict[str, Any] = {}
+
+    def stable_id(self, entity: Any) -> str:
+        """Return the stable ID for an entity."""
+        return self.get_identity(entity)[1]
+
+    def type_name(self, entity: Any) -> str:
+        """Return the stable type name for an entity."""
+        return self.get_identity(entity)[0]
 
     def get_identity(self, entity: Any) -> Tuple[str, str]:
         """Return (entity_type, entity_id) for any Tank entity.
@@ -57,12 +67,14 @@ class TankEntityIdentityProvider:
             stable_id = entity.fish_id + FISH_ID_OFFSET
             stable_id_str = str(stable_id)
             self._stable_id_to_entity[stable_id_str] = entity
+            self._legacy_id_to_entity[str(entity.fish_id)] = entity
             return "fish", stable_id_str
 
         if isinstance(entity, Plant) and hasattr(entity, "plant_id"):
             stable_id = entity.plant_id + PLANT_ID_OFFSET
             stable_id_str = str(stable_id)
             self._stable_id_to_entity[stable_id_str] = entity
+            self._legacy_id_to_entity[str(entity.plant_id)] = entity
             return "plant", stable_id_str
 
         if isinstance(entity, PlantNectar):
@@ -98,7 +110,10 @@ class TankEntityIdentityProvider:
         Returns:
             The entity instance, or None if not found
         """
-        return self._stable_id_to_entity.get(entity_id)
+        entity = self._stable_id_to_entity.get(entity_id)
+        if entity is not None:
+            return entity
+        return self._legacy_id_to_entity.get(entity_id)
 
     def sync_entities(self, entities: List[Any]) -> None:
         """Synchronize the reverse-lookup mapping with the entity list.
@@ -112,6 +127,7 @@ class TankEntityIdentityProvider:
         """
         # Clear stale mappings (entities may have been removed)
         self._stable_id_to_entity.clear()
+        self._legacy_id_to_entity.clear()
         
         # Rebuild by getting identity for each entity
         # This also updates the reverse mapping as a side effect

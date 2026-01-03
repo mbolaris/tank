@@ -36,6 +36,22 @@ class EntityIdentityProvider(Protocol):
         """
         ...
 
+    def stable_id(self, entity: Any) -> str:
+        """Return stable ID for an entity.
+
+        This is a convenience wrapper around get_identity for call sites
+        that only need the stable ID.
+        """
+        ...
+
+    def type_name(self, entity: Any) -> str:
+        """Return the lowercase type name for an entity.
+
+        This is a convenience wrapper around get_identity for call sites
+        that only need the type name.
+        """
+        ...
+
     def get_entity_by_id(self, entity_id: str) -> Any | None:
         """Lookup an entity by its stable ID.
 
@@ -43,7 +59,8 @@ class EntityIdentityProvider(Protocol):
         without requiring the engine to know about specific entity types.
 
         Args:
-            entity_id: Stable entity ID (as returned by get_identity)
+            entity_id: Stable entity ID (as returned by get_identity). Implementations
+                may also accept legacy IDs for backward compatibility.
 
         Returns:
             The entity instance, or None if not found

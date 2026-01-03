@@ -94,6 +94,13 @@ def test_petri_energy_deltas_reference_real_entities():
         f"Energy delta ID ({energy_delta.entity_id}) should be stable ID "
         f"({expected_stable_id}), not raw fish_id ({fish.fish_id})"
     )
+    assert energy_delta.stable_id == expected_stable_id
+
+    # Stable ID should resolve to a real entity
+    provider = engine._identity_provider
+    assert provider is not None
+    resolved = provider.get_entity_by_id(energy_delta.stable_id)
+    assert resolved is not None, "Energy delta stable_id did not resolve to an entity"
 
 
 def test_identity_provider_sync_captures_all_entities():

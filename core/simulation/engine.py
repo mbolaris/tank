@@ -511,11 +511,7 @@ class SimulationEngine:
         for mutation in removals:
             entity = mutation.entity
             # Use identity provider for stable IDs, fall back to class name + id()
-            if self._identity_provider is not None:
-                entity_type, entity_id = self._identity_provider.get_identity(entity)
-            else:
-                entity_type = entity.__class__.__name__.lower()
-                entity_id = str(id(entity))
+            entity_type, entity_id = self._get_entity_identity(entity)
 
             self._frame_removals.append(
                 RemovalRequest(
@@ -531,11 +527,7 @@ class SimulationEngine:
         for mutation in spawns:
             entity = mutation.entity
             # Use identity provider for stable IDs, fall back to class name + id()
-            if self._identity_provider is not None:
-                entity_type, entity_id = self._identity_provider.get_identity(entity)
-            else:
-                entity_type = entity.__class__.__name__.lower()
-                entity_id = str(id(entity))
+            entity_type, entity_id = self._get_entity_identity(entity)
 
             self._frame_spawns.append(
                 SpawnRequest(
@@ -853,6 +845,33 @@ class SimulationEngine:
         if isinstance(event, SimEvent):
             self.pending_sim_events.append(event)
 
+    def _sync_identity_provider(self) -> None:
+        """Ensure identity provider reverse-lookup is synced for current entities."""
+        if self._identity_provider is None:
+            return
+        self._identity_provider.sync_entities(self._entity_manager.entities_list)
+
+    def _get_entity_identity(self, entity: Any) -> tuple[str, str]:
+        """Return (entity_type, stable_id) using the identity provider when available."""
+        if self._identity_provider is None:
+            return entity.__class__.__name__.lower(), str(id(entity))
+        provider = self._identity_provider
+        if hasattr(provider, "type_name") and hasattr(provider, "stable_id"):
+            return provider.type_name(entity), provider.stable_id(entity)
+        return provider.get_identity(entity)
+
+    def _resolve_energy_entity(
+        self, entity_id: int | str
+    ) -> tuple[Any | None, str | None, str | None]:
+        """Resolve an energy delta entity and stable identity, if possible."""
+        if self._identity_provider is None:
+            return None, None, None
+        entity = self._identity_provider.get_entity_by_id(str(entity_id))
+        if entity is None:
+            return None, None, None
+        entity_type, stable_id = self._get_entity_identity(entity)
+        return entity, stable_id, entity_type
+
     def _resolve_energy(self) -> None:
         """Process pending energy events and apply deltas."""
         if not self.pending_sim_events:
@@ -869,31 +888,21 @@ class SimulationEngine:
 
             # Sync identity provider with current entities for reverse lookup
             # This enables mode-agnostic entity lookup by stable ID
-            if self._identity_provider is not None:
-                self._identity_provider.sync_entities(self._entity_manager.entities_list)
+            self._sync_identity_provider()
 
+            resolved_deltas: list[tuple[EnergyDelta, str]] = []
             for delta in deltas:
                 # Translate raw entity_id to stable ID using identity provider
-                # The identity provider maps raw IDs (like fish_id) to stable IDs
-                stable_id = str(delta.entity_id)
-                entity_type = ""
-                
-                if self._identity_provider is not None:
-                    # Look up entity by raw ID via identity provider's reverse map
-                    # First, we need to find the entity with this raw ID
-                    # For entities with intrinsic IDs (fish_id), this is the raw value
-                    entity = self._identity_provider.get_entity_by_id(stable_id)
-                    if entity is None:
-                        # Try lookup with offset (fish events use raw fish_id)
-                        from core.config.entities import FISH_ID_OFFSET
-                        offset_id = str(delta.entity_id + FISH_ID_OFFSET)
-                        entity = self._identity_provider.get_entity_by_id(offset_id)
-                        if entity is not None:
-                            entity_type, stable_id = self._identity_provider.get_identity(entity)
+                entity, stable_id, entity_type = self._resolve_energy_entity(delta.entity_id)
+                if stable_id is None:
+                    stable_id = str(delta.entity_id)
+                if not entity_type:
+                    entity_type = ""
 
                 self._frame_energy_deltas.append(
                     EnergyDeltaRecord(
                         entity_id=stable_id,
+                        stable_id=stable_id,
                         entity_type=entity_type,
                         delta=delta.delta,
                         source=delta.reason,
@@ -901,32 +910,27 @@ class SimulationEngine:
                     )
                 )
 
-            self._apply_energy_deltas(deltas)
+                resolved_deltas.append((delta, stable_id))
 
-    def _apply_energy_deltas(self, deltas: list[EnergyDelta]) -> None:
+            self._apply_energy_deltas(resolved_deltas)
+
+    def _apply_energy_deltas(self, deltas: list[tuple[EnergyDelta, str]]) -> None:
         """Apply energy deltas to entities.
         
         Uses the identity provider for mode-agnostic entity lookup.
         Works with any entity type that has energy, not just Fish.
         """
         # Sync identity provider if not already synced in _resolve_energy
-        if self._identity_provider is not None:
-            # Already synced in _resolve_energy, but sync here for safety
-            # in case _apply_energy_deltas is called independently
-            self._identity_provider.sync_entities(self._entity_manager.entities_list)
+        self._sync_identity_provider()
 
-        for delta in deltas:
+        for delta, stable_id in deltas:
             entity = None
             
             if self._identity_provider is not None:
-                # Try direct lookup first (for non-offset IDs)
-                entity = self._identity_provider.get_entity_by_id(str(delta.entity_id))
-                
-                if entity is None:
-                    # Try with offset (fish events use raw fish_id, but provider uses offset)
-                    from core.config.entities import FISH_ID_OFFSET
-                    offset_id = str(delta.entity_id + FISH_ID_OFFSET)
-                    entity = self._identity_provider.get_entity_by_id(offset_id)
+                # Prefer stable ID lookup, fall back to legacy ID if needed.
+                entity = self._identity_provider.get_entity_by_id(stable_id)
+                if entity is None and str(delta.entity_id) != stable_id:
+                    entity = self._identity_provider.get_entity_by_id(str(delta.entity_id))
             
             if entity is not None:
                 # Apply energy delta to the entity

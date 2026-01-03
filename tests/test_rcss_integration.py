@@ -4,16 +4,14 @@ These tests verify the full stack:
 RCSSWorld -> RCSSServerAdapter -> FakeRCSSServer -> RCSSServerAdapter -> RCSSWorld
 """
 
-import math
-from typing import Dict, Any
 import pytest
 
 from core.worlds.soccer.rcss_world import RCSSWorld
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
 from .fakes.fake_rcssserver import FakeRCSSServer
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
 class TestRCSSIntegration:
 
     def test_full_loop_boot_and_move(self):

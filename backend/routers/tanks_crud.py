@@ -35,6 +35,18 @@ def setup_crud_subrouter(
     async def list_tanks(include_private: bool = False):
         """List all tanks in the registry."""
         tanks = tank_registry.list_tanks(include_private=include_private)
+        if world_manager is not None:
+            known_ids = {
+                t.get("tank", {}).get("tank_id")
+                for t in tanks
+                if isinstance(t, dict) and "tank" in t
+            }
+            for world in world_manager.list_worlds(world_type="tank"):
+                if world.world_id in known_ids:
+                    continue
+                adapter = world_manager.get_tank_adapter(world.world_id)
+                if adapter is not None:
+                    tanks.append(adapter.get_status())
         return JSONResponse(
             {
                 "tanks": tanks,

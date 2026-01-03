@@ -174,10 +174,17 @@ def test_energy_delta_ids_use_stable_format():
         f"Energy delta ID ({energy_delta.entity_id}) should match stable fish ID "
         f"({stable_fish_id}), not raw fish_id ({fish.fish_id})"
     )
+    assert energy_delta.stable_id == stable_fish_id, (
+        f"Energy delta stable_id ({energy_delta.stable_id}) should match stable fish ID "
+        f"({stable_fish_id})"
+    )
 
     # Verify it's using the offset scheme (not raw fish_id)
     energy_id_int = int(energy_delta.entity_id)
     assert energy_id_int >= FISH_ID_OFFSET, (
         f"Energy delta ID should be >= FISH_ID_OFFSET ({FISH_ID_OFFSET}), "
         f"indicating stable offset scheme. Got: {energy_id_int}"
+    )
+    assert energy_id_int < 10_000_000, (
+        f"Energy delta ID looks like raw Python id() (too large). Got: {energy_id_int}"
     )

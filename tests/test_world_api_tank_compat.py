@@ -412,9 +412,10 @@ class TestWebSocketUpdates:
             # Should receive initial state
             data = websocket.receive_bytes()
             state = json.loads(data)
+            snapshot = state.get("snapshot", state)
 
             # Verify we got a state payload
-            assert "entities" in state or "frame" in state
+            assert "entities" in snapshot or "frame" in snapshot
 
     def test_websocket_tank_id_endpoint_works(self, test_client):
         """Test that /ws/{tank_id} endpoint connects and receives data."""
@@ -429,8 +430,9 @@ class TestWebSocketUpdates:
         with test_client.websocket_connect(f"/ws/{tank_id}") as websocket:
             data = websocket.receive_bytes()
             state = json.loads(data)
+            snapshot = state.get("snapshot", state)
 
-            assert "entities" in state or "frame" in state
+            assert "entities" in snapshot or "frame" in snapshot
 
     def test_websocket_world_endpoint_works(self, test_client):
         """Test that unified /ws/world/{world_id} endpoint works for tanks."""
@@ -445,8 +447,9 @@ class TestWebSocketUpdates:
         with test_client.websocket_connect(f"/ws/world/{world_id}") as websocket:
             data = websocket.receive_bytes()
             state = json.loads(data)
+            snapshot = state.get("snapshot", state)
 
-            assert "entities" in state or "frame" in state
+            assert "entities" in snapshot or "frame" in snapshot
 
     def test_websocket_receives_frame_updates(self, test_client):
         """Test that WebSocket receives frame updates over time."""
@@ -461,7 +464,8 @@ class TestWebSocketUpdates:
             # Receive initial state
             initial_data = websocket.receive_bytes()
             initial_state = json.loads(initial_data)
-            initial_frame = initial_state.get("frame", 0)
+            initial_snapshot = initial_state.get("snapshot", initial_state)
+            initial_frame = initial_snapshot.get("frame", 0)
 
             # Wait a bit then receive another update
             # (broadcasts happen at ~15Hz by default)
@@ -489,11 +493,12 @@ class TestWebSocketUpdates:
             # Send a pause command
             websocket.send_text(json.dumps({"command": "pause"}))
 
-            # Wait for response
-            response_text = websocket.receive_text()
-            response = json.loads(response_text)
+            # Pause is fire-and-forget; verify via REST after closing the socket.
 
-            assert response.get("success") is True or "paused" in str(response).lower()
+        time.sleep(0.1)
+        state_response = test_client.get(f"/api/worlds/{tank_id}")
+        assert state_response.status_code == 200
+        assert state_response.json().get("paused") is True
 
 
 class TestEntityCountChanges:

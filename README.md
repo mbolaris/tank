@@ -260,6 +260,9 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 Keep changes safe by running the test and lint workflow locally:
 
 ```bash
+# Quick gate (fast, portable collection)
+pytest -m "not slow and not integration"
+
 # Run the full Python test suite (backend + simulation logic)
 pytest
 
