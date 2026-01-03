@@ -72,14 +72,14 @@ class FakeSocket:
         self.response_queue: List[str] = []
         self.closed = False
 
-    def send(self, data: str, addr: tuple[str, int]) -> None:
+    def send(self, data: str, addr: Tuple[str, int]) -> None:
         """Store sent command."""
         if self.closed:
             raise RuntimeError("Socket is closed")
         self.sent_commands.append(data)
         logger.debug(f"FakeSocket.send: {data} to {addr}")
 
-    def recv(self, bufsize: int) -> tuple[str, tuple[str, int]]:
+    def recv(self, bufsize: int) -> Tuple[str, Tuple[str, int]]:
         """Return next queued response or empty string."""
         if self.closed:
             raise RuntimeError("Socket is closed")
