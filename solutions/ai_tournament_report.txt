@@ -1,8 +1,8 @@
 ============================================================
 TankWorld AI Tournament (Best Solution Per Author)
-Generated: 2025-12-30T15:57:03.492800
+Generated: 2026-01-03T19:25:52.574392
 Git Branch: master
-Git Commit: 6e7ba126d411f16d8e52fb1d63fa00960943410a
+Git Commit: daa55191bb041feeae8b8e3d8d56e7ea3ac3f62c
 
 CONFIG
 ------------------------------------------------------------
@@ -14,30 +14,45 @@ head_to_head_hands_per_matchup: 1000
 
 SELECTED (best per author after re-eval)
 ------------------------------------------------------------
-- Haiku-4.5          | Haiku-4.5 Poker Stratege       | Elo  1582.7 (expert  ) | bb/100  +480.97 | id 3c8ae847_20251229_191554
-- Opus-4.5           | Opus-4.5 Poker Champion        | Elo  1582.7 (expert  ) | bb/100  +826.75 | id 133de727_20251229_173918
-- GPT-5.2-Codex-Max  | GPT-5.2-Codex-Max Poker Master | Elo  1582.7 (expert  ) | bb/100  +496.71 | id 603bca97_20251229_185408
-- Sonnet-4.5         | Sonnet-4.5 Poker Master        | Elo  1518.9 (advanced) | bb/100  +569.05 | id 603bca97_20251229_182751
-- Gemini 3.0         | Gemini 3.0 Poker Supreme       | Elo  1459.3 (advanced) | bb/100  +742.00 | id 802f6384_20251229_213007
-- GPT-5.2-Codex-Prime | GPT-5.2-Codex-Prime Poker Overlord | Elo  1432.8 (intermediate) | bb/100  +605.99 | id 2e9c6046_20251229_222622
+- GPT-5.2            | GPT-5.2 Tournament Hunter v2   | Elo  1582.7 (expert  ) | bb/100 +1068.35 | id live_2594_g119_05ab8b4d
+- Haiku-4.5          | Haiku-4.5 Poker Ace            | Elo  1582.7 (expert  ) | bb/100  +507.95 | id c7812960_20251229_190850
+- Opus-4.5           | Claude Opus-4.5 Champion       | Elo  1582.7 (expert  ) | bb/100  +617.29 | id 9a2d4122_20251230_021543
+- GPT-5.2-Codex-Max  | GPT-5.2-Codex-Max Poker Master | Elo  1582.7 (expert  ) | bb/100  +676.67 | id 603bca97_20251229_185408
+- claude-sonnet-4-5-20250929 | Sonnet-4.5 Balanced Champion   | Elo  1582.7 (expert  ) | bb/100  +313.09 | id 2ad5d201_20260103_191654
+- Aztek              | Local Tank Best                | Elo  1582.7 (expert  ) | bb/100  +710.13 | id 9c5ef467_20251230_165305
+- Gemini 3.0         | Gemini 3.0 Poker Supreme       | Elo  1582.7 (expert  ) | bb/100  +805.05 | id 802f6384_20251229_213007
+- Sonnet-4.5         | Sonnet-4.5 Poker Master        | Elo  1580.2 (expert  ) | bb/100  +479.59 | id 603bca97_20251229_182751
+- GPT-5              | GPT-5 Prime Champion           | Elo  1556.5 (expert  ) | bb/100  +480.19 | id e0c0ff8e_20251230_022510
+- GPT-5.2-Codex-Prime | GPT-5.2-Codex-Prime Poker Overlord | Elo  1544.8 (advanced) | bb/100  +516.14 | id 2e9c6046_20251229_222622
+- Gemini-2.5         | Gemini 2.5 Ultra Champion      | Elo  1534.6 (advanced) | bb/100  +445.73 | id 3b432fba_20251230_022803
 
 TOURNAMENT STANDINGS (avg head-to-head win rate)
 ------------------------------------------------------------
-#1  GPT-5.2-Codex-Max  | WR   67.3% | Elo  1582.7 | bb/100  +496.71 | GPT-5.2-Codex-Max Poker Master
-#2  Opus-4.5           | WR   65.6% | Elo  1582.7 | bb/100  +826.75 | Opus-4.5 Poker Champion
-#3  Haiku-4.5          | WR   65.4% | Elo  1582.7 | bb/100  +480.97 | Haiku-4.5 Poker Stratege
-#4  Sonnet-4.5         | WR   59.0% | Elo  1518.9 | bb/100  +569.05 | Sonnet-4.5 Poker Master
-#5  GPT-5.2-Codex-Prime | WR   21.9% | Elo  1432.8 | bb/100  +605.99 | GPT-5.2-Codex-Prime Poker Overlord
-#6  Gemini 3.0         | WR   20.8% | Elo  1459.3 | bb/100  +742.00 | Gemini 3.0 Poker Supreme
+#1  claude-sonnet-4-5-20250929 | WR   75.8% | Elo  1582.7 | bb/100  +313.09 | Sonnet-4.5 Balanced Champion
+#2  Aztek              | WR   66.9% | Elo  1582.7 | bb/100  +710.13 | Local Tank Best
+#3  GPT-5.2            | WR   59.5% | Elo  1582.7 | bb/100 +1068.35 | GPT-5.2 Tournament Hunter v2
+#4  GPT-5.2-Codex-Max  | WR   56.1% | Elo  1582.7 | bb/100  +676.67 | GPT-5.2-Codex-Max Poker Master
+#5  Sonnet-4.5         | WR   47.7% | Elo  1580.2 | bb/100  +479.59 | Sonnet-4.5 Poker Master
+#6  GPT-5.2-Codex-Prime | WR   43.3% | Elo  1544.8 | bb/100  +516.14 | GPT-5.2-Codex-Prime Poker Overlord
+#7  Gemini-2.5         | WR   42.4% | Elo  1534.6 | bb/100  +445.73 | Gemini 2.5 Ultra Champion
+#8  Haiku-4.5          | WR   40.1% | Elo  1582.7 | bb/100  +507.95 | Haiku-4.5 Poker Ace
+#9  Opus-4.5           | WR   39.8% | Elo  1582.7 | bb/100  +617.29 | Claude Opus-4.5 Champion
+#10 Gemini 3.0         | WR   39.6% | Elo  1582.7 | bb/100  +805.05 | Gemini 3.0 Poker Supreme
+#11 GPT-5              | WR   39.0% | Elo  1556.5 | bb/100  +480.19 | GPT-5 Prime Champion
 
 HEAD-TO-HEAD MATRIX (row beats column)
 ------------------------------------------------------------
-                   Haiku-4.5   Opus-4.5 GPT-5.2-Co Sonnet-4.5 Gemini 3.0 GPT-5.2-Co
-Haiku-4.5            --          43.3%      90.0%      35.4%      87.4%      70.9%
-Opus-4.5              56.7%     --          23.9%      47.4%     100.0%     100.0%
-GPT-5.2-Codex-Ma      10.0%      76.1%     --          97.1%     100.0%      53.3%
-Sonnet-4.5            64.6%      52.6%       2.9%     --          74.8%     100.0%
-Gemini 3.0            12.6%       0.0%       0.0%      25.2%     --          66.0%
-GPT-5.2-Codex-Pr      29.1%       0.0%      46.7%       0.0%      34.0%     --    
+                     GPT-5.2  Haiku-4.5   Opus-4.5 GPT-5.2-Co claude-son      Aztek Gemini 3.0 Sonnet-4.5      GPT-5 GPT-5.2-Co Gemini-2.5
+GPT-5.2              --          47.2%      86.0%      62.2%       0.0%      30.8%      92.7%      90.5%      55.3%      72.7%      57.0%
+Haiku-4.5             52.8%     --          22.9%      37.3%      50.4%      30.3%      23.9%      36.6%      60.2%      16.1%      70.4%
+Opus-4.5              14.0%      77.1%     --          42.6%       0.0%      44.3%      44.2%      30.8%      80.6%      48.2%      15.9%
+GPT-5.2-Codex-Ma      37.8%      62.7%      57.4%     --          58.0%      47.7%      51.6%      56.0%      45.1%      70.3%      74.3%
+claude-sonnet-4-     100.0%      49.6%     100.0%      42.0%     --          44.0%     100.0%      63.1%     100.0%      85.1%      74.1%
+Aztek                 69.2%      69.7%      55.7%      52.3%      56.0%     --          84.3%      59.8%     100.0%      57.9%      63.9%
+Gemini 3.0             7.3%      76.1%      55.8%      48.4%       0.0%      15.7%     --          45.4%      53.3%      20.2%      73.3%
+Sonnet-4.5             9.5%      63.4%      69.2%      44.0%      36.9%      40.2%      54.6%     --          39.6%      73.3%      46.4%
+GPT-5                 44.7%      39.8%      19.4%      54.9%       0.0%       0.0%      46.7%      60.4%     --          72.8%      51.5%
+GPT-5.2-Codex-Pr      27.3%      83.9%      51.8%      29.7%      14.9%      42.1%      79.8%      26.7%      27.2%     --          49.6%
+Gemini-2.5            43.0%      29.6%      84.1%      25.7%      25.9%      36.1%      26.7%      53.6%      48.5%      50.4%     --    
 
 ============================================================
