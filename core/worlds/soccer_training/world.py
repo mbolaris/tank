@@ -178,6 +178,32 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         """Return the current frame count for compatibility with other backends."""
         return self._frame
 
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
+        """Return simulation statistics for compatibility with SimulationRunner.
+
+        Args:
+            include_distributions: Whether to include gene distributions (unused for soccer)
+
+        Returns:
+            Dictionary with basic simulation stats
+        """
+        return {
+            "fish_count": 0,
+            "plant_count": 0,
+            "food_count": 0,
+            "total_energy": 0.0,
+            "avg_fish_energy": 0.0,
+            "max_generation": 0,
+            "total_births": 0,
+            "total_deaths": 0,
+            "gene_distributions": {},
+            # Soccer-specific stats
+            "frame": self._frame,
+            "score_left": self._score.get(LEFT_TEAM, 0) if hasattr(self, "_score") else 0,
+            "score_right": self._score.get(RIGHT_TEAM, 0) if hasattr(self, "_score") else 0,
+            "player_count": len(self._players) if hasattr(self, "_players") else 0,
+        }
+
     def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         reset_seed = seed if seed is not None else self._seed
         self._rng = random.Random(reset_seed)

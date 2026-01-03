@@ -47,14 +47,21 @@ class TestWorldTypeFirstClass:
                 name="Petri Step Test",
                 world_type="petri",
             )
-            # Start paused to prevent background thread from advancing frames
-            # while we test direct stepping
+            # Start paused to prevent background thread from running
             manager.start(start_paused=True)
 
             # Get initial frame before stepping
             initial_frame = manager.world.frame_count
+
+            # Unpause to allow stepping (the world must be unpaused for step() to work)
+            # Background thread is started but sleeps most of the time at 30 FPS
+            manager.world.paused = False
+
             for _ in range(10):
                 manager.world.step()
+
+            # Pause again to prevent any further background updates
+            manager.world.paused = True
 
             assert manager.world.frame_count == initial_frame + 10
         finally:
