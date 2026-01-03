@@ -9,8 +9,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
+from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
-from core.worlds.tank.identity import TankEntityIdentityProvider
 
 if TYPE_CHECKING:
     from core.worlds.identity import EntityIdentityProvider
@@ -25,7 +25,7 @@ class TankPack(TankLikePackBase):
 
     def __init__(self, config: SimulationConfig):
         super().__init__(config)
-        self._identity_provider = TankEntityIdentityProvider()
+        self._identity_provider = TankLikeEntityIdentityProvider()
 
     @property
     def mode_id(self) -> str:

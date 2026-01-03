@@ -174,14 +174,14 @@ class TestBackendBoundaries:
 
 class TestCorePoliciesBoundaries:
     """Verify core/policies does not import tank-specific entities.
-    
+
     Policy interfaces should be world-agnostic. Tank-specific observation
     building now lives in core/worlds/tank/movement_observations.py.
     """
 
     def test_no_tank_entity_imports(self):
         """core/policies/*.py must not import tank entities (Food, Crab, etc).
-        
+
         These imports should live in world-specific observation builders,
         not in the generic policy interface.
         """
@@ -197,18 +197,78 @@ class TestCorePoliciesBoundaries:
             "core.entities.Crab",
             "core.config.food",
         ]
-        
+
         violations = check_forbidden_imports(
             core_policies_dir,
             forbidden_patterns=forbidden_patterns,
         )
 
         if violations:
-            msg = "core/policies must not import tank-specific entities:\\n"
+            msg = "core/policies must not import tank-specific entities:\n"
             for path, imp in violations:
                 rel_path = path.relative_to(repo_root)
-                msg += f"  {rel_path}: imports '{imp}'\\n"
-            msg += "\\nMove tank-specific logic to core/worlds/tank/movement_observations.py"
+                msg += f"  {rel_path}: imports '{imp}'\n"
+            msg += "\nMove tank-specific logic to core/worlds/tank/movement_observations.py"
+            pytest.fail(msg)
+
+
+class TestSharedModulesBoundaries:
+    """Verify core/worlds/shared does not import core/worlds/tank."""
+
+    def test_shared_modules_do_not_import_tank(self):
+        """core/worlds/shared/*.py must not import core/worlds/tank/*.
+
+        The shared namespace must remain neutral so that Petri and future
+        modes like Soccer can inherit without tangled import chains.
+        """
+        repo_root = get_repo_root()
+        shared_dir = repo_root / "core" / "worlds" / "shared"
+
+        if not shared_dir.exists():
+            pytest.skip("core/worlds/shared directory not found")
+
+        violations = check_forbidden_imports(
+            shared_dir,
+            forbidden_patterns=["core.worlds.tank"],
+        )
+
+        if violations:
+            msg = "core/worlds/shared must not import core/worlds/tank:\n"
+            for path, imp in violations:
+                rel_path = path.relative_to(repo_root)
+                msg += f"  {rel_path}: imports '{imp}'\n"
+            msg += "\nMove shared code to core/worlds/shared/ instead."
+            pytest.fail(msg)
+
+
+class TestPetriPackBoundaries:
+    """Verify core/worlds/petri/pack.py does not import core/worlds/tank.
+
+    Note: Petri's backend.py intentionally inherits from Tank's backend,
+    which is acceptable. The pack.py is the key file that should use
+    shared imports only.
+    """
+
+    def test_petri_pack_does_not_import_tank(self):
+        """core/worlds/petri/pack.py must not import core/worlds/tank/*.
+
+        Petri should inherit from the neutral shared base, not from Tank.
+        This test focuses on pack.py since backend inheritance is expected.
+        """
+        repo_root = get_repo_root()
+        petri_pack = repo_root / "core" / "worlds" / "petri" / "pack.py"
+
+        if not petri_pack.exists():
+            pytest.skip("core/worlds/petri/pack.py not found")
+
+        imports = extract_imports(petri_pack)
+        tank_imports = [imp for imp in imports if imp.startswith("core.worlds.tank")]
+
+        if tank_imports:
+            msg = "core/worlds/petri/pack.py must not import core/worlds/tank:\n"
+            for imp in tank_imports:
+                msg += f"  imports '{imp}'\n"
+            msg += "\nUse core/worlds/shared/ imports instead."
             pytest.fail(msg)
 
 

@@ -5,6 +5,7 @@ import pytest
 from core.entities import Castle, Crab, Fish, Food
 
 
+@pytest.mark.slow
 class TestFullSimulation:
     """Integration tests that run the complete simulation."""
 

@@ -14,8 +14,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
+from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
-from core.worlds.tank.identity import TankEntityIdentityProvider
 
 if TYPE_CHECKING:
     from core.worlds.identity import EntityIdentityProvider
@@ -33,9 +33,8 @@ class PetriPack(TankLikePackBase):
 
     def __init__(self, config: SimulationConfig):
         super().__init__(config)
-        # Use same identity provider implementation as Tank for now,
-        # but instantiated independently to avoid import coupling
-        self._identity_provider = TankEntityIdentityProvider()
+        # Use shared Tank-like identity provider from shared namespace
+        self._identity_provider = TankLikeEntityIdentityProvider()
 
     @property
     def mode_id(self) -> str:

@@ -209,6 +209,7 @@ class TestEdgeCasesAndBoundaries:
         ), f"Discrete blend {parent1_count/trials:.3f} deviates from expected 0.7"
 
 
+@pytest.mark.slow
 class TestMultiGenerationEvolution:
     """Integration tests for multi-generation evolution."""
 

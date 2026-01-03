@@ -229,6 +229,133 @@ class TestPetriWorldLoopContract:
         assert result.render_hint["style"] == "topdown"
 
 
+class TestStepResultContractConformance:
+    """Contract conformance tests for StepResult fields.
+
+    These tests verify that backends properly populate all StepResult fields,
+    catching drift when someone returns None or forgets a field.
+    """
+
+    def test_step_result_contract_tank_reset(self) -> None:
+        """Tank reset() StepResult has all required fields with correct types."""
+        from core.worlds.tank.backend import TankWorldBackendAdapter
+
+        backend = TankWorldBackendAdapter(seed=42)
+        result = backend.reset(seed=42)
+
+        # Core fields
+        assert isinstance(result.snapshot, dict), "snapshot must be dict"
+        assert isinstance(result.metrics, dict), "metrics must be dict"
+        assert isinstance(result.events, list), "events must be list"
+        assert isinstance(result.done, bool), "done must be bool"
+
+        # Extended fields (world loop contract)
+        assert isinstance(result.spawns, list), "spawns must be list"
+        assert isinstance(result.removals, list), "removals must be list"
+        assert isinstance(result.energy_deltas, list), "energy_deltas must be list"
+        # render_hint can be None or dict
+        if result.render_hint is not None:
+            assert isinstance(result.render_hint, dict), "render_hint must be dict or None"
+
+    def test_step_result_contract_tank_step(self) -> None:
+        """Tank step() StepResult has all required fields with correct types."""
+        from core.worlds.tank.backend import TankWorldBackendAdapter
+
+        backend = TankWorldBackendAdapter(seed=42)
+        backend.reset(seed=42)
+        result = backend.step()
+
+        # Core fields
+        assert isinstance(result.snapshot, dict), "snapshot must be dict"
+        assert isinstance(result.metrics, dict), "metrics must be dict"
+        assert isinstance(result.events, list), "events must be list"
+
+        # Extended fields
+        assert isinstance(result.spawns, list), "spawns must be list"
+        assert isinstance(result.removals, list), "removals must be list"
+        assert isinstance(result.energy_deltas, list), "energy_deltas must be list"
+
+        # render_hint should be present after step
+        assert result.render_hint is not None, "render_hint should be populated after step"
+        assert isinstance(result.render_hint, dict), "render_hint must be dict"
+
+    def test_step_result_contract_petri_reset(self) -> None:
+        """Petri reset() StepResult has all required fields with correct types."""
+        from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+        backend = PetriWorldBackendAdapter(seed=42)
+        result = backend.reset(seed=42)
+
+        # Core fields
+        assert isinstance(result.snapshot, dict), "snapshot must be dict"
+        assert isinstance(result.metrics, dict), "metrics must be dict"
+        assert isinstance(result.events, list), "events must be list"
+        assert isinstance(result.done, bool), "done must be bool"
+
+        # Extended fields
+        assert isinstance(result.spawns, list), "spawns must be list"
+        assert isinstance(result.removals, list), "removals must be list"
+        assert isinstance(result.energy_deltas, list), "energy_deltas must be list"
+
+    def test_step_result_contract_petri_step(self) -> None:
+        """Petri step() StepResult has all required fields with correct types."""
+        from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+        backend = PetriWorldBackendAdapter(seed=42)
+        backend.reset(seed=42)
+        result = backend.step()
+
+        # Core fields
+        assert isinstance(result.snapshot, dict), "snapshot must be dict"
+        assert isinstance(result.metrics, dict), "metrics must be dict"
+        assert isinstance(result.events, list), "events must be list"
+
+        # Extended fields
+        assert isinstance(result.spawns, list), "spawns must be list"
+        assert isinstance(result.removals, list), "removals must be list"
+        assert isinstance(result.energy_deltas, list), "energy_deltas must be list"
+
+        # render_hint should be present
+        assert result.render_hint is not None, "render_hint should be populated"
+        assert isinstance(result.render_hint, dict), "render_hint must be dict"
+
+    def test_tank_metrics_stable_keys(self) -> None:
+        """Tank metrics have stable expected keys across frames."""
+        from core.worlds.tank.backend import TankWorldBackendAdapter
+
+        backend = TankWorldBackendAdapter(seed=42)
+        backend.reset(seed=42)
+
+        # Run a few frames
+        for _ in range(5):
+            result = backend.step()
+
+        metrics = result.metrics
+
+        # Verify expected keys exist (not necessarily values)
+        expected_keys = ["frame", "fish_count", "food_count"]
+        for key in expected_keys:
+            assert key in metrics, f"metrics should contain '{key}'"
+
+    def test_petri_metrics_stable_keys(self) -> None:
+        """Petri metrics have stable expected keys across frames."""
+        from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+        backend = PetriWorldBackendAdapter(seed=42)
+        backend.reset(seed=42)
+
+        # Run a few frames
+        for _ in range(5):
+            result = backend.step()
+
+        metrics = result.metrics
+
+        # Verify expected keys exist
+        expected_keys = ["frame", "fish_count", "food_count"]
+        for key in expected_keys:
+            assert key in metrics, f"metrics should contain '{key}'"
+
+
 class TestActionRegistry:
     """Tests for ActionRegistry."""
 
@@ -364,3 +491,90 @@ class TestNoMutationsOutsideCommit:
 
         # Cleanup
         engine._current_phase = None
+
+
+class TestIdentityProviderPruning:
+    """Tests for identity provider stale ID pruning."""
+
+    def test_identity_provider_prunes_stale_ids(self) -> None:
+        """Identity provider removes entries for removed entities.
+
+        This test verifies that the engine correctly prunes stale mappings
+        from the identity provider when entities are removed, preventing
+        memory leaks and python id() reuse corruption.
+        """
+        from core.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(seed=42)
+        engine.setup()
+
+        provider = engine._identity_provider
+        if provider is None:
+            pytest.skip("No identity provider available")
+
+        # Create a food entity using the food pool and add it to the simulation
+        food = engine.food_pool.acquire(engine.environment, 100, 100)
+        engine.add_entity(food)
+        python_id = id(food)
+
+        # Force identity assignment by getting the identity
+        provider.get_identity(food)
+
+        # Verify the python id is tracked in _entity_stable_ids
+        # (Food uses python id for stable ID generation)
+        assert python_id in provider._entity_stable_ids, \
+            "Food python id should be tracked in _entity_stable_ids"
+
+        # Remove the entity from simulation
+        engine.remove_entity(food)
+
+        # Run a frame to trigger pruning in _phase_frame_end
+        engine.update()
+
+        # Verify the python id is no longer tracked
+        assert python_id not in provider._entity_stable_ids, \
+            "Stale python id should be pruned after entity removal and frame update"
+
+    def test_identity_provider_prunes_only_stale_ids(self) -> None:
+        """Identity provider preserves entries for active entities.
+
+        This test verifies that pruning only removes stale entries,
+        not entries for entities still in the simulation.
+        """
+        from core.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(seed=42)
+        engine.setup()
+
+        provider = engine._identity_provider
+        if provider is None:
+            pytest.skip("No identity provider available")
+
+        # Create two food entities using the food pool
+        food1 = engine.food_pool.acquire(engine.environment, 100, 100)
+        food2 = engine.food_pool.acquire(engine.environment, 200, 200)
+        engine.add_entity(food1)
+        engine.add_entity(food2)
+        python_id1 = id(food1)
+        python_id2 = id(food2)
+
+        # Force identity assignment
+        provider.get_identity(food1)
+        provider.get_identity(food2)
+
+        # Both should be tracked
+        assert python_id1 in provider._entity_stable_ids
+        assert python_id2 in provider._entity_stable_ids
+
+        # Remove only food1
+        engine.remove_entity(food1)
+
+        # Run a frame to trigger pruning
+        engine.update()
+
+        # food1 should be pruned, food2 should remain
+        assert python_id1 not in provider._entity_stable_ids, \
+            "Removed entity's python id should be pruned"
+        assert python_id2 in provider._entity_stable_ids, \
+            "Active entity's python id should be preserved"
+

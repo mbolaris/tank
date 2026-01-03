@@ -77,3 +77,16 @@ class EntityIdentityProvider(Protocol):
             entities: Current list of all entities in the simulation
         """
         ...
+
+    def prune_stale_ids(self, current_entity_ids: set[int]) -> None:
+        """Remove mappings for entities no longer present.
+
+        Called by the engine at frame end to prevent memory leaks and
+        python id() reuse corruption. Implementations that use python id()
+        for internal tracking MUST implement this method.
+
+        Args:
+            current_entity_ids: Set of python id() values for currently
+                active entities
+        """
+        ...

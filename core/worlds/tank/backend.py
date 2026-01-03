@@ -288,7 +288,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._world is None:
             return {}
 
-        return self._world.get_stats(include_distributions=include_distributions)
+        metrics = self._world.get_stats(include_distributions=include_distributions)
+        # Ensure frame count is always present in metrics for contract conformance
+        if "frame" not in metrics:
+            metrics["frame"] = self._world.frame_count
+        return metrics
 
     def _build_snapshot(self) -> Dict[str, Any]:
         """Build a minimal snapshot of current world state.

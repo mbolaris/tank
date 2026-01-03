@@ -961,6 +961,12 @@ class SimulationEngine:
         # Mode-specific frame-end processing (benchmarks, etc.)
         self._phase_hooks.on_frame_end(self)
 
+        # Prune stale identity mappings to prevent memory leaks and id() reuse
+        # corruption. This removes entries for entities that no longer exist.
+        if self._identity_provider is not None and hasattr(self._identity_provider, 'prune_stale_ids'):
+            current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
+            self._identity_provider.prune_stale_ids(current_entity_ids)
+
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
 
