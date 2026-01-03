@@ -1,37 +1,38 @@
 ============================================================
 TankWorld Solution Benchmark Report
-Generated: 2026-01-03T19:24:56.291088
-Solutions Evaluated: 26
+Generated: 2026-01-03T20:06:58.025592
+Solutions Evaluated: 27
 ============================================================
 
 RANKINGS
 ------------------------------------------------------------
 #1   GPT-5.2 Tournament Hunter v2   Elo:   1583  Tier: expert       bb/100: +1068.35
 #2   Claude Opus-4.5 Champion       Elo:   1583  Tier: expert       bb/100: +617.29
-#3   Haiku-4.5 Poker Ace            Elo:   1583  Tier: expert       bb/100: +507.95
-#4   GPT-5.2-Codex-Max Poker Master Elo:   1583  Tier: expert       bb/100: +676.67
-#5   Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +313.09
-#6   Haiku-4.5 Poker Pro            Elo:   1583  Tier: expert       bb/100: +583.16
-#7   Local Tank Best                Elo:   1583  Tier: expert       bb/100: +710.13
-#8   Gemini 3.0 Poker Supreme       Elo:   1583  Tier: expert       bb/100: +805.05
-#9   Opus-4.5 Evolved Master        Elo:   1583  Tier: expert       bb/100: +695.11
-#10  Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +556.17
-#11  Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +599.13
-#12  Local Tank Best                Elo:   1583  Tier: expert       bb/100: +464.05
-#13  Sonnet-4.5 Poker Master        Elo:   1580  Tier: expert       bb/100: +479.59
-#14  Sonnet-4.5 Balanced Champion   Elo:   1580  Tier: expert       bb/100: +1010.42
-#15  Opus-4.5 Poker Champion        Elo:   1579  Tier: expert       bb/100: +659.21
-#16  GPT-5.2-Codex-Max Balanced Challenger Elo:   1571  Tier: expert       bb/100: +2183.40
-#17  GPT-5 Prime Champion           Elo:   1557  Tier: expert       bb/100: +480.19
-#18  GPT-5.2-Codex-Prime Poker Overlord Elo:   1545  Tier: advanced     bb/100: +516.14
-#19  Claude Haiku-4.5 Champion      Elo:   1539  Tier: advanced     bb/100: +512.81
-#20  Gemini 2.5 Ultra Champion      Elo:   1535  Tier: advanced     bb/100: +445.73
-#21  Local Tank Best                Elo:   1535  Tier: advanced     bb/100: +495.76
-#22  Opus-4.5 Poker Champion        Elo:   1535  Tier: advanced     bb/100: +501.01
-#23  Haiku-4.5 Poker Master         Elo:   1532  Tier: advanced     bb/100: +433.46
-#24  Sonnet-4.5 Balanced Champion   Elo:   1487  Tier: advanced     bb/100: +539.44
-#25  Claude Sonnet-4.5 Champion     Elo:   1460  Tier: advanced     bb/100: +398.45
-#26  Haiku-4.5 Poker Stratege       Elo:   1393  Tier: intermediate bb/100: +762.81
+#3   Gemini 3 Pro High Roller       Elo:   1583  Tier: expert       bb/100: +430.82
+#4   Haiku-4.5 Poker Ace            Elo:   1583  Tier: expert       bb/100: +507.95
+#5   GPT-5.2-Codex-Max Poker Master Elo:   1583  Tier: expert       bb/100: +676.67
+#6   Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +313.09
+#7   Haiku-4.5 Poker Pro            Elo:   1583  Tier: expert       bb/100: +583.16
+#8   Local Tank Best                Elo:   1583  Tier: expert       bb/100: +710.13
+#9   Gemini 3.0 Poker Supreme       Elo:   1583  Tier: expert       bb/100: +805.05
+#10  Opus-4.5 Evolved Master        Elo:   1583  Tier: expert       bb/100: +695.11
+#11  Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +556.17
+#12  Sonnet-4.5 Balanced Champion   Elo:   1583  Tier: expert       bb/100: +599.13
+#13  Local Tank Best                Elo:   1583  Tier: expert       bb/100: +464.05
+#14  Sonnet-4.5 Poker Master        Elo:   1580  Tier: expert       bb/100: +479.59
+#15  Sonnet-4.5 Balanced Champion   Elo:   1580  Tier: expert       bb/100: +1010.42
+#16  Opus-4.5 Poker Champion        Elo:   1579  Tier: expert       bb/100: +659.21
+#17  GPT-5.2-Codex-Max Balanced Challenger Elo:   1571  Tier: expert       bb/100: +2183.40
+#18  GPT-5 Prime Champion           Elo:   1557  Tier: expert       bb/100: +480.19
+#19  GPT-5.2-Codex-Prime Poker Overlord Elo:   1545  Tier: advanced     bb/100: +516.14
+#20  Claude Haiku-4.5 Champion      Elo:   1539  Tier: advanced     bb/100: +512.81
+#21  Gemini 2.5 Ultra Champion      Elo:   1535  Tier: advanced     bb/100: +445.73
+#22  Local Tank Best                Elo:   1535  Tier: advanced     bb/100: +495.76
+#23  Opus-4.5 Poker Champion        Elo:   1535  Tier: advanced     bb/100: +501.01
+#24  Haiku-4.5 Poker Master         Elo:   1532  Tier: advanced     bb/100: +433.46
+#25  Sonnet-4.5 Balanced Champion   Elo:   1487  Tier: advanced     bb/100: +539.44
+#26  Claude Sonnet-4.5 Champion     Elo:   1460  Tier: advanced     bb/100: +398.45
+#27  Haiku-4.5 Poker Stratege       Elo:   1393  Tier: intermediate bb/100: +762.81
 
 DETAILED RESULTS
 ------------------------------------------------------------
@@ -69,6 +70,23 @@ Claude Opus-4.5 Champion
     random                +460.10 bb/100  [+353.04, +569.66]
     tight_aggressive      +186.51 bb/100  [+124.95, +248.07]
     tight_passive         +124.16 bb/100  [+98.66, +149.65]
+
+Gemini 3 Pro High Roller
+  ID: d926087b_20260103_195809
+  Author: Gemini 3 Pro
+  Elo Rating: 1583
+  Skill Tier: expert
+  Total Hands: 33,774
+
+  Performance vs Opponents:
+    always_fold           +185.75 bb/100  [+181.55, +189.95]
+    balanced              +323.44 bb/100  [+232.00, +447.08]
+    loose_aggressive      +542.93 bb/100  [-24.09, +1121.88]
+    loose_passive         +345.14 bb/100  [+247.16, +501.26]
+    maniac               +1528.06 bb/100  [-59.72, +4642.44]
+    random                +549.75 bb/100  [+423.76, +737.45]
+    tight_aggressive      +293.19 bb/100  [+256.26, +335.36]
+    tight_passive         +226.92 bb/100  [+179.67, +274.67]
 
 Haiku-4.5 Poker Ace
   ID: c7812960_20251229_190850
