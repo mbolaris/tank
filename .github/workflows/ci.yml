@@ -7,7 +7,7 @@ on:
     branches: [ main, master, develop ]
 
 jobs:
-  test:
+  fast-gate:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -26,22 +26,41 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[dev]
 
-    - name: Run tests
+    - name: Run fast tests
       run: |
         pytest tests/ --verbose --tb=short
 
     - name: Check code formatting with black
       run: |
-        black --check core/ tests/ tools/ --exclude="frontend|backend|node_modules|.venv|venv"
+        black --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
 
     - name: Lint with ruff
       run: |
-        ruff check core/ tests/ tools/ --exclude frontend --exclude backend
+        ruff check core/ tests/ tools/ backend/ --exclude frontend
 
     - name: Type check with mypy
       run: |
         mypy core/ --exclude frontend --exclude backend
-      continue-on-error: true  # 465 type errors - fix incrementally
+      continue-on-error: true
+
+  integration-gate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Run integration tests
+      run: |
+        pytest tests/ -m integration -o "addopts=--verbose" --tb=short
 
   test-headless:
     runs-on: ubuntu-latest
@@ -62,27 +81,3 @@ jobs:
     - name: Run headless simulation test
       run: |
         python -c "from core.simulation import HeadlessSimulator; sim = HeadlessSimulator(max_frames=100); sim.run(); print('Headless test passed')"
-
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ruff black mypy
-
-    - name: Check formatting
-      run: |
-        black --check core/ tests/ tools/ --exclude="frontend|backend|node_modules|.venv|venv"
-
-    - name: Lint
-      run: |
-        ruff check core/ tests/ tools/ --exclude frontend --exclude backend

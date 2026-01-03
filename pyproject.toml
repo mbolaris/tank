@@ -67,7 +67,8 @@ addopts = [
     "--verbose",
     "--strict-markers",
     "--tb=short",
-    "-m not slow",
+    "-m",
+    "not slow and not integration and not manual",
 ]
 markers = [
     "slow: long-running tests (excluded by default in quick runs with -m 'not slow')",

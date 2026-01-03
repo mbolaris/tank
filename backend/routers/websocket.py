@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 def _get_client_ip(websocket: WebSocket) -> str:
     """Extract client IP from WebSocket connection."""
     forwarded_for = websocket.headers.get("x-forwarded-for")
