@@ -374,58 +374,58 @@ class CollisionSystem(BaseSystem):
     def _handle_food_collisions(self) -> None:
         """Handle collisions involving food.
 
-        Uses spatial partitioning to reduce collision checks from O(n²) to O(n*k).
-
-        Performance optimizations:
-        - Use set for entity membership tracking
-        - Cache method references
+        Optimized to iterate Crabs instead of Food, as Crabs are fewer and actively hunt Food.
+        This reduces complexity from O(Food * Neighbors) to O(Crabs * FoodNeighbors).
         """
         from core.entities import Crab, Food
 
         all_entities = self._engine.get_all_entities()
-        all_entities_set = set(all_entities)
 
-        # Performance: Use type() check first
-        food_list = [e for e in all_entities if type(e) is Food or isinstance(e, Food)]
+        # Find all crabs
+        # OPTIMIZATION: Manually filter for crabs instead of iterating all food
+        crabs = [e for e in all_entities if isinstance(e, Crab)]
 
-        if not food_list:
+        if not crabs:
             return
 
-        # Performance: Cache references
+        # Sort crabs for deterministic processing order
+        crabs.sort(key=lambda c: id(c))
+
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
-        def collision_sort_key(entity: "Agent") -> tuple:
-            return (type(entity).__name__, id(entity))
+        # Helper for deterministic sorting of food
+        def food_sort_key(f):
+            return id(f)
 
-        for food in food_list:
-            # Check if food is still in simulation (may have been eaten)
-            if food not in all_entities_set or self._engine.is_pending_removal(food):
+        for crab in crabs:
+            if self._engine.is_pending_removal(crab):
                 continue
 
-            # Use spatial grid for nearby entity lookup
-            if environment is not None:
-                nearby_entities = environment.nearby_agents(food, radius=COLLISION_QUERY_RADIUS)
+            # Find nearby food only
+            if environment:
+                nearby_food = environment.nearby_agents_by_type(
+                    crab, radius=COLLISION_QUERY_RADIUS, agent_class=Food
+                )
             else:
-                # Fallback to checking all entities if no environment
-                nearby_entities = [e for e in all_entities if e is not food]
+                nearby_food = [e for e in all_entities if isinstance(e, Food) and e is not crab]
 
-            nearby_entities = sorted(nearby_entities, key=collision_sort_key)
+            if not nearby_food:
+                continue
 
-            for other in nearby_entities:
-                if other is food:
+            # Sort nearby food deterministically
+            nearby_food.sort(key=food_sort_key)
+
+            for food in nearby_food:
+                # Check if food is already eaten (pending removal)
+                if self._engine.is_pending_removal(food):
                     continue
 
-                if check_collision(food, other):
-                    # Fish-food collisions are handled in _handle_fish_collisions()
-                    if type(other) is Crab or isinstance(other, Crab):
-                        other.eat_food(food)
-                        food.get_eaten()
-                        self._engine.request_remove(food, reason="crab_food_collision")
-                        all_entities_set.discard(food)
-                        self._frame_entities_removed += 1
-                        break
+                if check_collision(crab, food):
+                    crab.eat_food(food)
+                    food.get_eaten()
+                    self._engine.request_remove(food, reason="crab_food_collision")
+                    self._frame_entities_removed += 1
 
     def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
         """Handle collision between a fish and food, including plant nectar.
