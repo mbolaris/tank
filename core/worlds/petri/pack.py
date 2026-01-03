@@ -18,7 +18,13 @@ from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
 
 if TYPE_CHECKING:
+    from core.simulation.engine import SimulationEngine
     from core.worlds.identity import EntityIdentityProvider
+
+from core.worlds.petri.petri_actions import register_petri_action_translator
+from core.worlds.petri.movement_observations import (
+    register_petri_movement_observation_builder,
+)
 
 
 class PetriPack(TankLikePackBase):
@@ -39,6 +45,11 @@ class PetriPack(TankLikePackBase):
     @property
     def mode_id(self) -> str:
         return "petri"
+
+    def register_contracts(self, engine: "SimulationEngine") -> None:
+        """Register Petri-specific contracts."""
+        register_petri_action_translator("petri")
+        register_petri_movement_observation_builder("petri")
 
     def get_identity_provider(self) -> "EntityIdentityProvider":
         """Return the Petri identity provider."""

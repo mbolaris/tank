@@ -122,3 +122,11 @@ def list_registered_builders() -> list[tuple[str, str]]:
         List of (world_type, policy_kind) tuples
     """
     return list(_OBSERVATION_BUILDERS.keys())
+
+
+def clear_registry() -> None:
+    """Clear all registered observation builders.
+    
+    WARNING: Use this ONLY in tests to reset state.
+    """
+    _OBSERVATION_BUILDERS.clear()

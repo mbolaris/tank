@@ -162,11 +162,6 @@ def build_movement_observation(fish: Fish) -> Observation:
     observation builder registry. The actual observation building logic lives
     in the appropriate world module (e.g., core/worlds/tank/movement_observations.py).
     """
-    # Ensure tank observation builder is registered
-    # This import is safe because it only happens when this function is called,
-    # not when the module is loaded. It also triggers registration.
-    import core.worlds.tank.movement_observations  # noqa: F401
-    
     from core.policies.observation_registry import build_observation
     
     world_type = getattr(fish.environment, "world_type", "tank")

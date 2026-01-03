@@ -139,7 +139,16 @@ class TankLikePackBase(ABC):
         # 4. Expose code_pool on engine for backward compatibility
         engine.code_pool = env.code_pool
 
+        # 5. Set world type for contract awareness
+        env.world_type = self.mode_id
+
         return env
+
+    def register_contracts(self, engine: "SimulationEngine") -> None:
+        """Register shared tank-like contracts (actions/observations)."""
+        # Note: Subclasses can override or extend this if they have mode-specific contracts
+        # independent of the shared tank-like base.
+        pass
 
     def register_systems(self, engine: "SimulationEngine") -> None:
         """Register Tank-like systems in the correct order."""

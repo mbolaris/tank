@@ -1,15 +1,12 @@
-"""Petri-specific movement observation builder.
+"""Petri world observation builder registration.
 
-Petri world currently reuses tank logic, so this module just imports the
-tank observation builder to ensure registration and then re-exports it.
-
-The builder is registered automatically in the tank module for 'petri' world type.
+Allows Petri mode to register contracts without importing Tank wiring directly.
 """
+from core.worlds.tank.movement_observations import TankMovementObservationBuilder
+from core.policies.observation_registry import register_observation_builder
 
-from __future__ import annotations
-
-# Import tank module to trigger registration for both 'tank' and 'petri'
-import core.worlds.tank.movement_observations as tank_obs  # noqa: F401
-
-# Petri uses the same builder as tank (registered in tank module)
-__all__ = ["tank_obs"]
+def register_petri_movement_observation_builder(world_type: str = "petri") -> None:
+    """Register the Petri movement observation builder."""
+    # Petri reuses Tank observations for now
+    builder = TankMovementObservationBuilder()
+    register_observation_builder(world_type, "movement", builder)

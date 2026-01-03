@@ -117,13 +117,11 @@ def _nearest_vector(
 
 
 # =============================================================================
-# Auto-registration
+# Registration
 # =============================================================================
 
-# Register the tank movement observation builder.
-# This happens when the module is imported (e.g., from tank pack bootstrap).
-_tank_movement_builder = TankMovementObservationBuilder()
-register_observation_builder("tank", "movement", _tank_movement_builder)
+def register_tank_movement_observation_builder(world_type: str = "tank") -> None:
+    """Register the tank movement observation builder."""
+    builder = TankMovementObservationBuilder()
+    register_observation_builder(world_type, "movement", builder)
 
-# Also register for petri since it reuses tank logic
-register_observation_builder("petri", "movement", _tank_movement_builder)

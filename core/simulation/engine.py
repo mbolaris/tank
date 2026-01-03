@@ -283,6 +283,8 @@ class SimulationEngine:
 
         # 3. Let the pack register systems
         pack.register_systems(self)
+        if hasattr(pack, "register_contracts"):
+            pack.register_contracts(self)
         self._validate_system_phase_declarations()
 
         # 4. Wire up the pipeline (pack can override or use default)

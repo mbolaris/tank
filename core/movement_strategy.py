@@ -23,6 +23,8 @@ if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
     from core.entities import Fish
 
+from core.actions.action_registry import translate_action
+
 logger = logging.getLogger(__name__)
 
 # Movement smoothing constants (lower = smoother, higher = more responsive)
@@ -138,7 +140,28 @@ class AlgorithmicMovement(MovementStrategy):
             # Execute composable behavior - it handles all sub-behaviors internally
             desired_velocity = composable_behavior.execute(sprite_entity)
 
-        desired_vx, desired_vy = desired_velocity
+        # =========================================================================
+        # CONTRACT ENFORCEMENT
+        # =========================================================================
+        # Convert raw decision (velocity) to canonical Action via Registry
+        # This ensures all behaviors go through the standard translation layer.
+        
+        world_type = getattr(sprite_entity.environment, "world_type", "tank")
+        
+        # Translate to standardized Action
+        # Note: desired_velocity is a tuple (vx, vy), which calls DefaultActionTranslator
+        # to handle it correctly if no specific translator, or TankActionTranslator checks types.
+        try:
+            action = translate_action(
+                world_type, 
+                str(getattr(sprite_entity, "fish_id", "unknown")), 
+                desired_velocity
+            )
+            # Use the translated velocity from the Action object
+            desired_vx, desired_vy = action.target_velocity
+        except Exception:
+            # Fallback if translation fails (should not happen with defaults)
+            desired_vx, desired_vy = desired_velocity
 
         # Apply algorithm decision - scale by speed to get actual velocity
         speed = sprite_entity.speed

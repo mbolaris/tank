@@ -52,6 +52,10 @@ class SystemPack(Protocol):
         """Register all required systems in the engine's system registry."""
         ...
 
+    def register_contracts(self, engine: SimulationEngine) -> None:
+        """Register action/observation translators for this world mode."""
+        ...
+
     def seed_entities(self, engine: SimulationEngine) -> None:
         """Create and add initial entities to the simulation."""
         ...

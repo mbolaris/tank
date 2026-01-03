@@ -115,9 +115,8 @@ class TankActionTranslator:
 # Registration
 # =============================================================================
 
-# Create and register the default Tank translator
-_tank_translator = TankActionTranslator()
-register_action_translator("tank", _tank_translator)
+def register_tank_action_translator(world_type: str = "tank") -> None:
+    """Register the Tank action translator for the specified world type."""
+    translator = TankActionTranslator()
+    register_action_translator(world_type, translator)
 
-# Petri uses the same action space as Tank (same engine)
-register_action_translator("petri", _tank_translator)
