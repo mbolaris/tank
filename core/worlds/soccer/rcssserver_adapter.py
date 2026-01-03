@@ -16,7 +16,7 @@ References:
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Protocol
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
 
 from core.policies.soccer_interfaces import (
     BallState,
@@ -46,11 +46,11 @@ logger = logging.getLogger(__name__)
 class SocketInterface(Protocol):
     """Protocol for socket communication (allows fake sockets for testing)."""
 
-    def send(self, data: str, addr: tuple[str, int]) -> None:
+    def send(self, data: str, addr: Tuple[str, int]) -> None:
         """Send data to address."""
         ...
 
-    def recv(self, bufsize: int) -> tuple[str, tuple[str, int]]:
+    def recv(self, bufsize: int) -> Tuple[str, Tuple[str, int]]:
         """Receive data from socket."""
         ...
 
