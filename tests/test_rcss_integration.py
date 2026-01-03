@@ -6,12 +6,14 @@ RCSSWorld -> RCSSServerAdapter -> FakeRCSSServer -> RCSSServerAdapter -> RCSSWor
 
 import math
 from typing import Dict, Any
+import pytest
 
 from core.worlds.soccer.rcss_world import RCSSWorld
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
-from tests.fakes.fake_rcssserver import FakeRCSSServer
+from .fakes.fake_rcssserver import FakeRCSSServer
 
 
+@pytest.mark.integration
 class TestRCSSIntegration:
 
     def test_full_loop_boot_and_move(self):

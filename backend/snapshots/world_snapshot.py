@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend.state_payloads import EntitySnapshot
 
@@ -21,9 +21,9 @@ class WorldSnapshot:
     world_id: str
     world_type: str
     frame: int
-    entities: List[EntitySnapshot]
+    entities: list[EntitySnapshot]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "world_id": self.world_id,
             "world_type": self.world_type,
@@ -37,21 +37,21 @@ class WorldUpdatePayload:
     """Top-level WebSocket payload carrying a world snapshot."""
 
     snapshot: WorldSnapshot
-    mode_id: Optional[str] = None
-    view_mode: Optional[str] = None
+    mode_id: str | None = None
+    view_mode: str | None = None
     type: str = "update"
-    world_id: Optional[str] = None
-    world_type: Optional[str] = None
+    world_id: str | None = None
+    world_type: str | None = None
 
     @property
     def frame(self) -> int:
         return self.snapshot.frame
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         world_id = self.world_id or self.snapshot.world_id
         world_type = self.world_type or self.snapshot.world_type
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "type": self.type,
             "snapshot": self.snapshot.to_dict(),
         }

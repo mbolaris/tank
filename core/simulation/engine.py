@@ -867,10 +867,22 @@ class SimulationEngine:
         if deltas:
             from core.worlds.contracts import EnergyDeltaRecord
 
+            # Build entity lookup map for ID translation
+            # Currently only Fish emit energy events, but this is extensible
+            entity_map = {e.fish_id: e for e in self.get_fish_list()}
+
             for delta in deltas:
+                # Translate raw entity_id to stable ID using identity provider
+                entity = entity_map.get(delta.entity_id)
+                if entity is not None and self._identity_provider is not None:
+                    _, stable_id = self._identity_provider.get_identity(entity)
+                else:
+                    # Fallback: use raw entity_id as string
+                    stable_id = str(delta.entity_id)
+
                 self._frame_energy_deltas.append(
                     EnergyDeltaRecord(
-                        entity_id=str(delta.entity_id),
+                        entity_id=stable_id,
                         delta=delta.delta,
                         source=delta.reason,
                         metadata=delta.metadata or {},

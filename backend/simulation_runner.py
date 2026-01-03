@@ -32,13 +32,11 @@ from backend.state_payloads import (
 )
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.config.display import (
     FRAME_RATE,
 )
 from core.entities import Fish
 from core.entities.plant import Plant
-from core.human_poker_game import HumanPokerGame
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,7 @@ This is the reference implementation of the SnapshotBuilder protocol.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Iterable
 
 from backend.state_payloads import EntitySnapshot
 from core import entities
@@ -33,19 +33,19 @@ class TankSnapshotBuilder:
     def __init__(self) -> None:
         # Stable ID generation for entities without internal IDs (Food, PlantNectar, etc.)
         # Maps Python id() -> stable_id to avoid ID reuse when memory is recycled
-        self._entity_stable_ids: Dict[int, int] = {}
+        self._entity_stable_ids: dict[int, int] = {}
         self._next_food_id: int = 0
         self._next_nectar_id: int = 0
         self._next_other_id: int = 0
 
-    def collect(self, live_entities: Iterable[entities.Agent]) -> List[EntitySnapshot]:
+    def collect(self, live_entities: Iterable[entities.Agent]) -> list[EntitySnapshot]:
         """Collect and sort snapshots for all *live_entities*.
 
         Also prunes stable-ID mappings for entities no longer present.
         """
 
-        snapshots: List[EntitySnapshot] = []
-        current_entity_ids: Set[int] = set()
+        snapshots: list[EntitySnapshot] = []
+        current_entity_ids: set[int] = set()
 
         for entity in live_entities:
             current_entity_ids.add(id(entity))
@@ -70,7 +70,7 @@ class TankSnapshotBuilder:
         self,
         step_result: Any,  # StepResult from core.worlds.interfaces
         world: Any,
-    ) -> List[EntitySnapshot]:
+    ) -> list[EntitySnapshot]:
         """Build snapshots from StepResult.
 
         For Tank, we use the world's get_entities_for_snapshot() protocol
@@ -87,12 +87,12 @@ class TankSnapshotBuilder:
         entities = world.get_entities_for_snapshot()
         return self.collect(entities)
 
-    def _prune_stale_ids(self, current_entity_ids: Set[int]) -> None:
+    def _prune_stale_ids(self, current_entity_ids: set[int]) -> None:
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
         for stale_id in stale_ids:
             del self._entity_stable_ids[stale_id]
 
-    def to_snapshot(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
+    def to_snapshot(self, entity: entities.Agent) -> EntitySnapshot | None:
         """Convert a single entity to an `EntitySnapshot`."""
 
         try:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
@@ -15,9 +13,9 @@ def get_tank_manager_or_error(
     tank_registry: TankRegistry,
     tank_id: str,
     *,
-    request: Optional[Request] = None,
-    world_manager: Optional[WorldManager] = None,
-) -> Tuple[Optional[object], Optional[JSONResponse]]:
+    request: Request | None = None,
+    world_manager: WorldManager | None = None,
+) -> tuple[object | None, JSONResponse | None]:
     """Resolve a tank manager or return an error response.
 
     If the ID belongs to a non-tank world, return a 400 with a clean error.

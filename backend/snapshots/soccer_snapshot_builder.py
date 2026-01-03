@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable
 
 from backend.state_payloads import EntitySnapshot
 
@@ -14,12 +14,12 @@ class SoccerSnapshotBuilder:
         self._entity_ids: dict[str, int] = {}
         self._next_id = 1
 
-    def collect(self, live_entities: Iterable[Any]) -> List[EntitySnapshot]:
+    def collect(self, live_entities: Iterable[Any]) -> list[EntitySnapshot]:
         # Soccer snapshot data comes from build(), not live entity lists.
         _ = live_entities
         return []
 
-    def to_snapshot(self, entity: Any) -> Optional[EntitySnapshot]:
+    def to_snapshot(self, entity: Any) -> EntitySnapshot | None:
         if not isinstance(entity, dict):
             return None
 
@@ -45,9 +45,9 @@ class SoccerSnapshotBuilder:
             },
         )
 
-    def build(self, step_result: Any, world: Any) -> List[EntitySnapshot]:
+    def build(self, step_result: Any, world: Any) -> list[EntitySnapshot]:
         _ = world
-        snapshots: List[EntitySnapshot] = []
+        snapshots: list[EntitySnapshot] = []
         snapshot_data = getattr(step_result, "snapshot", {}) or {}
 
         ball_data = snapshot_data.get("ball")

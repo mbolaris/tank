@@ -130,3 +130,54 @@ def test_delta_ids_stable_across_frames():
         f"Entity ID changed between spawn ({spawn_id}) and removal ({removal_id}). "
         "IDs must be stable across frames."
     )
+
+
+def test_energy_delta_ids_use_stable_format():
+    """Verify energy delta IDs use identity provider format, matching spawn IDs."""
+    from core.sim.events import AteFood
+
+    engine = SimulationEngine(headless=True, seed=42)
+    engine.setup()
+
+    # Get initial fish
+    fish_list = engine.get_fish_list()
+    assert len(fish_list) > 0, "Need at least one fish for this test"
+    fish = fish_list[0]
+
+    # Get the fish's spawn ID (stable format)
+    assert engine._identity_provider is not None
+    _, stable_fish_id = engine._identity_provider.get_identity(fish)
+
+    # Emit an energy event for this fish
+    energy_event = AteFood(
+        frame=engine.frame_count,
+        entity_id=fish.fish_id,  # Raw fish_id
+        food_id=9999,
+        food_type="test",
+        energy_gained=10.0,
+    )
+    engine._queue_sim_event(energy_event)
+
+    # Run update to process the event
+    engine.update()
+
+    # Find the energy delta for our fish
+    energy_delta = next(
+        (d for d in engine._frame_energy_deltas if d.source == "ate_food"),
+        None
+    )
+
+    assert energy_delta is not None, "Energy delta not found in _frame_energy_deltas"
+
+    # Verify the energy delta ID matches the stable format
+    assert energy_delta.entity_id == stable_fish_id, (
+        f"Energy delta ID ({energy_delta.entity_id}) should match stable fish ID "
+        f"({stable_fish_id}), not raw fish_id ({fish.fish_id})"
+    )
+
+    # Verify it's using the offset scheme (not raw fish_id)
+    energy_id_int = int(energy_delta.entity_id)
+    assert energy_id_int >= FISH_ID_OFFSET, (
+        f"Energy delta ID should be >= FISH_ID_OFFSET ({FISH_ID_OFFSET}), "
+        f"indicating stable offset scheme. Got: {energy_id_int}"
+    )

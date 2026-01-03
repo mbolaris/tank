@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable
 
 from core.worlds.registry import WorldRegistry
 
@@ -39,7 +39,7 @@ class WorldMetadata:
 
 SnapshotBuilderFactory = Callable[[], "SnapshotBuilder"]
 
-_SNAPSHOT_BUILDERS: Dict[str, SnapshotBuilderFactory] = {}
+_SNAPSHOT_BUILDERS: dict[str, SnapshotBuilderFactory] = {}
 
 
 def register_snapshot_builder(
@@ -66,11 +66,11 @@ def register_snapshot_builder(
 def create_world(
     mode_id: str,
     *,
-    seed: Optional[int] = None,
-    config: Optional[Dict[str, Any]] = None,
+    seed: int | None = None,
+    config: dict[str, Any] | None = None,
     headless: bool = True,
     **kwargs: Any,
-) -> Tuple[MultiAgentWorldBackend, SnapshotBuilder]:
+) -> tuple[MultiAgentWorldBackend, SnapshotBuilder]:
     """Create a world instance and its snapshot builder.
 
     Args:
@@ -85,7 +85,7 @@ def create_world(
         available = list(WorldRegistry.list_mode_packs().keys())
         raise ValueError(f"Unknown mode '{mode_id}'. Available modes: {available}")
 
-    combined: Dict[str, Any] = {}
+    combined: dict[str, Any] = {}
     if config:
         combined.update(config)
     combined.update(kwargs)
@@ -104,7 +104,7 @@ def create_world(
     return world, snapshot_builder
 
 
-def get_world_metadata(mode_id: str) -> Optional[WorldMetadata]:
+def get_world_metadata(mode_id: str) -> WorldMetadata | None:
     """Get metadata for a registered mode pack.
 
     Capability flags are read directly from the mode pack definition,

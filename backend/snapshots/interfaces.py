@@ -7,7 +7,7 @@ serialization across different world types (Tank, Petri, Soccer, etc.).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Iterable, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from backend.state_payloads import EntitySnapshot
@@ -36,7 +36,7 @@ class SnapshotBuilder(Protocol):
                 ...
     """
 
-    def collect(self, live_entities: Iterable[Any]) -> List[EntitySnapshot]:
+    def collect(self, live_entities: Iterable[Any]) -> list[EntitySnapshot]:
         """Collect and sort snapshots for all live entities.
 
         Args:
@@ -47,7 +47,7 @@ class SnapshotBuilder(Protocol):
         """
         ...
 
-    def to_snapshot(self, entity: Any) -> Optional[EntitySnapshot]:
+    def to_snapshot(self, entity: Any) -> EntitySnapshot | None:
         """Convert a single entity to an EntitySnapshot.
 
         Args:
@@ -63,7 +63,7 @@ class SnapshotBuilder(Protocol):
         self,
         step_result: StepResult,
         world: Any,
-    ) -> List[EntitySnapshot]:
+    ) -> list[EntitySnapshot]:
         """Build entity snapshots from a StepResult.
 
         This is the preferred method for StepResult-driven worlds. It allows

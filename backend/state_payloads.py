@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:  # Prefer faster serializer when available
     import orjson
@@ -12,12 +12,12 @@ except ImportError:
     orjson = None
 
 
-def _compact_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+def _compact_dict(data: dict[str, Any]) -> dict[str, Any]:
     """Return a copy of *data* with None values removed."""
     return {k: v for k, v in data.items() if v is not None}
 
 
-def _to_dict(dataclass_obj: Any) -> Dict[str, Any]:
+def _to_dict(dataclass_obj: Any) -> dict[str, Any]:
     """Dictionary representation for dataclasses (slots or regular)."""
     slots = getattr(dataclass_obj, "__slots__", None)
     if slots:
@@ -40,42 +40,42 @@ class EntitySnapshot:
     height: float
     vel_x: float = 0.0
     vel_y: float = 0.0
-    energy: Optional[float] = None
-    generation: Optional[int] = None
-    age: Optional[int] = None
-    species: Optional[str] = None
-    genome_data: Optional[Dict[str, Any]] = None
-    food_type: Optional[str] = None
-    plant_type: Optional[int] = None
+    energy: float | None = None
+    generation: int | None = None
+    age: int | None = None
+    species: str | None = None
+    genome_data: dict[str, Any] | None = None
+    food_type: str | None = None
+    plant_type: int | None = None
     # Fractal plant fields
-    genome: Optional[Dict[str, Any]] = None
-    max_energy: Optional[float] = None
-    size_multiplier: Optional[float] = None
-    iterations: Optional[int] = None
-    nectar_ready: Optional[bool] = None
+    genome: dict[str, Any] | None = None
+    max_energy: float | None = None
+    size_multiplier: float | None = None
+    iterations: int | None = None
+    nectar_ready: bool | None = None
     # Plant nectar fields
-    source_plant_id: Optional[int] = None
-    source_plant_x: Optional[float] = None
-    source_plant_y: Optional[float] = None
+    source_plant_id: int | None = None
+    source_plant_x: float | None = None
+    source_plant_y: float | None = None
     # Floral genome for nectar rendering
-    floral_type: Optional[str] = None
-    floral_petals: Optional[int] = None
-    floral_layers: Optional[int] = None
-    floral_spin: Optional[float] = None
-    floral_hue: Optional[float] = None
-    floral_saturation: Optional[float] = None
+    floral_type: str | None = None
+    floral_petals: int | None = None
+    floral_layers: int | None = None
+    floral_spin: float | None = None
+    floral_hue: float | None = None
+    floral_saturation: float | None = None
     # Poker effects
-    poker_effect_state: Optional[Dict[str, Any]] = None
+    poker_effect_state: dict[str, Any] | None = None
     # Birth effects
-    birth_effect_timer: Optional[int] = None
+    birth_effect_timer: int | None = None
     # Death effects
-    death_effect_state: Optional[Dict[str, Any]] = None
+    death_effect_state: dict[str, Any] | None = None
     # Crab hunt state
-    can_hunt: Optional[bool] = None
+    can_hunt: bool | None = None
     # Rendering metadata hints
-    render_hint: Optional[Dict[str, Any]] = None
+    render_hint: dict[str, Any] | None = None
 
-    def to_full_dict(self) -> Dict[str, Any]:
+    def to_full_dict(self) -> dict[str, Any]:
         """Return the full payload used on sync frames."""
 
         data = {
@@ -144,7 +144,7 @@ class EntitySnapshot:
 
         return data
 
-    def to_delta_dict(self) -> Dict[str, Any]:
+    def to_delta_dict(self) -> dict[str, Any]:
         """Return only fast-changing fields for delta frames."""
 
         return {
@@ -199,7 +199,7 @@ class PokerStatsPayload:
     showdown_win_rate: str = "0.0%"
     avg_fold_rate: str = "0.0%"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -213,7 +213,7 @@ class StatsPayload:
     deaths: int
     capacity: str
     time: str
-    death_causes: Dict[str, int]
+    death_causes: dict[str, int]
     fish_count: int
     food_count: int
     plant_count: int
@@ -223,28 +223,28 @@ class StatsPayload:
     live_food_energy: float  # Total energy of all live food
     fish_energy: float  # Total energy of all fish
     plant_energy: float  # Total energy of all plants
-    energy_sources: Dict[str, float] = field(default_factory=dict)
-    energy_sources_recent: Dict[str, float] = field(default_factory=dict)
+    energy_sources: dict[str, float] = field(default_factory=dict)
+    energy_sources_recent: dict[str, float] = field(default_factory=dict)
     energy_from_nectar: float = 0.0
     energy_from_live_food: float = 0.0
     energy_from_falling_food: float = 0.0
     energy_from_poker: float = 0.0
     energy_from_poker_plant: float = 0.0
     energy_from_auto_eval: float = 0.0
-    energy_burn_recent: Dict[str, float] = field(default_factory=dict)
+    energy_burn_recent: dict[str, float] = field(default_factory=dict)
     energy_burn_total: float = 0.0
     # Fish energy accounting reconciliation (recent window)
     energy_gains_recent_total: float = 0.0
     energy_net_recent: float = 0.0
     energy_accounting_discrepancy: float = 0.0
     # Plant energy economy (separate pool from fish)
-    plant_energy_sources: Dict[str, float] = field(default_factory=dict)
-    plant_energy_sources_recent: Dict[str, float] = field(default_factory=dict)
+    plant_energy_sources: dict[str, float] = field(default_factory=dict)
+    plant_energy_sources_recent: dict[str, float] = field(default_factory=dict)
     plant_energy_from_photosynthesis: float = 0.0
-    plant_energy_burn_recent: Dict[str, float] = field(default_factory=dict)
+    plant_energy_burn_recent: dict[str, float] = field(default_factory=dict)
     plant_energy_burn_total: float = 0.0
     # Energy delta (true change in fish population energy over window)
-    energy_delta: Dict[str, Any] = field(default_factory=dict)
+    energy_delta: dict[str, Any] = field(default_factory=dict)
     # Fish energy distribution
     avg_fish_energy: float = 0.0
     min_fish_energy: float = 0.0
@@ -266,22 +266,22 @@ class StatsPayload:
     allowed_adult_size_min: float = 0.0
     allowed_adult_size_max: float = 0.0
     # Histogram bins and edges for adult size distribution
-    adult_size_bins: List[int] = field(default_factory=list)
-    adult_size_bin_edges: List[float] = field(default_factory=list)
+    adult_size_bins: list[int] = field(default_factory=list)
+    adult_size_bin_edges: list[float] = field(default_factory=list)
     # Eye size statistics
     eye_size_min: float = 0.0
     eye_size_max: float = 0.0
     eye_size_median: float = 0.0
-    eye_size_bins: List[int] = field(default_factory=list)
-    eye_size_bin_edges: List[float] = field(default_factory=list)
+    eye_size_bins: list[int] = field(default_factory=list)
+    eye_size_bin_edges: list[float] = field(default_factory=list)
     allowed_eye_size_min: float = 0.0
     allowed_eye_size_max: float = 0.0
     # Fin size statistics
     fin_size_min: float = 0.0
     fin_size_max: float = 0.0
     fin_size_median: float = 0.0
-    fin_size_bins: List[int] = field(default_factory=list)
-    fin_size_bin_edges: List[float] = field(default_factory=list)
+    fin_size_bins: list[int] = field(default_factory=list)
+    fin_size_bin_edges: list[float] = field(default_factory=list)
     allowed_fin_size_min: float = 0.0
     allowed_fin_size_max: float = 0.0
     # Tail size statistics
@@ -290,50 +290,50 @@ class StatsPayload:
     tail_size_median: float = 0.0
     allowed_tail_size_min: float = 0.0
     allowed_tail_size_max: float = 0.0
-    tail_size_bins: List[int] = field(default_factory=list)
-    tail_size_bin_edges: List[float] = field(default_factory=list)
+    tail_size_bins: list[int] = field(default_factory=list)
+    tail_size_bin_edges: list[float] = field(default_factory=list)
     # Body aspect statistics
     body_aspect_min: float = 0.0
     body_aspect_max: float = 0.0
     body_aspect_median: float = 0.0
     allowed_body_aspect_min: float = 0.0
     allowed_body_aspect_max: float = 0.0
-    body_aspect_bins: List[int] = field(default_factory=list)
-    body_aspect_bin_edges: List[float] = field(default_factory=list)
+    body_aspect_bins: list[int] = field(default_factory=list)
+    body_aspect_bin_edges: list[float] = field(default_factory=list)
     # Template ID statistics
     template_id_min: float = 0.0
     template_id_max: float = 0.0
     template_id_median: float = 0.0
     allowed_template_id_min: float = 0.0
     allowed_template_id_max: float = 0.0
-    template_id_bins: List[int] = field(default_factory=list)
-    template_id_bin_edges: List[float] = field(default_factory=list)
+    template_id_bins: list[int] = field(default_factory=list)
+    template_id_bin_edges: list[float] = field(default_factory=list)
     # Pattern type statistics
     pattern_type_min: float = 0.0
     pattern_type_max: float = 0.0
     pattern_type_median: float = 0.0
     allowed_pattern_type_min: float = 0.0
     allowed_pattern_type_max: float = 0.0
-    pattern_type_bins: List[int] = field(default_factory=list)
-    pattern_type_bin_edges: List[float] = field(default_factory=list)
+    pattern_type_bins: list[int] = field(default_factory=list)
+    pattern_type_bin_edges: list[float] = field(default_factory=list)
     # Pattern intensity statistics
     pattern_intensity_min: float = 0.0
     pattern_intensity_max: float = 0.0
     pattern_intensity_median: float = 0.0
     allowed_pattern_intensity_min: float = 0.0
     allowed_pattern_intensity_max: float = 0.0
-    pattern_intensity_bins: List[int] = field(default_factory=list)
-    pattern_intensity_bin_edges: List[float] = field(default_factory=list)
+    pattern_intensity_bins: list[int] = field(default_factory=list)
+    pattern_intensity_bin_edges: list[float] = field(default_factory=list)
     # Lifespan modifier statistics
     lifespan_modifier_min: float = 0.0
     lifespan_modifier_max: float = 0.0
     lifespan_modifier_median: float = 0.0
     allowed_lifespan_modifier_min: float = 0.0
     allowed_lifespan_modifier_max: float = 0.0
-    lifespan_modifier_bins: List[int] = field(default_factory=list)
-    lifespan_modifier_bin_edges: List[float] = field(default_factory=list)
+    lifespan_modifier_bins: list[int] = field(default_factory=list)
+    lifespan_modifier_bin_edges: list[float] = field(default_factory=list)
     # Dynamic gene distributions (physical + behavioral), for dashboards
-    gene_distributions: Dict[str, Any] = field(default_factory=dict)
+    gene_distributions: dict[str, Any] = field(default_factory=dict)
     poker_stats: PokerStatsPayload = field(
         default_factory=lambda: PokerStatsPayload(
             total_games=0,
@@ -350,17 +350,17 @@ class StatsPayload:
             best_hand_name="",
         )
     )
-    poker_score: Optional[float] = None
-    poker_score_history: List[float] = field(default_factory=list)
-    poker_elo: Optional[float] = None
-    poker_elo_history: List[float] = field(default_factory=list)
-    meta_stats: Dict[str, float] = field(default_factory=dict)
+    poker_score: float | None = None
+    poker_score_history: list[float] = field(default_factory=list)
+    poker_elo: float | None = None
+    poker_elo_history: list[float] = field(default_factory=list)
+    meta_stats: dict[str, float] = field(default_factory=dict)
     total_sexual_births: int = 0
     total_asexual_births: int = 0
     fps: float = 0.0
     fast_forward: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = {
             "frame": self.frame,
             "population": self.population,
@@ -513,9 +513,9 @@ class PokerEventPayload:
     energy_transferred: float
     message: str
     is_plant: bool = False
-    plant_id: Optional[int] = None
+    plant_id: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -544,7 +544,7 @@ class PokerLeaderboardEntryPayload:
     recent_win_rate: float = 0.0
     skill_trend: str = "stable"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -552,13 +552,13 @@ class PokerLeaderboardEntryPayload:
 class AutoEvaluateStatsPayload:
     hands_played: int
     hands_remaining: int
-    players: List[Dict[str, Any]]
+    players: list[dict[str, Any]]
     game_over: bool
-    winner: Optional[str]
+    winner: str | None
     reason: str
-    performance_history: List[Dict[str, Any]] = field(default_factory=list)
+    performance_history: list[dict[str, Any]] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
 
 
@@ -568,18 +568,18 @@ class FullStatePayload:
 
     frame: int
     elapsed_time: int
-    entities: List[EntitySnapshot]
+    entities: list[EntitySnapshot]
     stats: StatsPayload
-    poker_events: List[PokerEventPayload]
-    poker_leaderboard: List[PokerLeaderboardEntryPayload]
-    auto_evaluation: Optional[AutoEvaluateStatsPayload] = None
+    poker_events: list[PokerEventPayload]
+    poker_leaderboard: list[PokerLeaderboardEntryPayload]
+    auto_evaluation: AutoEvaluateStatsPayload | None = None
     type: str = "update"
-    tank_id: Optional[str] = None  # Tank World Net identifier
-    mode_id: Optional[str] = "tank"
-    world_type: Optional[str] = "tank"
-    view_mode: Optional[str] = "side"
+    tank_id: str | None = None  # Tank World Net identifier
+    mode_id: str | None = "tank"
+    world_type: str | None = "tank"
+    view_mode: str | None = "side"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing all simulation state
         snapshot = {
             "frame": self.frame,
@@ -593,7 +593,7 @@ class FullStatePayload:
             snapshot["auto_evaluation"] = self.auto_evaluation.to_dict()
 
         # Top-level payload with metadata and nested snapshot
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "type": self.type,
             "snapshot": snapshot,
         }
@@ -620,20 +620,20 @@ class DeltaStatePayload:
 
     frame: int
     elapsed_time: int
-    updates: List[Dict[str, Any]]
-    added: List[Dict[str, Any]]
-    removed: List[int]
-    poker_events: Optional[List[PokerEventPayload]] = None
-    stats: Optional[StatsPayload] = None
+    updates: list[dict[str, Any]]
+    added: list[dict[str, Any]]
+    removed: list[int]
+    poker_events: list[PokerEventPayload] | None = None
+    stats: StatsPayload | None = None
     type: str = "delta"
-    tank_id: Optional[str] = None  # Tank World Net identifier
-    mode_id: Optional[str] = "tank"
-    world_type: Optional[str] = "tank"
-    view_mode: Optional[str] = "side"
+    tank_id: str | None = None  # Tank World Net identifier
+    mode_id: str | None = "tank"
+    world_type: str | None = "tank"
+    view_mode: str | None = "side"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing delta simulation state
-        snapshot: Dict[str, Any] = {
+        snapshot: dict[str, Any] = {
             "frame": self.frame,
             "elapsed_time": self.elapsed_time,
             "updates": self.updates,
@@ -646,7 +646,7 @@ class DeltaStatePayload:
             snapshot["stats"] = self.stats.to_dict()
 
         # Top-level payload with metadata and nested snapshot
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "type": self.type,
             "snapshot": snapshot,
         }

@@ -26,7 +26,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from backend.snapshots.interfaces import SnapshotBuilder
@@ -60,7 +60,7 @@ class WorldRunner:
         world: MultiAgentWorldBackend,
         snapshot_builder: SnapshotBuilder,
         world_type: str = "tank",
-        mode_id: Optional[str] = None,
+        mode_id: str | None = None,
         view_mode: str = "side",
     ) -> None:
         """Initialize the world runner.
@@ -76,7 +76,7 @@ class WorldRunner:
         self.world_type = world_type
         self.mode_id = mode_id or world_type
         self.view_mode = view_mode
-        self._last_step_result: Optional[StepResult] = None
+        self._last_step_result: StepResult | None = None
 
     @property
     def frame_count(self) -> int:
@@ -102,7 +102,7 @@ class WorldRunner:
         self.world.set_paused(value)
 
     @property
-    def entities_list(self) -> List[Any]:
+    def entities_list(self) -> list[Any]:
         """Get all entities from the world.
 
         Uses the protocol's get_entities_for_snapshot method.
@@ -112,8 +112,8 @@ class WorldRunner:
 
     def reset(
         self,
-        seed: Optional[int] = None,
-        config: Optional[Dict[str, Any]] = None,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
     ) -> StepResult:
         """Reset the world to initial state.
 
@@ -127,7 +127,7 @@ class WorldRunner:
         self._last_step_result = self.world.reset(seed, config)
         return self._last_step_result
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
         """Advance the world by one frame/step.
 
         Args:
@@ -144,13 +144,13 @@ class WorldRunner:
         """
         self.reset()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current world statistics."""
         if self._last_step_result is not None:
             return self._last_step_result.metrics
         return self.world.get_current_metrics()
 
-    def get_entities_snapshot(self) -> List[EntitySnapshot]:
+    def get_entities_snapshot(self) -> list[EntitySnapshot]:
         """Build entity snapshots for frontend rendering.
 
         Uses the snapshot builder's build() method with the last StepResult.
@@ -164,7 +164,7 @@ class WorldRunner:
         # Fallback for compatibility (before first reset/step)
         return self.snapshot_builder.collect(self.entities_list)
 
-    def get_world_info(self) -> Dict[str, str]:
+    def get_world_info(self) -> dict[str, str]:
         """Get world metadata for frontend.
 
         Returns:
@@ -178,7 +178,7 @@ class WorldRunner:
         }
 
     @property
-    def last_step_result(self) -> Optional[StepResult]:
+    def last_step_result(self) -> StepResult | None:
         """Get the last StepResult from reset() or step().
 
         Returns:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, Set, Union, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState
@@ -30,7 +30,7 @@ class WorldBroadcastAdapter(Protocol):
     view_mode: str
 
     @property
-    def connected_clients(self) -> Set[WebSocket]: ...
+    def connected_clients(self) -> set[WebSocket]: ...
 
     def add_client(self, websocket: WebSocket) -> None: ...
 
@@ -41,8 +41,8 @@ class WorldBroadcastAdapter(Protocol):
     def serialize_state(self, state: Any) -> bytes: ...
 
     async def handle_command_async(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]: ...
+        self, command: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None: ...
 
 
 class WorldSnapshotAdapter:
@@ -51,7 +51,7 @@ class WorldSnapshotAdapter:
     def __init__(
         self,
         world_id: str,
-        runner: Union[WorldRunner, TankWorldAdapter],
+        runner: WorldRunner | TankWorldAdapter,
         *,
         world_type: str,
         mode_id: str,
@@ -66,11 +66,11 @@ class WorldSnapshotAdapter:
         self._runner = runner
         self._step_on_access = step_on_access
         self._use_runner_state = use_runner_state
-        self._clients: Set[WebSocket] = set()
+        self._clients: set[WebSocket] = set()
         self._state_lock = threading.Lock()
 
     @property
-    def connected_clients(self) -> Set[WebSocket]:
+    def connected_clients(self) -> set[WebSocket]:
         self._prune_closed_clients()
         return self._clients
 
@@ -149,15 +149,15 @@ class WorldSnapshotAdapter:
         return state.to_json().encode("utf-8")
 
     async def handle_command_async(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, command: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         if hasattr(self._runner, "handle_command_async"):
             return await self._runner.handle_command_async(command, data)
 
         response = self.handle_command(command, data or {})
         return response
 
-    def handle_command(self, command: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def handle_command(self, command: str, data: dict[str, Any]) -> dict[str, Any] | None:
         if command == "pause":
             if hasattr(self._runner, "paused"):
                 self._runner.paused = True

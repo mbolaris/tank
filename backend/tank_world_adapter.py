@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any
 
 from fastapi import WebSocket
 
@@ -109,7 +109,7 @@ class TankWorldAdapter:
         """Whether the simulation thread is running."""
         return self._manager.running
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
         """Step the simulation by one frame.
 
         For tank worlds, this is typically not called directly since the
@@ -127,8 +127,8 @@ class TankWorldAdapter:
 
     def reset(
         self,
-        seed: Optional[int] = None,
-        config: Optional[Dict[str, Any]] = None,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
     ) -> None:
         """Reset the simulation.
 
@@ -147,7 +147,7 @@ class TankWorldAdapter:
         """Initialize the world (no-op for tank, already initialized)."""
         pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current simulation statistics.
 
         Returns:
@@ -180,7 +180,7 @@ class TankWorldAdapter:
             "poker_elo_history": stats_payload.poker_elo_history,
         }
 
-    def get_entities_snapshot(self) -> List[EntitySnapshot]:
+    def get_entities_snapshot(self) -> list[EntitySnapshot]:
         """Get entity snapshots for rendering.
 
         Returns:
@@ -188,7 +188,7 @@ class TankWorldAdapter:
         """
         return self._manager.runner._collect_entities()
 
-    def get_world_info(self) -> Dict[str, str]:
+    def get_world_info(self) -> dict[str, str]:
         """Get world metadata for frontend.
 
         Returns:
@@ -221,7 +221,7 @@ class TankWorldAdapter:
     # =========================================================================
 
     @property
-    def connected_clients(self) -> Set[WebSocket]:
+    def connected_clients(self) -> set[WebSocket]:
         """Get the set of connected WebSocket clients."""
         return self._manager.connected_clients
 
@@ -252,7 +252,7 @@ class TankWorldAdapter:
 
     def get_state(
         self, force_full: bool = False, allow_delta: bool = True
-    ) -> Union[FullStatePayload, DeltaStatePayload]:
+    ) -> FullStatePayload | DeltaStatePayload:
         """Get current simulation state for WebSocket broadcast.
 
         Args:
@@ -266,7 +266,7 @@ class TankWorldAdapter:
 
     async def get_state_async(
         self, force_full: bool = False, allow_delta: bool = True
-    ) -> Union[FullStatePayload, DeltaStatePayload]:
+    ) -> FullStatePayload | DeltaStatePayload:
         """Async wrapper for get_state.
 
         Args:
@@ -278,7 +278,7 @@ class TankWorldAdapter:
         """
         return await self._manager.get_state_async(force_full=force_full, allow_delta=allow_delta)
 
-    def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
+    def serialize_state(self, state: FullStatePayload | DeltaStatePayload) -> bytes:
         """Serialize state payload to bytes.
 
         Args:
@@ -293,7 +293,7 @@ class TankWorldAdapter:
     # Command handling
     # =========================================================================
 
-    def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def handle_command(self, command: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """Handle a command from a client.
 
         Args:
@@ -306,8 +306,8 @@ class TankWorldAdapter:
         return self._manager.runner.handle_command(command, data)
 
     async def handle_command_async(
-        self, command: str, data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, command: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Async wrapper for handle_command.
 
         Args:
@@ -328,7 +328,7 @@ class TankWorldAdapter:
         """Whether this tank should be persisted."""
         return self._manager.tank_info.persistent
 
-    def capture_state_for_save(self) -> Optional[Dict[str, Any]]:
+    def capture_state_for_save(self) -> dict[str, Any] | None:
         """Capture a thread-safe snapshot for persistence.
 
         Returns:
@@ -340,7 +340,7 @@ class TankWorldAdapter:
     # Status information
     # =========================================================================
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get comprehensive tank status.
 
         Returns:
@@ -390,7 +390,7 @@ class TankWorldAdapter:
     # Evolution benchmark data
     # =========================================================================
 
-    def get_evolution_benchmark_data(self) -> Dict[str, Any]:
+    def get_evolution_benchmark_data(self) -> dict[str, Any]:
         """Get evolution benchmark tracking data.
 
         Returns:

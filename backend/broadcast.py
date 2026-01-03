@@ -174,7 +174,7 @@ async def broadcast_updates_for_world(
                 async def _send_with_timeout(client):
                     try:
                         await asyncio.wait_for(
-                            client.send_bytes(state_payload),
+                            client.send_bytes(state_payload),  # noqa: B023
                             timeout=send_timeout,
                         )
                         return None

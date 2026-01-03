@@ -8,7 +8,7 @@ Each world type can provide hooks that the runner will call at appropriate
 times to build state payloads, handle commands, and perform warmup/cleanup.
 """
 
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, List, Optional, Protocol
 
 from backend.state_payloads import (
     AutoEvaluateStatsPayload,
@@ -169,11 +169,10 @@ class TankWorldHooks:
 
     def warmup(self, runner: Any) -> None:
         """Initialize tank-specific features."""
+        import logging
         import os
         import threading
         from pathlib import Path
-
-        import logging
 
         logger = logging.getLogger(__name__)
 

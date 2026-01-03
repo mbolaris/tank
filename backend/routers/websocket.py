@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
@@ -133,7 +133,7 @@ async def _handle_websocket_for_adapter(
 async def _handle_websocket(
     websocket: WebSocket,
     tank_registry: TankRegistry,
-    tank_id: Optional[str] = None,
+    tank_id: str | None = None,
 ) -> None:
     """Handle WebSocket connection for tank worlds (legacy interface).
 
@@ -211,7 +211,7 @@ async def _handle_websocket_for_world(
 
 def setup_router(
     tank_registry: TankRegistry,
-    world_manager: Optional[WorldManager] = None,
+    world_manager: WorldManager | None = None,
 ) -> APIRouter:
     """Create the websocket router with registry dependencies.
 

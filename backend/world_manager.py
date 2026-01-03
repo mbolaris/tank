@@ -16,7 +16,7 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Union
 
 from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
 from backend.world_runner import WorldRunner
@@ -53,7 +53,7 @@ class WorldInstance:
     persistent: bool = True
     view_mode: str = "side"
     description: str = ""
-    broadcast_adapter: Optional[WorldBroadcastAdapter] = None
+    broadcast_adapter: WorldBroadcastAdapter | None = None
 
     def is_tank(self) -> bool:
         """Check if this is a tank world."""
@@ -75,7 +75,7 @@ class WorldStatus:
     created_at: str
     description: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "world_id": self.world_id,
@@ -109,7 +109,7 @@ class WorldManager:
 
     def __init__(
         self,
-        tank_registry: Optional[TankRegistry] = None,
+        tank_registry: TankRegistry | None = None,
     ) -> None:
         """Initialize the world manager.
 
@@ -117,12 +117,12 @@ class WorldManager:
             tank_registry: Optional existing TankRegistry for tank worlds
         """
         self._tank_registry = tank_registry
-        self._worlds: Dict[str, WorldInstance] = {}
-        self._start_broadcast_callback: Optional[BroadcastCallback] = None
-        self._stop_broadcast_callback: Optional[BroadcastCallback] = None
+        self._worlds: dict[str, WorldInstance] = {}
+        self._start_broadcast_callback: BroadcastCallback | None = None
+        self._stop_broadcast_callback: BroadcastCallback | None = None
 
     @property
-    def tank_registry(self) -> Optional[TankRegistry]:
+    def tank_registry(self) -> TankRegistry | None:
         """Get the tank registry for tank-specific operations."""
         return self._tank_registry
 
@@ -178,9 +178,9 @@ class WorldManager:
         world_type: str,
         name: str,
         *,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         persistent: bool = True,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         description: str = "",
     ) -> WorldInstance:
         """Create a new world instance.
@@ -234,8 +234,8 @@ class WorldManager:
     def _create_tank_world(
         self,
         name: str,
-        config: Optional[Dict[str, Any]],
-        seed: Optional[int],
+        config: dict[str, Any] | None,
+        seed: int | None,
         persistent: bool,
         description: str,
     ) -> WorldInstance:
@@ -294,8 +294,8 @@ class WorldManager:
         mode_id: str,
         view_mode: str,
         name: str,
-        config: Optional[Dict[str, Any]],
-        seed: Optional[int],
+        config: dict[str, Any] | None,
+        seed: int | None,
         persistent: bool,
         description: str,
     ) -> WorldInstance:
@@ -345,7 +345,7 @@ class WorldManager:
 
         return instance
 
-    def get_world(self, world_id: str) -> Optional[WorldInstance]:
+    def get_world(self, world_id: str) -> WorldInstance | None:
         """Get a world instance by ID.
 
         All worlds (tank, petri, soccer) are retrieved from the unified
@@ -385,7 +385,7 @@ class WorldManager:
 
         return None
 
-    def get_broadcast_adapter(self, world_id: str) -> Optional[WorldBroadcastAdapter]:
+    def get_broadcast_adapter(self, world_id: str) -> WorldBroadcastAdapter | None:
         """Get or create the broadcast adapter for a world."""
         instance = self.get_world(world_id)
         if instance is None:
@@ -411,7 +411,7 @@ class WorldManager:
         instance.broadcast_adapter = adapter
         return adapter
 
-    def get_tank_adapter(self, world_id: str) -> Optional[TankWorldAdapter]:
+    def get_tank_adapter(self, world_id: str) -> TankWorldAdapter | None:
         """Get the TankWorldAdapter for a tank world.
 
         This is a convenience method for code that needs tank-specific
@@ -431,7 +431,7 @@ class WorldManager:
                 return instance.runner
         return None
 
-    def list_worlds(self, world_type: Optional[str] = None) -> List[WorldStatus]:
+    def list_worlds(self, world_type: str | None = None) -> list[WorldStatus]:
         """List all active worlds.
 
         Args:
@@ -443,7 +443,7 @@ class WorldManager:
         # Sync tanks from registry first to ensure we have all worlds
         self._sync_tanks_from_registry()
 
-        statuses: List[WorldStatus] = []
+        statuses: list[WorldStatus] = []
 
         for world_id, instance in self._worlds.items():
             if world_type is not None and instance.world_type != world_type:
@@ -501,7 +501,7 @@ class WorldManager:
 
         return False
 
-    def step_world(self, world_id: str, actions: Optional[Dict[str, Any]] = None) -> bool:
+    def step_world(self, world_id: str, actions: dict[str, Any] | None = None) -> bool:
         """Step a world by one frame.
 
         Works for all world types through the unified runner interface.
@@ -527,7 +527,7 @@ class WorldManager:
         self._sync_tanks_from_registry()
         return len(self._worlds)
 
-    def get_all_worlds(self) -> Dict[str, WorldInstance]:
+    def get_all_worlds(self) -> dict[str, WorldInstance]:
         """Get all world instances.
 
         Returns:
@@ -540,7 +540,7 @@ class WorldManager:
     # Persistence support
     # =========================================================================
 
-    def capture_world_state(self, world_id: str) -> Optional[Dict[str, Any]]:
+    def capture_world_state(self, world_id: str) -> dict[str, Any] | None:
         """Capture world state for persistence.
 
         Delegates to the world's persistence method if available.
@@ -572,7 +572,7 @@ class WorldManager:
     # Tank-specific operations (for backward compatibility)
     # =========================================================================
 
-    def get_tank_or_default(self, tank_id: Optional[str] = None) -> Optional[TankWorldAdapter]:
+    def get_tank_or_default(self, tank_id: str | None = None) -> TankWorldAdapter | None:
         """Get a tank adapter by ID or return the default tank.
 
         This is for backward compatibility with code that expects to work

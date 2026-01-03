@@ -577,10 +577,7 @@ def cleanup_orphaned_tank_directories() -> int:
         snapshots_dir = tank_dir / "snapshots"
 
         # Check if this directory has any snapshots
-        has_snapshots = (
-            snapshots_dir.exists()
-            and any(snapshots_dir.glob("snapshot_*.json"))
-        )
+        has_snapshots = snapshots_dir.exists() and any(snapshots_dir.glob("snapshot_*.json"))
 
         if not has_snapshots:
             # This is an orphaned directory (no snapshots)

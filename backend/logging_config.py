@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Iterable, Optional
+from typing import Iterable
 
 DEFAULT_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 DEFAULT_DATEFMT = "%Y-%m-%d %H:%M:%S"
@@ -12,11 +12,11 @@ DEFAULT_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 def configure_logging(
     *,
-    level: Optional[str] = None,
+    level: str | None = None,
     format: str = DEFAULT_FORMAT,
     datefmt: str = DEFAULT_DATEFMT,
     include_uvicorn: bool = True,
-    extra_loggers: Optional[Iterable[str]] = None,
+    extra_loggers: Iterable[str] | None = None,
 ) -> logging.Logger:
     """Configure application logging with sensible defaults.
 
