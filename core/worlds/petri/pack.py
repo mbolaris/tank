@@ -1,24 +1,54 @@
 """Petri world mode pack implementation.
 
-This pack reuses the Tank simulation logic but identifies as 'petri'.
+This pack provides the Petri Dish simulation mode, which reuses
+Tank-like simulation logic with mode-specific metadata for top-down
+microbe visualization.
+
+ARCHITECTURE NOTE: PetriPack inherits from the neutral TankLikePackBase
+rather than TankPack. This clean boundary enables Petri to diverge
+independently without creating tangled import chains through Tank.
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from core.worlds.tank.pack import TankPack
+from core.config.simulation_config import SimulationConfig
+from core.worlds.shared.tank_like_pack_base import TankLikePackBase
+from core.worlds.tank.identity import TankEntityIdentityProvider
+
+if TYPE_CHECKING:
+    from core.worlds.identity import EntityIdentityProvider
 
 
-class PetriPack(TankPack):
-    """System pack for the Petri Dish simulation."""
+class PetriPack(TankLikePackBase):
+    """System pack for the Petri Dish simulation.
+
+    Inherits shared Tank-like wiring from TankLikePackBase and provides
+    Petri-specific mode_id, metadata, and identity provider.
+
+    Currently uses the same entity types and identity scheme as Tank,
+    but can diverge independently for Petri-specific features.
+    """
+
+    def __init__(self, config: SimulationConfig):
+        super().__init__(config)
+        # Use same identity provider implementation as Tank for now,
+        # but instantiated independently to avoid import coupling
+        self._identity_provider = TankEntityIdentityProvider()
 
     @property
     def mode_id(self) -> str:
         return "petri"
 
+    def get_identity_provider(self) -> "EntityIdentityProvider":
+        """Return the Petri identity provider."""
+        return self._identity_provider
+
     def get_metadata(self) -> dict[str, Any]:
         """Return Petri-specific metadata."""
-        metadata = super().get_metadata()
-        metadata["world_type"] = "petri"
-        return metadata
+        return {
+            "world_type": "petri",
+            "width": self.config.display.screen_width,
+            "height": self.config.display.screen_height,
+        }

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
+    from core.simulation.phase_hooks import PhaseHooks
     from core.simulation.pipeline import EnginePipeline
     from core.worlds.identity import EntityIdentityProvider
 
@@ -35,6 +36,7 @@ class SystemPack(Protocol):
     3. Seeding initial entities
     4. Optionally providing a custom pipeline
     5. Providing an identity provider for delta tracking
+    6. Providing phase hooks for mode-specific entity handling
     """
 
     @property
@@ -83,3 +85,15 @@ class SystemPack(Protocol):
         Return None to fall back to default behavior (class name + id()).
         """
         ...
+
+    def get_phase_hooks(self) -> "PhaseHooks | None":
+        """Return phase hooks for mode-specific entity handling.
+
+        Phase hooks allow modes to customize how entities are handled during
+        specific phases (spawn decisions, death handling, lifecycle cleanup, etc.)
+        without modifying engine code.
+
+        Return None to use default no-op hooks.
+        """
+        ...
+

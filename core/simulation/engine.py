@@ -226,6 +226,11 @@ class SimulationEngine:
 
         self._identity_provider: EntityIdentityProvider | None = None
 
+        # Phase hooks for mode-specific entity handling (set during setup())
+        from core.simulation.phase_hooks import PhaseHooks, NoOpPhaseHooks
+
+        self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
+
     # =========================================================================
     # Properties for Backward Compatibility
     # =========================================================================
@@ -292,6 +297,15 @@ class SimulationEngine:
         # 6. Store identity provider from pack
         if hasattr(pack, "get_identity_provider"):
             self._identity_provider = pack.get_identity_provider()
+
+        # 7. Store phase hooks from pack
+        from core.simulation.phase_hooks import NoOpPhaseHooks
+
+        if hasattr(pack, "get_phase_hooks"):
+            hooks = pack.get_phase_hooks()
+            self._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
+        else:
+            self._phase_hooks = NoOpPhaseHooks()
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
@@ -709,41 +723,26 @@ class SimulationEngine:
         new_entities: list[entities.Agent] = []
         entities_to_remove: list[entities.Agent] = []
 
-        # Performance: Pre-fetch type references
-        from core.entities import Fish
-        from core.entities.plant import Plant, PlantNectar
-
-        ecosystem = self.ecosystem
-        fish_count = len(self.get_fish_list()) if ecosystem is not None else 0
+        hooks = self._phase_hooks
 
         for entity in list(self._entity_manager.entities_list):
             result = entity.update(self.frame_count, time_modifier, time_of_day)
 
-            # Handle spawned entities
+            # Handle spawned entities via phase hooks
             if result.spawned_entities:
                 for spawned in result.spawned_entities:
-                    if isinstance(spawned, Fish):
-                        if ecosystem is not None and ecosystem.can_reproduce(fish_count):
-                            spawned.register_birth()
-                            new_entities.append(spawned)
-                            fish_count += 1
-                            self.lifecycle_system.record_birth()
-                    else:
-                        new_entities.append(spawned)
+                    decision = hooks.on_entity_spawned(self, spawned, entity)
+                    if decision.should_add:
+                        new_entities.append(decision.entity)
 
-            # Handle entity death
+            # Handle entity death via phase hooks
             if entity.is_dead():
-                if isinstance(entity, Fish):
-                    self.record_fish_death(entity)
-                elif isinstance(entity, Plant):
-                    entity.die()
-                    entities_to_remove.append(entity)
-                    logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
-                elif isinstance(entity, PlantNectar):
+                should_remove = hooks.on_entity_died(self, entity)
+                if should_remove:
                     entities_to_remove.append(entity)
 
-            # Note: Food removal (expiry, off-screen) is handled by LifecycleSystem
-            # in _phase_lifecycle to keep removal logic in one place
+            # Note: Food removal (expiry, off-screen) is handled by phase hooks
+            # in _phase_lifecycle via on_lifecycle_cleanup()
 
             # Enforce screen boundaries as a final safety check
             entity.constrain_to_screen()
@@ -759,8 +758,7 @@ class SimulationEngine:
 
         This phase is the SINGLE OWNER of entity removal decisions:
         - Entities marked for removal in entity_act phase
-        - Food expiry and off-screen removal
-        - Fish death effect cleanup
+        - Mode-specific cleanup (Food expiry, death animations, etc.)
 
         Removals/spawns are queued and applied between phases by the engine.
         """
@@ -770,16 +768,8 @@ class SimulationEngine:
         for entity in entities_to_remove:
             self.request_remove(entity, reason="entity_act")
 
-        # Process food removal (expiry, off-screen) - LifecycleSystem owns this logic
-        from core.entities import Food
-
-        screen_height = self.config.display.screen_height
-        for entity in list(self._entity_manager.entities_list):
-            if isinstance(entity, Food):
-                self.lifecycle_system.process_food_removal(entity, screen_height)
-
-        # Cleanup fish that finished their death animation
-        self.cleanup_dying_fish()
+        # Mode-specific lifecycle cleanup (Food removal, death animations, etc.)
+        self._phase_hooks.on_lifecycle_cleanup(self)
 
         # Add new entities spawned during entity_act
         for new_entity in new_entities:
@@ -953,41 +943,23 @@ class SimulationEngine:
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.
 
-        Orchestration Note: The engine decides WHEN stats are recorded.
-        The business logic (HOW) lives in EcosystemManager methods.
-        This split is intentional - orchestration stays in engine.
+        Orchestration Note: The engine decides WHEN reproduction runs.
+        The business logic and stats recording are handled by phase hooks.
         """
         self._current_phase = UpdatePhase.REPRODUCTION
         # ReproductionSystem now handles both mating and emergency spawns
         self.handle_reproduction()
         self._apply_entity_mutations("reproduction")
 
-        ecosystem = self.ecosystem
-        if ecosystem is None:
-            return
-
-        fish_list = self.get_fish_list()
-
-        # Delegate stats recording to EcosystemManager
-        ecosystem.update_population_stats(fish_list)
-
-        if self.frame_count % 1000 == 0:
-            alive_ids = {f.fish_id for f in fish_list}
-            ecosystem.cleanup_dead_fish(alive_ids)
-
-        # Record energy snapshot for delta calculations
-        total_fish_energy = sum(
-            f.energy + f._reproduction_component.overflow_energy_bank for f in fish_list
-        )
-        ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
+        # Mode-specific reproduction stats (fish population, energy, etc.)
+        self._phase_hooks.on_reproduction_complete(self)
 
     def _phase_frame_end(self) -> None:
         """FRAME_END: Update stats, rebuild caches."""
         self._current_phase = UpdatePhase.FRAME_END
 
-        if self.benchmark_evaluator is not None:
-            fish_list = self.get_fish_list()
-            self.benchmark_evaluator.maybe_run(self.frame_count, fish_list)
+        # Mode-specific frame-end processing (benchmarks, etc.)
+        self._phase_hooks.on_frame_end(self)
 
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
