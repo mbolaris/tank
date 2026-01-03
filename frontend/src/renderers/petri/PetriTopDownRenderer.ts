@@ -7,6 +7,8 @@ import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types
 import type { EntityData } from '../../types/simulation';
 import type { FishGenomeData } from '../../types/simulation';
 import { ImageLoader } from '../../utils/ImageLoader';
+import { renderPlant } from '../../utils/plant';
+import type { PlantGenomeData } from '../../utils/plant';
 
 // Food type image mappings (matching the main tank renderer / core/constants.py)
 const PETRI_FOOD_TYPE_IMAGES: Record<string, string[]> = {
@@ -21,9 +23,18 @@ const PETRI_FOOD_TYPE_IMAGES: Record<string, string[]> = {
 const PETRI_DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
 /** Petri-specific render hint structure */
+interface PetriDishGeometry {
+    shape: 'circle';
+    cx: number;
+    cy: number;
+    r: number;
+}
+
+/** Petri-specific render hint structure */
 interface PetriRenderHint {
     style?: string;
     sprite?: 'microbe' | 'nutrient' | 'colony' | 'predator' | 'inert' | string;
+    dish?: PetriDishGeometry;
 }
 
 /** Poker effect state */
@@ -48,6 +59,8 @@ interface PetriEntity {
     energy?: number;
     food_type?: string;
     genome_data?: FishGenomeData;
+    plant_genome_data?: PlantGenomeData;  // For plant fractal rendering
+    perimeter_angle?: number;  // Angle from center for plants on perimeter
     death_effect_state?: { cause: string };
     poker_effect_state?: PokerEffectState;
     birth_effect_timer?: number;
@@ -58,6 +71,7 @@ interface PetriScene {
     width: number;
     height: number;
     entities: PetriEntity[];
+    dish?: PetriDishGeometry;
 }
 
 /** Generate deterministic hue from entity ID */
@@ -72,13 +86,42 @@ function buildPetriScene(snapshot: any): PetriScene {
     const entities: PetriEntity[] = [];
 
     const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
+
+    // Dish geometry for position remapping
+    const dishCx = 544;  // center x
+    const dishCy = 306;  // center y  
+    const dishR = 380;   // radius
+    const worldWidth = 1088;
+
     if (rawEntities && Array.isArray(rawEntities)) {
         rawEntities.forEach((e: EntityData) => {
             const hint = e.render_hint as PetriRenderHint | undefined;
-            const sprite = hint?.sprite ?? 'unknown';
-            const radius = Math.max(e.width, e.height) / 2;
-            const x = e.x + e.width / 2;
-            const y = e.y + e.height / 2;
+            // Map entity types to petri sprites (fallback for frontend toggle)
+            const defaultSpriteMap: Record<string, string> = {
+                fish: 'microbe',
+                food: 'nutrient',
+                plant: 'colony',
+                plant_nectar: 'nutrient',
+                crab: 'predator',
+                castle: 'inert',
+            };
+            const sprite = hint?.sprite ?? defaultSpriteMap[e.type] ?? 'unknown';
+            const radius = Math.max(e.width, e.height) / 2 * 0.5;  // Scale down for Petri view
+
+            let x = e.x + e.width / 2;
+            let y = e.y + e.height / 2;
+            let perimeterAngle: number | undefined = undefined;
+
+            // Remap plants from bottom of tank to circle perimeter
+            // Plants in tank mode are at the bottom (high y). In Petri, place around edge.
+            if (e.type === 'plant') {
+                // Convert x position (0 to worldWidth) to angle around circle
+                // Spread plants across the full perimeter
+                const angle = (x / worldWidth) * Math.PI * 2 - Math.PI / 2;  // Start at top
+                x = dishCx + Math.cos(angle) * (dishR - 20);  // Slightly inside the edge
+                y = dishCy + Math.sin(angle) * (dishR - 20);
+                perimeterAngle = angle;  // Store for rotation when drawing
+            }
 
             entities.push({
                 id: e.id,
@@ -93,6 +136,8 @@ function buildPetriScene(snapshot: any): PetriScene {
                 energy: e.energy,
                 food_type: e.food_type,
                 genome_data: e.genome_data,
+                plant_genome_data: e.type === 'plant' ? (e as any).genome as PlantGenomeData | undefined : undefined,
+                perimeter_angle: perimeterAngle,
                 death_effect_state: (e as any).death_effect_state as { cause: string } | undefined,
                 poker_effect_state: e.poker_effect_state,
                 birth_effect_timer: e.birth_effect_timer,
@@ -100,10 +145,22 @@ function buildPetriScene(snapshot: any): PetriScene {
         });
     }
 
+    const dish = snapshot.render_hint?.dish as PetriDishGeometry | undefined;
+
+    // Default circular dish for Petri mode (centered in the world)
+    // Used when switching via frontend toggle without backend petri data
+    const defaultDish: PetriDishGeometry = {
+        shape: 'circle',
+        cx: 544,  // Half of 1088
+        cy: 306,  // Half of 612
+        r: 380,   // Large enough to encompass rectangular bounds
+    };
+
     return {
         width: 1088,
         height: 612,
         entities,
+        dish: dish ?? defaultDish,  // Use default if no dish geometry from backend
     };
 }
 
@@ -144,14 +201,46 @@ export class PetriTopDownRenderer implements Renderer {
         ctx.scale(scale, scale);
 
         // Draw petri dish border (circular feel)
-        ctx.strokeStyle = "#30363d";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(0, 0, scene.width, scene.height);
+        if (scene.dish && scene.dish.shape === 'circle') {
+            const { cx, cy, r } = scene.dish;
+
+            // Clip to circle so entities outside don't show (optional but clean)
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Draw dish background (faint glass tint)
+            ctx.fillStyle = "rgba(20, 30, 40, 0.4)";
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = "#404850";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Inner rim highlight
+            ctx.strokeStyle = "rgba(100, 120, 140, 0.3)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            // Fallback to rectangle
+            ctx.strokeStyle = "#30363d";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(0, 0, scene.width, scene.height);
+        }
 
         // Subtle grid pattern (like microscope grid)
-        ctx.strokeStyle = "rgba(48, 54, 61, 0.5)";
+        ctx.strokeStyle = "rgba(48, 54, 61, 0.3)";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
+        // Only draw grid inside the circle if we have one
+        if (scene.dish) {
+            // Optimization: could limit loops to bounding box of circle
+        }
         for (let x = 0; x <= scene.width; x += 50) {
             ctx.moveTo(x, 0);
             ctx.lineTo(x, scene.height);
@@ -178,7 +267,7 @@ export class PetriTopDownRenderer implements Renderer {
 
             // Pass 3: energy bars (HUD)
             scene.entities.forEach(entity => {
-                if (entity.energy !== undefined && (entity.sprite === 'microbe' || entity.sprite === 'colony' || entity.sprite === 'predator')) {
+                if (entity.energy !== undefined && (entity.sprite === 'microbe' || entity.sprite === 'predator')) {
                     const barWidth = Math.max(entity.radius * 2, 20);
                     this.drawEnhancedEnergyBar(
                         ctx,
@@ -688,36 +777,61 @@ export class PetriTopDownRenderer implements Renderer {
         ctx.fill();
     }
 
-    /** Colony: clustered circles (for plants) */
+    /** Colony: uses fractal plant rendering - plants grow inward from dish perimeter */
     private drawColony(ctx: CanvasRenderingContext2D, entity: PetriEntity) {
-        const r = Math.max(entity.radius, 10);
-        const hue = 140; // Green for colonies
+        // If we have plant genome data, use the full fractal plant renderer
+        const genome = entity.plant_genome_data;
 
-        // Main colony body
-        ctx.fillStyle = `hsla(${hue}, 50%, 40%, 0.7)`;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
-        ctx.fill();
+        if (genome) {
+            // Rotate so plant grows inward from perimeter (pointing toward center)
+            const angle = entity.perimeter_angle ?? 0;
+            // Local "up" is negative Y (0, -1). We want to rotate to point Inward.
+            // Edge Normal is 'angle'. Inward is 'angle + PI'.
+            // To rotate (0, -1) to (cos(a+PI), sin(a+PI)):
+            // We need rotation = angle - PI/2.
+            const inwardRotation = angle - Math.PI / 2;
 
-        // Surrounding cells
-        const cellCount = (entity.id % 4) + 4;
-        for (let i = 0; i < cellCount; i++) {
-            const angle = (i / cellCount) * Math.PI * 2 + (entity.id * 0.3);
-            const dist = r * 0.5;
-            const cellR = r * 0.35 + ((entity.id + i) % 3) * 2;
+            ctx.save();
+            ctx.rotate(inwardRotation);
 
-            ctx.fillStyle = `hsla(${hue + (i * 10) % 40}, 45%, 45%, 0.6)`;
+            // Scale down for Petri view
+            const sizeMultiplier = 0.6;
+            const iterations = 3;
+
+            // renderPlant draws at (x, y) position, but we're already translated
+            // So draw at origin and let the transform handle positioning
+            renderPlant(ctx, entity.id, genome, 0, 0, sizeMultiplier, iterations, this.lastNowMs, false);
+
+            ctx.restore();
+        } else {
+            // Fallback: simple algae blob if no plant genome
+            const r = Math.max(entity.radius, 8) * 1.2;
+            const rand = this.seededRand(entity.id * 12345);
+            const hue = 100 + (entity.id % 60);
+
+            ctx.save();
+
+            // Simple organic blob
             ctx.beginPath();
-            ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, cellR, 0, Math.PI * 2);
-            ctx.fill();
-        }
+            const points = 6;
+            for (let i = 0; i <= points; i++) {
+                const a = (i / points) * Math.PI * 2;
+                const wobble = 0.8 + rand() * 0.3;
+                const px = Math.cos(a) * r * wobble;
+                const py = Math.sin(a) * r * wobble;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
 
-        // Border
-        ctx.strokeStyle = `hsla(${hue}, 40%, 50%, 0.5)`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.stroke();
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+            grad.addColorStop(0, `hsla(${hue}, 65%, 45%, 0.9)`);
+            grad.addColorStop(1, `hsla(${hue + 10}, 45%, 25%, 0.7)`);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.restore();
+        }
     }
 
     /** Predator: angular/spiky shape */

@@ -13,7 +13,6 @@ import { EcosystemStats } from './EcosystemStats';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { ViewModeToggle } from './ViewModeToggle';
 import { useViewMode } from '../hooks/useViewMode';
-import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { CollapsibleSection, Button } from './ui';
 
@@ -48,16 +47,13 @@ export function TankView({ tankId }: TankViewProps) {
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
 
-    const { effectiveViewMode, setOverrideViewMode } = useViewMode(state?.view_mode as any);
+    const { effectiveViewMode, setOverrideViewMode, petriMode, setPetriMode } = useViewMode(state?.view_mode as any);
 
-    // Derive worldType from state (default to 'tank' for backwards compatibility)
-    const worldType = state?.world_type ?? 'tank';
+    // Effective world type for rendering - when petriMode is enabled, use 'petri' renderer
+    const effectiveWorldType = petriMode ? 'petri' : 'tank';
 
-    // Ensure renderers are initialized so hasRenderer works
+    // Ensure renderers are initialized
     initRenderers();
-
-    // Only show view mode toggle if top-down renderer exists for this world
-    const hasTopDownRenderer = rendererRegistry.hasRenderer(worldType, 'topdown');
 
 
     const handlePokerError = (message: string, error?: unknown) => {
@@ -227,13 +223,12 @@ export function TankView({ tankId }: TankViewProps) {
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
 
-                {hasTopDownRenderer && (
-                    <ViewModeToggle
-                        worldType={worldType}
-                        viewMode={effectiveViewMode}
-                        onChange={setOverrideViewMode}
-                    />
-                )}
+                <ViewModeToggle
+                    viewMode={effectiveViewMode}
+                    onChange={setOverrideViewMode}
+                    petriMode={petriMode}
+                    onPetriModeChange={setPetriMode}
+                />
 
                 {/* Plant Energy Input Control */}
                 <div className="glass-panel" style={{
@@ -292,7 +287,7 @@ export function TankView({ tankId }: TankViewProps) {
                         </span>
                     </div>
 
-                    {worldType !== 'tank' && (
+                    {effectiveWorldType !== 'tank' && (
                         <>
                             <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -306,7 +301,7 @@ export function TankView({ tankId }: TankViewProps) {
                                     borderRadius: '4px',
                                     textTransform: 'uppercase'
                                 }}>
-                                    {worldType}
+                                    {effectiveWorldType}
                                 </span>
                             </div>
                         </>
@@ -394,6 +389,7 @@ export function TankView({ tankId }: TankViewProps) {
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
                         viewMode={effectiveViewMode}
+                        worldType={effectiveWorldType}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>

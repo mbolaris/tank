@@ -19,13 +19,14 @@ interface CanvasProps {
     showEffects?: boolean;
     style?: CSSProperties;
     viewMode?: "side" | "topdown";
+    worldType?: string;  // Optional override for renderer selection (e.g., 'petri' for circular dish)
 }
 
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style, viewMode = "side" }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -88,6 +89,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const selectedEntityIdRef = useRef(selectedEntityId);
     const showEffectsRef = useRef(showEffects);
     const viewModeRef = useRef(viewMode);
+    const worldTypePropRef = useRef(worldTypeProp);
 
     useEffect(() => {
         stateRef.current = state;
@@ -95,7 +97,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         selectedEntityIdRef.current = selectedEntityId;
         showEffectsRef.current = showEffects;
         viewModeRef.current = viewMode;
-    }, [state, imagesLoaded, selectedEntityId, showEffects, viewMode]);
+        worldTypePropRef.current = worldTypeProp;
+    }, [state, imagesLoaded, selectedEntityId, showEffects, viewMode, worldTypeProp]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -137,8 +140,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             if (currentState && !error) {
                 try {
                     // Get fresh renderer for the current mode (use ref to avoid stale closure)
-                    // Derive worldType from state, defaulting to 'tank' for backwards compatibility
-                    const worldType = (currentState as any)?.world_type ?? 'tank';
+                    // Use prop override if provided, otherwise derive worldType from state
+                    const worldType = worldTypePropRef.current ?? (currentState as any)?.world_type ?? 'tank';
                     const effectiveViewMode = viewModeRef.current || 'side';
                     const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
                     rendererRef.current = renderer;
