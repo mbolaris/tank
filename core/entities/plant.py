@@ -149,9 +149,14 @@ class Plant(Agent):
             PLANT_BASE_HEIGHT * size_multiplier,
         )
 
-        # Anchor bottom of plant to root spot
-        self.pos.y = self.root_spot.y - self.height
-        self.rect.y = self.pos.y
+        # Anchor using root spot semantics (bottom vs center)
+        if hasattr(self.root_spot, "get_anchor_topleft"):
+            self.pos.x, self.pos.y = self.root_spot.get_anchor_topleft(self.width, self.height)
+            self.rect.topleft = self.pos
+        else:
+            # Fallback for legacy/mock root spots
+            self.pos.y = self.root_spot.y - self.height
+            self.rect.y = self.pos.y
 
     @property
     def typed_id(self) -> PlantId:

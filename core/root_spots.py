@@ -4,9 +4,9 @@ This module manages the 100 fixed positions along the tank bottom
 where fractal plants can sprout and grow.
 """
 
-import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional
+import random
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from core.config.display import (
     SCREEN_HEIGHT,
@@ -46,14 +46,39 @@ class RootSpot:
     # Back-reference to the manager that created this spot (set by RootSpotManager)
     manager: Optional["RootSpotManager"] = field(default=None, repr=False)
     # Spots can be blocked by obstacles like castles so plants don't spawn there
+    # Spots can be blocked by obstacles like castles so plants don't spawn there
     blocked: bool = False
+    # Anchor mode determines how a plant attaches to this spot
+    anchor_mode: str = "bottom"  # "bottom" or "center"
+
+    def get_anchor_topleft(self, width: float, height: float) -> Tuple[float, float]:
+        """Get the topleft position for a plant of given size anchored here.
+        
+        Args:
+            width: Plant width
+            height: Plant height
+            
+        Returns:
+            (x, y) topleft position
+        """
+        if self.anchor_mode == "center":
+            # Spot is the center of the plant base? Or center of the plant?
+            # User requirement: "roots carry an anchor mode... plants anchor via that"
+            # In "center" mode (or radial), the spot is likely on the perimeter.
+            # Ideally the plant "base" is at the spot.
+            # If "center", maybe we just center the plant on the spot?
+            # Let's assume "center" means center of the bounding box is at spot.
+            return (self.x - width / 2, self.y - height / 2)
+        else:
+            # Default "bottom": spot is bottom-center of the plant
+            return (self.x - width / 2, self.y - height)
 
     def claim(self, plant: "Plant") -> bool:
         """Claim this spot for a plant.
-
+        
         Args:
             plant: The plant to place here
-
+        
         Returns:
             True if successfully claimed, False if already occupied
         """

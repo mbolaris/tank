@@ -90,6 +90,7 @@ class PlantManager:
         rng: Optional[random.Random] = None,
         screen_width: int = SCREEN_WIDTH,
         screen_height: int = SCREEN_HEIGHT,
+        root_spot_manager: Optional["RootSpotManager"] = None,
     ) -> None:
         """Initialize the plant manager.
 
@@ -100,6 +101,7 @@ class PlantManager:
             rng: Random number generator (creates new one if None)
             screen_width: Width of the simulation area
             screen_height: Height of the simulation area
+            root_spot_manager: Optional custom root spot manager
         """
         self.environment = environment
         self.ecosystem = ecosystem
@@ -109,7 +111,10 @@ class PlantManager:
         self.rng = require_rng_param(rng, "__init__")
 
         # Initialize root spot manager
-        self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
+        if root_spot_manager is not None:
+             self.root_spot_manager = root_spot_manager
+        else:
+             self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
 
         # Track reconciliation and respawns
         self._last_reconcile_frame: int = -1

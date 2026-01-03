@@ -257,6 +257,13 @@ class Agent(Entity):
         bounds = self.environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
 
+        # Check for custom boundary resolution (e.g. Petri circular dish)
+        resolve_collision = getattr(self.environment, "resolve_boundary_collision", None)
+        if resolve_collision is not None:
+            if resolve_collision(self):
+                return
+
+
         if self.can_attempt_migration():
             # Left boundary
             if self.pos.x < min_x:

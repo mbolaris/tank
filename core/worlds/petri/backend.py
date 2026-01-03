@@ -49,9 +49,18 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
+            
+            from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+            
             snapshot["render_hint"] = {
                 "style": "topdown",
                 "entity_style": "microbe",
+                "dish": {
+                    "shape": "circle",
+                    "cx": PETRI_CENTER_X,
+                    "cy": PETRI_CENTER_Y,
+                    "r": PETRI_RADIUS,
+                },
             }
         return snapshot
 
@@ -63,9 +72,18 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
+            
+            from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+            
             snapshot["render_hint"] = {
                 "style": "topdown",
                 "entity_style": "microbe",
+                "dish": {
+                    "shape": "circle",
+                    "cx": PETRI_CENTER_X,
+                    "cy": PETRI_CENTER_Y,
+                    "r": PETRI_RADIUS,
+                },
             }
         return snapshot
 
@@ -119,9 +137,17 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def _patch_step_result(self, result: StepResult) -> StepResult:
         snapshot = dict(result.snapshot)
         snapshot["world_type"] = "petri"
+        from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+        
         snapshot["render_hint"] = {
             "style": "topdown",
             "entity_style": "microbe",
+            "dish": {
+                "shape": "circle",
+                "cx": PETRI_CENTER_X,
+                "cy": PETRI_CENTER_Y,
+                "r": PETRI_RADIUS,
+            },
         }
         return StepResult(
             obs_by_agent=result.obs_by_agent,
