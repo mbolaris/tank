@@ -5,6 +5,7 @@ Generates root spots along the circular perimeter of the dish.
 
 from __future__ import annotations
 
+import math
 import random
 from typing import TYPE_CHECKING, Optional
 
@@ -29,11 +30,17 @@ class CircularRootSpotManager(RootSpotManager):
             rng: Random number generator (optional)
         """
         self.dish = dish
-        # Parent expects screen_width, screen_height but we won't use them
-        # We call parent with dummy values since we override _initialize_spots
+        # Calculate appropriate spot count for the circumference to match Tank density
+        # Tank: ~25 spots / 1088px width ~= 43px spacing
+        # Petri: Use 45px spacing as a reasonable target
+        circumference = 2 * math.pi * dish.r
+        target_spacing = 45.0
+        calculated_count = max(20, int(circumference / target_spacing))
+
         super().__init__(
             screen_width=int(dish.cx * 2),
             screen_height=int(dish.cy * 2),
+            spot_count=calculated_count,
             rng=rng,
         )
 

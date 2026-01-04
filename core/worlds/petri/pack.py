@@ -45,7 +45,7 @@ class PetriPack(TankLikePackBase):
         
         # Compute dish geometry from screen dimensions
         display = config.display
-        rim_margin = 10.0
+        rim_margin = 2.0
         radius = (min(display.screen_width, display.screen_height) / 2) - rim_margin
         self.dish = PetriDish(
             cx=display.screen_width / 2,

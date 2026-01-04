@@ -47,9 +47,30 @@ class TankWorldAdapter:
             manager: The SimulationManager to wrap
         """
         self._manager = manager
-        self.world_type = "tank"
-        self.mode_id = "tank"
-        self.view_mode = "side"
+        self._manager = manager
+
+    @property
+    def world_type(self) -> str:
+        """Get the world type (tank, petri, etc)."""
+        if hasattr(self._manager, "tank_info"):
+            return self._manager.tank_info.world_type
+        if hasattr(self._manager, "runner"):
+            return self._manager.runner.world_type
+        return "tank"
+
+    @property
+    def mode_id(self) -> str:
+        """Get the mode ID."""
+        if hasattr(self._manager, "runner") and hasattr(self._manager.runner, "mode_id"):
+            return self._manager.runner.mode_id
+        return self.world_type
+
+    @property
+    def view_mode(self) -> str:
+        """Get the default view mode."""
+        if hasattr(self._manager, "runner") and hasattr(self._manager.runner, "view_mode"):
+            return self._manager.runner.view_mode
+        return "side"
 
     @property
     def manager(self) -> SimulationManager:

@@ -89,10 +89,12 @@ function buildPetriScene(snapshot: any): PetriScene {
     const dish = snapshot.render_hint?.dish as PetriDishGeometry | undefined;
 
     // Dish geometry for position remapping (fallback constants)
-    const dishCx = 544;  // center x
-    const dishCy = 306;  // center y  
-    const dishR = 380;   // radius
     const worldWidth = 1088;
+    const worldHeight = 612;
+    const rimMargin = 2;
+    const dishCx = worldWidth / 2;  // center x (544)
+    const dishCy = worldHeight / 2;  // center y (306)
+    const dishR = (Math.min(worldWidth, worldHeight) / 2) - rimMargin;   // radius (296)
 
     if (rawEntities && Array.isArray(rawEntities)) {
         rawEntities.forEach((e: EntityData) => {
@@ -157,9 +159,9 @@ function buildPetriScene(snapshot: any): PetriScene {
     // Used when switching via frontend toggle without backend petri data
     const defaultDish: PetriDishGeometry = {
         shape: 'circle',
-        cx: 544,  // Half of 1088
-        cy: 306,  // Half of 612
-        r: 380,   // Large enough to encompass rectangular bounds
+        cx: worldWidth / 2,
+        cy: worldHeight / 2,
+        r: (Math.min(worldWidth, worldHeight) / 2) - rimMargin,  // 296
     };
 
     return {
