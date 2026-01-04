@@ -86,8 +86,9 @@ function buildPetriScene(snapshot: any): PetriScene {
     const entities: PetriEntity[] = [];
 
     const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
+    const dish = snapshot.render_hint?.dish as PetriDishGeometry | undefined;
 
-    // Dish geometry for position remapping
+    // Dish geometry for position remapping (fallback constants)
     const dishCx = 544;  // center x
     const dishCy = 306;  // center y  
     const dishR = 380;   // radius
@@ -113,14 +114,21 @@ function buildPetriScene(snapshot: any): PetriScene {
             let perimeterAngle: number | undefined = undefined;
 
             // Remap plants from bottom of tank to circle perimeter
-            // Plants in tank mode are at the bottom (high y). In Petri, place around edge.
+            // BUT: If we have an authoritative dish from backend, TRUST server positions.
+            // Only remap if we are faking Petri mode on a Tank snapshot (no dish hint).
             if (e.type === 'plant') {
-                // Convert x position (0 to worldWidth) to angle around circle
-                // Spread plants across the full perimeter
-                const angle = (x / worldWidth) * Math.PI * 2 - Math.PI / 2;  // Start at top
-                x = dishCx + Math.cos(angle) * (dishR - 20);  // Slightly inside the edge
-                y = dishCy + Math.sin(angle) * (dishR - 20);
-                perimeterAngle = angle;  // Store for rotation when drawing
+                if (dish) {
+                    // TRUST SERVER: Backend has already placed plants on the perimeter (radial_inward).
+                    // We just need to calculate the angle for rotation/growth direction.
+                    perimeterAngle = Math.atan2(y - dish.cy, x - dish.cx);
+                } else {
+                    // LEGACY/FALLBACK: Remap from bottom of rectangular tank to circle.
+                    // Convert x position (0 to worldWidth) to angle around circle
+                    const angle = (x / worldWidth) * Math.PI * 2 - Math.PI / 2;  // Start at top
+                    x = dishCx + Math.cos(angle) * (dishR - 20);  // Slightly inside the edge
+                    y = dishCy + Math.sin(angle) * (dishR - 20);
+                    perimeterAngle = angle;
+                }
             }
 
             entities.push({
@@ -144,8 +152,6 @@ function buildPetriScene(snapshot: any): PetriScene {
             });
         });
     }
-
-    const dish = snapshot.render_hint?.dish as PetriDishGeometry | undefined;
 
     // Default circular dish for Petri mode (centered in the world)
     // Used when switching via frontend toggle without backend petri data

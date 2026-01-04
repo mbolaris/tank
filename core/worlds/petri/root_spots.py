@@ -20,12 +20,9 @@ class CircularRootSpotManager(RootSpotManager):
         Args:
             count: Number of spots to create
         """
-        # Place spots slightly inside the radius so plants aren't half-clipped
-        # Determine strict or loose placement?
-        # User requested: "plants anchored to dish perimeter"
-        # We'll put them on the radius but maybe inset slightly
-        inset = 5.0
-        r = PETRI_RADIUS - inset
+        # Place spots EXACTLY on the radius.
+        # Anchor mode "radial_inward" will handle growing them inward so they don't clip out.
+        r = PETRI_RADIUS
         cx = PETRI_CENTER_X
         cy = PETRI_CENTER_Y
 
@@ -38,14 +35,7 @@ class CircularRootSpotManager(RootSpotManager):
             
             spot = RootSpot(spot_id=i, x=x, y=y)
             spot.manager = self
-            # Use 'center' anchor so plant center is on the perimeter?
-            # Or rotated?
-            # User suggested: "root_spot.anchor_mode: Literal['bottom', 'center']"
-            # If we use 'center', the plant grows out from that center point in all directions?
-            # Plants in tank currently grow UP.
-            # In Petri top-down, "up" is just -Y. But plants are now 2D top-down blobs or still trees?
-            # Plants are drawn as "Colony" circles in top-down renderer.
-            # So 'center' anchoring makes perfect sense for top-down blobs.
-            spot.anchor_mode = "center"
+            spot.anchor_mode = "radial_inward"
+            spot.angle = angle
             
             self.spots.append(spot)

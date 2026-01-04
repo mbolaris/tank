@@ -49,7 +49,9 @@ class RootSpot:
     # Spots can be blocked by obstacles like castles so plants don't spawn there
     blocked: bool = False
     # Anchor mode determines how a plant attaches to this spot
-    anchor_mode: str = "bottom"  # "bottom" or "center"
+    anchor_mode: str = "bottom"  # "bottom", "center", or "radial_inward"
+    # Angle in radians (for radial_inward mode), relative to dish center
+    angle: Optional[float] = None
 
     def get_anchor_topleft(self, width: float, height: float) -> Tuple[float, float]:
         """Get the topleft position for a plant of given size anchored here.
@@ -62,13 +64,34 @@ class RootSpot:
             (x, y) topleft position
         """
         if self.anchor_mode == "center":
-            # Spot is the center of the plant base? Or center of the plant?
-            # User requirement: "roots carry an anchor mode... plants anchor via that"
-            # In "center" mode (or radial), the spot is likely on the perimeter.
-            # Ideally the plant "base" is at the spot.
-            # If "center", maybe we just center the plant on the spot?
-            # Let's assume "center" means center of the bounding box is at spot.
             return (self.x - width / 2, self.y - height / 2)
+        elif self.anchor_mode == "radial_inward":
+            import math
+            # Spot is on the perimeter. Plant body grows inward.
+            # We treat the plant as roughly circular/blobby with radius = max(w,h)/2
+            # Center of plant should be radius distance inward from spot.
+            
+            # Use stored angle if available, otherwise assume pointing to center from spot?
+            # Creating normal vector pointing INWARD: opposite of angle
+            if self.angle is not None:
+                # Normal points INWARD (opposite to angle on unit circle)
+                nx = -math.cos(self.angle)
+                ny = -math.sin(self.angle)
+            else:
+                # Fallback: cannot compute without center or angle (assuming spot x,y is center?? no)
+                # If we don't know angle, default to center anchor
+                return (self.x - width / 2, self.y - height / 2)
+
+            # Radius of the plant (approximated)
+            radius = max(width, height) / 2
+            
+            # Center position of the plant
+            # Spot is at the edge. We shift inward by radius.
+            cx = self.x + nx * radius
+            cy = self.y + ny * radius
+            
+            # Return topleft of the bounding box
+            return (cx - width / 2, cy - height / 2)
         else:
             # Default "bottom": spot is bottom-center of the plant
             return (self.x - width / 2, self.y - height)

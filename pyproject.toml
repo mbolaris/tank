@@ -74,6 +74,7 @@ markers = [
     "slow: long-running tests (excluded by default in quick runs with -m 'not slow')",
     "integration: tests requiring external resources or multiple components",
     "manual: verification scripts with verbose output (run manually, not in CI)",
+    "asyncio: mark test as async",
 ]
 
 [tool.black]
