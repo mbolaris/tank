@@ -168,10 +168,13 @@ class EnergyHolder(Protocol):
         """Maximum energy capacity (energy is clamped to this)."""
         ...
 
-    def modify_energy(self, amount: float) -> None:
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
         """Add or remove energy (positive = gain, negative = loss).
 
         The implementation should clamp the result to [0, max_energy].
+
+        Returns:
+            The actual delta applied to the entity's energy store.
         """
         ...
 

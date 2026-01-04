@@ -165,15 +165,11 @@ class MixedPokerInteraction:
         return POKER_AGGRESSION_LOW + (base * (POKER_AGGRESSION_HIGH - POKER_AGGRESSION_LOW))
 
     def _modify_player_energy(self, player: Player, amount: float) -> None:
-        """Modify the energy of a player."""
-        if self._is_fish_player(player) or hasattr(player, "modify_energy"):
-            # Use modify_energy to properly cap at max and route overflow to reproduction/food
-            player.modify_energy(amount)
-        elif self._is_plant_player(player):
-            if amount > 0:
-                player.gain_energy(amount)
-            else:
-                player.lose_energy(abs(amount))
+        """Modify the energy of a player.
+        
+        Uses the unified EnergyHolder.modify_energy() protocol.
+        """
+        player.modify_energy(amount, source="poker")
 
     def _set_player_cooldown(self, player: Player) -> None:
         """Set poker cooldown on a player."""

@@ -464,7 +464,7 @@ class Fish(Agent):
 
         return self._energy_component.energy - old_energy
 
-    def modify_energy(self, amount: float) -> float:
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
         """Adjust energy by a specified amount, routing overflow productively.
 
         Positive amounts are capped at max_energy with overflow handling.
