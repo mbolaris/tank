@@ -1,0 +1,25 @@
+.container {
+    display: flex;
+    gap: var(--spacing-sm);
+    background: rgba(0, 0, 0, 0.2);
+    padding: var(--spacing-xs);
+    border-radius: var(--spacing-sm);
+}
+
+.toggleButton {
+    font-size: 12px;
+    padding: var(--spacing-xs) 12px;
+    height: auto;
+}
+
+.petriActive {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #34d399;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+.petriActive:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}

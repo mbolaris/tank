@@ -1,12 +1,12 @@
 .section {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .title {
   margin: 0 0 10px 0;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: flex;
@@ -16,11 +16,11 @@
 }
 
 .title:hover {
-  color: #cbd5e1;
+  color: var(--color-text-muted);
 }
 
 .icon {
-  margin-right: 8px;
+  margin-right: var(--spacing-sm);
   font-size: 12px;
 }
 

@@ -1,15 +1,16 @@
 .panel {
-  padding: 24px;
-  background: linear-gradient(145deg, rgba(30,41,59,0.92), rgba(15,23,42,0.95));
-  border-radius: 20px;
-  color: #e2e8f0;
-  border: 1px solid rgba(148,163,184,0.18);
-  box-shadow: 0 35px 55px rgba(2,6,23,0.65);
+  padding: var(--spacing-lg);
+  background: var(--color-bg-surface);
+  backdrop-filter: var(--backdrop-blur);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-main);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .title {
-  margin: 0 0 16px 0;
-  font-size: 20px;
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: var(--font-size-xl);
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--color-text-main);
 }

@@ -17,10 +17,10 @@
 .sectionTitle {
   font-size: 12px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .statsGrid {
@@ -38,12 +38,12 @@
 }
 
 .label {
-  color: #cbd5e1;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
 .value {
-  color: #f1f5f9;
+  color: var(--color-text-main);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

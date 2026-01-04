@@ -161,9 +161,17 @@
     font-weight: 600;
 }
 
-.panelTitleText.purple { color: #a78bfa; }
-.panelTitleText.blue { color: #93c5fd; }
-.panelTitleText.green { color: #4ade80; }
+.panelTitleText.purple {
+    color: #a78bfa;
+}
+
+.panelTitleText.blue {
+    color: #93c5fd;
+}
+
+.panelTitleText.green {
+    color: #4ade80;
+}
 
 /* Key metrics grid */
 .metricsGrid {
@@ -174,30 +182,32 @@
 }
 
 .metricCard {
-    background: #0f172a;
-    border-radius: 8px;
+    background: var(--card-bg);
+    border-radius: var(--spacing-sm);
     padding: 12px;
-    border: 1px solid #334155;
+    border: 1px solid var(--card-border);
     text-align: center;
 }
 
 .metricLabel {
-    color: #94a3b8;
-    font-size: 11px;
+    color: var(--color-text-dim);
+    font-size: var(--font-size-xs);
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: var(--spacing-xs);
 }
 
 .metricValue {
-    color: #f1f5f9;
-    font-size: 18px;
+    color: var(--color-text-main);
+    font-size: var(--font-size-lg);
     font-weight: 700;
 }
 
-.metricValue.green { color: #4ade80; }
+.metricValue.green {
+    color: #4ade80;
+}
 
 .metricSubtext {
-    color: #64748b;
+    color: var(--color-text-dim);
     font-size: 10px;
     margin-top: 2px;
 }
@@ -210,10 +220,10 @@
 }
 
 .dashboardPanel {
-    background: #0f172a;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #334155;
+    background: var(--card-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    border: 1px solid var(--card-border);
 }
 
 /* Toast notifications */

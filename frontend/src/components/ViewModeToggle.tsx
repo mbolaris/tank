@@ -1,6 +1,7 @@
 
 import { Button, FishIcon } from './ui';
 import type { ViewMode } from '../rendering/types';
+import styles from './ViewModeToggle.module.css';
 
 interface ViewModeToggleProps {
     viewMode: ViewMode;
@@ -52,23 +53,18 @@ export function ViewModeToggle({ onChange, petriMode, onPetriModeChange }: ViewM
     };
 
     return (
-        <div style={{ display: 'flex', gap: '8px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px' }}>
+        <div className={styles.container}>
             <Button
                 variant={isTankMode ? 'primary' : 'secondary'}
                 onClick={handleTankClick}
-                style={{ fontSize: '12px', padding: '4px 12px', height: 'auto' }}
+                className={styles.toggleButton}
             >
                 <FishIcon size={14} /> Tank
             </Button>
             <Button
-                variant={isPetriMode ? 'primary' : 'secondary'}
+                variant={isPetriMode ? 'success' : 'secondary'}
                 onClick={handlePetriClick}
-                style={{
-                    fontSize: '12px',
-                    padding: '4px 12px',
-                    height: 'auto',
-                    backgroundColor: isPetriMode ? '#4CAF50' : undefined,
-                }}
+                className={styles.toggleButton}
             >
                 <MicroscopeIcon size={14} /> Microbes
             </Button>

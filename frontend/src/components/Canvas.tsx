@@ -143,12 +143,19 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                     // ALWAYS use the prop if provided - never fall back to server world_type
                     // This ensures the frontend toggle controls the renderer, not the server state
                     const worldType = worldTypePropRef.current || 'tank';
-                    // Derive view mode from render_hint when user hasn't explicitly set viewMode.
-                    // This ensures Petri/Soccer worlds render correctly by default.
-                    const hintStyle = (currentState.snapshot?.render_hint as Record<string, unknown> | undefined)?.style
-                        ?? currentState.render_hint?.style;
-                    const effectiveViewMode = viewModeRef.current
-                        || (hintStyle === 'topdown' ? 'topdown' : 'side');
+
+                    // Determine effective view mode:
+                    // - Tank mode: ALWAYS use 'side' view (fish in rectangular tank)
+                    // - Petri mode: ALWAYS use 'topdown' view (microbes in circular dish)
+                    // This prevents the confusing case of microbes in a rectangle.
+                    let effectiveViewMode: 'side' | 'topdown';
+                    if (worldType === 'tank') {
+                        // Tank mode = side view only (fish in rectangle)
+                        effectiveViewMode = 'side';
+                    } else {
+                        // Petri/Soccer = topdown view
+                        effectiveViewMode = 'topdown';
+                    }
                     const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
                     rendererRef.current = renderer;
 

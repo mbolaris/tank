@@ -42,6 +42,23 @@
   --backdrop-blur: blur(12px);
   --card-border: 1px solid #334155;
 
+  /* Typography Scale */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  /* Card/Panel Tokens */
+  --card-bg: #0f172a;
+  --card-border: #334155;
+
   /* Spacing & Radius */
   --radius-sm: 6px;
   --radius-md: 12px;
