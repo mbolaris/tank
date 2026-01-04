@@ -1,3 +1,33 @@
+"""Canonical simulation event definitions.
+
+This module defines the standard events emitted by entities during simulation.
+All events inherit from SimEvent and include a `frame` field for temporal tracking.
+
+Event Hierarchy:
+    SimEvent (base)
+    ├── AteFood - Entity consumed food
+    ├── Moved - Entity moved (with distance/speed)
+    ├── EnergyBurned - Energy consumed (metabolism, movement, etc.)
+    └── PokerGamePlayed - Poker game outcome
+
+Usage:
+    Events are emitted by entities via `entity._emit_event(event)` and recorded
+    by EcosystemManager.record_event() for statistics tracking.
+
+    Example:
+        from core.sim.events import AteFood
+        fish._emit_event(AteFood(
+            entity_id=fish.fish_id,
+            food_id=food.food_id,
+            food_type="nectar",
+            energy_gained=10.0,
+            frame=frame_count,
+        ))
+
+Design Note:
+    This module replaces the legacy `core.telemetry.events` module which
+    lacked entity_id and frame tracking.
+"""
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 

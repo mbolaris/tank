@@ -380,8 +380,15 @@ class EcosystemManager:
 
         This delegates to the specific event handlers to ensure consistent logic
         between manual recording and EventBus subscriptions.
+
+        Event Priority:
+            1. SimEvents (core.sim.events) - PREFERRED: Include entity_id and frame
+            2. TelemetryEvents (core.telemetry.events) - LEGACY: Still supported
+
+        New code should emit SimEvents. Legacy code using TelemetryEvents will
+        continue to work but should be migrated when touched.
         """
-        # Handle Legacy TelemetryEvents
+        # Handle Legacy TelemetryEvents (deprecated, but still supported)
         if isinstance(event, EnergyGainEvent):
             self._on_energy_gain_event(event)
         elif isinstance(event, EnergyBurnEvent):

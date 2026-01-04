@@ -1,7 +1,23 @@
-"""Telemetry event definitions for simulation stats recording."""
+"""Telemetry event definitions for simulation stats recording.
+
+.. deprecated::
+    This module is deprecated. Use `core.sim.events` instead, which provides
+    events with frame tracking and entity_id fields.
+
+    Migration guide:
+    - EnergyBurnEvent -> EnergyBurned (add entity_id, frame)
+    - EnergyGainEvent -> (use AteFood or emit via entity._emit_event)
+    - FoodEatenEvent -> AteFood
+    - BirthEvent -> (handled by Fish.register_birth, emits BirthEvent internally)
+    - ReproductionEvent -> (handled by reproduction system)
+
+    The telemetry events here are still functional for backward compatibility,
+    but new code should use core.sim.events.
+"""
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Sequence, Union
 
