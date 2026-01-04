@@ -66,6 +66,10 @@ def register_observation_builder(
         builder: ObservationBuilder instance
     """
     key = (world_type, policy_kind)
+    existing = _OBSERVATION_BUILDERS.get(key)
+    # Idempotent: skip if same builder type is already registered
+    if existing is not None and type(existing).__name__ == type(builder).__name__:
+        return
     _OBSERVATION_BUILDERS[key] = builder
 
 

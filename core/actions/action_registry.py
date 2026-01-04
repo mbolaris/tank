@@ -96,7 +96,11 @@ def register_action_translator(
         world_type: World identifier (e.g., "tank", "petri", "soccer")
         translator: ActionTranslator instance
     """
-    if world_type in _ACTION_TRANSLATORS:
+    existing = _ACTION_TRANSLATORS.get(world_type)
+    if existing is not None:
+        # Skip if same translator type is already registered (idempotent)
+        if type(existing).__name__ == type(translator).__name__:
+            return
         logger.warning("Overwriting action translator for world_type='%s'", world_type)
     _ACTION_TRANSLATORS[world_type] = translator
 

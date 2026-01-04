@@ -870,7 +870,8 @@ class SimulationRunner(CommandHandlerMixin):
         return poker_events
 
     def _collect_poker_leaderboard(self) -> List[PokerLeaderboardEntryPayload]:
-        if not hasattr(self.world.ecosystem, "get_poker_leaderboard"):
+        # Guard: Only fish-based worlds have ecosystem with poker leaderboard
+        if not hasattr(self.world, "ecosystem") or not hasattr(self.world.ecosystem, "get_poker_leaderboard"):
             return []
 
         fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
