@@ -6,25 +6,7 @@ their output against the movement contract, and handling failures safely.
 
 from __future__ import annotations
 
-import logging
-import math
-import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional, Tuple
-
-from core.math_utils import Vector2
-from core.policies.interfaces import MovementAction, build_movement_observation
-
-if TYPE_CHECKING:
-    from core.code_pool import GenomeCodePool
-    from core.genetics import Genome
-
-logger = logging.getLogger(__name__)
-
-# Output type alias
-VelocityComponents = Tuple[float, float]
-
-# Rate limiting for error logs to avoid spamming console
-_ERROR_LOG_INTERVAL = 60
+     logger.warning(f"Movement policy {component_id} error for fish {fish_id}: {message}")
 _ERROR_LAST_LOG: dict[int, int] = {}
 
 

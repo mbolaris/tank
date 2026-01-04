@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from backend.simulation_manager import SimulationManager
-from backend.simulation_runner import SimulationRunner
 
 
 def test_change_world_type():
