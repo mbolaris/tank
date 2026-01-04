@@ -460,9 +460,7 @@ class ComposablePokerStrategy:
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:
-            self.hand_selection = coerce_enum(
-                HandSelection, rng.randint(0, len(HandSelection) - 1)
-            )
+            self.hand_selection = coerce_enum(HandSelection, rng.randint(0, len(HandSelection) - 1))
         if rng.random() < sub_behavior_switch_rate:
             self.betting_style = coerce_enum(BettingStyle, rng.randint(0, len(BettingStyle) - 1))
         if rng.random() < sub_behavior_switch_rate:

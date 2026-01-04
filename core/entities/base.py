@@ -263,7 +263,6 @@ class Agent(Entity):
             if resolve_collision(self):
                 return
 
-
         if self.can_attempt_migration():
             # Left boundary
             if self.pos.x < min_x:

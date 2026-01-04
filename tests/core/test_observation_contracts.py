@@ -1,4 +1,3 @@
-
 import unittest
 from unittest.mock import MagicMock, patch
 from core.policies.interfaces import build_movement_observation
@@ -8,6 +7,7 @@ from core.policies.observation_registry import (
     snapshot_registry,
     restore_registry,
 )
+
 
 class TestObservationContracts(unittest.TestCase):
     def setUp(self):
@@ -39,7 +39,7 @@ class TestObservationContracts(unittest.TestCase):
         # Act & Assert
         with self.assertRaises(ValueError) as cm:
             build_movement_observation(self.fish)
-        
+
         self.assertIn("No observation builder registered", str(cm.exception))
 
     def test_default_world_type(self):

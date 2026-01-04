@@ -222,4 +222,3 @@ class TankLikePackBase(ABC):
         from core.worlds.shared.fish_plant_phase_hooks import FishPlantPhaseHooks
 
         return FishPlantPhaseHooks()
-

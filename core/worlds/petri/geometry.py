@@ -21,11 +21,11 @@ PETRI_RADIUS = (min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2) - PETRI_RIM_MARGIN
 
 def reflect_velocity(vx: float, vy: float, nx: float, ny: float) -> Tuple[float, float]:
     """Reflect velocity vector v about a unit normal n.
-    
+
     Args:
         vx, vy: Velocity vector components
         nx, ny: Unit normal vector components (pointing inward)
-        
+
     Returns:
         (vx', vy') reflected velocity
     """
@@ -41,12 +41,12 @@ def circle_perimeter_points(
     count: int,
 ) -> List[Tuple[float, float, float, float]]:
     """Generate points distributed around a circle perimeter.
-    
+
     Args:
         cx, cy: Circle center
         r: Radius
         count: Number of points to generate
-        
+
     Returns:
         List of (x, y, nx, ny) tuples where (nx, ny) is the inward-facing normal
     """
@@ -56,8 +56,8 @@ def circle_perimeter_points(
         x = cx + r * math.cos(a)
         y = cy + r * math.sin(a)
         # inward normal points toward center
-        nx = (cx - x)
-        ny = (cy - y)
+        nx = cx - x
+        ny = cy - y
         inv_len = 1.0 / max(1e-9, math.hypot(nx, ny))
         pts.append((x, y, nx * inv_len, ny * inv_len))
     return pts

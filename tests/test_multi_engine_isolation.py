@@ -83,7 +83,9 @@ def _compare_stats(stats1: dict, stats2: dict, rel_tol: float = 1e-6) -> None:
             _compare_nested_dict(val1, val2, rel_tol, path=key)
         elif key in POPULATION_TOLERANCE_FIELDS and isinstance(val1, int) and isinstance(val2, int):
             # Allow ±1 difference for population stats due to birth/death timing
-            assert abs(val1 - val2) <= 1, f"Population field {key} differs by more than 1: {val1} vs {val2}"
+            assert (
+                abs(val1 - val2) <= 1
+            ), f"Population field {key} differs by more than 1: {val1} vs {val2}"
         else:
             assert val1 == val2, f"Value mismatch for {key}: {val1} vs {val2}"
 

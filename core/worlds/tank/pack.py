@@ -42,7 +42,6 @@ class TankPack(TankLikePackBase):
         register_tank_movement_observation_builder("tank")
 
     def get_identity_provider(self) -> "EntityIdentityProvider":
-
         """Return the Tank identity provider."""
         return self._identity_provider
 

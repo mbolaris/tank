@@ -26,7 +26,7 @@ class TestPetriEnvironment(unittest.TestCase):
         agent.width = 20
         agent.height = 20
         agent.vel = Vector2(0, 0)
-        
+
         resolved = self.env.resolve_boundary_collision(agent)
         self.assertTrue(resolved)
 
@@ -37,24 +37,24 @@ class TestPetriEnvironment(unittest.TestCase):
         agent.width = 20
         agent.height = 20
         r = agent.width / 2
-        
+
         # Position so center is outside: dish center + dish radius + 10
         outside_x = self.dish.cx + self.dish.r + 10 - r
         agent.pos = Vector2(outside_x, self.dish.cy - r)
         agent.rect = MagicMock()
-        
+
         # Moving outward
         agent.vel = Vector2(10, 0)
-        
+
         resolved = self.env.resolve_boundary_collision(agent)
         self.assertTrue(resolved)
-        
+
         # Should be pushed back in
         agent_cx = agent.pos.x + r
         dist = agent_cx - self.dish.cx
         max_allowed = self.dish.r
         self.assertLessEqual(dist, max_allowed + 0.001)
-        
+
         # Should have reflected velocity (moving left now)
         self.assertLess(agent.vel.x, 0)
 
@@ -63,17 +63,16 @@ class TestPetriEnvironment(unittest.TestCase):
         agent = MagicMock()
         agent.width = 20
         agent.height = 40  # height > width
-        
+
         # Position agent exactly at max distance for height-based radius
         # max_dist = dish.r - max(w, h)/2 = 290 - 20 = 270
         # So agent center at dish_cx + 271 should trigger collision
         agent.pos = Vector2(self.dish.cx + 271 - 10, self.dish.cy - 20)
         agent.rect = MagicMock()
         agent.vel = Vector2(10, 0)
-        
+
         resolved = self.env.resolve_boundary_collision(agent)
         self.assertTrue(resolved)
-        
+
         # Velocity should be reflected since we're outside and moving outward
         self.assertLess(agent.vel.x, 0)
-

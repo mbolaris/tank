@@ -33,9 +33,7 @@ def test_tankpack_inherits_from_tank_like_pack_base():
     from core.worlds.shared.tank_like_pack_base import TankLikePackBase
     from core.worlds.tank.pack import TankPack
 
-    assert issubclass(TankPack, TankLikePackBase), (
-        "TankPack should inherit from TankLikePackBase"
-    )
+    assert issubclass(TankPack, TankLikePackBase), "TankPack should inherit from TankLikePackBase"
 
 
 def test_petripack_inherits_from_tank_like_pack_base():
@@ -43,9 +41,7 @@ def test_petripack_inherits_from_tank_like_pack_base():
     from core.worlds.petri.pack import PetriPack
     from core.worlds.shared.tank_like_pack_base import TankLikePackBase
 
-    assert issubclass(PetriPack, TankLikePackBase), (
-        "PetriPack should inherit from TankLikePackBase"
-    )
+    assert issubclass(PetriPack, TankLikePackBase), "PetriPack should inherit from TankLikePackBase"
 
 
 def test_petripack_does_not_import_tankpack_module():
@@ -76,6 +72,6 @@ def test_petripack_does_not_import_tankpack_module():
             if "worlds.tank.pack" in module:
                 tank_imports.append(f"from {module}")
 
-    assert not tank_imports, (
-        f"PetriPack module should not import TankPack module. Found: {tank_imports}"
-    )
+    assert (
+        not tank_imports
+    ), f"PetriPack module should not import TankPack module. Found: {tank_imports}"

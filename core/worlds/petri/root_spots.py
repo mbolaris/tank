@@ -24,7 +24,7 @@ class CircularRootSpotManager(RootSpotManager):
         rng: Optional[random.Random] = None,
     ) -> None:
         """Initialize with dish geometry.
-        
+
         Args:
             dish: PetriDish object defining the circular boundary
             rng: Random number generator (optional)
@@ -46,18 +46,17 @@ class CircularRootSpotManager(RootSpotManager):
 
     def _initialize_spots(self, count: int) -> None:
         """Create root spots around the circular dish perimeter.
-        
+
         Args:
             count: Number of spots to create
         """
         # Use dish.perimeter_points to get evenly distributed points
         perimeter = self.dish.perimeter_points(count)
-        
+
         for i, (x, y, angle) in enumerate(perimeter):
             spot = RootSpot(spot_id=i, x=x, y=y)
             spot.manager = self
             spot.anchor_mode = "radial_inward"
             spot.angle = angle
-            
-            self.spots.append(spot)
 
+            self.spots.append(spot)

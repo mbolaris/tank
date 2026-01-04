@@ -18,7 +18,7 @@ Observation = Dict[str, Any]
 
 class SoccerMovementObservationBuilder:
     """Minimal observation builder for Soccer world movement policies.
-    
+
     This is a stub that returns default values. Soccer agents typically use
     the SoccerPolicy interface rather than movement policies, but this ensures
     the observation registry doesn't crash if movement observation is requested.
@@ -29,12 +29,12 @@ class SoccerMovementObservationBuilder:
         # Soccer agents may have different attributes than Fish
         pos = getattr(agent, "pos", None)
         vel = getattr(agent, "vel", None)
-        
+
         pos_x = getattr(pos, "x", 0.0) if pos else 0.0
         pos_y = getattr(pos, "y", 0.0) if pos else 0.0
         vel_x = getattr(vel, "x", 0.0) if vel else 0.0
         vel_y = getattr(vel, "y", 0.0) if vel else 0.0
-        
+
         return {
             "position": {"x": pos_x, "y": pos_y},
             "velocity": {"x": vel_x, "y": vel_y},

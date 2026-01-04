@@ -16,12 +16,12 @@ from core.worlds.shared.movement_observations import FishMovementObservationBuil
 
 class TankMovementObservationBuilder(FishMovementObservationBuilder):
     """Tank-specific observation builder.
-    
+
     Pre-configured with Tank entity types (Food, Crab).
     This class exists for backward compatibility - code can import
     TankMovementObservationBuilder directly from this module.
     """
-    
+
     def __init__(self) -> None:
         """Initialize with Tank-specific entity types."""
         super().__init__(
@@ -34,6 +34,7 @@ class TankMovementObservationBuilder(FishMovementObservationBuilder):
 # =============================================================================
 # Registration
 # =============================================================================
+
 
 def register_tank_movement_observation_builder(world_type: str = "tank") -> None:
     """Register the tank movement observation builder."""

@@ -157,13 +157,12 @@ class MovementAction:
 
 def build_movement_observation(fish: Fish) -> Observation:
     """Build a minimal observation payload for movement policies.
-    
+
     This is a backward-compatible shim that delegates to the world-specific
     observation builder registry. The actual observation building logic lives
     in the appropriate world module (e.g., core/worlds/tank/movement_observations.py).
     """
     from core.policies.observation_registry import build_observation
-    
+
     world_type = getattr(fish.environment, "world_type", "tank")
     return build_observation(world_type, "movement", fish, fish.environment)
-

@@ -522,8 +522,9 @@ class TestIdentityProviderPruning:
 
         # Verify the python id is tracked in _entity_stable_ids
         # (Food uses python id for stable ID generation)
-        assert python_id in provider._entity_stable_ids, \
-            "Food python id should be tracked in _entity_stable_ids"
+        assert (
+            python_id in provider._entity_stable_ids
+        ), "Food python id should be tracked in _entity_stable_ids"
 
         # Remove the entity from simulation
         engine.remove_entity(food)
@@ -532,8 +533,9 @@ class TestIdentityProviderPruning:
         engine.update()
 
         # Verify the python id is no longer tracked
-        assert python_id not in provider._entity_stable_ids, \
-            "Stale python id should be pruned after entity removal and frame update"
+        assert (
+            python_id not in provider._entity_stable_ids
+        ), "Stale python id should be pruned after entity removal and frame update"
 
     def test_identity_provider_prunes_only_stale_ids(self) -> None:
         """Identity provider preserves entries for active entities.
@@ -573,8 +575,9 @@ class TestIdentityProviderPruning:
         engine.update()
 
         # food1 should be pruned, food2 should remain
-        assert python_id1 not in provider._entity_stable_ids, \
-            "Removed entity's python id should be pruned"
-        assert python_id2 in provider._entity_stable_ids, \
-            "Active entity's python id should be preserved"
-
+        assert (
+            python_id1 not in provider._entity_stable_ids
+        ), "Removed entity's python id should be pruned"
+        assert (
+            python_id2 in provider._entity_stable_ids
+        ), "Active entity's python id should be preserved"

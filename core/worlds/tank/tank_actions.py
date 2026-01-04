@@ -21,6 +21,7 @@ TankActionTranslator = FishActionTranslator
 # Registration
 # =============================================================================
 
+
 def register_tank_action_translator(world_type: str = "tank") -> None:
     """Register the Tank action translator for the specified world type."""
     translator = TankActionTranslator()

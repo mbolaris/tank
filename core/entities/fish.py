@@ -115,12 +115,15 @@ class Fish(Agent):
             self.genome = Genome.random(rng=rng)
 
         # Ensure poker strategy is initialized (self-healing for older saves/migrations)
-        if self.genome.behavioral.poker_strategy is None or self.genome.behavioral.poker_strategy.value is None:
+        if (
+            self.genome.behavioral.poker_strategy is None
+            or self.genome.behavioral.poker_strategy.value is None
+        ):
             from core.poker.strategy.implementations import get_random_poker_strategy
-            
+
             rng = require_rng(environment, "Fish.__init__.poker_strategy")
             strategy = get_random_poker_strategy(rng=rng)
-            
+
             if self.genome.behavioral.poker_strategy is None:
                 self.genome.behavioral.poker_strategy = GeneticTrait(strategy)
             else:
@@ -537,7 +540,9 @@ class Fish(Agent):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
             self._emit_event(
-                EnergyBurned(entity_id=self.fish_id, amount=food.energy, reason=BURN_REASON_OVERFLOW_FOOD)
+                EnergyBurned(
+                    entity_id=self.fish_id, amount=food.energy, reason=BURN_REASON_OVERFLOW_FOOD
+                )
             )
         except Exception:
             pass  # Energy lost on failure is acceptable
@@ -558,13 +563,17 @@ class Fish(Agent):
         # Emit new Ledger events
         self._emit_event(
             EnergyBurned(
-                entity_id=self.fish_id, amount=energy_breakdown["existence"], reason=BURN_REASON_EXISTENCE
+                entity_id=self.fish_id,
+                amount=energy_breakdown["existence"],
+                reason=BURN_REASON_EXISTENCE,
             )
         )
 
         self._emit_event(
             EnergyBurned(
-                entity_id=self.fish_id, amount=energy_breakdown["movement"], reason=BURN_REASON_MOVEMENT
+                entity_id=self.fish_id,
+                amount=energy_breakdown["movement"],
+                reason=BURN_REASON_MOVEMENT,
             )
         )
 
@@ -584,7 +593,9 @@ class Fish(Agent):
         )
 
         self._emit_event(
-            EnergyBurned(entity_id=self.fish_id, amount=trait_cost, reason=BURN_REASON_TRAIT_MAINTENANCE)
+            EnergyBurned(
+                entity_id=self.fish_id, amount=trait_cost, reason=BURN_REASON_TRAIT_MAINTENANCE
+            )
         )
 
     def is_starving(self) -> bool:

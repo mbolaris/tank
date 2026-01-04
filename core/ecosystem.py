@@ -377,7 +377,7 @@ class EcosystemManager:
 
     def record_event(self, event: Any) -> None:
         """Record a telemetry event emitted by domain entities.
-        
+
         This delegates to the specific event handlers to ensure consistent logic
         between manual recording and EventBus subscriptions.
         """
@@ -392,11 +392,11 @@ class EcosystemManager:
             self._on_birth_event(event)
         elif isinstance(event, ReproductionEvent):
             self._on_reproduction_event(event)
-            
+
         # Handle New SimEvents
         else:
             from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
-            
+
             if isinstance(event, AteFood):
                 self._on_sim_ate_food(event)
             elif isinstance(event, EnergyBurned):
@@ -551,7 +551,6 @@ class EcosystemManager:
     def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, Any]:
         """Get comprehensive ecosystem summary statistics."""
         from statistics import median
-
 
         from core.config.fish import (
             FISH_ADULT_SIZE,

@@ -13,7 +13,7 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
 
     def _spawn_food(self) -> int:
         """Spawn a food entity at a random location inside the dish.
-        
+
         Returns:
             Number of food entities spawned (0 or 1)
         """
@@ -28,7 +28,7 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
         if dish is None:
             # Fallback if dish not available (shouldn't happen in Petri mode)
             return 0
-        
+
         # Spawn strictly inside the dish with a small margin
         x, y = dish.sample_point(self._rng, margin=10.0)
 
@@ -54,4 +54,3 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
             return 1
 
         return 0
-

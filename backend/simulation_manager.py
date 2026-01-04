@@ -148,7 +148,7 @@ class SimulationManager:
         was_running = self.running
         if was_running:
             self.stop()
-        
+
         # 2. Update metadata
         self.tank_info.world_type = new_world_type
 
@@ -171,8 +171,7 @@ class SimulationManager:
         # 5. Restart if it was running (or if we have clients and want to auto-start)
         # Note: If we switched modes, we probably want to ensure it's running if visible
         if was_running or (self.client_count > 0 and not self.world.paused):
-             self.start(start_paused=False)
-
+            self.start(start_paused=False)
 
     @property
     def tank_id(self) -> str:

@@ -47,7 +47,9 @@ def test_direct_mutation_blocked_during_collision_phase(simulation_engine):
         engine.add_entity(new_fish)
 
     # Direct remove_entity should raise error
-    with pytest.raises(RuntimeError, match="Unsafe call to remove_entity.*COLLISION.*request_remove"):
+    with pytest.raises(
+        RuntimeError, match="Unsafe call to remove_entity.*COLLISION.*request_remove"
+    ):
         engine.remove_entity(fish)
 
     # Verify entity wasn't modified

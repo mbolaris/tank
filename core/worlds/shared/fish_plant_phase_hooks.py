@@ -50,36 +50,22 @@ class FishPlantPhaseHooks(PhaseHooks):
         if isinstance(spawned_entity, Fish):
             ecosystem = engine.ecosystem
             if ecosystem is None:
-                return SpawnDecision(
-                    should_add=False,
-                    entity=spawned_entity,
-                    reason="no_ecosystem"
-                )
+                return SpawnDecision(should_add=False, entity=spawned_entity, reason="no_ecosystem")
 
             fish_count = len(engine.get_fish_list())
             if not ecosystem.can_reproduce(fish_count):
                 return SpawnDecision(
-                    should_add=False,
-                    entity=spawned_entity,
-                    reason="population_limit"
+                    should_add=False, entity=spawned_entity, reason="population_limit"
                 )
 
             # Register birth for accepted fish
             spawned_entity.register_birth()
             engine.lifecycle_system.record_birth()
 
-            return SpawnDecision(
-                should_add=True,
-                entity=spawned_entity,
-                reason="fish_accepted"
-            )
+            return SpawnDecision(should_add=True, entity=spawned_entity, reason="fish_accepted")
 
         # Non-Fish entities are always accepted
-        return SpawnDecision(
-            should_add=True,
-            entity=spawned_entity,
-            reason="non_fish"
-        )
+        return SpawnDecision(should_add=True, entity=spawned_entity, reason="non_fish")
 
     def on_entity_died(
         self,
@@ -158,8 +144,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
         # Record energy snapshot for delta calculations
         total_fish_energy = sum(
-            f.energy + f._reproduction_component.overflow_energy_bank
-            for f in fish_list
+            f.energy + f._reproduction_component.overflow_energy_bank for f in fish_list
         )
         ecosystem.record_energy_snapshot(total_fish_energy, len(fish_list))
 

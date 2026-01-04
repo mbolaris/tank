@@ -23,12 +23,13 @@ if TYPE_CHECKING:
 @dataclass
 class SpawnDecision:
     """Result of evaluating whether a spawned entity should be added.
-    
+
     Attributes:
         should_add: Whether to add the entity to the simulation
         entity: The entity to add (may be modified by the hook)
         reason: Optional reason for the decision (for debugging)
     """
+
     should_add: bool
     entity: Any
     reason: str = ""
@@ -37,11 +38,11 @@ class SpawnDecision:
 @runtime_checkable
 class PhaseHooks(Protocol):
     """Protocol for mode-specific phase behavior.
-    
+
     Hooks are called by the engine at specific points in the update loop.
     Modes can override these to customize entity handling without touching
     engine code.
-    
+
     All methods have default no-op implementations to allow partial overrides.
     """
 
@@ -52,12 +53,12 @@ class PhaseHooks(Protocol):
         parent_entity: Any,
     ) -> SpawnDecision:
         """Called when entity.update() returns spawned entities.
-        
+
         Args:
             engine: The simulation engine
             spawned_entity: The newly spawned entity
             parent_entity: The entity that spawned it
-            
+
         Returns:
             SpawnDecision indicating whether to add the entity
         """
@@ -69,15 +70,15 @@ class PhaseHooks(Protocol):
         entity: Any,
     ) -> bool:
         """Called when entity.is_dead() returns True.
-        
+
         The hook should handle mode-specific death logic (death animations,
         score updates, etc.) and return whether the entity should be queued
         for removal.
-        
+
         Args:
             engine: The simulation engine
             entity: The entity that died
-            
+
         Returns:
             True if entity should be added to removal list, False otherwise
         """
@@ -88,10 +89,10 @@ class PhaseHooks(Protocol):
         engine: "SimulationEngine",
     ) -> None:
         """Called during lifecycle phase for mode-specific cleanup.
-        
+
         Use this for things like food expiry checks, death animation cleanup,
         goal reset logic, etc.
-        
+
         Args:
             engine: The simulation engine
         """
@@ -102,9 +103,9 @@ class PhaseHooks(Protocol):
         engine: "SimulationEngine",
     ) -> None:
         """Called at end of reproduction phase for stats recording.
-        
+
         Use this for population stats, energy snapshots, etc.
-        
+
         Args:
             engine: The simulation engine
         """
@@ -115,9 +116,9 @@ class PhaseHooks(Protocol):
         engine: "SimulationEngine",
     ) -> None:
         """Called at end of frame for mode-specific cleanup.
-        
+
         Use this for benchmarks, periodic cleanup, etc.
-        
+
         Args:
             engine: The simulation engine
         """
@@ -126,7 +127,7 @@ class PhaseHooks(Protocol):
 
 class NoOpPhaseHooks:
     """Default no-op implementation of PhaseHooks.
-    
+
     Used when a pack doesn't provide custom hooks.
     """
 

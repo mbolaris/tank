@@ -1,4 +1,3 @@
-
 """Common constants used throughout the simulation."""
 
 # Death Reasons

@@ -9,9 +9,10 @@ import pytest
 # Contract Registration
 # =============================================================================
 
+
 def register_builtin_contracts_for_tests() -> None:
     """Register all builtin contract implementations for testing.
-    
+
     This ensures tests that construct Environment directly (bypassing engine/pack
     registration) still have access to required contracts like observation builders.
     """

@@ -2,6 +2,7 @@
 
 Uses the shared FishMovementObservationBuilder configured for Tank-like entities.
 """
+
 from core.entities import Crab, Food
 from core.policies.observation_registry import register_observation_builder
 from core.worlds.shared.movement_observations import FishMovementObservationBuilder

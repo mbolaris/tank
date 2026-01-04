@@ -7,15 +7,15 @@ coupling the core policy interface to any single world's entities.
 Usage:
     # In world-specific module (e.g., core/worlds/tank/movement_observations.py):
     from core.policies.observation_registry import register_observation_builder
-    
+
     class TankMovementObservationBuilder:
         def build(self, agent, env) -> dict: ...
-    
+
     register_observation_builder("tank", "movement", TankMovementObservationBuilder())
-    
+
     # In policy code:
     from core.policies.observation_registry import build_observation
-    
+
     obs = build_observation("tank", "movement", fish, env)
 """
 
@@ -31,18 +31,18 @@ Observation = Dict[str, Any]
 
 class ObservationBuilder(Protocol):
     """Protocol for world-specific observation builders.
-    
+
     Each world implements this protocol for each policy kind (movement, soccer, etc.)
     to build observations appropriate for that world's entities and mechanics.
     """
 
     def build(self, agent: Any, env: Any) -> Observation:
         """Build an observation dict for the given agent in the environment.
-        
+
         Args:
             agent: The agent requesting an observation (e.g., Fish, SoccerPlayer)
             env: The environment/world context
-            
+
         Returns:
             Observation dict with policy-kind-specific keys
         """
@@ -59,7 +59,7 @@ def register_observation_builder(
     builder: ObservationBuilder,
 ) -> None:
     """Register an observation builder for a world type and policy kind.
-    
+
     Args:
         world_type: World identifier (e.g., "tank", "petri", "soccer")
         policy_kind: Policy kind (e.g., "movement", "soccer", "poker")
@@ -78,11 +78,11 @@ def get_observation_builder(
     policy_kind: str,
 ) -> ObservationBuilder | None:
     """Get a registered observation builder.
-    
+
     Args:
         world_type: World identifier
         policy_kind: Policy kind
-        
+
     Returns:
         Registered builder or None if not found
     """
@@ -96,16 +96,16 @@ def build_observation(
     env: Any,
 ) -> Observation:
     """Build an observation using the registered builder.
-    
+
     Args:
         world_type: World identifier (e.g., "tank", "petri", "soccer")
         policy_kind: Policy kind (e.g., "movement")
         agent: The agent requesting observation
         env: The environment context
-        
+
     Returns:
         Observation dict from the registered builder
-        
+
     Raises:
         ValueError: If no builder is registered for the world_type/policy_kind
     """
@@ -121,7 +121,7 @@ def build_observation(
 
 def list_registered_builders() -> list[tuple[str, str]]:
     """List all registered (world_type, policy_kind) pairs.
-    
+
     Returns:
         List of (world_type, policy_kind) tuples
     """
@@ -130,7 +130,7 @@ def list_registered_builders() -> list[tuple[str, str]]:
 
 def clear_registry() -> None:
     """Clear all registered observation builders.
-    
+
     WARNING: Use this ONLY in tests to reset state.
     """
     _OBSERVATION_BUILDERS.clear()
@@ -138,7 +138,7 @@ def clear_registry() -> None:
 
 def snapshot_registry() -> Dict[tuple[str, str], ObservationBuilder]:
     """Return a shallow copy of the current registry.
-    
+
     Use this to capture the registry state before tests that clear it.
     """
     return dict(_OBSERVATION_BUILDERS)
@@ -146,7 +146,7 @@ def snapshot_registry() -> Dict[tuple[str, str], ObservationBuilder]:
 
 def restore_registry(snapshot: Dict[tuple[str, str], ObservationBuilder]) -> None:
     """Restore the registry from a snapshot.
-    
+
     Clears the current registry and restores all entries from the snapshot.
     Use in tearDown() to prevent test pollution.
     """

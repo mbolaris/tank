@@ -917,13 +917,13 @@ class SimulationEngine:
 
         for delta, stable_id in deltas:
             entity = None
-            
+
             if self._identity_provider is not None:
                 # Prefer stable ID lookup, fall back to legacy ID if needed.
                 entity = self._identity_provider.get_entity_by_id(stable_id)
                 if entity is None and str(delta.entity_id) != stable_id:
                     entity = self._identity_provider.get_entity_by_id(str(delta.entity_id))
-            
+
             if entity is not None:
                 # Apply energy delta to the entity
                 if hasattr(entity, "apply_energy_delta"):
@@ -940,7 +940,6 @@ class SimulationEngine:
 
                     # Set with property setter logic (e.g. death check)
                     entity.energy = new_val
-
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.
@@ -965,7 +964,9 @@ class SimulationEngine:
 
         # Prune stale identity mappings to prevent memory leaks and id() reuse
         # corruption. This removes entries for entities that no longer exist.
-        if self._identity_provider is not None and hasattr(self._identity_provider, 'prune_stale_ids'):
+        if self._identity_provider is not None and hasattr(
+            self._identity_provider, "prune_stale_ids"
+        ):
             current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
             self._identity_provider.prune_stale_ids(current_entity_ids)
 

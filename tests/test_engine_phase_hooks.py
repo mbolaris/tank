@@ -22,9 +22,9 @@ def test_engine_uses_phase_hooks_from_pack():
     assert engine._phase_hooks is not None, "Engine should have phase hooks"
 
     # Should be TankPhaseHooks for default Tank setup
-    assert isinstance(engine._phase_hooks, TankPhaseHooks), (
-        "Default Tank setup should use TankPhaseHooks"
-    )
+    assert isinstance(
+        engine._phase_hooks, TankPhaseHooks
+    ), "Default Tank setup should use TankPhaseHooks"
 
 
 def test_petri_mode_uses_tank_like_hooks():
@@ -38,14 +38,14 @@ def test_petri_mode_uses_tank_like_hooks():
     engine.setup(pack)
 
     # Petri uses TankPhaseHooks via TankLikePackBase
-    assert isinstance(engine._phase_hooks, TankPhaseHooks), (
-        "Petri mode should use TankPhaseHooks from shared base"
-    )
+    assert isinstance(
+        engine._phase_hooks, TankPhaseHooks
+    ), "Petri mode should use TankPhaseHooks from shared base"
 
 
 def test_engine_add_remove_only_happens_in_commit_phases(monkeypatch):
     """Tripwire test to catch accidental mid-phase mutations.
-    
+
     This test monitors _add_entity and _remove_entity calls and asserts
     they only happen during commit phases, not during iteration phases.
     """
@@ -97,7 +97,7 @@ def test_engine_add_remove_only_happens_in_commit_phases(monkeypatch):
 
 def test_tank_phase_hooks_spawn_decision_respects_population():
     """Verify TankPhaseHooks respects ecosystem population limits.
-    
+
     Fish spawns should be rejected when population is at limit.
     Non-Fish spawns should always be accepted.
     """

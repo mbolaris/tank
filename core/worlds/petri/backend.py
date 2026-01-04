@@ -29,7 +29,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         """Get dish geometry from environment as a dict for render_hint."""
         env = getattr(self._tank_backend.engine, "environment", None)
         dish = getattr(env, "dish", None) if env else None
-        
+
         if dish:
             return {
                 "shape": "circle",
@@ -37,9 +37,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
                 "cy": dish.cy,
                 "r": dish.r,
             }
-        
+
         # Fallback to geometry constants (for early initialization)
         from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+
         return {
             "shape": "circle",
             "cx": PETRI_CENTER_X,
@@ -71,7 +72,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
-            
+
             snapshot["render_hint"] = {
                 "style": "topdown",
                 "entity_style": "microbe",
@@ -87,7 +88,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
-            
+
             snapshot["render_hint"] = {
                 "style": "topdown",
                 "entity_style": "microbe",
@@ -145,14 +146,14 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def _patch_step_result(self, result: StepResult) -> StepResult:
         snapshot = dict(result.snapshot)
         snapshot["world_type"] = "petri"
-        
+
         render_hint = {
             "style": "topdown",
             "entity_style": "microbe",
             "dish": self._get_dish_dict(),
         }
         snapshot["render_hint"] = render_hint
-        
+
         return StepResult(
             obs_by_agent=result.obs_by_agent,
             snapshot=snapshot,

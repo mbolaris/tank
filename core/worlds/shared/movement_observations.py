@@ -22,11 +22,11 @@ Observation = Dict[str, Any]
 
 class FishMovementObservationBuilder:
     """Observation builder for fish-based world movement policies.
-    
+
     This is the shared implementation used by Tank, Petri, and other fish-based
     worlds. The entity types (food_type, threat_type) are passed during construction
     to avoid hard-coding Tank-specific imports.
-    
+
     Builds observations containing:
     - position: {x, y}
     - velocity: {x, y}
@@ -44,7 +44,7 @@ class FishMovementObservationBuilder:
         threat_detection_range: float = 200.0,
     ) -> None:
         """Initialize the observation builder.
-        
+
         Args:
             food_type: Entity type to search for as food (e.g., Food class)
             threat_type: Entity type to search for as threats (e.g., Crab class)
@@ -71,7 +71,10 @@ class FishMovementObservationBuilder:
         )
         nearest_threat_vector = (
             _nearest_vector(
-                fish, self.threat_type, max_distance=self.threat_detection_range, use_resources=False
+                fish,
+                self.threat_type,
+                max_distance=self.threat_detection_range,
+                use_resources=False,
             )
             if self.threat_type is not None
             else {"x": 0.0, "y": 0.0}
@@ -96,13 +99,13 @@ def _nearest_vector(
     use_resources: bool,
 ) -> dict[str, float]:
     """Find the nearest entity of the given type and return vector to it.
-    
+
     Args:
         fish: The fish looking for entities
         agent_type: Type to search for (Food, Crab, etc.)
         max_distance: Maximum search distance (None for unlimited)
         use_resources: If True, use optimized resource query
-        
+
     Returns:
         Vector {x, y} from fish to nearest entity, or {0, 0} if none found
     """
@@ -148,13 +151,15 @@ def _nearest_vector(
 # Factory function for common configurations
 # =============================================================================
 
+
 def create_tank_observation_builder() -> FishMovementObservationBuilder:
     """Create observation builder configured for Tank/Petri worlds.
-    
+
     This factory imports Tank-specific entity types and creates a properly
     configured builder instance.
     """
     from core.entities import Crab, Food
+
     return FishMovementObservationBuilder(
         food_type=Food,
         threat_type=Crab,

@@ -17,19 +17,17 @@ def test_petri_mode_initializes_with_identity_provider():
     engine.setup(pack)
 
     # Identity provider should be set
-    assert engine._identity_provider is not None, (
-        "Petri mode should have an identity provider"
-    )
+    assert engine._identity_provider is not None, "Petri mode should have an identity provider"
 
     # Provider should have get_entity_by_id method
-    assert hasattr(engine._identity_provider, "get_entity_by_id"), (
-        "Identity provider must support get_entity_by_id for reverse lookup"
-    )
+    assert hasattr(
+        engine._identity_provider, "get_entity_by_id"
+    ), "Identity provider must support get_entity_by_id for reverse lookup"
 
     # Provider should have sync_entities method
-    assert hasattr(engine._identity_provider, "sync_entities"), (
-        "Identity provider must support sync_entities for batch operations"
-    )
+    assert hasattr(
+        engine._identity_provider, "sync_entities"
+    ), "Identity provider must support sync_entities for batch operations"
 
 
 def test_petri_mode_runs_multiple_frames():
@@ -76,19 +74,17 @@ def test_petri_energy_deltas_reference_real_entities():
     engine.update()
 
     # Energy should have been applied
-    assert fish.energy > initial_energy, (
-        f"Fish energy should have increased from {initial_energy}, but is {fish.energy}"
-    )
+    assert (
+        fish.energy > initial_energy
+    ), f"Fish energy should have increased from {initial_energy}, but is {fish.energy}"
 
     # Check that energy delta record uses stable ID format
-    energy_delta = next(
-        (d for d in engine._frame_energy_deltas if d.source == "ate_food"),
-        None
-    )
+    energy_delta = next((d for d in engine._frame_energy_deltas if d.source == "ate_food"), None)
     assert energy_delta is not None, "Energy delta record not found"
 
     # Verify the ID is in stable format (uses offset, not raw fish_id)
     from core.config.entities import FISH_ID_OFFSET
+
     expected_stable_id = str(fish.fish_id + FISH_ID_OFFSET)
     assert energy_delta.entity_id == expected_stable_id, (
         f"Energy delta ID ({energy_delta.entity_id}) should be stable ID "
@@ -122,6 +118,6 @@ def test_identity_provider_sync_captures_all_entities():
     for entity in all_entities:
         entity_type, stable_id = provider.get_identity(entity)
         found_entity = provider.get_entity_by_id(stable_id)
-        assert found_entity is entity, (
-            f"Entity with stable ID {stable_id} not found via get_entity_by_id"
-        )
+        assert (
+            found_entity is entity
+        ), f"Entity with stable ID {stable_id} not found via get_entity_by_id"

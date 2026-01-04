@@ -137,7 +137,7 @@ def setup_crud_subrouter(
             # Validate mode availability (basic check)
             # You might want to call get_registered_world_types() here but for now simple check
             # basic validation is implicitly done by SimulationRunner/WorldRegistry which raises ValueError
-            
+
             manager.change_world_type(mode_request.world_type)
 
             # Persist immediately
@@ -150,7 +150,6 @@ def setup_crud_subrouter(
         except Exception as e:
             logger.error(f"Error changing tank mode: {e}", exc_info=True)
             return JSONResponse({"error": str(e)}, status_code=500)
-
 
     @router.get("/{tank_id}")
     async def get_tank(tank_id: str, request: Request):

@@ -7,19 +7,19 @@ It mirrors the ObservationRegistry pattern for consistency.
 Usage:
     # In world-specific module (e.g., core/worlds/tank/tank_actions.py):
     from core.actions.action_registry import register_action_translator
-    
+
     class TankActionTranslator:
         def get_action_space(self) -> ActionSpace:
             return {"movement": {"type": "continuous", "shape": (2,)}}
-        
+
         def translate_action(self, agent_id: str, raw_action: Any) -> Action:
             return Action(entity_id=agent_id, target_velocity=raw_action["velocity"])
-    
+
     register_action_translator("tank", TankActionTranslator())
-    
+
     # In policy code:
     from core.actions.action_registry import get_action_space, translate_action
-    
+
     space = get_action_space("tank")
     action = translate_action("tank", fish_id, raw_action)
 """

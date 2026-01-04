@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class PetriEnvironment(Environment):
     """Petri dish environment with circular boundary.
-    
+
     Requires a PetriDish object to define the circular boundary geometry.
     """
 
@@ -29,7 +29,7 @@ class PetriEnvironment(Environment):
         **kwargs: Any,
     ) -> None:
         """Initialize PetriEnvironment with dish geometry.
-        
+
         Args:
             dish: The PetriDish object defining boundary geometry
             *args, **kwargs: Passed to parent Environment
@@ -39,10 +39,10 @@ class PetriEnvironment(Environment):
 
     def resolve_boundary_collision(self, agent: "Agent") -> bool:
         """Resolve collision with the circular dish boundary.
-        
+
         Args:
             agent: The agent to check
-            
+
         Returns:
             True if collision was resolved (or agent is safe), False to fallback
         """
@@ -57,8 +57,10 @@ class PetriEnvironment(Environment):
 
         # Use dish to clamp and reflect
         new_cx, new_cy, new_vx, new_vy, collided = self.dish.clamp_and_reflect(
-            agent_cx, agent_cy,
-            agent.vel.x, agent.vel.y,
+            agent_cx,
+            agent_cy,
+            agent.vel.x,
+            agent.vel.y,
             agent_r,
         )
 
@@ -69,7 +71,7 @@ class PetriEnvironment(Environment):
             if hasattr(agent, "rect"):
                 agent.rect.x = agent.pos.x
                 agent.rect.y = agent.pos.y
-            
+
             # Update velocity
             agent.vel.x = new_vx
             agent.vel.y = new_vy

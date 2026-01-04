@@ -107,7 +107,7 @@ def test_entity_list_only_changes_during_commit_points(simulation_engine, monkey
         orig_apply(stage)
         after = len(engine.entities_list)
         # Attribute the delta to whichever pipeline step is executing
-        commit_deltas_by_step[current_step["name"]] += (after - before)
+        commit_deltas_by_step[current_step["name"]] += after - before
 
     monkeypatch.setattr(engine, "_apply_entity_mutations", wrapped_apply)
 
@@ -115,6 +115,7 @@ def test_entity_list_only_changes_during_commit_points(simulation_engine, monkey
     wrapped_steps = []
 
     for step in engine.pipeline.steps:
+
         def _make_wrapped_step(step_name, step_fn):
             def _wrapped(engine_ref):
                 current_step["name"] = step_name
@@ -129,6 +130,7 @@ def test_entity_list_only_changes_during_commit_points(simulation_engine, monkey
                     f"Entity list changed outside commit during step '{step_name}'. "
                     f"total_delta={total_delta}, commit_delta={commit_delta}"
                 )
+
             return _wrapped
 
         wrapped_steps.append(PipelineStep(step.name, _make_wrapped_step(step.name, step.fn)))
@@ -146,6 +148,7 @@ def test_determinism_same_seed_same_fingerprint():
     Two fresh engines with the same seed should evolve identically for N frames.
     This catches accidental use of global random(), time(), unordered iteration, etc.
     """
+
     def run(seed: int, frames: int) -> str:
         eng = SimulationEngine(headless=True, seed=seed)
         eng.setup()

@@ -112,9 +112,9 @@ class PlantManager:
 
         # Initialize root spot manager
         if root_spot_manager is not None:
-             self.root_spot_manager = root_spot_manager
+            self.root_spot_manager = root_spot_manager
         else:
-             self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
+            self.root_spot_manager = RootSpotManager(screen_width, screen_height, rng=self.rng)
 
         # Track reconciliation and respawns
         self._last_reconcile_frame: int = -1

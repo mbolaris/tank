@@ -21,9 +21,9 @@ class TestPetriGeometry(unittest.TestCase):
         # Normal pointing diagonal in (1, 1) normalized
         inv_sqrt2 = 1.0 / math.sqrt(2)
         nx, ny = inv_sqrt2, inv_sqrt2
-        
+
         rx, ry = reflect_velocity(vx, vy, nx, ny)
-        # Should bounce back opposite? 
+        # Should bounce back opposite?
         # v = (-10, -10), n = (0.7, 0.7)
         # dot = -14.14
         # r = v - 2*dot*n = (-10, -10) - 2*(-14.14)*(0.7, 0.7)
@@ -35,9 +35,9 @@ class TestPetriGeometry(unittest.TestCase):
         cx, cy, r = 100, 100, 50
         count = 4
         points = circle_perimeter_points(cx, cy, r, count)
-        
+
         self.assertEqual(len(points), 4)
-        
+
         # Check point 0 (at angle 0 -> right)
         x, y, nx, ny = points[0]
         self.assertAlmostEqual(x, 150)
@@ -45,7 +45,7 @@ class TestPetriGeometry(unittest.TestCase):
         # Normal should point inward (left) -> (-1, 0)
         self.assertAlmostEqual(nx, -1)
         self.assertAlmostEqual(ny, 0)
-        
+
         # Check point 1 (at angle 90 -> down in screen coords)
         # angle = pi/2
         x, y, nx, ny = points[1]

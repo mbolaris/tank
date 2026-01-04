@@ -2,6 +2,7 @@
 
 Uses the shared FishActionTranslator for Petri world.
 """
+
 from core.actions.action_registry import register_action_translator
 from core.worlds.shared.action_translator import FishActionTranslator
 

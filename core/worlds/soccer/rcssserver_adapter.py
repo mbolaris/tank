@@ -330,51 +330,48 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
     def _update_state_from_see(self, player_id: str, see_info: SeeInfo) -> None:
         """Update player and ball state from visual info."""
         from core.worlds.soccer.rcss_protocol import estimate_position_from_polar
-        
+
         player = self._player_states[player_id]
         self._last_see_info[player_id] = see_info
-        
+
         # Update ball if visible
         ball = see_info.get_ball()
         if ball and ball.distance is not None and ball.direction is not None:
             # Estimate ball absolute position
             ball_pos = estimate_position_from_polar(
-                player.position,
-                player.facing_angle,
-                ball.distance,
-                ball.direction
+                player.position, player.facing_angle, ball.distance, ball.direction
             )
-            
+
             # Update shared ball state (BallState is frozen, so create new instance)
             if self._ball_state:
                 self._ball_state = BallState(position=ball_pos, velocity=self._ball_state.velocity)
             else:
-                self._ball_state = BallState(position=ball_pos, velocity=Vector2D(0,0))
+                self._ball_state = BallState(position=ball_pos, velocity=Vector2D(0, 0))
 
     def _update_state_from_sense(self, player_id: str, sense_info: SenseBodyInfo) -> None:
         """Update player state from body sensor info."""
         player = self._player_states[player_id]
         self._last_sense_info[player_id] = sense_info
-        
+
         # Update stamina
         # PlayerState is NOT frozen in adapter dict, but it IS frozen in interfaces.py.
         # Wait, self._player_states stores PlayerState which IS frozen.
-        # I need to check how self._player_states is populated. 
+        # I need to check how self._player_states is populated.
         # In reset(), it creates PlayerState objects.
-        
+
         # If PlayerState is frozen, I also need to replace the PlayerState object.
-        
+
         new_stamina = sense_info.stamina
-        
+
         if player.stamina != new_stamina:
-             self._player_states[player_id] = PlayerState(
+            self._player_states[player_id] = PlayerState(
                 player_id=player.player_id,
                 team=player.team,
                 position=player.position,
                 velocity=player.velocity,
                 stamina=new_stamina,
-                facing_angle=player.facing_angle
-             )
+                facing_angle=player.facing_angle,
+            )
 
     def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:
         """Build observations for all players."""

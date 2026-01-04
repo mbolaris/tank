@@ -263,7 +263,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             info={"frame": self._current_frame, "brain_mode": brain_mode},
             spawns=self.engine._frame_spawns if hasattr(self.engine, "_frame_spawns") else [],
             removals=self.engine._frame_removals if hasattr(self.engine, "_frame_removals") else [],
-            energy_deltas=self.engine._frame_energy_deltas if hasattr(self.engine, "_frame_energy_deltas") else [],
+            energy_deltas=(
+                self.engine._frame_energy_deltas
+                if hasattr(self.engine, "_frame_energy_deltas")
+                else []
+            ),
             render_hint=self._build_snapshot().get("render_hint"),
         )
         return self._last_step_result

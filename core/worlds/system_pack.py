@@ -100,4 +100,3 @@ class SystemPack(Protocol):
         Return None to use default no-op hooks.
         """
         ...
-

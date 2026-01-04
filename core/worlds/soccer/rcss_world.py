@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class RCSSWorld:
     """A World implementation backed by rcssserver.
-    
+
     This wrapper translates World protocol calls into RCSS adapter calls.
     It maintains the connection to the server and manages the mapping
     between simulation Agents and RCSS players.
@@ -45,7 +45,7 @@ class RCSSWorld:
         """
         self._adapter = adapter
         self._rng = require_rng_param(rng, "RCSSWorld.__init__")
-        
+
         # Determine field dimensions from adapter config or defaults
         # Standard RCSS field is ~105m x 68m, but we mapped to "tank units" internally or not?
         # Actually RCSS uses its own coordinate system (-52.5 to 52.5).
@@ -80,7 +80,7 @@ class RCSSWorld:
         half_w = self._width / 2
         half_h = self._height / 2
         return ((-half_w, -half_h), (half_w, half_h))
-    
+
     def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         return self.get_bounds()
 
@@ -88,21 +88,21 @@ class RCSSWorld:
         """Check if position is within field bounds."""
         if not hasattr(position, "x") or not hasattr(position, "y"):
             return False
-        
+
         (min_x, min_y), (max_x, max_y) = self.get_bounds()
         return (min_x <= position.x <= max_x) and (min_y <= position.y <= max_y)
 
     # --- Spatial Queries ---
-    
+
     # Note: RCSS doesn't give us a full "god view" of all agents easily unless we use
     # the online coach or monitor protocol. The adapter currently parses 'see' messages
     # for each agent.
     # For this World implementation, we rely on the adapter's `get_current_snapshot()`
     # which aggregates known state.
-    
+
     def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
         # TODO: Implement proper spatial query using snapshot state
-        # For now, return empty as this is primarily for interaction which isn't fully 
+        # For now, return empty as this is primarily for interaction which isn't fully
         # implemented for pure RCSS yet (interactions happen via kicks/tackles in engine)
         return []
 

@@ -81,9 +81,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
             threat_response=coerce_enum(ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)),
             food_approach=coerce_enum(FoodApproach, rng.randint(0, len(FoodApproach) - 1)),
             social_mode=coerce_enum(SocialMode, rng.randint(0, len(SocialMode) - 1)),
-            poker_engagement=coerce_enum(
-                PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)
-            ),
+            poker_engagement=coerce_enum(PokerEngagement, rng.randint(0, len(PokerEngagement) - 1)),
             parameters=_random_params(rng),
         )
 

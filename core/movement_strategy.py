@@ -145,17 +145,15 @@ class AlgorithmicMovement(MovementStrategy):
         # =========================================================================
         # Convert raw decision (velocity) to canonical Action via Registry
         # This ensures all behaviors go through the standard translation layer.
-        
+
         world_type = getattr(sprite_entity.environment, "world_type", "tank")
-        
+
         # Translate to standardized Action
         # Note: desired_velocity is a tuple (vx, vy), which calls DefaultActionTranslator
         # to handle it correctly if no specific translator, or TankActionTranslator checks types.
         try:
             action = translate_action(
-                world_type, 
-                str(getattr(sprite_entity, "fish_id", "unknown")), 
-                desired_velocity
+                world_type, str(getattr(sprite_entity, "fish_id", "unknown")), desired_velocity
             )
             # Use the translated velocity from the Action object
             desired_vx, desired_vy = action.target_velocity
@@ -203,27 +201,27 @@ class AlgorithmicMovement(MovementStrategy):
 
     def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         """Execute movement policy from genome if configured.
-        
+
         Delegates to the movement_policy_runner to handle:
         - Extraction of policy ID from genome
         - Safety checks and validation
         - Execution via GenomeCodePool (preferred) or legacy CodePool (fallback)
         """
         from core.policies.movement_policy_runner import run_movement_policy
-        
+
         # We need a reference to a code pool
         genome_code_pool = getattr(fish.environment, "genome_code_pool", None)
-        
+
         if genome_code_pool is None:
             # Fallback to legacy behavior or just return None
             # If we really want to support raw CodePool without GenomeCodePool wrapper,
-            # we'd need to adapt the runner or keep legacy logic. 
+            # we'd need to adapt the runner or keep legacy logic.
             # Given the goal is "Use GenomeCodePool", we focus on that path.
             return None
 
         # Build observation
         observation = build_movement_observation(fish)
-        
+
         # Execute via runner
         # run_movement_policy handles extracting the component_id from the genome
         return run_movement_policy(
@@ -231,5 +229,5 @@ class AlgorithmicMovement(MovementStrategy):
             code_pool=genome_code_pool,
             observation=observation,
             rng=fish.environment.rng,
-            fish_id=getattr(fish, "fish_id", None)
+            fish_id=getattr(fish, "fish_id", None),
         )

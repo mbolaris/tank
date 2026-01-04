@@ -42,7 +42,7 @@ class PetriPack(TankLikePackBase):
         super().__init__(config)
         # Use shared Tank-like identity provider from shared namespace
         self._identity_provider = TankLikeEntityIdentityProvider()
-        
+
         # Compute dish geometry from screen dimensions
         display = config.display
         rim_margin = 2.0
@@ -131,19 +131,19 @@ class PetriPack(TankLikePackBase):
         # 2. Initialize PlantManager with CircularRootSpotManager
         # In Petri mode, we use circular spots
         if self.config.server.plants_enabled:
-            # Calculate spot count based on circumference? 
+            # Calculate spot count based on circumference?
             # Or just use config default. Standard screen with ~20 spots.
             # 2 * pi * R / spacing?
             # Let's stick to config default count for now or hardcode reasonable number.
-            # But RootSpotManager takes just screen dims usually. 
+            # But RootSpotManager takes just screen dims usually.
             # CircularRootSpotManager will handle initialization logic if we just pass it.
             # But PlantManager needs an INSTANCE.
-            
+
             root_spot_manager = CircularRootSpotManager(
                 dish=self.dish,
                 rng=engine.rng,
             )
-            
+
             engine.plant_manager = PlantManager(
                 environment=engine.environment,
                 ecosystem=engine.ecosystem,

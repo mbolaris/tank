@@ -55,11 +55,11 @@ class RootSpot:
 
     def get_anchor_topleft(self, width: float, height: float) -> Tuple[float, float]:
         """Get the topleft position for a plant of given size anchored here.
-        
+
         Args:
             width: Plant width
             height: Plant height
-            
+
         Returns:
             (x, y) topleft position
         """
@@ -67,10 +67,11 @@ class RootSpot:
             return (self.x - width / 2, self.y - height / 2)
         elif self.anchor_mode == "radial_inward":
             import math
+
             # Spot is on the perimeter. Plant body grows inward.
             # We treat the plant as roughly circular/blobby with radius = max(w,h)/2
             # Center of plant should be radius distance inward from spot.
-            
+
             # Use stored angle if available, otherwise assume pointing to center from spot?
             # Creating normal vector pointing INWARD: opposite of angle
             if self.angle is not None:
@@ -84,12 +85,12 @@ class RootSpot:
 
             # Radius of the plant (approximated)
             radius = max(width, height) / 2
-            
+
             # Center position of the plant
             # Spot is at the edge. We shift inward by radius.
             cx = self.x + nx * radius
             cy = self.y + ny * radius
-            
+
             # Return topleft of the bounding box
             return (cx - width / 2, cy - height / 2)
         else:
@@ -98,10 +99,10 @@ class RootSpot:
 
     def claim(self, plant: "Plant") -> bool:
         """Claim this spot for a plant.
-        
+
         Args:
             plant: The plant to place here
-        
+
         Returns:
             True if successfully claimed, False if already occupied
         """

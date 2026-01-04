@@ -57,9 +57,9 @@ def test_spawn_delta_ids_are_not_raw_python_id():
     )
 
     # Raw Python id() would typically be a large number > 10^10 on 64-bit systems
-    assert food_id_int < 10_000_000, (
-        f"Food spawn ID looks like raw Python id() (too large). Got: {food_id_int}"
-    )
+    assert (
+        food_id_int < 10_000_000
+    ), f"Food spawn ID looks like raw Python id() (too large). Got: {food_id_int}"
 
 
 def test_removal_delta_ids_are_not_raw_python_id():
@@ -90,9 +90,9 @@ def test_removal_delta_ids_are_not_raw_python_id():
         f"Food removal ID should be >= FOOD_ID_OFFSET ({FOOD_ID_OFFSET}), "
         f"indicating stable offset scheme. Got: {food_id_int}"
     )
-    assert food_id_int < 10_000_000, (
-        f"Food removal ID looks like raw Python id() (too large). Got: {food_id_int}"
-    )
+    assert (
+        food_id_int < 10_000_000
+    ), f"Food removal ID looks like raw Python id() (too large). Got: {food_id_int}"
 
 
 def test_delta_ids_stable_across_frames():
@@ -106,9 +106,7 @@ def test_delta_ids_stable_across_frames():
     engine.update()
 
     # Get the spawn ID
-    food_spawn = next(
-        (s for s in engine._frame_spawns if s.reason == "stable_id_test"), None
-    )
+    food_spawn = next((s for s in engine._frame_spawns if s.reason == "stable_id_test"), None)
     assert food_spawn is not None
     spawn_id = food_spawn.entity_id
 
@@ -120,9 +118,7 @@ def test_delta_ids_stable_across_frames():
     engine.request_remove(food, reason="check_stable_id")
     engine.update()
 
-    food_removal = next(
-        (r for r in engine._frame_removals if r.reason == "check_stable_id"), None
-    )
+    food_removal = next((r for r in engine._frame_removals if r.reason == "check_stable_id"), None)
     assert food_removal is not None
     removal_id = food_removal.entity_id
 
@@ -162,10 +158,7 @@ def test_energy_delta_ids_use_stable_format():
     engine.update()
 
     # Find the energy delta for our fish
-    energy_delta = next(
-        (d for d in engine._frame_energy_deltas if d.source == "ate_food"),
-        None
-    )
+    energy_delta = next((d for d in engine._frame_energy_deltas if d.source == "ate_food"), None)
 
     assert energy_delta is not None, "Energy delta not found in _frame_energy_deltas"
 
@@ -185,6 +178,6 @@ def test_energy_delta_ids_use_stable_format():
         f"Energy delta ID should be >= FISH_ID_OFFSET ({FISH_ID_OFFSET}), "
         f"indicating stable offset scheme. Got: {energy_id_int}"
     )
-    assert energy_id_int < 10_000_000, (
-        f"Energy delta ID looks like raw Python id() (too large). Got: {energy_id_int}"
-    )
+    assert (
+        energy_id_int < 10_000_000
+    ), f"Energy delta ID looks like raw Python id() (too large). Got: {energy_id_int}"

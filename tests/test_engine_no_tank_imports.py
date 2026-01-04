@@ -53,8 +53,7 @@ def test_apply_entity_mutations_does_not_import_tank_types():
 
     assert not violations, (
         "_apply_entity_mutations contains Tank-specific imports/isinstance checks. "
-        "Use identity provider instead.\n\nViolations:\n"
-        + "\n".join(violations)
+        "Use identity provider instead.\n\nViolations:\n" + "\n".join(violations)
     )
 
 
@@ -89,20 +88,20 @@ def test_delta_tracking_uses_identity_provider():
     function_body = "\n".join(lines[start_line:end_line])
 
     # Check that the identity helper is used
-    assert "_get_entity_identity" in function_body, (
-        "_apply_entity_mutations should use _get_entity_identity() for stable identity"
-    )
+    assert (
+        "_get_entity_identity" in function_body
+    ), "_apply_entity_mutations should use _get_entity_identity() for stable identity"
 
 
 def _check_function_for_fish_only_patterns(func_node, source_lines, func_name):
     """Helper to verify a function doesn't use fish-only patterns."""
     forbidden_patterns = ["fish_id", "get_fish_list", "Fish"]
     allowed_patterns = ["FISH_ID_OFFSET"]  # Offset constants are OK for ID translation
-    
+
     start_line = func_node.lineno - 1
     end_line = func_node.end_lineno
     func_body = "\n".join(source_lines[start_line:end_line])
-    
+
     violations = []
     for pattern in forbidden_patterns:
         if pattern in func_body:
@@ -114,7 +113,7 @@ def _check_function_for_fish_only_patterns(func_node, source_lines, func_name):
                     break
             if not skip:
                 violations.append(f"Found '{pattern}' in {func_name}")
-    
+
     return violations
 
 
@@ -154,9 +153,9 @@ def test_resolve_energy_does_not_use_fish_only_patterns():
     )
 
     # Should use identity provider
-    assert "_identity_provider" in func_body, (
-        "_resolve_energy should use identity provider for entity lookup"
-    )
+    assert (
+        "_identity_provider" in func_body
+    ), "_resolve_energy should use identity provider for entity lookup"
 
 
 def test_apply_energy_deltas_does_not_use_fish_only_patterns():
@@ -195,14 +194,14 @@ def test_apply_energy_deltas_does_not_use_fish_only_patterns():
     )
 
     # Should use identity provider
-    assert "_identity_provider" in func_body, (
-        "_apply_energy_deltas should use identity provider for entity lookup"
-    )
-    
+    assert (
+        "_identity_provider" in func_body
+    ), "_apply_energy_deltas should use identity provider for entity lookup"
+
     # Should use get_entity_by_id
-    assert "get_entity_by_id" in func_body, (
-        "_apply_energy_deltas should use get_entity_by_id for reverse lookup"
-    )
+    assert (
+        "get_entity_by_id" in func_body
+    ), "_apply_energy_deltas should use get_entity_by_id for reverse lookup"
 
 
 def test_energy_delta_functions_avoid_fish_only_identity():
@@ -222,7 +221,10 @@ def test_energy_delta_functions_avoid_fish_only_identity():
 
     target_funcs = {}
     for node in ast.walk(simulation_engine_class):
-        if isinstance(node, ast.FunctionDef) and node.name in {"_resolve_energy", "_apply_energy_deltas"}:
+        if isinstance(node, ast.FunctionDef) and node.name in {
+            "_resolve_energy",
+            "_apply_energy_deltas",
+        }:
             target_funcs[node.name] = node
 
     assert "_resolve_energy" in target_funcs, "_resolve_energy not found"
@@ -232,7 +234,6 @@ def test_energy_delta_functions_avoid_fish_only_identity():
     for name, func_node in target_funcs.items():
         violations.extend(_check_function_for_fish_only_patterns(func_node, lines, name))
 
-    assert not violations, (
-        "Energy delta functions should avoid fish-only identity patterns:\n"
-        + "\n".join(violations)
-    )
+    assert (
+        not violations
+    ), "Energy delta functions should avoid fish-only identity patterns:\n" + "\n".join(violations)

@@ -320,4 +320,3 @@ def get_hooks_for_world(world_type: str) -> WorldHooks:
     else:
         # All other worlds use no-op hooks
         return NoOpWorldHooks()
-

@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 class FakeRCSSServer(SocketInterface):
     """A fake RCSS server that responds to client commands deterministically.
-    
+
     It implements the SocketInterface explicitly so it can be injected into
     RCSSServerAdapter.
     """
-    
+
     def __init__(self, script: Optional[List[Tuple[str, str]]] = None):
         """Initialize the fake server.
-        
+
         Args:
             script: Optional list of (expected_command_prefix, response) tuples.
                     If provided, verifies commands match expectations.
@@ -33,16 +33,16 @@ class FakeRCSSServer(SocketInterface):
         self._script = deque(script) if script else None
         self._connected = True
         self._time = 0
-        
+
     def send(self, data: str, addr: Tuple[str, int]) -> None:
         """Receive data from client (adapter)."""
         if not self._connected:
             raise BrokenPipeError("Fake socket closed")
-            
+
         decoded = data
         self._sent_commands.append(decoded)
         logger.debug(f"FakeServer received: {decoded}")
-        
+
         # Verify against script if one exists
         if self._script:
             if not self._script:
@@ -51,8 +51,10 @@ class FakeRCSSServer(SocketInterface):
                 prefix, response = self._script.popleft()
                 # Basic prefix check (e.g. "(init" matches "(init TankTeam ...)")
                 if not decoded.startswith(prefix):
-                    logger.error(f"Script mismatch! Expected startswith '{prefix}', got '{decoded}'")
-                
+                    logger.error(
+                        f"Script mismatch! Expected startswith '{prefix}', got '{decoded}'"
+                    )
+
                 if response:
                     self._response_queue.append(response)
         else:
@@ -67,7 +69,7 @@ class FakeRCSSServer(SocketInterface):
             elif decoded.startswith("(move"):
                 # Move command just gets a sense/see update
                 # (Actual server wouldn't send see immediately typically, but for test speed we do)
-                pass 
+                pass
             else:
                 # Regular step
                 pass
@@ -76,7 +78,7 @@ class FakeRCSSServer(SocketInterface):
         """Send data to client (adapter)."""
         if not self._connected:
             return ""
-            
+
         if self._response_queue:
             return self._response_queue.popleft()
         return ""
@@ -85,10 +87,10 @@ class FakeRCSSServer(SocketInterface):
         self._connected = False
 
     # --- Test Helpers ---
-    
+
     def queue_sense_body(self, time: int, stamina: float = 4000) -> None:
         self._response_queue.append(self._build_sense_body(time, stamina))
-        
+
     def queue_see(self, time: int, objects: Optional[List[str]] = None) -> None:
         self._response_queue.append(self._build_see(time, objects))
 
@@ -100,8 +102,8 @@ class FakeRCSSServer(SocketInterface):
     def _build_init_response(self, init_cmd: str) -> str:
         # Extract team from "(init params...)"
         parts = init_cmd.split()
-        side = "l" if len(parts) > 0 else "l" 
-        unum = 1 # Simple hardcoded unum
+        side = "l" if len(parts) > 0 else "l"
+        unum = 1  # Simple hardcoded unum
         play_mode = "before_kick_off"
         return f"(init {side} {unum} {play_mode})"
 
@@ -118,6 +120,6 @@ class FakeRCSSServer(SocketInterface):
         if objects is None:
             # Default: ball + goal
             objects = ["((b) 10 0)", "((g r) 50 0)"]
-            
+
         objs_str = " ".join(objects)
         return f"(see {time} {objs_str})"

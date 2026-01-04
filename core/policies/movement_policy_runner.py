@@ -69,7 +69,7 @@ def run_movement_policy(
     # 2. Execute via code pool
     # Note: calculate dt from observation if possible, or default to 1.0
     dt = observation.get("dt", 1.0)
-    
+
     # We use the generic execute_policy method
     result = code_pool.execute_policy(
         component_id=component_id,
@@ -85,21 +85,21 @@ def run_movement_policy(
 
     # 3. Validate and Parse Output
     parsed_velocity = _parse_and_validate_output(result.output)
-    
+
     if parsed_velocity is None:
         _log_error(fish_id, component_id, f"Invalid output type: {type(result.output)}")
         return None
-        
+
     return parsed_velocity
 
 
 def _parse_and_validate_output(output: Any) -> Optional[VelocityComponents]:
     """Parse policy output into (vx, vy) and validate.
-    
+
     Contract:
     - Input: Any object returned by policy
     - Output: (vx, vy) tuple of floats, clamped to [-1.0, 1.0], or None if invalid
-    
+
     Supported formats:
     - MovementAction(vx, vy)
     - Vector2(x, y)
@@ -107,7 +107,7 @@ def _parse_and_validate_output(output: Any) -> Optional[VelocityComponents]:
     - dict {"vx": vx, "vy": vy} or {"x": vx, "y": vy} or {"target_velocity": [vx, vy]}
     """
     vx, vy = 0.0, 0.0
-    
+
     # Extract raw values
     if isinstance(output, MovementAction):
         vx, vy = output.vx, output.vy
@@ -158,24 +158,24 @@ def _log_error(fish_id: int | None, component_id: str, message: str) -> None:
 
     # Simple rate limiting per fish
     import time
-    now_sec = int(time.time()) # approximate, or just increment counter?
+
+    now_sec = int(time.time())  # approximate, or just increment counter?
     # Using simple counter from AlgorithmicMovement style would require persistent state.
     # We'll use a simplified global approach here or rely on the caller to handle state if needed.
     # For now, let's just log every N times per fish? No, that requires memory.
     # Let's use the same age-based approach if we had access to age, but we don't passed in widely.
     # We will use the standard logging throttling if available, or a simple dict.
-    
+
     # We'll key by (fish_id, component_id) to avoid collision
     key = (fish_id, component_id)
     last_log_time = _ERROR_LAST_LOG.get(hash(key), 0)
-    
+
     # We don't have a clock here, so we'll use a simple counter implementation using a tick
     # Actually, let's just use logging.warning with a filter or just allow it but maybe it's too much?
     # The requirement said "but does not spam every frame—rate limit".
-    
+
     # Let's use a module-level counter for distinct errors to keep it simple
     # If we really want per-fish rate limiting we need to store state or pass current time/frame.
     # Let's assume we can tolerate some logs.
-    
-    logger.warning(f"Movement policy {component_id} error for fish {fish_id}: {message}")
 
+    logger.warning(f"Movement policy {component_id} error for fish {fish_id}: {message}")
