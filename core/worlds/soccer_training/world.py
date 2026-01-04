@@ -598,10 +598,10 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 time_modifier=1.0,
                 size=1.0,
             )
-            
+
             # Apply energy reduction
             player.modify_energy(-breakdown["total"])
-            
+
             spent = breakdown["total"]
             if spent > 0:
                 player.stats.energy_spent += spent

@@ -253,7 +253,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         deltas = []
         if hasattr(self.engine, "_frame_energy_deltas"):
             deltas = self.engine._frame_energy_deltas
-            if getattr(self._world, "ecosystem", None) and hasattr(self._world.ecosystem, "ingest_energy_deltas"):
+            if getattr(self._world, "ecosystem", None) and hasattr(
+                self._world.ecosystem, "ingest_energy_deltas"
+            ):
                 self._world.ecosystem.ingest_energy_deltas(deltas)
 
         # Build result

@@ -80,7 +80,7 @@ def test_fish_eating_loop():
     engine._frame_energy_deltas = []
     recorder = engine._create_energy_recorder()
     engine.environment.set_energy_delta_recorder(recorder)
-    
+
     # Debug info
     # print(f"DEBUG: fish.env ID={id(fish.environment)}")
     # print(f"DEBUG: engine.env ID={id(engine.environment)}")
@@ -89,14 +89,14 @@ def test_fish_eating_loop():
     #    print(f"DEBUG: Recorder on env: {fish.environment._energy_delta_recorder}")
     # else:
     #    print("DEBUG: Environment has no _energy_delta_recorder attr")
-    
+
     gained = fish.gain_energy(10.0)
 
     assert gained == 10.0
 
     # Energy applies immediately now
     assert fish.energy == start_energy + 10.0, "Energy update should be immediate"
-    
+
     # Ingest the deltas we just captured (before update clears them)
     assert len(engine._frame_energy_deltas) > 0, "No deltas recorded during gain_energy!"
     # print(f"DEBUG DELTAS: {engine._frame_energy_deltas}")

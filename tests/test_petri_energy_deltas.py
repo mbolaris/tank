@@ -70,10 +70,12 @@ def test_petri_energy_deltas_reference_real_entities():
     from core.config.entities import FISH_ID_OFFSET
 
     expected_stable_id = str(fish.fish_id + FISH_ID_OFFSET)
-    
+
     # Look for delta relating to this fish
-    energy_delta = next((d for d in engine._frame_energy_deltas if d.stable_id == expected_stable_id), None)
-    
+    energy_delta = next(
+        (d for d in engine._frame_energy_deltas if d.stable_id == expected_stable_id), None
+    )
+
     assert energy_delta is not None, "Energy delta record not found"
     assert energy_delta.source == "metabolism"
 

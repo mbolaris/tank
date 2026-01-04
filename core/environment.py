@@ -694,9 +694,7 @@ class Environment:
         """
         self._remove_requester = requester
 
-    def set_energy_delta_recorder(
-        self, recorder: Optional["EnergyDeltaRecorder"]
-    ) -> None:
+    def set_energy_delta_recorder(self, recorder: Optional["EnergyDeltaRecorder"]) -> None:
         """Inject an energy delta recorder callback from the simulation engine.
 
         The recorder is called each time an entity's energy changes via modify_energy().

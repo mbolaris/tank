@@ -144,7 +144,9 @@ def test_energy_delta_ids_use_stable_format():
     engine.update()
 
     # Find the energy delta for our fish (metabolism)
-    energy_delta = next((d for d in engine._frame_energy_deltas if d.stable_id == stable_fish_id), None)
+    energy_delta = next(
+        (d for d in engine._frame_energy_deltas if d.stable_id == stable_fish_id), None
+    )
 
     assert energy_delta is not None, "Energy delta not found in _frame_energy_deltas"
 

@@ -60,7 +60,7 @@ class Crab(Agent):
         old_energy = self.energy
         new_energy = self.energy + amount
         self.energy = max(0.0, min(self.max_energy, new_energy))
-        
+
         delta = self.energy - old_energy
         if delta != 0 and hasattr(self.environment, "record_energy_delta"):
             self.environment.record_energy_delta(self, delta, source)

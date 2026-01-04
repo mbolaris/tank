@@ -385,8 +385,6 @@ class Fish(Agent):
         """
         return 20.0 * self._lifecycle_component.size
 
-
-
     def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food.
 
@@ -499,11 +497,7 @@ class Fish(Agent):
             if not request_spawn_in(self.environment, food, reason="overflow_food"):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
-            self._emit_event(
-                EnergyBurnEvent(
-                    amount=food.energy, source=BURN_REASON_OVERFLOW_FOOD
-                )
-            )
+            self._emit_event(EnergyBurnEvent(amount=food.energy, source=BURN_REASON_OVERFLOW_FOOD))
         except Exception:
             pass  # Energy lost on failure is acceptable
 

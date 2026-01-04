@@ -43,9 +43,9 @@ def test_change_world_type_tank_to_petri_preserves_entities():
             getattr(e, "fish_id", None) for e in post_switch_entities if hasattr(e, "fish_id")
         }
 
-        assert post_switch_count == initial_count, (
-            f"Entity count should be preserved: {initial_count} -> {post_switch_count}"
-        )
+        assert (
+            post_switch_count == initial_count
+        ), f"Entity count should be preserved: {initial_count} -> {post_switch_count}"
         assert post_switch_fish_ids == initial_fish_ids, "Fish IDs should be preserved"
 
         # Switch back to tank
@@ -106,4 +106,3 @@ async def test_api_endpoint_logic():
     # This would require setting up a full FastAPI test client which might be overkill
     # if we trust the manager logic. The previous test covers the core logic.
     pass
-
