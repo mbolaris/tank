@@ -82,7 +82,6 @@ def test_change_world_type_incompatible_requires_new_runner():
         MockRunner.return_value = runner_instance
 
         manager = SimulationManager(tank_id="test-tank", world_type="tank")
-        initial_runner = manager._runner
 
         # Reset mock for next call
         MockRunner.reset_mock()
