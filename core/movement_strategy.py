@@ -209,6 +209,18 @@ class AlgorithmicMovement(MovementStrategy):
         """
         from core.policies.movement_policy_runner import run_movement_policy
 
+        # OPTIMIZATION: Check if policy is configured before doing expensive setup
+        # This avoids building observations (which runs spatial queries) for fish without policies
+        behavioral = fish.genome.behavioral
+        
+        # Quick check: extract value and see if it's set
+        trait = getattr(behavioral, "code_policy_component_id", None)
+        if trait is not None and hasattr(trait, "value"):
+            trait = trait.value
+            
+        if not trait:
+            return None
+            
         # We need a reference to a code pool
         genome_code_pool = getattr(fish.environment, "genome_code_pool", None)
 

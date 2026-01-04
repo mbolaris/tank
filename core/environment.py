@@ -301,8 +301,14 @@ class SpatialGrid:
         agent_y = pos.y
         radius_sq = radius * radius
 
-        # Use helper to consolidate min/max calculations
-        min_col, max_col, min_row, max_row = self._get_cell_range(agent_x, agent_y, radius)
+        # Use helper to consolidate min/max calculations (INLINED)
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+        min_col = max(0, int((agent_x - radius) / cs))
+        max_col = min(cols_m1, int((agent_x + radius) / cs))
+        min_row = max(0, int((agent_y - radius) / cs))
+        max_row = min(rows_m1, int((agent_y + radius) / cs))
 
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -335,8 +341,14 @@ class SpatialGrid:
         agent_y = pos.y
         radius_sq = radius * radius
 
-        # Use helper to consolidate min/max calculations
-        min_col, max_col, min_row, max_row = self._get_cell_range(agent_x, agent_y, radius)
+        # Use helper to consolidate min/max calculations (INLINED)
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+        min_col = max(0, int((agent_x - radius) / cs))
+        max_col = min(cols_m1, int((agent_x + radius) / cs))
+        min_row = max(0, int((agent_y - radius) / cs))
+        max_row = min(rows_m1, int((agent_y + radius) / cs))
 
         result = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -356,6 +368,88 @@ class SpatialGrid:
                                 result_append(other)
 
         return result
+
+    def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
+        """Find the single closest fish within radius.
+        
+        PERFORMANCE: Avoids list allocation by tracking best match during iteration.
+        """
+        # OPTIMIZATION: Assume agent has pos
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
+        radius_sq = radius * radius
+
+        # Use helper to consolidate min/max calculations (INLINED)
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+        min_col = max(0, int((agent_x - radius) / cs))
+        max_col = min(cols_m1, int((agent_x + radius) / cs))
+        min_row = max(0, int((agent_y - radius) / cs))
+        max_row = min(rows_m1, int((agent_y + radius) / cs))
+
+        fish_grid = self.fish_grid
+        
+        nearest_agent = None
+        nearest_dist_sq = float("inf")
+
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell_fish = fish_grid.get((col, row))
+                if cell_fish:
+                    for other in cell_fish:
+                        if other is not agent:
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
+                            dist_sq = dx * dx + dy * dy
+                            if dist_sq <= radius_sq and dist_sq < nearest_dist_sq:
+                                nearest_dist_sq = dist_sq
+                                nearest_agent = other
+                                
+        return nearest_agent
+
+    def closest_food(self, agent: Agent, radius: float) -> Optional[Agent]:
+        """Find the single closest food within radius.
+        
+        PERFORMANCE: Avoids list allocation by tracking best match during iteration.
+        """
+        # OPTIMIZATION: Assume agent has pos
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
+        radius_sq = radius * radius
+
+        # Use helper to consolidate min/max calculations (INLINED)
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+        min_col = max(0, int((agent_x - radius) / cs))
+        max_col = min(cols_m1, int((agent_x + radius) / cs))
+        min_row = max(0, int((agent_y - radius) / cs))
+        max_row = min(rows_m1, int((agent_y + radius) / cs))
+
+        food_grid = self.food_grid
+        
+        nearest_agent = None
+        nearest_dist_sq = float("inf")
+
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell_food = food_grid.get((col, row))
+                if cell_food:
+                    for other in cell_food:
+                        if other is not agent:
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
+                            dist_sq = dx * dx + dy * dy
+                            if dist_sq <= radius_sq and dist_sq < nearest_dist_sq:
+                                nearest_dist_sq = dist_sq
+                                nearest_agent = other
+                                
+        return nearest_agent
 
     def query_interaction_candidates(
         self, agent: Agent, radius: float, crab_type: Type[Agent]
@@ -701,6 +795,14 @@ class Environment:
         result = [agent for agent in self.agents if isinstance(agent, agent_class)]
         self._type_cache[agent_class] = result
         return result
+
+    def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
+        """Find closest fish efficiently."""
+        return self.spatial_grid.closest_fish(agent, radius)
+
+    def closest_food(self, agent: Agent, radius: float) -> Optional[Agent]:
+        """Find closest food efficiently."""
+        return self.spatial_grid.closest_food(agent, radius)
 
     def nearby_agents_by_type(
         self, agent: Agent, radius: int, agent_class: Type[Agent]

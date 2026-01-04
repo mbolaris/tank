@@ -135,6 +135,9 @@ class Fish(Agent):
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places
         self._cached_is_dead: bool = False
+        
+        # OPTIMIZATION: Cache bounds to avoid fetching from environment every frame
+        self._cached_bounds: Optional[Tuple[Tuple[float, float], Tuple[float, float]]] = None
 
         # Life cycle - managed by LifecycleComponent for better code organization
 
@@ -1113,6 +1116,28 @@ class Fish(Agent):
 
         return (effective_min_x, effective_max_x, effective_min_y, effective_max_y)
 
+    def constrain_to_screen(self) -> None:
+        """Override to use cached bounds."""
+        if self._cached_bounds is None:
+             self._cached_bounds = self.environment.get_bounds()
+        
+        (min_x, min_y), (max_x, max_y) = self._cached_bounds
+
+        # Clamp horizontally
+        if self.pos.x < min_x:
+            self.pos.x = min_x
+        elif self.pos.x + self.width > max_x:
+            self.pos.x = max_x - self.width
+
+        # Clamp vertically
+        if self.pos.y < min_y:
+            self.pos.y = min_y
+        elif self.pos.y + self.height > max_y:
+            self.pos.y = max_y - self.height
+
+        # Keep rect in sync with position
+        self.rect.topleft = self.pos
+
     def handle_screen_edges(self) -> None:
         """Handle the fish hitting the edge of the screen with top margin for energy bar visibility.
 
@@ -1120,8 +1145,10 @@ class Fish(Agent):
         """
 
         # Get boundaries from environment (World protocol)
-        bounds = self.environment.get_bounds()
-        (env_min_x, env_min_y), (env_max_x, env_max_y) = bounds
+        if self._cached_bounds is None:
+             self._cached_bounds = self.environment.get_bounds()
+             
+        (env_min_x, env_min_y), (env_max_x, env_max_y) = self._cached_bounds
 
         min_x_offset, max_x_offset, min_y_offset, max_y_offset = self._get_visual_bounds_offsets()
 
@@ -1164,6 +1191,9 @@ class Fish(Agent):
         from core.entities.base import EntityUpdateResult
 
         super().update(frame_count, time_modifier, time_of_day)
+
+        # Performance: Cache bounds once per frame
+        self._cached_bounds = self.environment.get_bounds()
 
         # Age - managed by LifecycleComponent
         self._lifecycle_component.increment_age()
