@@ -47,18 +47,16 @@ class TestWorldTypeFirstClass:
                 name="Petri Step Test",
                 world_type="petri",
             )
-            # Start paused to prevent background thread from running
-            manager.start(start_paused=True)
+            # Don't start the background thread - we're manually stepping the world
+            # to verify frame counting. Starting a background thread would create
+            # a race condition that could cause extra frames to be counted.
 
             # Get initial frame before stepping
             initial_frame = manager.world.frame_count
 
-            # Step 10 times with pause/unpause on each iteration to prevent
-            # background thread from interfering with frame counting
+            # Step 10 times
             for _ in range(10):
-                manager.world.paused = False
                 manager.world.step()
-                manager.world.paused = True
 
             assert manager.world.frame_count == initial_frame + 10
         finally:
