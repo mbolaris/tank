@@ -117,23 +117,27 @@ def _nearest_vector(
     # Only use if max_distance is set (spatial query requires finite radius)
     if max_distance is not None:
         radius = max_distance
-        
+
         if use_resources and hasattr(environment, "closest_food"):
             agent = environment.closest_food(fish, radius)
             if agent:
-                 dx = agent.pos.x - fish.pos.x
-                 dy = agent.pos.y - fish.pos.y
-                 return {"x": dx, "y": dy}
+                dx = agent.pos.x - fish.pos.x
+                dy = agent.pos.y - fish.pos.y
+                return {"x": dx, "y": dy}
             return {"x": 0.0, "y": 0.0}
-            
-        if not use_resources and agent_type.__name__ == "Fish" and hasattr(environment, "closest_fish"):
+
+        if (
+            not use_resources
+            and agent_type.__name__ == "Fish"
+            and hasattr(environment, "closest_fish")
+        ):
             agent = environment.closest_fish(fish, radius)
             if agent:
-                 dx = agent.pos.x - fish.pos.x
-                 dy = agent.pos.y - fish.pos.y
-                 return {"x": dx, "y": dy}
+                dx = agent.pos.x - fish.pos.x
+                dy = agent.pos.y - fish.pos.y
+                return {"x": dx, "y": dy}
             return {"x": 0.0, "y": 0.0}
-    
+
     if max_distance is not None:
         grid_radius = int(max_distance) + 1
         if use_resources and hasattr(environment, "nearby_resources"):

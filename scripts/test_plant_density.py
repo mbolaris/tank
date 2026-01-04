@@ -8,10 +8,10 @@ sim.setup()
 manager = sim.root_spot_manager
 spots = manager.spots
 # Pick a middle index away from edges
-mid = len(spots)//2
-left = spots[mid-1]
+mid = len(spots) // 2
+left = spots[mid - 1]
 center = spots[mid]
-right = spots[mid+1]
+right = spots[mid + 1]
 
 from core.entities.plant import Plant
 
@@ -33,8 +33,8 @@ sim.add_entity(p1)
 sim.add_entity(p2)
 sim.add_entity(p3)
 
-print('Before:', p1.energy, p2.energy, p3.energy)
+print("Before:", p1.energy, p2.energy, p3.energy)
 sim.update()
-print('After 1 frame:', p1.energy, p2.energy, p3.energy)
+print("After 1 frame:", p1.energy, p2.energy, p3.energy)
 sim.update()
-print('After 2 frames:', p1.energy, p2.energy, p3.energy)
+print("After 2 frames:", p1.energy, p2.energy, p3.energy)

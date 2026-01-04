@@ -1,4 +1,3 @@
-
 import os
 
 files = [
@@ -49,9 +48,17 @@ for rel_path in files:
     original = content
 
     # 1. Imports
-    content = content.replace("from core.entities.fractal_plant import FractalPlant", "from core.entities.plant import Plant")
-    content = content.replace("from core.entities.fractal_plant import PlantNectar", "from core.entities.plant import PlantNectar")
-    content = content.replace("from core.entities.fractal_plant import", "from core.entities.plant import")
+    content = content.replace(
+        "from core.entities.fractal_plant import FractalPlant",
+        "from core.entities.plant import Plant",
+    )
+    content = content.replace(
+        "from core.entities.fractal_plant import PlantNectar",
+        "from core.entities.plant import PlantNectar",
+    )
+    content = content.replace(
+        "from core.entities.fractal_plant import", "from core.entities.plant import"
+    )
     content = content.replace("import core.entities.fractal_plant", "import core.entities.plant")
 
     # 2. Class usage
@@ -74,4 +81,3 @@ for rel_path in files:
         print(f"Updated {rel_path}")
     else:
         print(f"No changes in {rel_path}")
-

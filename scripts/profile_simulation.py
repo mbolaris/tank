@@ -1,4 +1,3 @@
-
 import cProfile
 import os
 import pstats
@@ -49,13 +48,14 @@ def run_simulation():
     print(f"Final entity count: {len(sim.get_all_entities())}")
 
     with open("profile_stats.txt", "w") as f:
-        stats = pstats.Stats(profiler, stream=f).sort_stats('cumtime')
+        stats = pstats.Stats(profiler, stream=f).sort_stats("cumtime")
         stats.print_stats(50)
 
         f.write("\nTop functions by self time (CPU intensive):\n")
-        stats.sort_stats('tottime').print_stats(30)
+        stats.sort_stats("tottime").print_stats(30)
 
     print("Stats saved to profile_stats.txt")
+
 
 if __name__ == "__main__":
     run_simulation()

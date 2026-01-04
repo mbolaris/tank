@@ -115,7 +115,9 @@ def test_energy_flow():
         total_biased_score += result.score_change
         total_optimal_score -= result.score_change  # Zero-sum
 
-    logger.info(f"  RPS (200 games): Biased total={total_biased_score:.1f}, Optimal total={total_optimal_score:.1f}")
+    logger.info(
+        f"  RPS (200 games): Biased total={total_biased_score:.1f}, Optimal total={total_optimal_score:.1f}"
+    )
     # Over many games, optimal should not lose significantly
     assert total_optimal_score >= -50, "Optimal strategy should not lose much"
     logger.info("  PASSED: RPS energy flows correctly")
@@ -273,7 +275,9 @@ def test_inheritance_in_simulation():
 
                 # Check if baby has inherited strategy
                 if hasattr(fish, "_skill_game_component"):
-                    strategy = fish._skill_game_component.get_strategy(SkillGameType.ROCK_PAPER_SCISSORS)
+                    strategy = fish._skill_game_component.get_strategy(
+                        SkillGameType.ROCK_PAPER_SCISSORS
+                    )
                     if strategy is not None:
                         babies_with_inherited_strategies += 1
 
@@ -342,7 +346,9 @@ def test_both_games_functional():
             "fish": len(engine.get_fish_list()),
         }
 
-        logger.info(f"  {game_type.value}: {games_played} games, {energy_transferred:.1f} energy, {results[game_type.value]['fish']} fish")
+        logger.info(
+            f"  {game_type.value}: {games_played} games, {energy_transferred:.1f} energy, {results[game_type.value]['fish']} fish"
+        )
 
     # Both games should have some activity
     for game_type, data in results.items():
@@ -376,6 +382,7 @@ def main():
         except Exception as e:
             logger.error(f"Test {name} raised exception: {e}")
             import traceback
+
             traceback.print_exc()
             results[name] = f"ERROR: {e}"
 

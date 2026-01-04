@@ -8,6 +8,7 @@ If `--fix` is provided, it will write a new file with `_fixed` suffix containing
 the sanitized lineage where missing parents are remapped to "root" and the
 original parent is preserved in `_original_parent_id`.
 """
+
 import argparse
 import json
 import logging
@@ -71,7 +72,11 @@ def main():
         lineage_log = data
         data_is_list = True
     elif isinstance(data, dict):
-        if "ecosystem" in data and isinstance(data["ecosystem"], dict) and "lineage_log" in data["ecosystem"]:
+        if (
+            "ecosystem" in data
+            and isinstance(data["ecosystem"], dict)
+            and "lineage_log" in data["ecosystem"]
+        ):
             lineage_log = data["ecosystem"]["lineage_log"]
         elif "lineage_log" in data:
             lineage_log = data["lineage_log"]
@@ -89,7 +94,11 @@ def main():
             out = fixed
         else:
             out = dict(data)
-            if "ecosystem" in out and isinstance(out["ecosystem"], dict) and "lineage_log" in out["ecosystem"]:
+            if (
+                "ecosystem" in out
+                and isinstance(out["ecosystem"], dict)
+                and "lineage_log" in out["ecosystem"]
+            ):
                 out["ecosystem"]["lineage_log"] = fixed
             elif "lineage_log" in out:
                 out["lineage_log"] = fixed

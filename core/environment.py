@@ -371,7 +371,7 @@ class SpatialGrid:
 
     def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
         """Find the single closest fish within radius.
-        
+
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.
         """
         # OPTIMIZATION: Assume agent has pos
@@ -390,7 +390,7 @@ class SpatialGrid:
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
         fish_grid = self.fish_grid
-        
+
         nearest_agent = None
         nearest_dist_sq = float("inf")
 
@@ -407,12 +407,12 @@ class SpatialGrid:
                             if dist_sq <= radius_sq and dist_sq < nearest_dist_sq:
                                 nearest_dist_sq = dist_sq
                                 nearest_agent = other
-                                
+
         return nearest_agent
 
     def closest_food(self, agent: Agent, radius: float) -> Optional[Agent]:
         """Find the single closest food within radius.
-        
+
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.
         """
         # OPTIMIZATION: Assume agent has pos
@@ -431,7 +431,7 @@ class SpatialGrid:
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
         food_grid = self.food_grid
-        
+
         nearest_agent = None
         nearest_dist_sq = float("inf")
 
@@ -448,7 +448,7 @@ class SpatialGrid:
                             if dist_sq <= radius_sq and dist_sq < nearest_dist_sq:
                                 nearest_dist_sq = dist_sq
                                 nearest_agent = other
-                                
+
         return nearest_agent
 
     def query_interaction_candidates(

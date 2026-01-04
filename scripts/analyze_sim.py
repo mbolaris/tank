@@ -27,7 +27,9 @@ def top_leaderboard(history, top_n=5):
     last = history[-1]
     players = last.get("players", [])
     # Sort by net_energy or bb_per_100 if available
-    players_sorted = sorted(players, key=lambda p: p.get("net_energy", p.get("bb_per_100", 0)), reverse=True)
+    players_sorted = sorted(
+        players, key=lambda p: p.get("net_energy", p.get("bb_per_100", 0)), reverse=True
+    )
     return players_sorted[:top_n]
 
 
@@ -50,7 +52,11 @@ def poker_clade_stats(lineage):
 def poker_lifespan_csv(poker_by_alg, out_path="scripts/poker_clades.csv"):
     rows = []
     for alg, members in poker_by_alg.items():
-        birth_times = [m.get("birth_time", 0) for m in members if isinstance(m.get("birth_time", None), (int, float))]
+        birth_times = [
+            m.get("birth_time", 0)
+            for m in members
+            if isinstance(m.get("birth_time", None), (int, float))
+        ]
         if birth_times:
             first = min(birth_times)
             last = max(birth_times)
@@ -58,12 +64,23 @@ def poker_lifespan_csv(poker_by_alg, out_path="scripts/poker_clades.csv"):
         else:
             first = last = lifespan = 0
         alive = sum(1 for m in members if m.get("is_alive"))
-        rows.append({"algorithm": alg, "members": len(members), "alive": alive, "first_birth": first, "last_birth": last, "span": lifespan})
+        rows.append(
+            {
+                "algorithm": alg,
+                "members": len(members),
+                "alive": alive,
+                "first_birth": first,
+                "last_birth": last,
+                "span": lifespan,
+            }
+        )
 
     outp = Path(out_path)
     outp.parent.mkdir(parents=True, exist_ok=True)
     with outp.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["algorithm", "members", "alive", "first_birth", "last_birth", "span"])
+        writer = csv.DictWriter(
+            f, fieldnames=["algorithm", "members", "alive", "first_birth", "last_birth", "span"]
+        )
         writer.writeheader()
         for r in rows:
             writer.writerow(r)
@@ -87,7 +104,9 @@ def main():
     top = top_leaderboard(history, top_n=8)
     print("Top performers (latest snapshot):")
     for p in top:
-        print(f" - {p.get('player_id')} ({p.get('name')}): net_energy={p.get('net_energy')}, bb_per_100={p.get('bb_per_100')}, win_rate={p.get('win_rate')}")
+        print(
+            f" - {p.get('player_id')} ({p.get('name')}): net_energy={p.get('net_energy')}, bb_per_100={p.get('bb_per_100')}, win_rate={p.get('win_rate')}"
+        )
 
     alg_counter, poker_by_alg = poker_clade_stats(lineage)
     print("\nMost common algorithms (top 10):")
@@ -114,7 +133,9 @@ def main():
             if best is None or p.get("net_energy", 0) > best.get("net_energy", 0):
                 best = p
         if std and best and best.get("player_id") != std.get("player_id"):
-            print(f"\nInteresting: top net energy is {best.get('player_id')} ({best.get('name')}) vs standard {std.get('player_id')} ({std.get('name')})")
+            print(
+                f"\nInteresting: top net energy is {best.get('player_id')} ({best.get('name')}) vs standard {std.get('player_id')} ({std.get('name')})"
+            )
 
     # Write poker-clade lifespan CSV for offline analysis and print path
     try:

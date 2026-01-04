@@ -132,9 +132,7 @@ def test_adapter_fake_mode() -> None:
     print_section("Adapter Fake Socket Mode Test")
 
     print("[OK] Creating adapter with FakeSocket:")
-    adapter = RCSSServerAdapter(
-        team_name="TestTeam", num_players=3, socket_factory=FakeSocket
-    )
+    adapter = RCSSServerAdapter(team_name="TestTeam", num_players=3, socket_factory=FakeSocket)
     print(f"  Team: {adapter.team_name}")
     print(f"  Players: {adapter.num_players}")
     print()

@@ -135,7 +135,7 @@ class Fish(Agent):
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places
         self._cached_is_dead: bool = False
-        
+
         # OPTIMIZATION: Cache bounds to avoid fetching from environment every frame
         self._cached_bounds: Optional[Tuple[Tuple[float, float], Tuple[float, float]]] = None
 
@@ -1119,8 +1119,8 @@ class Fish(Agent):
     def constrain_to_screen(self) -> None:
         """Override to use cached bounds."""
         if self._cached_bounds is None:
-             self._cached_bounds = self.environment.get_bounds()
-        
+            self._cached_bounds = self.environment.get_bounds()
+
         (min_x, min_y), (max_x, max_y) = self._cached_bounds
 
         # Clamp horizontally
@@ -1146,8 +1146,8 @@ class Fish(Agent):
 
         # Get boundaries from environment (World protocol)
         if self._cached_bounds is None:
-             self._cached_bounds = self.environment.get_bounds()
-             
+            self._cached_bounds = self.environment.get_bounds()
+
         (env_min_x, env_min_y), (env_max_x, env_max_y) = self._cached_bounds
 
         min_x_offset, max_x_offset, min_y_offset, max_y_offset = self._get_visual_bounds_offsets()

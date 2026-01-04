@@ -12,7 +12,7 @@ sys.path.insert(0, os.getcwd())
 # Initialize logging
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 from core.entities import Fish
@@ -23,9 +23,9 @@ from core.tank_world import TankWorld, TankWorldConfig
 def analyze_population(tank: TankWorld, frames: int = 3000):
     """Run simulation and analyze population dynamics."""
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("POPULATION DYNAMICS ANALYSIS")
-    print("="*70)
+    print("=" * 70)
 
     # Tracking variables
     birth_count = 0
@@ -69,41 +69,49 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
             at_max_energy = sum(1 for f in fish_list if f.energy >= f.max_energy)
 
             # Asexual reproduction chance
-            asexual_chances = [f.genome.behavioral.asexual_reproduction_chance.value for f in fish_list]
-            avg_asexual_chance = sum(asexual_chances) / len(asexual_chances) if asexual_chances else 0
+            asexual_chances = [
+                f.genome.behavioral.asexual_reproduction_chance.value for f in fish_list
+            ]
+            avg_asexual_chance = (
+                sum(asexual_chances) / len(asexual_chances) if asexual_chances else 0
+            )
 
             sample = {
-                'frame': frame,
-                'pop': fish_count,
-                'adults': len(adults),
-                'babies': len(babies),
-                'juveniles': len(juveniles),
-                'elders': len(elders),
-                'avg_energy_ratio': energy_ratio,
-                'ready_to_reproduce': ready_to_reproduce,
-                'off_cooldown': off_cooldown,
-                'full_energy_90pct': full_energy,
-                'at_max_energy': at_max_energy,
-                'avg_asexual_chance': avg_asexual_chance,
+                "frame": frame,
+                "pop": fish_count,
+                "adults": len(adults),
+                "babies": len(babies),
+                "juveniles": len(juveniles),
+                "elders": len(elders),
+                "avg_energy_ratio": energy_ratio,
+                "ready_to_reproduce": ready_to_reproduce,
+                "off_cooldown": off_cooldown,
+                "full_energy_90pct": full_energy,
+                "at_max_energy": at_max_energy,
+                "avg_asexual_chance": avg_asexual_chance,
             }
             samples.append(sample)
 
             # Print progress
             if frame % 500 == 0:
-                print(f"Frame {frame}: Pop={fish_count}, Adults={len(adults)}, "
-                      f"ReadyRepro={ready_to_reproduce}, FullEnergy={at_max_energy}, "
-                      f"AvgEnergy={energy_ratio:.1%}")
+                print(
+                    f"Frame {frame}: Pop={fish_count}, Adults={len(adults)}, "
+                    f"ReadyRepro={ready_to_reproduce}, FullEnergy={at_max_energy}, "
+                    f"AvgEnergy={energy_ratio:.1%}"
+                )
 
     # Final analysis
     ecosystem = tank.ecosystem
 
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("FINAL STATISTICS")
-    print("-"*70)
+    print("-" * 70)
 
     print("\nPopulation:")
     print(f"  Max capacity: {tank.config.max_population}")
-    print(f"  Final population: {len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])}")
+    print(
+        f"  Final population: {len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])}"
+    )
     print(f"  Peak population reached: {max_pop_reached}")
     print(f"  Frames near max (>={tank.config.max_population - 5}): {frames_at_max}")
 
@@ -122,18 +130,18 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
         print(f"  {key}: {value}")
 
     # Calculate bottlenecks
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("BOTTLENECK ANALYSIS")
-    print("-"*70)
+    print("-" * 70)
 
     if samples:
-        avg_pop = sum(s['pop'] for s in samples) / len(samples)
-        avg_adults = sum(s['adults'] for s in samples) / len(samples)
-        avg_ready = sum(s['ready_to_reproduce'] for s in samples) / len(samples)
-        avg_full_energy = sum(s['at_max_energy'] for s in samples) / len(samples)
-        avg_off_cooldown = sum(s['off_cooldown'] for s in samples) / len(samples)
-        avg_energy_ratio = sum(s['avg_energy_ratio'] for s in samples) / len(samples)
-        avg_asexual = sum(s['avg_asexual_chance'] for s in samples) / len(samples)
+        avg_pop = sum(s["pop"] for s in samples) / len(samples)
+        avg_adults = sum(s["adults"] for s in samples) / len(samples)
+        avg_ready = sum(s["ready_to_reproduce"] for s in samples) / len(samples)
+        avg_full_energy = sum(s["at_max_energy"] for s in samples) / len(samples)
+        avg_off_cooldown = sum(s["off_cooldown"] for s in samples) / len(samples)
+        avg_energy_ratio = sum(s["avg_energy_ratio"] for s in samples) / len(samples)
+        avg_asexual = sum(s["avg_asexual_chance"] for s in samples) / len(samples)
 
         print("\nAverage across simulation:")
         print(f"  Population: {avg_pop:.1f}")
@@ -149,7 +157,9 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
 
         if avg_adults / avg_pop < 0.3:
             print("  [!] LOW ADULT RATIO: Most fish aren't reaching adulthood")
-            print(f"      Only {avg_adults/avg_pop*100:.1f}% are adults. May be dying before maturity.")
+            print(
+                f"      Only {avg_adults/avg_pop*100:.1f}% are adults. May be dying before maturity."
+            )
 
         if avg_full_energy < avg_adults * 0.5:
             print("  [!] LOW ENERGY LEVELS: Adults aren't reaching max energy")
@@ -175,7 +185,7 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
         print(f"\n  Theoretical reproduction rate: {expected_repro_per_second:.2f} births/second")
         print(f"  Actual rate: {ecosystem.total_births / (frames/30):.2f} births/second")
 
-        death_rate = ecosystem.total_deaths / (frames/30)
+        death_rate = ecosystem.total_deaths / (frames / 30)
         print(f"  Death rate: {death_rate:.2f} deaths/second")
 
         if death_rate > expected_repro_per_second:
@@ -223,17 +233,19 @@ def main():
 
     analyze_population(tank, frames=3000)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("RECOMMENDATIONS")
-    print("="*70)
-    print("""
+    print("=" * 70)
+    print(
+        """
 Based on analysis, consider:
 1. If energy is the bottleneck: Increase food spawn rate or reduce metabolism
 2. If adults are rare: Reduce death rate (check starvation) or speed up maturation
 3. If asexual chance is low: Increase default genetic trait value
 4. If cooldown is bottleneck: Reduce REPRODUCTION_COOLDOWN constant
 5. If deaths > births: Address primary death cause (starvation = more food needed)
-""")
+"""
+    )
 
 
 if __name__ == "__main__":

@@ -126,9 +126,7 @@ def main():
     parser.add_argument(
         "--warmup", type=int, default=100, help="Number of warmup frames (default: 100)"
     )
-    parser.add_argument(
-        "--profile", action="store_true", help="Run with cProfile profiling"
-    )
+    parser.add_argument("--profile", action="store_true", help="Run with cProfile profiling")
     args = parser.parse_args()
 
     print("=" * 60)

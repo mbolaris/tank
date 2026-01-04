@@ -1,4 +1,5 @@
 """Run multiple poker simulations and print summary statistics."""
+
 import statistics
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ from core.poker.core import finalize_pot, simulate_game
 
 
 def run(n=100):
-    winners = {1: 0, 2: 0, 'split': 0}
+    winners = {1: 0, 2: 0, "split": 0}
     pots = []
     folds = 0
 
@@ -27,7 +28,7 @@ def run(n=100):
             elif p2_amount > p1_amount:
                 winners[2] += 1
             else:
-                winners['split'] += 1
+                winners["split"] += 1
         pots.append(s.pot)
 
     print(f"Ran {n} simulations")
@@ -37,5 +38,5 @@ def run(n=100):
     print("Fold rate:", folds / n)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run(100)

@@ -1,4 +1,3 @@
-
 import logging
 import os
 import sys
@@ -11,6 +10,7 @@ from core.simulation.engine import HeadlessSimulator
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def verify_plant_survival():
     logger.info("Starting plant survival verification (User Config)...")
@@ -31,6 +31,7 @@ def verify_plant_survival():
         logger.info("SUCCESS: Plants survived!")
     else:
         logger.error("FAILURE: All plants went extinct.")
+
 
 if __name__ == "__main__":
     verify_plant_survival()

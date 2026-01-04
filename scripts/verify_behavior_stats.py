@@ -1,4 +1,3 @@
-
 import os
 import sys
 
@@ -25,9 +24,14 @@ def verify():
     print(f"Found {len(behavioral_dists)} behavioral distributions.")
 
     expected_keys = [
-        "threat_response", "food_approach", "energy_style",
-        "social_mode", "poker_engagement",
-        "flee_speed", "flee_threshold", "social_distance" # check a few params
+        "threat_response",
+        "food_approach",
+        "energy_style",
+        "social_mode",
+        "poker_engagement",
+        "flee_speed",
+        "flee_threshold",
+        "social_distance",  # check a few params
     ]
 
     found_keys = [d["key"] for d in behavioral_dists]
@@ -49,11 +53,12 @@ def verify():
     print(f"  Observed Range: {threat['min']} - {threat['max']}")
     print(f"  Bins: {threat['bins']}")
 
-    if not threat['discrete']:
+    if not threat["discrete"]:
         print("FAILURE: Threat response should be discrete")
         sys.exit(1)
 
     print("Verification Passed!")
+
 
 if __name__ == "__main__":
     verify()

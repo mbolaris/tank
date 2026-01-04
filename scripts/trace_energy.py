@@ -24,9 +24,9 @@ from core.tank_world import TankWorld, TankWorldConfig
 def trace_energy_economy(tank: TankWorld, frames: int = 500):
     """Trace energy flow through the system to find bugs."""
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("ENERGY ECONOMY BUG ANALYSIS")
-    print("="*70)
+    print("=" * 70)
 
     # Track totals
     total_food_energy_spawned = 0.0
@@ -46,8 +46,7 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
         fish_energy_start = sum(f.energy for f in fish_list)
 
     prev_food_energy_sum = sum(
-        e.energy for e in entities
-        if isinstance(e, Food) or isinstance(e, PlantNectar)
+        e.energy for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)
     )
 
     for frame in range(frames):
@@ -69,7 +68,9 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
         # Snapshot after update
         entities_after = tank.engine.get_all_entities()
         fish_list_after = [e for e in entities_after if isinstance(e, Fish)]
-        food_list_after = [e for e in entities_after if isinstance(e, Food) or isinstance(e, PlantNectar)]
+        food_list_after = [
+            e for e in entities_after if isinstance(e, Food) or isinstance(e, PlantNectar)
+        ]
 
         fish_energy_after = sum(f.energy for f in fish_list_after)
         food_energy_after = sum(f.energy for f in food_list_after)
@@ -79,7 +80,9 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
         food_energy_delta = food_energy_after - food_energy_before
 
         # New food spawned = positive food delta when no eating happened
-        new_food_spawned = max(0, food_energy_after - food_energy_before + (fish_energy_after - fish_energy_before))
+        new_food_spawned = max(
+            0, food_energy_after - food_energy_before + (fish_energy_after - fish_energy_before)
+        )
 
         # Frame 100 checkpoint
         if frame == 100:
@@ -98,9 +101,9 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
 
     fish_energy_end = sum(f.energy for f in fish_list)
 
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("ENERGY FLOW SUMMARY")
-    print("-"*70)
+    print("-" * 70)
 
     print("\nFish energy:")
     print(f"  Start: {fish_energy_start:.1f}")
@@ -125,15 +128,15 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
 
     # Check ecosystem stats if available
     if tank.ecosystem:
-        print("\n" + "-"*70)
+        print("\n" + "-" * 70)
         print("ECOSYSTEM ENERGY TRACKING")
-        print("-"*70)
+        print("-" * 70)
         summary = tank.ecosystem.get_energy_source_summary()
         for source, amount in summary.items():
             print(f"  {source}: {amount:.1f}")
 
         # Check for imbalances
-        total_gained = sum(v for k, v in summary.items() if not k.startswith('death'))
+        total_gained = sum(v for k, v in summary.items() if not k.startswith("death"))
         print(f"\n  Total energy gained by fish: {total_gained:.1f}")
 
         death_causes = dict(tank.ecosystem.death_causes)

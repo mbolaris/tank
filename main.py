@@ -60,7 +60,9 @@ def run_web_server():
         sys.exit(1)
 
 
-def run_headless(max_frames: int, stats_interval: int, seed=None, export_stats=None, trace_output=None):
+def run_headless(
+    max_frames: int, stats_interval: int, seed=None, export_stats=None, trace_output=None
+):
     """Run the simulation in headless mode (no visualization).
 
     Args:

@@ -24,9 +24,9 @@ from core.tank_world import TankWorld, TankWorldConfig
 def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
     """Analyze energy sources and consumption."""
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("ENERGY ECONOMY ANALYSIS")
-    print("="*70)
+    print("=" * 70)
 
     # Tracking
     food_eaten_count = 0
@@ -70,29 +70,35 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
             avg_energy_pct = 0
             if fish_list_after:
                 avg_energy = sum(f.energy for f in fish_list_after) / len(fish_list_after)
-                avg_energy_pct = sum(f.energy / f.max_energy for f in fish_list_after) / len(fish_list_after) * 100
+                avg_energy_pct = (
+                    sum(f.energy / f.max_energy for f in fish_list_after)
+                    / len(fish_list_after)
+                    * 100
+                )
 
             sample = {
-                'frame': frame,
-                'fish': len(fish_list_after),
-                'food': food_count,
-                'nectar': nectar_count,
-                'plants': plant_count,
-                'avg_energy': avg_energy,
-                'avg_energy_pct': avg_energy_pct,
+                "frame": frame,
+                "fish": len(fish_list_after),
+                "food": food_count,
+                "nectar": nectar_count,
+                "plants": plant_count,
+                "avg_energy": avg_energy,
+                "avg_energy_pct": avg_energy_pct,
             }
             samples.append(sample)
 
-            print(f"Frame {frame:4d}: Fish={len(fish_list_after):2d}, Food={food_count:2d}, "
-                  f"Nectar={nectar_count:2d}, Plants={plant_count:2d}, "
-                  f"AvgEnergy={avg_energy_pct:.0f}%")
+            print(
+                f"Frame {frame:4d}: Fish={len(fish_list_after):2d}, Food={food_count:2d}, "
+                f"Nectar={nectar_count:2d}, Plants={plant_count:2d}, "
+                f"AvgEnergy={avg_energy_pct:.0f}%"
+            )
 
     # Final stats
     ecosystem = tank.ecosystem
 
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("ECOSYSTEM ENERGY STATS")
-    print("-"*70)
+    print("-" * 70)
 
     if ecosystem:
         energy_summary = ecosystem.get_energy_source_summary()
@@ -104,7 +110,7 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
         print(f"  Fish vs Fish games: {ecosystem.total_fish_poker_games}")
         poker_summary = ecosystem.get_poker_stats_summary()
         for key, value in poker_summary.items():
-            if 'plant' in key.lower() or 'mixed' in key.lower():
+            if "plant" in key.lower() or "mixed" in key.lower():
                 print(f"  {key}: {value}")
 
         final_births = ecosystem.total_births
@@ -117,15 +123,15 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
 
     # Calculate averages
     if samples:
-        print("\n" + "-"*70)
+        print("\n" + "-" * 70)
         print("AVERAGES OVER SIMULATION")
-        print("-"*70)
+        print("-" * 70)
 
-        avg_fish = sum(s['fish'] for s in samples) / len(samples)
-        avg_food = sum(s['food'] for s in samples) / len(samples)
-        avg_nectar = sum(s['nectar'] for s in samples) / len(samples)
-        avg_plants = sum(s['plants'] for s in samples) / len(samples)
-        avg_energy_pct = sum(s['avg_energy_pct'] for s in samples) / len(samples)
+        avg_fish = sum(s["fish"] for s in samples) / len(samples)
+        avg_food = sum(s["food"] for s in samples) / len(samples)
+        avg_nectar = sum(s["nectar"] for s in samples) / len(samples)
+        avg_plants = sum(s["plants"] for s in samples) / len(samples)
+        avg_energy_pct = sum(s["avg_energy_pct"] for s in samples) / len(samples)
 
         print(f"  Average fish count: {avg_fish:.1f}")
         print(f"  Average food available: {avg_food:.1f}")

@@ -23,9 +23,9 @@ from core.tank_world import TankWorld, TankWorldConfig
 def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
     """Diagnose food-seeking effectiveness."""
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("FOOD-SEEKING BEHAVIOR DIAGNOSIS")
-    print("="*70)
+    print("=" * 70)
 
     # Per-frame tracking
     total_fish_frames = 0
@@ -53,7 +53,7 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
 
             # Find nearest food
             nearest_food = None
-            nearest_dist = float('inf')
+            nearest_dist = float("inf")
             for food in food_list:
                 dx = food.pos.x - fish.pos.x
                 dy = food.pos.y - fish.pos.y
@@ -79,14 +79,16 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
         if frame % 200 == 0:
             avg_vel = 0
             if fish_list:
-                avg_vel = sum((f.vel.x**2 + f.vel.y**2)**0.5 for f in fish_list) / len(fish_list)
-            print(f"Frame {frame}: Fish={len(fish_list)}, Food={len(food_list)}, "
-                  f"FoodEaten={food_eaten_count}, AvgVel={avg_vel:.2f}")
+                avg_vel = sum((f.vel.x**2 + f.vel.y**2) ** 0.5 for f in fish_list) / len(fish_list)
+            print(
+                f"Frame {frame}: Fish={len(fish_list)}, Food={len(food_list)}, "
+                f"FoodEaten={food_eaten_count}, AvgVel={avg_vel:.2f}"
+            )
 
     # Print analysis
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("FOOD-SEEKING ANALYSIS")
-    print("-"*70)
+    print("-" * 70)
 
     if total_fish_frames > 0:
         near_food_pct = fish_near_food_count / total_fish_frames * 100
@@ -94,13 +96,15 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
 
         print(f"\nTotal fish-frames analyzed: {total_fish_frames}")
         print(f"Fish near food (<100px): {fish_near_food_count} ({near_food_pct:.1f}%)")
-        print(f"Fish moving toward nearest food: {fish_moving_toward_food_count} ({moving_toward_pct:.1f}%)")
+        print(
+            f"Fish moving toward nearest food: {fish_moving_toward_food_count} ({moving_toward_pct:.1f}%)"
+        )
         print(f"Food eaten (total): {food_eaten_count}")
         print(f"Food eaten per 1000 fish-frames: {food_eaten_count / total_fish_frames * 1000:.1f}")
 
-        print("\n" + "-"*70)
+        print("\n" + "-" * 70)
         print("INTERPRETATION")
-        print("-"*70)
+        print("-" * 70)
 
         if near_food_pct < 30:
             print("[!] FOOD DISTRIBUTION ISSUE: Fish are rarely near food")

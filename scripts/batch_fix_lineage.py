@@ -8,6 +8,7 @@ fixed version. Changes are logged.
 
 Run with: python scripts/batch_fix_lineage.py
 """
+
 import importlib.util
 import json
 import logging
@@ -23,6 +24,7 @@ def load_scan_function() -> callable:
     assert loader is not None
     loader.exec_module(module)
     return module.scan_and_fix_lineage
+
 
 scan_and_fix_lineage = load_scan_function()
 
@@ -58,7 +60,11 @@ def process_snapshot(path: Path):
     # Find lineage_log as in fix_lineage.py
     lineage_log = None
     if isinstance(data, dict):
-        if "ecosystem" in data and isinstance(data["ecosystem"], dict) and "lineage_log" in data["ecosystem"]:
+        if (
+            "ecosystem" in data
+            and isinstance(data["ecosystem"], dict)
+            and "lineage_log" in data["ecosystem"]
+        ):
             lineage_log = data["ecosystem"]["lineage_log"]
         elif "lineage_log" in data:
             lineage_log = data["lineage_log"]
@@ -74,7 +80,11 @@ def process_snapshot(path: Path):
 
     # Prepare replacement data
     out = dict(data)
-    if "ecosystem" in out and isinstance(out["ecosystem"], dict) and "lineage_log" in out["ecosystem"]:
+    if (
+        "ecosystem" in out
+        and isinstance(out["ecosystem"], dict)
+        and "lineage_log" in out["ecosystem"]
+    ):
         out["ecosystem"]["lineage_log"] = fixed
     elif "lineage_log" in out:
         out["lineage_log"] = fixed
@@ -106,7 +116,11 @@ def main():
         except Exception as e:
             logger.error("Error processing %s: %s", snap, e)
 
-    logger.info("Processed %d snapshot files. Total orphaned records fixed: %d", files_processed, total_orphans)
+    logger.info(
+        "Processed %d snapshot files. Total orphaned records fixed: %d",
+        files_processed,
+        total_orphans,
+    )
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 
 This script is intended for local developer checks and CI smoke tests.
 """
+
 from core.simulation.engine import SimulationEngine
 
 

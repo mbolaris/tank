@@ -48,9 +48,9 @@ def test_poker_strategy_inheritance_bias():
 
     Hypothesis: The 80/20 weighting may not be properly applied to poker strategies.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Poker Strategy Inheritance Bias")
-    print("="*70)
+    print("=" * 70)
 
     # Create two distinct strategies with known parameters
     parent1 = TightAggressiveStrategy()
@@ -74,7 +74,9 @@ def test_poker_strategy_inheritance_bias():
         # Current implementation doesn't know who won!
         # It uses crossover_poker_strategies(parent1, parent2, mutation_rate, mutation_strength)
         # There's no winner parameter!
-        offspring = crossover_poker_strategies(parent1, parent2, mutation_rate=0.15, mutation_strength=0.2)
+        offspring = crossover_poker_strategies(
+            parent1, parent2, mutation_rate=0.15, mutation_strength=0.2
+        )
 
         if offspring.strategy_id == "tight_aggressive":
             same_as_parent1 += 1
@@ -112,7 +114,9 @@ def test_poker_strategy_inheritance_bias():
         print("  ✓ Strategy inheritance shows bias")
 
     if new_random > n_trials * 0.2:
-        print(f"  ❌ High novelty injection ({100*new_random/n_trials:.1f}%) may wipe out adaptations!")
+        print(
+            f"  ❌ High novelty injection ({100*new_random/n_trials:.1f}%) may wipe out adaptations!"
+        )
 
 
 def test_mutation_destroying_adaptations():
@@ -120,9 +124,9 @@ def test_mutation_destroying_adaptations():
 
     Hypothesis: High mutation/novelty rates reset evolved parameters.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Mutation Rate Impact on Evolved Parameters")
-    print("="*70)
+    print("=" * 70)
 
     # Create a "perfect" strategy with optimal parameters
     optimal = TightAggressiveStrategy()
@@ -147,17 +151,23 @@ def test_mutation_destroying_adaptations():
         for _ in range(n_offspring):
             # Simulate self-crossover (as in cloning)
             offspring = crossover_poker_strategies(
-                optimal, optimal,
-                mutation_rate=0.20,  # Current default
-                mutation_strength=0.25
+                optimal, optimal, mutation_rate=0.20, mutation_strength=0.25  # Current default
             )
             next_gen.append(offspring)
             if offspring.strategy_id == "tight_aggressive":
                 preserved_type += 1
 
         # Calculate parameter drift
-        fold_vals = [s.parameters.get("weak_fold_threshold", 0) for s in next_gen if "weak_fold_threshold" in s.parameters]
-        raise_vals = [s.parameters.get("strong_raise_threshold", 0) for s in next_gen if "strong_raise_threshold" in s.parameters]
+        fold_vals = [
+            s.parameters.get("weak_fold_threshold", 0)
+            for s in next_gen
+            if "weak_fold_threshold" in s.parameters
+        ]
+        raise_vals = [
+            s.parameters.get("strong_raise_threshold", 0)
+            for s in next_gen
+            if "strong_raise_threshold" in s.parameters
+        ]
 
         if fold_vals:
             avg_fold = sum(fold_vals) / len(fold_vals)
@@ -167,12 +177,18 @@ def test_mutation_destroying_adaptations():
             fold_drift = "N/A"
 
         print(f"\nGeneration {gen+1}:")
-        print(f"  Same strategy type: {preserved_type}/{n_offspring} ({100*preserved_type/n_offspring:.1f}%)")
-        print(f"  Avg fold_threshold: {avg_fold if isinstance(avg_fold, str) else f'{avg_fold:.3f}'} (drift: {fold_drift if isinstance(fold_drift, str) else f'{fold_drift:.3f}'})")
+        print(
+            f"  Same strategy type: {preserved_type}/{n_offspring} ({100*preserved_type/n_offspring:.1f}%)"
+        )
+        print(
+            f"  Avg fold_threshold: {avg_fold if isinstance(avg_fold, str) else f'{avg_fold:.3f}'} (drift: {fold_drift if isinstance(fold_drift, str) else f'{fold_drift:.3f}'})"
+        )
 
     print("\nCONCLUSION:")
     if preserved_type < n_offspring * 0.8:
-        print(f"  ❌ Only {100*preserved_type/n_offspring:.1f}% preserved strategy type after 10 generations")
+        print(
+            f"  ❌ Only {100*preserved_type/n_offspring:.1f}% preserved strategy type after 10 generations"
+        )
         print("  ISSUE: High novelty injection rate (~10-25%) destroys adaptations")
 
 
@@ -181,9 +197,9 @@ def test_winner_vs_standard_algorithm():
 
     This establishes a baseline for what "good poker" looks like.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Fish Strategy Performance vs Standard Algorithm")
-    print("="*70)
+    print("=" * 70)
 
     results = {}
 
@@ -215,15 +231,21 @@ def test_winner_vs_standard_algorithm():
 
     print("\nStrategy performance vs Standard Algorithm (200 hands):")
     print("-" * 60)
-    for strategy_id, result in sorted(results.items(), key=lambda x: x[1]["bb_per_100"], reverse=True):
-        print(f"  {strategy_id:25} | Win Rate: {result['win_rate']:5.1f}% | BB/100: {result['bb_per_100']:+6.2f}")
+    for strategy_id, result in sorted(
+        results.items(), key=lambda x: x[1]["bb_per_100"], reverse=True
+    ):
+        print(
+            f"  {strategy_id:25} | Win Rate: {result['win_rate']:5.1f}% | BB/100: {result['bb_per_100']:+6.2f}"
+        )
 
     # Check if any strategy consistently beats standard
     winners = [s for s, r in results.items() if r["bb_per_100"] > 0]
     print(f"\nStrategies beating standard: {len(winners)}/{len(results)}")
 
     if len(winners) < len(results) / 2:
-        print("  ❌ Fewer than half of strategies beat standard - selection may favor standard-like play")
+        print(
+            "  ❌ Fewer than half of strategies beat standard - selection may favor standard-like play"
+        )
     else:
         print("  ✓ Multiple strategies can beat standard - evolution has room to improve")
 
@@ -234,9 +256,9 @@ def test_behavioral_traits_vs_strategy_conflict():
     Hypothesis: Two separate genetic systems (aggression trait and strategy algorithm)
     may conflict or make it harder to evolve optimal behavior.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Aggression Trait vs Strategy Algorithm Conflict")
-    print("="*70)
+    print("=" * 70)
 
     # Create genomes with different aggression but same strategy
     results = []
@@ -254,10 +276,7 @@ def test_behavioral_traits_vs_strategy_conflict():
         # Test against standard
         game = AutoEvaluatePokerGame(
             game_id=f"aggression_{aggression}",
-            player_pool=[{
-                "name": f"Aggression={aggression}",
-                "poker_strategy": strategy
-            }],
+            player_pool=[{"name": f"Aggression={aggression}", "poker_strategy": strategy}],
             standard_energy=500.0,
             max_hands=200,
             small_blind=5.0,
@@ -270,17 +289,21 @@ def test_behavioral_traits_vs_strategy_conflict():
         fish_stats = next((p for p in stats.players if not p["is_standard"]), None)
 
         if fish_stats:
-            results.append({
-                "aggression": aggression,
-                "strategy": strategy.strategy_id,
-                "win_rate": fish_stats["win_rate"],
-                "bb_per_100": fish_stats["bb_per_100"],
-            })
+            results.append(
+                {
+                    "aggression": aggression,
+                    "strategy": strategy.strategy_id,
+                    "win_rate": fish_stats["win_rate"],
+                    "bb_per_100": fish_stats["bb_per_100"],
+                }
+            )
 
     print("\nImpact of aggression trait on same strategy:")
     print("-" * 60)
     for r in results:
-        print(f"  Aggression: {r['aggression']:.2f} | Strategy: {r['strategy']:20} | BB/100: {r['bb_per_100']:+6.2f}")
+        print(
+            f"  Aggression: {r['aggression']:.2f} | Strategy: {r['strategy']:20} | BB/100: {r['bb_per_100']:+6.2f}"
+        )
 
     print("\nNOTE: In the simulation, genome.behavioral.aggression is mapped to poker aggression")
     print("      but the poker_strategy_algorithm makes its own decisions.")
@@ -292,9 +315,9 @@ def simulate_evolution_over_generations():
 
     This is the main experiment to see if poker skill improves.
     """
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Simulated Evolution Over Generations")
-    print("="*70)
+    print("=" * 70)
 
     # Start with random population
     population_size = 20
@@ -348,15 +371,17 @@ def simulate_evolution_over_generations():
         print(f"  Best fitness: {best_fitness:+.2f} ({best_strategy})")
         print(f"  Most common strategy: {most_common[0]} ({most_common[1]}/{population_size})")
 
-        results.append({
-            "generation": gen + 1,
-            "avg_fitness": avg_fitness,
-            "best_fitness": best_fitness,
-            "strategy_diversity": len(type_counts),
-        })
+        results.append(
+            {
+                "generation": gen + 1,
+                "avg_fitness": avg_fitness,
+                "best_fitness": best_fitness,
+                "strategy_diversity": len(type_counts),
+            }
+        )
 
         # Selection: top 50% reproduce
-        survivors = [f[2] for f in fitness_scores[:population_size // 2]]
+        survivors = [f[2] for f in fitness_scores[: population_size // 2]]
 
         # Reproduction with current crossover (NOT winner-biased)
         next_gen = []
@@ -389,9 +414,9 @@ def simulate_evolution_over_generations():
 
 def diagnose_behavioral_inheritance():
     """Examine exactly how behavioral traits inherit poker strategy."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Behavioral Traits Inheritance Flow")
-    print("="*70)
+    print("=" * 70)
 
     # Create two parent genomes with different strategies
     parent1 = Genome.random(use_algorithm=True)
@@ -399,8 +424,12 @@ def diagnose_behavioral_inheritance():
 
     parent1_strategy = parent1.behavioral.poker_strategy_algorithm.value
     parent2_strategy = parent2.behavioral.poker_strategy_algorithm.value
-    print(f"\nParent 1 poker strategy: {parent1_strategy.strategy_id if parent1_strategy else 'None'}")
-    print(f"Parent 2 poker strategy: {parent2_strategy.strategy_id if parent2_strategy else 'None'}")
+    print(
+        f"\nParent 1 poker strategy: {parent1_strategy.strategy_id if parent1_strategy else 'None'}"
+    )
+    print(
+        f"Parent 2 poker strategy: {parent2_strategy.strategy_id if parent2_strategy else 'None'}"
+    )
 
     # Simulate winner-choice inheritance (80/20 weighting)
     # This is what happens in fish_poker.py:523-529
@@ -433,7 +462,9 @@ def diagnose_behavioral_inheritance():
         if offspring_strategy:
             if parent1_strategy and offspring_strategy.strategy_id == parent1_strategy.strategy_id:
                 same_as_winner += 1
-            elif parent2_strategy and offspring_strategy.strategy_id == parent2_strategy.strategy_id:
+            elif (
+                parent2_strategy and offspring_strategy.strategy_id == parent2_strategy.strategy_id
+            ):
                 same_as_loser += 1
             else:
                 new_strategy += 1
@@ -448,14 +479,16 @@ def diagnose_behavioral_inheritance():
         print("\n  ✓ Winner's strategy is favored as expected")
     else:
         print("\n  ❌ Winner's strategy NOT favored - inheritance may be broken!")
-        print(f"     Expected ~{expected_winner_pct}% winner strategy, got {100*same_as_winner/n_trials:.1f}%")
+        print(
+            f"     Expected ~{expected_winner_pct}% winner strategy, got {100*same_as_winner/n_trials:.1f}%"
+        )
 
 
 def main():
     """Run all diagnostic tests."""
-    print("="*70)
+    print("=" * 70)
     print("POKER EVOLUTION DIAGNOSTIC REPORT")
-    print("="*70)
+    print("=" * 70)
     print("\nThis script identifies bottlenecks preventing poker skill evolution.")
 
     # Run all tests
@@ -466,10 +499,11 @@ def main():
     diagnose_behavioral_inheritance()
     simulate_evolution_over_generations()
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("DIAGNOSTIC SUMMARY")
-    print("="*70)
-    print("""
+    print("=" * 70)
+    print(
+        """
 Based on the tests above, likely bottlenecks are:
 
 1. POKER STRATEGY INHERITANCE:
@@ -492,7 +526,8 @@ RECOMMENDED FIXES:
 3. Reduce mutation rates for poker-specific parameters
 4. Track poker win rate as explicit fitness metric
 5. Consider increasing poker's energy importance
-""")
+"""
+    )
 
 
 if __name__ == "__main__":

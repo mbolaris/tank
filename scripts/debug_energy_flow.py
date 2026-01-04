@@ -42,9 +42,9 @@ class MockEcosystem:
 
 def test_energy_flow():
     """Trace energy through a poker game."""
-    print("="*70)
+    print("=" * 70)
     print("ENERGY FLOW DEBUG TEST")
-    print("="*70)
+    print("=" * 70)
 
     env = MockEnvironment()
     ecosystem = MockEcosystem()
@@ -63,7 +63,7 @@ def test_energy_flow():
         genome=genome1,
         generation=1,
         ecosystem=ecosystem,
-        initial_energy=100.0  # Start at max
+        initial_energy=100.0,  # Start at max
     )
 
     fish2 = Fish(
@@ -76,7 +76,7 @@ def test_energy_flow():
         genome=genome2,
         generation=1,
         ecosystem=ecosystem,
-        initial_energy=100.0  # Start at max
+        initial_energy=100.0,  # Start at max
     )
 
     fish1._lifecycle_component.age = 100
@@ -89,16 +89,24 @@ def test_energy_flow():
     env.agents = [fish1, fish2]
 
     print("\nBEFORE POKER:")
-    print(f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
-    print(f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
+    print(
+        f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)"
+    )
+    print(
+        f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)"
+    )
 
     # Play poker
     poker = PokerInteraction(fish1, fish2)
     _success = poker.play_poker()
 
     print("\nAFTER POKER:")
-    print(f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)")
-    print(f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)")
+    print(
+        f"  Fish 1: {fish1.energy:.1f} / {fish1.max_energy:.1f} ({fish1.energy/fish1.max_energy*100:.1f}%)"
+    )
+    print(
+        f"  Fish 2: {fish2.energy:.1f} / {fish2.max_energy:.1f} ({fish2.energy/fish2.max_energy*100:.1f}%)"
+    )
 
     if poker.result:
         print("\nPOKER RESULT:")
@@ -111,8 +119,12 @@ def test_energy_flow():
         loser_fish = fish2 if poker.result.winner_id == fish1.fish_id else fish1
 
         print("\nREPRODUCTION CHECK:")
-        print(f"  Winner energy: {winner_fish.energy:.1f} / {winner_fish.max_energy:.1f} ({winner_fish.energy/winner_fish.max_energy*100:.1f}%)")
-        print(f"  Loser energy: {loser_fish.energy:.1f} / {loser_fish.max_energy:.1f} ({loser_fish.energy/loser_fish.max_energy*100:.1f}%)")
+        print(
+            f"  Winner energy: {winner_fish.energy:.1f} / {winner_fish.max_energy:.1f} ({winner_fish.energy/winner_fish.max_energy*100:.1f}%)"
+        )
+        print(
+            f"  Loser energy: {loser_fish.energy:.1f} / {loser_fish.max_energy:.1f} ({loser_fish.energy/loser_fish.max_energy*100:.1f}%)"
+        )
         print(f"  Winner 90% threshold: {winner_fish.max_energy * 0.9:.1f}")
         print(f"  Loser 90% threshold: {loser_fish.max_energy * 0.9:.1f}")
         print(f"  Winner above threshold: {winner_fish.energy >= winner_fish.max_energy * 0.9}")

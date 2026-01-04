@@ -7,6 +7,7 @@ Usage:
 This script runs several simulated games under cProfile and prints the top
 hotspots by cumulative time. Adjust `N_ITER` for longer/shorter runs.
 """
+
 import cProfile
 import io
 import pstats

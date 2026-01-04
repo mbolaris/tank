@@ -98,7 +98,8 @@ def _run_headless_simulation(*, frames: int, seed: int) -> Tuple[List[Fish], int
         if frame and frame % stats_interval == 0:
             fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
             poker_games = sum(
-                (f.poker_stats.total_games if getattr(f, "poker_stats", None) else 0) for f in fish_list
+                (f.poker_stats.total_games if getattr(f, "poker_stats", None) else 0)
+                for f in fish_list
             )
             logger.info(
                 "Seed %s frame %s/%s: %s fish alive, %s total poker games",
@@ -117,23 +118,36 @@ def _run_headless_simulation(*, frames: int, seed: int) -> Tuple[List[Fish], int
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Capture a GPT-5.2 poker solution for the tournament field.")
+    parser = argparse.ArgumentParser(
+        description="Capture a GPT-5.2 poker solution for the tournament field."
+    )
     parser.add_argument(
         "--tournament-json",
         default=os.path.join(".tmp", f"{AUTHOR}_baseline.json"),
         help=f"Tournament JSON artifact (default: .tmp/{AUTHOR}_baseline.json)",
     )
-    parser.add_argument("--solutions-dir", default="solutions", help="Solutions directory (default: solutions)")
-    parser.add_argument("--name", default=DEFAULT_NAME, help=f"Solution name (default: {DEFAULT_NAME!r})")
+    parser.add_argument(
+        "--solutions-dir", default="solutions", help="Solutions directory (default: solutions)"
+    )
+    parser.add_argument(
+        "--name", default=DEFAULT_NAME, help=f"Solution name (default: {DEFAULT_NAME!r})"
+    )
     parser.add_argument("--author", default=AUTHOR, help=f"Solution author (default: {AUTHOR!r})")
-    parser.add_argument("--frames", type=int, default=100_000, help="Frames per simulation seed (default: 100000)")
+    parser.add_argument(
+        "--frames", type=int, default=100_000, help="Frames per simulation seed (default: 100000)"
+    )
     parser.add_argument(
         "--seeds",
         type=str,
         default="4242,2024,1234,8888,9001",
         help="Comma-separated list of seeds to try",
     )
-    parser.add_argument("--min-games", type=int, default=100, help="Min poker games to consider a fish (default: 100)")
+    parser.add_argument(
+        "--min-games",
+        type=int,
+        default=100,
+        help="Min poker games to consider a fish (default: 100)",
+    )
     parser.add_argument(
         "--candidate-pool",
         type=int,
@@ -183,7 +197,9 @@ def main() -> int:
             top_n=1,
         )
         if not ranked:
-            logger.warning("Seed %s: no eligible poker fish met min-games threshold %s", seed, args.min_games)
+            logger.warning(
+                "Seed %s: no eligible poker fish met min-games threshold %s", seed, args.min_games
+            )
             continue
 
         fish, avg_wr = ranked[0]

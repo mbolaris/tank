@@ -93,7 +93,9 @@ def _resolve_default_tank_id(api_base_url: str) -> Optional[str]:
 def _capture_best_from_live_tank(config: TournamentConfig) -> Optional[str]:
     tank_id = config.tank_id or _resolve_default_tank_id(config.api_base_url)
     if not tank_id:
-        raise RuntimeError("Could not determine a tank_id from /api/tanks; pass --tank-id explicitly.")
+        raise RuntimeError(
+            "Could not determine a tank_id from /api/tanks; pass --tank-id explicitly."
+        )
 
     url = config.api_base_url.rstrip("/") + f"/api/solutions/capture/{tank_id}"
     req = {
@@ -122,7 +124,9 @@ def _git_head_sha() -> Optional[str]:
 
 def _git_branch() -> Optional[str]:
     try:
-        return subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True).strip()
+        return subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
+        ).strip()
     except Exception:
         return None
 
@@ -206,9 +210,13 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
         try:
             captured_live_solution_id = _capture_best_from_live_tank(config)
         except (HTTPError, URLError, TimeoutError) as exc:
-            print(f"Warning: live tank capture failed ({exc}); continuing without live tank solution.")
+            print(
+                f"Warning: live tank capture failed ({exc}); continuing without live tank solution."
+            )
         except Exception as exc:
-            print(f"Warning: live tank capture failed ({exc}); continuing without live tank solution.")
+            print(
+                f"Warning: live tank capture failed ({exc}); continuing without live tank solution."
+            )
 
     solutions = load_solutions(config.solutions_dir)
     if not solutions:
@@ -229,7 +237,9 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
         for sol in solutions:
             tracker.save_solution(sol)
 
-        bench.generate_report(solutions, output_path=os.path.join(config.solutions_dir, "benchmark_report.txt"))
+        bench.generate_report(
+            solutions, output_path=os.path.join(config.solutions_dir, "benchmark_report.txt")
+        )
 
     selected = choose_best_per_author(solutions)
 
@@ -308,7 +318,9 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
                 "solution_id": s.metadata.solution_id,
                 "elo": s.benchmark_result.elo_rating if s.benchmark_result else None,
                 "skill_tier": s.benchmark_result.skill_tier if s.benchmark_result else None,
-                "bb_per_100": s.benchmark_result.weighted_bb_per_100 if s.benchmark_result else None,
+                "bb_per_100": (
+                    s.benchmark_result.weighted_bb_per_100 if s.benchmark_result else None
+                ),
             }
             for s in selected
         ],
@@ -326,11 +338,24 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a best-per-author poker solution tournament.")
-    parser.add_argument("--solutions-dir", default="solutions", help="Solutions directory (default: solutions)")
-    parser.add_argument("--benchmark-hands", type=int, default=300, help="Hands per opponent (default: 300)")
-    parser.add_argument("--benchmark-duplicates", type=int, default=10, help="Duplicate sets (default: 10)")
-    parser.add_argument("--benchmark-seed", type=int, default=42, help="Benchmark base seed (default: 42)")
-    parser.add_argument("--matchup-hands", type=int, default=1000, help="Hands per head-to-head matchup (default: 1000)")
+    parser.add_argument(
+        "--solutions-dir", default="solutions", help="Solutions directory (default: solutions)"
+    )
+    parser.add_argument(
+        "--benchmark-hands", type=int, default=300, help="Hands per opponent (default: 300)"
+    )
+    parser.add_argument(
+        "--benchmark-duplicates", type=int, default=10, help="Duplicate sets (default: 10)"
+    )
+    parser.add_argument(
+        "--benchmark-seed", type=int, default=42, help="Benchmark base seed (default: 42)"
+    )
+    parser.add_argument(
+        "--matchup-hands",
+        type=int,
+        default=1000,
+        help="Hands per head-to-head matchup (default: 1000)",
+    )
     parser.add_argument(
         "--output",
         default=os.path.join("solutions", "ai_tournament_report.txt"),

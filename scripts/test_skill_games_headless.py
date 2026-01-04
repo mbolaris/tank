@@ -141,7 +141,9 @@ def run_skill_game_simulation(
         "total_skill_games": total_skill_games,
         "total_energy_transferred": total_energy_transferred,
         "fish_with_game_stats": len(optimality_rates),
-        "avg_optimality_rate": sum(optimality_rates) / len(optimality_rates) if optimality_rates else 0.0,
+        "avg_optimality_rate": (
+            sum(optimality_rates) / len(optimality_rates) if optimality_rates else 0.0
+        ),
         "avg_win_rate": sum(win_rates) / len(win_rates) if win_rates else 0.0,
         "avg_games_per_fish": sum(games_per_fish) / len(games_per_fish) if games_per_fish else 0.0,
         "max_games_by_fish": max(games_per_fish) if games_per_fish else 0,
@@ -165,8 +167,10 @@ def run_skill_game_simulation(
     if recent_events:
         logger.info("Sample recent events:")
         for event in recent_events[:3]:
-            logger.info(f"  Frame {event['frame']}: Player #{event['player1_id']} vs #{event['player2_id']} "
-                       f"- Winner: #{event['winner_id']}, Energy: {event['energy_transferred']:.1f}")
+            logger.info(
+                f"  Frame {event['frame']}: Player #{event['player1_id']} vs #{event['player2_id']} "
+                f"- Winner: #{event['winner_id']}, Energy: {event['energy_transferred']:.1f}"
+            )
 
     return results
 
@@ -199,6 +203,7 @@ def main():
         except Exception as e:
             logger.error(f"Error running {game_type.value}: {e}")
             import traceback
+
             traceback.print_exc()
             results[game_type.value] = {"error": str(e)}
 

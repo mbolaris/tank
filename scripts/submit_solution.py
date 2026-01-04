@@ -281,13 +281,12 @@ Examples:
     submit_parser.add_argument("--author", "-a", help="Author name")
     submit_parser.add_argument("--description", "-d", help="Description")
     submit_parser.add_argument(
-        "--evaluate", "-e", action="store_true",
-        help="Evaluate against benchmarks before submitting"
+        "--evaluate",
+        "-e",
+        action="store_true",
+        help="Evaluate against benchmarks before submitting",
     )
-    submit_parser.add_argument(
-        "--push", "-p", action="store_true",
-        help="Push to git after saving"
-    )
+    submit_parser.add_argument("--push", "-p", action="store_true", help="Push to git after saving")
     submit_parser.set_defaults(func=cmd_submit)
 
     # List command
@@ -297,16 +296,13 @@ Examples:
     # Evaluate command
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate solution(s)")
     eval_parser.add_argument(
-        "solution_id", nargs="?",
-        help="Solution ID to evaluate (evaluates all if not specified)"
+        "solution_id", nargs="?", help="Solution ID to evaluate (evaluates all if not specified)"
     )
     eval_parser.add_argument(
-        "--hands", "-n", type=int, default=500,
-        help="Hands per opponent (default: 500)"
+        "--hands", "-n", type=int, default=500, help="Hands per opponent (default: 500)"
     )
     eval_parser.add_argument(
-        "--duplicates", "-d", type=int, default=25,
-        help="Duplicate sets per opponent (default: 25)"
+        "--duplicates", "-d", type=int, default=25, help="Duplicate sets per opponent (default: 25)"
     )
     eval_parser.set_defaults(func=cmd_evaluate)
 
@@ -318,15 +314,12 @@ Examples:
     report_parser = subparsers.add_parser("report", help="Generate benchmark report")
     report_parser.add_argument("--output", "-o", help="Output file path")
     report_parser.add_argument(
-        "--print", dest="print_report", action="store_true",
-        help="Print report to console"
+        "--print", dest="print_report", action="store_true", help="Print report to console"
     )
     report_parser.set_defaults(func=cmd_report)
 
     # Capture command
-    capture_parser = subparsers.add_parser(
-        "capture", help="Capture best from simulation"
-    )
+    capture_parser = subparsers.add_parser("capture", help="Capture best from simulation")
     capture_parser.set_defaults(func=cmd_capture)
 
     args = parser.parse_args()

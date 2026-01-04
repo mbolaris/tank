@@ -47,11 +47,12 @@ def run_simulation_for_poker(max_frames: int = 20000, seed: int = 42):
         if frame > 0 and frame % stats_interval == 0:
             # Check poker activity
             from core.entities import Fish
+
             fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
 
             poker_games = 0
             for fish in fish_list:
-                if hasattr(fish, 'poker_stats') and fish.poker_stats:
+                if hasattr(fish, "poker_stats") and fish.poker_stats:
                     poker_games += fish.poker_stats.total_games
 
             logger.info(f"Frame {frame}: {len(fish_list)} fish, {poker_games} total poker games")
@@ -76,7 +77,7 @@ def capture_best_solution(world, author: str = "Opus-4.5"):
     # Find fish with poker experience
     poker_fish = []
     for fish in fish_list:
-        if hasattr(fish, 'poker_stats') and fish.poker_stats:
+        if hasattr(fish, "poker_stats") and fish.poker_stats:
             games = fish.poker_stats.total_games
             if games > 0:
                 poker_fish.append((fish, games))
