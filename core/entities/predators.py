@@ -55,20 +55,31 @@ class Crab(Agent):
         """Check if crab can hunt (cooldown expired)."""
         return self.hunt_cooldown <= 0
 
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
+        """Modify energy and record delta."""
+        old_energy = self.energy
+        new_energy = self.energy + amount
+        self.energy = max(0.0, min(self.max_energy, new_energy))
+        
+        delta = self.energy - old_energy
+        if delta != 0 and hasattr(self.environment, "record_energy_delta"):
+            self.environment.record_energy_delta(self, delta, source)
+        return delta
+
     def consume_energy(self) -> None:
         """Consume energy based on metabolism."""
         metabolism = CRAB_IDLE_CONSUMPTION * self.genome.metabolism_rate
-        self.energy = max(0, self.energy - metabolism)
+        self.modify_energy(-metabolism, source="metabolism")
 
     def eat_fish(self, fish: Fish) -> None:
         """Eat a fish and gain energy."""
-        self.energy = min(self.max_energy, self.energy + CRAB_ATTACK_ENERGY_TRANSFER)
+        self.modify_energy(CRAB_ATTACK_ENERGY_TRANSFER, source="ate_fish")
         self.hunt_cooldown = CRAB_ATTACK_COOLDOWN
 
     def eat_food(self, food: "Food") -> None:
         """Eat food and gain energy."""
         energy_gained = food.get_energy_value()
-        self.energy = min(self.max_energy, self.energy + energy_gained)
+        self.modify_energy(energy_gained, source="ate_food")
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None

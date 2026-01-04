@@ -42,8 +42,6 @@ import uuid
 from typing import TYPE_CHECKING, Any, Protocol
 
 from core.config.simulation_config import SimulationConfig
-from core.sim.energy_ledger import EnergyDelta, EnergyLedger
-from core.sim.events import SimEvent
 from core.simulation import diagnostics
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue
@@ -90,7 +88,6 @@ class PackableEngine(Protocol):
 
     def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
     def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
-    def _queue_sim_event(self, event: Any) -> None: ...
     def _apply_entity_mutations(self, stage: str) -> None: ...
     def create_initial_entities(self) -> None: ...
     def _block_root_spots_with_obstacles(self) -> None: ...
@@ -201,9 +198,7 @@ class SimulationEngine:
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
 
-        # Energy Ledger integration
-        self.energy_ledger = EnergyLedger()
-        self.pending_sim_events: list[SimEvent] = []
+
 
         # Phase tracking for debugging
         self._current_phase: UpdatePhase | None = None
@@ -652,22 +647,54 @@ class SimulationEngine:
         self._frame_removals.clear()
         self._frame_energy_deltas.clear()
 
-        if self.pipeline is not None:
-            self.pipeline.run(self)
-        else:
-            # Fallback for edge cases where setup() wasn't called
-            # (defensive - should not happen in normal use)
-            self._phase_frame_start()
-            time_modifier, time_of_day = self._phase_time_update()
-            self._phase_environment()
-            new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
-            self._resolve_energy()
-            self._phase_lifecycle(new_entities, entities_to_remove)
-            self._phase_spawn()
-            self._phase_collision()
-            self._phase_interaction()
-            self._phase_reproduction()
-            self._phase_frame_end()
+        # Inject energy delta recorder for this frame
+        if self.environment is not None:
+            self.environment.set_energy_delta_recorder(self._create_energy_recorder())
+
+        try:
+            if self.pipeline is not None:
+                self.pipeline.run(self)
+            else:
+                # Fallback for edge cases where setup() wasn't called
+                # (defensive - should not happen in normal use)
+                self._phase_frame_start()
+                time_modifier, time_of_day = self._phase_time_update()
+                self._phase_environment()
+                new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+                self._phase_lifecycle(new_entities, entities_to_remove)
+                self._phase_spawn()
+                self._phase_collision()
+                self._phase_interaction()
+                self._phase_reproduction()
+                self._phase_frame_end()
+        finally:
+            # Clear recorder to prevent state leakage across frames
+            if self.environment is not None:
+                self.environment.set_energy_delta_recorder(None)
+
+    def _create_energy_recorder(self):
+        """Create a recorder callback for the current frame.
+
+        Returns a function that records energy deltas by creating
+        EnergyDeltaRecord entries with stable entity IDs.
+        """
+        from core.worlds.contracts import EnergyDeltaRecord
+
+        def record(entity, delta: float, source: str, meta: dict) -> None:
+            # Get stable ID for the entity
+            entity_type, stable_id = self._get_entity_identity(entity)
+            self._frame_energy_deltas.append(
+                EnergyDeltaRecord(
+                    entity_id=stable_id,
+                    stable_id=stable_id,
+                    entity_type=entity_type,
+                    delta=delta,
+                    source=source,
+                    metadata=meta,
+                )
+            )
+
+        return record
 
     # -------------------------------------------------------------------------
     # Phase Implementations
@@ -830,11 +857,6 @@ class SimulationEngine:
     # Energy Ledger Methods
     # =========================================================================
 
-    def _queue_sim_event(self, event: Any) -> None:
-        """Queue a simulation event for processing."""
-        if isinstance(event, SimEvent):
-            self.pending_sim_events.append(event)
-
     def _sync_identity_provider(self) -> None:
         """Ensure identity provider reverse-lookup is synced for current entities."""
         if self._identity_provider is None:
@@ -849,95 +871,6 @@ class SimulationEngine:
         if hasattr(provider, "type_name") and hasattr(provider, "stable_id"):
             return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
-
-    def _resolve_energy_entity(
-        self, entity_id: int | str
-    ) -> tuple[Any | None, str | None, str | None]:
-        """Resolve an energy delta entity and stable identity, if possible."""
-        if self._identity_provider is None:
-            return None, None, None
-        entity = self._identity_provider.get_entity_by_id(str(entity_id))
-        if entity is None:
-            return None, None, None
-        entity_type, stable_id = self._get_entity_identity(entity)
-        return entity, stable_id, entity_type
-
-    def _resolve_energy(self) -> None:
-        """Process pending energy events and apply deltas."""
-        if not self.pending_sim_events:
-            return
-
-        deltas = []
-        for event in self.pending_sim_events:
-            deltas.extend(self.energy_ledger.apply(event))
-
-        self.pending_sim_events.clear()
-
-        if deltas:
-            from core.worlds.contracts import EnergyDeltaRecord
-
-            # Sync identity provider with current entities for reverse lookup
-            # This enables mode-agnostic entity lookup by stable ID
-            self._sync_identity_provider()
-
-            resolved_deltas: list[tuple[EnergyDelta, str]] = []
-            for delta in deltas:
-                # Translate raw entity_id to stable ID using identity provider
-                entity, stable_id, entity_type = self._resolve_energy_entity(delta.entity_id)
-                if stable_id is None:
-                    stable_id = str(delta.entity_id)
-                if not entity_type:
-                    entity_type = ""
-
-                self._frame_energy_deltas.append(
-                    EnergyDeltaRecord(
-                        entity_id=stable_id,
-                        stable_id=stable_id,
-                        entity_type=entity_type,
-                        delta=delta.delta,
-                        source=delta.reason,
-                        metadata=delta.metadata or {},
-                    )
-                )
-
-                resolved_deltas.append((delta, stable_id))
-
-            self._apply_energy_deltas(resolved_deltas)
-
-    def _apply_energy_deltas(self, deltas: list[tuple[EnergyDelta, str]]) -> None:
-        """Apply energy deltas to entities.
-
-        Uses the identity provider for mode-agnostic entity lookup.
-        Works with any entity type that has energy.
-        """
-        # Sync identity provider if not already synced in _resolve_energy
-        self._sync_identity_provider()
-
-        for delta, stable_id in deltas:
-            entity = None
-
-            if self._identity_provider is not None:
-                # Prefer stable ID lookup, fall back to legacy ID if needed.
-                entity = self._identity_provider.get_entity_by_id(stable_id)
-                if entity is None and str(delta.entity_id) != stable_id:
-                    entity = self._identity_provider.get_entity_by_id(str(delta.entity_id))
-
-            if entity is not None:
-                # Apply energy delta to the entity
-                if hasattr(entity, "apply_energy_delta"):
-                    entity.apply_energy_delta(delta)
-                else:
-                    # Fallback for entities without specific handler
-                    # Direct property modification (safe fallback)
-                    current = getattr(entity, "energy", 0.0)
-                    new_val = current + delta.delta
-
-                    # Basic clamping if max_energy exists
-                    max_e = getattr(entity, "max_energy", float("inf"))
-                    new_val = max(0.0, min(new_val, max_e))
-
-                    # Set with property setter logic (e.g. death check)
-                    entity.energy = new_val
 
     def _phase_reproduction(self) -> None:
         """REPRODUCTION: Handle mating and emergency spawns.

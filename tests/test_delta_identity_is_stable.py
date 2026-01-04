@@ -128,8 +128,6 @@ def test_delta_ids_stable_across_frames():
 
 def test_energy_delta_ids_use_stable_format():
     """Verify energy delta IDs use identity provider format, matching spawn IDs."""
-    from core.sim.events import AteFood
-
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
 
@@ -142,28 +140,18 @@ def test_energy_delta_ids_use_stable_format():
     assert engine._identity_provider is not None
     _, stable_fish_id = engine._identity_provider.get_identity(fish)
 
-    # Emit an energy event for this fish
-    energy_event = AteFood(
-        frame=engine.frame_count,
-        entity_id=fish.fish_id,  # Raw fish_id
-        food_id=9999,
-        food_type="test",
-        energy_gained=10.0,
-    )
-    engine._queue_sim_event(energy_event)
-
-    # Run update to process the event
+    # Run update to trigger metabolism (which records energy delta)
     engine.update()
 
-    # Find the energy delta for our fish
-    energy_delta = next((d for d in engine._frame_energy_deltas if d.source == "ate_food"), None)
+    # Find the energy delta for our fish (metabolism)
+    energy_delta = next((d for d in engine._frame_energy_deltas if d.stable_id == stable_fish_id), None)
 
     assert energy_delta is not None, "Energy delta not found in _frame_energy_deltas"
 
     # Verify the energy delta ID matches the stable format
     assert energy_delta.entity_id == stable_fish_id, (
         f"Energy delta ID ({energy_delta.entity_id}) should match stable fish ID "
-        f"({stable_fish_id}), not raw fish_id ({fish.fish_id})"
+        f"({stable_fish_id})"
     )
     assert energy_delta.stable_id == stable_fish_id, (
         f"Energy delta stable_id ({energy_delta.stable_id}) should match stable fish ID "

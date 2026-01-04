@@ -102,9 +102,7 @@ def _step_entity_act(engine: SimulationEngine) -> None:
     engine._pipeline_entities_to_remove = entities_to_remove
 
 
-def _step_resolve_energy(engine: SimulationEngine) -> None:
-    """Resolve energy deltas before lifecycle so starvation is caught immediately."""
-    engine._resolve_energy()
+
 
 
 def _step_lifecycle(engine: SimulationEngine) -> None:
@@ -168,7 +166,6 @@ def default_pipeline() -> EnginePipeline:
             PipelineStep("time_update", _step_time_update),
             PipelineStep("environment", _step_environment),
             PipelineStep("entity_act", _step_entity_act),
-            PipelineStep("resolve_energy", _step_resolve_energy),
             PipelineStep("lifecycle", _step_lifecycle),
             PipelineStep("spawn", _step_spawn),
             PipelineStep("collision", _step_collision),

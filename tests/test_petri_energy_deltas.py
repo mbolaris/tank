@@ -46,8 +46,6 @@ def test_petri_mode_runs_multiple_frames():
 
 def test_petri_energy_deltas_reference_real_entities():
     """Verify energy deltas in Petri mode reference entities via identity provider."""
-    from core.sim.events import AteFood
-
     engine = SimulationEngine(headless=True, seed=42)
     pack = PetriPack(engine.config)
     engine.setup(pack)
@@ -60,32 +58,26 @@ def test_petri_energy_deltas_reference_real_entities():
     fish = fish_list[0]
     initial_energy = fish.energy
 
-    # Emit an energy event
-    energy_event = AteFood(
-        frame=engine.frame_count,
-        entity_id=fish.fish_id,
-        food_id=9999,
-        food_type="test",
-        energy_gained=25.0,
-    )
-    engine._queue_sim_event(energy_event)
-
-    # Run update to process
+    # Run update to process (should trigger metabolism burn)
     engine.update()
 
-    # Energy should have been applied
+    # Energy should have decreased (burn)
     assert (
-        fish.energy > initial_energy
-    ), f"Fish energy should have increased from {initial_energy}, but is {fish.energy}"
+        fish.energy < initial_energy
+    ), f"Fish energy should have decreased from {initial_energy}, but is {fish.energy}"
 
     # Check that energy delta record uses stable ID format
-    energy_delta = next((d for d in engine._frame_energy_deltas if d.source == "ate_food"), None)
-    assert energy_delta is not None, "Energy delta record not found"
-
-    # Verify the ID is in stable format (uses offset, not raw fish_id)
     from core.config.entities import FISH_ID_OFFSET
 
     expected_stable_id = str(fish.fish_id + FISH_ID_OFFSET)
+    
+    # Look for delta relating to this fish
+    energy_delta = next((d for d in engine._frame_energy_deltas if d.stable_id == expected_stable_id), None)
+    
+    assert energy_delta is not None, "Energy delta record not found"
+    assert energy_delta.source == "metabolism"
+
+    # Verify the ID is in stable format (uses offset, not raw fish_id)
     assert energy_delta.entity_id == expected_stable_id, (
         f"Energy delta ID ({energy_delta.entity_id}) should be stable ID "
         f"({expected_stable_id}), not raw fish_id ({fish.fish_id})"

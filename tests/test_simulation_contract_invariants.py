@@ -59,8 +59,6 @@ def test_engine_energy_delta_tracking(simulation_engine):
     """Verify SimulationEngine tracks energy deltas in frame deltas."""
     engine = simulation_engine
 
-    from core.sim.events import AteFood
-
     # Ensure we have at least one fish
     fish_list = engine.get_fish_list()
     if not fish_list:
@@ -72,23 +70,28 @@ def test_engine_energy_delta_tracking(simulation_engine):
         fish_list = [fish]
 
     fish = fish_list[0]
-    # Simulate an AteFood event
-    event = AteFood(entity_id=fish.fish_id, energy_gained=10.0)
-    engine.pending_sim_events.append(event)
-
+    
+    # Run update - this should trigger metabolism which records energy burn
     engine.update()
 
     # frame_energy_deltas should have captured the delta
     assert len(engine._frame_energy_deltas) > 0, "Energy delta not tracked in _frame_energy_deltas"
-    energy_req = engine._frame_energy_deltas[0]
-    assert isinstance(energy_req, EnergyDeltaRecord)
+    
+    # Verify the first matching record for this fish
     assert engine._identity_provider is not None
     _, stable_fish_id = engine._identity_provider.get_identity(fish)
+    
+    energy_req = next((r for r in engine._frame_energy_deltas if r.stable_id == stable_fish_id), None)
+    assert energy_req is not None, f"No energy delta found for fish {stable_fish_id}"
+    
+    assert isinstance(energy_req, EnergyDeltaRecord)
     assert energy_req.entity_id == stable_fish_id
     assert energy_req.stable_id == stable_fish_id
-    assert energy_req.delta > 0
-    # Expected reason is now snake_case from EnergyLedger
-    assert energy_req.source == "ate_food"
+    
+    # Metabolism matches -delta (burn)
+    # The record stores the signed delta. Metabolism = burn = negative delta.
+    assert energy_req.delta < 0
+    assert energy_req.source == "metabolism"
 
 
 def test_delta_reset_every_frame(simulation_engine):

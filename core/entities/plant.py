@@ -474,6 +474,10 @@ class Plant(Agent):
         elif delta < 0:
             self._emit_event(EnergyBurnEvent(source, -delta, scope="plant"))
 
+        # Record the delta via the engine recorder (if active)
+        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
+            self.environment.record_energy_delta(self, delta, source)
+
         return delta
 
     def lose_energy(self, amount: float, *, source: str = "poker") -> float:

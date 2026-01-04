@@ -248,6 +248,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world.update()
         self._current_frame = self._world.frame_count
 
+        # Feed energy deltas to ecosystem for stats tracking
+        # This connects the engine recorder (authoritative source) to the ecosystem stats
+        deltas = []
+        if hasattr(self.engine, "_frame_energy_deltas"):
+            deltas = self.engine._frame_energy_deltas
+            if getattr(self._world, "ecosystem", None) and hasattr(self._world.ecosystem, "ingest_energy_deltas"):
+                self._world.ecosystem.ingest_energy_deltas(deltas)
+
         # Build result
         self._last_step_result = StepResult(
             obs_by_agent=obs_by_agent,

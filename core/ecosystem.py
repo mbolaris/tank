@@ -124,12 +124,7 @@ class EcosystemManager:
         event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
 
         # Subscribe to new EnergyLedger events (SimEvents)
-        from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
-
-        event_bus.subscribe(AteFood, self._on_sim_ate_food)
-        event_bus.subscribe(EnergyBurned, self._on_sim_energy_burned)
-        event_bus.subscribe(Moved, self._on_sim_moved)
-        event_bus.subscribe(PokerGamePlayed, self._on_sim_poker_played)
+        event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
 
     def _on_energy_gain_event(self, event: "EnergyGainEvent") -> None:
         """Handle energy gain events."""
@@ -138,22 +133,6 @@ class EcosystemManager:
         else:
             self.record_energy_gain(event.source, event.amount)
 
-    def _on_sim_ate_food(self, event: "AteFood") -> None:
-        """Handle new AteFood SimEvent."""
-        # Record specific stats if algorithm info is available
-        if event.algorithm_id is not None:
-            if event.food_type == "nectar":
-                self.record_nectar_eaten(event.algorithm_id, event.energy_gained)
-            elif event.food_type == "live_food":
-                self.record_live_food_eaten(event.algorithm_id, event.energy_gained)
-            elif event.food_type == "falling_food":
-                self.record_falling_food_eaten(event.algorithm_id, event.energy_gained)
-            else:
-                self.record_food_eaten(event.algorithm_id, event.energy_gained)
-        else:
-            # Fallback: Just record energy gain if we can't attribute to algorithm
-            self.record_energy_gain(event.food_type, event.energy_gained)
-
     def _on_energy_burn_event(self, event: "EnergyBurnEvent") -> None:
         """Handle energy burn events."""
         if event.scope == "plant":
@@ -161,23 +140,7 @@ class EcosystemManager:
         else:
             self.record_energy_burn(event.source, event.amount)
 
-    def _on_sim_energy_burned(self, event: "EnergyBurned") -> None:
-        """Handle new EnergyBurned SimEvent."""
-        # Using event.reason as source
-        self.record_energy_burn(event.reason, event.amount)
 
-    def _on_sim_moved(self, event: "Moved") -> None:
-        """Handle new Moved SimEvent."""
-        # Movement implies energy burn
-        self.record_energy_burn("movement", event.energy_cost)
-
-    def _on_sim_poker_played(self, event: "PokerGamePlayed") -> None:
-        """Handle new PokerGamePlayed SimEvent."""
-        if event.energy_change > 0:
-            source = "poker_fish" if event.opponent_type == "fish" else "poker_plant"
-            self.record_energy_gain(source, event.energy_change)
-        else:
-            self.record_energy_burn("poker_loss", abs(event.energy_change))
 
     def _on_food_eaten_event(self, event: "FoodEatenEvent") -> None:
         """Handle food consumption events."""
@@ -400,17 +363,47 @@ class EcosystemManager:
             self._on_reproduction_event(event)
 
         # Handle New SimEvents
-        else:
-            from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
+    # =========================================================================
+    # Population Recording (delegate to PopulationTracker)
+    # =========================================================================
 
-            if isinstance(event, AteFood):
-                self._on_sim_ate_food(event)
-            elif isinstance(event, EnergyBurned):
-                self._on_sim_energy_burned(event)
-            elif isinstance(event, Moved):
-                self._on_sim_moved(event)
-            elif isinstance(event, PokerGamePlayed):
-                self._on_sim_poker_played(event)
+    def ingest_energy_deltas(self, deltas: List[Any]) -> None:
+        """Process a batch of energy deltas from the engine recorder.
+
+        This replaces the old event-based telemetry for energy.
+        Args:
+            deltas: List of EnergyDeltaRecord objects
+        """
+        for delta in deltas:
+            if delta.delta > 0:
+                # Energy Gain
+                source = delta.source
+                amount = delta.delta
+                
+                # Map source names if needed for consistency
+                if source == "ate_food":
+                     # Try to get detailed info from metadata if available
+                     food_type = "food"
+                     if delta.metadata and "food_type" in delta.metadata:
+                         food_type = delta.metadata["food_type"]
+                     self.record_energy_gain(food_type, amount)
+                elif source == "poker_win":
+                     self.record_energy_gain("poker", amount)
+                else:
+                     self.record_energy_gain(source, amount)
+
+            elif delta.delta < 0:
+                # Energy Burn
+                source = delta.source
+                amount = -delta.delta
+                
+                if source == "metabolism":
+                    # Metabolism is now aggregated, but we can log it
+                    self.record_energy_burn("metabolism", amount)
+                elif source == "poker_loss":
+                    self.record_energy_burn("poker", amount)
+                else:
+                    self.record_energy_burn(source, amount)
 
     # =========================================================================
     # Population Recording (delegate to PopulationTracker)

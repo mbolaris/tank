@@ -51,8 +51,6 @@ from core.fish.skill_game_component import SkillGameComponent
 from core.fish_memory import FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
-from core.sim.energy_ledger import EnergyDelta
-from core.sim.events import AteFood, EnergyBurned
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 from core.telemetry.events import (
     BirthEvent,
@@ -387,61 +385,16 @@ class Fish(Agent):
         """
         return 20.0 * self._lifecycle_component.size
 
-    def apply_energy_delta(self, delta: EnergyDelta) -> None:
-        """Apply an energy delta from the EnergyLedger."""
-        if delta.reason == "ate_food":
-            # Delegate to internal logic which handles overflow banking
-            self._apply_energy_gain_internal(delta.delta)
-        elif delta.reason in (
-            "movement",
-            "metabolism",
-            "existence",
-            "trait_maintenance",
-            "poker_game",
-        ):
-            # Direct modification for consumption/loss
-            self.modify_energy(delta.delta)
-        else:
-            # Fallback
-            self.modify_energy(delta.delta)
+
 
     def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food.
 
-        Emits AteFood event. Energy is applied later via apply_energy_delta.
-        Returns the amount requested to satisfy legacy callers (like Food)
-        that need to know how much was taken.
+        Applies energy gain via modify_energy so it is recorded properly.
+        Returns the amount requested to satisfy legacy callers.
         """
-        # Emit domain event for Ledger
-        # Note: We need food info for the event.
-        # But this method signature only has `amount`.
-        # The caller usually knows the context.
-        # Ideally caller emits the event.
-        # But for "Mission: Pick 2-3 high-value energy paths", we are putting it here.
-        # We'll use a generic "unknown" food type if locally missing,
-        # but AteFood requires food_type.
-        # We might need to guess or change method signature.
-        # Existing callers: Food.be_eaten_by calls this.
-
-        # We will assume generic food for now or use a default.
-        # Ideally, we refactor `Food.be_eaten_by` to emit the event, but that's outside "Fish" scope.
-        # Let's emit a specific event if we can't context.
-        # Actually, let's keep it simple:
-        # We emit AteFood with essential info.
-
-        behavior_id = None
-        if self.genome.behavioral.behavior and self.genome.behavioral.behavior.value:
-            behavior_id = hash(self.genome.behavioral.behavior.value.behavior_id) % 1000
-
-        self._emit_event(
-            AteFood(
-                entity_id=self.fish_id,
-                food_id=0,  # Unknown here
-                food_type="unknown",
-                energy_gained=amount,
-                algorithm_id=behavior_id,
-            )
-        )
+        # Apply energy gain immediately
+        self.modify_energy(amount, source="ate_food")
 
         # Return amount so Food dies immediately (preserving game logic)
         return amount
@@ -492,6 +445,10 @@ class Fish(Agent):
                 self._cached_is_dead = True
             elif self.state.state == EntityState.ACTIVE:
                 self._cached_is_dead = False
+
+        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
+            delta = self._energy_component.energy - old_energy
+            self.environment.record_energy_delta(self, delta, source)
 
         return self._energy_component.energy - old_energy
 
@@ -553,9 +510,9 @@ class Fish(Agent):
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity.
 
-        Calculates burn and emits events. Energy is reduced later via apply_energy_delta.
+        Calculates burn and emits events. Energy is reduced via modify_energy.
         """
-        energy_breakdown = self._energy_component.consume_energy(
+        energy_breakdown = self._energy_component.calculate_burn(
             self.vel,
             self.speed,
             self._lifecycle_component.life_stage,
@@ -563,43 +520,8 @@ class Fish(Agent):
             self._lifecycle_component.size,
         )
 
-        # Emit new Ledger events
-        self._emit_event(
-            EnergyBurned(
-                entity_id=self.fish_id,
-                amount=energy_breakdown["existence"],
-                reason=BURN_REASON_EXISTENCE,
-            )
-        )
-
-        self._emit_event(
-            EnergyBurned(
-                entity_id=self.fish_id,
-                amount=energy_breakdown["movement"],
-                reason=BURN_REASON_MOVEMENT,
-            )
-        )
-
-        # Calculate trait cost for telemetry/ledger
-        metabolism_total = energy_breakdown["metabolism"]
-        rate = self.genome.metabolism_rate
-        if rate > 0:
-            trait_fraction = max(0.0, (rate - 1.0) / rate)
-            trait_cost = metabolism_total * trait_fraction
-            base_cost = metabolism_total - trait_cost
-        else:
-            trait_cost = 0.0
-            base_cost = metabolism_total
-
-        self._emit_event(
-            EnergyBurned(entity_id=self.fish_id, amount=base_cost, reason=BURN_REASON_METABOLISM)
-        )
-
-        self._emit_event(
-            EnergyBurned(
-                entity_id=self.fish_id, amount=trait_cost, reason=BURN_REASON_TRAIT_MAINTENANCE
-            )
-        )
+        # Apply the energy reduction (this triggers the recorder)
+        self.modify_energy(-energy_breakdown["total"], source="metabolism")
 
     def is_starving(self) -> bool:
         return self._energy_component.is_starving()

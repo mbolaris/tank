@@ -591,14 +591,18 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
     def _consume_energy(self) -> None:
         for player in self._players.values():
             before = player.energy
-            breakdown = player.energy_component.consume_energy(
+            breakdown = player.energy_component.calculate_burn(
                 player.velocity,
                 self._config.player_max_speed,
                 player.life_stage,
                 time_modifier=1.0,
                 size=1.0,
             )
-            spent = before - player.energy
+            
+            # Apply energy reduction
+            player.modify_energy(-breakdown["total"])
+            
+            spent = breakdown["total"]
             if spent > 0:
                 player.stats.energy_spent += spent
             if breakdown.get("total", 0.0) < 0:

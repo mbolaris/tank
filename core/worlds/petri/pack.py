@@ -77,17 +77,14 @@ class PetriPack(TankLikePackBase):
     def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
         """Create the Petri environment with circular physics."""
         from core.events import EventBus
-        from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
         from core.worlds.petri.environment import PetriEnvironment
 
         # 1. Initialize EventBus for domain events
         engine.event_bus = EventBus()
 
-        # 2. Subscribe EnergyLedger queue to energy events
-        engine.event_bus.subscribe(AteFood, engine._queue_sim_event)
-        engine.event_bus.subscribe(Moved, engine._queue_sim_event)
-        engine.event_bus.subscribe(EnergyBurned, engine._queue_sim_event)
-        engine.event_bus.subscribe(PokerGamePlayed, engine._queue_sim_event)
+        # Note: SimEvents (AteFood, Moved, etc.) are no longer used for energy tracking.
+        # Energy tracking is handled via direct recorder injection in engine.
+        pass
 
         display = self.config.display
 

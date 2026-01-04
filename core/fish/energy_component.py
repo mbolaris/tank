@@ -74,7 +74,7 @@ class EnergyComponent:
         self.base_metabolism = base_metabolism
         self.energy = max_energy * initial_energy_ratio
 
-    def consume_energy(
+    def calculate_burn(
         self,
         velocity: Vector2,
         speed: float,
@@ -82,7 +82,7 @@ class EnergyComponent:
         time_modifier: float = 1.0,
         size: float = 1.0,
     ) -> Dict[str, float]:
-        """Consume energy based on metabolism and activity.
+        """Calculate energy burn based on metabolism and activity.
 
         SIMPLIFIED ENERGY SYSTEM with 3 clear costs:
         1. EXISTENCE - just being alive (linear with size)
@@ -149,7 +149,8 @@ class EnergyComponent:
 
         # Total energy consumption
         total_cost = existence_cost + metabolism + movement_cost + sprint_cost
-        self.energy = max(0.0, self.energy - total_cost)
+        # NOTE: Mutation removed. Caller must apply energy change via modify_energy.
+        # self.energy = max(0.0, self.energy - total_cost)
 
         return {
             "total": total_cost,

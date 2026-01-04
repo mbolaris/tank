@@ -7,13 +7,17 @@ for agents in the simulation.
 import math
 import random
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 from core.interfaces import MigrationHandler
 
 if TYPE_CHECKING:
     from core.code_pool import CodePool
+
+# Type alias for energy delta recorder callback
+# Signature: (entity, delta, source, metadata) -> None
+EnergyDeltaRecorder = Callable[["Agent", float, str, Dict[str, Any]], None]
 
 
 class SpatialGrid:
@@ -689,6 +693,43 @@ class Environment:
         The requester should accept (entity, reason=..., metadata=...) and return bool.
         """
         self._remove_requester = requester
+
+    def set_energy_delta_recorder(
+        self, recorder: Optional["EnergyDeltaRecorder"]
+    ) -> None:
+        """Inject an energy delta recorder callback from the simulation engine.
+
+        The recorder is called each time an entity's energy changes via modify_energy().
+        Set to None to disable recording (done at end of each frame).
+
+        Args:
+            recorder: Callback with signature (entity, delta, source, metadata) -> None
+        """
+        self._energy_delta_recorder = recorder
+
+    def record_energy_delta(
+        self,
+        entity: Agent,
+        delta: float,
+        source: str,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Record an energy change if recorder is active.
+
+        Called by entities during modify_energy() to track energy changes.
+        Zero deltas are ignored.
+
+        Args:
+            entity: The entity whose energy changed
+            delta: The actual energy change applied (may differ from requested amount)
+            source: Description of why energy changed (e.g., "metabolism", "poker")
+            meta: Optional additional metadata
+        """
+        if delta == 0:
+            return
+        recorder = getattr(self, "_energy_delta_recorder", None)
+        if recorder is not None:
+            recorder(entity, delta, source, meta or {})
 
     def request_spawn(
         self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
