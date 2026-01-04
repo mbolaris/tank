@@ -853,14 +853,8 @@ class SimulationEngine:
         self._apply_entity_mutations("interaction")
 
     # =========================================================================
-    # Energy Ledger Methods
+    # Identity Provider Helpers
     # =========================================================================
-
-    def _sync_identity_provider(self) -> None:
-        """Ensure identity provider reverse-lookup is synced for current entities."""
-        if self._identity_provider is None:
-            return
-        self._identity_provider.sync_entities(self._entity_manager.entities_list)
 
     def _get_entity_identity(self, entity: Any) -> tuple[str, str]:
         """Return (entity_type, stable_id) using the identity provider when available."""

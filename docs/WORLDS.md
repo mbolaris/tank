@@ -39,7 +39,7 @@ The `StepResult` contains all outputs from a simulation step:
 | `info` | `dict[str, Any]` | Backend-specific metadata |
 | `spawns` | `list[Any]` | Entity spawn records (optional) |
 | `removals` | `list[Any]` | Entity removal records (optional) |
-| `energy_deltas` | `list[Any]` | Energy transfer records (optional) |
+| `energy_deltas` | `list[Any]` | Energy delta records (recorded per-frame) |
 | `render_hint` | `dict | None` | Rendering metadata (optional) |
 
 ### RenderHint
@@ -67,13 +67,12 @@ The simulation engine executes phases in this order:
 2. **TIME_UPDATE**: Advance day/night cycle
 3. **ENVIRONMENT**: Update ecosystem and detection modifiers
 4. **ENTITY_ACT**: Update all entities, collect spawns/deaths
-5. **RESOLVE_ENERGY**: Process energy deltas via ledger
-6. **LIFECYCLE**: Process deaths, add/remove entities
-7. **SPAWN**: Auto-spawn food, update spatial positions
-8. **COLLISION**: Handle physical collisions
-9. **INTERACTION**: Handle social interactions (poker proximity, games)
-10. **REPRODUCTION**: Handle mating and emergency spawns
-11. **FRAME_END**: Update statistics, rebuild caches
+5. **LIFECYCLE**: Process deaths, add/remove entities
+6. **SPAWN**: Auto-spawn food, update spatial positions
+7. **COLLISION**: Handle physical collisions
+8. **INTERACTION**: Handle social interactions (poker proximity, games)
+9. **REPRODUCTION**: Handle mating and emergency spawns
+10. **FRAME_END**: Update statistics, rebuild caches
 
 > [!IMPORTANT]
 > See `core/update_phases.py` for the canonical phase enum definition.

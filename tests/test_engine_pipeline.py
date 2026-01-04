@@ -62,7 +62,7 @@ def test_custom_pipeline_can_be_created() -> None:
     """Assert that custom pipelines can be created with subset of steps."""
     from core.simulation.pipeline import EnginePipeline, PipelineStep
 
-    def noop_step(engine) -> None:
+    def noop_step(engine, ctx) -> None:
         pass
 
     custom_pipeline = EnginePipeline(
@@ -83,7 +83,7 @@ def test_pipeline_step_execution_order() -> None:
     execution_order: list[str] = []
 
     def make_step(name: str):
-        def step_fn(engine) -> None:
+        def step_fn(engine, ctx) -> None:
             execution_order.append(name)
 
         return step_fn

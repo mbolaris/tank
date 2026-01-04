@@ -54,8 +54,9 @@ export function TankView({ tankId }: TankViewProps) {
         tankId || state?.tank_id
     );
 
-    // Effective world type for rendering - when petriMode is enabled, use 'petri' renderer
-    const effectiveWorldType = petriMode ? 'petri' : 'tank';
+    // Effective world type for rendering - prefer server state when available
+    // Server is authoritative; petriMode is used as fallback before server state arrives
+    const effectiveWorldType = state?.world_type ?? (petriMode ? 'petri' : 'tank');
 
     // Ensure renderers are initialized
     initRenderers();

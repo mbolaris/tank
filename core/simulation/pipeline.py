@@ -7,7 +7,7 @@ The default pipeline reproduces the exact current order of phases in Tank mode.
 Other modes can provide custom pipelines to add, remove, or reorder steps.
 
 Design Notes:
-- Steps receive only the engine (not dt) since phases access engine.frame_count
+- Steps receive the engine AND a FrameContext for explicit data flow
 - The pipeline is selected during engine.setup() based on the SystemPack
 - Tank's default pipeline is canonical; other modes may override steps
 """
@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
+
+from core.simulation.frame_context import FrameContext
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -27,18 +29,18 @@ class PipelineStep:
 
     Attributes:
         name: Human-readable identifier for the step (e.g., "frame_start")
-        fn: Function that executes this step, receiving the engine instance
+        fn: Function that executes this step, receiving engine and context
     """
 
     name: str
-    fn: Callable[[SimulationEngine], None]
+    fn: Callable[[SimulationEngine, FrameContext], None]
 
 
 class EnginePipeline:
     """Ordered sequence of steps that define the simulation update loop.
 
     The pipeline is executed once per frame by SimulationEngine.update().
-    Each step receives the engine instance and can access/modify its state.
+    Each step receives the engine instance and a FrameContext for per-frame state.
     """
 
     def __init__(self, steps: list[PipelineStep]) -> None:
@@ -62,11 +64,15 @@ class EnginePipeline:
     def run(self, engine: SimulationEngine) -> None:
         """Execute all pipeline steps in order.
 
+        Creates a fresh FrameContext for per-frame state and passes it
+        through all steps, making data flow explicit.
+
         Args:
             engine: The SimulationEngine instance to update
         """
+        ctx = FrameContext()
         for step in self._steps:
-            step.fn(engine)
+            step.fn(engine, ctx)
 
 
 # =============================================================================
@@ -74,62 +80,58 @@ class EnginePipeline:
 # =============================================================================
 
 
-def _step_frame_start(engine: SimulationEngine) -> None:
+def _step_frame_start(engine: SimulationEngine, ctx: FrameContext) -> None:
     """FRAME_START: Reset counters, increment frame."""
     engine._phase_frame_start()
 
 
-def _step_time_update(engine: SimulationEngine) -> None:
+def _step_time_update(engine: SimulationEngine, ctx: FrameContext) -> None:
     """TIME_UPDATE: Advance day/night cycle and store time values."""
     time_modifier, time_of_day = engine._phase_time_update()
-    # Store for use by entity_act step
-    engine._pipeline_time_modifier = time_modifier
-    engine._pipeline_time_of_day = time_of_day
+    # Store in context for use by entity_act step
+    ctx.time_modifier = time_modifier
+    ctx.time_of_day = time_of_day
 
 
-def _step_environment(engine: SimulationEngine) -> None:
+def _step_environment(engine: SimulationEngine, ctx: FrameContext) -> None:
     """ENVIRONMENT: Update ecosystem and detection modifiers."""
     engine._phase_environment()
 
 
-def _step_entity_act(engine: SimulationEngine) -> None:
+def _step_entity_act(engine: SimulationEngine, ctx: FrameContext) -> None:
     """ENTITY_ACT: Update all entities, collect spawns/deaths."""
-    time_modifier = getattr(engine, "_pipeline_time_modifier", 1.0)
-    time_of_day = getattr(engine, "_pipeline_time_of_day", 0.5)
-    new_entities, entities_to_remove = engine._phase_entity_act(time_modifier, time_of_day)
-    # Store for use by lifecycle step
-    engine._pipeline_new_entities = new_entities
-    engine._pipeline_entities_to_remove = entities_to_remove
+    new_entities, entities_to_remove = engine._phase_entity_act(ctx.time_modifier, ctx.time_of_day)
+    # Store in context for use by lifecycle step
+    ctx.new_entities = new_entities
+    ctx.entities_to_remove = entities_to_remove
 
 
-def _step_lifecycle(engine: SimulationEngine) -> None:
+def _step_lifecycle(engine: SimulationEngine, ctx: FrameContext) -> None:
     """LIFECYCLE: Process deaths, add/remove entities."""
-    new_entities = getattr(engine, "_pipeline_new_entities", [])
-    entities_to_remove = getattr(engine, "_pipeline_entities_to_remove", [])
-    engine._phase_lifecycle(new_entities, entities_to_remove)
+    engine._phase_lifecycle(ctx.new_entities, ctx.entities_to_remove)
 
 
-def _step_spawn(engine: SimulationEngine) -> None:
+def _step_spawn(engine: SimulationEngine, ctx: FrameContext) -> None:
     """SPAWN: Auto-spawn food and update spatial positions."""
     engine._phase_spawn()
 
 
-def _step_collision(engine: SimulationEngine) -> None:
+def _step_collision(engine: SimulationEngine, ctx: FrameContext) -> None:
     """COLLISION: Handle physical collisions between entities."""
     engine._phase_collision()
 
 
-def _step_interaction(engine: SimulationEngine) -> None:
+def _step_interaction(engine: SimulationEngine, ctx: FrameContext) -> None:
     """INTERACTION: Handle social interactions between entities."""
     engine._phase_interaction()
 
 
-def _step_reproduction(engine: SimulationEngine) -> None:
+def _step_reproduction(engine: SimulationEngine, ctx: FrameContext) -> None:
     """REPRODUCTION: Handle mating and emergency spawns."""
     engine._phase_reproduction()
 
 
-def _step_frame_end(engine: SimulationEngine) -> None:
+def _step_frame_end(engine: SimulationEngine, ctx: FrameContext) -> None:
     """FRAME_END: Update stats, rebuild caches."""
     engine._phase_frame_end()
 
