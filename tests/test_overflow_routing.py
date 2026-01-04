@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import random
 
-from core.sim.events import EnergyBurned
 from core.telemetry.events import EnergyBurnEvent
 
 
@@ -24,6 +23,14 @@ class _EnvironmentStub:
         """Return default environment bounds."""
         return ((0.0, 0.0), (500.0, 500.0))
 
+    def record_energy_delta(self, entity: object, delta: float, source: str) -> None:
+        """Stub for recording energy deltas."""
+        pass
+
+    def get_energy_delta_recorder(self):
+        """Stub for getting recorder."""
+        return None
+
 
 class _ReproductionManagerStub:
     def record_reproduction_attempt(self, success: bool) -> None:
@@ -42,8 +49,6 @@ class _EcosystemStub:
     def record_event(self, event) -> None:
         if isinstance(event, EnergyBurnEvent):
             self.burns.append((event.source, float(event.amount)))
-        elif isinstance(event, EnergyBurned):
-            self.burns.append((event.reason, float(event.amount)))
 
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""

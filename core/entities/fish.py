@@ -500,8 +500,8 @@ class Fish(Agent):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
             self._emit_event(
-                EnergyBurned(
-                    entity_id=self.fish_id, amount=food.energy, reason=BURN_REASON_OVERFLOW_FOOD
+                EnergyBurnEvent(
+                    amount=food.energy, source=BURN_REASON_OVERFLOW_FOOD
                 )
             )
         except Exception:
