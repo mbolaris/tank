@@ -145,7 +145,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                     // Derive view mode from render_hint when user hasn't explicitly set viewMode.
                     // This ensures Petri/Soccer worlds render correctly by default.
                     const hintStyle = (currentState.snapshot?.render_hint as Record<string, unknown> | undefined)?.style
-                        ?? (currentState as any)?.render_hint?.style;
+                        ?? currentState.render_hint?.style;
                     const effectiveViewMode = viewModeRef.current
                         || (hintStyle === 'topdown' ? 'topdown' : 'side');
                     const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);

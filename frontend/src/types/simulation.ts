@@ -389,6 +389,7 @@ export interface SimulationUpdate {
     world_type?: string;
     view_mode?: string;
     mode_id?: string;
+    render_hint?: Record<string, unknown>;
 
     // New nested snapshot
     snapshot?: {
@@ -399,6 +400,7 @@ export interface SimulationUpdate {
         poker_events: PokerEventData[];
         poker_leaderboard: PokerLeaderboardEntry[];
         auto_evaluation?: AutoEvaluateStats;
+        render_hint?: Record<string, unknown>;
     };
 
     // Legacy fields (optional for backward compatibility)
@@ -427,6 +429,7 @@ export interface DeltaUpdate {
         removed: number[];
         poker_events: PokerEventData[];
         stats?: StatsData;
+        render_hint?: Record<string, unknown>;
     };
 
     // Legacy fields (optional for backward compatibility)
