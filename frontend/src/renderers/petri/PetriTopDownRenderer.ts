@@ -64,6 +64,8 @@ interface PetriEntity {
     death_effect_state?: { cause: string };
     poker_effect_state?: PokerEffectState;
     birth_effect_timer?: number;
+    iterations?: number;
+    size_multiplier?: number;
 }
 
 /** Scene data for Petri rendering */
@@ -109,7 +111,7 @@ function buildPetriScene(snapshot: any): PetriScene {
                 castle: 'inert',
             };
             const sprite = hint?.sprite ?? defaultSpriteMap[e.type] ?? 'unknown';
-            const radius = Math.max(e.width, e.height) / 2 * 0.5;  // Scale down for Petri view
+            let radius = Math.max(e.width, e.height) / 2 * (e.type === 'plant' ? 0.35 : 0.5); // Scale down for Petri view
 
             let x = e.x + e.width / 2;
             let y = e.y + e.height / 2;
@@ -147,6 +149,8 @@ function buildPetriScene(snapshot: any): PetriScene {
                 food_type: e.food_type,
                 genome_data: e.genome_data,
                 plant_genome_data: e.type === 'plant' ? (e as any).genome as PlantGenomeData | undefined : undefined,
+                size_multiplier: e.size_multiplier,
+                iterations: e.iterations,
                 perimeter_angle: perimeterAngle,
                 death_effect_state: (e as any).death_effect_state as { cause: string } | undefined,
                 poker_effect_state: e.poker_effect_state,
@@ -802,9 +806,11 @@ export class PetriTopDownRenderer implements Renderer {
             ctx.save();
             ctx.rotate(inwardRotation);
 
-            // Scale down for Petri view
-            const sizeMultiplier = 0.6;
-            const iterations = 3;
+            // Scale down for Petri view - much smaller than Tank side-view
+            // Backend size_multiplier is usually 0.3 (small) to 1.5 (large)
+            const petriScaleFactor = 0.35;
+            const sizeMultiplier = (entity.size_multiplier ?? 1.0) * petriScaleFactor;
+            const iterations = entity.iterations ?? 3;
 
             // renderPlant draws at (x, y) position, but we're already translated
             // So draw at origin and let the transform handle positioning

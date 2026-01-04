@@ -113,10 +113,10 @@ def test_entity_list_only_changes_during_commit_points(simulation_engine, monkey
     for step in engine.pipeline.steps:
 
         def _make_wrapped_step(step_name, step_fn):
-            def _wrapped(engine_ref):
+            def _wrapped(engine_ref, ctx):
                 current_step["name"] = step_name
                 before = len(engine_ref.entities_list)
-                step_fn(engine_ref)
+                step_fn(engine_ref, ctx)
                 after = len(engine_ref.entities_list)
 
                 total_delta = after - before
