@@ -2,17 +2,25 @@
 import unittest
 from unittest.mock import MagicMock, patch
 from core.policies.interfaces import build_movement_observation
-from core.policies.observation_registry import register_observation_builder, clear_registry
+from core.policies.observation_registry import (
+    register_observation_builder,
+    clear_registry,
+    snapshot_registry,
+    restore_registry,
+)
 
 class TestObservationContracts(unittest.TestCase):
     def setUp(self):
+        # Save registry state before clearing (for test isolation)
+        self._registry_snapshot = snapshot_registry()
         clear_registry()
         self.fish = MagicMock()
         self.fish.fish_id = "123"
         self.fish.environment.world_type = "test_world"
 
     def tearDown(self):
-        clear_registry()
+        # Restore original registry so we don't pollute other tests
+        restore_registry(self._registry_snapshot)
 
     def test_build_observation_delegates_to_registry(self):
         # Setup: Register a mock builder

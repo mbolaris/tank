@@ -21,13 +21,17 @@ describe('buildTankScene', () => {
         const fish = scene.entities.find(e => e.id === 1);
         expect(fish).toBeDefined();
         expect(fish?.kind).toBe('fish');
-        expect(fish?.x).toBe(100);
+        // buildTankScene converts from top-left to center: x + width/2, y + height/2
+        expect(fish?.x).toBe(110); // 100 + 20/2
+        expect(fish?.y).toBe(105); // 100 + 10/2
         expect(fish?.radius).toBe(10); // max(20, 10) / 2
         expect(fish?.headingRad).toBe(0); // atan2(0, 10)
 
         const food = scene.entities.find(e => e.id === 2);
         expect(food).toBeDefined();
         expect(food?.kind).toBe('food');
+        expect(food?.x).toBe(202.5); // 200 + 5/2
+        expect(food?.y).toBe(202.5); // 200 + 5/2
         expect(food?.radius).toBe(2.5); // max(5, 5) / 2
     });
 

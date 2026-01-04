@@ -134,3 +134,21 @@ def clear_registry() -> None:
     WARNING: Use this ONLY in tests to reset state.
     """
     _OBSERVATION_BUILDERS.clear()
+
+
+def snapshot_registry() -> Dict[tuple[str, str], ObservationBuilder]:
+    """Return a shallow copy of the current registry.
+    
+    Use this to capture the registry state before tests that clear it.
+    """
+    return dict(_OBSERVATION_BUILDERS)
+
+
+def restore_registry(snapshot: Dict[tuple[str, str], ObservationBuilder]) -> None:
+    """Restore the registry from a snapshot.
+    
+    Clears the current registry and restores all entries from the snapshot.
+    Use in tearDown() to prevent test pollution.
+    """
+    _OBSERVATION_BUILDERS.clear()
+    _OBSERVATION_BUILDERS.update(snapshot)
