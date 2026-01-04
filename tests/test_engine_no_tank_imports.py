@@ -93,147 +93,48 @@ def test_delta_tracking_uses_identity_provider():
     ), "_apply_entity_mutations should use _get_entity_identity() for stable identity"
 
 
-def _check_function_for_fish_only_patterns(func_node, source_lines, func_name):
-    """Helper to verify a function doesn't use fish-only patterns."""
-    forbidden_patterns = ["fish_id", "get_fish_list", "Fish"]
-    allowed_patterns = ["FISH_ID_OFFSET"]  # Offset constants are OK for ID translation
+def test_energy_recorder_does_not_use_fish_only_patterns():
+    """Verify _create_energy_recorder doesn't use fish-only identity patterns."""
+    engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
+    source = engine_path.read_text(encoding="utf-8")
+    lines = source.split("\n")
+    tree = ast.parse(source, filename=str(engine_path))
 
-    start_line = func_node.lineno - 1
-    end_line = func_node.end_lineno
-    func_body = "\n".join(source_lines[start_line:end_line])
+    # Find SimulationEngine class
+    simulation_engine_class = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "SimulationEngine":
+            simulation_engine_class = node
+            break
 
+    assert simulation_engine_class is not None, "SimulationEngine class not found"
+
+    # Find _create_energy_recorder
+    recorder_func = None
+    for node in ast.walk(simulation_engine_class):
+        if isinstance(node, ast.FunctionDef) and node.name == "_create_energy_recorder":
+            recorder_func = node
+            break
+
+    assert recorder_func is not None, "_create_energy_recorder not found"
+
+    start_line = recorder_func.lineno - 1
+    end_line = recorder_func.end_lineno
+    func_body = "\n".join(lines[start_line:end_line])
+
+    # Should NOT contain fish-only identity patterns
+    forbidden_patterns = ["fish_id", "plant_id", "get_fish_list"]
     violations = []
     for pattern in forbidden_patterns:
         if pattern in func_body:
-            # Check if it's in an allowed context
-            skip = False
-            for allowed in allowed_patterns:
-                if allowed in func_body and pattern in allowed:
-                    skip = True
-                    break
-            if not skip:
-                violations.append(f"Found '{pattern}' in {func_name}")
+            violations.append(f"Found '{pattern}' in _create_energy_recorder")
 
-    return violations
-
-
-def test_resolve_energy_does_not_use_fish_only_patterns():
-    """Verify _resolve_energy doesn't build fish-only entity maps."""
-    engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
-    source = engine_path.read_text(encoding="utf-8")
-    lines = source.split("\n")
-    tree = ast.parse(source, filename=str(engine_path))
-
-    # Find SimulationEngine class
-    simulation_engine_class = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "SimulationEngine":
-            simulation_engine_class = node
-            break
-
-    assert simulation_engine_class is not None, "SimulationEngine class not found"
-
-    # Find _resolve_energy
-    resolve_energy_func = None
-    for node in ast.walk(simulation_engine_class):
-        if isinstance(node, ast.FunctionDef) and node.name == "_resolve_energy":
-            resolve_energy_func = node
-            break
-
-    assert resolve_energy_func is not None, "_resolve_energy not found"
-
-    start_line = resolve_energy_func.lineno - 1
-    end_line = resolve_energy_func.end_lineno
-    func_body = "\n".join(lines[start_line:end_line])
-
-    # Should NOT contain fish-only mapping pattern
-    assert "e.fish_id: e for e in self.get_fish_list()" not in func_body, (
-        "_resolve_energy should not build fish-only entity map. "
-        "Use identity provider for mode-agnostic lookup."
+    assert not violations, (
+        "_create_energy_recorder should use identity provider, not fish-only patterns:\n"
+        + "\n".join(violations)
     )
 
     # Should use identity provider
     assert (
-        "_identity_provider" in func_body
-    ), "_resolve_energy should use identity provider for entity lookup"
-
-
-def test_apply_energy_deltas_does_not_use_fish_only_patterns():
-    """Verify _apply_energy_deltas doesn't build fish-only entity maps."""
-    engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
-    source = engine_path.read_text(encoding="utf-8")
-    lines = source.split("\n")
-    tree = ast.parse(source, filename=str(engine_path))
-
-    # Find SimulationEngine class
-    simulation_engine_class = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "SimulationEngine":
-            simulation_engine_class = node
-            break
-
-    assert simulation_engine_class is not None, "SimulationEngine class not found"
-
-    # Find _apply_energy_deltas
-    apply_deltas_func = None
-    for node in ast.walk(simulation_engine_class):
-        if isinstance(node, ast.FunctionDef) and node.name == "_apply_energy_deltas":
-            apply_deltas_func = node
-            break
-
-    assert apply_deltas_func is not None, "_apply_energy_deltas not found"
-
-    start_line = apply_deltas_func.lineno - 1
-    end_line = apply_deltas_func.end_lineno
-    func_body = "\n".join(lines[start_line:end_line])
-
-    # Should NOT contain fish-only mapping pattern
-    assert "e.fish_id: e for e in self.get_fish_list()" not in func_body, (
-        "_apply_energy_deltas should not build fish-only entity map. "
-        "Use identity provider for mode-agnostic lookup."
-    )
-
-    # Should use identity provider
-    assert (
-        "_identity_provider" in func_body
-    ), "_apply_energy_deltas should use identity provider for entity lookup"
-
-    # Should use get_entity_by_id
-    assert (
-        "get_entity_by_id" in func_body
-    ), "_apply_energy_deltas should use get_entity_by_id for reverse lookup"
-
-
-def test_energy_delta_functions_avoid_fish_only_identity():
-    """Verify energy delta functions avoid fish-only identity assumptions."""
-    engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
-    source = engine_path.read_text(encoding="utf-8")
-    lines = source.split("\n")
-    tree = ast.parse(source, filename=str(engine_path))
-
-    simulation_engine_class = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "SimulationEngine":
-            simulation_engine_class = node
-            break
-
-    assert simulation_engine_class is not None, "SimulationEngine class not found"
-
-    target_funcs = {}
-    for node in ast.walk(simulation_engine_class):
-        if isinstance(node, ast.FunctionDef) and node.name in {
-            "_resolve_energy",
-            "_apply_energy_deltas",
-        }:
-            target_funcs[node.name] = node
-
-    assert "_resolve_energy" in target_funcs, "_resolve_energy not found"
-    assert "_apply_energy_deltas" in target_funcs, "_apply_energy_deltas not found"
-
-    violations = []
-    for name, func_node in target_funcs.items():
-        violations.extend(_check_function_for_fish_only_patterns(func_node, lines, name))
-
-    assert (
-        not violations
-    ), "Energy delta functions should avoid fish-only identity patterns:\n" + "\n".join(violations)
+        "_get_entity_identity" in func_body
+    ), "_create_energy_recorder should use _get_entity_identity for stable IDs"

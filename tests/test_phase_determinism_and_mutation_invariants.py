@@ -17,7 +17,6 @@ CANONICAL_TANK_STEP_ORDER = [
     "time_update",
     "environment",
     "entity_act",
-    "resolve_energy",
     "lifecycle",
     "spawn",
     "collision",

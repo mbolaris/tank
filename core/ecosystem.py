@@ -115,32 +115,35 @@ class EcosystemManager:
 
         This enables decoupled telemetry where entities emit events and
         EcosystemManager receives them without direct coupling.
+
+        Note: Energy accounting now uses EnergyDeltaRecord via ingest_energy_deltas().
+        EnergyGainEvent/EnergyBurnEvent handlers are no-ops to avoid double-counting.
         """
-        # Subscribe to existing telemetry event types
+        # Energy events: no-op handlers (accounting now via ingest_energy_deltas)
         event_bus.subscribe(EnergyGainEvent, self._on_energy_gain_event)
         event_bus.subscribe(EnergyBurnEvent, self._on_energy_burn_event)
+        # Non-energy events still active
         event_bus.subscribe(FoodEatenEvent, self._on_food_eaten_event)
         event_bus.subscribe(BirthEvent, self._on_birth_event)
         event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
 
-        # Subscribe to new EnergyLedger events (SimEvents)
-        event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
-
     def _on_energy_gain_event(self, event: "EnergyGainEvent") -> None:
-        """Handle energy gain events."""
-        if event.scope == "plant":
-            self.record_plant_energy_gain(event.source, event.amount)
-        else:
-            self.record_energy_gain(event.source, event.amount)
+        """Handle energy gain events (NO-OP to avoid double-counting).
+
+        Energy accounting is now done via ingest_energy_deltas() which receives
+        EnergyDeltaRecord entries from the engine. These event handlers are
+        kept for backward compatibility but do not record stats.
+        """
+        pass  # No-op: energy accounting via ingest_energy_deltas()
 
     def _on_energy_burn_event(self, event: "EnergyBurnEvent") -> None:
-        """Handle energy burn events."""
-        if event.scope == "plant":
-            self.record_plant_energy_burn(event.source, event.amount)
-        else:
-            self.record_energy_burn(event.source, event.amount)
+        """Handle energy burn events (NO-OP to avoid double-counting).
 
-
+        Energy accounting is now done via ingest_energy_deltas() which receives
+        EnergyDeltaRecord entries from the engine. These event handlers are
+        kept for backward compatibility but do not record stats.
+        """
+        pass  # No-op: energy accounting via ingest_energy_deltas()
 
     def _on_food_eaten_event(self, event: "FoodEatenEvent") -> None:
         """Handle food consumption events."""
@@ -343,14 +346,10 @@ class EcosystemManager:
         This delegates to the specific event handlers to ensure consistent logic
         between manual recording and EventBus subscriptions.
 
-        Event Priority:
-            1. SimEvents (core.sim.events) - PREFERRED: Include entity_id and frame
-            2. TelemetryEvents (core.telemetry.events) - LEGACY: Still supported
-
-        New code should emit SimEvents. Legacy code using TelemetryEvents will
-        continue to work but should be migrated when touched.
+        Note: Energy accounting now uses EnergyDeltaRecord via ingest_energy_deltas().
+        EnergyGainEvent/EnergyBurnEvent are no-ops to avoid double-counting.
         """
-        # Handle Legacy TelemetryEvents (deprecated, but still supported)
+        # Energy events are no-ops (accounting now via ingest_energy_deltas)
         if isinstance(event, EnergyGainEvent):
             self._on_energy_gain_event(event)
         elif isinstance(event, EnergyBurnEvent):
@@ -362,7 +361,6 @@ class EcosystemManager:
         elif isinstance(event, ReproductionEvent):
             self._on_reproduction_event(event)
 
-        # Handle New SimEvents
     # =========================================================================
     # Population Recording (delegate to PopulationTracker)
     # =========================================================================
@@ -379,24 +377,24 @@ class EcosystemManager:
                 # Energy Gain
                 source = delta.source
                 amount = delta.delta
-                
+
                 # Map source names if needed for consistency
                 if source == "ate_food":
-                     # Try to get detailed info from metadata if available
-                     food_type = "food"
-                     if delta.metadata and "food_type" in delta.metadata:
-                         food_type = delta.metadata["food_type"]
-                     self.record_energy_gain(food_type, amount)
+                    # Try to get detailed info from metadata if available
+                    food_type = "food"
+                    if delta.metadata and "food_type" in delta.metadata:
+                        food_type = delta.metadata["food_type"]
+                    self.record_energy_gain(food_type, amount)
                 elif source == "poker_win":
-                     self.record_energy_gain("poker", amount)
+                    self.record_energy_gain("poker", amount)
                 else:
-                     self.record_energy_gain(source, amount)
+                    self.record_energy_gain(source, amount)
 
             elif delta.delta < 0:
                 # Energy Burn
                 source = delta.source
                 amount = -delta.delta
-                
+
                 if source == "metabolism":
                     # Metabolism is now aggregated, but we can log it
                     self.record_energy_burn("metabolism", amount)

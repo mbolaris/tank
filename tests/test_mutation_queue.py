@@ -26,9 +26,16 @@ def test_collision_removal_is_queued(simulation_engine):
 
 
 def test_overflow_energy_spawns_food_via_queue(simulation_engine):
+    """Test that overflow energy from gain_energy() queues food spawns.
+
+    In the current design, gain_energy() applies energy immediately and
+    routes overflow to food spawns via request_spawn(). No separate
+    _resolve_energy step is needed.
+    """
     engine = simulation_engine
     fish = engine.get_fish_list()[0]
 
+    # Set fish to max capacity in both main energy and overflow bank
     fish.energy = fish.max_energy
     fish._reproduction_component.overflow_energy_bank = (
         fish.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
@@ -37,12 +44,10 @@ def test_overflow_energy_spawns_food_via_queue(simulation_engine):
     before = sum(isinstance(e, Food) for e in engine.get_all_entities())
     assert engine._entity_mutations.pending_spawn_count() == 0
 
-    # gain_energy now uses deferred energy model - emits event, applies later
+    # gain_energy() now applies immediately and queues overflow food
     fish.gain_energy(10.0)
 
-    # Process the energy events to apply deltas (triggers overflow spawning)
-    engine._resolve_energy()
-
+    # Overflow food should be queued immediately (no separate resolve step)
     assert engine._entity_mutations.pending_spawn_count() == 1
     engine._apply_entity_mutations("test_overflow")
 

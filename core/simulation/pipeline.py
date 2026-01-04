@@ -102,9 +102,6 @@ def _step_entity_act(engine: SimulationEngine) -> None:
     engine._pipeline_entities_to_remove = entities_to_remove
 
 
-
-
-
 def _step_lifecycle(engine: SimulationEngine) -> None:
     """LIFECYCLE: Process deaths, add/remove entities."""
     new_entities = getattr(engine, "_pipeline_new_entities", [])
@@ -149,13 +146,12 @@ def default_pipeline() -> EnginePipeline:
         2. time_update: Advance day/night cycle
         3. environment: Update ecosystem and detection modifiers
         4. entity_act: Update all entities, collect spawns/deaths
-        5. resolve_energy: Process energy deltas
-        6. lifecycle: Process deaths, add/remove entities
-        7. spawn: Auto-spawn food
-        8. collision: Handle collisions
-        9. interaction: Handle social interactions (poker)
-        10. reproduction: Handle mating and emergency spawns
-        11. frame_end: Update stats, rebuild caches
+        5. lifecycle: Process deaths, add/remove entities
+        6. spawn: Auto-spawn food
+        7. collision: Handle collisions
+        8. interaction: Handle social interactions (poker)
+        9. reproduction: Handle mating and emergency spawns
+        10. frame_end: Update stats, rebuild caches
 
     Returns:
         EnginePipeline configured with Tank's canonical step order

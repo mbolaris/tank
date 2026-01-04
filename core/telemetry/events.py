@@ -1,18 +1,16 @@
 """Telemetry event definitions for simulation stats recording.
 
-.. deprecated::
-    This module is deprecated. Use `core.sim.events` instead, which provides
-    events with frame tracking and entity_id fields.
+These event types are emitted by entities during simulation updates.
+Energy accounting is now primarily handled via EnergyDeltaRecord through
+the engine's ingest_energy_deltas() path. These events remain for backward
+compatibility but energy handlers in EcosystemManager are no-ops.
 
-    Migration guide:
-    - EnergyBurnEvent -> EnergyBurned (add entity_id, frame)
-    - EnergyGainEvent -> (use AteFood or emit via entity._emit_event)
-    - FoodEatenEvent -> AteFood
-    - BirthEvent -> (handled by Fish.register_birth, emits BirthEvent internally)
-    - ReproductionEvent -> (handled by reproduction system)
-
-    The telemetry events here are still functional for backward compatibility,
-    but new code should use core.sim.events.
+Event Types:
+    - EnergyBurnEvent: Energy spent (metabolism, poker loss, etc.)
+    - EnergyGainEvent: Energy gained (food, poker win, etc.)
+    - FoodEatenEvent: Food consumption (still actively handled)
+    - BirthEvent: Entity birth (still actively handled)
+    - ReproductionEvent: Reproduction attempt (still actively handled)
 """
 
 from __future__ import annotations

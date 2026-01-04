@@ -15,7 +15,6 @@ from core.entities.resources import Food
 from core.entity_ids import PlantId
 from core.genetics import PlantGenome
 from core.state_machine import EntityState
-from core.telemetry.events import EnergyBurnEvent, EnergyGainEvent
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -321,8 +320,7 @@ class Plant(Agent):
         before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
         actual_gain = self.energy - before
-        if actual_gain > 0:
-            self._emit_event(EnergyGainEvent("photosynthesis", actual_gain, scope="plant"))
+        # Energy accounting via ingest_energy_deltas(), no events emitted
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
         """Try to produce nectar if conditions are met.
@@ -469,12 +467,9 @@ class Plant(Agent):
         self._update_size()
 
         delta = self.energy - before
-        if delta > 0:
-            self._emit_event(EnergyGainEvent(source, delta, scope="plant"))
-        elif delta < 0:
-            self._emit_event(EnergyBurnEvent(source, -delta, scope="plant"))
 
-        # Record the delta via the engine recorder (if active)
+        # Record the delta via the engine recorder (single source of truth)
+        # Energy events are no longer emitted to avoid double-counting
         if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
             self.environment.record_energy_delta(self, delta, source)
 
@@ -500,7 +495,7 @@ class Plant(Agent):
             logger.debug(
                 f"Plant #{self.plant_id} lost {actual_loss:.1f} energy ({source}): {before:.1f} -> {self.energy:.1f}"
             )
-            self._emit_event(EnergyBurnEvent(source, actual_loss, scope="plant"))
+            # Energy events no longer emitted - accounting via ingest_energy_deltas()
         return actual_loss
 
     def gain_energy(self, amount: float, *, source: str = "poker") -> float:
@@ -530,8 +525,7 @@ class Plant(Agent):
             overflow = 0.0
 
         self._update_size()
-        if amount > 0:
-            self._emit_event(EnergyGainEvent(source, amount, scope="plant"))
+        # Energy events no longer emitted - accounting via ingest_energy_deltas()
         return amount  # Return full amount since overflow was routed
 
     def _route_overflow_energy(self, overflow: float) -> None:
@@ -564,8 +558,7 @@ class Plant(Agent):
 
             if not request_spawn_in(self.environment, food, reason="plant_overflow_food"):
                 logger.warning("spawn requester unavailable, plant overflow food lost")
-
-            self._emit_event(EnergyBurnEvent("plant_overflow_food", food.energy))
+            # Energy accounting via ingest_energy_deltas(), no events emitted
         except Exception:
             pass  # Energy lost on failure is acceptable
 

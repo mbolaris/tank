@@ -198,8 +198,6 @@ class SimulationEngine:
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
 
-
-
         # Phase tracking for debugging
         self._current_phase: UpdatePhase | None = None
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
@@ -631,13 +629,12 @@ class SimulationEngine:
             2. TIME_UPDATE: Advance day/night cycle
             3. ENVIRONMENT: Update ecosystem and detection modifiers
             4. ENTITY_ACT: Update all entities, collect spawns/deaths
-            5. RESOLVE_ENERGY: Process energy deltas
-            6. LIFECYCLE: Process deaths, add/remove entities
-            7. SPAWN: Auto-spawn food
-            8. COLLISION: Handle collisions
-            9. INTERACTION: Handle social interactions (poker)
-            10. REPRODUCTION: Handle mating and emergency spawns
-            11. FRAME_END: Update stats, rebuild caches
+            5. LIFECYCLE: Process deaths, add/remove entities
+            6. SPAWN: Auto-spawn food
+            7. COLLISION: Handle collisions
+            8. INTERACTION: Handle social interactions (poker)
+            9. REPRODUCTION: Handle mating and emergency spawns
+            10. FRAME_END: Update stats, rebuild caches
         """
         if self.paused:
             return
@@ -660,7 +657,9 @@ class SimulationEngine:
                 self._phase_frame_start()
                 time_modifier, time_of_day = self._phase_time_update()
                 self._phase_environment()
-                new_entities, entities_to_remove = self._phase_entity_act(time_modifier, time_of_day)
+                new_entities, entities_to_remove = self._phase_entity_act(
+                    time_modifier, time_of_day
+                )
                 self._phase_lifecycle(new_entities, entities_to_remove)
                 self._phase_spawn()
                 self._phase_collision()
