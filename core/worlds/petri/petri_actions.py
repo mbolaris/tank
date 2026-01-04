@@ -1,12 +1,12 @@
 """Petri world action translator registration.
 
-Allows Petri mode to register contracts without importing Tank wiring directly.
+Uses the shared FishActionTranslator for Petri world.
 """
-from core.worlds.tank.tank_actions import TankActionTranslator
 from core.actions.action_registry import register_action_translator
+from core.worlds.shared.action_translator import FishActionTranslator
+
 
 def register_petri_action_translator(world_type: str = "petri") -> None:
     """Register the Petri action translator."""
-    # Petri reuses Tank actions for now
-    translator = TankActionTranslator()
+    translator = FishActionTranslator()
     register_action_translator(world_type, translator)
