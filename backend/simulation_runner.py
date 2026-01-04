@@ -179,6 +179,82 @@ class SimulationRunner(CommandHandlerMixin):
 
         self._update_environment_migration_context()
 
+    def switch_world_type(self, new_world_type: str) -> None:
+        """Switch to a different world type while preserving entities.
+
+        This method hot-swaps between tank and petri modes without resetting
+        the simulation. Both modes share the same underlying engine, so we
+        just need to swap the adapter and update metadata.
+
+        Args:
+            new_world_type: Target world type ("tank" or "petri")
+
+        Raises:
+            ValueError: If switching between incompatible world types
+        """
+        if new_world_type == self.world_type:
+            return
+
+        # Only tank <-> petri switching is supported (they share the same engine)
+        if {self.world_type, new_world_type} != {"tank", "petri"}:
+            raise ValueError(
+                f"Cannot hot-swap between {self.world_type} and {new_world_type}. "
+                f"Only tank <-> petri switching is supported."
+            )
+
+        logger.info(
+            "Hot-swapping world type from %s to %s (preserving entities)",
+            self.world_type,
+            new_world_type,
+        )
+
+        # Get the underlying TankWorldBackendAdapter
+        if hasattr(self.world, "_tank_backend"):
+            # Currently petri - extract the tank backend
+            tank_backend = self.world._tank_backend
+        else:
+            # Currently tank
+            tank_backend = self.world
+
+        # Create the new adapter wrapping the existing tank backend
+        if new_world_type == "petri":
+            from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+            # Create petri adapter wrapping the existing tank backend
+            new_world = PetriWorldBackendAdapter.__new__(PetriWorldBackendAdapter)
+            new_world._tank_backend = tank_backend
+            new_world.supports_fast_step = True
+            new_world._last_step_result = None
+        else:
+            # Switching to tank - just use the tank backend directly
+            new_world = tank_backend
+
+        # Update runner state
+        self.world = new_world
+        self.world_type = new_world_type
+
+        # Update metadata from registry
+        metadata = get_world_metadata(new_world_type)
+        self.mode_id = metadata.mode_id if metadata else new_world_type
+        self.view_mode = metadata.view_mode if metadata else "side"
+
+        # Update snapshot builder for the new world type
+        from backend.world_registry import _SNAPSHOT_BUILDERS
+
+        builder_factory = _SNAPSHOT_BUILDERS.get(new_world_type)
+        if builder_factory:
+            self._entity_snapshot_builder = builder_factory()
+
+        # Clear cached state to force full rebuild on next get_state()
+        self._invalidate_state_cache()
+
+        logger.info(
+            "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
+            new_world_type,
+            self.mode_id,
+            self.view_mode,
+        )
+
     def _update_environment_migration_context(self) -> None:
         """Update the environment with current migration context."""
         if hasattr(self.world, "engine") and hasattr(self.world.engine, "environment"):
