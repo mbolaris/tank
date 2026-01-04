@@ -49,10 +49,12 @@ class _DummyFish:
     def get_poker_strategy(self):
         return self._strategy
 
-    def modify_energy(self, amount: float) -> None:
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
+        before = self.energy
         self.energy = max(0.0, self.energy + float(amount))
         if self.energy <= 0:
             self._dead = True
+        return self.energy - before
 
     def is_dead(self) -> bool:
         return self._dead

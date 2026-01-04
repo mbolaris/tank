@@ -436,8 +436,51 @@ class Plant(Agent):
             return False
         return True
 
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
+        """Adjust plant energy by `amount` and return the actual internal-store delta.
+
+        Positive amounts clamp to max_energy; overflow is routed (food drop).
+        Negative amounts clamp at 0.
+
+        Args:
+            amount: Energy to add (positive) or remove (negative)
+            source: Source of the energy change (for tracking)
+
+        Returns:
+            The actual delta applied to the plant's internal energy store.
+        """
+        if amount == 0:
+            return 0.0
+
+        before = self.energy
+
+        if amount > 0:
+            target = before + amount
+            if target > self.max_energy:
+                overflow = target - self.max_energy
+                self.energy = self.max_energy
+                self._route_overflow_energy(overflow)
+            else:
+                self.energy = target
+        else:
+            actual_loss = min(before, -amount)
+            self.energy = before - actual_loss
+
+        self._update_size()
+
+        delta = self.energy - before
+        if delta > 0:
+            self._emit_event(EnergyGainEvent(source, delta, scope="plant"))
+        elif delta < 0:
+            self._emit_event(EnergyBurnEvent(source, -delta, scope="plant"))
+
+        return delta
+
     def lose_energy(self, amount: float, *, source: str = "poker") -> float:
         """Lose energy (from poker loss or being eaten).
+
+        .. deprecated::
+            Use `modify_energy(-amount, source=source)` instead.
 
         Args:
             amount: Energy to lose
@@ -458,6 +501,9 @@ class Plant(Agent):
 
     def gain_energy(self, amount: float, *, source: str = "poker") -> float:
         """Gain energy (from poker win).
+
+        .. deprecated::
+            Use `modify_energy(amount, source=source)` instead.
 
         Args:
             amount: Energy to gain
