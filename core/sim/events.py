@@ -28,6 +28,7 @@ Design Note:
     This module replaces the legacy `core.telemetry.events` module which
     lacked entity_id and frame tracking.
 """
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 

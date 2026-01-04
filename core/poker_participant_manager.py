@@ -15,6 +15,7 @@ The preferred approach is now:
 - Fish.can_play_skill_games: property that checks energy + cooldown + alive
 - Plant.can_play_poker(): method that checks energy + cooldown + alive
 """
+
 import warnings
 
 from dataclasses import dataclass
