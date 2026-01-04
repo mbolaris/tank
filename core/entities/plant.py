@@ -319,7 +319,6 @@ class Plant(Agent):
 
         before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
-        actual_gain = self.energy - before
         # Energy accounting via ingest_energy_deltas(), no events emitted
 
     def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:

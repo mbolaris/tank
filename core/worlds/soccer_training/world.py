@@ -590,7 +590,6 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
 
     def _consume_energy(self) -> None:
         for player in self._players.values():
-            before = player.energy
             breakdown = player.energy_component.calculate_burn(
                 player.velocity,
                 self._config.player_max_speed,
