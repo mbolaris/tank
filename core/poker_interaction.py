@@ -38,14 +38,49 @@ from core.mixed_poker import (
     MultiplayerPlayerContext as PlayerContext,
 )
 
-# Re-export participant manager for get_ready_players
-from core.poker_participant_manager import get_ready_players
-
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
 DEFAULT_BET_AMOUNT = 5.0
 POKER_COOLDOWN = 30  # Reduced from 60 for faster poker turnaround
 MAX_PLAYERS = 6
+
+
+def get_ready_players(players: list, min_energy: float = MIN_ENERGY_TO_PLAY) -> list:
+    """Filter players that are ready to play poker.
+
+    Uses entity attributes directly (no global manager):
+    - Entity must have enough energy
+    - Entity's poker_cooldown must be <= 0
+    - Entity must not be dead
+
+    This function works with any PokerPlayer protocol implementer
+    (Fish, Plant, or future entity types).
+
+    Args:
+        players: List of potential poker players
+        min_energy: Minimum energy required to play
+
+    Returns:
+        List of players ready to play poker
+    """
+    ready = []
+    for player in players:
+        # Check if dead
+        if hasattr(player, "is_dead") and player.is_dead():
+            continue
+
+        # Check energy
+        if player.energy < min_energy:
+            continue
+
+        # Check cooldown - use entity's poker_cooldown attribute directly
+        cooldown = getattr(player, "poker_cooldown", 0)
+        if cooldown > 0:
+            continue
+
+        ready.append(player)
+
+    return ready
 
 
 # Primary PokerInteraction class - works with any PokerPlayer entities

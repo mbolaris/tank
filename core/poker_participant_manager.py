@@ -1,9 +1,21 @@
 """Poker participant management system.
 
-This module manages poker-specific state for fish without storing it directly
-on the fish entities. This separation allows for cleaner code organization
-and easier testing.
+.. deprecated::
+    This module is deprecated. Poker cooldowns are now tracked directly on
+    entities via the `poker_cooldown` attribute (part of the PokerPlayer protocol).
+    Use `core.poker_interaction.get_ready_players()` which checks entity attributes
+    directly rather than using this global manager.
+
+This module was originally designed to manage poker-specific state for fish
+separately from the fish entities. However, this caused dual-tracking issues
+where cooldowns could get out of sync.
+
+The preferred approach is now:
+- Fish.poker_cooldown: entity attribute (decremented in Fish.update())
+- Fish.can_play_skill_games: property that checks energy + cooldown + alive
+- Plant.can_play_poker(): method that checks energy + cooldown + alive
 """
+import warnings
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple

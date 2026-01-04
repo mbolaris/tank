@@ -262,10 +262,8 @@ class SimulationEngine:
         If no pack is provided, it tries to use the default Tank logic
         (via TankPack) for backward compatibility.
         """
-        # Clear global poker participant state to prevent cross-engine contamination
-        from core.poker_participant_manager import _global_manager
-
-        _global_manager.clear_all()
+        # NOTE: Poker cooldowns are now tracked on entities directly (Fish.poker_cooldown)
+        # rather than in a global manager, so no per-engine cleanup is needed here.
 
         # Fallback to TankPack if no pack provided (backward compat)
         if pack is None:
