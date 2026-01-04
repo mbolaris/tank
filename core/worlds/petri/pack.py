@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
+from core.worlds.petri.dish import PetriDish
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
 
@@ -41,6 +42,16 @@ class PetriPack(TankLikePackBase):
         super().__init__(config)
         # Use shared Tank-like identity provider from shared namespace
         self._identity_provider = TankLikeEntityIdentityProvider()
+        
+        # Compute dish geometry from screen dimensions
+        display = config.display
+        rim_margin = 10.0
+        radius = (min(display.screen_width, display.screen_height) / 2) - rim_margin
+        self.dish = PetriDish(
+            cx=display.screen_width / 2,
+            cy=display.screen_height / 2,
+            r=radius,
+        )
 
     @property
     def mode_id(self) -> str:
@@ -80,7 +91,7 @@ class PetriPack(TankLikePackBase):
 
         display = self.config.display
 
-        # 3. Create PetriEnvironment
+        # 3. Create PetriEnvironment with dish geometry
         env = PetriEnvironment(
             engine._entity_manager.entities_list,
             display.screen_width,
@@ -89,6 +100,7 @@ class PetriPack(TankLikePackBase):
             rng=engine.rng,
             event_bus=engine.event_bus,
             simulation_config=self.config,
+            dish=self.dish,
         )
         env.set_spawn_requester(engine.request_spawn)
         env.set_remove_requester(engine.request_remove)
@@ -128,9 +140,8 @@ class PetriPack(TankLikePackBase):
             # But PlantManager needs an INSTANCE.
             
             root_spot_manager = CircularRootSpotManager(
-                self.config.display.screen_width,
-                self.config.display.screen_height,
-                rng=engine.rng
+                dish=self.dish,
+                rng=engine.rng,
             )
             
             engine.plant_manager = PlantManager(

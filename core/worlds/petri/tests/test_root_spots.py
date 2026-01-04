@@ -4,6 +4,7 @@ import unittest
 import random
 
 from core.root_spots import RootSpot
+from core.worlds.petri.dish import PetriDish
 from core.worlds.petri.root_spots import CircularRootSpotManager
 
 
@@ -31,13 +32,21 @@ class TestRootSpots(unittest.TestCase):
         self.assertEqual(y, 80)
 
     def test_circular_manager_initialization(self):
-        manager = CircularRootSpotManager(800, 600)
+        dish = PetriDish(cx=400.0, cy=300.0, r=290.0)
+        manager = CircularRootSpotManager(dish=dish)
         self.assertGreater(len(manager.spots), 0)
         
         # Check spot properties
         for spot in manager.spots:
-            self.assertEqual(spot.anchor_mode, "center")
-            # Should be roughly on perimeter
-            # We implemented it as slightly inset
-            # Just verify they are not all at (0,0)
-            self.assertNotEqual(spot.x, 0)
+            self.assertEqual(spot.anchor_mode, "radial_inward")
+            # Should be on the perimeter
+            import math
+            dist = math.hypot(spot.x - dish.cx, spot.y - dish.cy)
+            self.assertAlmostEqual(dist, dish.r, places=3)
+
+    def test_circular_manager_with_rng(self):
+        dish = PetriDish(cx=400.0, cy=300.0, r=290.0)
+        rng = random.Random(42)
+        manager = CircularRootSpotManager(dish=dish, rng=rng)
+        self.assertGreater(len(manager.spots), 0)
+

@@ -3,12 +3,9 @@
 Includes systems tailored for the circular Petri dish environment.
 """
 
-import math
-import random
-from typing import Optional
+from __future__ import annotations
 
 from core.systems.food_spawning import FoodSpawningSystem
-from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
 
 
 class PetriFoodSpawningSystem(FoodSpawningSystem):
@@ -26,19 +23,14 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
         if environment is None:
             return 0
 
-        # Spawn strictly inside the dish
-        # Polar coordinates for uniform distribution within circle:
-        # r = R * sqrt(random)
-        # theta = random * 2 * pi
+        # Get dish from environment and sample a point inside
+        dish = getattr(environment, "dish", None)
+        if dish is None:
+            # Fallback if dish not available (shouldn't happen in Petri mode)
+            return 0
         
-        # Use a slightly smaller radius to avoid spawning exactly on the rim
-        spawn_radius = PETRI_RADIUS - 10.0
-        
-        r = spawn_radius * math.sqrt(self._rng.random())
-        theta = self._rng.random() * 2 * math.pi
-        
-        x = PETRI_CENTER_X + r * math.cos(theta)
-        y = PETRI_CENTER_Y + r * math.sin(theta)
+        # Spawn strictly inside the dish with a small margin
+        x, y = dish.sample_point(self._rng, margin=10.0)
 
         # Determine if live food
         is_live = self._rng.random() < self.config.live_food_chance
@@ -62,3 +54,4 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
             return 1
 
         return 0
+

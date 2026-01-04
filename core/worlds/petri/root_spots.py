@@ -3,16 +3,39 @@
 Generates root spots along the circular perimeter of the dish.
 """
 
-import math
+from __future__ import annotations
+
 import random
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.root_spots import RootSpot, RootSpotManager
-from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+
+if TYPE_CHECKING:
+    from core.worlds.petri.dish import PetriDish
 
 
 class CircularRootSpotManager(RootSpotManager):
     """Manages root spots distributed along a circular perimeter."""
+
+    def __init__(
+        self,
+        dish: "PetriDish",
+        rng: Optional[random.Random] = None,
+    ) -> None:
+        """Initialize with dish geometry.
+        
+        Args:
+            dish: PetriDish object defining the circular boundary
+            rng: Random number generator (optional)
+        """
+        self.dish = dish
+        # Parent expects screen_width, screen_height but we won't use them
+        # We call parent with dummy values since we override _initialize_spots
+        super().__init__(
+            screen_width=int(dish.cx * 2),
+            screen_height=int(dish.cy * 2),
+            rng=rng,
+        )
 
     def _initialize_spots(self, count: int) -> None:
         """Create root spots around the circular dish perimeter.
@@ -20,22 +43,14 @@ class CircularRootSpotManager(RootSpotManager):
         Args:
             count: Number of spots to create
         """
-        # Place spots EXACTLY on the radius.
-        # Anchor mode "radial_inward" will handle growing them inward so they don't clip out.
-        r = PETRI_RADIUS
-        cx = PETRI_CENTER_X
-        cy = PETRI_CENTER_Y
-
-        for i in range(count):
-            # Distribute evenly around circle
-            angle = (2.0 * math.pi * i) / count
-            
-            x = cx + r * math.cos(angle)
-            y = cy + r * math.sin(angle)
-            
+        # Use dish.perimeter_points to get evenly distributed points
+        perimeter = self.dish.perimeter_points(count)
+        
+        for i, (x, y, angle) in enumerate(perimeter):
             spot = RootSpot(spot_id=i, x=x, y=y)
             spot.manager = self
             spot.anchor_mode = "radial_inward"
             spot.angle = angle
             
             self.spots.append(spot)
+
