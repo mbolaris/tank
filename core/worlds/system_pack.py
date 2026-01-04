@@ -90,7 +90,7 @@ class SystemPack(Protocol):
         """
         ...
 
-    def get_phase_hooks(self) -> "PhaseHooks | None":
+    def get_phase_hooks(self) -> PhaseHooks | None:
         """Return phase hooks for mode-specific entity handling.
 
         Phase hooks allow modes to customize how entities are handled during

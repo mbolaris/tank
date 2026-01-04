@@ -20,12 +20,12 @@ class PetriEnvironment(Environment):
     Requires a PetriDish object to define the circular boundary geometry.
     """
 
-    dish: "PetriDish"
+    dish: PetriDish
 
     def __init__(
         self,
         *args: Any,
-        dish: "PetriDish",
+        dish: PetriDish,
         **kwargs: Any,
     ) -> None:
         """Initialize PetriEnvironment with dish geometry.
@@ -37,7 +37,7 @@ class PetriEnvironment(Environment):
         super().__init__(*args, **kwargs)
         self.dish = dish
 
-    def resolve_boundary_collision(self, agent: "Agent") -> bool:
+    def resolve_boundary_collision(self, agent: Agent) -> bool:
         """Resolve collision with the circular dish boundary.
 
         Args:

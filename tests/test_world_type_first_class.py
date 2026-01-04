@@ -53,15 +53,12 @@ class TestWorldTypeFirstClass:
             # Get initial frame before stepping
             initial_frame = manager.world.frame_count
 
-            # Unpause to allow stepping (the world must be unpaused for step() to work)
-            # Background thread is started but sleeps most of the time at 30 FPS
-            manager.world.paused = False
-
+            # Step 10 times with pause/unpause on each iteration to prevent
+            # background thread from interfering with frame counting
             for _ in range(10):
+                manager.world.paused = False
                 manager.world.step()
-
-            # Pause again to prevent any further background updates
-            manager.world.paused = True
+                manager.world.paused = True
 
             assert manager.world.frame_count == initial_frame + 10
         finally:

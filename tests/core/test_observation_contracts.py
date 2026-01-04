@@ -1,11 +1,12 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
 from core.policies.interfaces import build_movement_observation
 from core.policies.observation_registry import (
-    register_observation_builder,
     clear_registry,
-    snapshot_registry,
+    register_observation_builder,
     restore_registry,
+    snapshot_registry,
 )
 
 

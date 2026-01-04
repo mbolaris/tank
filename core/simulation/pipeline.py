@@ -15,7 +15,7 @@ Design Notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, List
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -41,7 +41,7 @@ class EnginePipeline:
     Each step receives the engine instance and can access/modify its state.
     """
 
-    def __init__(self, steps: List[PipelineStep]) -> None:
+    def __init__(self, steps: list[PipelineStep]) -> None:
         """Initialize the pipeline with an ordered list of steps.
 
         Args:
@@ -50,12 +50,12 @@ class EnginePipeline:
         self._steps = steps
 
     @property
-    def steps(self) -> List[PipelineStep]:
+    def steps(self) -> list[PipelineStep]:
         """Get the list of pipeline steps."""
         return self._steps
 
     @property
-    def step_names(self) -> List[str]:
+    def step_names(self) -> list[str]:
         """Get the names of all steps in order."""
         return [step.name for step in self._steps]
 

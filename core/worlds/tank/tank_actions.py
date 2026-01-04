@@ -12,7 +12,6 @@ from __future__ import annotations
 from core.actions.action_registry import register_action_translator
 from core.worlds.shared.action_translator import FishActionTranslator
 
-
 # Alias for backward compatibility
 TankActionTranslator = FishActionTranslator
 

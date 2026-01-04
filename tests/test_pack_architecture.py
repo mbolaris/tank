@@ -5,7 +5,6 @@ coupling through inheritance. This enables new modes like Soccer to be
 added without tangled import chains.
 """
 
-import pytest
 
 
 def test_petri_pack_is_not_a_tankpack_subclass():

@@ -9,10 +9,9 @@ directly, keeping this module world-agnostic.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Type
+from typing import TYPE_CHECKING, Any, Dict
 
 from core.config.food import BASE_FOOD_DETECTION_RANGE
-from core.policies.observation_registry import register_observation_builder
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -39,8 +38,8 @@ class FishMovementObservationBuilder:
 
     def __init__(
         self,
-        food_type: Type | None = None,
-        threat_type: Type | None = None,
+        food_type: type | None = None,
+        threat_type: type | None = None,
         threat_detection_range: float = 200.0,
     ) -> None:
         """Initialize the observation builder.
@@ -139,7 +138,7 @@ def _nearest_vector(
             return {"x": 0.0, "y": 0.0}
 
     if max_distance is not None:
-        grid_radius = int(max_distance) + 1
+        int(max_distance) + 1
         if use_resources and hasattr(environment, "nearby_resources"):
             agents = environment.nearby_resources(fish, radius)
         else:

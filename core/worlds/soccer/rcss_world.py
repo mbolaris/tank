@@ -9,17 +9,14 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any
 
 from core.entities.base import Agent
-from core.interfaces import Positionable
-from core.math_utils import Vector2
 from core.util.rng import require_rng_param
-from core.world import World, World2D
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
 
 if TYPE_CHECKING:
-    from core.worlds.soccer.backend import SoccerWorldConfig
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +32,7 @@ class RCSSWorld:
     def __init__(
         self,
         adapter: RCSSServerAdapter,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Initialize RCSSWorld.
 
@@ -64,7 +61,7 @@ class RCSSWorld:
         return self._rng
 
     @property
-    def dimensions(self) -> Tuple[float, float]:
+    def dimensions(self) -> tuple[float, float]:
         return (self._width, self._height)
 
     @property
@@ -75,13 +72,13 @@ class RCSSWorld:
     def height(self) -> float:
         return self._height
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Get 2D bounds (min_x, min_y), (max_x, max_y)."""
         half_w = self._width / 2
         half_h = self._height / 2
         return ((-half_w, -half_h), (half_w, half_h))
 
-    def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_2d_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         return self.get_bounds()
 
     def is_valid_position(self, position: Any) -> bool:
@@ -100,24 +97,24 @@ class RCSSWorld:
     # For this World implementation, we rely on the adapter's `get_current_snapshot()`
     # which aggregates known state.
 
-    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_agents(self, agent: Agent, radius: float) -> list[Agent]:
         # TODO: Implement proper spatial query using snapshot state
         # For now, return empty as this is primarily for interaction which isn't fully
         # implemented for pure RCSS yet (interactions happen via kicks/tackles in engine)
         return []
 
     def nearby_agents_by_type(
-        self, agent: Agent, radius: float, agent_type: Type[Agent]
-    ) -> List[Agent]:
+        self, agent: Agent, radius: float, agent_type: type[Agent]
+    ) -> list[Agent]:
         return []
 
-    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
-    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_resources(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
-    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+    def get_agents_of_type(self, agent_type: type[Agent]) -> list[Agent]:
         # TODO: Return proxy agents representing the players/ball?
         return []
 
@@ -129,7 +126,7 @@ class RCSSWorld:
         # The adapter.reset() handles connection usually.
         pass
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> Any:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> Any:
         """Advance simulation one step."""
         return self._adapter.step(actions_by_agent)
 

@@ -14,7 +14,7 @@ Design Notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, List, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -48,7 +48,7 @@ class PhaseHooks(Protocol):
 
     def on_entity_spawned(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         spawned_entity: Any,
         parent_entity: Any,
     ) -> SpawnDecision:
@@ -66,7 +66,7 @@ class PhaseHooks(Protocol):
 
     def on_entity_died(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         entity: Any,
     ) -> bool:
         """Called when entity.is_dead() returns True.
@@ -86,7 +86,7 @@ class PhaseHooks(Protocol):
 
     def on_lifecycle_cleanup(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Called during lifecycle phase for mode-specific cleanup.
 
@@ -100,7 +100,7 @@ class PhaseHooks(Protocol):
 
     def on_reproduction_complete(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Called at end of reproduction phase for stats recording.
 
@@ -113,7 +113,7 @@ class PhaseHooks(Protocol):
 
     def on_frame_end(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Called at end of frame for mode-specific cleanup.
 
@@ -133,7 +133,7 @@ class NoOpPhaseHooks:
 
     def on_entity_spawned(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         spawned_entity: Any,
         parent_entity: Any,
     ) -> SpawnDecision:
@@ -142,7 +142,7 @@ class NoOpPhaseHooks:
 
     def on_entity_died(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         entity: Any,
     ) -> bool:
         """Default: queue entity for removal."""
@@ -150,21 +150,21 @@ class NoOpPhaseHooks:
 
     def on_lifecycle_cleanup(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Default: no cleanup."""
         pass
 
     def on_reproduction_complete(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Default: no stats recording."""
         pass
 
     def on_frame_end(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Default: no frame-end processing."""
         pass

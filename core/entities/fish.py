@@ -18,10 +18,6 @@ from core.config.fish import (
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
 )
-from core.entities.base import Agent, EntityState, LifeStage
-from core.entities.visual_state import FishVisualState
-from core.entity_ids import FishId
-from core.math_utils import Vector2
 from core.constants import (
     BURN_REASON_EXISTENCE,
     BURN_REASON_METABOLISM,
@@ -32,6 +28,10 @@ from core.constants import (
     DEATH_REASON_OLD_AGE,
     DEATH_REASON_STARVATION,
 )
+from core.entities.base import Agent, EntityState, LifeStage
+from core.entities.visual_state import FishVisualState
+from core.entity_ids import FishId
+from core.math_utils import Vector2
 
 logger = logging.getLogger(__name__)
 

@@ -57,7 +57,7 @@ class TankLikePackBase(ABC):
         ...
 
     @abstractmethod
-    def get_identity_provider(self) -> "EntityIdentityProvider":
+    def get_identity_provider(self) -> EntityIdentityProvider:
         """Return the identity provider for this mode."""
         ...
 
@@ -66,7 +66,7 @@ class TankLikePackBase(ABC):
         """Return mode-specific metadata for snapshots."""
         ...
 
-    def build_core_systems(self, engine: "SimulationEngine") -> dict[str, Any]:
+    def build_core_systems(self, engine: SimulationEngine) -> dict[str, Any]:
         """Build Tank-like core systems.
 
         Creates collision, reproduction, lifecycle, and poker systems
@@ -104,7 +104,7 @@ class TankLikePackBase(ABC):
 
         return systems
 
-    def build_environment(self, engine: "SimulationEngine") -> EnvironmentLike:
+    def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
         """Create the Tank-like environment with EventBus and GenomeCodePool."""
         from core import environment
         from core.events import EventBus
@@ -144,13 +144,13 @@ class TankLikePackBase(ABC):
 
         return env
 
-    def register_contracts(self, engine: "SimulationEngine") -> None:
+    def register_contracts(self, engine: SimulationEngine) -> None:
         """Register shared tank-like contracts (actions/observations)."""
         # Note: Subclasses can override or extend this if they have mode-specific contracts
         # independent of the shared tank-like base.
         pass
 
-    def register_systems(self, engine: "SimulationEngine") -> None:
+    def register_systems(self, engine: SimulationEngine) -> None:
         """Register Tank-like systems in the correct order."""
         from core.ecosystem import EcosystemManager
         from core.plant_manager import PlantManager
@@ -191,7 +191,7 @@ class TankLikePackBase(ABC):
         engine._system_registry.register(engine.reproduction_system)
         engine._system_registry.register(engine.poker_system)
 
-    def seed_entities(self, engine: "SimulationEngine") -> None:
+    def seed_entities(self, engine: SimulationEngine) -> None:
         """Create initial entities for the Tank-like world."""
         # 1. Create initial biological population (fish)
         engine.create_initial_entities()
@@ -202,7 +202,7 @@ class TankLikePackBase(ABC):
             engine.plant_manager.create_initial_plants(engine._entity_manager.entities_list)
             engine._apply_entity_mutations("setup_plants")
 
-    def get_pipeline(self) -> "EnginePipeline | None":
+    def get_pipeline(self) -> EnginePipeline | None:
         """Return None to use the default pipeline.
 
         Tank-like modes use the canonical default pipeline that exactly
@@ -210,7 +210,7 @@ class TankLikePackBase(ABC):
         """
         return None
 
-    def get_phase_hooks(self) -> "PhaseHooks":
+    def get_phase_hooks(self) -> PhaseHooks:
         """Return Fish/Plant phase hooks for entity handling.
 
         Tank-like modes use FishPlantPhaseHooks which handles:

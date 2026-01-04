@@ -6,7 +6,6 @@ These tests verify that:
 3. Custom pipelines can be created and used
 """
 
-import pytest
 
 
 def test_default_pipeline_step_names() -> None:

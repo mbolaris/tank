@@ -1,8 +1,7 @@
 """Tests for simulation contract invariants and delta tracking."""
 
-import pytest
+from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 from core.worlds.interfaces import StepResult
-from core.worlds.contracts import SpawnRequest, RemovalRequest, EnergyDeltaRecord
 
 
 def test_step_result_contract_fields():
@@ -110,9 +109,9 @@ def test_delta_reset_every_frame(simulation_engine):
 
 def test_backend_adapter_returns_deltas(simulation_engine):
     """Verify TankWorldBackendAdapter populates StepResult with deltas."""
-    from core.worlds.tank.backend import TankWorldBackendAdapter
     from core.entities.fish import Fish
     from core.movement_strategy import AlgorithmicMovement
+    from core.worlds.tank.backend import TankWorldBackendAdapter
 
     adapter = TankWorldBackendAdapter(seed=42)
     adapter.reset()

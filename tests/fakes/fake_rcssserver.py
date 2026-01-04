@@ -5,9 +5,9 @@ network protocol to allow end-to-end testing of the RCSS adapter and world
 without requiring a real server process.
 """
 
-from typing import List, Optional, Tuple, Dict, Any, Deque
-from collections import deque
 import logging
+from collections import deque
+from typing import Deque, List, Optional, Tuple
 
 from core.worlds.soccer.socket_interface import SocketInterface
 

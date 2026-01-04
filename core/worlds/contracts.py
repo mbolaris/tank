@@ -16,7 +16,7 @@ See docs/WORLDS.md for contract documentation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 if TYPE_CHECKING:
     from core.worlds.interfaces import StepResult
@@ -62,10 +62,10 @@ class RenderHint:
 
     style: Literal["side", "topdown"] = "side"
     entity_style: str | None = None
-    camera: Dict[str, Any] = field(default_factory=dict)
-    extra: Dict[str, Any] = field(default_factory=dict)
+    camera: dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "style": self.style,
@@ -117,8 +117,8 @@ class WorldLoop(Protocol):
     def reset(
         self,
         seed: int | None = None,
-        config: Dict[str, Any] | None = None,
-    ) -> "StepResult":
+        config: dict[str, Any] | None = None,
+    ) -> StepResult:
         """Reset the world to initial state.
 
         Args:
@@ -132,8 +132,8 @@ class WorldLoop(Protocol):
 
     def step(
         self,
-        actions: Dict[str, Any] | None = None,
-    ) -> "StepResult":
+        actions: dict[str, Any] | None = None,
+    ) -> StepResult:
         """Advance the world by one time step.
 
         Args:
@@ -162,7 +162,7 @@ class SpawnRequest:
     entity_type: str
     entity_id: str | None = None
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -175,7 +175,7 @@ class RemovalRequest:
     entity_type: str
     entity_id: str
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -190,4 +190,4 @@ class EnergyDeltaRecord:
     entity_type: str | None = None
     delta: float = 0.0
     source: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
