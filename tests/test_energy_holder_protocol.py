@@ -89,9 +89,9 @@ class TestFishModifyEnergy:
             speed=5,
         )
         fish._energy_component.energy = 50.0
-        
+
         delta = fish.modify_energy(20.0, source="test")
-        
+
         assert delta == 20.0
         assert fish.energy == 70.0
 
@@ -107,10 +107,10 @@ class TestFishModifyEnergy:
         )
         fish._energy_component.energy = 90.0
         max_e = fish.max_energy
-        
+
         # Try to add more than fits
         delta = fish.modify_energy(50.0, source="test")
-        
+
         # Should only gain up to max
         assert fish.energy == max_e
         # Delta should reflect actual internal change (not overflow)
@@ -127,9 +127,9 @@ class TestFishModifyEnergy:
             speed=5,
         )
         fish._energy_component.energy = 20.0
-        
+
         delta = fish.modify_energy(-50.0, source="test")
-        
+
         assert fish.energy == 0.0
         assert delta == -20.0  # Only lost 20, not 50
 
@@ -147,9 +147,9 @@ class TestPlantModifyEnergy:
             plant_id=1,
         )
         plant.energy = 50.0
-        
+
         delta = plant.modify_energy(20.0, source="test")
-        
+
         assert delta == 20.0
         assert plant.energy == 70.0
 
@@ -164,15 +164,15 @@ class TestPlantModifyEnergy:
         )
         plant.energy = plant.max_energy - 10.0
         before = plant.energy
-        
-        with patch.object(plant, '_route_overflow_energy') as mock_route:
+
+        with patch.object(plant, "_route_overflow_energy") as mock_route:
             delta = plant.modify_energy(50.0, source="test")
-            
+
             # Overflow should be routed
             mock_route.assert_called_once()
             overflow_amount = mock_route.call_args[0][0]
             assert overflow_amount == pytest.approx(40.0, abs=0.1)
-        
+
         # Energy should be at max
         assert plant.energy == plant.max_energy
         # Delta reflects internal change only
@@ -188,9 +188,9 @@ class TestPlantModifyEnergy:
             plant_id=1,
         )
         plant.energy = 20.0
-        
+
         delta = plant.modify_energy(-50.0, source="test")
-        
+
         assert plant.energy == 0.0
         assert delta == -20.0  # Only lost 20, not 50
 
@@ -204,8 +204,8 @@ class TestPlantModifyEnergy:
             plant_id=1,
         )
         initial = plant.energy
-        
+
         delta = plant.modify_energy(0.0, source="test")
-        
+
         assert delta == 0.0
         assert plant.energy == initial

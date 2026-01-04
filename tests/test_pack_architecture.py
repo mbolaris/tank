@@ -6,7 +6,6 @@ added without tangled import chains.
 """
 
 
-
 def test_petri_pack_is_not_a_tankpack_subclass():
     """PetriPack must not inherit TankPack.
 
