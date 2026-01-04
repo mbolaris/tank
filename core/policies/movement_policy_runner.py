@@ -9,10 +9,10 @@ from __future__ import annotations
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Tuple
 
 from core.math_utils import Vector2
-from core.policies.interfaces import MovementAction, build_movement_observation
+from core.policies.interfaces import MovementAction
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -34,7 +34,7 @@ def run_movement_policy(
     observation: dict[str, Any],
     rng: pyrandom.Random,
     fish_id: int | None = None,
-) -> Optional[VelocityComponents]:
+) -> VelocityComponents | None:
     """Execute the genome's movement policy and validate output.
 
     Args:
@@ -93,7 +93,7 @@ def run_movement_policy(
     return parsed_velocity
 
 
-def _parse_and_validate_output(output: Any) -> Optional[VelocityComponents]:
+def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
     """Parse policy output into (vx, vy) and validate.
 
     Contract:
@@ -159,7 +159,7 @@ def _log_error(fish_id: int | None, component_id: str, message: str) -> None:
     # Simple rate limiting per fish
     import time
 
-    now_sec = int(time.time())  # approximate, or just increment counter?
+    int(time.time())  # approximate, or just increment counter?
     # Using simple counter from AlgorithmicMovement style would require persistent state.
     # We'll use a simplified global approach here or rely on the caller to handle state if needed.
     # For now, let's just log every N times per fish? No, that requires memory.
@@ -168,7 +168,7 @@ def _log_error(fish_id: int | None, component_id: str, message: str) -> None:
 
     # We'll key by (fish_id, component_id) to avoid collision
     key = (fish_id, component_id)
-    last_log_time = _ERROR_LAST_LOG.get(hash(key), 0)
+    _ERROR_LAST_LOG.get(hash(key), 0)
 
     # We don't have a clock here, so we'll use a simple counter implementation using a tick
     # Actually, let's just use logging.warning with a filter or just allow it but maybe it's too much?

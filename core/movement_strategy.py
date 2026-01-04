@@ -17,10 +17,9 @@ from core.config.fish import (
 )
 from core.entities import Food
 from core.math_utils import Vector2
-from core.policies.interfaces import MovementAction, build_movement_observation
+from core.policies.interfaces import build_movement_observation
 
 if TYPE_CHECKING:
-    from core.code_pool import GenomeCodePool
     from core.entities import Fish
 
 from core.actions.action_registry import translate_action

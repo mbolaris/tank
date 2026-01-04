@@ -1,14 +1,14 @@
 """Tests for the movement policy runner."""
 
-import math
 import random
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-from core.policies.movement_policy_runner import run_movement_policy
-from core.policies.interfaces import MovementAction
-from core.math_utils import Vector2
+
 from core.code_pool import GenomeCodePool
+from core.math_utils import Vector2
+from core.policies.interfaces import MovementAction
+from core.policies.movement_policy_runner import run_movement_policy
 
 
 @pytest.fixture

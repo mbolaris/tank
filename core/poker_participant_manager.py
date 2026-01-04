@@ -16,7 +16,6 @@ The preferred approach is now:
 - Plant.can_play_poker(): method that checks energy + cooldown + alive
 """
 
-import warnings
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple

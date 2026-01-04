@@ -227,7 +227,7 @@ class SimulationEngine:
         self._identity_provider: EntityIdentityProvider | None = None
 
         # Phase hooks for mode-specific entity handling (set during setup())
-        from core.simulation.phase_hooks import PhaseHooks, NoOpPhaseHooks
+        from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
 
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
 

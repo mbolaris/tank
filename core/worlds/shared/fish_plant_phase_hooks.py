@@ -36,7 +36,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
     def on_entity_spawned(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         spawned_entity: Any,
         parent_entity: Any,
     ) -> SpawnDecision:
@@ -69,7 +69,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
     def on_entity_died(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
         entity: Any,
     ) -> bool:
         """Handle Fish/Plant/PlantNectar death.
@@ -102,7 +102,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
     def on_lifecycle_cleanup(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Handle Food expiry and dying fish cleanup.
 
@@ -122,7 +122,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
     def on_reproduction_complete(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Record fish population and energy stats.
 
@@ -150,7 +150,7 @@ class FishPlantPhaseHooks(PhaseHooks):
 
     def on_frame_end(
         self,
-        engine: "SimulationEngine",
+        engine: SimulationEngine,
     ) -> None:
         """Run poker benchmarks if enabled.
 

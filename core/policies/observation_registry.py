@@ -50,7 +50,7 @@ class ObservationBuilder(Protocol):
 
 
 # Registry storage: {(world_type, policy_kind): builder}
-_OBSERVATION_BUILDERS: Dict[tuple[str, str], ObservationBuilder] = {}
+_OBSERVATION_BUILDERS: dict[tuple[str, str], ObservationBuilder] = {}
 
 
 def register_observation_builder(
@@ -136,7 +136,7 @@ def clear_registry() -> None:
     _OBSERVATION_BUILDERS.clear()
 
 
-def snapshot_registry() -> Dict[tuple[str, str], ObservationBuilder]:
+def snapshot_registry() -> dict[tuple[str, str], ObservationBuilder]:
     """Return a shallow copy of the current registry.
 
     Use this to capture the registry state before tests that clear it.
@@ -144,7 +144,7 @@ def snapshot_registry() -> Dict[tuple[str, str], ObservationBuilder]:
     return dict(_OBSERVATION_BUILDERS)
 
 
-def restore_registry(snapshot: Dict[tuple[str, str], ObservationBuilder]) -> None:
+def restore_registry(snapshot: dict[tuple[str, str], ObservationBuilder]) -> None:
     """Restore the registry from a snapshot.
 
     Clears the current registry and restores all entries from the snapshot.

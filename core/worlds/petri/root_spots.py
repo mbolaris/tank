@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 import random
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.root_spots import RootSpot, RootSpotManager
 
@@ -20,8 +20,8 @@ class CircularRootSpotManager(RootSpotManager):
 
     def __init__(
         self,
-        dish: "PetriDish",
-        rng: Optional[random.Random] = None,
+        dish: PetriDish,
+        rng: random.Random | None = None,
     ) -> None:
         """Initialize with dish geometry.
 

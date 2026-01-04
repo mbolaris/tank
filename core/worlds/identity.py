@@ -7,7 +7,7 @@ coupling the SimulationEngine to specific entity types.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, Tuple
+from typing import Any, Protocol
 
 
 class EntityIdentityProvider(Protocol):
@@ -23,7 +23,7 @@ class EntityIdentityProvider(Protocol):
     - get_entity_by_id returns the entity for a given stable ID
     """
 
-    def get_identity(self, entity: Any) -> Tuple[str, str]:
+    def get_identity(self, entity: Any) -> tuple[str, str]:
         """Return (entity_type, entity_id) for any entity.
 
         Args:

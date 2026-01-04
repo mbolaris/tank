@@ -31,7 +31,6 @@ from core.telemetry.events import (
     EnergyGainEvent,
     FoodEatenEvent,
     ReproductionEvent,
-    TelemetryEvent,
 )
 
 if TYPE_CHECKING:

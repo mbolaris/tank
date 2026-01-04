@@ -9,7 +9,7 @@ namespace to avoid coupling Petri to Tank.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
 class TankLikeEntityIdentityProvider:
@@ -27,15 +27,15 @@ class TankLikeEntityIdentityProvider:
 
     def __init__(self) -> None:
         # Stable ID generation for entities without intrinsic IDs
-        self._entity_stable_ids: Dict[int, int] = {}
+        self._entity_stable_ids: dict[int, int] = {}
         self._next_food_id: int = 0
         self._next_nectar_id: int = 0
         self._next_other_id: int = 0
 
         # Reverse mapping for entity lookup by stable ID
-        self._stable_id_to_entity: Dict[str, Any] = {}
+        self._stable_id_to_entity: dict[str, Any] = {}
         # Legacy ID lookup (fish_id, plant_id) for backward compatibility
-        self._legacy_id_to_entity: Dict[str, Any] = {}
+        self._legacy_id_to_entity: dict[str, Any] = {}
 
     def stable_id(self, entity: Any) -> str:
         """Return the stable ID for an entity."""
@@ -45,7 +45,7 @@ class TankLikeEntityIdentityProvider:
         """Return the stable type name for an entity."""
         return self.get_identity(entity)[0]
 
-    def get_identity(self, entity: Any) -> Tuple[str, str]:
+    def get_identity(self, entity: Any) -> tuple[str, str]:
         """Return (entity_type, entity_id) for any Tank-like entity.
 
         Args:
@@ -118,7 +118,7 @@ class TankLikeEntityIdentityProvider:
             return entity
         return self._legacy_id_to_entity.get(entity_id)
 
-    def sync_entities(self, entities: List[Any]) -> None:
+    def sync_entities(self, entities: list[Any]) -> None:
         """Synchronize the reverse-lookup mapping with the entity list.
 
         This rebuilds the stable_id_to_entity mapping by calling get_identity

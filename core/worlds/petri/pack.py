@@ -22,10 +22,10 @@ if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
     from core.worlds.identity import EntityIdentityProvider
 
-from core.worlds.petri.petri_actions import register_petri_action_translator
 from core.worlds.petri.movement_observations import (
     register_petri_movement_observation_builder,
 )
+from core.worlds.petri.petri_actions import register_petri_action_translator
 
 
 class PetriPack(TankLikePackBase):
@@ -57,12 +57,12 @@ class PetriPack(TankLikePackBase):
     def mode_id(self) -> str:
         return "petri"
 
-    def register_contracts(self, engine: "SimulationEngine") -> None:
+    def register_contracts(self, engine: SimulationEngine) -> None:
         """Register Petri-specific contracts."""
         register_petri_action_translator("petri")
         register_petri_movement_observation_builder("petri")
 
-    def get_identity_provider(self) -> "EntityIdentityProvider":
+    def get_identity_provider(self) -> EntityIdentityProvider:
         """Return the Petri identity provider."""
         return self._identity_provider
 
@@ -74,7 +74,7 @@ class PetriPack(TankLikePackBase):
             "height": self.config.display.screen_height,
         }
 
-    def build_environment(self, engine: "SimulationEngine") -> "EnvironmentLike":
+    def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
         """Create the Petri environment with circular physics."""
         from core.events import EventBus
         from core.sim.events import AteFood, EnergyBurned, Moved, PokerGamePlayed
@@ -113,7 +113,7 @@ class PetriPack(TankLikePackBase):
 
         return env
 
-    def register_systems(self, engine: "SimulationEngine") -> None:
+    def register_systems(self, engine: SimulationEngine) -> None:
         """Register Petri-specific systems."""
         from core.ecosystem import EcosystemManager
         from core.plant_manager import PlantManager

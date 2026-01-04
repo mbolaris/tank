@@ -16,7 +16,7 @@ References:
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 from core.policies.soccer_interfaces import (
     BallState,
@@ -300,10 +300,9 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
     def _parse_server_message(self, msg: str) -> None:
         """Parse a single server message and update state."""
         from core.worlds.soccer.rcss_protocol import (
+            parse_hear_message,
             parse_see_message,
             parse_sense_body_message,
-            parse_hear_message,
-            estimate_position_from_polar,
         )
 
         if msg.startswith("(see "):

@@ -9,7 +9,6 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass
-from typing import Tuple, List
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ class PetriDish:
         vel_x: float,
         vel_y: float,
         radius: float,
-    ) -> Tuple[float, float, float, float, bool]:
+    ) -> tuple[float, float, float, float, bool]:
         """Clamp a circle inside the dish and reflect velocity if needed.
 
         If the circle extends beyond the dish boundary, it is pushed back in
@@ -111,7 +110,7 @@ class PetriDish:
         self,
         rng: random.Random,
         margin: float = 0.0,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Sample a uniformly random point inside the dish.
 
         Uses polar coordinates with sqrt(random) for uniform distribution.
@@ -136,7 +135,7 @@ class PetriDish:
 
         return x, y
 
-    def perimeter_points(self, count: int) -> List[Tuple[float, float, float]]:
+    def perimeter_points(self, count: int) -> list[tuple[float, float, float]]:
         """Generate evenly distributed points on the dish perimeter.
 
         Args:
@@ -148,7 +147,7 @@ class PetriDish:
         if count <= 0:
             return []
 
-        pts: List[Tuple[float, float, float]] = []
+        pts: list[tuple[float, float, float]] = []
         for i in range(count):
             angle = (2.0 * math.pi * i) / count
             x = self.cx + self.r * math.cos(angle)

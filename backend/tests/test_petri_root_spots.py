@@ -1,8 +1,8 @@
 import math
-import pytest
+
 from core.root_spots import RootSpot
+from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
 from core.worlds.petri.root_spots import CircularRootSpotManager
-from core.worlds.petri.geometry import PETRI_RADIUS, PETRI_CENTER_X, PETRI_CENTER_Y
 
 
 class TestRootSpotRadialInward:

@@ -1,7 +1,6 @@
-import pytest
 from core.entities import Crab, Food
-from core.tank_world import TankWorld, TankWorldConfig
 from core.math_utils import Vector2
+from core.tank_world import TankWorld, TankWorldConfig
 
 
 def test_crab_eats_food_optimization():

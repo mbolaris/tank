@@ -12,7 +12,6 @@ import pytest
 def test_engine_uses_phase_hooks_from_pack():
     """Verify engine initializes and uses pack's phase hooks."""
     from core.simulation.engine import SimulationEngine
-    from core.simulation.phase_hooks import PhaseHooks
     from core.worlds.tank.tank_phase_hooks import TankPhaseHooks
 
     engine = SimulationEngine(headless=True, seed=42)

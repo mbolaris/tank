@@ -1,7 +1,7 @@
 """Unit tests for RootSpot enhancements."""
 
-import unittest
 import random
+import unittest
 
 from core.root_spots import RootSpot
 from core.worlds.petri.dish import PetriDish

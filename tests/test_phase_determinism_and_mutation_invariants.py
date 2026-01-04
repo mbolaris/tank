@@ -9,11 +9,8 @@ These tests enforce:
 import hashlib
 from collections import defaultdict
 
-import pytest
-
 from core.simulation.engine import SimulationEngine
 from core.simulation.pipeline import EnginePipeline, PipelineStep
-
 
 CANONICAL_TANK_STEP_ORDER = [
     "frame_start",

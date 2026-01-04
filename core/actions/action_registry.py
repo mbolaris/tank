@@ -83,7 +83,7 @@ class ActionTranslator(Protocol):
 
 
 # Registry storage: {world_type: translator}
-_ACTION_TRANSLATORS: Dict[str, ActionTranslator] = {}
+_ACTION_TRANSLATORS: dict[str, ActionTranslator] = {}
 
 
 def register_action_translator(

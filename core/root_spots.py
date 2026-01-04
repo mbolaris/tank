@@ -4,8 +4,8 @@ This module manages the 100 fixed positions along the tank bottom
 where fractal plants can sprout and grow.
 """
 
-from dataclasses import dataclass, field
 import random
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from core.config.display import (

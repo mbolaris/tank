@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
+
 from core.math_utils import Vector2
 from core.sim.contracts import Action
 
