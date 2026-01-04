@@ -317,7 +317,6 @@ class Plant(Agent):
 
         energy_gain = max(energy_gain, min_energy_gain)
 
-        before = self.energy
         self.energy = min(self.max_energy, self.energy + energy_gain)
         # Energy accounting via ingest_energy_deltas(), no events emitted
 
