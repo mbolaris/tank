@@ -3,8 +3,6 @@ import pytest
 from unittest.mock import MagicMock, patch
 from backend.simulation_manager import SimulationManager
 from backend.simulation_runner import SimulationRunner
-from core.worlds.petri.backend import PetriWorldBackendAdapter
-from core.worlds.tank.backend import TankWorldBackendAdapter
 
 def test_change_world_type():
     """Verify that change_world_type swaps the runner and updates metadata."""

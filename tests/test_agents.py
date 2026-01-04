@@ -238,6 +238,7 @@ class TestPlant:
         root_spot.y = 500.0
         root_spot.spot_id = 1
         root_spot.manager = None
+        root_spot.get_anchor_topleft = MagicMock(return_value=(100.0, 500.0))
 
         genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
@@ -256,6 +257,7 @@ class TestPlant:
         root_spot.y = 500.0
         root_spot.spot_id = 1
         root_spot.manager = None
+        root_spot.get_anchor_topleft = MagicMock(return_value=(100.0, 500.0))
 
         genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=1)
