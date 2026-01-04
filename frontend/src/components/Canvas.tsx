@@ -140,8 +140,9 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             if (currentState && !error) {
                 try {
                     // Get fresh renderer for the current mode (use ref to avoid stale closure)
-                    // Use prop override if provided, otherwise derive worldType from state
-                    const worldType = worldTypePropRef.current ?? (currentState as any)?.world_type ?? 'tank';
+                    // ALWAYS use the prop if provided - never fall back to server world_type
+                    // This ensures the frontend toggle controls the renderer, not the server state
+                    const worldType = worldTypePropRef.current || 'tank';
                     // Derive view mode from render_hint when user hasn't explicitly set viewMode.
                     // This ensures Petri/Soccer worlds render correctly by default.
                     const hintStyle = (currentState.snapshot?.render_hint as Record<string, unknown> | undefined)?.style

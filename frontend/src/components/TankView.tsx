@@ -14,7 +14,8 @@ import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { ViewModeToggle } from './ViewModeToggle';
 import { useViewMode } from '../hooks/useViewMode';
 import { initRenderers } from '../renderers/init';
-import { CollapsibleSection, Button } from './ui';
+import { CollapsibleSection, Button, PlantIcon, CardsIcon } from './ui';
+import styles from './TankView.module.css';
 
 import type { PokerGameState } from '../types/simulation';
 
@@ -209,16 +210,7 @@ export function TankView({ tankId }: TankViewProps) {
     return (
         <>
             {/* Single row of compact controls */}
-            <div style={{
-                display: 'flex',
-                gap: '16px',
-                alignItems: 'center',
-                marginBottom: '20px',
-                width: '100%',
-                maxWidth: '1140px',
-                marginLeft: 'auto',
-                marginRight: 'auto'
-            }}>
+            <div className={styles.controlBar}>
                 <ControlPanel
                     onCommand={sendCommand}
                     isConnected={isConnected}
@@ -235,20 +227,9 @@ export function TankView({ tankId }: TankViewProps) {
                 />
 
                 {/* Plant Energy Input Control */}
-                <div className="glass-panel" style={{
-                    padding: '8px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                }}>
-                    <span style={{
-                        color: 'var(--color-text-dim)',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        letterSpacing: '0.05em',
-                        whiteSpace: 'nowrap'
-                    }}>
-                        🌱 PLANT ENERGY
+                <div className={`glass-panel ${styles.plantEnergyControl}`}>
+                    <span className={styles.plantEnergyLabel}>
+                        <PlantIcon size={12} /> PLANT ENERGY
                     </span>
                     <input
                         type="range"
@@ -258,18 +239,9 @@ export function TankView({ tankId }: TankViewProps) {
                         value={plantEnergyInput}
                         onChange={handlePlantEnergyChange}
                         disabled={!isConnected}
-                        style={{
-                            width: '80px',
-                            accentColor: '#4ade80',
-                            cursor: isConnected ? 'pointer' : 'not-allowed',
-                        }}
+                        className={styles.plantEnergySlider}
                     />
-                    <span style={{
-                        color: 'var(--color-text-main)',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '12px',
-                        minWidth: '40px',
-                    }}>
+                    <span className={styles.plantEnergyValue}>
                         {plantEnergyInput.toFixed(2)}
                     </span>
                 </div>
@@ -422,9 +394,9 @@ export function TankView({ tankId }: TankViewProps) {
                 >
                     <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
                         {!showPokerGame ? (
-                            <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                                <div style={{ fontSize: '48px' }}>🎰</div>
-                                <div style={{ color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+                            <div className={styles.pokerWelcome}>
+                                <CardsIcon size={48} style={{ color: '#a78bfa' }} />
+                                <div className={styles.pokerWelcomeText}>
                                     Ready to play a hand against the population?
                                 </div>
                                 <Button
@@ -433,7 +405,7 @@ export function TankView({ tankId }: TankViewProps) {
                                     variant="poker"
                                     style={{ padding: '12px 32px', fontSize: '16px' }}
                                 >
-                                    {pokerLoading ? 'Loading...' : '🃏 Sit Down & Play'}
+                                    <CardsIcon size={16} /> {pokerLoading ? 'Loading...' : 'Sit Down & Play'}
                                 </Button>
                             </div>
                         ) : (
@@ -536,7 +508,7 @@ export function TankView({ tankId }: TankViewProps) {
                                         border: '1px solid #334155',
                                         textAlign: 'center'
                                     }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>🌱 Plant Win Rate</div>
+                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><PlantIcon size={12} /> Plant Win Rate</div>
                                         <div style={{ color: '#4ade80', fontSize: '18px', fontWeight: 700 }}>
                                             {state.stats?.poker_stats?.plant_win_rate_pct ?? "0.0%"}
                                         </div>

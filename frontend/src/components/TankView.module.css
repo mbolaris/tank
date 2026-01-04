@@ -1,0 +1,277 @@
+/* TankView component styles */
+
+/* Control bar row */
+.controlBar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Stats HUD bar */
+.statsBar {
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.statsBarInner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 20px;
+}
+
+/* Individual stat items */
+.statItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.statLabel {
+    color: var(--color-text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.statValue {
+    color: var(--color-text-main);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Vertical divider */
+.divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+/* Status indicator */
+.statusDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.statusDot.online {
+    background: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+
+.statusDot.offline {
+    background: var(--color-warning);
+}
+
+.statusText {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+/* Mode/debug badges */
+.badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.badge.purple {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+.badge.blue {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    font-family: var(--font-mono);
+}
+
+/* Plant energy control */
+.plantEnergyControl {
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.plantEnergyLabel {
+    color: var(--color-text-dim);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.plantEnergySlider {
+    width: 80px;
+    accent-color: #4ade80;
+    cursor: pointer;
+}
+
+.plantEnergySlider:disabled {
+    cursor: not-allowed;
+}
+
+.plantEnergyValue {
+    color: var(--color-text-main);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    min-width: 40px;
+}
+
+/* Section wrapper */
+.sectionWrapper {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 1140px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Panel title styling */
+.panelTitle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.panelTitleText {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.panelTitleText.purple { color: #a78bfa; }
+.panelTitleText.blue { color: #93c5fd; }
+.panelTitleText.green { color: #4ade80; }
+
+/* Key metrics grid */
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.metricCard {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #334155;
+    text-align: center;
+}
+
+.metricLabel {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.metricValue {
+    color: #f1f5f9;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.metricValue.green { color: #4ade80; }
+
+.metricSubtext {
+    color: #64748b;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+/* Two-column layout for dashboard */
+.twoColumnGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.dashboardPanel {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #334155;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    max-width: 400px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast.success {
+    background: #166534;
+    color: #bbf7d0;
+    border: 1px solid #22c55e;
+}
+
+.toast.error {
+    background: #7f1d1d;
+    color: #fecaca;
+    border: 1px solid #ef4444;
+}
+
+.toastClose {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.toastClose:hover {
+    opacity: 1;
+}
+
+/* Poker section */
+.pokerWelcome {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.pokerWelcomeIcon {
+    font-size: 48px;
+}
+
+.pokerWelcomeText {
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+}

@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { TankView } from './components/TankView';
 import { NetworkDashboard } from './pages/NetworkDashboard';
 import { config, type TankStatus } from './config';
+import { FishIcon, GlobeIcon, WaveIcon, ChevronLeftIcon, ChevronRightIcon } from './components/ui';
 import './App.css';
 
 interface TankNavigatorProps {
@@ -112,7 +113,7 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
                     e.currentTarget.style.color = 'var(--color-text-muted)';
                 }}
             >
-                ←
+                <ChevronLeftIcon size={14} />
             </button>
 
             <div style={{
@@ -167,7 +168,7 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
                     e.currentTarget.style.color = 'var(--color-text-muted)';
                 }}
             >
-                →
+                <ChevronRightIcon size={14} />
             </button>
         </div>
     );
@@ -205,7 +206,7 @@ function ViewToggle({ isNetwork }: { isNetwork: boolean }) {
                     boxShadow: !isNetwork ? '0 0 15px var(--color-primary-glow)' : 'none',
                 }}
             >
-                <span>🐟</span>
+                <FishIcon size={14} />
                 <span>Tank</span>
             </button>
             <button
@@ -227,7 +228,7 @@ function ViewToggle({ isNetwork }: { isNetwork: boolean }) {
                     boxShadow: isNetwork ? '0 0 15px var(--color-secondary-glow)' : 'none',
                 }}
             >
-                <span>🌐</span>
+                <GlobeIcon size={14} />
                 <span>Network</span>
             </button>
         </div>
@@ -280,7 +281,7 @@ function NavBar() {
                         fontSize: '18px',
                         boxShadow: '0 0 20px var(--color-primary-glow)',
                     }}>
-                        🌊
+                        <WaveIcon size={18} />
                     </div>
                     <span>Tank World</span>
                 </Link>

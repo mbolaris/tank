@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ViewMode } from '../rendering/types';
 import { config } from '../config';
 
@@ -25,10 +25,15 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         return null;
     });
 
-    // Petri mode toggle (circular dish rendering)
+    // Petri mode toggle (circular dish rendering) - defaults to false (Tank mode)
     const [petriMode, setStatePetriMode] = useState<boolean>(() => {
+        // Server world type takes precedence
         if (serverWorldType) return serverWorldType === 'petri';
-        return localStorage.getItem(PETRI_MODE_KEY) === 'true';
+        // Check localStorage for saved preference
+        const stored = localStorage.getItem(PETRI_MODE_KEY);
+        if (stored !== null) return stored === 'true';
+        // Default to Tank mode (false)
+        return false;
     });
 
     // Track incomplete optimistic updates to prevent flickering
@@ -37,11 +42,23 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         timestamp: number;
     } | null>(null);
 
-    // Sync local petri mode with server state, but respect optimistic updates
+    // Track if user has ever explicitly set mode this session (vs just loading)
+    const hasUserInteractedRef = useRef(false);
+
+    // Sync local petri mode with server state, but ONLY when:
+    // 1. User explicitly made a mode change (optimistic update pending)
+    // 2. NOT on initial load (we want frontend default to win on startup)
     useEffect(() => {
         if (!serverWorldType) return;
 
         const serverIsPetri = serverWorldType === 'petri';
+
+        // Only process server updates if user has explicitly changed mode
+        // This prevents server from overriding default Tank mode on startup
+        if (!optimisticState && !hasUserInteractedRef.current) {
+            // Initial load - don't sync from server, keep frontend default
+            return;
+        }
 
         if (optimisticState) {
             // If server has caught up to our optimistic target, clear the optimistic state
@@ -65,6 +82,38 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         setStatePetriMode(serverIsPetri);
     }, [serverWorldType, optimisticState]);
 
+    // Force server to sync with frontend's default mode on startup
+    // This ensures the server sends the correct entity data matching the frontend's mode
+    const hasInitializedServerModeRef = useRef(false);
+    useEffect(() => {
+        // Only run once on initial mount when we have a tankId
+        if (hasInitializedServerModeRef.current || !tankId) {
+            return;
+        }
+
+        // Wait for serverWorldType to be available
+        if (!serverWorldType) {
+            return;
+        }
+
+        hasInitializedServerModeRef.current = true;
+
+        const serverIsPetri = serverWorldType === 'petri';
+
+        // If server is in petri mode but frontend defaulted to tank mode (petriMode === false),
+        // force the server to switch to tank mode
+        if (serverIsPetri && !petriMode) {
+            console.log('[useViewMode] Server is petri but frontend defaulted to tank, forcing server sync');
+            fetch(`${config.apiBaseUrl}/api/tanks/${tankId}/mode`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ world_type: 'tank' })
+            }).catch(error => {
+                console.error('Failed to sync server mode to tank:', error);
+            });
+        }
+    }, [tankId, serverWorldType, petriMode]);
+
     const setOverrideViewMode = useCallback((mode: ViewMode | null) => {
         setStateOverrideViewMode(mode);
         if (mode) {
@@ -75,6 +124,9 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
     }, []);
 
     const setPetriMode = useCallback(async (enabled: boolean) => {
+        // Mark that user has explicitly interacted with mode toggle
+        hasUserInteractedRef.current = true;
+
         // Optimistic update
         setStatePetriMode(enabled);
         setOptimisticState({

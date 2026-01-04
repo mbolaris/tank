@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Command } from '../types/simulation';
-import { Button } from './ui';
+import { Button, FoodIcon, FishIcon, PlayIcon, PauseIcon, FastForwardIcon, ResetIcon, EyeIcon, EyeOffIcon } from './ui';
 
 interface ControlPanelProps {
     onCommand: (command: Command) => void;
@@ -59,23 +59,23 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
             {/* Primary Actions */}
             <div style={{ display: 'flex', gap: '12px' }}>
                 <Button onClick={handleAddFood} disabled={!isConnected} variant="primary">
-                    🍔 Add Food
+                    <FoodIcon size={14} /> Add Food
                 </Button>
                 <Button onClick={handleSpawnFish} disabled={!isConnected} variant="success">
-                    🐟 Spawn Fish
+                    <FishIcon size={14} /> Spawn Fish
                 </Button>
             </div>
 
             {/* Playback Controls */}
             <div style={{ display: 'flex', gap: '12px' }}>
                 <Button onClick={handlePause} disabled={!isConnected} variant="secondary">
-                    {isPaused ? '▶️ Resume' : '⏸️ Pause'}
+                    {isPaused ? <><PlayIcon size={12} /> Resume</> : <><PauseIcon size={12} /> Pause</>}
                 </Button>
                 <Button onClick={handleFastForward} disabled={!isConnected} variant={isFastForward ? 'special' : 'secondary'}>
-                    {isFastForward ? '⏩ Normal' : '⏩ Fast'}
+                    <FastForwardIcon size={12} /> {isFastForward ? 'Normal' : 'Fast'}
                 </Button>
                 <Button onClick={handleReset} disabled={!isConnected} variant="danger">
-                    🔄 Reset
+                    <ResetIcon size={14} /> Reset
                 </Button>
             </div>
 
@@ -83,10 +83,11 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
             <div style={{ display: 'flex', gap: '12px' }}>
                 {onToggleEffects && (
                     <Button onClick={onToggleEffects} variant={showEffects ? 'primary' : 'secondary'}>
-                        {showEffects ? 'Hide HUD' : '📊 HUD'}
+                        {showEffects ? <><EyeOffIcon size={14} /> Hide HUD</> : <><EyeIcon size={14} /> Show HUD</>}
                     </Button>
                 )}
             </div>
         </div>
     );
 }
+
