@@ -958,9 +958,12 @@ class SimulationRunner(CommandHandlerMixin):
             if handler:
                 return handler(data)
 
-            # Try tank-specific handlers (backward compatibility)
+            # Try fish-world handlers (tank, petri - any world with fish/poker)
             if command in tank_handlers:
-                if self.world_type != "tank":
+                # Check if world supports fish-based commands
+                metadata = get_world_metadata(self.world_type)
+                has_fish = metadata.has_fish if metadata else (self.world_type == "tank")
+                if not has_fish:
                     return self._create_error_response(
                         f"Command '{command}' not supported for world_type={self.world_type}"
                     )

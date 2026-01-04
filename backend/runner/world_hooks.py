@@ -313,8 +313,11 @@ def get_hooks_for_world(world_type: str) -> WorldHooks:
     Returns:
         WorldHooks instance for the world type
     """
-    if world_type == "tank":
+    # Use TankWorldHooks for any world that has fish (tank, petri)
+    # These worlds share the fish/poker/benchmark features
+    if world_type in ("tank", "petri"):
         return TankWorldHooks()
     else:
         # All other worlds use no-op hooks
         return NoOpWorldHooks()
+
