@@ -55,6 +55,8 @@ class TestPolicyAdapter:
         # Mock nearby_resources to return empty list to avoid iteration errors
         mock_env.nearby_resources.return_value = []
         mock_env.nearby_agents_by_type.return_value = []
+        mock_env.closest_food.return_value = None
+        mock_env.closest_fish.return_value = None
 
         # Create fish with mocked dependencies
         mock_genome = Mock()
