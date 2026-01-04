@@ -166,7 +166,7 @@ class MixedPokerInteraction:
 
     def _modify_player_energy(self, player: Player, amount: float) -> None:
         """Modify the energy of a player.
-        
+
         Uses the unified EnergyHolder.modify_energy() protocol.
         """
         player.modify_energy(amount, source="poker")

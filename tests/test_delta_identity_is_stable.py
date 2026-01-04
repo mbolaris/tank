@@ -4,7 +4,6 @@ This test ensures that the EntityIdentityProvider produces stable IDs
 for entities like Food and PlantNectar that don't have intrinsic IDs.
 """
 
-
 from core.config.entities import FISH_ID_OFFSET, FOOD_ID_OFFSET
 from core.entities import Fish, Food
 from core.movement_strategy import AlgorithmicMovement

@@ -7,7 +7,6 @@ These tests verify that:
 """
 
 
-
 def test_default_pipeline_step_names() -> None:
     """Assert that tank's pipeline step names match the canonical list."""
     from core.simulation.pipeline import default_pipeline
