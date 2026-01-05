@@ -588,7 +588,7 @@ class SimulationRunner(CommandHandlerMixin):
         if self.thread:
             self.thread.join(timeout=2.0)
 
-    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
+    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
         """Advance the simulation by one step."""
         with self.lock:
             # Apply agent actions if provided
@@ -606,8 +606,8 @@ class SimulationRunner(CommandHandlerMixin):
 
     def reset(
         self,
-        seed: int | None = None,
-        config: dict[str, Any] | None = None,
+        seed: Optional[int] = None,
+        config: Optional[Dict[str, Any]] = None,
     ) -> Any:
         """Reset the world to initial state."""
         with self.lock:
