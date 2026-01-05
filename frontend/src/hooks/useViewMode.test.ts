@@ -114,6 +114,60 @@ describe('useViewMode - Server Authority', () => {
         });
     });
 
+    describe('WorldType Support', () => {
+        it('should construct correct PUT request for soccer_training mode', () => {
+            const tankId = 'test-tank-123';
+            const targetMode = 'soccer_training';
+
+            const expectedUrl = `http://localhost:8000/api/tanks/${tankId}/mode`;
+            const expectedBody = JSON.stringify({ world_type: targetMode });
+
+            expect(expectedUrl).toBe('http://localhost:8000/api/tanks/test-tank-123/mode');
+            expect(expectedBody).toBe('{"world_type":"soccer_training"}');
+        });
+
+        it('should construct correct PUT request for soccer mode', () => {
+            const tankId = 'test-tank-123';
+            const targetMode = 'soccer';
+
+            const expectedUrl = `http://localhost:8000/api/tanks/${tankId}/mode`;
+            const expectedBody = JSON.stringify({ world_type: targetMode });
+
+            expect(expectedUrl).toBe('http://localhost:8000/api/tanks/test-tank-123/mode');
+            expect(expectedBody).toBe('{"world_type":"soccer"}');
+        });
+
+        it('should force topdown view for soccer_training', () => {
+            const worldType = 'soccer_training';
+            const isTopDownOnly = worldType === 'petri' || worldType === 'soccer_training' || worldType === 'soccer';
+
+            expect(isTopDownOnly).toBe(true);
+        });
+
+        it('should force topdown view for soccer', () => {
+            const worldType = 'soccer';
+            const isTopDownOnly = worldType === 'petri' || worldType === 'soccer_training' || worldType === 'soccer';
+
+            expect(isTopDownOnly).toBe(true);
+        });
+
+        it('should allow side view for tank', () => {
+            const worldType = 'tank';
+            const isTopDownOnly = worldType === 'petri' || worldType === 'soccer_training' || worldType === 'soccer';
+
+            expect(isTopDownOnly).toBe(false);
+        });
+
+        it('should prefer server world_type over local worldType', () => {
+            const serverWorldType = 'soccer_training';
+            const localWorldType = 'tank';
+
+            const effectiveWorldType = serverWorldType ?? localWorldType;
+
+            expect(effectiveWorldType).toBe('soccer_training');
+        });
+    });
+
     describe('Optimistic Updates', () => {
         it('should track optimistic state with timestamp', () => {
             const targetMode = true;

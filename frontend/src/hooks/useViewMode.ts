@@ -1,16 +1,25 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ViewMode } from '../rendering/types';
+import type { WorldType } from '../types/world';
+import { isTopDownOnly } from '../types/world';
 import { config } from '../config';
 
 const STORAGE_KEY = 'tank_view_mode_override';
-const PETRI_MODE_KEY = 'tank_petri_mode';
+const WORLD_TYPE_KEY = 'tank_world_type';
+
+function isValidWorldType(value: string): boolean {
+    return value === 'tank' || value === 'petri' || value === 'soccer_training' || value === 'soccer';
+}
 
 export interface UseViewModeResult {
     effectiveViewMode: ViewMode;
     overrideViewMode: ViewMode | null;
     setOverrideViewMode: (mode: ViewMode | null) => void;
     clearOverride: () => void;
+    worldType: WorldType;
+    setWorldType: (worldType: WorldType) => void;
+    // Legacy compatibility
     petriMode: boolean;
     setPetriMode: (enabled: boolean) => void;
 }
@@ -25,46 +34,50 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         return null;
     });
 
-    // Petri mode toggle (circular dish rendering) - defaults to false (Tank mode)
-    const [petriMode, setStatePetriMode] = useState<boolean>(() => {
+    // World type state - defaults to 'tank'
+    const [worldType, setStateWorldType] = useState<WorldType>(() => {
         // Server world type takes precedence
-        if (serverWorldType) return serverWorldType === 'petri';
+        if (serverWorldType && isValidWorldType(serverWorldType)) {
+            return serverWorldType as WorldType;
+        }
         // Check localStorage for saved preference
-        const stored = localStorage.getItem(PETRI_MODE_KEY);
-        if (stored !== null) return stored === 'true';
-        // Default to Tank mode (false)
-        return false;
+        const stored = localStorage.getItem(WORLD_TYPE_KEY);
+        if (stored && isValidWorldType(stored)) {
+            return stored as WorldType;
+        }
+        // Default to Tank mode
+        return 'tank';
     });
 
     // Track incomplete optimistic updates to prevent flickering
     const [optimisticState, setOptimisticState] = useState<{
-        targetMode: boolean;
+        targetWorldType: WorldType;
         timestamp: number;
     } | null>(null);
 
     // Track if user has ever explicitly set mode this session (vs just loading)
     const hasUserInteractedRef = useRef(false);
 
-    // Sync local petri mode with server state
+    // Sync local world type with server state
     // Server is authoritative - we only show optimistic updates during explicit user toggles
     useEffect(() => {
-        if (!serverWorldType) return;
+        if (!serverWorldType || !isValidWorldType(serverWorldType)) return;
 
-        const serverIsPetri = serverWorldType === 'petri';
+        const serverType = serverWorldType as WorldType;
 
         // If we have an optimistic update pending, handle it
         if (optimisticState) {
             // If server has caught up to our optimistic target, clear the optimistic state
-            if (serverIsPetri === optimisticState.targetMode) {
+            if (serverType === optimisticState.targetWorldType) {
                 setOptimisticState(null);
-                setStatePetriMode(serverIsPetri);
+                setStateWorldType(serverType);
                 return;
             }
 
             // If pending update is too old (> 2 seconds), discard it and trust server
             if (Date.now() - optimisticState.timestamp > 2000) {
                 setOptimisticState(null);
-                setStatePetriMode(serverIsPetri);
+                setStateWorldType(serverType);
                 return;
             }
 
@@ -74,7 +87,7 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
 
         // No optimistic update - server is authoritative
         // On initial load or after user interaction completes, sync from server
-        setStatePetriMode(serverIsPetri);
+        setStateWorldType(serverType);
     }, [serverWorldType, optimisticState]);
 
 
@@ -88,25 +101,24 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         }
     }, []);
 
-    const setPetriMode = useCallback(async (enabled: boolean) => {
+    const setWorldType = useCallback(async (newWorldType: WorldType) => {
         // Mark that user has explicitly interacted with mode toggle
         hasUserInteractedRef.current = true;
 
         // Optimistic update
-        setStatePetriMode(enabled);
+        setStateWorldType(newWorldType);
         setOptimisticState({
-            targetMode: enabled,
+            targetWorldType: newWorldType,
             timestamp: Date.now()
         });
 
         // If connected to a specific tank, persist mode to server
         if (tankId) {
             try {
-                const targetMode = enabled ? 'petri' : 'tank';
                 await fetch(`${config.apiBaseUrl}/api/tanks/${tankId}/mode`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ world_type: targetMode })
+                    body: JSON.stringify({ world_type: newWorldType })
                 });
             } catch (error) {
                 console.error('Failed to update tank mode:', error);
@@ -116,13 +128,18 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         }
 
         // If switching to Tank mode, reset view to side (default)
-        // This prevents getting stuck in "Top Down" view which renders fish as microbes
-        if (!enabled) {
+        // This prevents getting stuck in forced top-down views
+        if (newWorldType === 'tank') {
             setOverrideViewMode(null);
         }
 
-        localStorage.setItem(PETRI_MODE_KEY, enabled ? 'true' : 'false');
+        localStorage.setItem(WORLD_TYPE_KEY, newWorldType);
     }, [tankId, setOverrideViewMode]);
+
+    // Legacy compatibility - setPetriMode wrapper
+    const setPetriMode = useCallback((enabled: boolean) => {
+        setWorldType(enabled ? 'petri' : 'tank');
+    }, [setWorldType]);
 
     const clearOverride = useCallback(() => {
         setOverrideViewMode(null);
@@ -131,16 +148,21 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
     // Effective mode prioritizes override -> server -> default ('side')
     let effectiveViewMode = overrideViewMode ?? serverViewMode ?? 'side';
 
-    // Petri mode only supports top-down view
-    if (petriMode) {
+    // Top-down only modes (petri, soccer_training, soccer) force top-down view
+    if (isTopDownOnly(worldType)) {
         effectiveViewMode = 'topdown';
     }
+
+    // Legacy compatibility - petriMode is true when worldType is 'petri'
+    const petriMode = worldType === 'petri';
 
     return {
         effectiveViewMode,
         overrideViewMode,
         setOverrideViewMode,
         clearOverride,
+        worldType,
+        setWorldType,
         petriMode,
         setPetriMode,
     };
