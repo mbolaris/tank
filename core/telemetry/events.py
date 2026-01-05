@@ -23,24 +23,6 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class EnergyBurnEvent:
-    """Energy spent, recorded by source and scope."""
-
-    source: str
-    amount: float
-    scope: str = "fish"  # "fish" or "plant"
-
-
-@dataclass(frozen=True)
-class EnergyGainEvent:
-    """Energy gained, recorded by source and scope."""
-
-    source: str
-    amount: float
-    scope: str = "fish"  # "fish" or "plant"
-
-
-@dataclass(frozen=True)
 class FoodEatenEvent:
     """Food consumption event for telemetry."""
 
@@ -75,8 +57,6 @@ class ReproductionEvent:
 
 
 TelemetryEvent = Union[
-    EnergyBurnEvent,
-    EnergyGainEvent,
     FoodEatenEvent,
     BirthEvent,
     ReproductionEvent,

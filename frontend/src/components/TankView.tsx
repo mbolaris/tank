@@ -264,41 +264,16 @@ export function TankView({ tankId }: TankViewProps) {
                         </span>
                     </div>
 
-                    {effectiveWorldType !== 'tank' && (
-                        <>
-                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{
-                                    fontSize: '10px',
-                                    fontWeight: 600,
-                                    letterSpacing: '0.05em',
-                                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                                    color: '#a78bfa',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    textTransform: 'uppercase'
-                                }}>
-                                    {effectiveWorldType}
-                                </span>
-                            </div>
-                        </>
-                    )}
-
-
                     {/* Mode/View Debug Badge */}
-                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
-                    <span style={{
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        letterSpacing: '0.05em',
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        color: '#60a5fa',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontFamily: 'var(--font-mono)',
-                    }}>
-                        Mode: {effectiveWorldType} | View: {effectiveWorldType === 'tank' ? 'side' : 'topdown'}
-                    </span>
+                    <div className={styles.divider} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <span className={`${styles.badge} ${styles.purple}`}>
+                            MODE: {(state as any)?.mode_id ?? state?.world_type ?? "tank"}
+                        </span>
+                        <span className={`${styles.badge} ${styles.blue}`}>
+                            VIEW: {effectiveViewMode}
+                        </span>
+                    </div>
 
                     <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
 

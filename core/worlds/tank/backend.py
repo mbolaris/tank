@@ -105,9 +105,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         )
 
         # Return initial state
+        snapshot = self._build_snapshot()
         self._last_step_result = StepResult(
             obs_by_agent={},  # No agent observations yet
-            snapshot=self._build_snapshot(),
+            snapshot=snapshot,
             events=[],
             metrics=self.get_current_metrics(),
             done=False,
@@ -115,7 +116,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             spawns=[],
             removals=[],
             energy_deltas=[],
-            render_hint=self._build_snapshot().get("render_hint"),
+            render_hint=snapshot.get("render_hint"),
         )
         return self._last_step_result
 
@@ -248,32 +249,29 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._world.update()
         self._current_frame = self._world.frame_count
 
+        # Drain frame outputs from engine
+        # This is the authoritative source for what happened this frame
+        frame_outputs = self.engine.drain_frame_outputs()
+
         # Feed energy deltas to ecosystem for stats tracking
-        # This connects the engine recorder (authoritative source) to the ecosystem stats
-        deltas = []
-        if hasattr(self.engine, "_frame_energy_deltas"):
-            deltas = self.engine._frame_energy_deltas
-            if getattr(self._world, "ecosystem", None) and hasattr(
-                self._world.ecosystem, "ingest_energy_deltas"
-            ):
-                self._world.ecosystem.ingest_energy_deltas(deltas)
+        if getattr(self._world, "ecosystem", None) and hasattr(
+            self._world.ecosystem, "ingest_energy_deltas"
+        ):
+            self._world.ecosystem.ingest_energy_deltas(frame_outputs.energy_deltas)
 
         # Build result
+        snapshot = self._build_snapshot()
         self._last_step_result = StepResult(
             obs_by_agent=obs_by_agent,
-            snapshot=self._build_snapshot(),
+            snapshot=snapshot,
             events=[] if fast_step else self._collect_recent_events(),
             metrics={} if fast_step else self.get_current_metrics(include_distributions=False),
             done=False,
             info={"frame": self._current_frame, "brain_mode": brain_mode},
-            spawns=self.engine._frame_spawns if hasattr(self.engine, "_frame_spawns") else [],
-            removals=self.engine._frame_removals if hasattr(self.engine, "_frame_removals") else [],
-            energy_deltas=(
-                self.engine._frame_energy_deltas
-                if hasattr(self.engine, "_frame_energy_deltas")
-                else []
-            ),
-            render_hint=self._build_snapshot().get("render_hint"),
+            spawns=frame_outputs.spawns,
+            removals=frame_outputs.removals,
+            energy_deltas=frame_outputs.energy_deltas,
+            render_hint=snapshot.get("render_hint"),
         )
         return self._last_step_result
 

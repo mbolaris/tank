@@ -27,8 +27,6 @@ from core.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
 from core.telemetry.events import (
     BirthEvent,
-    EnergyBurnEvent,
-    EnergyGainEvent,
     FoodEatenEvent,
     ReproductionEvent,
 )
@@ -119,31 +117,10 @@ class EcosystemManager:
         Note: Energy accounting now uses EnergyDeltaRecord via ingest_energy_deltas().
         EnergyGainEvent/EnergyBurnEvent handlers are no-ops to avoid double-counting.
         """
-        # Energy events: no-op handlers (accounting now via ingest_energy_deltas)
-        event_bus.subscribe(EnergyGainEvent, self._on_energy_gain_event)
-        event_bus.subscribe(EnergyBurnEvent, self._on_energy_burn_event)
         # Non-energy events still active
         event_bus.subscribe(FoodEatenEvent, self._on_food_eaten_event)
         event_bus.subscribe(BirthEvent, self._on_birth_event)
         event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
-
-    def _on_energy_gain_event(self, event: "EnergyGainEvent") -> None:
-        """Handle energy gain events (NO-OP to avoid double-counting).
-
-        Energy accounting is now done via ingest_energy_deltas() which receives
-        EnergyDeltaRecord entries from the engine. These event handlers are
-        kept for backward compatibility but do not record stats.
-        """
-        pass  # No-op: energy accounting via ingest_energy_deltas()
-
-    def _on_energy_burn_event(self, event: "EnergyBurnEvent") -> None:
-        """Handle energy burn events (NO-OP to avoid double-counting).
-
-        Energy accounting is now done via ingest_energy_deltas() which receives
-        EnergyDeltaRecord entries from the engine. These event handlers are
-        kept for backward compatibility but do not record stats.
-        """
-        pass  # No-op: energy accounting via ingest_energy_deltas()
 
     def _on_food_eaten_event(self, event: "FoodEatenEvent") -> None:
         """Handle food consumption events."""
@@ -350,11 +327,8 @@ class EcosystemManager:
         EnergyGainEvent/EnergyBurnEvent are no-ops to avoid double-counting.
         """
         # Energy events are no-ops (accounting now via ingest_energy_deltas)
-        if isinstance(event, EnergyGainEvent):
-            self._on_energy_gain_event(event)
-        elif isinstance(event, EnergyBurnEvent):
-            self._on_energy_burn_event(event)
-        elif isinstance(event, FoodEatenEvent):
+        # Energy events are no-ops (accounting now via ingest_energy_deltas)
+        if isinstance(event, FoodEatenEvent):
             self._on_food_eaten_event(event)
         elif isinstance(event, BirthEvent):
             self._on_birth_event(event)

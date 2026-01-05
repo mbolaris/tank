@@ -50,7 +50,6 @@ from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 from core.telemetry.events import (
     BirthEvent,
-    EnergyBurnEvent,
     FoodEatenEvent,
     ReproductionEvent,
 )
@@ -493,7 +492,6 @@ class Fish(Agent):
             if not request_spawn_in(self.environment, food, reason="overflow_food"):
                 logger.warning("spawn requester unavailable, overflow food lost")
 
-            self._emit_event(EnergyBurnEvent(amount=food.energy, source=BURN_REASON_OVERFLOW_FOOD))
         except Exception:
             pass  # Energy lost on failure is acceptable
 
@@ -1239,7 +1237,5 @@ class Fish(Agent):
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
                 self.energy = max(0, self.energy - energy_cost)
-
-                self._emit_event(EnergyBurnEvent("turning", energy_cost))
 
         self.last_direction = new_direction

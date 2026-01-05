@@ -68,6 +68,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+from dataclasses import dataclass
+from core.worlds.contracts import SpawnRequest, RemovalRequest, EnergyDeltaRecord
+
+
+@dataclass(frozen=True)
+class FrameOutputs:
+    spawns: list[SpawnRequest]
+    removals: list[RemovalRequest]
+    energy_deltas: list[EnergyDeltaRecord]
+
+
 class PackableEngine(Protocol):
     """Minimal interface that a SystemPack expects from the engine."""
 
@@ -223,6 +234,21 @@ class SimulationEngine:
         from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
 
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
+
+    def drain_frame_outputs(self) -> FrameOutputs:
+        """Return this frame's outputs and clear internal buffers.
+
+        This is the only supported way for backends to read per-frame spawns/removals/energy deltas.
+        """
+        outputs = FrameOutputs(
+            spawns=list(self._frame_spawns),
+            removals=list(self._frame_removals),
+            energy_deltas=list(self._frame_energy_deltas),
+        )
+        self._frame_spawns.clear()
+        self._frame_removals.clear()
+        self._frame_energy_deltas.clear()
+        return outputs
 
     # =========================================================================
     # Properties for Backward Compatibility
