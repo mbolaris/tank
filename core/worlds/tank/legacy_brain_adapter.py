@@ -15,7 +15,12 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from core.sim.contracts import Action, ActionMap, ObservationMap
+from core.brains.contracts import BrainAction, BrainActionMap, BrainObservationMap
+
+# Backward-compatibility aliases
+Action = BrainAction
+ActionMap = BrainActionMap
+ObservationMap = BrainObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish

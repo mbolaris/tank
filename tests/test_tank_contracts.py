@@ -7,7 +7,11 @@ import random
 
 import pytest
 
-from core.sim.contracts import Action, Observation, WorldTickResult
+from core.brains.contracts import BrainAction, BrainObservation, WorldTickResult
+
+# Use the canonical names in tests (backward-compat aliases still work)
+Action = BrainAction
+Observation = BrainObservation
 from core.worlds.tank import TankWorldBackendAdapter
 
 

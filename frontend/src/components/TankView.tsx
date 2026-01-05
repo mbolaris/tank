@@ -48,7 +48,7 @@ export function TankView({ tankId }: TankViewProps) {
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
 
-    const { effectiveViewMode, setOverrideViewMode, worldType, setWorldType } = useViewMode(
+    const { effectiveViewMode, setOverrideViewMode: _setOverrideViewMode, worldType, setWorldType } = useViewMode(
         state?.view_mode as any,
         state?.world_type,
         tankId || state?.tank_id

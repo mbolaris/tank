@@ -19,9 +19,6 @@ export interface UseViewModeResult {
     clearOverride: () => void;
     worldType: WorldType;
     setWorldType: (worldType: WorldType) => void;
-    // Legacy compatibility
-    petriMode: boolean;
-    setPetriMode: (enabled: boolean) => void;
 }
 
 export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string, tankId?: string): UseViewModeResult {
@@ -130,10 +127,6 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         localStorage.setItem(WORLD_TYPE_KEY, newWorldType);
     }, [tankId, setOverrideViewMode]);
 
-    // Legacy compatibility - setPetriMode wrapper
-    const setPetriMode = useCallback((enabled: boolean) => {
-        setWorldType(enabled ? 'petri' : 'tank');
-    }, [setWorldType]);
 
     const clearOverride = useCallback(() => {
         setOverrideViewMode(null);
@@ -147,9 +140,6 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         effectiveViewMode = 'topdown';
     }
 
-    // Legacy compatibility - petriMode is true when worldType is 'petri'
-    const petriMode = worldType === 'petri';
-
     return {
         effectiveViewMode,
         overrideViewMode,
@@ -157,7 +147,5 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         clearOverride,
         worldType,
         setWorldType,
-        petriMode,
-        setPetriMode,
     };
 }

@@ -1,8 +1,17 @@
-"""Action/Observation contracts for multi-agent simulation.
+"""Action/Observation contracts for external brain integration.
 
-This module defines mode-agnostic data structures for the action/observation
+This module defines data structures for the external brain/RL action-observation
 pipeline. These contracts are shared across world types (Tank, Soccer, etc.)
 and enable external brain integration.
+
+IMPORTANT DISTINCTION:
+    These "BrainObservation" and "BrainAction" contracts are for EXTERNAL BRAIN
+    integration (RL agents, neural networks, etc.). They are NOT the same as
+    genome policy observations, which use plain dicts via ObservationRegistry.
+
+    - BrainObservation/BrainAction: For external RL/brain pipelines
+    - Policy observations (dict): For genome code pool policies, built by
+      world-specific ObservationBuilders in core/policies/observation_registry.py
 
 Design Principles:
     - Minimal: Only essential fields, no deep copies of large structures
@@ -17,8 +26,8 @@ from typing import Any, Dict
 
 
 @dataclass(frozen=True)
-class Observation:
-    """Per-agent observation of world state.
+class BrainObservation:
+    """Per-agent observation of world state for external brains.
 
     This is a snapshot of what an agent can perceive. In "omniscient" mode,
     this includes full state. Future versions may add noise or FOV limits.
@@ -51,8 +60,8 @@ class Observation:
 
 
 @dataclass(frozen=True)
-class Action:
-    """Per-agent action to apply.
+class BrainAction:
+    """Per-agent action to apply from external brains.
 
     Actions represent agent decisions that modify world state. The pipeline
     applies these after brain computation and before physics.
@@ -88,5 +97,11 @@ class WorldTickResult:
 
 # Type aliases for clarity
 EntityId = str
-ObservationMap = Dict[EntityId, Observation]
-ActionMap = Dict[EntityId, Action]
+BrainObservationMap = Dict[EntityId, BrainObservation]
+BrainActionMap = Dict[EntityId, BrainAction]
+
+# Backward-compatibility aliases (deprecated, will be removed in future version)
+Observation = BrainObservation
+Action = BrainAction
+ObservationMap = BrainObservationMap
+ActionMap = BrainActionMap

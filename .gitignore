@@ -96,3 +96,8 @@ Thumbs.db
 # Experiment result files
 experiment_results.json
 improved_results.json
+
+# Generated solution artifacts (keep only curated examples)
+solutions/*.json
+solutions/*report*.txt
+!solutions/README.md

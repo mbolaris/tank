@@ -29,7 +29,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Protocol
 
-from core.sim.contracts import Action
+from core.brains.contracts import BrainAction
+
+# Backward-compatibility alias
+Action = BrainAction
 
 logger = logging.getLogger(__name__)
 

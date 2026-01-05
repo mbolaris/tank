@@ -231,7 +231,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     k: v for k, v in actions_by_agent.items() if k != FAST_STEP_ACTION
                 }
                 if external_actions:
-                    from core.sim.contracts import Action
+                    from core.brains.contracts import BrainAction as Action
 
                     action_map = {}
                     for entity_id, action_data in external_actions.items():

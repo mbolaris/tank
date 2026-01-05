@@ -380,7 +380,7 @@ class TestActionRegistry:
         """translate_action works for Tank world."""
         import core.worlds.tank.tank_actions  # noqa: F401
         from core.actions.action_registry import translate_action
-        from core.sim.contracts import Action
+        from core.brains.contracts import BrainAction as Action
 
         action = translate_action("tank", "fish_1", {"velocity": (1.0, 2.0)})
         assert isinstance(action, Action)
@@ -397,7 +397,7 @@ class TestActionRegistry:
     def test_translate_action_or_default(self) -> None:
         """translate_action_or_default falls back gracefully."""
         from core.actions.action_registry import translate_action_or_default
-        from core.sim.contracts import Action
+        from core.brains.contracts import BrainAction as Action
 
         action = translate_action_or_default("nonexistent", "agent_1", (1.0, 2.0))
         assert isinstance(action, Action)

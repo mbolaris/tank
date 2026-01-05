@@ -13,7 +13,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from core.sim.contracts import Observation, ObservationMap
+from core.brains.contracts import BrainObservation, BrainObservationMap
+
+# Backward-compatibility aliases
+Observation = BrainObservation
+ObservationMap = BrainObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish

@@ -10,7 +10,10 @@ from __future__ import annotations
 from typing import Any
 
 from core.actions.action_registry import ActionSpace
-from core.sim.contracts import Action
+from core.brains.contracts import BrainAction
+
+# Backward-compatibility alias
+Action = BrainAction
 
 
 class FishActionTranslator:

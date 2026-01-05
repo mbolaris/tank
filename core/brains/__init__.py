@@ -1,12 +1,10 @@
-"""Core simulation contracts and data structures.
+"""Brain integration contracts and adapters.
 
-This package contains mode-agnostic interfaces for multi-agent simulations.
-
-NOTE: The canonical location for these contracts is now core.brains.contracts.
-This module re-exports them for backward compatibility.
+This package contains contracts for external brain/RL integration pipelines.
+The contracts here (BrainObservation, BrainAction) are distinct from genome
+policy observations which use plain dicts via ObservationRegistry.
 """
 
-# Re-export from new canonical location
 from core.brains.contracts import (
     BrainAction,
     BrainActionMap,

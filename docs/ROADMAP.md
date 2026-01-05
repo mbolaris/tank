@@ -30,12 +30,14 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 
 | Area | Status |
 |------|--------|
-| **Backend abstractions** | `WorldBackend`, `SystemPack`, world registry exist |
-| **Snapshot builders** | Per-world snapshot builders implemented |
-| **Observation registry** | Exists; tank-specific observation builders in tank world code |
-| **Mutation queue** | Exists; spawn/remove trending centralized |
+| **Backend abstractions** | ✅ `WorldBackend`, `SystemPack`, world registry exist |
+| **Snapshot builders** | ✅ Per-world snapshot builders implemented |
+| **Observation registry** | ✅ Exists; tank-specific observation builders in tank world code |
+| **Action registry** | ✅ ActionRegistry with world-specific translators |
+| **Mutation queue** | ✅ Exists; spawn/remove centralized via engine |
 | **RCSS integration** | Protocol + adapter + tests exist (no full end-to-end world loop yet) |
-| **Petri mode** | Exists but needs first-class frontend rendering and mode-aware UI |
+| **Petri mode** | ✅ First-class frontend rendering + mode-aware UI + circular dish |
+| **Brain contracts** | ✅ `BrainObservation`/`BrainAction` in `core/brains/contracts.py` |
 
 ---
 
@@ -43,18 +45,19 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 
 *Keep Tank stable while refactoring.*
 
-### 1. Mode-Aware UI Plumbing (Highest Leverage)
+### 1. Mode-Aware UI Plumbing ✅
 
-- [ ] Fix frontend WS handler to preserve `mode_id` + `view_mode`
-- [ ] Renderer selection uses these fields consistently
-- [ ] Add tiny mode/view badge for debugging
-- [ ] Add regression test for mode preservation
+- [x] Frontend WS handler preserves `mode_id` + `view_mode`
+- [x] Renderer selection uses `render_hint.style` consistently
+- [x] Mode/view badge for debugging added
+- [x] Regression tests for mode preservation
 
-### 2. Make Petri Mode Visually Real
+### 2. Petri Mode Visually Real ✅
 
-- [ ] Dedicated `PetriTopDownRenderer` driven by `render_hint`
-- [ ] No tank hacks in Petri renderer
-- [ ] Minimal UI hint showing current mode
+- [x] Dedicated `PetriTopDownRenderer` driven by `render_hint`
+- [x] No tank hacks in Petri renderer
+- [x] Circular dish with perimeter-based root spots
+- [x] Minimal UI hint showing current mode
 
 ### 3. Tank Uses Genome Code Pool (Movement First)
 
@@ -90,11 +93,12 @@ Unified the two runtime stacks (`WorldRunner` + `SimulationRunner/TankWorldAdapt
 - World-specific capabilities are components, not subclasses/forks
 - Strict boundaries: domain logic emits events; ledger/telemetry consumes events
 
-### Standardize Action + Observation Contracts
+### Standardize Action + Observation Contracts ✅
 
-- Registry-based observation builders (already started)
-- Mirror for action translation (ActionRegistry)
-- "Same genome policy" works across Tank/Petri/Soccer with adapters
+- [x] Registry-based observation builders (`ObservationRegistry`)
+- [x] Registry-based action translation (`ActionRegistry`)
+- [x] Clear distinction: `BrainObservation`/`BrainAction` (RL pipelines) vs policy dicts (genome code)
+- [x] "Same genome policy" works across Tank/Petri/Soccer with adapters
 
 
 ---
