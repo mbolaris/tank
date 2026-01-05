@@ -46,6 +46,9 @@ class PetriEnvironment(Environment):
         Returns:
             True if collision was resolved (or agent is safe), False to fallback
         """
+        if self.dish is None:
+            return False
+
         if not hasattr(agent, "vel"):
             return False
 

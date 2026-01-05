@@ -1,0 +1,114 @@
+"""Runner protocol for unified world execution interface.
+
+This module defines the RunnerProtocol that both WorldRunner and SimulationRunner
+satisfy. This enables backend systems (broadcast, WorldManager) to work with
+any runner type through a single interface without unions or special casing.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from backend.state_payloads import EntitySnapshot
+
+
+@runtime_checkable
+class RunnerProtocol(Protocol):
+    """Protocol for world runners (WorldRunner, SimulationRunner).
+
+    This protocol defines the interface that broadcast/state building code
+    needs from any runner. Both WorldRunner and SimulationRunner satisfy
+    this protocol, enabling unified handling without type unions.
+
+    Properties:
+        world_id: Unique identifier for this world instance
+        world_type: Type of world (tank, petri, soccer, etc.)
+        mode_id: Mode identifier for UI display
+        view_mode: Default view mode (side, topdown)
+        frame_count: Current simulation frame
+        paused: Whether simulation is paused (readable and writable)
+    """
+
+    @property
+    def world_id(self) -> str:
+        """Unique identifier for this world instance."""
+        ...
+
+    @property
+    def world_type(self) -> str:
+        """Type of world (tank, petri, soccer, etc.)."""
+        ...
+
+    @property
+    def mode_id(self) -> str:
+        """Mode identifier for UI display."""
+        ...
+
+    @property
+    def view_mode(self) -> str:
+        """Default view mode (side, topdown)."""
+        ...
+
+    @property
+    def frame_count(self) -> int:
+        """Current simulation frame number."""
+        ...
+
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused."""
+        ...
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set the simulation paused state."""
+        ...
+
+    def get_entities_snapshot(self) -> list[EntitySnapshot]:
+        """Get entity snapshots for frontend rendering.
+
+        Returns:
+            List of EntitySnapshot DTOs for all entities
+        """
+        ...
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get current simulation statistics.
+
+        Returns:
+            Dictionary of simulation statistics
+        """
+        ...
+
+    def get_world_info(self) -> dict[str, str]:
+        """Get world metadata for frontend.
+
+        Returns:
+            Dictionary with mode_id, world_type, and view_mode
+        """
+        ...
+
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
+        """Advance the simulation by one step.
+
+        Args:
+            actions_by_agent: Optional agent actions for this step
+        """
+        ...
+
+    def reset(
+        self,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> Any:
+        """Reset the world to initial state.
+
+        Args:
+            seed: Random seed for deterministic initialization
+            config: World-specific configuration
+
+        Returns:
+            Reset result (typically StepResult or None)
+        """
+        ...

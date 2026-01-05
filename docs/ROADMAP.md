@@ -75,6 +75,15 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 
 *Architectural improvements for long-term maintainability.*
 
+### One Runner Contract ✅
+
+Unified the two runtime stacks (`WorldRunner` + `SimulationRunner/TankWorldAdapter`) into a single `RunnerProtocol`:
+
+- `RunnerProtocol` defines the interface all runners must satisfy
+- `SimulationRunner` exposes public methods (`get_entities_snapshot`, `get_stats`, etc.)
+- `TankWorldAdapter` no longer reaches into private `_collect_*` methods
+- Eliminated dead code (`_create_plant_player_data`, `_get_fish_genome_data`)
+
 ### Componentize the Agent
 
 - Replace the Fish god-object with a compositional root + components/hooks
@@ -86,6 +95,7 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 - Registry-based observation builders (already started)
 - Mirror for action translation (ActionRegistry)
 - "Same genome policy" works across Tank/Petri/Soccer with adapters
+
 
 ---
 

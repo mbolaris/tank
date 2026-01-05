@@ -179,27 +179,8 @@ class TankWorldAdapter:
             - fps, frame
             - poker_stats
         """
-        runner = self._manager.runner
-        frame = self._manager.world.frame_count
-        stats_payload = runner._collect_stats(frame, include_distributions=False)
-
-        # Convert StatsPayload to dict
-        return {
-            "fish_count": stats_payload.fish_count,
-            "plant_count": stats_payload.plant_count,
-            "food_count": stats_payload.food_count,
-            "total_energy": stats_payload.total_energy,
-            "fish_energy": stats_payload.fish_energy,
-            "plant_energy": stats_payload.plant_energy,
-            "generation": stats_payload.generation,
-            "max_generation": stats_payload.max_generation,
-            "fps": stats_payload.fps,
-            "frame": stats_payload.frame,
-            "fast_forward": stats_payload.fast_forward,
-            "poker_score": stats_payload.poker_score,
-            "poker_elo": stats_payload.poker_elo,
-            "poker_elo_history": stats_payload.poker_elo_history,
-        }
+        # Use public API instead of reaching into private methods
+        return self._manager.runner.get_stats()
 
     def get_entities_snapshot(self) -> list[EntitySnapshot]:
         """Get entity snapshots for rendering.
@@ -207,7 +188,8 @@ class TankWorldAdapter:
         Returns:
             List of EntitySnapshot DTOs for all entities
         """
-        return self._manager.runner._collect_entities()
+        # Use public API instead of reaching into private methods
+        return self._manager.runner.get_entities_snapshot()
 
     def get_world_info(self) -> dict[str, str]:
         """Get world metadata for frontend.

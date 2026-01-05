@@ -296,12 +296,91 @@ class SimulationRunner(CommandHandlerMixin):
         # Clamp all entities inside the dish
         self._clamp_entities_to_dish(dish)
 
+        # Swap RootSpotManager to CircularRootSpotManager
+        if self.engine.plant_manager:
+            from core.worlds.petri.root_spots import CircularRootSpotManager
+
+            # Create new manager
+            new_manager = CircularRootSpotManager(dish, rng=self.engine.rng)
+            self.engine.plant_manager.root_spot_manager = new_manager
+            logger.info("Swapped to CircularRootSpotManager")
+
+            # Relocate existing plants to new perimeter spots
+            self._relocate_plants_to_spots(new_manager)
+
     def _remove_petri_physics(self) -> None:
         """Remove circular dish physics when switching back to tank mode."""
         env = self.engine.environment
         if env is not None:
             env.dish = None
             logger.info("Petri physics removed: rectangular bounds restored")
+
+        # Swap RootSpotManager back to standard (rectangular)
+        if self.engine.plant_manager:
+            from core.root_spots import RootSpotManager
+
+            # Create new manager
+            # Use screen dimensions from environment or defaults
+            width = 800
+            height = 600
+            if self.engine.environment:
+                width = self.engine.environment.width
+                height = self.engine.environment.height
+
+            new_manager = RootSpotManager(
+                width,
+                height,
+                rng=self.engine.rng,
+            )
+            self.engine.plant_manager.root_spot_manager = new_manager
+            logger.info("Swapped to standard RootSpotManager")
+
+            # Relocate existing plants to new grid spots
+            self._relocate_plants_to_spots(new_manager)
+
+    def _relocate_plants_to_spots(self, manager: "RootSpotManager") -> None:
+        """Relocate all existing plants to valid spots in the new manager.
+
+        Args:
+            manager: The new RootSpotManager instance
+        """
+        from core.entities.plant import Plant
+        from core.math_utils import Vector2
+
+        # Get all plants
+        if self.engine.environment and self.engine.environment.agents:
+            plants = [e for e in self.engine.environment.agents if isinstance(e, Plant)]
+        else:
+            plants = []
+        if not plants:
+            return
+
+        # Clear old spots
+        for plant in plants:
+            if plant.root_spot:
+                # Clear occupant reference on the old spot to be safe,
+                # though the old manager is being discarded.
+                plant.root_spot.occupant = None
+                plant.root_spot = None
+
+        # Assign new spots
+        count = 0
+        for plant in plants:
+            spot = manager.get_random_empty_spot()
+            if spot:
+                plant.root_spot = spot
+                spot.claim(plant)
+                # Physically move plant to the spot
+                plant.pos = Vector2(spot.x, spot.y)
+                plant.rect.x = spot.x
+                plant.rect.y = spot.y
+                count += 1
+            else:
+                # No spots left (e.g. shrinking population cap)
+                # Leave unrooted - reconcile_plants will likely cull it
+                pass
+
+        logger.info("Relocated %d/%d plants to new root spots", count, len(plants))
 
     def _clamp_entities_to_dish(self, dish: "PetriDish") -> None:
         """Reposition all agents to be inside the circular dish.
@@ -419,8 +498,72 @@ class SimulationRunner(CommandHandlerMixin):
     @property
     def engine(self):
         """Expose the underlying simulation engine for compatibility/testing."""
-
         return self.world.engine
+
+    @property
+    def world_id(self) -> str:
+        """World ID (alias for tank_id for RunnerProtocol conformance)."""
+        return self.tank_id
+
+    @property
+    def frame_count(self) -> int:
+        """Current frame count from the simulation."""
+        return self.world.frame_count
+
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused."""
+        return self.world.paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set the simulation paused state."""
+        self.world.paused = value
+
+    def get_entities_snapshot(self) -> List[EntitySnapshot]:
+        """Get entity snapshots for rendering (public API for RunnerProtocol).
+
+        Returns:
+            List of EntitySnapshot DTOs for all entities
+        """
+        return self._collect_entities()
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get current simulation statistics (public API for RunnerProtocol).
+
+        Returns:
+            Dictionary of simulation statistics
+        """
+        frame = self.world.frame_count
+        stats_payload = self._collect_stats(frame, include_distributions=False)
+        return {
+            "fish_count": stats_payload.fish_count,
+            "plant_count": stats_payload.plant_count,
+            "food_count": stats_payload.food_count,
+            "total_energy": stats_payload.total_energy,
+            "fish_energy": stats_payload.fish_energy,
+            "plant_energy": stats_payload.plant_energy,
+            "generation": stats_payload.generation,
+            "max_generation": stats_payload.max_generation,
+            "fps": stats_payload.fps,
+            "frame": stats_payload.frame,
+            "fast_forward": stats_payload.fast_forward,
+            "poker_score": stats_payload.poker_score,
+            "poker_elo": stats_payload.poker_elo,
+            "poker_elo_history": stats_payload.poker_elo_history,
+        }
+
+    def get_world_info(self) -> Dict[str, str]:
+        """Get world metadata for frontend (public API for RunnerProtocol).
+
+        Returns:
+            Dictionary with mode_id, world_type, and view_mode
+        """
+        return {
+            "mode_id": self.mode_id,
+            "world_type": self.world_type,
+            "view_mode": self.view_mode,
+        }
 
     def _create_fish_player_data(
         self, fish: Fish, include_aggression: bool = False
@@ -437,18 +580,6 @@ class SimulationRunner(CommandHandlerMixin):
         from core.serializers import FishSerializer
 
         return FishSerializer.to_player_data(fish, include_aggression)
-
-    def _create_plant_player_data(self, plant: Plant) -> Dict[str, Any]:
-        """Create benchmark player metadata for a plant."""
-        from core.serializers import PlantSerializer
-
-        return PlantSerializer.to_player_data(plant)
-
-    def _get_fish_genome_data(self, fish: Fish) -> Optional[Dict[str, Any]]:
-        """Extract visual genome data for a fish to mirror tank rendering."""
-        from core.serializers import FishSerializer
-
-        return FishSerializer.to_genome_data(fish)
 
     def start(self, start_paused: bool = False):
         """Start the simulation in a background thread.
