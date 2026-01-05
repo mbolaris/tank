@@ -10,42 +10,150 @@ The fish tank visualization is just the beginning. It makes the research **enter
 
 ---
 
-## The Core Idea: Two-Layer Evolution
+## The Core Idea: Three-Layer Evolution
 
-### Layer 1: Population Evolution (Inside the Tank)
+Tank World is not just "a sim with evolution"—it's an **evolution engine whose own development process is part of the evolutionary loop**. Git becomes the heredity mechanism.
+
+### Layer 0: In-World Evolution (Inside Simulations)
 
 Traditional evolutionary computation. Fish compete for survival using behavior algorithms:
 - 58 parametrizable behavior strategies across 6 categories
 - Natural selection optimizes algorithm parameters over generations
 - Better strategies = more reproduction and survival
+- **Output**: Champion genomes + performance telemetry
 
-### Layer 2: Algorithmic Evolution (Outside the Tank)
+### Layer 1: Experiment Automation (Evolving the Search)
 
-After simulation runs complete, an AI agent (like Claude) analyzes performance data and improves the algorithms themselves:
-- Identify underperforming behaviors and why they fail
-- Generate improved algorithm code
-- Create new behavior strategies
-- Remove ineffective approaches
+AI agents run benchmarks, discover improvements, and propose changes via PRs:
+- Run deterministic benchmarks with fixed seeds
+- Compare results against Best Known Solutions (BKS) registry
+- Open PRs with improved algorithms + reproducible artifacts
+- CI validates improvements before merge
+- **Output**: Better algorithms, evaluators, mutation operators
 
-**The loop**: Evolve Population → Collect Data → AI Improves Code → Evolve Again
+### Layer 2: Meta-Evolution (Evolving the Toolkit)
 
-This is what makes Tank World different: the rules of evolution themselves evolve.
+AI agents improve the instructions, benchmarks, and workflows used by Layer 1:
+- Evolve benchmark design (better fitness functions)
+- Evolve agent instructions (better evolution workflows)
+- Evolve CI gates (stronger validation)
+- **Output**: Better "how we evolve" playbooks
+
+**The loop**: Run Benchmarks → Compare vs BKS → Open PR → CI Validates → Merge → Future Agents Inherit
+
+This is what makes Tank World different: **Git is the heredity mechanism. PRs are mutations, CI is selection, merged changes are offspring.**
+
+---
+
+## What Evolves Here?
+
+Tank World evolves three things simultaneously:
+
+1. **In-world policies** - Fish behavior algorithms and their parameters
+2. **The evaluation harness** - Benchmarks, fitness functions, curriculum design
+3. **The development toolkit** - Agent instructions, workflows, and CI gates
+
+Evolution happens through **evolutionary PRs** where improvements are validated against the Best Known Solutions (BKS) registry before merge.
+
+## Best Known Solutions (BKS) Registry
+
+Tank World maintains a **formal registry of best-known solutions** for reproducible benchmarks:
+
+### Structure
+
+```
+tank/
+├── benchmarks/              # Evaluation harnesses
+│   ├── tank/                # Tank world benchmarks
+│   │   ├── survival_30k.py  # 30k frame survival benchmark
+│   │   ├── reproduction_30k.py
+│   │   └── diversity_30k.py
+│   └── registry.json        # Index of all benchmarks
+├── champions/               # Best-known solutions
+│   ├── tank/
+│   │   ├── survival_30k.json   # Current champion for survival
+│   │   ├── reproduction_30k.json
+│   │   └── diversity_30k.json
+│   └── registry.json        # Index of all champions
+└── tools/
+    └── run_bench.py         # Standard benchmark runner
+```
+
+### Champion Registry Format
+
+Each champion file contains:
+- **Score**: The fitness achieved (higher is better)
+- **Algorithm**: The winning algorithm name and parameters
+- **Genome**: Complete genome data for reproduction
+- **Commit**: Git commit hash where this was achieved
+- **Seed**: Deterministic seed for reproduction
+- **Reproduction command**: Exact command to reproduce the result
+
+### Why BKS Matters
+
+- **Formal selection pressure**: No "this seems better"—only reproducible benchmark wins
+- **Auditable lineage**: Git history shows evolutionary progression
+- **Reproducible science**: Anyone can re-run and verify claims
+- **Future inheritance**: Each champion becomes the baseline for future improvements
+
+## Evolutionary PR Protocol
+
+When you discover an improvement (human or AI agent):
+
+### Requirements
+
+**Must include:**
+- ✅ Benchmark results showing improvement over current BKS
+- ✅ Updated champion registry entry if claiming a new record
+- ✅ Reproduction command that works with deterministic seeds
+- ✅ Clear explanation of what changed and why it's better
+
+**Must pass:**
+- ✅ CI re-runs the benchmark and confirms the score
+- ✅ No regressions on other benchmarks
+- ✅ Code review (human-in-the-loop for Layer 2 changes)
+
+**If merged:**
+- The new champion becomes the baseline for future PRs
+- Future agents inherit this improvement
+- Git history shows the evolutionary lineage
+
+### Example Workflow
+
+```bash
+# 1. Run benchmark
+python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+
+# 2. Compare against current BKS
+python tools/validate_improvement.py results.json champions/tank/survival_30k.json
+
+# 3. If better, update champion and open PR
+git checkout -b improve/survival-energy-conserver
+# ... update champions/tank/survival_30k.json
+git commit -m "Improve survival benchmark: EnergyConserver optimization"
+git push -u origin improve/survival-energy-conserver
+
+# 4. CI validates and merges if confirmed
+```
+
+See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for complete protocol details.
 
 ---
 
 ## Long-Term Goals
 
-Tank World aims to be the **infrastructure for automated Alife research**:
+Tank World aims to be **self-sustaining research infrastructure** where the development process itself is part of the evolutionary loop:
 
-1. **Closed-loop research**: Fully automated improvement cycles running 24/7 without human intervention
-2. **Legitimate research platform**: Alife research with measurable results and publishable findings
-3. **Distributed compute network**: Users contribute compute by running entertaining simulations on their devices
-4. **Evolving visualization**: AI evolves not just behaviors but the visual representation itself—optimizing for engagement
-5. **Self-improving framework**: The system discovers what questions to ask, proposes experiments, and expands its own capabilities
+1. **Evolution Loop MVP** (Current): Establish BKS registry + evolutionary PR protocol + CI validation
+2. **Closed-loop research**: Fully automated improvement cycles running 24/7 with human code review
+3. **Meta-evolution**: AI improves its own instructions, benchmarks, and workflows (Layer 2)
+4. **Legitimate research platform**: ALife research with measurable results and publishable findings
+5. **Distributed compute network**: Users contribute compute by running entertaining simulations
+6. **Evolving visualization**: AI evolves not just behaviors but how research is presented
 
-The ultimate vision: a research framework that conducts Alife experiments autonomously, learns from results, improves its own algorithms, and scales across a distributed network—all while being genuinely entertaining to watch.
+The ultimate vision: a research framework where **Git is the heredity mechanism**—running experiments produces improvements that get committed back to the repository, creating a continuous evolutionary loop at multiple levels (in-world, algorithms, and the evolution toolkit itself).
 
-**Current status**: Phase 1 (Foundation) complete. Layer 2 evolution proven but not yet fully automated.
+**Current status**: Phase 0 (Foundation) complete. Phase 1 (Evolution Loop MVP) in progress. See [docs/VISION.md](docs/VISION.md) and [docs/ROADMAP.md](docs/ROADMAP.md) for details.
 
 ---
 
