@@ -31,6 +31,19 @@ class TestRootSpots(unittest.TestCase):
         self.assertEqual(x, 90)
         self.assertEqual(y, 80)
 
+    def test_root_spot_anchor_radial_inward(self):
+        spot = RootSpot(spot_id=0, x=100, y=100)
+        spot.anchor_mode = "radial_inward"
+        spot.angle = 0.0  # Pointing right
+
+        # Plant 20x40
+        x, y = spot.get_anchor_topleft(20, 40)
+
+        # Should be centered on spot (100, 100)
+        # Top-left should be (100 - 10, 100 - 20) = (90, 80)
+        self.assertEqual(x, 90)
+        self.assertEqual(y, 80)
+
     def test_circular_manager_initialization(self):
         dish = PetriDish(cx=400.0, cy=300.0, r=290.0)
         manager = CircularRootSpotManager(dish=dish)

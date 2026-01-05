@@ -83,13 +83,9 @@ class RootSpot:
                 # If we don't know angle, default to center anchor
                 return (self.x - width / 2, self.y - height / 2)
 
-            # Radius of the plant (approximated)
-            radius = max(width, height) / 2
-
-            # Center position of the plant
-            # Spot is at the edge. We shift inward by radius.
-            cx = self.x + nx * radius
-            cy = self.y + ny * radius
+            # Spot is at the edge. We want to be centered exactly on the perimeter.
+            cx = self.x
+            cy = self.y
 
             # Return topleft of the bounding box
             return (cx - width / 2, cy - height / 2)

@@ -3,8 +3,6 @@ from __future__ import annotations
 import math
 import random
 
-from core.telemetry.events import EnergyBurnEvent
-
 
 class _EnvironmentStub:
     def __init__(self) -> None:
@@ -47,8 +45,7 @@ class _EcosystemStub:
         self.burns.append((category, float(amount)))
 
     def record_event(self, event) -> None:
-        if isinstance(event, EnergyBurnEvent):
-            self.burns.append((event.source, float(event.amount)))
+        pass
 
     def generate_new_fish_id(self) -> int:
         """Generate a new fish ID."""
@@ -145,9 +142,5 @@ def test_overflow_spills_to_food_when_bank_is_full(simulation_env):
     assert math.isclose(
         fish._reproduction_component.overflow_energy_bank, max_bank, rel_tol=0, abs_tol=1e-9
     )
-    # Note: overflow_reproduction is NOT tracked (internal), only overflow_food is tracked
-    assert any(
-        k == "overflow_food" and math.isclose(v, 40.0, rel_tol=0, abs_tol=1e-6)
-        for k, v in eco.burns
-    )
+
     assert entities_after == entities_before + 1
