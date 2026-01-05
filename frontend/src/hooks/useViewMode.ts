@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { ViewMode } from '../rendering/types';
 import type { WorldType } from '../types/world';
 import { isTopDownOnly } from '../types/world';
@@ -55,9 +55,6 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         timestamp: number;
     } | null>(null);
 
-    // Track if user has ever explicitly set mode this session (vs just loading)
-    const hasUserInteractedRef = useRef(false);
-
     // Sync local world type with server state
     // Server is authoritative - we only show optimistic updates during explicit user toggles
     useEffect(() => {
@@ -102,9 +99,6 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
     }, []);
 
     const setWorldType = useCallback(async (newWorldType: WorldType) => {
-        // Mark that user has explicitly interacted with mode toggle
-        hasUserInteractedRef.current = true;
-
         // Optimistic update
         setStateWorldType(newWorldType);
         setOptimisticState({

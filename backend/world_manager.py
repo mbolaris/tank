@@ -16,8 +16,9 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
+from backend.runner.runner_protocol import RunnerProtocol
 from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
 from backend.world_runner import WorldRunner
 
@@ -30,9 +31,6 @@ logger = logging.getLogger(__name__)
 
 # Type alias for broadcast callbacks
 BroadcastCallback = Callable[..., Coroutine[Any, Any, Any]]
-
-# Union type for all runner types (WorldRunner or TankWorldAdapter)
-AnyRunner = Union["WorldRunner", "TankWorldAdapter"]
 
 
 @dataclass
@@ -48,7 +46,7 @@ class WorldInstance:
     world_type: str
     mode_id: str
     name: str
-    runner: AnyRunner
+    runner: RunnerProtocol  # All runners (WorldRunner, TankWorldAdapter) satisfy this protocol
     created_at: datetime = field(default_factory=datetime.now)
     persistent: bool = True
     view_mode: str = "side"

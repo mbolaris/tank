@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState
 
+from backend.runner.runner_protocol import RunnerProtocol
 from backend.snapshots.world_snapshot import WorldSnapshot, WorldUpdatePayload
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 if TYPE_CHECKING:
-    from backend.tank_world_adapter import TankWorldAdapter
-    from backend.world_runner import WorldRunner
+    pass  # RunnerProtocol is imported directly above
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class WorldSnapshotAdapter:
     def __init__(
         self,
         world_id: str,
-        runner: WorldRunner | TankWorldAdapter,
+        runner: RunnerProtocol,
         *,
         world_type: str,
         mode_id: str,
@@ -117,36 +117,48 @@ class WorldSnapshotAdapter:
             view_mode=self.view_mode,
         )
 
-    def get_state(self, force_full: bool = False, allow_delta: bool = True) -> WorldUpdatePayload:
-        _ = force_full
-        _ = allow_delta
+    def get_state(self, force_full: bool = False, allow_delta: bool = True) -> Any:
+        """Get current state for broadcast.
+
+        For tank worlds (use_runner_state=True), we return the runner's state
+        directly to preserve rich snapshot data (stats, events, delta compression).
+        For other worlds, we build a minimal WorldUpdatePayload.
+
+        Args:
+            force_full: Force a full snapshot (no delta)
+            allow_delta: Allow delta compression if supported
+
+        Returns:
+            State payload - either runner's native payload or WorldUpdatePayload
+        """
         with self._state_lock:
             if self._use_runner_state and hasattr(self._runner, "get_state"):
-                state = self._runner.get_state(force_full=True, allow_delta=False)
-                entities = getattr(state, "entities", [])
-                frame = getattr(state, "frame", 0)
-                snapshot = WorldSnapshot(
-                    world_id=self.world_id,
-                    world_type=self.world_type,
-                    frame=frame,
-                    entities=entities,
-                )
-                return WorldUpdatePayload(
-                    snapshot=snapshot,
-                    mode_id=self.mode_id,
-                    view_mode=self.view_mode,
-                )
+                # CRITICAL: Pass through actual params - don't discard delta capability!
+                # Tank worlds support rich state with stats/events/delta compression.
+                return self._runner.get_state(force_full=force_full, allow_delta=allow_delta)
             self._step_world()
             return self._build_snapshot()
 
-    async def get_state_async(
-        self, force_full: bool = False, allow_delta: bool = True
-    ) -> WorldUpdatePayload:
+    async def get_state_async(self, force_full: bool = False, allow_delta: bool = True) -> Any:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.get_state, force_full, allow_delta)
 
-    def serialize_state(self, state: WorldUpdatePayload) -> bytes:
-        return state.to_json().encode("utf-8")
+    def serialize_state(self, state: Any) -> bytes:
+        """Serialize state payload to bytes for WebSocket transmission.
+
+        Handles both WorldUpdatePayload (for non-tank worlds) and tank state
+        payloads that have their own to_json() method.
+        """
+        # Duck-type: if payload has to_json(), use it
+        if hasattr(state, "to_json"):
+            result = state.to_json()
+            if isinstance(result, bytes):
+                return result
+            return result.encode("utf-8")
+        # Fallback for dict-like payloads
+        import json
+
+        return json.dumps(state, separators=(",", ":")).encode("utf-8")
 
     async def handle_command_async(
         self, command: str, data: dict[str, Any] | None = None

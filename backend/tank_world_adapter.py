@@ -47,7 +47,6 @@ class TankWorldAdapter:
             manager: The SimulationManager to wrap
         """
         self._manager = manager
-        self._manager = manager
 
     @property
     def world_type(self) -> str:
