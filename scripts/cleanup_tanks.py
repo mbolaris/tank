@@ -2,12 +2,11 @@ import logging
 import shutil
 import warnings
 from pathlib import Path
-from typing import Dict, Any
 
 # Suppress DeprecationWarnings from simplejson/json interaction if any
 warnings.simplefilter("ignore", DeprecationWarning)
 
-from backend.tank_persistence import list_tank_snapshots, load_tank_state, DATA_DIR
+from backend.tank_persistence import DATA_DIR, list_tank_snapshots
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

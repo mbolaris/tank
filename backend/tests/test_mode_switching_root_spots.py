@@ -1,12 +1,10 @@
-import pytest
-from unittest.mock import MagicMock
-from core.simulation.engine import SimulationEngine
+import math
+
 from backend.simulation_manager import SimulationManager
 from core.entities.plant import Plant
-from core.worlds.petri.root_spots import CircularRootSpotManager
-from core.root_spots import RootSpotManager
 from core.math_utils import Vector2
-import math
+from core.root_spots import RootSpotManager
+from core.worlds.petri.root_spots import CircularRootSpotManager
 
 
 class TestModeSwitchingRootSpots:

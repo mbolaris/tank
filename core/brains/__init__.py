@@ -6,17 +6,17 @@ policy observations which use plain dicts via ObservationRegistry.
 """
 
 from core.brains.contracts import (
+    # Backward-compatibility aliases
+    Action,
+    ActionMap,
     BrainAction,
     BrainActionMap,
     BrainObservation,
     BrainObservationMap,
     EntityId,
-    WorldTickResult,
-    # Backward-compatibility aliases
-    Action,
-    ActionMap,
     Observation,
     ObservationMap,
+    WorldTickResult,
 )
 
 __all__ = [

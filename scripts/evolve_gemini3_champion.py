@@ -160,7 +160,7 @@ def run_and_capture(seed: int, max_frames: int = 200000):
 
     best_fish, best_info = scored_fish[0]
     logger.info(f"✓ SELECTED: Fish #{best_fish.fish_id}")
-    logger.info(f"  Target: >50% WR vs Champion, >0.10 positional balance")
+    logger.info("  Target: >50% WR vs Champion, >0.10 positional balance")
     logger.info(f"  Achieved: {best_info['positional_balance']:.3f} positional balance")
 
     # Capture solution

@@ -344,7 +344,6 @@ class SimulationRunner(CommandHandlerMixin):
         Args:
             manager: The new RootSpotManager instance
         """
-        from core.entities.plant import Plant
         from core.math_utils import Vector2
 
         # Get all plants
