@@ -229,7 +229,7 @@ class StartupManager:
                             name=snapshot.get("tank_name", snapshot.get("name", "Restored World")),
                             description=snapshot.get("description", "Restored from snapshot"),
                             persistent=True,
-                            start_paused=False,
+                            start_paused=True,  # Start paused to allow clean restoration before loop runs
                             world_id=world_id,  # Preserve the original world ID
                         )
                         if instance:

@@ -85,12 +85,15 @@ def save_snapshot_data(world_id: str, snapshot: Dict[str, Any]) -> Optional[str]
         return None
 
 
-def save_world_state(world_id: str, runner: "SimulationRunner") -> Optional[str]:
+def save_world_state(
+    world_id: str, runner: "SimulationRunner", metadata: Optional[Dict[str, Any]] = None
+) -> Optional[str]:
     """Save complete world state to disk.
 
     Args:
         world_id: The world identifier
         runner: SimulationRunner instance
+        metadata: Optional metadata to merge into snapshot (name, description, etc.)
 
     Returns:
         Filepath of saved snapshot, or None if save failed
@@ -103,6 +106,9 @@ def save_world_state(world_id: str, runner: "SimulationRunner") -> Optional[str]
         if hasattr(world, "capture_state_for_save"):
             snapshot = world.capture_state_for_save()
             if snapshot:
+                # Merge provided metadata
+                if metadata:
+                    snapshot.update(metadata)
                 return save_snapshot_data(world_id, snapshot)
 
         logger.warning(f"World {world_id[:8]} does not support state capture")
@@ -239,7 +245,25 @@ def restore_world_from_snapshot(
             )
             nectar.energy = nectar_data.get("energy", 5)
             engine.add_entity(nectar)
+
             restored_count += 1
+
+        # Pass 3: Restore castles
+        # Iterate again to find castles (or could initiate in pass 1, but order matters little for castle)
+        for entity_data in snapshot.get("entities", []):
+            if entity_data.get("type") == "castle":
+                from core.entities.base import Castle
+
+                x = entity_data.get("x", 375)
+                y = entity_data.get("y", 475)
+
+                castle = Castle(environment=engine.environment, x=x, y=y)
+                # Apply size if stored
+                if "width" in entity_data and "height" in entity_data:
+                    castle.set_size(entity_data["width"], entity_data["height"])
+
+                engine.add_entity(castle)
+                restored_count += 1
 
         # Restore paused state
         if "paused" in snapshot and hasattr(target_world, "paused"):

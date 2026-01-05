@@ -121,7 +121,12 @@ class AutoSaveService:
 
                 # Save the world state
                 try:
-                    result = save_world_state(world_id, instance.runner)
+                    metadata = {
+                        "name": instance.name,
+                        "description": instance.description,
+                        "world_type": instance.world_type,
+                    }
+                    result = save_world_state(world_id, instance.runner, metadata=metadata)
                     if result:
                         # Cleanup old snapshots to prevent disk bloat
                         cleanup_old_snapshots(world_id, max_snapshots=10)
@@ -158,7 +163,12 @@ class AutoSaveService:
             return None
 
         try:
-            result = save_world_state(world_id, instance.runner)
+            metadata = {
+                "name": instance.name,
+                "description": instance.description,
+                "world_type": instance.world_type,
+            }
+            result = save_world_state(world_id, instance.runner, metadata=metadata)
             if result:
                 logger.info(f"Manual save completed for world {world_id[:8]}")
             return result
