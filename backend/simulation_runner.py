@@ -7,7 +7,10 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
+if TYPE_CHECKING:
+    from core.worlds.petri.dish import PetriDish
 
 import orjson
 
@@ -248,12 +251,98 @@ class SimulationRunner(CommandHandlerMixin):
         # Clear cached state to force full rebuild on next get_state()
         self._invalidate_state_cache()
 
+        # Apply or remove circular dish physics
+        if new_world_type == "petri":
+            self._apply_petri_physics()
+        else:
+            self._remove_petri_physics()
+
         logger.info(
             "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
             new_world_type,
             self.mode_id,
             self.view_mode,
         )
+
+    def _apply_petri_physics(self) -> None:
+        """Apply circular dish physics and clamp all entities inside.
+
+        Called when switching to Petri mode. Creates dish geometry, injects
+        it into the environment, and repositions any entities outside the dish.
+        """
+        from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
+        from core.worlds.petri.dish import PetriDish
+
+        # Create dish geometry matching PetriPack defaults
+        rim_margin = 2.0
+        radius = (min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2) - rim_margin
+        dish = PetriDish(
+            cx=SCREEN_WIDTH / 2,
+            cy=SCREEN_HEIGHT / 2,
+            r=radius,
+        )
+
+        # Inject dish into environment for circular physics
+        env = self.engine.environment
+        if env is not None:
+            env.dish = dish
+            logger.info(
+                "Petri physics applied: dish(cx=%.0f, cy=%.0f, r=%.0f)",
+                dish.cx,
+                dish.cy,
+                dish.r,
+            )
+
+        # Clamp all entities inside the dish
+        self._clamp_entities_to_dish(dish)
+
+    def _remove_petri_physics(self) -> None:
+        """Remove circular dish physics when switching back to tank mode."""
+        env = self.engine.environment
+        if env is not None:
+            env.dish = None
+            logger.info("Petri physics removed: rectangular bounds restored")
+
+    def _clamp_entities_to_dish(self, dish: "PetriDish") -> None:
+        """Reposition all agents to be inside the circular dish.
+
+        Called after switching to Petri mode to ensure no entities are
+        positioned outside the circular boundary.
+
+        Args:
+            dish: The PetriDish geometry to clamp entities within
+        """
+        clamped_count = 0
+        for entity in self.engine.entities_list:
+            if not hasattr(entity, "pos") or not hasattr(entity, "vel"):
+                continue
+
+            # Calculate agent center and radius
+            agent_r = max(entity.width, getattr(entity, "height", entity.width)) / 2
+            agent_cx = entity.pos.x + entity.width / 2
+            agent_cy = entity.pos.y + getattr(entity, "height", entity.width) / 2
+
+            # Clamp inside dish
+            new_cx, new_cy, new_vx, new_vy, collided = dish.clamp_and_reflect(
+                agent_cx,
+                agent_cy,
+                entity.vel.x,
+                entity.vel.y,
+                agent_r,
+            )
+
+            if collided:
+                entity.pos.x = new_cx - entity.width / 2
+                entity.pos.y = new_cy - getattr(entity, "height", entity.width) / 2
+                entity.vel.x = new_vx
+                entity.vel.y = new_vy
+                if hasattr(entity, "rect"):
+                    entity.rect.x = entity.pos.x
+                    entity.rect.y = entity.pos.y
+                clamped_count += 1
+
+        if clamped_count > 0:
+            logger.info("Clamped %d entities inside petri dish boundary", clamped_count)
 
     def _update_environment_migration_context(self) -> None:
         """Update the environment with current migration context."""

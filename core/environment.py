@@ -658,6 +658,10 @@ class Environment:
             None  # Set by backend if migrations enabled
         )
 
+        # Optional circular dish geometry for Petri mode (set during mode switching)
+        # When set, resolve_boundary_collision will use circular physics
+        self.dish: Optional[Any] = None  # PetriDish when in Petri mode
+
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
 
@@ -796,6 +800,55 @@ class Environment:
     def update_agent_position(self, agent: Agent):
         """Update an agent's position in the spatial grid. Call when agent moves."""
         self.spatial_grid.update_agent(agent)
+
+    def resolve_boundary_collision(self, agent: Agent) -> bool:
+        """Resolve collision with custom boundary (e.g., circular dish).
+
+        This method is called by Agent.handle_screen_edges() to allow
+        non-rectangular boundaries. When a dish is set (Petri mode),
+        uses circular physics. Otherwise returns False to use rectangular bounds.
+
+        Args:
+            agent: The agent to check and potentially reposition
+
+        Returns:
+            True if collision was resolved (agent should skip rectangular bounds),
+            False to fall back to rectangular boundary handling
+        """
+        if self.dish is None:
+            return False
+
+        if not hasattr(agent, "vel"):
+            return False
+
+        # Calculate agent center and radius
+        # Use max(width, height) / 2 for proper circular approximation
+        agent_r = max(agent.width, getattr(agent, "height", agent.width)) / 2
+        agent_cx = agent.pos.x + agent.width / 2
+        agent_cy = agent.pos.y + getattr(agent, "height", agent.width) / 2
+
+        # Use dish to clamp and reflect
+        new_cx, new_cy, new_vx, new_vy, collided = self.dish.clamp_and_reflect(
+            agent_cx,
+            agent_cy,
+            agent.vel.x,
+            agent.vel.y,
+            agent_r,
+        )
+
+        if collided:
+            # Update agent position (convert center back to top-left)
+            agent.pos.x = new_cx - agent.width / 2
+            agent.pos.y = new_cy - getattr(agent, "height", agent.width) / 2
+            if hasattr(agent, "rect"):
+                agent.rect.x = agent.pos.x
+                agent.rect.y = agent.pos.y
+
+            # Update velocity
+            agent.vel.x = new_vx
+            agent.vel.y = new_vy
+
+        return True  # Always handled when dish is set (circular boundary is authoritative)
 
     def nearby_agents(self, agent: Agent, radius: int) -> List[Agent]:
         """
