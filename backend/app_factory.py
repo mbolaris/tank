@@ -36,7 +36,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.auto_save_service import AutoSaveService
-from backend.broadcast import start_broadcast_for_tank, stop_broadcast_for_tank
+from backend.broadcast import start_broadcast_for_world, stop_broadcast_for_world
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.logging_config import configure_logging
@@ -45,7 +45,6 @@ from backend.models import ServerInfo
 from backend.security import setup_security_middleware
 from backend.server_client import ServerClient
 from backend.startup_manager import StartupManager
-from backend.tank_registry import TankRegistry
 from backend.world_manager import WorldManager
 from core.config.server import DEFAULT_API_PORT
 
@@ -62,7 +61,7 @@ class AppContext:
     """
 
     # Core services (created at construction)
-    tank_registry: TankRegistry = field(default_factory=lambda: TankRegistry(create_default=False))
+    world_manager: WorldManager = field(default_factory=WorldManager)
     connection_manager: ConnectionManager = field(default_factory=ConnectionManager)
     discovery_service: DiscoveryService = field(default_factory=DiscoveryService)
     server_client: ServerClient = field(default_factory=ServerClient)
@@ -94,9 +93,6 @@ class AppContext:
     # Logging
     logger: logging.Logger = field(default_factory=lambda: logging.getLogger("backend"))
 
-    # World manager (created after tank_registry)
-    world_manager: Optional[WorldManager] = None
-
     def get_server_info(self) -> ServerInfo:
         """Get information about the current server."""
         uptime = time.time() - self.server_start_time
@@ -126,7 +122,7 @@ class AppContext:
             host=_get_network_ip(),
             port=self.api_port,
             status="online",
-            tank_count=self.tank_registry.tank_count,
+            tank_count=self.world_manager.world_count,
             version=self.server_version,
             uptime_seconds=uptime,
             cpu_percent=cpu_percent,
@@ -226,14 +222,14 @@ def create_app(
         try:
             # Create and initialize startup manager
             ctx.startup_manager = StartupManager(
-                tank_registry=ctx.tank_registry,
+                world_manager=ctx.world_manager,
                 connection_manager=ctx.connection_manager,
                 discovery_service=ctx.discovery_service,
                 server_client=ctx.server_client,
                 server_id=ctx.server_id,
                 discovery_server_url=ctx.discovery_server_url,
-                start_broadcast_callback=start_broadcast_for_tank,
-                stop_broadcast_callback=stop_broadcast_for_tank,
+                start_broadcast_callback=start_broadcast_for_world,
+                stop_broadcast_callback=stop_broadcast_for_world,
             )
 
             await ctx.startup_manager.initialize(get_server_info_callback=ctx.get_server_info)
@@ -292,52 +288,29 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.routers import discovery, servers, tanks, transfers, websocket
+    from backend.routers import discovery, servers, websocket
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
-
-    # Create WorldManager if not already created
-    if ctx.world_manager is None:
-        ctx.world_manager = WorldManager(tank_registry=ctx.tank_registry)
 
     # Setup discovery router
     discovery_router = discovery.setup_router(ctx.discovery_service)
     app.include_router(discovery_router)
 
-    # Setup transfers router
-    transfers_router = transfers.setup_router(
-        ctx.tank_registry,
-        ctx.connection_manager,
-        world_manager=ctx.world_manager,
-    )
-    app.include_router(transfers_router)
-
-    # Setup tanks router
-    tanks_router = tanks.setup_router(
-        tank_registry=ctx.tank_registry,
-        server_id=ctx.server_id,
-        start_broadcast_callback=start_broadcast_for_tank,
-        stop_broadcast_callback=stop_broadcast_for_tank,
-        auto_save_service=ctx.auto_save_service,
-        world_manager=ctx.world_manager,
-    )
-    app.include_router(tanks_router)
-
     # Setup servers router
     servers_router = servers.setup_router(
-        tank_registry=ctx.tank_registry,
+        world_manager=ctx.world_manager,
         discovery_service=ctx.discovery_service,
         server_client=ctx.server_client,
         get_server_info_callback=ctx.get_server_info,
     )
     app.include_router(servers_router)
 
-    # Setup websocket routes (with WorldManager for unified endpoint)
-    websocket_router = websocket.setup_router(ctx.tank_registry, ctx.world_manager)
+    # Setup websocket routes (unified world endpoint only)
+    websocket_router = websocket.setup_router(ctx.world_manager)
     app.include_router(websocket_router)
 
     # Setup solutions router
-    solutions_router = create_solutions_router(ctx.tank_registry)
+    solutions_router = create_solutions_router(ctx.world_manager)
     app.include_router(solutions_router)
 
     # Setup worlds router (world-agnostic API)

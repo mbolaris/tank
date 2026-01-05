@@ -43,9 +43,9 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
     const tanks = useMemo(() => {
         return servers.flatMap((server) =>
             server.tanks.map((tankStatus) => ({
-                id: tankStatus.tank.tank_id,
-                name: tankStatus.tank.name,
-                allowTransfers: tankStatus.tank.allow_transfers,
+                id: tankStatus.world_id,
+                name: tankStatus.name,
+                allowTransfers: true,
                 serverName: server.server.hostname,
             })),
         );

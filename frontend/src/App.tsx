@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TankView } from './components/TankView';
 import { NetworkDashboard } from './pages/NetworkDashboard';
-import { config, type TankStatus } from './config';
+import { config, type WorldStatus } from './config';
 import { FishIcon, GlobeIcon, WaveIcon, ChevronLeftIcon, ChevronRightIcon } from './components/ui';
 import './App.css';
 
@@ -17,15 +17,15 @@ interface TankNavigatorProps {
 
 function TankNavigator({ currentTankId }: TankNavigatorProps) {
     const navigate = useNavigate();
-    const [tanks, setTanks] = useState<TankStatus[]>([]);
+    const [worlds, setWorlds] = useState<WorldStatus[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchTanks = useCallback(async () => {
+    const fetchWorlds = useCallback(async () => {
         try {
-            const response = await fetch(config.tanksApiUrl);
+            const response = await fetch(config.worldsApiUrl);
             if (response.ok) {
                 const data = await response.json();
-                setTanks(data.tanks || []);
+                setWorlds(data.worlds || []);
             }
         } catch {
             // Silent fail
@@ -35,29 +35,29 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
     }, []);
 
     useEffect(() => {
-        fetchTanks();
-        const interval = setInterval(fetchTanks, 10000);
+        fetchWorlds();
+        const interval = setInterval(fetchWorlds, 10000);
         return () => clearInterval(interval);
-    }, [fetchTanks]);
+    }, [fetchWorlds]);
 
-    const currentIndex = tanks.findIndex(t =>
-        currentTankId ? t.tank.tank_id === currentTankId : true
+    const currentIndex = worlds.findIndex(w =>
+        currentTankId ? w.world_id === currentTankId : true
     );
-    const currentTank = currentIndex >= 0 ? tanks[currentIndex] : null;
+    const currentWorld = currentIndex >= 0 ? worlds[currentIndex] : null;
 
-    const goToPrevTank = useCallback(() => {
-        if (tanks.length === 0) return;
-        const prevIndex = currentIndex <= 0 ? tanks.length - 1 : currentIndex - 1;
-        const prevTank = tanks[prevIndex];
-        navigate(`/tank/${prevTank.tank.tank_id}`);
-    }, [tanks, currentIndex, navigate]);
+    const goToPrev = useCallback(() => {
+        if (worlds.length === 0) return;
+        const prevIndex = currentIndex <= 0 ? worlds.length - 1 : currentIndex - 1;
+        const prev = worlds[prevIndex];
+        navigate(`/tank/${prev.world_id}`);
+    }, [worlds, currentIndex, navigate]);
 
-    const goToNextTank = useCallback(() => {
-        if (tanks.length === 0) return;
-        const nextIndex = currentIndex >= tanks.length - 1 ? 0 : currentIndex + 1;
-        const nextTank = tanks[nextIndex];
-        navigate(`/tank/${nextTank.tank.tank_id}`);
-    }, [tanks, currentIndex, navigate]);
+    const goToNext = useCallback(() => {
+        if (worlds.length === 0) return;
+        const nextIndex = currentIndex >= worlds.length - 1 ? 0 : currentIndex + 1;
+        const next = worlds[nextIndex];
+        navigate(`/tank/${next.world_id}`);
+    }, [worlds, currentIndex, navigate]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -65,17 +65,17 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.key === 'ArrowLeft') {
                 e.preventDefault();
-                goToPrevTank();
+                goToPrev();
             } else if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                goToNextTank();
+                goToNext();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [goToPrevTank, goToNextTank]);
+    }, [goToPrev, goToNext]);
 
-    if (loading || tanks.length <= 1) return null;
+    if (loading || worlds.length <= 1) return null;
 
     return (
         <div style={{
@@ -88,9 +88,9 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
             border: '1px solid rgba(255,255,255,0.05)',
         }}>
             <button
-                onClick={goToPrevTank}
+                onClick={goToPrev}
                 className="nav-btn"
-                aria-label="Previous tank"
+                aria-label="Previous world"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -132,18 +132,18 @@ function TankNavigator({ currentTankId }: TankNavigatorProps) {
                     textOverflow: 'ellipsis',
                     maxWidth: '120px',
                 }}>
-                    {currentTank?.tank.name || 'Default Tank'}
+                    {currentWorld?.name || 'Default World'}
                 </span>
                 <span style={{
                     color: 'var(--color-text-dim)',
                     fontSize: '10px',
                 }}>
-                    {currentIndex + 1} / {tanks.length}
+                    {currentIndex + 1} / {worlds.length}
                 </span>
             </div>
 
             <button
-                onClick={goToNextTank}
+                onClick={goToNext}
                 className="nav-btn"
                 aria-label="Next tank"
                 style={{
@@ -352,6 +352,46 @@ function NavBar() {
 
 function TankPage() {
     const { tankId } = useParams<{ tankId: string }>();
+    const navigate = useNavigate();
+    const [isValid, setIsValid] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        if (!tankId) {
+            navigate('/', { replace: true });
+            return;
+        }
+
+        // Validate the world exists
+        const validateWorld = async () => {
+            try {
+                const res = await fetch(`${config.apiBaseUrl}/api/worlds/${tankId}/snapshot`);
+                if (res.ok) {
+                    setIsValid(true);
+                } else {
+                    // World doesn't exist, redirect to home
+                    console.warn(`World ${tankId} not found, redirecting to home`);
+                    navigate('/', { replace: true });
+                }
+            } catch {
+                // Network error, redirect to home
+                navigate('/', { replace: true });
+            }
+        };
+
+        validateWorld();
+    }, [tankId, navigate]);
+
+    // Show loading while validating
+    if (isValid === null) {
+        return (
+            <div className="app">
+                <main className="main" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <div style={{ color: '#888' }}>Loading world...</div>
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div className="app">
             <main className="main">

@@ -122,7 +122,7 @@ class TankConfig:
             - "external": Fish receive actions from an external brain
     """
 
-    brain_mode: str = "legacy"  # "legacy" | "external"
+    brain_mode: str = "builtin"  # "builtin" | "external"
 
 
 @dataclass

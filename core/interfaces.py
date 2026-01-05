@@ -305,8 +305,7 @@ class SimulationStats(Protocol):
 
     Extensibility:
         New stats methods can be added by extending this protocol. Use Parameter
-        Objects (dataclasses) for methods with many parameters to maintain
-        backward compatibility when adding new fields.
+        Objects (dataclasses) for methods with many parameters.
     """
 
     def record_death(
@@ -358,7 +357,7 @@ class SimulationStats(Protocol):
         """Record a poker game outcome.
 
         Note:
-            This method has many parameters for historical reasons. For new code,
+            This method has many parameters. For new code,
             consider using PokerOutcomeRecord from ecosystem_stats.py to group
             these parameters into a single object:
 

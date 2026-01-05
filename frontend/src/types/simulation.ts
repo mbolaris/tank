@@ -413,7 +413,7 @@ export interface SimulationUpdate {
         render_hint?: Record<string, unknown>;
     };
 
-    // Legacy fields (optional for backward compatibility)
+    // Legacy fields (optional)
     frame?: number;
     elapsed_time?: number;
     entities?: EntityData[];
@@ -442,7 +442,7 @@ export interface DeltaUpdate {
         render_hint?: Record<string, unknown>;
     };
 
-    // Legacy fields (optional for backward compatibility)
+    // Legacy fields (optional)
     frame?: number;
     elapsed_time?: number;
     updates?: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];

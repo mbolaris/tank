@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { config, type TankStatus } from '../config';
+import { config } from '../config';
 
 interface TransferDialogProps {
     entityId: number;
@@ -22,7 +22,7 @@ export function TransferDialog({
     onClose,
     onTransferComplete,
 }: TransferDialogProps) {
-    const [tanks, setTanks] = useState<TankStatus[]>([]);
+    const [tanks, setTanks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [transferring, setTransferring] = useState(false);
     const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
@@ -31,19 +31,19 @@ export function TransferDialog({
     const fetchTanks = useCallback(async () => {
         setError(null);
         try {
-            const response = await fetch(`${config.tanksApiUrl}?include_private=true`);
+            const response = await fetch(`${config.apiBaseUrl}/api/worlds?include_private=true`);
             if (!response.ok) {
-                throw new Error('Failed to fetch tanks');
+                throw new Error('Failed to fetch worlds');
             }
             const data = await response.json();
             // Filter out source tank and tanks that don't allow transfers
-            const eligibleTanks = data.tanks.filter(
-                (tank: TankStatus) =>
-                    tank.tank.tank_id !== sourceTankId && tank.tank.allow_transfers
+            const eligibleTanks = data.worlds.filter(
+                (world: any) =>
+                    world.id !== sourceTankId && world.allow_transfers
             );
             setTanks(eligibleTanks);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to load tanks';
+            const message = err instanceof Error ? err.message : 'Failed to load worlds';
             setError(message);
         } finally {
             setLoading(false);
@@ -60,7 +60,7 @@ export function TransferDialog({
         setTransferring(true);
         try {
             const response = await fetch(
-                `${config.apiBaseUrl}/api/tanks/${sourceTankId}/transfer?entity_id=${entityId}&destination_tank_id=${selectedTankId}`,
+                `${config.apiBaseUrl}/api/worlds/${sourceTankId}/transfer?entity_id=${entityId}&destination_world_id=${selectedTankId}`,
                 { method: 'POST' }
             );
 
@@ -165,15 +165,15 @@ export function TransferDialog({
                                 borderRadius: '8px',
                             }}
                         >
-                            {tanks.map((tankStatus) => (
+                            {tanks.map((world) => (
                                 <div
-                                    key={tankStatus.tank.tank_id}
-                                    onClick={() => setSelectedTankId(tankStatus.tank.tank_id)}
+                                    key={world.id}
+                                    onClick={() => setSelectedTankId(world.id)}
                                     style={{
                                         padding: '12px 16px',
                                         cursor: 'pointer',
                                         backgroundColor:
-                                            selectedTankId === tankStatus.tank.tank_id
+                                            selectedTankId === world.id
                                                 ? '#3b82f6'
                                                 : '#0f172a',
                                         borderBottom: '1px solid #334155',
@@ -181,19 +181,19 @@ export function TransferDialog({
                                     }}
                                 >
                                     <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                                        {tankStatus.tank.name}
+                                        {world.name}
                                     </div>
-                                    {tankStatus.tank.description && (
+                                    {world.description && (
                                         <div style={{ fontSize: '13px', color: '#94a3b8' }}>
-                                            {tankStatus.tank.description}
+                                            {world.description}
                                         </div>
                                     )}
                                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                                        {tankStatus.stats?.fish_count || 0} fish
+                                        {world.stats?.entity_count || 0} entities
                                         {' • '}
-                                        Gen {tankStatus.stats?.generation || 0}
+                                        {world.world_type}
                                         {' • '}
-                                        {tankStatus.running ? (tankStatus.paused ? 'Paused' : 'Running') : 'Stopped'}
+                                        {world.running ? (world.paused ? 'Paused' : 'Running') : 'Stopped'}
                                     </div>
                                 </div>
                             ))}

@@ -246,7 +246,9 @@ class HumanPokerGame:
 
         self.pot = self._hand_state.pot
         self.community_cards = list(self._hand_state.community_cards)
-        self.current_round = BettingRound(self._hand_state.current_round)
+        # Clamp round to valid range (0-4) to prevent "5 is not a valid BettingRound" error
+        round_value = min(self._hand_state.current_round, BettingRound.SHOWDOWN)
+        self.current_round = BettingRound(round_value)
 
         for i, player in enumerate(self.players):
             state_player = self._hand_state.players[i]

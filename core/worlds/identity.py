@@ -60,7 +60,7 @@ class EntityIdentityProvider(Protocol):
 
         Args:
             entity_id: Stable entity ID (as returned by get_identity). Implementations
-                may also accept legacy IDs for backward compatibility.
+                may also accept legacy IDs.
 
         Returns:
             The entity instance, or None if not found

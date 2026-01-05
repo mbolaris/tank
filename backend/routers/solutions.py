@@ -15,7 +15,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 from core.solutions import SolutionBenchmark, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
 
@@ -49,11 +49,11 @@ class SubmitRequest(BaseModel):
     push: bool = True
 
 
-def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
+def create_solutions_router(world_manager: WorldManager) -> APIRouter:
     """Create the solutions API router.
 
     Args:
-        tank_registry: Registry of active tanks
+        world_manager: Manager for all worlds
 
     Returns:
         FastAPI router with solution endpoints
@@ -147,15 +147,21 @@ def create_solutions_router(tank_registry: TankRegistry) -> APIRouter:
         Returns:
             The captured solution record
         """
-        manager = tank_registry.get_tank(tank_id)
-        if manager is None:
-            raise HTTPException(status_code=404, detail=f"Tank not found: {tank_id}")
+        instance = world_manager.get_world(tank_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {tank_id}")
 
         try:
-            # Get the best fish from the tank
+            # Get the best fish from the world
             from core.entities import Fish
 
-            fish_list = [e for e in manager.world.entities_list if isinstance(e, Fish)]
+            runner = instance.runner
+            world = getattr(runner, "world", None)
+            if not world:
+                raise HTTPException(status_code=400, detail="World has no entities")
+
+            entities_list = getattr(world, "entities_list", [])
+            fish_list = [e for e in entities_list if isinstance(e, Fish)]
 
             if not fish_list:
                 raise HTTPException(status_code=400, detail="No fish in tank")

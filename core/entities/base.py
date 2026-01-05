@@ -11,7 +11,7 @@ Agent(Entity)
     For: Moving entities with behavior (Fish, Plant, Food, Crab)
 
 This hierarchy ensures decorative entities don't inherit unnecessary
-movement methods while maintaining backward compatibility.
+movement methods.
 """
 
 from dataclasses import dataclass, field
@@ -166,7 +166,7 @@ class Entity:
         """Emit a telemetry event via EventBus or direct ecosystem recording.
 
         Prefers EventBus if available (enables decoupled telemetry subscribers).
-        Falls back to direct ecosystem.record_event() for backward compatibility.
+        Falls back to direct ecosystem.record_event().
         Silently skips if neither is available.
         """
         # Try EventBus first (preferred path for decoupled telemetry)
@@ -175,7 +175,7 @@ class Entity:
             event_bus.emit(event)
             return
 
-        # Fallback to direct ecosystem recording (backward compatibility)
+        # Fallback to direct ecosystem recording
         telemetry = getattr(self, "ecosystem", None)
         if telemetry is None:
             return
@@ -423,7 +423,7 @@ class Castle(Entity):
         """
         super().__init__(environment, x, y)
         self.blocks_root_spots = True
-        self.speed = 0  # For backward compatibility (Castle doesn't move)
+        self.speed = 0  # Castle doesn't move
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         self.set_size(225.0, 225.0)
 

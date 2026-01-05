@@ -5,8 +5,8 @@ and pool management. Extracted from SimulationEngine to follow SRP.
 
 Design Decisions:
 -----------------
-1. EntityManager owns the entities list but engine still owns the environment/ecosystem
-   for backward compatibility. The manager gets references to these via the engine.
+1. EntityManager owns the entities list but engine still owns the environment/ecosystem.
+   The manager gets references to these via the engine.
 
 2. Cache invalidation is automatic - the CacheManager tracks dirty state and rebuilds
    on next access.
@@ -78,7 +78,7 @@ class EntityManager:
         """Get the master entities list.
 
         Note: This returns the actual list, not a copy. This is intentional
-        for backward compatibility - many parts of the code mutate this list.
+        for valid mutation support.
         """
         return self._entities
 

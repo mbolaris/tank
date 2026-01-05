@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app_factory import AppContext, create_app
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def test_client():
     """Create a test client with fresh context."""
     # Create a fresh context for testing
     context = AppContext(
-        tank_registry=TankRegistry(create_default=False),
+        world_manager=WorldManager(),
     )
     app = create_app(context=context, server_id="test-server")
 

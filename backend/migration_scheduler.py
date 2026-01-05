@@ -1,4 +1,4 @@
-"""Background scheduler for automated tank migrations."""
+"""Background scheduler for automated world migrations."""
 
 import asyncio
 import logging
@@ -6,7 +6,7 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from backend.connection_manager import ConnectionManager
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 from core.entities import Fish
 from core.entities.plant import Plant
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class MigrationScheduler:
-    """Schedules and executes automated entity migrations between tanks.
+    """Schedules and executes automated entity migrations between worlds.
 
     Supports both local (same-server) and remote (cross-server) migrations.
     """
@@ -26,7 +26,7 @@ class MigrationScheduler:
     def __init__(
         self,
         connection_manager: ConnectionManager,
-        tank_registry: TankRegistry,
+        world_manager: WorldManager,
         check_interval: float = 2.0,
         discovery_service: Optional["DiscoveryService"] = None,
         server_client: Optional["ServerClient"] = None,
@@ -35,15 +35,15 @@ class MigrationScheduler:
         """Initialize the migration scheduler.
 
         Args:
-            connection_manager: Manager for tank connections
-            tank_registry: Registry of all tanks
-            check_interval: Seconds between migration checks (default: 10)
+            connection_manager: Manager for world connections
+            world_manager: Manager for all worlds
+            check_interval: Seconds between migration checks (default: 2)
             discovery_service: Optional discovery service for cross-server migrations
             server_client: Optional server client for cross-server migrations
             local_server_id: This server's ID
         """
         self.connection_manager = connection_manager
-        self.tank_registry = tank_registry
+        self.world_manager = world_manager
         self.check_interval = check_interval
         self.discovery_service = discovery_service
         self.server_client = server_client
@@ -88,7 +88,7 @@ class MigrationScheduler:
                     check_count += 1
                     connections = self.connection_manager.list_connections()
 
-                    if check_count % 6 == 0:  # Log every ~60 seconds
+                    if check_count % 6 == 0:  # Log every ~12 seconds
                         logger.debug(
                             f"Migration check #{check_count}: {len(connections)} active connections"
                         )
@@ -135,38 +135,42 @@ class MigrationScheduler:
             await self._perform_local_migration(connection)
 
     async def _perform_local_migration(self, connection) -> None:
-        """Perform a migration between tanks on the same server.
+        """Perform a migration between worlds on the same server.
 
         Args:
             connection: The TankConnection
         """
-        # Get source and destination tanks
-        source_manager = self.tank_registry.get_tank(connection.source_tank_id)
-        dest_manager = self.tank_registry.get_tank(connection.destination_tank_id)
+        # Get source and destination worlds
+        source_instance = self.world_manager.get_world(connection.source_tank_id)
+        dest_instance = self.world_manager.get_world(connection.destination_tank_id)
 
-        if not source_manager or not dest_manager:
+        if not source_instance or not dest_instance:
             logger.warning(
-                f"Migration failed: tank not found (source={connection.source_tank_id[:8]}, "
+                f"Migration failed: world not found (source={connection.source_tank_id[:8]}, "
                 f"dest={connection.destination_tank_id[:8]})"
             )
             return
 
-        # Check if both tanks allow transfers
-        if not source_manager.tank_info.allow_transfers:
+        # Get the runners
+        source_runner = source_instance.runner
+        dest_runner = dest_instance.runner
+
+        # Skip migration if either world is paused
+        if getattr(source_runner, "paused", False):
             return
-        if not dest_manager.tank_info.allow_transfers:
+        if getattr(dest_runner, "paused", False):
             return
 
-        # Skip migration if either tank is paused - prevents population explosions
-        # in tanks that haven't been viewed yet (fish would accumulate without dying)
-        if getattr(source_manager.world, "paused", False):
-            return
-        if getattr(dest_manager.world, "paused", False):
+        # Get the world/engine from runners
+        source_world = getattr(source_runner, "world", None)
+        dest_world = getattr(dest_runner, "world", None)
+        if not source_world or not dest_world:
             return
 
         # Get eligible entities (fish and plants)
+        entities_list = getattr(source_world, "entities_list", [])
         eligible_entities = []
-        for entity in source_manager.world.entities_list:
+        for entity in entities_list:
             if isinstance(entity, (Fish, Plant)):
                 eligible_entities.append(entity)
 
@@ -180,11 +184,11 @@ class MigrationScheduler:
 
         # Perform the migration
         try:
-            from backend.entity_transfer import (
+            from backend.transfer_history import log_transfer
+            from core.transfer.entity_transfer import (
                 serialize_entity_for_transfer,
                 try_deserialize_entity,
             )
-            from backend.transfer_history import log_transfer
 
             # Serialize entity
             entity_data = serialize_entity_for_transfer(entity)
@@ -201,7 +205,7 @@ class MigrationScheduler:
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
             # Check destination first (Check)
-            outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            outcome = try_deserialize_entity(entity_data, dest_world)
             if not outcome.ok:
                 # SILENT FAIL check
                 if outcome.error and outcome.error.code == "no_root_spots":
@@ -213,9 +217,9 @@ class MigrationScheduler:
                     entity_old_id=entity_id,
                     entity_new_id=None,
                     source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_manager.tank_info.name,
+                    source_tank_name=source_instance.name,
                     destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_manager.tank_info.name,
+                    destination_tank_name=dest_instance.name,
                     success=False,
                     error=(
                         outcome.error.message
@@ -226,10 +230,10 @@ class MigrationScheduler:
                 return
 
             # Remove from source (Commit)
-            source_manager.world.engine.request_remove(entity, reason="migration_out")
+            source_world.engine.request_remove(entity, reason="migration_out")
 
             new_entity = outcome.value
-            dest_manager.world.engine.request_spawn(new_entity, reason="migration_in")
+            dest_world.engine.request_spawn(new_entity, reason="migration_in")
 
             # Track energy entering the destination tank (for fish only)
             if (
@@ -241,17 +245,10 @@ class MigrationScheduler:
 
             # Try to invalidate cached SimulationRunner state so frontends update
             try:
-                dest_runner = getattr(dest_manager, "_runner", None)
-                if dest_runner and hasattr(dest_runner, "invalidate_state_cache"):
+                if hasattr(source_runner, "invalidate_state_cache"):
+                    source_runner.invalidate_state_cache()
+                if hasattr(dest_runner, "invalidate_state_cache"):
                     dest_runner.invalidate_state_cache()
-                elif dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
-                    dest_runner._invalidate_state_cache()
-
-                src_runner = getattr(source_manager, "_runner", None)
-                if src_runner and hasattr(src_runner, "invalidate_state_cache"):
-                    src_runner.invalidate_state_cache()
-                elif src_runner and hasattr(src_runner, "_invalidate_state_cache"):
-                    src_runner._invalidate_state_cache()
             except Exception:
                 logger.debug("Failed to invalidate runner caches after migration", exc_info=True)
 
@@ -261,22 +258,22 @@ class MigrationScheduler:
                 entity_old_id=entity_id,
                 entity_new_id=id(new_entity),
                 source_tank_id=connection.source_tank_id,
-                source_tank_name=source_manager.tank_info.name,
+                source_tank_name=source_instance.name,
                 destination_tank_id=connection.destination_tank_id,
-                destination_tank_name=dest_manager.tank_info.name,
+                destination_tank_name=dest_instance.name,
                 success=True,
             )
 
             logger.debug(
-                f"Migrated {entity_type} from {source_manager.tank_info.name} to "
-                f"{dest_manager.tank_info.name} (probability={connection.probability}%)"
+                f"Migrated {entity_type} from {source_instance.name} to "
+                f"{dest_instance.name} (probability={connection.probability}%)"
             )
 
         except Exception as e:
             logger.error(f"Local migration failed: {e}", exc_info=True)
 
     async def _perform_remote_migration(self, connection) -> None:
-        """Perform a migration between tanks on different servers.
+        """Perform a migration between worlds on different servers.
 
         Args:
             connection: The TankConnection (cross-server)
@@ -288,25 +285,27 @@ class MigrationScheduler:
             )
             return
 
-        # Get source tank (must be local)
-        source_manager = self.tank_registry.get_tank(connection.source_tank_id)
-        if not source_manager:
+        # Get source world (must be local)
+        source_instance = self.world_manager.get_world(connection.source_tank_id)
+        if not source_instance:
             logger.warning(
-                f"Remote migration failed: source tank not found: {connection.source_tank_id[:8]}"
+                f"Remote migration failed: source world not found: {connection.source_tank_id[:8]}"
             )
             return
 
-        # Check if source tank allows transfers
-        if not source_manager.tank_info.allow_transfers:
+        source_runner = source_instance.runner
+        source_world = getattr(source_runner, "world", None)
+        if not source_world:
             return
 
-        # Skip migration if source tank is paused - prevents inconsistent state
-        if getattr(source_manager.world, "paused", False):
+        # Skip migration if source world is paused
+        if getattr(source_runner, "paused", False):
             return
 
         # Get eligible entities
+        entities_list = getattr(source_world, "entities_list", [])
         eligible_entities = []
-        for entity in source_manager.world.entities_list:
+        for entity in entities_list:
             if isinstance(entity, (Fish, Plant)):
                 eligible_entities.append(entity)
 
@@ -319,8 +318,11 @@ class MigrationScheduler:
         entity_type = "fish" if isinstance(entity, Fish) else "plant"
 
         try:
-            from backend.entity_transfer import serialize_entity_for_transfer
             from backend.transfer_history import log_transfer
+            from core.transfer.entity_transfer import (
+                deserialize_entity,
+                serialize_entity_for_transfer,
+            )
 
             # Serialize entity
             entity_data = serialize_entity_for_transfer(entity)
@@ -344,8 +346,8 @@ class MigrationScheduler:
             ):
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
-            # Remove from source tank
-            source_manager.world.engine.request_remove(entity, reason="remote_migration_out")
+            # Remove from source world
+            source_world.engine.request_remove(entity, reason="remote_migration_out")
 
             # Send to remote server
             result = await self.server_client.remote_transfer_entity(
@@ -359,7 +361,7 @@ class MigrationScheduler:
             if result and result.get("success"):
                 # Remote transfer succeeded
                 logger.info(
-                    f"Remote migration: {entity_type} from {source_manager.tank_info.name} "
+                    f"Remote migration: {entity_type} from {source_instance.name} "
                     f"to {connection.destination_server_id}:{connection.destination_tank_id[:8]} "
                     f"(probability={connection.probability}%)"
                 )
@@ -370,20 +372,16 @@ class MigrationScheduler:
                     entity_old_id=entity_id,
                     entity_new_id=result.get("entity", {}).get("new_id", -1),
                     source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_manager.tank_info.name,
+                    source_tank_name=source_instance.name,
                     destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
                     destination_tank_name=f"Remote tank on {connection.destination_server_id}",
                     success=True,
                 )
             else:
                 # Remote transfer failed - restore entity
-                from backend.entity_transfer import deserialize_entity
-
-                restored = deserialize_entity(entity_data, source_manager.world)
+                restored = deserialize_entity(entity_data, source_world)
                 if restored:
-                    source_manager.world.engine.request_spawn(
-                        restored, reason="remote_migration_restore"
-                    )
+                    source_world.engine.request_spawn(restored, reason="remote_migration_restore")
 
                 error_msg = (
                     result.get("error", "Unknown error")
@@ -403,7 +401,7 @@ class MigrationScheduler:
                     entity_old_id=entity_id,
                     entity_new_id=None,
                     source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_manager.tank_info.name,
+                    source_tank_name=source_instance.name,
                     destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
                     destination_tank_name=f"Remote tank on {connection.destination_server_id}",
                     success=False,
@@ -414,14 +412,17 @@ class MigrationScheduler:
             logger.error(f"Remote migration failed: {e}", exc_info=True)
 
             # Try to restore entity
-            from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
+            from core.transfer.entity_transfer import (
+                deserialize_entity,
+                serialize_entity_for_transfer,
+            )
 
             try:
                 entity_data = serialize_entity_for_transfer(entity)
                 if entity_data:
-                    restored = deserialize_entity(entity_data, source_manager.world)
+                    restored = deserialize_entity(entity_data, source_world)
                     if restored:
-                        source_manager.world.engine.request_spawn(
+                        source_world.engine.request_spawn(
                             restored, reason="remote_migration_restore_error"
                         )
             except Exception as restore_error:

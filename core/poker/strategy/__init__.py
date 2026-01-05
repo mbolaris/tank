@@ -6,7 +6,7 @@ This package contains poker strategy engines and evolving strategy algorithms.
 
 from core.poker.strategy.base import HandStrength, OpponentModel, PokerStrategyEngine
 
-# Re-export from new location but maintain backward compatibility
+# Re-export from new location
 from core.poker.strategy.composable import (
     BettingStyle,
     BluffingApproach,

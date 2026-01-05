@@ -46,7 +46,7 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
             setLoading(true);
             setError(null);
 
-            const lineageUrl = `${config.apiBaseUrl}/api/tanks/${tankId}/lineage`;
+            const lineageUrl = `${config.apiBaseUrl}/api/worlds/${tankId}/lineage`;
             const response = await fetch(lineageUrl);
 
             if (!response.ok) {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.entity_transfer import deserialize_entity, serialize_entity_for_transfer
+from core.transfer.entity_transfer import deserialize_entity, serialize_entity_for_transfer
 from core.config.server import PLANTS_ENABLED
 from core.entities.fish import Fish
 from core.entities.plant import Plant

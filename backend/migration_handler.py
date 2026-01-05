@@ -4,78 +4,83 @@ import logging
 import random
 from typing import TYPE_CHECKING, Any
 
-from backend.entity_transfer import try_deserialize_entity, try_serialize_entity_for_transfer
 from backend.transfer_history import log_transfer
+from core.transfer.entity_transfer import try_deserialize_entity, try_serialize_entity_for_transfer
 
 if TYPE_CHECKING:
-    pass
+    from backend.connection_manager import ConnectionManager
+    from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
 
 class MigrationHandler:
-    """Handles entity migrations between tanks in the backend.
+    """Handles entity migrations between worlds in the backend.
 
     This class implements the migration logic that was previously embedded in
     Fish entity, properly decoupling core from backend concerns.
     """
 
-    def __init__(self, connection_manager, tank_registry):
+    def __init__(self, connection_manager: "ConnectionManager", world_manager: "WorldManager"):
         """Initialize migration handler.
 
         Args:
-            connection_manager: Manager for inter-tank connections
-            tank_registry: Registry of all active tanks
+            connection_manager: Manager for inter-world connections
+            world_manager: Manager for all active worlds
         """
         self.connection_manager = connection_manager
-        self.tank_registry = tank_registry
+        self.world_manager = world_manager
 
-    def attempt_entity_migration(self, entity: Any, direction: str, source_tank_id: str) -> bool:
-        """Attempt to migrate an entity to a connected tank.
+    def attempt_entity_migration(self, entity: Any, direction: str, source_world_id: str) -> bool:
+        """Attempt to migrate an entity to a connected world.
 
         Args:
             entity: The entity attempting to migrate
             direction: "left" or "right" - which boundary was hit
-            source_tank_id: ID of the source tank
+            source_world_id: ID of the source world
 
         Returns:
             True if migration successful, False otherwise
         """
-        # Find connections for this tank and direction
-        connections = self.connection_manager.get_connections_for_tank(source_tank_id, direction)
+        # Find connections for this world and direction
+        connections = self.connection_manager.get_connections_for_tank(source_world_id, direction)
 
         if not connections:
             return False  # No connection in this direction
 
         logger.debug(
-            f"Entity {type(entity).__name__} hit {direction} boundary in tank "
-            f"{source_tank_id[:8]}, found {len(connections)} connection(s)"
+            f"Entity {type(entity).__name__} hit {direction} boundary in world "
+            f"{source_world_id[:8]}, found {len(connections)} connection(s)"
         )
 
         # Pick a random connection if multiple exist
         connection = random.choice(connections)
 
-        # Get destination tank
-        dest_manager = self.tank_registry.get_tank(connection.destination_tank_id)
-        if not dest_manager:
-            logger.warning(f"Destination tank {connection.destination_tank_id} not found")
+        # Get destination world
+        dest_instance = self.world_manager.get_world(connection.destination_tank_id)
+        if not dest_instance:
+            logger.warning(f"Destination world {connection.destination_tank_id} not found")
             return False
 
-        # Check if destination allows transfers
-        if not dest_manager.tank_info.allow_transfers:
-            logger.debug(f"Destination tank {dest_manager.tank_info.name} does not allow transfers")
+        # Get source instance for logging
+        source_instance = self.world_manager.get_world(source_world_id)
+        if not source_instance:
+            logger.warning(f"Source world {source_world_id} not found")
             return False
 
-        # Get source manager for logging
-        source_manager = self.tank_registry.get_tank(source_tank_id)
-        if not source_manager:
-            logger.warning(f"Source tank {source_tank_id} not found")
+        # Get the actual world objects
+        source_runner = source_instance.runner
+        dest_runner = dest_instance.runner
+        source_world = getattr(source_runner, "world", None)
+        dest_world = getattr(dest_runner, "world", None)
+
+        if not source_world or not dest_world:
             return False
 
-        # Lock destination tank state while we deserialize/add to prevent races with its update loop.
+        # Lock destination runner state while we deserialize/add to prevent races with its update loop.
         # Avoid deadlocks by using a short timeout; if destination is busy, migration simply fails
-        # and the entity stays in the source tank.
-        dest_lock = getattr(getattr(dest_manager, "_runner", None), "lock", None)
+        # and the entity stays in the source world.
+        dest_lock = getattr(dest_runner, "lock", None)
         dest_lock_acquired = False
         if dest_lock is not None:
             try:
@@ -86,7 +91,7 @@ class MigrationHandler:
                 return False
 
         # Best-effort lock for source if we aren't already inside its update loop.
-        source_lock = getattr(getattr(source_manager, "_runner", None), "lock", None)
+        source_lock = getattr(source_runner, "lock", None)
         source_lock_acquired = False
         if source_lock is not None:
             try:
@@ -100,7 +105,7 @@ class MigrationHandler:
         new_entity = None
         original_root_spot = None
         try:
-            # Track energy leaving the source tank (for fish only)
+            # Track energy leaving the source world (for fish only)
             from core.entities.fish import Fish
             from core.entities.plant import Plant
 
@@ -113,9 +118,7 @@ class MigrationHandler:
 
             if isinstance(entity, Plant):
                 # If destination has no available root spots, fail fast to avoid churn.
-                dest_root_spot_manager = getattr(
-                    dest_manager.world.engine, "root_spot_manager", None
-                )
+                dest_root_spot_manager = getattr(dest_world.engine, "root_spot_manager", None)
                 if dest_root_spot_manager is None or dest_root_spot_manager.get_empty_count() <= 0:
                     return False
                 original_root_spot = getattr(entity, "root_spot", None)
@@ -137,7 +140,7 @@ class MigrationHandler:
             # New flow: Check destination first -> then remove/add.
 
             # Deserialize in destination (Check)
-            new_entity_outcome = try_deserialize_entity(entity_data, dest_manager.world)
+            new_entity_outcome = try_deserialize_entity(entity_data, dest_world)
             if not new_entity_outcome.ok:
                 # Failed to deserialize in destination (e.g. no root spots)
                 # Just return False, no need to restore since we haven't removed yet.
@@ -149,10 +152,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
                     entity_new_id=None,
-                    source_tank_id=source_tank_id,
-                    source_tank_name=source_manager.tank_info.name,
+                    source_tank_id=source_world_id,
+                    source_tank_name=source_instance.name,
                     destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_manager.tank_info.name,
+                    destination_tank_name=dest_instance.name,
                     success=False,
                     error=f"Failed to deserialize in destination: {new_entity_outcome.error.code if new_entity_outcome.error else 'unknown'}",
                     generation=getattr(entity, "generation", None),
@@ -161,21 +164,21 @@ class MigrationHandler:
 
             # If we get here, migration is go.
             # Remove from source (Commit)
-            source_manager.world.engine.request_remove(entity, reason="migration_transfer")
+            source_world.engine.request_remove(entity, reason="migration_transfer")
             removed_from_source = True
 
             new_entity = new_entity_outcome.value
 
-            # Position entity at opposite edge of destination tank
+            # Position entity at opposite edge of destination world
             if direction == "left":
-                new_entity.pos.x = dest_manager.world.config.screen_width - new_entity.width - 10
+                new_entity.pos.x = dest_world.config.screen_width - new_entity.width - 10
             else:  # right
                 new_entity.pos.x = 10
 
-            dest_manager.world.engine.request_spawn(new_entity, reason="migration_in")
+            dest_world.engine.request_spawn(new_entity, reason="migration_in")
             added_to_destination = True
 
-            # Track energy entering the destination tank (for fish only)
+            # Track energy entering the destination world (for fish only)
             if (
                 isinstance(new_entity, Fish)
                 and hasattr(new_entity, "ecosystem")
@@ -186,16 +189,14 @@ class MigrationHandler:
             # Invalidate cached state on destination and source runners so
             # websocket clients immediately see updated stats (e.g., max generation).
             try:
-                dest_runner = getattr(dest_manager, "_runner", None)
-                if dest_runner and hasattr(dest_runner, "invalidate_state_cache"):
+                if hasattr(dest_runner, "invalidate_state_cache"):
                     dest_runner.invalidate_state_cache()
-                elif dest_runner and hasattr(dest_runner, "_invalidate_state_cache"):
+                elif hasattr(dest_runner, "_invalidate_state_cache"):
                     dest_runner._invalidate_state_cache()
 
-                source_runner = getattr(source_manager, "_runner", None)
-                if source_runner and hasattr(source_runner, "invalidate_state_cache"):
+                if hasattr(source_runner, "invalidate_state_cache"):
                     source_runner.invalidate_state_cache()
-                elif source_runner and hasattr(source_runner, "_invalidate_state_cache"):
+                elif hasattr(source_runner, "_invalidate_state_cache"):
                     source_runner._invalidate_state_cache()
             except Exception:
                 # Non-fatal: cache invalidation is best-effort
@@ -208,10 +209,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
                     entity_new_id=id(new_entity),
-                    source_tank_id=source_tank_id,
-                    source_tank_name=source_manager.tank_info.name,
+                    source_tank_id=source_world_id,
+                    source_tank_name=source_instance.name,
                     destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_manager.tank_info.name,
+                    destination_tank_name=dest_instance.name,
                     success=True,
                     generation=generation,
                 )
@@ -220,7 +221,7 @@ class MigrationHandler:
 
             logger.debug(
                 f"{type(entity).__name__} (Gen {generation}) migrated {direction} from "
-                f"{source_manager.tank_info.name} to {dest_manager.tank_info.name}"
+                f"{source_instance.name} to {dest_instance.name}"
             )
 
             return True
@@ -234,17 +235,15 @@ class MigrationHandler:
                             original_root_spot.claim(entity)
                         except Exception:
                             logger.debug(
-                                "Failed to re-claim root spot after migration error (tank=%s)",
-                                source_tank_id[:8],
+                                "Failed to re-claim root spot after migration error (world=%s)",
+                                source_world_id[:8],
                                 exc_info=True,
                             )
-                    source_manager.world.engine.request_spawn(
-                        entity, reason="migration_restore_error"
-                    )
+                    source_world.engine.request_spawn(entity, reason="migration_restore_error")
                 except Exception:
                     logger.debug(
-                        "Failed to restore entity after migration error (tank=%s)",
-                        source_tank_id[:8],
+                        "Failed to restore entity after migration error (world=%s)",
+                        source_world_id[:8],
                         exc_info=True,
                     )
             # Log failed transfer
@@ -253,12 +252,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=id(entity),
                     entity_new_id=None,
-                    source_tank_id=source_tank_id,
-                    source_tank_name=source_manager.tank_info.name if source_manager else "unknown",
+                    source_tank_id=source_world_id,
+                    source_tank_name=source_instance.name if source_instance else "unknown",
                     destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=(
-                        dest_manager.tank_info.name if dest_manager else "unknown"
-                    ),
+                    destination_tank_name=(dest_instance.name if dest_instance else "unknown"),
                     success=False,
                     error=str(e),
                     generation=getattr(entity, "generation", None),

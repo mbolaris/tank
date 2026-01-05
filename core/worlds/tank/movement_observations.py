@@ -3,7 +3,7 @@
 This module provides the Tank-specific observation builder by configuring
 the shared FishMovementObservationBuilder with Tank entity types.
 
-For backward compatibility, TankMovementObservationBuilder is exported as
+TankMovementObservationBuilder is exported as
 an alias to the configured shared builder.
 """
 
@@ -18,7 +18,7 @@ class TankMovementObservationBuilder(FishMovementObservationBuilder):
     """Tank-specific observation builder.
 
     Pre-configured with Tank entity types (Food, Crab).
-    This class exists for backward compatibility - code can import
+    This class exists so code can import
     TankMovementObservationBuilder directly from this module.
     """
 

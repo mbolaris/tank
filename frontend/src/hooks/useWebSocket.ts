@@ -35,6 +35,12 @@ export function useWebSocket(tankId?: string) {
         try {
             // Use tankId if provided, otherwise fall back to config
             const wsUrl = tankId ? config.getWsUrlForTank(tankId) : config.wsUrl;
+
+            if (!wsUrl) {
+                // No valid URL, cannot connect.
+                return;
+            }
+
             const ws = new WebSocket(wsUrl);
             ws.binaryType = 'arraybuffer';
 
@@ -55,7 +61,7 @@ export function useWebSocket(tankId?: string) {
 
                     if (data.type === 'update') {
                         const update = data as SimulationUpdate;
-                        // Normalize: Ensure legacy fields are populated from snapshot for backward compatibility
+                        // Normalize: Populate top-level fields from snapshot for convenience
                         if (update.snapshot) {
                             update.frame = update.snapshot.frame;
                             update.elapsed_time = update.snapshot.elapsed_time;
@@ -65,7 +71,7 @@ export function useWebSocket(tankId?: string) {
                             update.poker_leaderboard = update.snapshot.poker_leaderboard;
                             update.auto_evaluation = update.snapshot.auto_evaluation;
                         }
-                        // Preserve mode fields from server (with backward-compatible defaults)
+                        // Preserve mode fields from server
                         update.view_mode = update.view_mode ?? 'side';
                         update.mode_id = update.mode_id ?? 'tank';
                         setState(update);
@@ -260,7 +266,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         // Nested snapshot
         snapshot: nextSnapshot,
 
-        // Sync Legacy fields (kept for compatibility)
+        // Sync flattened fields
         frame: nextFrame,
         elapsed_time: nextElapsedTime,
         entities,

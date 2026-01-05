@@ -4,27 +4,26 @@ This module provides the WorldManager class which manages active world instances
 for all world types (tank, petri, soccer) through a unified pipeline.
 
 All world types now flow through the same creation/loop/broadcast path:
-WorldManager → WorldInstance → Runner → Broadcast
-
-Tank worlds use TankWorldAdapter which wraps SimulationManager to provide
-the same interface as WorldRunner.
+WorldManager → WorldInstance → SimulationRunner → Broadcast
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Set
+
+from fastapi import WebSocket
 
 from backend.runner.runner_protocol import RunnerProtocol
+from backend.simulation_runner import SimulationRunner
 from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
 from backend.world_runner import WorldRunner
 
 if TYPE_CHECKING:
-    from backend.tank_registry import TankRegistry
-    from backend.tank_world_adapter import TankWorldAdapter
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
 
 logger = logging.getLogger(__name__)
@@ -38,24 +37,30 @@ class WorldInstance:
     """Represents an active world instance.
 
     This is the unified container for all world types. The runner field
-    can be either a WorldRunner (for petri/soccer) or a TankWorldAdapter
-    (for tank). Both expose compatible interfaces.
+    is always a SimulationRunner for tank worlds or WorldRunner for others.
     """
 
     world_id: str
     world_type: str
     mode_id: str
     name: str
-    runner: RunnerProtocol  # All runners (WorldRunner, TankWorldAdapter) satisfy this protocol
+    runner: RunnerProtocol  # SimulationRunner or WorldRunner
     created_at: datetime = field(default_factory=datetime.now)
     persistent: bool = True
     view_mode: str = "side"
     description: str = ""
     broadcast_adapter: WorldBroadcastAdapter | None = None
+    # WebSocket clients connected to this world
+    _connected_clients: Set[WebSocket] = field(default_factory=set)
 
     def is_tank(self) -> bool:
-        """Check if this is a tank world."""
-        return self.world_type == "tank"
+        """Check if this is a tank (or petri) world using SimulationRunner."""
+        return self.world_type in ("tank", "petri")
+
+    @property
+    def connected_clients(self) -> Set[WebSocket]:
+        """Get the set of connected WebSocket clients."""
+        return self._connected_clients
 
 
 @dataclass
@@ -96,71 +101,29 @@ class WorldManager:
     types (tank, petri, soccer). All worlds are stored in a single dictionary
     and accessed through the same interface.
 
-    For tank worlds, a TankWorldAdapter wraps the existing SimulationManager
-    to provide the same interface as WorldRunner, enabling tanks to run through
-    the same pipeline as other world types.
+    For tank worlds, SimulationRunner is used directly (no intermediate adapter).
 
     Attributes:
         _worlds: Dictionary of all world instances by world_id
-        _tank_registry: Reference to TankRegistry for tank-specific operations
+        _default_world_id: ID of the default world
     """
 
-    def __init__(
-        self,
-        tank_registry: TankRegistry | None = None,
-    ) -> None:
-        """Initialize the world manager.
-
-        Args:
-            tank_registry: Optional existing TankRegistry for tank worlds
-        """
-        self._tank_registry = tank_registry
+    def __init__(self) -> None:
+        """Initialize the world manager."""
         self._worlds: dict[str, WorldInstance] = {}
+        self._default_world_id: str | None = None
         self._start_broadcast_callback: BroadcastCallback | None = None
         self._stop_broadcast_callback: BroadcastCallback | None = None
+        self.connection_manager: Any = None
+
+    def set_connection_manager(self, connection_manager: Any) -> None:
+        """Set the connection manager instance."""
+        self.connection_manager = connection_manager
 
     @property
-    def tank_registry(self) -> TankRegistry | None:
-        """Get the tank registry for tank-specific operations."""
-        return self._tank_registry
-
-    def set_tank_registry(self, tank_registry: TankRegistry) -> None:
-        """Set the tank registry for tank world operations.
-
-        Also registers any existing tanks from the registry as world instances.
-        """
-        self._tank_registry = tank_registry
-        # Register existing tanks as world instances
-        self._sync_tanks_from_registry()
-
-    def _sync_tanks_from_registry(self) -> None:
-        """Synchronize tank worlds from TankRegistry into _worlds dict.
-
-        This ensures all tanks managed by TankRegistry are accessible through
-        the unified WorldManager interface.
-        """
-        if self._tank_registry is None:
-            return
-
-        from backend.tank_world_adapter import TankWorldAdapter
-
-        for manager in self._tank_registry:
-            tank_id = manager.tank_id
-            if tank_id not in self._worlds:
-                adapter = TankWorldAdapter(manager)
-                instance = WorldInstance(
-                    world_id=tank_id,
-                    world_type="tank",
-                    mode_id="tank",
-                    name=manager.tank_info.name,
-                    runner=adapter,
-                    created_at=manager.tank_info.created_at,
-                    persistent=manager.tank_info.persistent,
-                    view_mode="side",
-                    description=manager.tank_info.description,
-                )
-                self._worlds[tank_id] = instance
-                logger.debug("Synced tank world from registry: %s", tank_id[:8])
+    def default_world_id(self) -> str | None:
+        """Get the default world ID."""
+        return self._default_world_id
 
     def set_broadcast_callbacks(
         self,
@@ -180,12 +143,12 @@ class WorldManager:
         persistent: bool = True,
         seed: int | None = None,
         description: str = "",
+        world_id: str | None = None,
+        start_paused: bool = False,
     ) -> WorldInstance:
         """Create a new world instance.
 
-        All world types flow through this unified creation path. Tank worlds
-        are created through TankRegistry and wrapped with TankWorldAdapter.
-        Other worlds are created directly with WorldRunner.
+        All world types flow through this unified creation path.
 
         Args:
             world_type: The type of world to create (tank, petri, soccer)
@@ -194,6 +157,8 @@ class WorldManager:
             persistent: Whether the world should be persisted
             seed: Optional random seed for deterministic behavior
             description: Optional description of the world
+            world_id: Optional specific world ID (generated if not provided)
+            start_paused: Whether to start the simulation paused
 
         Returns:
             The created WorldInstance
@@ -214,11 +179,25 @@ class WorldManager:
             )
             persistent = False
 
+        # Generate world ID if not provided
+        if world_id is None:
+            world_id = str(uuid.uuid4())
+
         # Unified creation path - dispatch by world type
-        if world_type == "tank":
-            return self._create_tank_world(name, config, seed, persistent, description)
+        if world_type == "tank" or world_type == "petri":
+            return self._create_tank_world(
+                world_id=world_id,
+                world_type=world_type,
+                name=name,
+                config=config,
+                seed=seed,
+                persistent=persistent,
+                description=description,
+                start_paused=start_paused,
+            )
 
         return self._create_generic_world(
+            world_id=world_id,
             world_type=world_type,
             mode_id=metadata.mode_id,
             view_mode=metadata.view_mode,
@@ -231,63 +210,84 @@ class WorldManager:
 
     def _create_tank_world(
         self,
+        world_id: str,
+        world_type: str,
         name: str,
         config: dict[str, Any] | None,
         seed: int | None,
         persistent: bool,
         description: str,
+        start_paused: bool = False,
     ) -> WorldInstance:
-        """Create a tank world through TankRegistry with TankWorldAdapter.
+        """Create a tank/petri world using SimulationRunner directly.
 
-        The tank is created through TankRegistry (preserving tank-specific
-        functionality), then wrapped with TankWorldAdapter and stored in
-        the unified _worlds dictionary.
+        SimulationRunner handles both tank and petri worlds via switch_world_type().
         """
-        if self._tank_registry is None:
-            raise RuntimeError("TankRegistry not available for tank world creation")
-
-        from backend.tank_world_adapter import TankWorldAdapter
-
-        # Create tank through registry (handles SimulationManager creation)
-        manager = self._tank_registry.create_tank(
-            name=name,
-            description=description,
+        # Create SimulationRunner directly (no SimulationManager intermediary)
+        runner = SimulationRunner(
             seed=seed,
-            persistent=persistent,
+            tank_id=world_id,
+            tank_name=name,
+            world_type=world_type,
         )
+        runner.world_manager = self
 
-        # Start the simulation
-        manager.start(start_paused=False)
+        # Start the simulation thread
+        runner.start(start_paused=start_paused)
 
-        # Wrap with adapter for unified interface
-        adapter = TankWorldAdapter(manager)
+        # Get view mode from runner
+        view_mode = runner.view_mode
 
         # Create unified WorldInstance
         instance = WorldInstance(
-            world_id=manager.tank_id,
-            world_type="tank",
-            mode_id="tank",
+            world_id=world_id,
+            world_type=world_type,
+            mode_id=runner.mode_id,
             name=name,
-            runner=adapter,
-            created_at=manager.tank_info.created_at,
+            runner=runner,
+            created_at=datetime.now(),
             persistent=persistent,
-            view_mode="side",
+            view_mode=view_mode,
             description=description,
         )
 
         # Store in unified worlds dict
-        self._worlds[manager.tank_id] = instance
+        self._worlds[world_id] = instance
+
+        # Set as default if first world
+        if self._default_world_id is None:
+            self._default_world_id = world_id
 
         logger.info(
-            "Created tank world: %s (%s)",
-            manager.tank_id[:8],
+            "Created %s world: %s (%s)",
+            world_type,
+            world_id[:8],
             name,
         )
+
+        # Start broadcast task for newly created tank worlds
+        if self._start_broadcast_callback:
+            adapter = self.get_broadcast_adapter(world_id)
+            if adapter:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
+                        self._start_broadcast_callback(adapter, world_id),
+                        name=f"broadcast_start_{world_id[:8]}",
+                    )
+                    logger.info("Scheduled broadcast task for world %s", world_id[:8])
+                except RuntimeError:
+                    # No running event loop - broadcast will be started when first client connects
+                    logger.debug(
+                        "No event loop available, broadcast task for %s will start on connection",
+                        world_id[:8],
+                    )
 
         return instance
 
     def _create_generic_world(
         self,
+        world_id: str,
         world_type: str,
         mode_id: str,
         view_mode: str,
@@ -298,8 +298,6 @@ class WorldManager:
         description: str,
     ) -> WorldInstance:
         """Create a non-tank world with WorldRunner."""
-        world_id = str(uuid.uuid4())
-
         # Create world and snapshot builder via backend registry
         world_backend, snapshot_builder = create_world(
             mode_id,
@@ -334,6 +332,10 @@ class WorldManager:
         # Store in unified worlds dict
         self._worlds[world_id] = instance
 
+        # Set as default if first world
+        if self._default_world_id is None:
+            self._default_world_id = world_id
+
         logger.info(
             "Created %s world: %s (%s)",
             world_type,
@@ -346,42 +348,23 @@ class WorldManager:
     def get_world(self, world_id: str) -> WorldInstance | None:
         """Get a world instance by ID.
 
-        All worlds (tank, petri, soccer) are retrieved from the unified
-        _worlds dictionary.
-
         Args:
             world_id: The unique world identifier
 
         Returns:
             The WorldInstance if found, None otherwise
         """
-        # First check if it's in our unified dict
-        if world_id in self._worlds:
-            return self._worlds[world_id]
+        return self._worlds.get(world_id)
 
-        # For backward compatibility, check TankRegistry and sync if found
-        if self._tank_registry is not None:
-            tank_manager = self._tank_registry.get_tank(world_id)
-            if tank_manager is not None:
-                from backend.tank_world_adapter import TankWorldAdapter
+    def get_default_world(self) -> WorldInstance | None:
+        """Get the default world instance.
 
-                adapter = TankWorldAdapter(tank_manager)
-                instance = WorldInstance(
-                    world_id=world_id,
-                    world_type="tank",
-                    mode_id="tank",
-                    name=tank_manager.tank_info.name,
-                    runner=adapter,
-                    created_at=tank_manager.tank_info.created_at,
-                    persistent=tank_manager.tank_info.persistent,
-                    view_mode="side",
-                    description=tank_manager.tank_info.description,
-                )
-                # Cache in _worlds for future lookups
-                self._worlds[world_id] = instance
-                return instance
-
-        return None
+        Returns:
+            The default WorldInstance if one exists, None otherwise
+        """
+        if self._default_world_id is None:
+            return None
+        return self._worlds.get(self._default_world_id)
 
     def get_broadcast_adapter(self, world_id: str) -> WorldBroadcastAdapter | None:
         """Get or create the broadcast adapter for a world."""
@@ -409,26 +392,6 @@ class WorldManager:
         instance.broadcast_adapter = adapter
         return adapter
 
-    def get_tank_adapter(self, world_id: str) -> TankWorldAdapter | None:
-        """Get the TankWorldAdapter for a tank world.
-
-        This is a convenience method for code that needs tank-specific
-        functionality not exposed through the generic interface.
-
-        Args:
-            world_id: The tank world ID
-
-        Returns:
-            The TankWorldAdapter if found and world is a tank, None otherwise
-        """
-        instance = self.get_world(world_id)
-        if instance is not None and instance.is_tank():
-            from backend.tank_world_adapter import TankWorldAdapter
-
-            if isinstance(instance.runner, TankWorldAdapter):
-                return instance.runner
-        return None
-
     def list_worlds(self, world_type: str | None = None) -> list[WorldStatus]:
         """List all active worlds.
 
@@ -438,9 +401,6 @@ class WorldManager:
         Returns:
             List of WorldStatus for all matching worlds
         """
-        # Sync tanks from registry first to ensure we have all worlds
-        self._sync_tanks_from_registry()
-
         statuses: list[WorldStatus] = []
 
         for world_id, instance in self._worlds.items():
@@ -472,9 +432,6 @@ class WorldManager:
     def delete_world(self, world_id: str) -> bool:
         """Delete a world instance.
 
-        For tank worlds, also removes from TankRegistry and cleans up
-        persistent data.
-
         Args:
             world_id: The world ID to delete
 
@@ -484,18 +441,20 @@ class WorldManager:
         instance = self._worlds.pop(world_id, None)
 
         if instance is not None:
-            # For tank worlds, also remove from TankRegistry
-            if instance.is_tank() and self._tank_registry is not None:
-                self._tank_registry.remove_tank(world_id, delete_persistent_data=True)
+            # Stop the runner if it's a SimulationRunner
+            if hasattr(instance.runner, "stop"):
+                instance.runner.stop()
+
+            # Update default world if needed
+            if self._default_world_id == world_id:
+                self._default_world_id = next(iter(self._worlds), None)
+
+            # Cleanup connections
+            if self.connection_manager:
+                self.connection_manager.validate_connections(list(self._worlds.keys()))
 
             logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
             return True
-
-        # Backward compat: check if it's a tank not yet synced
-        if self._tank_registry is not None:
-            if self._tank_registry.remove_tank(world_id, delete_persistent_data=True):
-                logger.info("Deleted tank world: %s", world_id[:8])
-                return True
 
         return False
 
@@ -521,8 +480,6 @@ class WorldManager:
     @property
     def world_count(self) -> int:
         """Get total number of active worlds."""
-        # Sync to ensure we count all tanks
-        self._sync_tanks_from_registry()
         return len(self._worlds)
 
     def get_all_worlds(self) -> dict[str, WorldInstance]:
@@ -531,8 +488,24 @@ class WorldManager:
         Returns:
             Dictionary of world_id to WorldInstance
         """
-        self._sync_tanks_from_registry()
         return dict(self._worlds)
+
+    def start_all_worlds(self, start_paused: bool = False) -> None:
+        """Start all world simulations.
+
+        Args:
+            start_paused: Whether to start worlds in paused state
+        """
+        for instance in self._worlds.values():
+            if hasattr(instance.runner, "start"):
+                if not instance.runner.running:
+                    instance.runner.start(start_paused=start_paused)
+
+    def stop_all_worlds(self) -> None:
+        """Stop all world simulations."""
+        for instance in self._worlds.values():
+            if hasattr(instance.runner, "stop"):
+                instance.runner.stop()
 
     # =========================================================================
     # Persistence support
@@ -556,45 +529,79 @@ class WorldManager:
         if not instance.persistent:
             return None
 
-        # Tank worlds have their own capture method
-        if instance.is_tank():
-            from backend.tank_world_adapter import TankWorldAdapter
-
-            if isinstance(instance.runner, TankWorldAdapter):
-                return instance.runner.capture_state_for_save()
+        # Tank worlds have their own capture method via SimulationRunner
+        if instance.is_tank() and isinstance(instance.runner, SimulationRunner):
+            # SimulationRunner doesn't have capture_state_for_save, that was on SimulationManager
+            # For now, skip persistence (can be added later)
+            return None
 
         # Other world types don't support persistence yet
         return None
 
     # =========================================================================
-    # Tank-specific operations (for backward compatibility)
+    # Client management (for WebSocket connections)
     # =========================================================================
 
-    def get_tank_or_default(self, tank_id: str | None = None) -> TankWorldAdapter | None:
-        """Get a tank adapter by ID or return the default tank.
-
-        This is for backward compatibility with code that expects to work
-        with SimulationManager directly.
+    def add_client(self, world_id: str, websocket: WebSocket) -> bool:
+        """Add a WebSocket client to a world.
 
         Args:
-            tank_id: Optional tank ID. If None, returns default tank.
+            world_id: The world ID
+            websocket: The WebSocket connection
 
         Returns:
-            TankWorldAdapter for the specified or default tank
+            True if added, False if world not found
         """
-        if self._tank_registry is None:
-            return None
+        instance = self.get_world(world_id)
+        if instance is None:
+            return False
 
-        manager = self._tank_registry.get_tank_or_default(tank_id)
-        if manager is None:
-            return None
+        instance._connected_clients.add(websocket)
+        return True
 
-        from backend.tank_world_adapter import TankWorldAdapter
+    def remove_client(self, world_id: str, websocket: WebSocket) -> bool:
+        """Remove a WebSocket client from a world.
 
-        # Get or create the adapter
-        instance = self.get_world(manager.tank_id)
-        if instance is not None and isinstance(instance.runner, TankWorldAdapter):
-            return instance.runner
+        Args:
+            world_id: The world ID
+            websocket: The WebSocket connection
 
-        # Create adapter if not found
-        return TankWorldAdapter(manager)
+        Returns:
+            True if removed, False if not found
+        """
+        instance = self.get_world(world_id)
+        if instance is None:
+            return False
+
+        instance._connected_clients.discard(websocket)
+        return True
+
+    def get_client_count(self, world_id: str) -> int:
+        """Get the number of connected clients for a world.
+
+        Args:
+            world_id: The world ID
+
+        Returns:
+            Number of connected clients, 0 if world not found
+        """
+        instance = self.get_world(world_id)
+        if instance is None:
+            return 0
+        return len(instance._connected_clients)
+
+    # =========================================================================
+    # Iterator support
+    # =========================================================================
+
+    def __iter__(self):
+        """Iterate over world instances."""
+        return iter(self._worlds.values())
+
+    def __len__(self) -> int:
+        """Get the number of worlds."""
+        return len(self._worlds)
+
+    def __contains__(self, world_id: str) -> bool:
+        """Check if a world ID exists."""
+        return world_id in self._worlds

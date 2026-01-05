@@ -2,7 +2,7 @@
 
 This module provides adapters that bridge the existing behavior algorithm stack
 to the MovementPolicy interface, enabling gradual migration to code-pool-based
-policies while maintaining backward compatibility.
+policies.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ class BehaviorToMovementPolicyAdapter:
         but the observation could be used for a future pure-function approach.
 
         Args:
-            observation: Observation dict (currently unused, for future compatibility)
+            observation: Observation dict (currently unused)
             rng: Random number generator (currently unused, behavior uses fish.environment.rng)
 
         Returns:

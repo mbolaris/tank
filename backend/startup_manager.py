@@ -18,8 +18,7 @@ from backend.discovery_service import DiscoveryService
 from backend.migration_scheduler import MigrationScheduler
 from backend.models import ServerInfo
 from backend.server_client import ServerClient
-from backend.simulation_manager import SimulationManager
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +30,14 @@ class StartupManager:
     backend server, providing a clean separation from the FastAPI application
     lifecycle. It handles:
 
-    - Tank restoration from snapshots
+    - World creation and restoration
     - Connection restoration
     - Service initialization (discovery, auto-save, migrations)
     - Broadcast task management
     - Graceful shutdown and cleanup
 
     Attributes:
-        tank_registry: Registry of all tank simulations
+        world_manager: Manager for all world instances
         connection_manager: Manager for inter-tank connections
         discovery_service: Service discovery for distributed servers
         server_client: Client for server-to-server communication
@@ -48,28 +47,28 @@ class StartupManager:
 
     def __init__(
         self,
-        tank_registry: TankRegistry,
+        world_manager: WorldManager,
         connection_manager: ConnectionManager,
         discovery_service: DiscoveryService,
         server_client: ServerClient,
         server_id: str,
         discovery_server_url: Optional[str] = None,
-        start_broadcast_callback: Optional[Callable[[SimulationManager], Any]] = None,
+        start_broadcast_callback: Optional[Callable[[Any, str], Any]] = None,
         stop_broadcast_callback: Optional[Callable[[str], Any]] = None,
     ) -> None:
         """Initialize the startup manager.
 
         Args:
-            tank_registry: Tank registry instance
+            world_manager: World manager instance
             connection_manager: Connection manager instance
             discovery_service: Discovery service instance
             server_client: Server client instance
             server_id: Unique server identifier
             discovery_server_url: Optional discovery hub URL
-            start_broadcast_callback: Callback to start broadcast for a tank
-            stop_broadcast_callback: Callback to stop broadcast for a tank
+            start_broadcast_callback: Callback to start broadcast for a world
+            stop_broadcast_callback: Callback to stop broadcast for a world
         """
-        self.tank_registry = tank_registry
+        self.world_manager = world_manager
         self.connection_manager = connection_manager
         self.discovery_service = discovery_service
         self.server_client = server_client
@@ -84,7 +83,7 @@ class StartupManager:
 
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
-        self._broadcast_task_ids: Set[str] = set()  # Track which tanks have broadcast tasks
+        self._broadcast_task_ids: Set[str] = set()  # Track which worlds have broadcast tasks
 
         # Parsed discovery hub info
         self._discovery_hub_info: Optional[ServerInfo] = None
@@ -116,31 +115,32 @@ class StartupManager:
         logger.info(f"Python: {sys.version}")
         logger.info("=" * 60)
 
-        # Step 1: Restore tanks from snapshots
-        await self._restore_tanks()
+        # Step 0: Pass broadcast callbacks to world_manager
+        if self._start_broadcast_callback and self._stop_broadcast_callback:
+            self.world_manager.set_broadcast_callbacks(
+                self._start_broadcast_callback,
+                self._stop_broadcast_callback,
+            )
+
+        # Step 1: Create default world if none exists
+        await self._create_default_world()
 
         # Step 2: Restore connections
         await self._restore_connections()
 
-        # Step 3: Start tank simulations
-        await self._start_simulations()
-
-        # Step 4: Start broadcast tasks
+        # Step 3: Start broadcast tasks for all worlds
         await self._start_broadcast_tasks()
 
-        # Step 5: Start discovery service
+        # Step 4: Start discovery service
         await self._start_discovery_service(get_server_info_callback)
 
-        # Step 6: Start server client
+        # Step 5: Start server client
         await self._start_server_client(get_server_info_callback)
 
-        # Step 7: Configure distributed services
-        await self._configure_distributed_services()
-
-        # Step 8: Start migration scheduler
+        # Step 6: Start migration scheduler
         await self._start_migration_scheduler()
 
-        # Step 9: Start auto-save service
+        # Step 7: Start auto-save service
         await self._start_auto_save_service()
 
         logger.info("STARTUP: Server initialization complete")
@@ -152,31 +152,32 @@ class StartupManager:
         """
         logger.info("SHUTDOWN: Beginning graceful shutdown")
 
-        # Step 1: Save all persistent tanks
-        await self._save_all_tanks()
+        # Step 0: Save all worlds before shutdown
+        if self.auto_save_service:
+            try:
+                await self.auto_save_service.save_all_on_shutdown()
+            except Exception as e:
+                logger.error(f"Error saving worlds on shutdown: {e}", exc_info=True)
 
-        # Step 2: Save connections
-        await self._save_connections()
-
-        # Step 3: Stop auto-save service
+        # Step 1: Stop auto-save service
         await self._stop_auto_save_service()
 
-        # Step 4: Stop broadcast tasks
+        # Step 2: Stop broadcast tasks
         await self._stop_broadcast_tasks()
 
-        # Step 5: Stop migration scheduler
+        # Step 3: Stop migration scheduler
         await self._stop_migration_scheduler()
 
-        # Step 6: Stop all simulations
+        # Step 4: Stop all world simulations
         await self._stop_simulations()
 
-        # Step 7: Stop heartbeat task
+        # Step 5: Stop heartbeat task
         await self._stop_heartbeat_task()
 
-        # Step 8: Stop discovery service
+        # Step 6: Stop discovery service
         await self._stop_discovery_service()
 
-        # Step 9: Stop server client
+        # Step 7: Stop server client
         await self._stop_server_client()
 
         logger.info("SHUTDOWN: Cleanup complete")
@@ -186,70 +187,66 @@ class StartupManager:
     # Startup Steps
     # =========================================================================
 
-    async def _restore_tanks(self) -> None:
-        """Restore tanks from saved snapshots."""
-        logger.info("Checking for saved tank snapshots...")
-        try:
-            from backend.tank_persistence import (
-                cleanup_orphaned_tank_directories,
-                find_all_tank_snapshots,
-            )
+    async def _create_default_world(self) -> None:
+        """Create a default tank world if no worlds exist, or restore from saved snapshots."""
+        # First try to restore worlds from saved snapshots
+        await self._restore_saved_worlds()
 
-            # Clean up orphaned tank directories first (those without snapshots)
-            orphaned_removed = cleanup_orphaned_tank_directories()
-            if orphaned_removed > 0:
-                logger.info(f"Removed {orphaned_removed} orphaned tank directories")
-
-            tank_snapshots = find_all_tank_snapshots()
-            if tank_snapshots:
-                logger.info(f"Found {len(tank_snapshots)} tank(s) with saved snapshots")
-                for tank_id, snapshot_path in tank_snapshots.items():
-                    logger.info(f"Restoring tank {tank_id[:8]} from {snapshot_path}")
-                    restored_manager = self.tank_registry.restore_tank_from_snapshot(
-                        snapshot_path,
-                        start_paused=False,
-                    )
-                    if restored_manager:
-                        logger.info(f"Successfully restored tank {tank_id[:8]}")
-                        # Set as default if it's the first tank
-                        if self.tank_registry._default_tank_id is None:
-                            self.tank_registry._default_tank_id = tank_id
-                    else:
-                        logger.error(f"Failed to restore tank {tank_id[:8]}")
-            else:
-                logger.info("No saved snapshots found, will create default tank")
-        except Exception as e:
-            logger.error(f"Error restoring tanks from snapshots: {e}", exc_info=True)
-            logger.info("Will create default tank instead")
-
-        # Create default tank if no tanks were restored
-        if self.tank_registry.tank_count == 0:
-            logger.info("No tanks in registry, creating default tank...")
-            default_manager = self.tank_registry.create_tank(
-                name="Tank 1",
-                description="A local fish tank simulation",
+        if self.world_manager.world_count == 0:
+            logger.info("No worlds in manager, creating default world...")
+            self.world_manager.create_world(
+                world_type="tank",
+                name="World 1",
+                description="Default fish tank simulation",
                 persistent=True,
+                start_paused=False,
             )
-            self.tank_registry._default_tank_id = default_manager.tank_id
-            logger.info(f"Created default tank: {default_manager.tank_id[:8]}")
+            logger.info(
+                f"Created default world: {self.world_manager.default_world_id[:8] if self.world_manager.default_world_id else 'unknown'}"
+            )
 
-            # Create initial snapshot immediately
-            try:
-                from backend.tank_persistence import save_tank_state
+        logger.info(f"World manager has {self.world_manager.world_count} world(s)")
 
-                snapshot_path = save_tank_state(default_manager.tank_id, default_manager)
-                if snapshot_path:
-                    logger.info(f"Created initial snapshot: {snapshot_path}")
-                else:
-                    logger.warning("Failed to create initial snapshot")
-            except Exception as e:
-                logger.error(f"Error creating initial snapshot: {e}", exc_info=True)
+    async def _restore_saved_worlds(self) -> None:
+        """Restore worlds from saved snapshots."""
+        from backend.world_persistence import find_all_world_snapshots, load_snapshot
 
-        logger.info(f"Tank registry has {self.tank_registry.tank_count} tank(s)")
+        try:
+            world_snapshots = find_all_world_snapshots()
+            if not world_snapshots:
+                logger.info("No saved world snapshots found")
+                return
+
+            logger.info(f"Found {len(world_snapshots)} saved world(s) to restore")
+
+            for world_id, snapshot_path in world_snapshots.items():
+                try:
+                    snapshot = load_snapshot(snapshot_path)
+                    if snapshot:
+                        # Create world and restore state
+                        instance = self.world_manager.create_world(
+                            world_type=snapshot.get("world_type", "tank"),
+                            name=snapshot.get("tank_name", snapshot.get("name", "Restored World")),
+                            description=snapshot.get("description", "Restored from snapshot"),
+                            persistent=True,
+                            start_paused=False,
+                            world_id=world_id,  # Preserve the original world ID
+                        )
+                        if instance:
+                            # Restore entities and state into the world
+                            from backend.world_persistence import restore_world_from_snapshot
+
+                            restore_world_from_snapshot(snapshot, instance.runner.world)
+                            logger.info(f"Restored world {world_id[:8]} from snapshot")
+                except Exception as e:
+                    logger.error(f"Failed to restore world {world_id[:8]}: {e}", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"Error during world restoration: {e}", exc_info=True)
 
     async def _restore_connections(self) -> None:
         """Restore tank connections from saved file."""
-        logger.info("Restoring tank connections...")
+        logger.info("Restoring connections...")
         try:
             from backend.connection_persistence import load_connections
 
@@ -259,35 +256,25 @@ class StartupManager:
             logger.error(f"Error restoring connections: {e}", exc_info=True)
             logger.info("Continuing without restored connections")
 
-    async def _start_simulations(self) -> None:
-        """Start all tank simulations."""
-        logger.info("Starting all tank simulations...")
-        try:
-            for manager in self.tank_registry:
-                # Inject connection manager and tank registry for migrations
-                manager.runner.connection_manager = self.connection_manager
-                manager.runner.tank_registry = self.tank_registry
-                manager.runner.tank_id = manager.tank_id
-                manager.runner._update_environment_migration_context()
-
-                manager.start(start_paused=False)
-                logger.info(f"Tank {manager.tank_id[:8]} started")
-        except Exception as e:
-            logger.error(f"Failed to start simulations: {e}", exc_info=True)
-            raise
-
     async def _start_broadcast_tasks(self) -> None:
-        """Start broadcast tasks for all tanks."""
+        """Start broadcast tasks for all worlds."""
         logger.info("Starting broadcast tasks...")
         if not self._start_broadcast_callback:
             logger.warning("No broadcast callback configured, skipping broadcast tasks")
             return
 
         try:
-            for manager in self.tank_registry:
-                await self._start_broadcast_callback(manager)
-                self._broadcast_task_ids.add(manager.tank_id)
-                logger.info(f"Broadcast task started for tank {manager.tank_id[:8]}")
+            for instance in self.world_manager:
+                # Use the shared broadcast adapter to ensure clients and broadcast task use the same instance
+                adapter = self.world_manager.get_broadcast_adapter(instance.world_id)
+                if adapter:
+                    await self._start_broadcast_callback(adapter, instance.world_id)
+                    self._broadcast_task_ids.add(instance.world_id)
+                    logger.info(f"Broadcast task started for world {instance.world_id[:8]}")
+                else:
+                    logger.warning(
+                        f"Could not create broadcast adapter for world {instance.world_id[:8]}"
+                    )
         except Exception as e:
             logger.error(f"Failed to start broadcast tasks: {e}", exc_info=True)
             raise
@@ -364,35 +351,13 @@ class StartupManager:
                 logger.error(f"Error registering with discovery hub: {e}", exc_info=True)
                 # Non-fatal - continue without hub registration
 
-    async def _configure_distributed_services(self) -> None:
-        """Configure tank registry for distributed operations."""
-        logger.info("Configuring TankRegistry for distributed operations...")
-        try:
-            self.tank_registry.set_distributed_services(self.discovery_service, self.server_client)
-            self.tank_registry.set_connection_manager(self.connection_manager)
-            logger.info(
-                "TankRegistry configured for distributed operations and connection management"
-            )
-
-            # Clean up invalid connections on startup
-            valid_tank_ids = self.tank_registry.list_tank_ids()
-            removed_count = self.connection_manager.validate_connections(
-                valid_tank_ids, local_server_id=self.server_id
-            )
-            if removed_count > 0:
-                logger.info(f"Startup cleanup: Removed {removed_count} invalid connections")
-
-        except Exception as e:
-            logger.error(f"Failed to configure TankRegistry: {e}", exc_info=True)
-            # Non-fatal - continue without distributed tank queries
-
     async def _start_migration_scheduler(self) -> None:
         """Start migration scheduler for automated entity migrations."""
         logger.info("Starting migration scheduler...")
         try:
             self.migration_scheduler = MigrationScheduler(
                 connection_manager=self.connection_manager,
-                tank_registry=self.tank_registry,
+                world_manager=self.world_manager,
                 check_interval=2.0,
                 discovery_service=self.discovery_service,
                 server_client=self.server_client,
@@ -405,10 +370,10 @@ class StartupManager:
             # Non-fatal - continue without automated migrations
 
     async def _start_auto_save_service(self) -> None:
-        """Start auto-save service for periodic tank persistence."""
+        """Start auto-save service for periodic world persistence."""
         logger.info("Starting auto-save service...")
         try:
-            self.auto_save_service = AutoSaveService(self.tank_registry)
+            self.auto_save_service = AutoSaveService(self.world_manager)
             await self.auto_save_service.start()
             logger.info("Auto-save service started")
         except Exception as e:
@@ -418,29 +383,6 @@ class StartupManager:
     # =========================================================================
     # Shutdown Steps
     # =========================================================================
-
-    async def _save_all_tanks(self) -> None:
-        """Save all persistent tanks before shutdown."""
-        logger.info("Saving all persistent tanks...")
-        if self.auto_save_service:
-            try:
-                saved_count = await self.auto_save_service.save_all_now()
-                logger.info(f"Saved {saved_count} persistent tank(s) before shutdown")
-            except Exception as e:
-                logger.error(f"Error saving tanks on shutdown: {e}", exc_info=True)
-
-    async def _save_connections(self) -> None:
-        """Save all connections before shutdown."""
-        logger.info("Saving tank connections...")
-        try:
-            from backend.connection_persistence import save_connections
-
-            if save_connections(self.connection_manager):
-                logger.info("Tank connections saved successfully")
-            else:
-                logger.warning("Failed to save tank connections")
-        except Exception as e:
-            logger.error(f"Error saving connections on shutdown: {e}", exc_info=True)
 
     async def _stop_auto_save_service(self) -> None:
         """Stop auto-save service."""
@@ -459,13 +401,13 @@ class StartupManager:
             logger.warning("No broadcast stop callback configured")
             return
 
-        for tank_id in list(self._broadcast_task_ids):
+        for world_id in list(self._broadcast_task_ids):
             try:
-                await self._stop_broadcast_callback(tank_id)
-                logger.info(f"Broadcast task stopped for tank {tank_id[:8]}")
+                await self._stop_broadcast_callback(world_id)
+                logger.info(f"Broadcast task stopped for world {world_id[:8]}")
             except Exception as e:
                 logger.error(
-                    f"Error stopping broadcast for tank {tank_id[:8]}: {e}",
+                    f"Error stopping broadcast for world {world_id[:8]}: {e}",
                     exc_info=True,
                 )
         self._broadcast_task_ids.clear()
@@ -481,10 +423,10 @@ class StartupManager:
                 logger.error(f"Error stopping migration scheduler: {e}", exc_info=True)
 
     async def _stop_simulations(self) -> None:
-        """Stop all tank simulations."""
+        """Stop all world simulations."""
         logger.info("Stopping all simulations...")
         try:
-            self.tank_registry.stop_all()
+            self.world_manager.stop_all_worlds()
             logger.info("All simulations stopped!")
         except Exception as e:
             logger.error(f"Error stopping simulations: {e}", exc_info=True)

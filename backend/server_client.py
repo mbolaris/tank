@@ -174,31 +174,31 @@ class ServerClient:
         return None
 
     async def list_tanks(self, server: ServerInfo) -> Optional[List[Dict[str, Any]]]:
-        """List all tanks on a remote server.
+        """List all worlds on a remote server.
 
         Args:
             server: Server to query
 
         Returns:
-            List of tank info dictionaries if successful, None otherwise
+            List of world info dictionaries if successful, None otherwise
         """
-        url = self._build_url(server, "/api/tanks")
+        url = self._build_url(server, "/api/worlds")
         response = await self._request("GET", url)
 
         if response:
             try:
                 data = response.json()
-                # Extract tanks array from response wrapper
-                if isinstance(data, dict) and "tanks" in data:
-                    return data["tanks"]
+                # Extract worlds array from response wrapper
+                if isinstance(data, dict) and "worlds" in data:
+                    return data["worlds"]
                 # If response is already a list, return it
                 elif isinstance(data, list):
                     return data
                 else:
-                    logger.error("Unexpected tank list response format: %s", type(data))
+                    logger.error("Unexpected world list response format: %s", type(data))
                     return None
             except Exception as e:
-                logger.error("Failed to parse tank list: %s", e)
+                logger.error("Failed to parse world list: %s", e)
 
         return None
 
@@ -207,23 +207,23 @@ class ServerClient:
         server: ServerInfo,
         tank_id: str,
     ) -> Optional[Dict[str, Any]]:
-        """Get tank information from a remote server.
+        """Get world information from a remote server.
 
         Args:
             server: Server to query
-            tank_id: Tank ID to look up
+            tank_id: World ID to look up
 
         Returns:
-            Tank info dictionary if successful, None otherwise
+            World info dictionary if successful, None otherwise
         """
-        url = self._build_url(server, f"/api/tanks/{tank_id}")
+        url = self._build_url(server, f"/api/worlds/{tank_id}")
         response = await self._request("GET", url)
 
         if response:
             try:
                 return response.json()
             except Exception as e:
-                logger.error("Failed to parse tank info: %s", e)
+                logger.error("Failed to parse world info: %s", e)
 
         return None
 
@@ -234,12 +234,12 @@ class ServerClient:
         destination_tank_id: str,
         entity_id: int,
     ) -> Optional[Dict[str, Any]]:
-        """Transfer an entity between tanks on a remote server.
+        """Transfer an entity between worlds on a remote server.
 
         Args:
-            server: Server hosting the tanks
-            source_tank_id: Source tank ID
-            destination_tank_id: Destination tank ID
+            server: Server hosting the worlds
+            source_tank_id: Source world ID
+            destination_tank_id: Destination world ID
             entity_id: Entity ID to transfer
 
         Returns:
@@ -247,12 +247,12 @@ class ServerClient:
         """
         url = self._build_url(
             server,
-            f"/api/tanks/{source_tank_id}/transfer",
+            f"/api/worlds/{source_tank_id}/transfer",
         )
 
         params = {
             "entity_id": entity_id,
-            "destination_tank_id": destination_tank_id,
+            "destination_world_id": destination_tank_id,
         }
 
         response = await self._request("POST", url, params=params)

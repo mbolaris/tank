@@ -263,7 +263,7 @@ class LifeStage(Enum):
     This enum represents the distinct life stages a fish goes through.
     Each stage affects metabolism, reproduction ability, and behavior.
 
-    Note: Values are strings for backward compatibility with existing code.
+    Each stage affects metabolism, reproduction ability, and behavior.
     """
 
     BABY = "baby"  # Just born, cannot reproduce

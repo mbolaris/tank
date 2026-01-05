@@ -4,7 +4,7 @@ This package provides modular statistics calculation, splitting the original
 1,277-line StatsCalculator into focused sub-calculators.
 
 Architecture Notes:
-- StatsCalculator is the main aggregator (backward compatible)
+- StatsCalculator is the main aggregator
 - Sub-calculators handle specific stat domains
 - Each sub-calculator can be tested independently
 """

@@ -511,7 +511,7 @@ export class Renderer {
             return;
         }
 
-        // Fallback to image-based rendering for backward compatibility
+        // Fallback to image-based rendering
         const imageIndex = this.getAnimationFrame(elapsedTime, DEFAULT_FISH_IMAGES.length);
         const imageName = DEFAULT_FISH_IMAGES[imageIndex];
         const image = ImageLoader.getCachedImage(imageName);

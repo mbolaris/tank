@@ -84,7 +84,6 @@ function buildSoccerScene(snapshot: any): SoccerScene {
 
 export class SoccerTopDownRenderer implements Renderer {
     id = "soccer-topdown";
-    private lastNowMs: number = 0;
 
     dispose() {
         // No heavy resources to dispose
@@ -92,7 +91,6 @@ export class SoccerTopDownRenderer implements Renderer {
 
     render(frame: RenderFrame, rc: RenderContext) {
         const { ctx, canvas } = rc;
-        this.lastNowMs = rc.nowMs;
         const scene = buildSoccerScene(frame.snapshot);
         const options = frame.options ?? {};
 

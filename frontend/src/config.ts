@@ -60,13 +60,13 @@ function getWebSocketUrl(): string {
     const baseUrl = getBaseWebSocketUrl();
     const tankId = getTankIdFromUrl();
 
-    // If a specific tank is requested, use /ws/{tank_id}
+    // If a specific tank/world is requested, use /ws/world/{world_id}
     if (tankId) {
-        return `${baseUrl}/ws/${tankId}`;
+        return `${baseUrl}/ws/world/${tankId}`;
     }
 
-    // Default: use /ws (connects to default tank)
-    return `${baseUrl}/ws`;
+    // Default: no world selected. The application must identify a world before connecting.
+    return '';
 }
 
 /**
@@ -119,18 +119,32 @@ export const config = {
     },
 
     /**
-     * Get WebSocket URL for a specific tank
-     * @param tankId - The tank ID to connect to
+     * Get WebSocket URL for a specific world (formerly tank)
+     * @param worldId - The world ID to connect to
      */
-    getWsUrlForTank(tankId: string): string {
-        return `${getBaseWebSocketUrl()}/ws/${tankId}`;
+    getWsUrlForWorld(worldId: string): string {
+        return `${getBaseWebSocketUrl()}/ws/world/${worldId}`;
     },
 
     /**
-     * Get API URL for listing tanks
+     * @deprecated Use getWsUrlForWorld instead
      */
-    get tanksApiUrl(): string {
-        return `${this.apiBaseUrl}/api/tanks`;
+    getWsUrlForTank(tankId: string): string {
+        return `${getBaseWebSocketUrl()}/ws/world/${tankId}`;
+    },
+
+    /**
+     * Get API URL for listing worlds
+     */
+    get worldsApiUrl(): string {
+        return `${this.apiBaseUrl}/api/worlds`;
+    },
+
+    /**
+     * Get API URL for default world ID
+     */
+    get defaultWorldIdUrl(): string {
+        return `${this.apiBaseUrl}/api/worlds/default/id`;
     },
 
     /**
@@ -169,7 +183,7 @@ export interface ServerInfo {
  */
 export interface ServerWithTanks {
     server: ServerInfo;
-    tanks: TankStatus[];
+    tanks: WorldStatus[];
 }
 
 /**
@@ -213,22 +227,28 @@ export interface TankStatsSummary {
 /**
  * Tank status returned from the API
  */
-export interface TankStatus {
-    tank: TankInfo;
-    running: boolean;
-    client_count: number;
-    frame: number;
+/**
+ * World status returned from the API (/api/worlds)
+ * Matches backend WorldStatus
+ */
+export interface WorldStatus {
+    world_id: string;
+    world_type: string;
+    mode_id: string;
+    name: string;
+    view_mode: string;
+    persistent: boolean;
+    frame_count: number;
     paused: boolean;
-    fps?: number;
-    stats?: TankStatsSummary;
-    fast_forward?: boolean;
+    description: string;
+    // Optional compatibility fields if needed?
 }
 
 /**
- * Response from GET /api/tanks
+ * Response from GET /api/worlds
  */
-export interface TanksListResponse {
-    tanks: TankStatus[];
+export interface WorldsListResponse {
+    worlds: WorldStatus[];
     count: number;
-    default_tank_id: string;
 }
+

@@ -34,7 +34,7 @@ class TankLikeEntityIdentityProvider:
 
         # Reverse mapping for entity lookup by stable ID
         self._stable_id_to_entity: dict[str, Any] = {}
-        # Legacy ID lookup (fish_id, plant_id) for backward compatibility
+        # Legacy ID lookup (fish_id, plant_id)
         self._legacy_id_to_entity: dict[str, Any] = {}
 
     def stable_id(self, entity: Any) -> str:
@@ -152,5 +152,5 @@ class TankLikeEntityIdentityProvider:
             del self._entity_stable_ids[stale_id]
 
 
-# Backward-compatible alias
+# Alias
 TankEntityIdentityProvider = TankLikeEntityIdentityProvider

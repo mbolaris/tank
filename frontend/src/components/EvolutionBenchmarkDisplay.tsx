@@ -682,7 +682,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
 
     useEffect(() => {
         let cancelled = false;
-        const url = tankId ? `/api/tanks/${tankId}/evolution-benchmark` : '/api/evolution-benchmark';
+        const url = tankId ? `/api/worlds/${tankId}/evolution-benchmark` : '/api/worlds/evolution-benchmark';
 
         const fetchData = async () => {
             try {

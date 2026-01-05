@@ -12,7 +12,7 @@ from .models import (
 )
 from .sandbox import build_restricted_globals, parse_and_validate
 
-# Builtin component IDs for backward compatibility and default policies
+# Builtin component IDs for default policies
 BUILTIN_SEEK_NEAREST_FOOD_ID = "builtin_seek_nearest_food"
 BUILTIN_FLEE_FROM_THREAT_ID = "builtin_flee_from_threat"
 BUILTIN_CHASE_BALL_SOCCER_ID = "builtin_chase_ball_soccer"

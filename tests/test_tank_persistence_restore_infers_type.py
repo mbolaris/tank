@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.entity_transfer import serialize_entity_for_transfer
+from core.transfer.entity_transfer import serialize_entity_for_transfer
 from backend.tank_persistence import restore_tank_from_snapshot
 from core.config.server import PLANTS_ENABLED
 from core.entities.plant import Plant

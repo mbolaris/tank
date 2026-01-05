@@ -1,6 +1,6 @@
-"""Auto-save service for periodic tank state persistence.
+"""Auto-save service for periodic world state persistence.
 
-This module provides automatic background saving of tank states at
+This module provides automatic background saving of world states at
 configured intervals, ensuring that simulations can be restored after
 server restarts.
 """
@@ -10,26 +10,28 @@ import logging
 from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
-    from backend.simulation_manager import SimulationManager
-    from backend.tank_registry import TankRegistry
+    from backend.world_manager import WorldInstance, WorldManager
 
 logger = logging.getLogger(__name__)
 
+# Default auto-save interval in seconds
+DEFAULT_AUTO_SAVE_INTERVAL = 300.0
+
 
 class AutoSaveService:
-    """Background service for auto-saving tank states.
+    """Background service for auto-saving world states.
 
-    This service manages periodic saves for all persistent tanks
-    in the registry, with configurable intervals per tank.
+    This service manages periodic saves for all persistent worlds
+    in the manager, with configurable intervals per world.
     """
 
-    def __init__(self, tank_registry: "TankRegistry"):
+    def __init__(self, world_manager: "WorldManager"):
         """Initialize the auto-save service.
 
         Args:
-            tank_registry: The tank registry to monitor
+            world_manager: The world manager to monitor
         """
-        self._tank_registry = tank_registry
+        self._world_manager = world_manager
         self._tasks: Dict[str, asyncio.Task] = {}
         self._running = False
 
@@ -42,10 +44,10 @@ class AutoSaveService:
         self._running = True
         logger.info("Auto-save service started")
 
-        # Start auto-save tasks for all persistent tanks
-        for manager in self._tank_registry:
-            if manager.tank_info.persistent:
-                await self._start_tank_autosave(manager)
+        # Start auto-save tasks for all persistent worlds
+        for instance in self._world_manager:
+            if instance.persistent:
+                await self._start_world_autosave(instance)
 
     async def stop(self) -> None:
         """Stop the auto-save service and cancel all tasks."""
@@ -56,169 +58,144 @@ class AutoSaveService:
         logger.info("Stopping auto-save service...")
 
         # Cancel all auto-save tasks
-        for tank_id, task in list(self._tasks.items()):
+        for world_id, task in list(self._tasks.items()):
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-            logger.info(f"Auto-save task cancelled for tank {tank_id[:8]}")
+            logger.info(f"Auto-save task cancelled for world {world_id[:8]}")
 
         self._tasks.clear()
         logger.info("Auto-save service stopped")
 
-    async def _start_tank_autosave(self, manager: "SimulationManager") -> None:
-        """Start auto-save task for a specific tank.
+    async def _start_world_autosave(self, instance: "WorldInstance") -> None:
+        """Start auto-save task for a specific world.
 
         Args:
-            manager: The SimulationManager to auto-save
+            instance: The WorldInstance to auto-save
         """
-        tank_id = manager.tank_id
+        world_id = instance.world_id
 
-        if tank_id in self._tasks:
-            logger.warning(f"Auto-save task already exists for tank {tank_id[:8]}")
+        if world_id in self._tasks:
+            logger.warning(f"Auto-save task already exists for world {world_id[:8]}")
             return
 
-        task = asyncio.create_task(self._autosave_loop(manager), name=f"autosave_{tank_id[:8]}")
-        self._tasks[tank_id] = task
+        task = asyncio.create_task(self._autosave_loop(instance), name=f"autosave_{world_id[:8]}")
+        self._tasks[world_id] = task
         logger.info(
-            f"Started auto-save for tank {tank_id[:8]} "
-            f"(interval: {manager.tank_info.auto_save_interval}s)"
+            f"Started auto-save for world {world_id[:8]} "
+            f"(interval: {DEFAULT_AUTO_SAVE_INTERVAL}s)"
         )
 
-    async def stop_tank_autosave(self, tank_id: str) -> None:
-        """Stop auto-save task for a specific tank.
+    async def stop_world_autosave(self, world_id: str) -> None:
+        """Stop auto-save task for a specific world.
 
         Args:
-            tank_id: The tank ID to stop auto-saving
+            world_id: The world ID to stop auto-saving
         """
-        task = self._tasks.pop(tank_id, None)
+        task = self._tasks.pop(world_id, None)
         if task:
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-            logger.info(f"Auto-save task stopped for tank {tank_id[:8]}")
+            logger.info(f"Auto-save task stopped for world {world_id[:8]}")
 
-    async def _autosave_loop(self, manager: "SimulationManager") -> None:
-        """Background loop for periodic tank saves.
+    async def _autosave_loop(self, instance: "WorldInstance") -> None:
+        """Background loop for periodic world saves.
 
         Args:
-            manager: The SimulationManager to save
+            instance: The WorldInstance to save
         """
-        from backend.tank_persistence import cleanup_old_snapshots, save_snapshot_data
+        from backend.world_persistence import save_world_state, cleanup_old_snapshots
 
-        tank_id = manager.tank_id
-        interval = manager.tank_info.auto_save_interval
-        loop = asyncio.get_running_loop()
+        world_id = instance.world_id
+        interval = DEFAULT_AUTO_SAVE_INTERVAL
 
         try:
             while self._running:
                 # Wait for the configured interval
                 await asyncio.sleep(interval)
 
-                # Save the tank state
+                # Save the world state
                 try:
-                    # 1. Capture state (fast, thread-safe, holds lock briefly)
-                    snapshot = manager.capture_state_for_save()
-
-                    if snapshot:
-                        # 2. Write to disk (slow, run in thread pool to avoid blocking event loop)
-                        snapshot_path = await loop.run_in_executor(
-                            None, save_snapshot_data, tank_id, snapshot
-                        )
-
-                        if snapshot_path:
-                            logger.info(f"Auto-saved tank {tank_id[:8]} to {snapshot_path}")
-
-                            # Cleanup old snapshots (keep last 10)
-                            # Also run in executor as it involves file I/O
-                            deleted = await loop.run_in_executor(
-                                None, cleanup_old_snapshots, tank_id, 10
-                            )
-                            if deleted > 0:
-                                logger.debug(
-                                    f"Cleaned up {deleted} old snapshots for tank {tank_id[:8]}"
-                                )
-                        else:
-                            logger.error(f"Auto-save failed for tank {tank_id[:8]}")
+                    result = save_world_state(world_id, instance.runner)
+                    if result:
+                        # Cleanup old snapshots to prevent disk bloat
+                        cleanup_old_snapshots(world_id, max_snapshots=10)
                     else:
-                        logger.warning(
-                            f"Could not capture state for auto-save of tank {tank_id[:8]}"
-                        )
+                        logger.warning(f"Auto-save failed for world {world_id[:8]}")
 
                 except Exception as e:
                     logger.error(
-                        f"Error during auto-save for tank {tank_id[:8]}: {e}", exc_info=True
+                        f"Error during auto-save for world {world_id[:8]}: {e}", exc_info=True
                     )
 
         except asyncio.CancelledError:
-            logger.info(f"Auto-save loop cancelled for tank {tank_id[:8]}")
+            logger.info(f"Auto-save loop cancelled for world {world_id[:8]}")
             raise
         except Exception as e:
             logger.error(
-                f"Fatal error in auto-save loop for tank {tank_id[:8]}: {e}", exc_info=True
+                f"Fatal error in auto-save loop for world {world_id[:8]}: {e}", exc_info=True
             )
 
-    async def save_tank_now(self, tank_id: str) -> Optional[str]:
-        """Immediately save a specific tank (out of band).
+    async def save_world_now(self, world_id: str) -> Optional[str]:
+        """Immediately save a specific world (out of band).
 
         Args:
-            tank_id: The tank ID to save
+            world_id: The world ID to save
 
         Returns:
             Path to saved snapshot, or None if failed
         """
-        from backend.tank_persistence import cleanup_old_snapshots, save_snapshot_data
+        from backend.world_persistence import save_world_state
 
-        manager = self._tank_registry.get_tank(tank_id)
-        if not manager:
-            logger.error(f"Cannot save tank {tank_id[:8]}: not found")
+        instance = self._world_manager.get_world(world_id)
+        if not instance:
+            logger.error(f"Cannot save world {world_id[:8]}: not found")
             return None
 
-        loop = asyncio.get_running_loop()
-
         try:
-            # 1. Capture state
-            snapshot = manager.capture_state_for_save()
-
-            if snapshot:
-                # 2. Write to disk in thread pool
-                snapshot_path = await loop.run_in_executor(
-                    None, save_snapshot_data, tank_id, snapshot
-                )
-
-                if snapshot_path:
-                    logger.info(f"Manual save completed for tank {tank_id[:8]}")
-                    await loop.run_in_executor(None, cleanup_old_snapshots, tank_id, 10)
-                    return snapshot_path
-                else:
-                    logger.error(f"Manual save failed for tank {tank_id[:8]}")
-                    return None
-            else:
-                logger.error(f"Manual save failed: could not capture state for tank {tank_id[:8]}")
-                return None
+            result = save_world_state(world_id, instance.runner)
+            if result:
+                logger.info(f"Manual save completed for world {world_id[:8]}")
+            return result
 
         except Exception as e:
-            logger.error(f"Error saving tank {tank_id[:8]}: {e}", exc_info=True)
+            logger.error(f"Error saving world {world_id[:8]}: {e}", exc_info=True)
             return None
 
     async def save_all_now(self) -> int:
-        """Save all persistent tanks immediately.
+        """Save all persistent worlds immediately.
 
         Returns:
-            Number of tanks successfully saved
+            Number of worlds successfully saved
         """
         saved_count = 0
 
-        for manager in self._tank_registry:
-            if not manager.tank_info.persistent:
+        for instance in self._world_manager:
+            if not instance.persistent:
                 continue
 
-            result = await self.save_tank_now(manager.tank_id)
+            result = await self.save_world_now(instance.world_id)
             if result:
                 saved_count += 1
 
-        logger.info(f"Saved {saved_count} persistent tanks")
+        logger.info(f"Saved {saved_count} persistent worlds")
+        return saved_count
+
+    async def save_all_on_shutdown(self) -> int:
+        """Save all persistent worlds before shutdown.
+
+        This should be called during graceful shutdown to ensure
+        world state is persisted.
+
+        Returns:
+            Number of worlds successfully saved
+        """
+        logger.info("Saving all worlds before shutdown...")
+        saved_count = await self.save_all_now()
+        logger.info(f"Shutdown save complete: {saved_count} worlds saved")
         return saved_count

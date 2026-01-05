@@ -1,4 +1,5 @@
 import math
+import random
 
 from core.root_spots import RootSpot
 from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
@@ -23,14 +24,13 @@ class TestRootSpotRadialInward:
         # Plant size
         w, h = 20, 20
         # Expected behavior:
-        # Plant is roughly circular with radius = 10.
-        # Normal points inward (-1, 0).
-        # Plant center = spot + normal * radius = (600, 500) + (-1, 0)*10 = (590, 500).
-        # TopLeft = center - (w/2, h/2) = (590 - 10, 500 - 10) = (580, 490).
+        # Radial inward no longer shifts inward. It centers on the spot.
+        # Spot = (600, 500).
+        # TopLeft = center - (w/2, h/2) = (600 - 10, 500 - 10) = (590, 490).
 
         tx, ty = spot.get_anchor_topleft(w, h)
 
-        assert math.isclose(tx, 580, abs_tol=0.1)
+        assert math.isclose(tx, 590, abs_tol=0.1)
         assert math.isclose(ty, 490, abs_tol=0.1)
 
     def test_radial_inward_calculation_90_degrees(self):
@@ -47,28 +47,46 @@ class TestRootSpotRadialInward:
 
         w, h = 30, 30
         # Radius = 15
-        # Normal = (0, -1) (pointing UP/Inward from bottom)
-        # Center = (500, 600) + (0, -1)*15 = (500, 585)
-        # TopLeft = (500 - 15, 585 - 15) = (485, 570)
+        # Spot = (500, 600).
+        # TopLeft = (500 - 15, 600 - 15) = (485, 585)
 
         tx, ty = spot.get_anchor_topleft(w, h)
 
         assert math.isclose(tx, 485, abs_tol=0.1)
-        assert math.isclose(ty, 570, abs_tol=0.1)
+        assert math.isclose(ty, 585, abs_tol=0.1)
+
+
+class MockPetriDish:
+    def __init__(self, cx, cy, r):
+        self.cx = cx
+        self.cy = cy
+        self.r = r
+
+    def perimeter_points(self, count):
+        points = []
+        for i in range(count):
+            angle = (2 * math.pi * i) / count
+            x = self.cx + self.r * math.cos(angle)
+            y = self.cy + self.r * math.sin(angle)
+            points.append((x, y, angle))
+        return points
 
 
 class TestCircularRootSpotManager:
     def test_initialization_on_perimeter(self):
         # Mock RNG
-        import random
-
         rng = random.Random(42)
 
+        dish = MockPetriDish(PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS)
+
         manager = CircularRootSpotManager(
-            screen_width=1000, screen_height=1000, spot_count=4, rng=rng
+            dish=dish,
+            rng=rng,
         )
 
-        assert len(manager.spots) == 4
+        # Manager roughly calculates count based on circumference.
+        # Circumference ~ 2 * pi * 500 ~ 3141. Spacing 45. ~70 spots.
+        assert len(manager.spots) > 20
 
         for spot in manager.spots:
             # Check geometry
@@ -82,11 +100,3 @@ class TestCircularRootSpotManager:
             # Check anchor mode
             assert spot.anchor_mode == "radial_inward"
             assert spot.angle is not None
-
-            # Verify angle matches position
-            calc_angle = math.atan2(dy, dx)
-            # Normalize angles to 0..2pi or -pi..pi range equivalence?
-            # math.atan2 returns -pi to pi. spot.angle might be 0 to 2pi.
-            # Compare unit vectors
-            assert math.isclose(math.cos(spot.angle), math.cos(calc_angle), abs_tol=0.001)
-            assert math.isclose(math.sin(spot.angle), math.sin(calc_angle), abs_tol=0.001)

@@ -15,8 +15,7 @@ Design Decisions:
 3. The update() method runs phases in order, delegating to systems.
    Phase order is explicit and documented in UpdatePhase.
 
-4. Backward compatibility is maintained - all the old methods still work,
-   they just delegate to the appropriate manager.
+
 
 Why not use PhaseRunner yet?
 ----------------------------
@@ -192,7 +191,7 @@ class SimulationEngine:
         self.stats_calculator = StatsCalculator(self)
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
-        # but we keep them as Optional attributes for type safety and backward compat.
+        # but we keep them as Optional attributes for type safety.
         self.collision_system: CollisionSystem | None = None
         self.reproduction_service: ReproductionService | None = None
         self.reproduction_system: ReproductionSystem | None = None
@@ -247,7 +246,7 @@ class SimulationEngine:
         return outputs
 
     # =========================================================================
-    # Properties for Backward Compatibility
+    # Compatibility Properties
     # =========================================================================
 
     @property
@@ -262,7 +261,7 @@ class SimulationEngine:
 
     @property
     def root_spot_manager(self) -> RootSpotManager | None:
-        """Backward-compatible access to root spot manager via PlantManager."""
+        """Access to root spot manager via PlantManager."""
         if self.plant_manager is None:
             return None
         return self.plant_manager.root_spot_manager
@@ -275,18 +274,18 @@ class SimulationEngine:
         """Setup the simulation using the provided SystemPack.
 
         If no pack is provided, it tries to use the default Tank logic
-        (via TankPack) for backward compatibility.
+        (via TankPack).
         """
         # NOTE: Poker cooldowns are now tracked on entities directly (Fish.poker_cooldown)
         # rather than in a global manager, so no per-engine cleanup is needed here.
 
-        # Fallback to TankPack if no pack provided (backward compat)
+        # Fallback to TankPack if no pack provided
         if pack is None:
             from core.worlds.tank.pack import TankPack
 
             pack = TankPack(self.config)
 
-        # 1. Let the pack build core systems (wiring them into self for backward compat)
+        # 1. Let the pack build core systems (wiring them into self for compatibility)
         systems = pack.build_core_systems(self)
         for attr, system in systems.items():
             setattr(self, attr, system)
@@ -385,10 +384,10 @@ class SimulationEngine:
         """Get all registered systems in execution order."""
         return self._system_registry.get_all()
 
-    # Also expose via private attribute for backward compat
+    # Also expose via private attribute
     @property
     def _systems(self) -> list[BaseSystem]:
-        """Backward compatible access to systems list."""
+        """Access to systems list."""
         return self._system_registry.get_all()
 
     def get_system(self, name: str) -> BaseSystem | None:

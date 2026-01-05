@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from backend.discovery_service import DiscoveryService
 from backend.models import ServerWithTanks
 from backend.server_client import ServerClient
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/servers", tags=["servers"])
 
 
 def setup_router(
-    tank_registry: TankRegistry,
+    world_manager: WorldManager,
     discovery_service: DiscoveryService,
     server_client: ServerClient,
     get_server_info_callback,
@@ -25,7 +25,7 @@ def setup_router(
     """Setup the servers router with required dependencies.
 
     Args:
-        tank_registry: The tank registry instance
+        world_manager: The world manager instance
         discovery_service: The discovery service instance
         server_client: The server client instance
         get_server_info_callback: Callback to get current server info
@@ -49,28 +49,30 @@ def setup_router(
         """List all servers in the Tank World Network.
 
         Returns all servers registered in the discovery service, including the local
-        server. For each server, includes the list of tanks running on it.
+        server. For each server, includes the list of worlds running on it.
 
         Returns:
-            List of ServerWithTanks objects containing server info and their tanks
+            List of ServerWithTanks objects containing server info and their worlds
         """
         # Get all servers from discovery service
         all_servers = await discovery_service.list_servers()
 
-        # Build response with tanks for each server
+        # Build response with worlds for each server
         servers_with_tanks = []
 
         for server in all_servers:
             if server.is_local:
-                # For local server, get tanks directly
-                tanks = tank_registry.list_tanks(include_private=True)
+                # For local server, get worlds directly
+                worlds = world_manager.list_worlds()
+                # Convert WorldStatus to dict for compatibility
+                tanks = [w.to_dict() for w in worlds]
             else:
                 # For remote servers, fetch tanks via API
                 try:
                     remote_tanks = await server_client.list_tanks(server)
                     tanks = remote_tanks if remote_tanks is not None else []
                 except Exception as e:
-                    logger.error(f"Failed to fetch tanks from {server.server_id}: {e}")
+                    logger.error(f"Failed to fetch worlds from {server.server_id}: {e}")
                     tanks = []
 
             servers_with_tanks.append(
@@ -101,17 +103,18 @@ def setup_router(
                 status_code=404,
             )
 
-        # Get tanks for the server
+        # Get worlds for the server
         if server_info.is_local:
-            # Local server - get tanks directly
-            tanks = tank_registry.list_tanks(include_private=True)
+            # Local server - get worlds directly
+            worlds = world_manager.list_worlds()
+            tanks = [w.to_dict() for w in worlds]
         else:
             # Remote server - fetch via API
             try:
                 remote_tanks = await server_client.list_tanks(server_info)
                 tanks = remote_tanks if remote_tanks is not None else []
             except Exception as e:
-                logger.error(f"Failed to fetch tanks from {server_id}: {e}")
+                logger.error(f"Failed to fetch worlds from {server_id}: {e}")
                 tanks = []
 
         return JSONResponse(

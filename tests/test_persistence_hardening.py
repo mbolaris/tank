@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.tank_persistence import restore_tank_from_snapshot
+from backend.world_persistence import restore_world_from_snapshot
 from core.entities import Fish, Plant, PlantNectar
 from core.genetics import PlantGenome
 from core.movement_strategy import AlgorithmicMovement
@@ -76,7 +76,7 @@ def test_persistence_round_trip():
     dest_adapter.reset()
 
     # Restore
-    success = restore_tank_from_snapshot(snapshot, dest_adapter)
+    success = restore_world_from_snapshot(snapshot, dest_adapter)
     assert success, "Restore should succeed"
 
     # Verify Restoration

@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { config, type TankStatus, type ServerWithTanks } from '../config';
+import { config, type WorldStatus, type ServerWithTanks } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 import { TankNetworkMap } from '../components/TankNetworkMap';
@@ -72,16 +72,17 @@ export function NetworkDashboard() {
         setCreating(true);
         try {
             const name = newTankName.trim() || `Tank ${totalTanks + 1}`;
-            const params = new URLSearchParams({
-                name,
-                description: newTankDescription.trim(),
-                server_id: selectedServerId,
-            });
-            const response = await fetch(`${config.tanksApiUrl}?${params}`, {
+            const response = await fetch(config.worldsApiUrl, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    world_type: 'tank',
+                    name,
+                    description: newTankDescription.trim(),
+                }),
             });
             if (!response.ok) {
-                throw new Error(`Failed to create tank: ${response.status}`);
+                throw new Error(`Failed to create world: ${response.status}`);
             }
             // Reset form and refresh
             setNewTankName('');
@@ -89,7 +90,7 @@ export function NetworkDashboard() {
             setShowCreateForm(false);
             await fetchServers();
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to create tank');
+            alert(err instanceof Error ? err.message : 'Failed to create world');
         } finally {
             setCreating(false);
         }
@@ -101,7 +102,7 @@ export function NetworkDashboard() {
         }
 
         try {
-            const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tankId}`, {
+            const response = await fetch(`${config.apiBaseUrl}/api/worlds/${tankId}`, {
                 method: 'DELETE',
             });
             if (!response.ok) {
@@ -523,11 +524,11 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
                         gap: '16px',
                     }}>
-                        {[...tanks].sort((a, b) => (b.frame ?? 0) - (a.frame ?? 0)).map((tankStatus) => (
+                        {[...tanks].sort((a, b) => (b.frame_count ?? 0) - (a.frame_count ?? 0)).map((tankStatus) => (
                             <TankCard
-                                key={tankStatus.tank.tank_id}
+                                key={tankStatus.world_id}
                                 tankStatus={tankStatus}
-                                onDelete={() => onDeleteTank(tankStatus.tank.tank_id, tankStatus.tank.name)}
+                                onDelete={() => onDeleteTank(tankStatus.world_id, tankStatus.name)}
                                 onRefresh={onRefresh}
                             />
                         ))}
@@ -539,7 +540,7 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
 }
 
 interface TankCardProps {
-    tankStatus: TankStatus;
+    tankStatus: WorldStatus;
     onDelete: () => void;
     onRefresh: () => void;
 }
@@ -670,63 +671,66 @@ function MiniPerformanceChart({ history }: { history: PokerPerformanceSnapshot[]
 
 
 function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
-    const { tank, running, frame, paused, fps, fast_forward } = tankStatus;
-    const stats = tankStatus.stats ?? {
-        fish_count: 0,
-        generation: 0,
-        max_generation: 0,
-        total_energy: 0,
-        fish_energy: 0,
-        plant_energy: 0,
-        poker_stats: undefined,
-    };
+    const { world_id, name, frame_count, paused } = tankStatus;
+    // Adapt old fields to new WorldStatus
+    const description = tankStatus.description || '';
+    const descriptionText = description && description.length > 0 ? description : 'No description provided';
+    const running = true; // Worlds in the list are active
 
+    // Stats are part of snapshot, not WorldStatus. 
+    // We'll fetch snapshot logic below.
     const [actionLoading, setActionLoading] = useState(false);
     const [fullState, setFullState] = useState<SimulationUpdate | null>(null);
 
-    // Fetch full state periodically to get auto_evaluation data
+    // Derived stats from fullState
+    const stats = fullState?.stats;
+    const fps = (stats as any)?.fps ?? 0;
+    const fast_forward = (stats as any)?.fast_forward ?? false;
+    const frame = fullState?.frame ?? frame_count;
+
+    // Fetch full state periodically
     useEffect(() => {
         let mounted = true;
 
         const fetchFullState = async () => {
             try {
-                const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tank.tank_id}/snapshot`);
+                const response = await fetch(`${config.apiBaseUrl}/api/worlds/${world_id}/snapshot`);
                 if (!response.ok) return;
                 if (mounted) {
                     const data = await response.json();
-                    if (data && data.entities && Array.isArray(data.entities)) {
+                    if (data && (data.entities || data.snapshot)) {
                         setFullState(data);
                     }
                 }
             } catch {
-                // Silent fail - we have basic stats from tankStatus anyway
+                // Silent fail
             }
         };
 
         fetchFullState();
-        const interval = setInterval(fetchFullState, 3000); // Refresh every 3 seconds to avoid browser resource exhaustion
+        const interval = setInterval(fetchFullState, 3000);
 
         return () => {
             mounted = false;
             clearInterval(interval);
         };
-    }, [tank.tank_id]);
+    }, [world_id]);
 
     const sendTankCommand = async (action: 'pause' | 'resume') => {
         setActionLoading(true);
         try {
-            const response = await fetch(`${config.apiBaseUrl}/api/tanks/${tank.tank_id}/${action}`, {
+            const response = await fetch(`${config.apiBaseUrl}/api/worlds/${world_id}/${action}`, {
                 method: 'POST',
             });
 
             if (!response.ok) {
                 const payload = await response.json().catch(() => ({}));
-                throw new Error(payload.error || `Failed to ${action} tank`);
+                throw new Error(payload.error || `Failed to ${action} world`);
             }
 
             await onRefresh();
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Tank command failed');
+            alert(err instanceof Error ? err.message : 'World command failed');
         } finally {
             setActionLoading(false);
         }
@@ -735,9 +739,11 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const toggleFastForward = async () => {
         setActionLoading(true);
         try {
+            // Note: We need current fast_forward state. 
+            // Since WorldStatus doesn't have it, we rely on implicit toggle or fullState
             const newEnabled = !fast_forward;
             const response = await fetch(
-                `${config.apiBaseUrl}/api/tanks/${tank.tank_id}/fast_forward?enabled=${newEnabled}`,
+                `${config.apiBaseUrl}/api/worlds/${world_id}/fast_forward?enabled=${newEnabled}`,
                 { method: 'POST' }
             );
 
@@ -746,6 +752,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 throw new Error(payload.error || 'Failed to toggle fast forward');
             }
 
+            // fetchFullState will update UI eventually
             await onRefresh();
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Fast forward toggle failed');
@@ -756,9 +763,6 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
 
     const statusText = running ? (paused ? 'Paused' : 'Running') : 'Stopped';
     const statusColor = running ? (paused ? '#f59e0b' : '#22c55e') : '#ef4444';
-
-    const description = tank.description?.trim();
-    const descriptionText = description && description.length > 0 ? description : 'No description provided';
 
     return (
         <div style={{
@@ -782,7 +786,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         fontWeight: 600,
                         color: '#f1f5f9',
                     }}>
-                        {tank.name}
+                        {name}
                     </h3>
                     <p style={{
                         margin: '4px 0 0 0',
@@ -816,7 +820,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
             {/* Card Body */}
             <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <TankThumbnail
-                    tankId={tank.tank_id}
+                    tankId={world_id}
                     status={running ? (paused ? 'paused' : 'running') : 'stopped'}
                 />
 
@@ -830,11 +834,11 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Fish</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats.fish_count ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats?.fish_count ?? 0}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Gen</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats.max_generation ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats?.max_generation ?? 0}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Frame</div>
@@ -842,7 +846,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>FPS</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{fps?.toFixed(0) ?? '—'}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{typeof fps === 'number' ? fps.toFixed(0) : '—'}</div>
                     </div>
                 </div>
 
@@ -856,13 +860,13 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>🐟 Energy</div>
-                        <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>{stats.fish_energy?.toFixed(0) ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>{stats?.fish_energy?.toFixed(0) ?? 0}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>🌱 Energy</div>
-                        <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>{stats.plant_energy?.toFixed(0) ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>{stats?.plant_energy?.toFixed(0) ?? 0}</div>
                     </div>
-                    {stats.poker_stats && stats.poker_stats.total_games > 0 && (
+                    {stats?.poker_stats && stats.poker_stats.total_games > 0 && (
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '9px', color: '#94a3b8' }}>🃏 Games</div>
                             <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{(stats.poker_stats.total_games / 1000).toFixed(0)}k</div>
@@ -872,17 +876,17 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
 
                 {/* Poker Score Row */}
                 <PokerScoreDisplay
-                    score={stats.poker_score}
-                    elo={stats.poker_elo}
-                    history={stats.poker_elo && stats.poker_elo_history && stats.poker_elo_history.length > 0
+                    score={stats?.poker_score}
+                    elo={stats?.poker_elo}
+                    history={stats?.poker_elo && stats?.poker_elo_history && stats?.poker_elo_history.length > 0
                         ? stats.poker_elo_history
-                        : (stats.poker_score_history || [])}
-                    isLoading={stats.poker_score === undefined && stats.poker_elo === undefined}
+                        : (stats?.poker_score_history || [])}
+                    isLoading={stats?.poker_score === undefined && stats?.poker_elo === undefined}
                 />
 
                 {/* Auto-Evaluation Summary */}
                 {fullState?.auto_evaluation && fullState.auto_evaluation.players && fullState.auto_evaluation.players.length > 0 && (() => {
-                    const autoEval = fullState.auto_evaluation;
+                    const autoEval = fullState.auto_evaluation!;
                     const history = autoEval.performance_history || [];
                     const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
                     const players = latestSnapshot?.players || autoEval.players;
@@ -995,7 +999,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         {fast_forward ? '⏩' : '⏩'}
                     </button>
                     <Link
-                        to={`/tank/${tank.tank_id}`}
+                        to={`/tank/${world_id}`}
                         style={{
                             flex: 1,
                             padding: '6px',

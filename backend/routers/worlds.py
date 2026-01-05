@@ -28,6 +28,12 @@ class CreateWorldRequest(BaseModel):
     description: str = ""
 
 
+class UpdateWorldModeRequest(BaseModel):
+    """Request body for updating world mode."""
+
+    world_type: str
+
+
 class WorldTypeResponse(BaseModel):
     """Response for a single world type."""
 
@@ -164,6 +170,26 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             }
         )
 
+    @router.get("/{world_id}/snapshot")
+    async def get_world_snapshot(world_id: str):
+        """Get the latest snapshot of a world.
+
+        Args:
+            world_id: The world ID
+
+        Returns:
+            The full simulation state snapshot
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        state = instance.runner.get_state(force_full=True)
+        if state:
+            return JSONResponse(state.to_dict())
+
+        return JSONResponse({"error": "Snapshot not available"}, status_code=503)
+
     @router.delete("/{world_id}")
     async def delete_world(world_id: str):
         """Delete a world instance.
@@ -200,5 +226,175 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             )
         else:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+    @router.post("/{world_id}/pause")
+    async def pause_world(world_id: str):
+        """Pause a running world.
+
+        Args:
+            world_id: The world ID to pause
+
+        Returns:
+            Updated paused state or 404 if not found
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        instance.runner.paused = True
+        return JSONResponse(
+            {
+                "world_id": world_id,
+                "paused": True,
+                "message": f"World {world_id[:8]} paused",
+            }
+        )
+
+    @router.post("/{world_id}/resume")
+    async def resume_world(world_id: str):
+        """Resume a paused world.
+
+        Args:
+            world_id: The world ID to resume
+
+        Returns:
+            Updated paused state or 404 if not found
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        return JSONResponse(
+            {
+                "world_id": world_id,
+                "paused": False,
+                "message": f"World {world_id[:8]} resumed",
+            }
+        )
+
+    @router.post("/{world_id}/fast_forward")
+    async def set_fast_forward(world_id: str, enabled: bool):
+        """Set fast forward mode.
+
+        Args:
+            world_id: The world ID
+            enabled: Whether to enable fast forward
+
+        Returns:
+            Updated state
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        instance.runner.fast_forward = enabled
+        return JSONResponse(
+            {
+                "world_id": world_id,
+                "fast_forward": enabled,
+                "message": f"World {world_id[:8]} fast forward {'enabled' if enabled else 'disabled'}",
+            }
+        )
+
+    @router.post("/{world_id}/change_type")
+    async def change_world_type(world_id: str, new_type: str):
+        """Change the world type (e.g., tank <-> petri).
+
+        This hot-swaps between compatible world types while preserving entities.
+        Only tank <-> petri switching is currently supported.
+
+        Args:
+            world_id: The world ID to change
+            new_type: The new world type
+
+        Returns:
+            Updated world info or 404/400 if not found/invalid
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        try:
+            # Use the runner's switch_world_type method
+            if hasattr(instance.runner, "switch_world_type"):
+                instance.runner.switch_world_type(new_type)
+
+                # Update instance metadata to match
+                instance.world_type = new_type
+                instance.mode_id = instance.runner.mode_id
+                instance.view_mode = instance.runner.view_mode
+
+                return JSONResponse(
+                    {
+                        "world_id": world_id,
+                        "world_type": new_type,
+                        "mode_id": instance.mode_id,
+                        "view_mode": instance.view_mode,
+                        "message": f"World type changed to {new_type}",
+                    }
+                )
+
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"World type switching not supported for this world",
+                )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @router.put("/{world_id}/mode")
+    async def update_world_mode(world_id: str, request: UpdateWorldModeRequest):
+        """Update the world mode (e.g., switch between tank and petri).
+
+        Args:
+            world_id: The world ID to update
+            request: The update request containing the new world type
+
+        Returns:
+            Updated world info
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        try:
+            # Use the runner's switch_world_type method
+            if hasattr(instance.runner, "switch_world_type"):
+                instance.runner.switch_world_type(request.world_type)
+
+                # Update instance metadata to match
+                instance.world_type = request.world_type
+                instance.mode_id = instance.runner.mode_id
+                instance.view_mode = instance.runner.view_mode
+
+                return JSONResponse(
+                    {
+                        "world_id": world_id,
+                        "world_type": request.world_type,
+                        "mode_id": instance.mode_id,
+                        "view_mode": instance.view_mode,
+                        "message": f"World type changed to {request.world_type}",
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"World type switching not supported for this world",
+                )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @router.get("/default/id")
+    async def get_default_world_id():
+        """Get the default world ID.
+
+        Returns:
+            The ID of the default world (first world in the list)
+        """
+        worlds = world_manager.list_worlds()
+        if not worlds:
+            raise HTTPException(status_code=404, detail="No worlds available")
+
+        return JSONResponse({"world_id": worlds[0].world_id})
 
     return router

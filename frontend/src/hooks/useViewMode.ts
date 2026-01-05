@@ -106,7 +106,7 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
         // If connected to a specific tank, persist mode to server
         if (tankId) {
             try {
-                await fetch(`${config.apiBaseUrl}/api/tanks/${tankId}/mode`, {
+                await fetch(`${config.apiBaseUrl}/api/worlds/${tankId}/mode`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ world_type: newWorldType })

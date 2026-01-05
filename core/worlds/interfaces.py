@@ -42,7 +42,7 @@ class StepResult:
     metrics: Dict[str, Any] = field(default_factory=dict)
     done: bool = False
     info: Dict[str, Any] = field(default_factory=dict)
-    # Extended fields for world loop contract (all optional for backward compat)
+    # Extended fields for world loop contract (all optional)
     spawns: List["SpawnRequest"] = field(default_factory=list)
     removals: List["RemovalRequest"] = field(default_factory=list)
     energy_deltas: List["EnergyDeltaRecord"] = field(default_factory=list)

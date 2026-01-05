@@ -69,7 +69,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return self._world.environment if self._world else None
 
     def add_entity(self, entity) -> None:
-        """Add an entity to the world (compatibility shim for tests)."""
+        """Add an entity to the world (shim for tests)."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before add_entity().")
         self._world.add_entity(entity)
@@ -122,14 +122,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def frame_count(self) -> int:
-        """Current frame count for compatibility with legacy world runners."""
+        """Current frame count."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing frame_count.")
         return self._world.frame_count
 
     @property
     def paused(self) -> bool:
-        """Whether the simulation is paused (legacy compatibility)."""
+        """Whether the simulation is paused."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing paused.")
         return self._world.paused
@@ -156,7 +156,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def entities_list(self) -> List[Any]:
-        """Expose entities list for snapshot builders (legacy compatibility)."""
+        """Expose entities list for snapshot builders."""
         if self._world is None:
             raise RuntimeError(
                 "World not initialized. Call reset() before accessing entities_list."
@@ -276,7 +276,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return self._last_step_result
 
     def update(self) -> None:
-        """Advance the simulation by one step (compatibility shim).
+        """Advance the simulation by one step.
 
         This is the hot path for the simulation loop. It uses a fast step
         path that avoids expensive metrics/event collection.
@@ -286,7 +286,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self.step({FAST_STEP_ACTION: True})
 
     def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
-        """Return current metrics for legacy callers."""
+        """Return current metrics."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before get_stats().")
         return self.get_current_metrics(include_distributions=include_distributions)
@@ -535,7 +535,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def engine(self) -> Any:
-        """Access underlying simulation engine for legacy compatibility.
+        """Access underlying simulation engine.
 
         This allows existing backend code to access adapter.engine just like
         it accessed tank_world.engine.
@@ -546,14 +546,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def ecosystem(self) -> Any:
-        """Access underlying ecosystem for legacy compatibility."""
+        """Access underlying ecosystem."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing ecosystem.")
         return getattr(self._world, "ecosystem", None)
 
     @property
     def config(self) -> TankWorldConfig:
-        """Access configuration for legacy compatibility."""
+        """Access configuration."""
         # Config is available before reset
         if self._world is not None:
             return self._world.config
@@ -561,7 +561,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     @property
     def rng(self) -> Any:
-        """Access random number generator for legacy compatibility."""
+        """Access random number generator."""
         if self._world is None:
             raise RuntimeError("World not initialized. Call reset() before accessing rng.")
         return getattr(self._world, "rng", None)

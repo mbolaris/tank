@@ -169,7 +169,7 @@ class ComposablePokerStrategy:
         Returns:
             Tuple of (action, amount)
         """
-        # Use provided RNG or create a fallback for backward compatibility
+        # Use provided RNG or create a fallback
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")

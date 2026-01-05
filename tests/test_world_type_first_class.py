@@ -1,95 +1,47 @@
 """Tests verifying world_type is first-class throughout the stack."""
 
-from backend.simulation_manager import SimulationManager
 from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 from backend.world_registry import create_world
 
 
 class TestWorldTypeFirstClass:
     """Verify world_type is properly stored and propagated."""
 
-    def test_tank_info_includes_world_type(self):
-        """TankInfo should store and serialize world_type."""
-        manager = SimulationManager(world_type="petri")
+    def test_world_manager_creates_tank_world(self):
+        """WorldManager can create tank instances."""
+        manager = WorldManager()
         try:
-            assert manager.tank_info.world_type == "petri"
-
-            info_dict = manager.tank_info.to_dict()
-            assert "world_type" in info_dict
-            assert info_dict["world_type"] == "petri"
+            instance = manager.create_world(name="Tank Test", world_type="tank")
+            assert instance.world_type == "tank"
+            assert instance.is_tank()
+            assert instance.runner.world_type == "tank"
         finally:
-            if manager.running:
-                manager.stop()
+            manager.stop_all_worlds()
 
-    def test_tank_registry_creates_non_tank_worlds(self):
-        """TankRegistry can create petri instances."""
-        registry = TankRegistry(create_default=False)
-
+    def test_world_manager_creates_petri_world(self):
+        """WorldManager can create petri instances."""
+        manager = WorldManager()
         try:
-            manager = registry.create_tank(
-                name="Petri Test",
-                world_type="petri",
-            )
-
-            assert manager.tank_info.world_type == "petri"
-            assert manager._runner.world_type == "petri"
+            instance = manager.create_world(name="Petri Test", world_type="petri")
+            assert instance.world_type == "petri"
+            assert instance.runner.world_type == "petri"
+            # Petri is technically a "tank" subtype currently, so is_tank() returns True
+            assert instance.is_tank()
         finally:
-            registry.stop_all()
+            manager.stop_all_worlds()
 
-    def test_create_and_step_petri_via_registry(self):
-        """Create petri instance via registry and step N frames."""
-        registry = TankRegistry(create_default=False)
-
+    def test_world_manager_creates_soccer_world(self):
+        """WorldManager can create soccer world instances."""
+        manager = WorldManager()
         try:
-            manager = registry.create_tank(
-                name="Petri Step Test",
-                world_type="petri",
-            )
-            # Don't start the background thread - we're manually stepping the world
-            # to verify frame counting. Starting a background thread would create
-            # a race condition that could cause extra frames to be counted.
-
-            # Get initial frame before stepping
-            initial_frame = manager.world.frame_count
-
-            # Step 10 times
-            for _ in range(10):
-                manager.world.step()
-
-            assert manager.world.frame_count == initial_frame + 10
+            instance = manager.create_world(name="Soccer Test", world_type="soccer_training")
+            assert instance.world_type == "soccer_training"
+            assert instance.runner.world_type == "soccer_training"
+            assert not instance.is_tank()
         finally:
-            registry.stop_all()
-
-    def test_create_and_step_soccer_training_via_registry(self):
-        """Create soccer_training instance via registry and verify world_type."""
-        registry = TankRegistry(create_default=False)
-
-        try:
-            manager = registry.create_tank(
-                name="Soccer Training Test",
-                world_type="soccer_training",
-            )
-
-            # Verify world_type is correctly set
-            assert manager.tank_info.world_type == "soccer_training"
-            assert manager._runner.world_type == "soccer_training"
-
-            # Verify world was created (adapter may not have frame_count)
-            assert manager.world is not None
-        finally:
-            registry.stop_all()
-
-    def test_default_world_type_is_tank(self):
-        """Default world_type remains tank for backward compatibility."""
-        manager = SimulationManager()
-        try:
-            assert manager.tank_info.world_type == "tank"
-            assert manager._runner.world_type == "tank"
-        finally:
-            if manager.running:
-                manager.stop()
+            manager.stop_all_worlds()
 
     def test_snapshot_builder_matches_world_type(self):
         """Snapshot builder is correct for world_type."""

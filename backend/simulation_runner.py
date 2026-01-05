@@ -98,6 +98,8 @@ class SimulationRunner(CommandHandlerMixin):
         self.tank_id = tank_id or str(uuid.uuid4())
         self.tank_name = tank_name or f"Tank {self.tank_id[:8]}"
 
+        self.evolution_benchmark_tracker = None
+
         # Target frame rate
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
@@ -130,24 +132,11 @@ class SimulationRunner(CommandHandlerMixin):
         # Initialize world-specific hooks and features
         self.world_hooks.warmup(self)
 
-        # Expose hooks attributes for backward compatibility (tank-specific features)
-        self.human_poker_game = getattr(self.world_hooks, "human_poker_game", None)
-        self.standard_poker_series = getattr(self.world_hooks, "standard_poker_series", None)
-        self.evolution_benchmark_tracker = getattr(
-            self.world_hooks, "evolution_benchmark_tracker", None
-        )
-        self._evolution_benchmark_guard = getattr(
-            self.world_hooks, "_evolution_benchmark_guard", None
-        )
-        self._evolution_benchmark_last_completed_time = getattr(
-            self.world_hooks, "_evolution_benchmark_last_completed_time", 0.0
-        )
-
         # Migration support
         self.connection_manager = None  # Set after initialization
-        self.tank_registry = None  # Set after initialization
+        self.world_manager = None  # Set after initialization
         self._migration_handler = None  # Created when dependencies are available
-        self._migration_handler_deps = (None, None)  # (connection_manager, tank_registry)
+        self._migration_handler_deps = (None, None)  # (connection_manager, world_manager)
         self.migration_lock = threading.Lock()
 
         # Note: _entity_snapshot_builder is created by create_world() above
@@ -174,11 +163,6 @@ class SimulationRunner(CommandHandlerMixin):
         # Update hooks with new tank identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
             self.world_hooks.update_benchmark_tracker_path(self)
-
-        # Update cached references for backward compatibility
-        self.evolution_benchmark_tracker = getattr(
-            self.world_hooks, "evolution_benchmark_tracker", None
-        )
 
         self._update_environment_migration_context()
 
@@ -428,21 +412,21 @@ class SimulationRunner(CommandHandlerMixin):
             env = self.world.engine.environment
             if env:
                 env.connection_manager = self.connection_manager
-                env.tank_registry = self.tank_registry
+                env.world_manager = self.world_manager
                 env.tank_id = self.tank_id
                 env.tank_name = self.tank_name
 
                 # Create (or clear) a migration handler based on available dependencies.
                 # Core entities depend only on the MigrationHandler protocol, while the backend
                 # provides the concrete implementation.
-                if self.connection_manager is not None and self.tank_registry is not None:
-                    deps = (self.connection_manager, self.tank_registry)
+                if self.connection_manager is not None and self.world_manager is not None:
+                    deps = (self.connection_manager, self.world_manager)
                     if self._migration_handler is None or self._migration_handler_deps != deps:
                         from backend.migration_handler import MigrationHandler
 
                         self._migration_handler = MigrationHandler(
                             connection_manager=self.connection_manager,
-                            tank_registry=self.tank_registry,
+                            world_manager=self.world_manager,
                         )
                         self._migration_handler_deps = deps
                     env.migration_handler = self._migration_handler
@@ -454,7 +438,7 @@ class SimulationRunner(CommandHandlerMixin):
                 logger.info(
                     f"Migration context updated for tank {self.tank_id[:8] if self.tank_id else 'None'}: "
                     f"conn_mgr={'SET' if self.connection_manager else 'NULL'}, "
-                    f"registry={'SET' if self.tank_registry else 'NULL'}"
+                    f"manager={'SET' if self.world_manager else 'NULL'}"
                 )
             else:
                 logger.warning("Cannot update migration context: environment is None")
@@ -496,7 +480,7 @@ class SimulationRunner(CommandHandlerMixin):
 
     @property
     def engine(self):
-        """Expose the underlying simulation engine for compatibility/testing."""
+        """Expose the underlying simulation engine for testing."""
         return self.world.engine
 
     @property
@@ -603,6 +587,43 @@ class SimulationRunner(CommandHandlerMixin):
         self.running = False
         if self.thread:
             self.thread.join(timeout=2.0)
+
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
+        """Advance the simulation by one step."""
+        with self.lock:
+            # Apply agent actions if provided
+            # (Tank/Petri world currently handles actions internally or via step args)
+            # For now, we assume simple stepping is enough for verification tasks.
+
+            if getattr(self.world, "supports_fast_step", False):
+                self.world.step({FAST_STEP_ACTION: True})
+            else:
+                self.world.step()
+
+            self._start_auto_evaluation_if_needed()
+            self.fps_frame_count += 1
+            self._invalidate_state_cache()
+
+    def reset(
+        self,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> Any:
+        """Reset the world to initial state."""
+        with self.lock:
+            if seed is not None:
+                self.seed = seed
+
+            # create_world expects tank_type/world_type as first arg, but we call function create_world
+            # self.create_world() in code refers to backend.world_registry.create_world?
+            # No, self.world, self._entity_snapshot_builder = create_world(self.world_type, seed=seed)
+            # We import create_world at top level
+
+            self.world, self._entity_snapshot_builder = create_world(
+                self.world_type, seed=self.seed
+            )
+            self.frame_count = 0
+            self._invalidate_state_cache()
 
     def _run_loop(self):
         """Main simulation loop."""
@@ -749,7 +770,7 @@ class SimulationRunner(CommandHandlerMixin):
 
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""
-        # AutoEvalService removed (legacy). Now using EvolutionBenchmarkTracker only.
+        # AutoEvalService removed. Now using EvolutionBenchmarkTracker only.
 
         # Run evolution benchmark tracker (runs in background thread when due)
         self._run_evolution_benchmark_if_needed()
@@ -1045,7 +1066,7 @@ class SimulationRunner(CommandHandlerMixin):
             state_dict.update(extras)
         except Exception as e:
             logger.warning(f"Error building world extras from hooks: {e}")
-            # Provide defaults for backward compatibility
+            # Provide defaults
             state_dict["poker_events"] = []
             state_dict["poker_leaderboard"] = []
             state_dict["auto_evaluation"] = None
@@ -1211,7 +1232,7 @@ class SimulationRunner(CommandHandlerMixin):
         Commands can be:
         1. Universal: pause, resume, reset, fast_forward (supported by all worlds)
         2. World-specific: poker, human poker, etc. (delegated to hooks)
-        3. Tank-specific: add_food, spawn_fish, set_plant_energy_input (backward compatible)
+        3. Tank-specific: add_food, spawn_fish, set_plant_energy_input
 
         Args:
             command: Command type

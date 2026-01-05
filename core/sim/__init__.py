@@ -3,7 +3,7 @@
 This package contains mode-agnostic interfaces for multi-agent simulations.
 
 NOTE: The canonical location for these contracts is now core.brains.contracts.
-This module re-exports them for backward compatibility.
+This module re-exports them for convenience.
 """
 
 # Re-export from new canonical location
@@ -29,7 +29,7 @@ __all__ = [
     "BrainActionMap",
     "WorldTickResult",
     "EntityId",
-    # Backward-compatibility (deprecated)
+    # Deprecated aliases
     "Observation",
     "Action",
     "ObservationMap",

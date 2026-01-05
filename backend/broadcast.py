@@ -12,12 +12,12 @@ import logging
 import os
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
+from backend.runner.runner_protocol import RunnerProtocol
 from core.config.display import FRAME_RATE
 
 if TYPE_CHECKING:
-    from backend.simulation_manager import SimulationManager
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
 
 logger = logging.getLogger("backend.broadcast")
@@ -301,27 +301,6 @@ async def broadcast_updates_for_world(
 
 
 # =============================================================================
-# Legacy compatibility - broadcast_updates_for_tank delegates to unified version
-# =============================================================================
-
-
-async def broadcast_updates_for_tank(manager: "SimulationManager") -> None:
-    """Broadcast simulation updates to all clients connected to a tank.
-
-    This is the legacy function maintained for backward compatibility.
-    It wraps the manager in a TankWorldAdapter and delegates to the
-    unified broadcast function.
-
-    Args:
-        manager: The SimulationManager to broadcast updates for
-    """
-    from backend.tank_world_adapter import TankWorldAdapter
-
-    adapter = TankWorldAdapter(manager)
-    await broadcast_updates_for_world(adapter, world_id=manager.tank_id)
-
-
-# =============================================================================
 # Broadcast task management
 # =============================================================================
 
@@ -332,20 +311,45 @@ _broadcast_locks: Dict[Tuple[str, str], asyncio.Lock] = {}
 
 
 async def start_broadcast_for_world(
-    adapter: "WorldBroadcastAdapter",
+    runner_or_adapter: Union[RunnerProtocol, "WorldBroadcastAdapter"],
     world_id: Optional[str] = None,
     stream_id: str = "default",
 ) -> asyncio.Task:
     """Start a broadcast task for a world.
 
     Args:
-        adapter: The broadcast adapter to send updates for
-        world_id: Optional world ID
+        runner_or_adapter: Either a RunnerProtocol (will be wrapped) or a WorldBroadcastAdapter
+        world_id: Optional world ID (required if passing a runner)
         stream_id: Identifier for the broadcast stream (default "default")
 
     Returns:
         The asyncio Task for the broadcast loop
     """
+    from backend.world_broadcast_adapter import WorldBroadcastAdapter, WorldSnapshotAdapter
+
+    # If we got a runner, wrap it in an adapter
+    if isinstance(runner_or_adapter, RunnerProtocol) and not isinstance(
+        runner_or_adapter, WorldBroadcastAdapter
+    ):
+        if world_id is None:
+            world_id = getattr(runner_or_adapter, "world_id", None) or getattr(
+                runner_or_adapter, "tank_id", None
+            )
+        if world_id is None:
+            raise ValueError("world_id is required when passing a runner")
+
+        adapter = WorldSnapshotAdapter(
+            world_id=world_id,
+            runner=runner_or_adapter,
+            world_type=getattr(runner_or_adapter, "world_type", "tank"),
+            mode_id=getattr(runner_or_adapter, "mode_id", "tank"),
+            view_mode=getattr(runner_or_adapter, "view_mode", "side"),
+            step_on_access=False,  # Tank worlds run their own loop
+            use_runner_state=True,
+        )
+    else:
+        adapter = runner_or_adapter  # type: ignore
+
     resolved_world_id = world_id or getattr(adapter, "world_id", None) or "unknown"
     key = (resolved_world_id, stream_id)
 
@@ -369,23 +373,6 @@ async def start_broadcast_for_world(
         return task
 
 
-async def start_broadcast_for_tank(manager: "SimulationManager") -> asyncio.Task:
-    """Start a broadcast task for a tank.
-
-    This is the legacy function maintained for backward compatibility.
-
-    Args:
-        manager: The SimulationManager to broadcast for
-
-    Returns:
-        The asyncio Task for the broadcast loop
-    """
-    from backend.tank_world_adapter import TankWorldAdapter
-
-    adapter = TankWorldAdapter(manager)
-    return await start_broadcast_for_world(adapter, world_id=manager.tank_id)
-
-
 async def stop_broadcast_for_world(world_id: str, stream_id: Optional[str] = None) -> None:
     """Stop the broadcast task for a world.
 
@@ -404,17 +391,6 @@ async def stop_broadcast_for_world(world_id: str, stream_id: Optional[str] = Non
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
-
-
-async def stop_broadcast_for_tank(tank_id: str) -> None:
-    """Stop the broadcast task for a tank.
-
-    This is the legacy function maintained for backward compatibility.
-
-    Args:
-        tank_id: The tank ID to stop broadcasting for
-    """
-    await stop_broadcast_for_world(tank_id)
 
 
 def get_broadcast_task(world_id: str, stream_id: Optional[str] = None) -> Optional[asyncio.Task]:

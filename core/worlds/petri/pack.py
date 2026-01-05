@@ -102,7 +102,7 @@ class PetriPack(TankLikePackBase):
         env.set_spawn_requester(engine.request_spawn)
         env.set_remove_requester(engine.request_remove)
 
-        # 4. Expose code_pool on engine for backward compatibility
+        # 4. Expose code_pool on engine
         engine.code_pool = env.code_pool
 
         # 5. Set world type for contract awareness

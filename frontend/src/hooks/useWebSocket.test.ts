@@ -11,9 +11,9 @@ import type { SimulationUpdate, DeltaUpdate } from '../types/simulation';
  * This mirrors the normalization logic in useWebSocket.ts.
  */
 export function normalizeWorldUpdate(data: Record<string, unknown>): SimulationUpdate {
-    const update = data as SimulationUpdate;
+    const update = data as unknown as SimulationUpdate;
 
-    // Copy nested snapshot fields to top level for backward compatibility
+    // Copy nested snapshot fields to top level
     if (update.snapshot) {
         update.frame = update.snapshot.frame;
         update.elapsed_time = update.snapshot.elapsed_time;
@@ -24,7 +24,7 @@ export function normalizeWorldUpdate(data: Record<string, unknown>): SimulationU
         update.auto_evaluation = update.snapshot.auto_evaluation;
     }
 
-    // Preserve mode fields with backward-compatible defaults
+    // Preserve mode fields with defaults
     update.view_mode = update.view_mode ?? 'side';
     update.mode_id = update.mode_id ?? 'tank';
 
@@ -120,7 +120,7 @@ describe('WebSocket Update Normalization', () => {
         expect(result.entities![0].id).toBe(1);
     });
 
-    it('should handle backward-compatible legacy payloads without snapshot', () => {
+    it('should handle payloads without snapshot', () => {
         const legacyPayload = {
             type: 'update' as const,
             tank_id: 'legacy-tank',

@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from backend.connection_manager import ConnectionManager, TankConnection
-from backend.tank_registry import TankRegistry
+from backend.world_manager import WorldManager
 
 # Configure logging to show info during tests
 logging.basicConfig(level=logging.INFO)
@@ -11,8 +11,8 @@ logging.basicConfig(level=logging.INFO)
 class TestConnectorLogic(unittest.TestCase):
     def setUp(self):
         self.connection_manager = ConnectionManager()
-        self.tank_registry = TankRegistry(create_default=False)
-        self.tank_registry.set_connection_manager(self.connection_manager)
+        self.world_manager = WorldManager()
+        self.world_manager.set_connection_manager(self.connection_manager)
 
     def test_max_one_connector(self):
         """Test that adding a duplicate connection replaces it, but opposite direction is allowed."""
@@ -69,13 +69,13 @@ class TestConnectorLogic(unittest.TestCase):
         self.assertEqual(a_to_b[0].probability, 75)
 
     def test_cascade_delete(self):
-        """Test that removing a tank removes its connections."""
+        """Test that removing a tank (world) removes its connections."""
         # Create mock tanks
-        tank_a = self.tank_registry.create_tank(name="Tank A", persistent=False)
-        tank_b = self.tank_registry.create_tank(name="Tank B", persistent=False)
+        tank_a = self.world_manager.create_world(name="Tank A", world_type="tank", persistent=False)
+        tank_b = self.world_manager.create_world(name="Tank B", world_type="tank", persistent=False)
 
-        id_a = tank_a.tank_id
-        id_b = tank_b.tank_id
+        id_a = tank_a.world_id
+        id_b = tank_b.world_id
 
         # Create connection
         conn = TankConnection(
@@ -87,7 +87,7 @@ class TestConnectorLogic(unittest.TestCase):
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
 
         # Remove Tank A
-        self.tank_registry.remove_tank(id_a)
+        self.world_manager.delete_world(id_a)
 
         # Verify connection is gone
         self.assertEqual(len(self.connection_manager.list_connections()), 0)
