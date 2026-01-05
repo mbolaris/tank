@@ -1,9 +1,0 @@
-Fix: MissingRNGError in poker benchmarks and update tests
-
-- Fixed `MissingRNGError` in `core/poker/evaluation/benchmark_eval.py` by ensuring `create_standard_strategy` uses a deterministic seeded RNG for opponent initialization.
-- Updated `create_standard_strategy` signature to accept `rng`.
-- Updated `tests/test_benchmark_determinism.py` to pass seeded RNGs to strategies.
-- Updated `tests/test_evolution_module.py` to resolve `MissingRNGError` regressions by passing explicit RNGs to all genetic operations (crossover, mutation, cloning).
-- Verified that benchmarks and evolution tests now pass successfully.
-
-This resolves the issue where `comprehensive_benchmark.py` was failing with "RNG required" errors during simulation.
