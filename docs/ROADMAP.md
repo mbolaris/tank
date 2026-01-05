@@ -1,28 +1,37 @@
 # Tank World Roadmap
 
-> **Vision**: One flexible agent-based simulation engine that supports multiple world modes with different rules and visualizations.
+> **Vision**: A deterministic artificial-life lab where the evolving organism is not just the agent policy, but the entire *evolution toolkit*—including the instruction sets and workflows used by development agents.
 
 ---
 
 ## Core Vision
 
-Tank World is designed to be a **multi-modal simulation engine** where the same core systems (genetics, energy, behaviors) power different world types with specialized rules and visualizations.
+Tank World is an **evolution engine whose own development process is part of the evolutionary loop**. Git becomes the heredity mechanism: PRs are mutations, CI is selection, and merged changes are the "offspring" that future agents inherit.
 
-### Supported World Modes
+The system operates at three layers:
+- **Layer 0**: In-world evolution (fish policies evolve inside simulations)
+- **Layer 1**: Experiment automation (dev-agents evolve algorithms via benchmarks + PRs)
+- **Layer 2**: Meta-evolution (dev-agents evolve their own instructions and tooling)
+
+### Critical Infrastructure
+
+Before any other features, we need the **Evolution Loop MVP**:
+- Best Known Solutions (BKS) registry for reproducible benchmarks
+- Evolutionary PR protocol with CI validation
+- Standard benchmark suite for Tank world
+- Formal "better than best-known" commit protocol
+
+**Why this matters**: Without formal BKS + validation, "Layer 1 evolution" remains informal theater. This is the backbone that makes git-as-heredity real.
+
+### Supported World Modes (Secondary Priority)
 
 | Mode | Description |
 |------|-------------|
-| **Tank** | Fish eat, play poker, avoid hazards (current baseline) |
-| **Petri** | Same agents/genetics/energy, rendered as microbes/nutrients (optional rule tweaks) |
-| **Soccer** | Evolved agents become soccer players (RCSS integration), training world drives evolution |
+| **Tank** | Fish eat, play poker, avoid hazards (current baseline, will get first benchmark suite) |
+| **Petri** | Same agents/genetics/energy, rendered as microbes/nutrients |
+| **Soccer** | Evolved agents become soccer players (RCSS integration) |
 
-### Core Invariants (All Worlds)
-
-- Genetics + code-pool genome
-- Energy ledger / lifecycle
-- Behavior policy execution
-- Deterministic stepping per world instance
-- Clean phase boundaries + mutation ownership
+Multi-world support is valuable, but **only after Evolution Loop MVP is complete**. New modes add new benchmark tracks, not just visuals.
 
 ---
 
@@ -41,32 +50,97 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 
 ---
 
-## Near-Term Goals
+## Near-Term Goals (Evolution Loop MVP)
 
-*Keep Tank stable while refactoring.*
+**Priority 1: Establish the evolutionary backbone. No new features until this is complete.**
 
-### 1. Mode-Aware UI Plumbing ✅
+### 1. BKS Registry Infrastructure
+
+**Goal**: Create the formal Best Known Solutions registry structure.
+
+- [ ] Create `benchmarks/` directory with Tank benchmarks:
+  - [ ] `benchmarks/tank/survival_30k.py` - Maximize average lifespan over 30k frames
+  - [ ] `benchmarks/tank/reproduction_30k.py` - Maximize total births over 30k frames
+  - [ ] `benchmarks/tank/diversity_30k.py` - Maximize algorithm diversity (Shannon entropy)
+- [ ] Create `benchmarks/registry.json` index
+- [ ] Create `champions/` directory structure:
+  - [ ] `champions/tank/` subdirectory
+  - [ ] `champions/registry.json` index
+  - [ ] Define champion JSON schema (score, algorithm, genome, commit, seed, repro command)
+
+### 2. Benchmark Tooling
+
+**Goal**: Standard tools for running benchmarks and validating improvements.
+
+- [ ] Implement `tools/run_bench.py`:
+  - [ ] Takes benchmark path + seed as args
+  - [ ] Runs headless simulation
+  - [ ] Outputs standardized `results.json` with metrics
+  - [ ] Includes reproduction metadata
+- [ ] Implement `tools/validate_improvement.py`:
+  - [ ] Compares new results against current champion
+  - [ ] Returns clear "better/worse/equal" verdict
+  - [ ] Outputs diff for PRs
+
+### 3. CI Validation
+
+**Goal**: Automated validation of evolutionary PRs.
+
+- [ ] Create `.github/workflows/bench.yml`:
+  - [ ] Detects changes to `champions/` directory
+  - [ ] Re-runs claimed benchmarks with deterministic seeds
+  - [ ] Confirms score improvements
+  - [ ] Checks for regressions on other benchmarks
+  - [ ] Only allows merge if validation passes
+
+### 4. Documentation
+
+**Goal**: Clear protocol for evolutionary contributions.
+
+- [ ] Create `docs/EVO_CONTRIBUTING.md`:
+  - [ ] Evolutionary PR protocol requirements
+  - [ ] Step-by-step workflow examples
+  - [ ] Champion registry format specification
+  - [ ] CI validation process explanation
+- [ ] Update `CONTRIBUTING.md` to reference evolutionary PRs
+- [ ] Add benchmark documentation to each benchmark file
+
+### 5. First Champions
+
+**Goal**: Establish baseline champions for all Tank benchmarks.
+
+- [ ] Run initial benchmarks and record champions:
+  - [ ] `champions/tank/survival_30k.json`
+  - [ ] `champions/tank/reproduction_30k.json`
+  - [ ] `champions/tank/diversity_30k.json`
+- [ ] Validate that CI can reproduce all champions
+- [ ] Document reproduction process
+
+**Definition of Done**: An AI agent (or human) can run a benchmark, beat the current BKS, open a PR with the champion update, and have CI automatically validate and approve the merge (with code review gate).
+
+---
+
+## Deferred Goals (Post-MVP)
+
+*These are valuable but blocked until Evolution Loop MVP is complete.*
+
+### Mode-Aware UI (Completed, Maintenance Only)
 
 - [x] Frontend WS handler preserves `mode_id` + `view_mode`
 - [x] Renderer selection uses `render_hint.style` consistently
 - [x] Mode/view badge for debugging added
 - [x] Regression tests for mode preservation
-
-### 2. Petri Mode Visually Real ✅
-
 - [x] Dedicated `PetriTopDownRenderer` driven by `render_hint`
-- [x] No tank hacks in Petri renderer
 - [x] Circular dish with perimeter-based root spots
-- [x] Minimal UI hint showing current mode
 
-### 3. Tank Uses Genome Code Pool (Movement First)
+### Tank Uses Genome Code Pool (Deferred)
 
 - [ ] Introduce "movement policy contract"
 - [ ] Run movement through `GenomeCodePool.execute_policy` when configured
 - [ ] Safe fallback to legacy `MovementStrategy`
 - [ ] Tests: policy path works + fallback works + exceptions don't crash
 
-### 4. Soccer Groundwork → Real World Loop
+### Soccer Groundwork (Deferred)
 
 - [ ] Implement `rcss_world` that can step and translate actions/observations
 - [ ] Build deterministic `FakeRCSSServer` for CI tests
@@ -74,50 +148,94 @@ Tank World is designed to be a **multi-modal simulation engine** where the same 
 
 ---
 
-## Medium-Term Goals
+## Medium-Term Goals (Post-Evolution Loop MVP)
 
-*Architectural improvements for long-term maintainability.*
+*Expand benchmark coverage and enable Layer 2 meta-evolution.*
 
-### One Runner Contract ✅
+### Expand Benchmark Suite
 
-Unified the two runtime stacks (`WorldRunner` + `SimulationRunner/TankWorldAdapter`) into a single `RunnerProtocol`:
+- [ ] Add Petri mode benchmarks:
+  - [ ] `benchmarks/petri/survival_30k.py`
+  - [ ] `benchmarks/petri/reproduction_30k.py`
+- [ ] Add Soccer training benchmarks (when Soccer world is ready):
+  - [ ] `benchmarks/soccer/goal_contribution.py`
+  - [ ] `benchmarks/soccer/positioning.py`
+- [ ] Add cross-mode benchmarks:
+  - [ ] Algorithm portability across Tank/Petri/Soccer
+  - [ ] Transfer learning effectiveness
 
-- `RunnerProtocol` defines the interface all runners must satisfy
-- `SimulationRunner` exposes public methods (`get_entities_snapshot`, `get_stats`, etc.)
-- `TankWorldAdapter` no longer reaches into private `_collect_*` methods
-- Eliminated dead code (`_create_plant_player_data`, `_get_fish_genome_data`)
+### Genetic Analysis Challenge (GAC)
 
-### Componentize the Agent
+**Goal**: Benchmark suite where fitness = ability to understand evolution.
 
-- Replace the Fish god-object with a compositional root + components/hooks
-- World-specific capabilities are components, not subclasses/forks
-- Strict boundaries: domain logic emits events; ledger/telemetry consumes events
+- [ ] Implement synthetic evolutionary data generator:
+  - [ ] Ground truth phylogenies, selection coefficients, drift
+  - [ ] Hidden parameters agents must infer
+- [ ] Create GAC benchmarks:
+  - [ ] `benchmarks/gac/selection_inference.py` - Infer selection strength
+  - [ ] `benchmarks/gac/regime_classification.py` - Classify evolutionary regime
+  - [ ] `benchmarks/gac/prediction.py` - Predict next-gen allele distribution
+- [ ] Add GAC champions to registry
 
-### Standardize Action + Observation Contracts ✅
+### Layer 2 Meta-Evolution Infrastructure
 
-- [x] Registry-based observation builders (`ObservationRegistry`)
-- [x] Registry-based action translation (`ActionRegistry`)
-- [x] Clear distinction: `BrainObservation`/`BrainAction` (RL pipelines) vs policy dicts (genome code)
-- [x] "Same genome policy" works across Tank/Petri/Soccer with adapters
+**Goal**: Enable agents to evolve their own instructions and tooling.
 
+- [ ] Create `instructions/` directory for agent prompts/workflows
+- [ ] Implement benchmark for instruction quality:
+  - [ ] Measure: "how many improvements did this instruction set produce?"
+  - [ ] Track instruction lineage in Git
+- [ ] Add Layer 2 validation gates:
+  - [ ] Require benchmarked improvements for instruction changes
+  - [ ] Human review REQUIRED for all Layer 2 PRs
+  - [ ] Prevent "prompt soup" via hard constraints
+
+### Closed Loop Automation
+
+- [ ] Automated agent that runs benchmarks on schedule
+- [ ] Automated PR creation for improvements
+- [ ] Self-healing: agent fixes broken code it generates
+- [ ] Regression detection rejects fitness-reducing changes
 
 ---
 
 ## Long-Term Goals
 
-*Soccer evolution success.*
+*Full three-layer evolutionary system.*
 
-### Training World for Soccer
+### Layer 0 Expansion (In-World Evolution)
 
-- `SoccerTraining` world: cheap/deterministic, used for evolution
-- Periodically evaluate champions in real RCSS matches
-- Fitness functions: goal contribution, positioning, teamwork, stamina/energy discipline
+- [ ] Neural network policy option (alternative to algorithmic)
+- [ ] More world types with different selection pressures
+- [ ] Cross-world policy transfer and adaptation
 
-### Genome = Python Code Pool
+### Layer 1 Maturity (Experiment Automation)
 
-- Genome references code components/policies stored in the pool
-- Expandable: any Python-expressible component can be introduced
-- Strong sandboxing + determinism strategy per world
+- [ ] Curriculum learning: progressive difficulty benchmarks
+- [ ] Multi-objective optimization (Pareto front tracking)
+- [ ] Population-based training across benchmark suite
+- [ ] Automated hyperparameter tuning for evolution
+
+### Layer 2 Maturity (Meta-Evolution)
+
+- [ ] Benchmark design evolution (AI proposes new fitness functions)
+- [ ] Instruction set evolution (AI improves its own prompts)
+- [ ] CI gate evolution (AI improves validation protocols)
+- [ ] Meta-metrics: measure "evolvability" of the toolkit itself
+
+### Research Platform
+
+- [ ] Publication-ready reproducibility tools
+- [ ] Formal metrics: complexity, novelty, open-endedness
+- [ ] Cross-experiment knowledge transfer
+- [ ] Collaboration features for distributed research
+
+### Distributed Compute
+
+- [ ] Browser-based client for compute contributions
+- [ ] Multi-tank network with algorithm migration
+- [ ] Fair credit system for compute contributions
+- [ ] Engagement-optimized visualizations
 
 ---
 
