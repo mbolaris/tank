@@ -11,11 +11,11 @@ from typing import Tuple
 
 from core.entities import Fish, Food
 from core.genetics.genome import Genome
-from core.policies.behavior_adapter import SimplePolicy
 from core.movement_strategy import AlgorithmicMovement
+from core.policies.behavior_adapter import SimplePolicy
 from core.tank_world import TankWorldConfig
-from core.worlds.petri.backend import PetriWorldBackendAdapter
 from core.worlds.interfaces import FAST_STEP_ACTION
+from core.worlds.petri.backend import PetriWorldBackendAdapter
 
 # Configuration
 WIDTH = 600

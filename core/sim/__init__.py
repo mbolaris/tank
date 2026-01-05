@@ -8,17 +8,17 @@ This module re-exports them for backward compatibility.
 
 # Re-export from new canonical location
 from core.brains.contracts import (
+    # Backward-compatibility aliases
+    Action,
+    ActionMap,
     BrainAction,
     BrainActionMap,
     BrainObservation,
     BrainObservationMap,
     EntityId,
-    WorldTickResult,
-    # Backward-compatibility aliases
-    Action,
-    ActionMap,
     Observation,
     ObservationMap,
+    WorldTickResult,
 )
 
 __all__ = [

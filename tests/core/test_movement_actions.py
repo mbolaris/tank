@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from core.math_utils import Vector2
 from core.brains.contracts import BrainAction
+from core.math_utils import Vector2
 
 Action = BrainAction
 

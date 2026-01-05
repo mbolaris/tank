@@ -1,7 +1,7 @@
-import shutil
-import os
-from pathlib import Path
 import logging
+import os
+import shutil
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nuke")
