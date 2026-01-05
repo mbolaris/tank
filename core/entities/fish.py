@@ -18,8 +18,6 @@ from core.config.fish import (
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
 )
-from core.constants import (
-    BURN_REASON_OVERFLOW_FOOD,
     DEATH_REASON_MIGRATION,
     DEATH_REASON_OLD_AGE,
     DEATH_REASON_STARVATION,

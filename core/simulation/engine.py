@@ -40,6 +40,7 @@ import random
 import time
 import uuid
 from typing import TYPE_CHECKING, Any, Protocol
+from dataclasses import dataclass
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
@@ -66,10 +67,6 @@ if TYPE_CHECKING:
     from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
-
-
-from dataclasses import dataclass
-from core.worlds.contracts import SpawnRequest, RemovalRequest, EnergyDeltaRecord
 
 
 @dataclass(frozen=True)

@@ -76,8 +76,7 @@ class RootSpot:
             # Creating normal vector pointing INWARD: opposite of angle
             if self.angle is not None:
                 # Normal points INWARD (opposite to angle on unit circle)
-                nx = -math.cos(self.angle)
-                ny = -math.sin(self.angle)
+                pass
             else:
                 # Fallback: cannot compute without center or angle (assuming spot x,y is center?? no)
                 # If we don't know angle, default to center anchor
