@@ -11,7 +11,7 @@ import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
 import { EcosystemStats } from './EcosystemStats';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
-import { ViewModeToggle } from './ViewModeToggle';
+import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { initRenderers } from '../renderers/init';
 import { CollapsibleSection, Button, PlantIcon, CardsIcon } from './ui';
@@ -48,15 +48,15 @@ export function TankView({ tankId }: TankViewProps) {
     // Error handling state
     const [pokerError, setPokerError] = useState<string | null>(null);
 
-    const { effectiveViewMode, setOverrideViewMode, petriMode, setPetriMode } = useViewMode(
+    const { effectiveViewMode, setOverrideViewMode, worldType, setWorldType } = useViewMode(
         state?.view_mode as any,
         state?.world_type,
         tankId || state?.tank_id
     );
 
     // Effective world type for rendering - prefer server state when available
-    // Server is authoritative; petriMode is used as fallback before server state arrives
-    const effectiveWorldType = state?.world_type ?? (petriMode ? 'petri' : 'tank');
+    // Server is authoritative; worldType is used as fallback before server state arrives
+    const effectiveWorldType = state?.world_type ?? worldType;
 
     // Ensure renderers are initialized
     initRenderers();
@@ -220,11 +220,9 @@ export function TankView({ tankId }: TankViewProps) {
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
 
-                <ViewModeToggle
-                    viewMode={effectiveViewMode}
-                    onChange={setOverrideViewMode}
-                    petriMode={petriMode}
-                    onPetriModeChange={setPetriMode}
+                <WorldModeSelector
+                    worldType={worldType}
+                    onChange={setWorldType}
                 />
 
                 {/* Plant Energy Input Control */}

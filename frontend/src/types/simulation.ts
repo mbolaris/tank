@@ -57,7 +57,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball';
     x: number;
     y: number;
     width: number;
@@ -111,6 +111,16 @@ export interface EntityData {
 
     // Crab-specific
     can_hunt?: boolean;  // True if crab can kill fish (not on cooldown)
+
+    // Soccer player-specific
+    team?: 'left' | 'right';
+    jersey_number?: number;
+    stamina?: number;
+    facing?: number;  // Angle in radians
+    has_ball?: boolean;
+
+    // Soccer ball-specific
+    radius?: number;
 
     // Rendering hints (used by alternative modes like Petri)
     render_hint?: Record<string, unknown>;

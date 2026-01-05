@@ -96,6 +96,32 @@ def test_change_world_type_incompatible_requires_new_runner():
         assert manager.tank_info.world_type == "soccer"
 
 
+def test_change_world_type_to_soccer_training():
+    """Verify that switching to soccer_training creates a new runner."""
+
+    with patch("backend.simulation_manager.SimulationRunner") as MockRunner:
+        # Mock the runner instance
+        runner_instance = MagicMock()
+        runner_instance.running = False
+        runner_instance.world = MagicMock()
+        runner_instance.world.paused = True
+        MockRunner.return_value = runner_instance
+
+        manager = SimulationManager(tank_id="test-tank", world_type="tank")
+
+        # Reset mock for next call
+        MockRunner.reset_mock()
+
+        # Switch to soccer_training (incompatible with tank)
+        manager.change_world_type("soccer_training")
+
+        # Verify new runner was created
+        MockRunner.assert_called_with(
+            seed=None, tank_id="test-tank", tank_name="Tank 1", world_type="soccer_training"
+        )
+        assert manager.tank_info.world_type == "soccer_training"
+
+
 @pytest.mark.asyncio
 async def test_api_endpoint_logic():
     """Verify the API logic flow (mocking get_tank_manager)."""
