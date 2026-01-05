@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from backend.tank_persistence import find_all_tank_snapshots, list_tank_snapshots
+from backend.world_persistence import find_all_world_snapshots, list_world_snapshots
 
 print("DATA_DIR exists:", Path("data/tanks").exists())
 print("Listing data/tanks content:")

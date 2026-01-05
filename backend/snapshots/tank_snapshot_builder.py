@@ -35,6 +35,9 @@ class TankSnapshotBuilder:
         # Note: In a real hot loop, we might optimize this, but for now
         # safe correctness is prioritized.
         if isinstance(live_entities, list):
+            # Prune IDs for entities that are no longer present to prevent
+            # memory leaks and Python id() reuse collisions
+            self._identity_provider.prune_stale_ids({id(e) for e in live_entities})
             self._identity_provider.sync_entities(live_entities)
 
         snapshots = []
@@ -168,7 +171,15 @@ class TankSnapshotBuilder:
             snapshot.source_plant_id = int(source_id)
 
     def _enrich_food(self, snapshot: EntitySnapshot, food: Food) -> None:
-        snapshot.energy = food.energy
+        # Defensive property access for robust snapshotting
+        energy = getattr(food, "energy", None)
+        if energy is None and hasattr(food, "get_energy_value"):
+            try:
+                energy = float(food.get_energy_value())
+            except Exception:
+                energy = None
+
+        snapshot.energy = energy
         snapshot.food_type = getattr(food, "food_type", "regular")
 
     def _enrich_crab(self, snapshot: EntitySnapshot, crab: Crab) -> None:

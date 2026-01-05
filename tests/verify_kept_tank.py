@@ -1,9 +1,10 @@
 import logging
 
-from backend.tank_persistence import (
-    find_all_tank_snapshots,
-    load_tank_state,
-    restore_tank_from_snapshot,
+from backend.world_persistence import (
+    DATA_DIR,
+    find_all_world_snapshots,
+    load_snapshot,
+    restore_world_from_snapshot,
 )
 from core.simulation.engine import SimulationEngine
 

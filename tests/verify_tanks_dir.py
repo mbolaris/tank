@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from backend.tank_persistence import DATA_DIR, find_all_tank_snapshots
+from backend.world_persistence import DATA_DIR, find_all_world_snapshots
 
 print(f"DATA_DIR from module: {DATA_DIR}")
 print(f"Resolved DATA_DIR: {DATA_DIR.resolve()}")

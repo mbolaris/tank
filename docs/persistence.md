@@ -76,7 +76,7 @@ This ensures reference integrity without requiring entities to be saved in depen
 ### Saving State
 
 ```python
-from backend.tank_persistence import save_tank_state
+from backend.world_persistence import save_world_state
 
 # manager must implement capture_state_for_save()
 filepath = save_tank_state(tank_id, manager)
@@ -85,7 +85,7 @@ filepath = save_tank_state(tank_id, manager)
 ### Loading State
 
 ```python
-from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
+from backend.world_persistence import load_snapshot, restore_world_from_snapshot
 
 snapshot = load_tank_state("/path/to/snapshot.json")
 if snapshot:
@@ -95,7 +95,7 @@ if snapshot:
 ### Listing Snapshots
 
 ```python
-from backend.tank_persistence import list_tank_snapshots, get_latest_snapshot
+from backend.world_persistence import list_world_snapshots, get_latest_snapshot
 
 snapshots = list_tank_snapshots(tank_id)
 latest = get_latest_snapshot(tank_id)

@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from backend.tank_persistence import load_tank_state, restore_tank_from_snapshot
+from backend.world_persistence import load_snapshot, restore_world_from_snapshot
 from core.simulation.engine import SimulationEngine
 
 # Setup logging

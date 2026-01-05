@@ -1,11 +1,11 @@
 import logging
 from pathlib import Path
 
-from backend.tank_persistence import DATA_DIR, find_all_tank_snapshots
+from backend.world_persistence import DATA_DIR, find_all_world_snapshots
 
 # Setup logging to stdout
 logging.basicConfig(level=logging.INFO, format="%(message)s")
-logger = logging.getLogger("backend.tank_persistence")
+logger = logging.getLogger("backend.world_persistence")
 logger.setLevel(logging.INFO)
 
 print(f"Current Working Directory: {Path.cwd()}")

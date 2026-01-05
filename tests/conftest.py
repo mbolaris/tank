@@ -41,8 +41,19 @@ def seeded_rng():
     """Provide a deterministic RNG for tests."""
     return random.Random(42)
 
-    # Fixture removed as part of No-Legacy Cut (depended on backend.tank_persistence)
-    yield tmp_path / "data" / "tanks"
+
+@pytest.fixture(autouse=True)
+def mock_data_dir(tmp_path):
+    """Keep persistence tests from writing into the real repo."""
+    import backend.world_persistence as wp
+
+    original = wp.DATA_DIR
+    wp.DATA_DIR = tmp_path / "data" / "worlds"
+    wp.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        yield wp.DATA_DIR
+    finally:
+        wp.DATA_DIR = original
 
 
 @pytest.fixture
