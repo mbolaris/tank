@@ -214,7 +214,6 @@ class SimulationEngine:
         self._phase_debug_enabled: bool = self.config.enable_phase_debug
 
         # Delta log (reset every frame)
-        from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 
         self._frame_spawns: list[SpawnRequest] = []
         self._frame_removals: list[RemovalRequest] = []

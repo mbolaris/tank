@@ -1,6 +1,5 @@
-import pytest
-from core.simulation.engine import SimulationEngine, FrameOutputs
-from core.worlds.contracts import SpawnRequest, RemovalRequest, EnergyDeltaRecord
+from core.simulation.engine import FrameOutputs, SimulationEngine
+from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 
 
 class MockEntity:
