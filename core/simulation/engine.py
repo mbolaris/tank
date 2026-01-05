@@ -39,8 +39,8 @@ import os
 import random
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Protocol
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Protocol
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
