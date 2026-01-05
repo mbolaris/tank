@@ -17,6 +17,8 @@ from core.config.fish import (
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
+)
+from core.constants import (
     DEATH_REASON_MIGRATION,
     DEATH_REASON_OLD_AGE,
     DEATH_REASON_STARVATION,
