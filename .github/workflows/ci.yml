@@ -16,6 +16,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Check for compiled Python artifacts
+      run: |
+        if find backend/ core/ -name "__pycache__" -type d 2>/dev/null | grep -q .; then
+          echo "ERROR: __pycache__ directories found in backend/ or core/"
+          find backend/ core/ -name "__pycache__" -type d
+          exit 1
+        fi
+        if find backend/ core/ -name "*.pyc" 2>/dev/null | grep -q .; then
+          echo "ERROR: .pyc files found in backend/ or core/"
+          find backend/ core/ -name "*.pyc"
+          exit 1
+        fi
+        echo "No compiled Python artifacts found in backend/ or core/"
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
