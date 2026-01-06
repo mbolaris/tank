@@ -161,28 +161,51 @@ def restore_world_from_snapshot(
             return None
 
         # Resolve engine from target_world (which might be an adapter)
+        # Try multiple resolution paths for cross-Python-version compatibility
         engine = None
-        if hasattr(target_world, "world") and hasattr(target_world.world, "engine"):
-            engine = target_world.world.engine
-        elif hasattr(target_world, "engine"):
-            engine = target_world.engine
+
+        # Path 1: Direct engine attribute (most common)
+        try:
+            if hasattr(target_world, "engine") and target_world.engine is not None:
+                engine = target_world.engine
+        except Exception:
+            pass
+
+        # Path 2: Through .world.engine (for backend adapters like PetriWorldBackendAdapter)
+        if engine is None:
+            try:
+                world_attr = getattr(target_world, "world", None)
+                if world_attr is not None:
+                    engine = getattr(world_attr, "engine", None)
+            except Exception:
+                pass
 
         if engine is None:
             logger.error("Failed to resolve engine for restoration")
             return False
 
+        logger.debug(
+            f"Resolved engine: {type(engine).__name__}, entities: {len(engine.entities_list)}"
+        )
+
         # Restore frame count on the engine
         if "frame" in snapshot:
             engine.frame_count = snapshot["frame"]
 
-        # Clear existing entities using EntityManager.clear() to properly invalidate caches.
-        # Using engine.entities_list.clear() only clears the list but doesn't invalidate
-        # CacheManager, which can cause stale cached entities to persist.
-        if hasattr(engine, "_entity_manager") and hasattr(engine._entity_manager, "clear"):
-            engine._entity_manager.clear()
-        else:
-            # Fallback for engines without EntityManager
+        # Clear existing entities - use multiple methods to ensure complete clearing
+        # This is critical for cross-Python-version compatibility
+        entity_manager = getattr(engine, "_entity_manager", None)
+        if entity_manager is not None and hasattr(entity_manager, "clear"):
+            entity_manager.clear()
+            logger.debug(f"Cleared via EntityManager, now: {len(engine.entities_list)} entities")
+
+        # Always also clear the list directly as a safety measure
+        if len(engine.entities_list) > 0:
             engine.entities_list.clear()
+            logger.debug(
+                f"Cleared entities_list directly, now: {len(engine.entities_list)} entities"
+            )
+
         if engine.environment:
             engine.environment.spatial_grid.clear()
 
