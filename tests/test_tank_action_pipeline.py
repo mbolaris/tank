@@ -63,12 +63,12 @@ class TestActionPipeline:
 
         result = adapter.step()
         assert "brain_mode" in result.info
-        assert result.info["brain_mode"] == "legacy"
+        assert result.info["brain_mode"] == "builtin"
 
     def test_legacy_mode_is_default(self):
         """Legacy mode should be the default brain mode."""
         config = SimulationConfig()
-        assert config.tank.brain_mode == "legacy"
+        assert config.tank.brain_mode == "builtin"
 
     def test_external_mode_can_be_configured(self):
         """External mode should be configurable via TankConfig."""
@@ -126,12 +126,12 @@ class TestSnapshotBackwardCompat:
 
     def test_config_persistence(self):
         """Config should be preserved across step calls."""
-        config = SimulationConfig(tank=TankConfig(brain_mode="legacy"))
+        config = SimulationConfig(tank=TankConfig(brain_mode="builtin"))
 
         # TankConfig is accessible
-        assert config.tank.brain_mode == "legacy"
+        assert config.tank.brain_mode == "builtin"
 
         # Default factory creates TankConfig
         default_config = SimulationConfig()
         assert hasattr(default_config, "tank")
-        assert default_config.tank.brain_mode == "legacy"
+        assert default_config.tank.brain_mode == "builtin"

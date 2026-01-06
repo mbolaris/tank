@@ -44,6 +44,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.0",
     "mypy>=1.0",
     "black>=23.0",
@@ -58,6 +59,7 @@ ai = [
 fishtank = "main:main"
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
 python_files = ["test_*.py"]
