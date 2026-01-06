@@ -574,7 +574,7 @@ class FullStatePayload:
     poker_leaderboard: list[PokerLeaderboardEntryPayload]
     auto_evaluation: AutoEvaluateStatsPayload | None = None
     type: str = "update"
-    tank_id: str | None = None  # Tank World Net identifier
+    world_id: str | None = None  # World identifier for multi-world mode
     mode_id: str | None = "tank"
     world_type: str | None = "tank"
     view_mode: str | None = "side"
@@ -597,8 +597,8 @@ class FullStatePayload:
             "type": self.type,
             "snapshot": snapshot,
         }
-        if self.tank_id is not None:
-            data["tank_id"] = self.tank_id
+        if self.world_id is not None:
+            data["world_id"] = self.world_id
         if self.mode_id is not None:
             data["mode_id"] = self.mode_id
         if self.world_type is not None:
@@ -626,7 +626,7 @@ class DeltaStatePayload:
     poker_events: list[PokerEventPayload] | None = None
     stats: StatsPayload | None = None
     type: str = "delta"
-    tank_id: str | None = None  # Tank World Net identifier
+    world_id: str | None = None  # World identifier for multi-world mode
     mode_id: str | None = "tank"
     world_type: str | None = "tank"
     view_mode: str | None = "side"
@@ -650,8 +650,8 @@ class DeltaStatePayload:
             "type": self.type,
             "snapshot": snapshot,
         }
-        if self.tank_id is not None:
-            data["tank_id"] = self.tank_id
+        if self.world_id is not None:
+            data["world_id"] = self.world_id
         if self.mode_id is not None:
             data["mode_id"] = self.mode_id
         if self.world_type is not None:

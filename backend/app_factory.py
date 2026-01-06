@@ -122,7 +122,7 @@ class AppContext:
             host=_get_network_ip(),
             port=self.api_port,
             status="online",
-            tank_count=self.world_manager.world_count,
+            world_count=self.world_manager.world_count,
             version=self.server_version,
             uptime_seconds=uptime,
             cpu_percent=cpu_percent,

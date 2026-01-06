@@ -6,18 +6,25 @@
  */
 
 /**
- * Get the tank ID from URL query parameter
+ * Get the world ID from URL query parameter
  */
-function getTankIdFromUrl(): string | null {
+function getWorldIdFromUrl(): string | null {
     if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        return params.get('tank');
+        return params.get('world') || params.get('tank');
     }
     return null;
 }
 
 /**
- * Get the base WebSocket URL (without tank ID)
+ * @deprecated Use getWorldIdFromUrl instead
+ */
+function getTankIdFromUrl(): string | null {
+    return getWorldIdFromUrl();
+}
+
+/**
+ * Get the base WebSocket URL (without world ID)
  */
 function getBaseWebSocketUrl(): string {
     // Check URL query parameter for remote server connection
@@ -25,7 +32,7 @@ function getBaseWebSocketUrl(): string {
         const params = new URLSearchParams(window.location.search);
         const serverUrl = params.get('server');
         if (serverUrl) {
-            // Remove any /ws or /ws/{tank_id} suffix to get base
+            // Remove any /ws or /ws/{world_id} suffix to get base
             return serverUrl.replace(/\/ws(\/[^/]+)?$/, '');
         }
     }
@@ -52,17 +59,17 @@ function getBaseWebSocketUrl(): string {
  * Determine WebSocket URL based on environment
  *
  * Priority order:
- * 1. URL query parameter (?server=ws://... and/or ?tank=uuid)
+ * 1. URL query parameter (?server=ws://... and/or ?world=uuid)
  * 2. Environment variable (VITE_WS_URL)
  * 3. Default to same host as page (for local development)
  */
 function getWebSocketUrl(): string {
     const baseUrl = getBaseWebSocketUrl();
-    const tankId = getTankIdFromUrl();
+    const worldId = getWorldIdFromUrl();
 
-    // If a specific tank/world is requested, use /ws/world/{world_id}
-    if (tankId) {
-        return `${baseUrl}/ws/world/${tankId}`;
+    // If a specific world is requested, use /ws/world/{world_id}
+    if (worldId) {
+        return `${baseUrl}/ws/world/${worldId}`;
     }
 
     // Default: no world selected. The application must identify a world before connecting.
@@ -110,7 +117,10 @@ export const config = {
     /** WebSocket reconnect delay in milliseconds */
     wsReconnectDelay: 3000,
 
-    /** Tank ID from URL (if specified) */
+    /** World ID from URL (if specified) */
+    worldId: getWorldIdFromUrl(),
+
+    /** @deprecated Use worldId instead */
     tankId: getTankIdFromUrl(),
 
     /** Get the current server URL (for display purposes) */
@@ -119,7 +129,7 @@ export const config = {
     },
 
     /**
-     * Get WebSocket URL for a specific world (formerly tank)
+     * Get WebSocket URL for a specific world
      * @param worldId - The world ID to connect to
      */
     getWsUrlForWorld(worldId: string): string {
@@ -166,7 +176,7 @@ export interface ServerInfo {
     host: string;
     port: number;
     status: 'online' | 'offline' | 'degraded';
-    tank_count: number;
+    world_count: number;
     version: string;
     uptime_seconds: number;
     cpu_percent?: number;
@@ -179,7 +189,15 @@ export interface ServerInfo {
 }
 
 /**
- * Server with tanks list
+ * Server with worlds list
+ */
+export interface ServerWithWorlds {
+    server: ServerInfo;
+    worlds: WorldStatus[];
+}
+
+/**
+ * @deprecated Use ServerWithWorlds instead
  */
 export interface ServerWithTanks {
     server: ServerInfo;
@@ -187,10 +205,10 @@ export interface ServerWithTanks {
 }
 
 /**
- * Tank information returned from the API
+ * World information returned from the API
  */
-export interface TankInfo {
-    tank_id: string;
+export interface WorldInfo {
+    world_id: string;
     name: string;
     description: string;
     created_at: string;
@@ -200,7 +218,14 @@ export interface TankInfo {
     allow_transfers: boolean;
 }
 
-export interface TankStatsSummary {
+/**
+ * @deprecated Use WorldInfo instead
+ */
+export interface TankInfo extends WorldInfo {
+    tank_id: string;
+}
+
+export interface WorldStatsSummary {
     fish_count: number;
     generation: number;
     max_generation: number;
@@ -223,6 +248,11 @@ export interface TankStatsSummary {
         total_energy_lost: number;
     };
 }
+
+/**
+ * @deprecated Use WorldStatsSummary instead
+ */
+export type TankStatsSummary = WorldStatsSummary;
 
 /**
  * Tank status returned from the API

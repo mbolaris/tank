@@ -13,8 +13,8 @@ class FakeMigrationHandler:
     result: bool = True
     last_call: tuple[str, str, str] | None = None
 
-    def attempt_entity_migration(self, entity, direction: str, source_tank_id: str) -> bool:
-        self.last_call = (type(entity).__name__, direction, source_tank_id)
+    def attempt_entity_migration(self, entity, direction: str, source_world_id: str) -> bool:
+        self.last_call = (type(entity).__name__, direction, source_world_id)
         return self.result
 
 
@@ -31,7 +31,7 @@ def _make_fish(env: Environment) -> Fish:
 
 def test_fish_migration_returns_false_without_handler() -> None:
     env = Environment(width=800, height=600)
-    env.tank_id = "tank-1"
+    env.world_id = "world-1"
     fish = _make_fish(env)
 
     assert fish._attempt_migration("left") is False
@@ -39,7 +39,7 @@ def test_fish_migration_returns_false_without_handler() -> None:
     assert fish.state.state != EntityState.REMOVED
 
 
-def test_fish_migration_returns_false_without_tank_id() -> None:
+def test_fish_migration_returns_false_without_world_id() -> None:
     env = Environment(width=800, height=600)
     env.migration_handler = FakeMigrationHandler(result=True)
     fish = _make_fish(env)
@@ -51,7 +51,7 @@ def test_fish_migration_returns_false_without_tank_id() -> None:
 
 def test_fish_migration_marks_for_removal_on_success() -> None:
     env = Environment(width=800, height=600)
-    env.tank_id = "tank-123"
+    env.world_id = "world-123"
     handler = FakeMigrationHandler(result=True)
     env.migration_handler = handler
     fish = _make_fish(env)
@@ -59,4 +59,4 @@ def test_fish_migration_marks_for_removal_on_success() -> None:
     assert fish._attempt_migration("right") is True
 
     assert fish.state.state == EntityState.REMOVED
-    assert handler.last_call == ("Fish", "right", "tank-123")
+    assert handler.last_call == ("Fish", "right", "world-123")

@@ -18,11 +18,11 @@ interface SolutionsResponse {
 }
 
 interface SolutionLeaderboardProps {
-    tankId?: string;
+    worldId?: string;
     onCapture?: () => void;
 }
 
-export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ tankId, onCapture }) => {
+export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ worldId, onCapture }) => {
     const [solutions, setSolutions] = useState<SolutionEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -53,8 +53,8 @@ export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ tankId
     }, [fetchSolutions]);
 
     const handleCapture = async () => {
-        if (!tankId) {
-            setCaptureMessage('No tank selected for capture');
+        if (!worldId) {
+            setCaptureMessage('No world selected for capture');
             return;
         }
 
@@ -62,7 +62,7 @@ export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ tankId
         setCaptureMessage(null);
 
         try {
-            const response = await fetch(`/api/solutions/capture/${tankId}`, {
+            const response = await fetch(`/api/solutions/capture/${worldId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -148,7 +148,7 @@ export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ tankId
         <div className={styles.solutionLeaderboard}>
             <div className={styles.header}>
                 <h3>Solution Leaderboard</h3>
-                {tankId && (
+                {worldId && (
                     <button
                         className={styles.captureButton}
                         onClick={handleCapture}
@@ -188,10 +188,10 @@ export const SolutionLeaderboard: React.FC<SolutionLeaderboardProps> = ({ tankId
                                     entry.rank === 1
                                         ? styles.rank1
                                         : entry.rank === 2
-                                          ? styles.rank2
-                                          : entry.rank === 3
-                                            ? styles.rank3
-                                            : '';
+                                            ? styles.rank2
+                                            : entry.rank === 3
+                                                ? styles.rank3
+                                                : '';
 
                                 return (
                                     <tr key={entry.solution_id} className={rankClass}>

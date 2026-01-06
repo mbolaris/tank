@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from backend.discovery_service import DiscoveryService
-from backend.models import ServerWithTanks
+from backend.models import ServerWithWorlds
 from backend.server_client import ServerClient
 from backend.world_manager import WorldManager
 
@@ -52,37 +52,37 @@ def setup_router(
         server. For each server, includes the list of worlds running on it.
 
         Returns:
-            List of ServerWithTanks objects containing server info and their worlds
+            List of ServerWithWorlds objects containing server info and their worlds
         """
         # Get all servers from discovery service
         all_servers = await discovery_service.list_servers()
 
         # Build response with worlds for each server
-        servers_with_tanks = []
+        servers_with_worlds = []
 
         for server in all_servers:
             if server.is_local:
                 # For local server, get worlds directly
                 worlds = world_manager.list_worlds()
                 # Convert WorldStatus to dict for compatibility
-                tanks = [w.to_dict() for w in worlds]
+                world_dicts = [w.to_dict() for w in worlds]
             else:
-                # For remote servers, fetch tanks via API
+                # For remote servers, fetch worlds via API
                 try:
-                    remote_tanks = await server_client.list_tanks(server)
-                    tanks = remote_tanks if remote_tanks is not None else []
+                    remote_worlds = await server_client.list_worlds(server)
+                    world_dicts = remote_worlds if remote_worlds is not None else []
                 except Exception as e:
                     logger.error(f"Failed to fetch worlds from {server.server_id}: {e}")
-                    tanks = []
+                    world_dicts = []
 
-            servers_with_tanks.append(
-                ServerWithTanks(
+            servers_with_worlds.append(
+                ServerWithWorlds(
                     server=server,
-                    tanks=tanks,
+                    worlds=world_dicts,
                 ).model_dump()
             )
 
-        return JSONResponse({"servers": servers_with_tanks})
+        return JSONResponse({"servers": servers_with_worlds})
 
     @router.get("/{server_id}")
     async def get_server(server_id: str):
@@ -92,7 +92,7 @@ def setup_router(
             server_id: The server identifier
 
         Returns:
-            ServerWithTanks object or 404 if not found
+            ServerWithWorlds object or 404 if not found
         """
         # Look up server in discovery service
         server_info = await discovery_service.get_server(server_id)
@@ -107,20 +107,20 @@ def setup_router(
         if server_info.is_local:
             # Local server - get worlds directly
             worlds = world_manager.list_worlds()
-            tanks = [w.to_dict() for w in worlds]
+            world_dicts = [w.to_dict() for w in worlds]
         else:
             # Remote server - fetch via API
             try:
-                remote_tanks = await server_client.list_tanks(server_info)
-                tanks = remote_tanks if remote_tanks is not None else []
+                remote_worlds = await server_client.list_worlds(server_info)
+                world_dicts = remote_worlds if remote_worlds is not None else []
             except Exception as e:
                 logger.error(f"Failed to fetch worlds from {server_id}: {e}")
-                tanks = []
+                world_dicts = []
 
         return JSONResponse(
-            ServerWithTanks(
+            ServerWithWorlds(
                 server=server_info,
-                tanks=tanks,
+                worlds=world_dicts,
             ).model_dump()
         )
 

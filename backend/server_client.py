@@ -173,7 +173,7 @@ class ServerClient:
 
         return None
 
-    async def list_tanks(self, server: ServerInfo) -> Optional[List[Dict[str, Any]]]:
+    async def list_worlds(self, server: ServerInfo) -> Optional[List[Dict[str, Any]]]:
         """List all worlds on a remote server.
 
         Args:
@@ -202,21 +202,21 @@ class ServerClient:
 
         return None
 
-    async def get_tank(
+    async def get_world(
         self,
         server: ServerInfo,
-        tank_id: str,
+        world_id: str,
     ) -> Optional[Dict[str, Any]]:
         """Get world information from a remote server.
 
         Args:
             server: Server to query
-            tank_id: World ID to look up
+            world_id: World ID to look up
 
         Returns:
             World info dictionary if successful, None otherwise
         """
-        url = self._build_url(server, f"/api/worlds/{tank_id}")
+        url = self._build_url(server, f"/api/worlds/{world_id}")
         response = await self._request("GET", url)
 
         if response:
@@ -230,16 +230,16 @@ class ServerClient:
     async def transfer_entity(
         self,
         server: ServerInfo,
-        source_tank_id: str,
-        destination_tank_id: str,
+        source_world_id: str,
+        destination_world_id: str,
         entity_id: int,
     ) -> Optional[Dict[str, Any]]:
         """Transfer an entity between worlds on a remote server.
 
         Args:
             server: Server hosting the worlds
-            source_tank_id: Source world ID
-            destination_tank_id: Destination world ID
+            source_world_id: Source world ID
+            destination_world_id: Destination world ID
             entity_id: Entity ID to transfer
 
         Returns:
@@ -247,12 +247,12 @@ class ServerClient:
         """
         url = self._build_url(
             server,
-            f"/api/worlds/{source_tank_id}/transfer",
+            f"/api/worlds/{source_world_id}/transfer",
         )
 
         params = {
             "entity_id": entity_id,
-            "destination_world_id": destination_tank_id,
+            "destination_world_id": destination_world_id,
         }
 
         response = await self._request("POST", url, params=params)
@@ -268,8 +268,8 @@ class ServerClient:
     async def create_connection(
         self,
         server: ServerInfo,
-        source_tank_id: str,
-        destination_tank_id: str,
+        source_world_id: str,
+        destination_world_id: str,
         probability: int = 50,
         direction: str = "right",
     ) -> Optional[Dict[str, Any]]:
@@ -277,8 +277,8 @@ class ServerClient:
 
         Args:
             server: Server to create connection on
-            source_tank_id: Source tank ID
-            destination_tank_id: Destination tank ID
+            source_world_id: Source tank ID
+            destination_world_id: Destination tank ID
             probability: Migration probability (0-100)
             direction: Migration direction ("left" or "right")
 
@@ -288,8 +288,8 @@ class ServerClient:
         url = self._build_url(server, "/api/connections")
 
         payload = {
-            "source_tank_id": source_tank_id,
-            "destination_tank_id": destination_tank_id,
+            "source_world_id": source_world_id,
+            "destination_world_id": destination_world_id,
             "probability": probability,
             "direction": direction,
         }
@@ -307,13 +307,13 @@ class ServerClient:
     async def get_connections(
         self,
         server: ServerInfo,
-        tank_id: Optional[str] = None,
+        world_id: Optional[str] = None,
     ) -> Optional[List[Dict[str, Any]]]:
         """Get migration connections from a remote server.
 
         Args:
             server: Server to query
-            tank_id: Optional tank ID to filter by source tank
+            world_id: Optional tank ID to filter by source tank
 
         Returns:
             List of connection info dictionaries if successful, None otherwise
@@ -321,8 +321,8 @@ class ServerClient:
         url = self._build_url(server, "/api/connections")
 
         params = {}
-        if tank_id:
-            params["tank_id"] = tank_id
+        if world_id:
+            params["world_id"] = world_id
 
         response = await self._request("GET", url, params=params)
 
@@ -401,10 +401,10 @@ class ServerClient:
     async def remote_transfer_entity(
         self,
         server: ServerInfo,
-        destination_tank_id: str,
+        destination_world_id: str,
         entity_data: Dict[str, Any],
         source_server_id: str,
-        source_tank_id: str,
+        source_world_id: str,
     ) -> Optional[Dict[str, Any]]:
         """Transfer an entity to a remote server.
 
@@ -412,10 +412,10 @@ class ServerClient:
 
         Args:
             server: Destination server
-            destination_tank_id: Destination tank ID
+            destination_world_id: Destination tank ID
             entity_data: Serialized entity data
             source_server_id: Source server ID (for logging)
-            source_tank_id: Source tank ID (for logging)
+            source_world_id: Source tank ID (for logging)
 
         Returns:
             Transfer result dictionary if successful, None otherwise
@@ -423,10 +423,10 @@ class ServerClient:
         url = self._build_url(server, "/api/remote-transfer")
 
         payload = {
-            "destination_tank_id": destination_tank_id,
+            "destination_world_id": destination_world_id,
             "entity_data": entity_data,
             "source_server_id": source_server_id,
-            "source_tank_id": source_tank_id,
+            "source_world_id": source_world_id,
         }
 
         response = await self._request("POST", url, json=payload)

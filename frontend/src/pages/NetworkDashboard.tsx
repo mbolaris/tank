@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { config, type WorldStatus, type ServerWithTanks } from '../config';
+import { config, type WorldStatus, type ServerWithWorlds } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 import { TankNetworkMap } from '../components/TankNetworkMap';
@@ -17,11 +17,11 @@ import { PokerScoreDisplay } from '../components/PokerScoreDisplay';
 type SnapshotPlayer = PokerPerformanceSnapshot['players'][number];
 
 interface ServersResponse {
-    servers: ServerWithTanks[];
+    servers: ServerWithWorlds[];
 }
 
 export function NetworkDashboard() {
-    const [servers, setServers] = useState<ServerWithTanks[]>([]);
+    const [servers, setServers] = useState<ServerWithWorlds[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +35,7 @@ export function NetworkDashboard() {
     // Transfer history state
     const [showHistory, setShowHistory] = useState(false);
 
-    const totalTanks = servers.reduce((sum, s) => sum + s.tanks.length, 0);
+    const totalWorlds = servers.reduce((sum, s) => sum + s.worlds.length, 0);
 
     const fetchServers = useCallback(async () => {
         try {
@@ -71,7 +71,7 @@ export function NetworkDashboard() {
 
         setCreating(true);
         try {
-            const name = newTankName.trim() || `Tank ${totalTanks + 1}`;
+            const name = newTankName.trim() || `World ${totalWorlds + 1}`;
             const response = await fetch(config.worldsApiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -118,7 +118,7 @@ export function NetworkDashboard() {
     const handleOpenCreateForm = () => {
         setShowCreateForm(true);
         if (!newTankName.trim()) {
-            setNewTankName(`Tank ${totalTanks + 1}`);
+            setNewTankName(`World ${totalWorlds + 1}`);
         }
         if (!selectedServerId && servers[0]) {
             setSelectedServerId(servers[0].server.server_id);
@@ -159,7 +159,7 @@ export function NetworkDashboard() {
                         }}>
                             {servers.length} server{servers.length !== 1 ? 's' : ''}
                             {' '}&bull;{' '}
-                            {totalTanks} tank{totalTanks !== 1 ? 's' : ''}
+                            {totalWorlds} world{totalWorlds !== 1 ? 's' : ''}
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
@@ -268,9 +268,9 @@ export function NetworkDashboard() {
                                         boxSizing: 'border-box',
                                     }}
                                 >
-                                    {servers.map((serverWithTanks) => (
-                                        <option key={serverWithTanks.server.server_id} value={serverWithTanks.server.server_id}>
-                                            {serverWithTanks.server.hostname} ({serverWithTanks.server.status})
+                                    {servers.map((serverWithWorlds) => (
+                                        <option key={serverWithWorlds.server.server_id} value={serverWithWorlds.server.server_id}>
+                                            {serverWithWorlds.server.hostname} ({serverWithWorlds.server.status})
                                         </option>
                                     ))}
                                 </select>
@@ -338,10 +338,10 @@ export function NetworkDashboard() {
 
                 {/* Server Cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    {servers.map((serverWithTanks) => (
+                    {servers.map((serverWithWorlds) => (
                         <ServerCard
-                            key={serverWithTanks.server.server_id}
-                            serverWithTanks={serverWithTanks}
+                            key={serverWithWorlds.server.server_id}
+                            serverWithWorlds={serverWithWorlds}
                             onDeleteTank={handleDeleteTank}
                             onRefresh={fetchServers}
                         />
@@ -377,13 +377,13 @@ export function NetworkDashboard() {
 }
 
 interface ServerCardProps {
-    serverWithTanks: ServerWithTanks;
+    serverWithWorlds: ServerWithWorlds;
     onDeleteTank: (tankId: string, tankName: string) => void;
     onRefresh: () => void;
 }
 
-function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProps) {
-    const { server, tanks } = serverWithTanks;
+function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardProps) {
+    const { server, worlds } = serverWithWorlds;
 
     const statusColor = server.status === 'online' ? '#22c55e' :
         server.status === 'degraded' ? '#f59e0b' : '#ef4444';
@@ -498,10 +498,10 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                         textAlign: 'right',
                     }}>
                         <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
-                            {tanks.length}
+                            {worlds.length}
                         </div>
                         <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                            tank{tanks.length !== 1 ? 's' : ''}
+                            world{worlds.length !== 1 ? 's' : ''}
                         </div>
                     </div>
                 </div>
@@ -509,14 +509,14 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
 
             {/* Tanks Grid */}
             <div style={{ padding: '20px' }}>
-                {tanks.length === 0 ? (
+                {worlds.length === 0 ? (
                     <div style={{
                         textAlign: 'center',
                         padding: '32px',
                         color: '#64748b',
                         fontSize: '14px',
                     }}>
-                        No tanks running on this server
+                        No worlds running on this server
                     </div>
                 ) : (
                     <div style={{
@@ -524,7 +524,7 @@ function ServerCard({ serverWithTanks, onDeleteTank, onRefresh }: ServerCardProp
                         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
                         gap: '16px',
                     }}>
-                        {[...tanks].sort((a, b) => (b.frame_count ?? 0) - (a.frame_count ?? 0)).map((tankStatus) => (
+                        {[...worlds].sort((a, b) => (b.frame_count ?? 0) - (a.frame_count ?? 0)).map((tankStatus) => (
                             <TankCard
                                 key={tankStatus.world_id}
                                 tankStatus={tankStatus}

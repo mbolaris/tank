@@ -395,7 +395,7 @@ export interface StatsData {
 
 export interface SimulationUpdate {
     type: 'update';
-    tank_id?: string;  // Tank World Net identifier
+    world_id?: string;  // World identifier for multi-world mode
     world_type?: string;
     view_mode?: string;
     mode_id?: string;
@@ -425,7 +425,7 @@ export interface SimulationUpdate {
 
 export interface DeltaUpdate {
     type: 'delta';
-    tank_id?: string;  // Tank World Net identifier
+    world_id?: string;  // World identifier for multi-world mode
     world_type?: string;
     view_mode?: string;
     mode_id?: string;

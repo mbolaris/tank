@@ -11,20 +11,20 @@ interface Transfer {
     entity_type: string;
     entity_old_id: number;
     entity_new_id: number | null;
-    source_tank_id: string;
-    source_tank_name: string;
-    destination_tank_id: string;
-    destination_tank_name: string;
+    source_world_id: string;
+    source_world_name: string;
+    destination_world_id: string;
+    destination_world_name: string;
     success: boolean;
     error: string | null;
 }
 
 interface TransferHistoryProps {
     onClose: () => void;
-    tankId?: string; // Optional filter by tank ID
+    worldId?: string; // Optional filter by world ID
 }
 
-export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
+export function TransferHistory({ onClose, worldId }: TransferHistoryProps) {
     const [transfers, setTransfers] = useState<Transfer[]>([]);
     const [loading, setLoading] = useState(true);
     const [successOnly, setSuccessOnly] = useState(false);
@@ -35,7 +35,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
             setError(null);
             const params = new URLSearchParams({
                 limit: '50',
-                ...(tankId && { tank_id: tankId }),
+                ...(worldId && { world_id: worldId }),
                 ...(successOnly && { success_only: 'true' }),
             });
 
@@ -52,7 +52,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
         } finally {
             setLoading(false);
         }
-    }, [tankId, successOnly]);
+    }, [worldId, successOnly]);
 
     // Fetch transfers on mount and when filters change
     useEffect(() => {
@@ -120,7 +120,7 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>
                         Transfer History
-                        {tankId && ' (Filtered)'}
+                        {worldId && ' (Filtered)'}
                     </h2>
                     <button
                         onClick={onClose}
@@ -211,9 +211,9 @@ export function TransferHistory({ onClose, tankId }: TransferHistoryProps) {
                                             )}
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '2px' }}>
-                                            {transfer.source_tank_name}
+                                            {transfer.source_world_name}
                                             <span style={{ margin: '0 6px', color: '#475569' }}>→</span>
-                                            {transfer.destination_tank_name}
+                                            {transfer.destination_world_name}
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>

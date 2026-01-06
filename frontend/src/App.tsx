@@ -395,7 +395,7 @@ function TankPage() {
     return (
         <div className="app">
             <main className="main">
-                <TankView tankId={tankId} />
+                <TankView worldId={tankId} />
             </main>
             <footer className="footer">
                 <p>Built with React + FastAPI + WebSocket | Running at ~30 FPS</p>

@@ -595,7 +595,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return {
             "version": SCHEMA_VERSION,
-            "tank_id": getattr(self, "tank_id", "unknown"),
+            "world_id": getattr(self.environment, "world_id", "unknown"),
             "frame": self._world.frame_count,
             "paused": self._world.paused,
             "config": self._base_config.to_dict(),

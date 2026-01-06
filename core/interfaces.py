@@ -598,21 +598,21 @@ class MigrationHandler(Protocol):
         if isinstance(self.environment, MigrationCapable):
             handler = self.environment.migration_handler
             if handler is not None:
-                handler.attempt_entity_migration(self, "left", tank_id)
+                handler.attempt_entity_migration(self, "left", world_id)
     """
 
     def attempt_entity_migration(
         self,
         entity: Any,
         direction: str,
-        source_tank_id: str,
+        source_world_id: str,
     ) -> bool:
-        """Attempt to migrate an entity to a connected tank.
+        """Attempt to migrate an entity to a connected world.
 
         Args:
             entity: The entity attempting to migrate
             direction: "left" or "right" - which boundary was hit
-            source_tank_id: ID of the tank the entity is leaving
+            source_world_id: ID of the world the entity is leaving
 
         Returns:
             True if migration successful, False otherwise
@@ -634,6 +634,6 @@ class MigrationCapable(Protocol):
         ...
 
     @property
-    def tank_id(self) -> Optional[str]:
-        """Get the tank identifier for migration tracking."""
+    def world_id(self) -> Optional[str]:
+        """Get the world identifier for migration tracking."""
         ...

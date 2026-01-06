@@ -63,15 +63,15 @@ class FakeDiscoveryService:
 
 class FakeServerClient:
     def __init__(
-        self, remote_tanks: Optional[List[Dict[str, object]]] = None, should_fail: bool = False
+        self, remote_worlds: Optional[List[Dict[str, object]]] = None, should_fail: bool = False
     ):
-        self.remote_tanks = remote_tanks or []
+        self.remote_worlds = remote_worlds or []
         self.should_fail = should_fail
 
-    async def list_tanks(self, _server_info: ServerInfo):
+    async def list_worlds(self, _server_info: ServerInfo):
         if self.should_fail:
             raise RuntimeError("remote error")
-        return self.remote_tanks
+        return self.remote_worlds
 
     async def close(self):
         return None
@@ -108,7 +108,7 @@ def make_server_info(server_id: str, is_local: bool) -> ServerInfo:
         host="127.0.0.1",
         port=8000,
         status="online",
-        tank_count=1,
+        world_count=1,
         version="1.0",
         is_local=is_local,
         uptime_seconds=0.0,
@@ -131,17 +131,17 @@ def test_get_local_server_info_returns_callback_value():
     assert response.json()["server_id"] == "local"
 
 
-def test_list_servers_combines_local_and_remote_tanks():
+def test_list_servers_combines_local_and_remote_worlds():
     worlds = [{"world_id": "w1", "name": "World 1", "world_type": "tank"}]
     world_manager = FakeWorldManager(worlds)
     local_info = make_server_info("local", True)
     remote_info = make_server_info("remote", False)
-    remote_tanks = [{"tank_id": "remote-1"}]
+    remote_worlds = [{"world_id": "remote-1"}]
     discovery_service = FakeDiscoveryService([local_info, remote_info])
     client = build_servers_client(
         world_manager=world_manager,
         discovery_service=discovery_service,
-        server_client=FakeServerClient(remote_tanks=remote_tanks),
+        server_client=FakeServerClient(remote_worlds=remote_worlds),
         server_info=local_info,
     )
 
@@ -149,8 +149,8 @@ def test_list_servers_combines_local_and_remote_tanks():
 
     assert response.status_code == 200
     servers = {s["server"]["server_id"]: s for s in response.json()["servers"]}
-    assert servers["local"]["tanks"] == worlds
-    assert servers["remote"]["tanks"] == remote_tanks
+    assert servers["local"]["worlds"] == worlds
+    assert servers["remote"]["worlds"] == remote_worlds
 
 
 def test_get_server_returns_not_found_when_missing():
@@ -170,7 +170,7 @@ def test_get_server_returns_not_found_when_missing():
     assert "Server not found" in response.json()["error"]
 
 
-def test_remote_server_errors_return_empty_tanks():
+def test_remote_server_errors_return_empty_worlds():
     world_manager = FakeWorldManager()
     local_info = make_server_info("local", True)
     remote_info = make_server_info("remote", False)
@@ -185,7 +185,7 @@ def test_remote_server_errors_return_empty_tanks():
     response = client.get("/api/servers/remote")
 
     assert response.status_code == 200
-    assert response.json()["tanks"] == []
+    assert response.json()["worlds"] == []
 
 
 def test_discovery_registration_and_listing():

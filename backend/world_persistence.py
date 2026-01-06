@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Base directory for all world data (reusing existing path for compatibility)
-DATA_DIR = Path("data/tanks")
+# Base directory for all world data (mapped from data/tanks for legacy support)
+DATA_DIR = Path("data/worlds")
 
 
 def ensure_world_directory(world_id: str) -> Path:
@@ -296,8 +296,9 @@ def restore_world_from_snapshot(
         if "paused" in snapshot and hasattr(target_world, "paused"):
             target_world.paused = snapshot["paused"]
 
+        world_id_label = snapshot.get("world_id") or snapshot.get("tank_id") or "unknown"
         logger.info(
-            f"Restored world {snapshot.get('tank_id', 'unknown')[:8]} to frame {snapshot.get('frame', 0)} "
+            f"Restored world {world_id_label[:8]} to frame {snapshot.get('frame', 0)} "
             f"({restored_count} entities)"
         )
         return True

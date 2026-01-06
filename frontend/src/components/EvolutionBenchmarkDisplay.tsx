@@ -662,7 +662,7 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
     );
 }
 
-export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
+export function EvolutionBenchmarkDisplay({ worldId }: { worldId?: string }) {
     const [data, setData] = useState<EvolutionBenchmarkData | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('overview');
     const [expanded, setExpanded] = useState(true);
@@ -682,7 +682,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
 
     useEffect(() => {
         let cancelled = false;
-        const url = tankId ? `/api/worlds/${tankId}/evolution-benchmark` : '/api/worlds/evolution-benchmark';
+        const url = worldId ? `/api/worlds/${worldId}/evolution-benchmark` : '/api/worlds/evolution-benchmark';
 
         const fetchData = async () => {
             try {
@@ -717,7 +717,7 @@ export function EvolutionBenchmarkDisplay({ tankId }: { tankId?: string }) {
             cancelled = true;
             clearInterval(interval);
         };
-    }, [tankId]);
+    }, [worldId]);
 
     const latest = data?.latest ?? null;
     const history = useMemo(() => {

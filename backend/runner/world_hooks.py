@@ -190,7 +190,7 @@ class TankWorldHooks:
 
                 # Write to shared benchmarks directory to avoid creating orphan tank directories
                 export_path = (
-                    Path("data") / "benchmarks" / f"poker_evolution_{runner.tank_id[:8]}.json"
+                    Path("data") / "benchmarks" / f"poker_evolution_{runner.world_id[:8]}.json"
                 )
                 self.evolution_benchmark_tracker = EvolutionBenchmarkTracker(
                     eval_interval_frames=int(
@@ -208,7 +208,7 @@ class TankWorldHooks:
                     time.time() - interval + initial_delay
                 )
                 logger.info(
-                    f"Evolution benchmark tracker initialized for tank {runner.tank_id[:8]}"
+                    f"Evolution benchmark tracker initialized for world {runner.world_id[:8]}"
                 )
             except Exception as e:
                 logger.warning(f"Failed to initialize evolution benchmark tracker: {e}")
@@ -228,7 +228,9 @@ class TankWorldHooks:
             from pathlib import Path
 
             # Write to shared benchmarks directory to avoid creating orphan tank directories
-            export_path = Path("data") / "benchmarks" / f"poker_evolution_{runner.tank_id[:8]}.json"
+            export_path = (
+                Path("data") / "benchmarks" / f"poker_evolution_{runner.world_id[:8]}.json"
+            )
             self.evolution_benchmark_tracker.export_path = export_path
 
     # =========================================================================

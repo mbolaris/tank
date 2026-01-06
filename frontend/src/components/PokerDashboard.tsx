@@ -92,7 +92,7 @@ export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
                 <div className="section-title">
                     <span>🎯</span> Poker Skill Benchmark (bb/100)
                 </div>
-                <EvolutionBenchmarkDisplay tankId={state.tank_id} />
+                <EvolutionBenchmarkDisplay worldId={state.world_id} />
             </div>
 
             {/* Detailed Split View */}

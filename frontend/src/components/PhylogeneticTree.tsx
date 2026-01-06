@@ -24,10 +24,10 @@ const loadingStyles: React.CSSProperties = {
 };
 
 interface PhylogeneticTreeProps {
-    tankId?: string;
+    worldId?: string;
 }
 
-export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) => {
+export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) => {
     const [treeData, setTreeData] = useState<TreeNodeData | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -35,9 +35,9 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
     const [translate, setTranslate] = useState<{ x: number; y: number }>({ x: 400, y: 60 });
 
     const fetchLineage = async () => {
-        // Need a tankId to fetch lineage data
-        if (!tankId) {
-            setError('Waiting for tank connection...');
+        // Need a worldId to fetch lineage data
+        if (!worldId) {
+            setError('Waiting for world connection...');
             setLoading(false);
             return;
         }
@@ -46,7 +46,7 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
             setLoading(true);
             setError(null);
 
-            const lineageUrl = `${config.apiBaseUrl}/api/worlds/${tankId}/lineage`;
+            const lineageUrl = `${config.apiBaseUrl}/api/worlds/${worldId}/lineage`;
             const response = await fetch(lineageUrl);
 
             if (!response.ok) {
@@ -85,7 +85,7 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ tankId }) =>
         const interval = setInterval(fetchLineage, 10000);
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tankId]);
+    }, [worldId]);
 
     useEffect(() => {
         const updateTranslate = () => {

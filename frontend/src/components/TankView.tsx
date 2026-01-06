@@ -20,11 +20,11 @@ import styles from './TankView.module.css';
 import type { PokerGameState } from '../types/simulation';
 
 interface TankViewProps {
-    tankId?: string;
+    worldId?: string;
 }
 
-export function TankView({ tankId }: TankViewProps) {
-    const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket(tankId);
+export function TankView({ worldId }: TankViewProps) {
+    const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket(worldId);
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
     const [showPokerGame, setShowPokerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
@@ -51,7 +51,7 @@ export function TankView({ tankId }: TankViewProps) {
     const { effectiveViewMode, setOverrideViewMode: _setOverrideViewMode, worldType, setWorldType } = useViewMode(
         state?.view_mode as any,
         state?.world_type,
-        tankId || state?.tank_id
+        worldId || state?.world_id
     );
 
     // Effective world type for rendering - prefer server state when available
@@ -401,7 +401,7 @@ export function TankView({ tankId }: TankViewProps) {
 
             {/* Poker Skill Benchmark (bb/100) */}
             <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                <EvolutionBenchmarkDisplay tankId={tankId} />
+                <EvolutionBenchmarkDisplay worldId={worldId || state?.world_id} />
             </div>
 
             {/* Ecosystem Stats */}
@@ -545,7 +545,7 @@ export function TankView({ tankId }: TankViewProps) {
                         defaultExpanded={false}
                     >
                         <div style={{ marginTop: '16px', height: '600px', display: 'flex', flexDirection: 'column' }}>
-                            <PhylogeneticTree tankId={tankId || state?.tank_id} />
+                            <PhylogeneticTree worldId={worldId || state?.world_id} />
                         </div>
                     </CollapsibleSection>
                 </div>
@@ -553,12 +553,12 @@ export function TankView({ tankId }: TankViewProps) {
 
             {/* Transfer Dialog */}
             {
-                showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.tank_id && (
+                showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.world_id && (
                     <TransferDialog
                         entityId={selectedEntityId}
                         entityType={selectedEntityType}
-                        sourceTankId={state.tank_id}
-                        sourceTankName={state.tank_id}
+                        sourceWorldId={state.world_id}
+                        sourceWorldName={state.world_id} // Typically world id is the name for now
                         onClose={handleCloseTransferDialog}
                         onTransferComplete={handleTransferComplete}
                     />
