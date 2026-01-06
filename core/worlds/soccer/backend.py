@@ -13,7 +13,6 @@ from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
 from core.worlds.soccer.types import (
     BallState,
-    LegacySoccerAction,
     PlayerID,
     PlayerState,
     SoccerAction,
@@ -328,47 +327,31 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
                     )
 
     def _parse_action(self, action_data: Any, player: Player) -> Optional[SoccerAction]:
-        """Parse action from dict, supporting both normalized and legacy formats."""
-        import math
+        """Parse action from dict - normalized format only.
 
+        Legacy move_target/face_angle formats are no longer supported.
+        Use SoccerAction with turn/dash/kick_power/kick_angle instead.
+        """
         if isinstance(action_data, SoccerAction):
             return action_data
 
         if not isinstance(action_data, dict):
             return None
 
-        # Check for normalized format (turn/dash)
+        # Only normalized format (turn/dash) is supported
         if "turn" in action_data or "dash" in action_data:
             return SoccerAction.from_dict(action_data)
 
-        # Legacy format (move_target/face_angle) -> convert to normalized
-        try:
-            legacy = LegacySoccerAction.from_dict(action_data)
-        except Exception:
+        # Legacy formats are rejected - log warning for debugging
+        if "move_target" in action_data or "face_angle" in action_data:
+            logger.warning(
+                "Legacy soccer action format (move_target/face_angle) is no longer supported. "
+                "Use normalized format (turn/dash/kick_power/kick_angle) instead."
+            )
             return None
 
-        turn = 0.0
-        dash = 0.0
-
-        if legacy.face_angle is not None:
-            angle_delta = self._normalize_angle(legacy.face_angle - player.facing_angle)
-            turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
-
-        if legacy.move_target is not None:
-            dx = legacy.move_target.x - player.position.x
-            dy = legacy.move_target.y - player.position.y
-            if dx * dx + dy * dy > 0.5:
-                target_angle = math.atan2(dy, dx)
-                angle_delta = self._normalize_angle(target_angle - player.facing_angle)
-                turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
-                dash = 1.0
-
-        return SoccerAction(
-            turn=turn,
-            dash=dash,
-            kick_power=legacy.kick_power,
-            kick_angle=legacy.kick_angle,
-        )
+        # Try to parse as SoccerAction anyway (kick_power/kick_angle only)
+        return SoccerAction.from_dict(action_data)
 
     @staticmethod
     def _normalize_angle(angle: float) -> float:

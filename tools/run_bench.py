@@ -9,6 +9,11 @@ import importlib.util
 import json
 import os
 import sys
+from pathlib import Path
+
+# Add repo root to sys.path so benchmarks can import core regardless of cwd
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 def load_benchmark_module(path: str):

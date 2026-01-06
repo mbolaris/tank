@@ -19,7 +19,6 @@ from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
-from core.worlds.soccer.types import LegacySoccerAction
 from core.worlds.soccer_training.config import SoccerTrainingConfig
 from core.worlds.soccer_training.interfaces import SoccerAction
 
@@ -463,15 +462,22 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         return SoccerAction(turn=turn_command, dash=dash, kick_power=kick, kick_angle=0.0)
 
     def _coerce_action(self, output: Any, player: SoccerPlayer) -> SoccerAction | None:
+        """Coerce policy output to SoccerAction - normalized format only.
+
+        Legacy move_target/face_angle formats are no longer supported.
+        """
         if isinstance(output, SoccerAction):
             return output
-        if isinstance(output, LegacySoccerAction):
-            return self._legacy_action_to_action(output, player)
         if isinstance(output, dict):
             if "turn" in output or "dash" in output:
                 return SoccerAction.from_dict(output)
+            # Reject legacy formats with a warning
             if "move_target" in output or "face_angle" in output:
-                return self._legacy_action_to_action(LegacySoccerAction.from_dict(output), player)
+                logger.warning(
+                    "Legacy soccer action format (move_target/face_angle) is no longer supported. "
+                    "Use normalized format (turn/dash/kick_power/kick_angle) instead."
+                )
+                return None
         if isinstance(output, (tuple, list)) and len(output) >= 4:
             try:
                 return SoccerAction(
@@ -483,29 +489,6 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             except (TypeError, ValueError):
                 return None
         return None
-
-    def _legacy_action_to_action(self, legacy_action: Any, player: SoccerPlayer) -> SoccerAction:
-        turn = 0.0
-        dash = 0.0
-        if legacy_action.face_angle is not None:
-            angle_delta = self._normalize_angle(legacy_action.face_angle - player.facing_angle)
-            turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
-        if legacy_action.move_target is not None:
-            to_target = Vector2(
-                legacy_action.move_target.x - player.position.x,
-                legacy_action.move_target.y - player.position.y,
-            )
-            if to_target.length_squared() > 0.5:
-                target_angle = math.atan2(to_target.y, to_target.x)
-                angle_delta = self._normalize_angle(target_angle - player.facing_angle)
-                turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
-                dash = 1.0
-        return SoccerAction(
-            turn=turn,
-            dash=dash,
-            kick_power=legacy_action.kick_power,
-            kick_angle=legacy_action.kick_angle,
-        )
 
     def _process_actions(self, actions_by_agent: dict[str, Any]) -> None:
         if self._ball is None:

@@ -11,7 +11,6 @@ from core.worlds.soccer.backend import SoccerWorldBackendAdapter
 from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
 from core.worlds.soccer.types import (
-    LegacySoccerAction,
     SoccerAction,
     Vector2D,
 )
@@ -508,24 +507,33 @@ class TestSoccerInterfaces:
         assert restored.kick_power == action.kick_power
         assert restored.turn == action.turn
 
-    def test_legacy_soccer_action_to_from_dict(self):
-        """Test LegacySoccerAction serialization (move_target format)."""
-        action = LegacySoccerAction(
-            move_target=Vector2D(10, 5),
-            face_angle=1.57,
-            kick_power=0.8,
-            kick_angle=0.5,
-        )
+    def test_legacy_soccer_action_format_rejected(self):
+        """Test that legacy move_target/face_angle format is rejected."""
+        adapter = SoccerWorldBackendAdapter(seed=42, team_size=1)
+        adapter.reset(seed=42)
 
-        action_dict = action.to_dict()
-        assert action_dict["kick_power"] == 0.8
-        assert action_dict["move_target"]["x"] == 10
-        assert action_dict["face_angle"] == 1.57
+        # Legacy format should not work - player should not move
+        initial_snapshot = adapter.get_current_snapshot()
+        initial_player = initial_snapshot["players"][0]
 
-        # Round trip
-        restored = LegacySoccerAction.from_dict(action_dict)
-        assert restored.kick_power == action.kick_power
-        assert restored.move_target.x == action.move_target.x
+        # Try legacy format action (move_target)
+        legacy_action = {
+            "move_target": {"x": 50.0, "y": 0.0},
+            "face_angle": 0.0,
+            "kick_power": 0.0,
+        }
+
+        # Step with legacy action - should be ignored
+        adapter.step(actions_by_agent={"left_1": legacy_action})
+
+        # Player should NOT have moved significantly since action was rejected
+        # (The step() method applies no action, so position changes only from physics)
+        final_snapshot = adapter.get_current_snapshot()
+        final_player = final_snapshot["players"][0]
+
+        # Position should be very close to initial (floating point tolerance)
+        assert abs(final_player["x"] - initial_player["x"]) < 0.1
+        assert abs(final_player["y"] - initial_player["y"]) < 0.1
 
 
 class TestSoccerWorldConfig:

@@ -9,11 +9,15 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+# Use absolute paths based on script location so this works from any cwd
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    champions_dir = "champions"
-    benchmarks_dir = "benchmarks"
+    champions_dir = ROOT / "champions"
+    benchmarks_dir = ROOT / "benchmarks"
 
     champion_files = glob.glob(os.path.join(champions_dir, "**", "*.json"), recursive=True)
 
@@ -49,8 +53,8 @@ def main():
             out_file = f"verify_{os.path.basename(bench_id)}.json"
             cmd = [
                 sys.executable,
-                "tools/run_bench.py",
-                bench_path,
+                str(ROOT / "tools" / "run_bench.py"),
+                str(bench_path),
                 "--seed",
                 str(seed),
                 "--out",
@@ -60,7 +64,12 @@ def main():
             subprocess.check_call(cmd)
 
             # Validate
-            cmd_val = [sys.executable, "tools/validate_improvement.py", out_file, champ_path]
+            cmd_val = [
+                sys.executable,
+                str(ROOT / "tools" / "validate_improvement.py"),
+                out_file,
+                champ_path,
+            ]
 
             subprocess.check_call(cmd_val)
 
