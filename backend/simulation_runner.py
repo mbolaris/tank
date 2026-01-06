@@ -144,6 +144,31 @@ class SimulationRunner(CommandHandlerMixin):
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
 
+    def _require_hook_attr(self, attr: str) -> None:
+        """Raise AttributeError if the world hooks don't support the attribute."""
+        if not hasattr(self.world_hooks, attr):
+            raise AttributeError(f"{attr} not supported for world_type={self.world_type}")
+
+    @property
+    def human_poker_game(self):
+        self._require_hook_attr("human_poker_game")
+        return self.world_hooks.human_poker_game
+
+    @human_poker_game.setter
+    def human_poker_game(self, value):
+        self._require_hook_attr("human_poker_game")
+        self.world_hooks.human_poker_game = value
+
+    @property
+    def standard_poker_series(self):
+        self._require_hook_attr("standard_poker_series")
+        return self.world_hooks.standard_poker_series
+
+    @standard_poker_series.setter
+    def standard_poker_series(self, value):
+        self._require_hook_attr("standard_poker_series")
+        self.world_hooks.standard_poker_series = value
+
     def _get_evolution_benchmark_export_path(self) -> Path:
         """Get the benchmark export path scoped to this tank."""
         tank_id = getattr(self, "tank_id", None) or "default"

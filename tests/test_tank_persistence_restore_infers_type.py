@@ -47,7 +47,7 @@ def test_restore_snapshot_infers_missing_type_for_plants() -> None:
         "entities": [entity_data],
     }
 
-    assert restore_tank_from_snapshot(snapshot, dest) is True
+    assert restore_world_from_snapshot(snapshot, dest) is True
     restored = [e for e in dest.entities_list if isinstance(e, Plant)]
     assert len(restored) == 1
     assert restored[0].plant_id == original_id

@@ -601,7 +601,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Restore world state from a saved snapshot.
 
         Note: Full restoration including entities is handled by
-        tank_persistence.restore_tank_state(). This method restores
+        world_persistence.restore_world_from_snapshot(). This method restores
         basic world metadata.
 
         Args:

@@ -121,32 +121,35 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
         server_id="server-test-1",  # Same ID
     )
 
-    # Initialize (should detect saved worlds and restore them)
-    await startup_manager_2.initialize(mock_get_server_info)
+    try:
+        # Initialize (should detect saved worlds and restore them)
+        await startup_manager_2.initialize(mock_get_server_info)
 
-    # --- PHASE 4: VERIFICATION ---
+        # --- PHASE 4: VERIFICATION ---
 
-    # Should recall BOTH worlds
-    assert world_manager_2.world_count == 2
+        # Should recall BOTH worlds
+        assert world_manager_2.world_count == 2
 
-    # Verify Default World
-    restored_default = world_manager_2.get_world(default_world_id)
-    assert restored_default is not None
-    assert restored_default.name == "World 1"  # Default name
-    entities_default = restored_default.runner.world.engine.entities_list
-    assert (
-        len(entities_default) >= 1
-    )  # Should have Castle (and potentially default spawned entities if logic ran)
-    # Check for Castle
-    castles = [e for e in entities_default if isinstance(e, Castle)]
-    assert len(castles) == 1
-    assert castles[0].pos.x == 100
+        # Verify Default World
+        restored_default = world_manager_2.get_world(default_world_id)
+        assert restored_default is not None
+        assert restored_default.name == "World 1"  # Default name
+        entities_default = restored_default.runner.world.engine.entities_list
+        assert (
+            len(entities_default) >= 1
+        )  # Should have Castle (and potentially default spawned entities if logic ran)
+        # Check for Castle
+        castles = [e for e in entities_default if isinstance(e, Castle)]
+        assert len(castles) == 1
+        assert castles[0].pos.x == 100
 
-    # Verify Petri World
-    restored_petri = world_manager_2.get_world(petri_world_id)
-    assert restored_petri is not None
-    assert restored_petri.name == "Microcosmos"
-    assert restored_petri.world_type == "petri"
-    entities_petri = restored_petri.runner.world.engine.entities_list
-    assert len(entities_petri) == 1  # Should have our Fish
-    assert isinstance(entities_petri[0], Fish)
+        # Verify Petri World
+        restored_petri = world_manager_2.get_world(petri_world_id)
+        assert restored_petri is not None
+        assert restored_petri.name == "Microcosmos"
+        assert restored_petri.world_type == "petri"
+        entities_petri = restored_petri.runner.world.engine.entities_list
+        assert len(entities_petri) == 1  # Should have our Fish
+        assert isinstance(entities_petri[0], Fish)
+    finally:
+        await startup_manager_2.shutdown()
