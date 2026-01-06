@@ -1,7 +1,6 @@
 def test_no_legacy_code():
     """Guardrail test to ensure no legacy terms exist in production code."""
     import os
-    import re
 
     # Terms that should not appear in the codebase
     FORBIDDEN_TERMS = [
@@ -39,7 +38,7 @@ def test_no_legacy_code():
                 file_path = os.path.join(root, file)
 
                 try:
-                    with open(file_path, "r", encoding="utf-8") as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
 
                     for term in FORBIDDEN_TERMS:

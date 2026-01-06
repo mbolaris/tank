@@ -3,10 +3,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from core.transfer.entity_transfer import _deserialize_fish
 from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 from core.genetics import Genome
 from core.genetics.behavioral import BehavioralTraits
+from core.transfer.entity_transfer import _deserialize_fish
 
 
 def test_legacy_fish_deserialization_assigns_default_policy():
