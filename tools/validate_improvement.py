@@ -5,11 +5,10 @@ Usage:
 """
 
 import argparse
-import sys
 import json
-import shutil
+import sys
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def is_improvement(
@@ -71,13 +70,13 @@ def main():
     args = parser.parse_args()
 
     try:
-        with open(args.result_path, "r") as f:
+        with open(args.result_path) as f:
             result = json.load(f)
 
         # Check if champion exists
         champion = None
         try:
-            with open(args.champion_path, "r") as f:
+            with open(args.champion_path) as f:
                 champion = json.load(f)
         except FileNotFoundError:
             print(

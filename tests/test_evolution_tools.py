@@ -1,9 +1,7 @@
-import json
 import os
 import sys
 import tempfile
 import unittest
-from unittest.mock import MagicMock, patch
 
 # Add tools directory to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))

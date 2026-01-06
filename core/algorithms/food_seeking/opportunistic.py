@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
@@ -11,7 +11,9 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
-from core.entities import Crab
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 
 @dataclass
@@ -38,6 +40,8 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
+
         # IMPROVEMENT: Check energy state
         is_critical = fish.energy / fish.max_energy < 0.3
         is_low = fish.energy / fish.max_energy < 0.5

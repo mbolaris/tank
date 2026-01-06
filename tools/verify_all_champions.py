@@ -4,11 +4,11 @@ Usage:
     python tools/verify_all_champions.py
 """
 
-import sys
-import os
-import json
-import subprocess
 import glob
+import json
+import os
+import subprocess
+import sys
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
         print(f"Verifying {champ_path}...")
 
         try:
-            with open(champ_path, "r") as f:
+            with open(champ_path) as f:
                 champ_data = json.load(f)
 
             bench_id = champ_data.get("benchmark_id")

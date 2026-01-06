@@ -2,14 +2,16 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import SCREEN_HEIGHT
 from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
 )
-from core.entities import Crab
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 from core.predictive_movement import predict_falling_intercept
 
 
@@ -36,6 +38,8 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
+
         # IMPROVEMENT: Check energy and threats
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3

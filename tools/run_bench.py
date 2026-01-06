@@ -5,11 +5,10 @@ Usage:
 """
 
 import argparse
-import sys
-import json
 import importlib.util
+import json
 import os
-from typing import Dict, Any
+import sys
 
 
 def load_benchmark_module(path: str):

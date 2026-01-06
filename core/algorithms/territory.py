@@ -24,8 +24,6 @@ from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.entities import Crab
-from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -51,6 +49,7 @@ class TerritorialDefender(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Fish
         from core.math_utils import Vector2
 
         if self.territory_center is None:
@@ -65,7 +64,7 @@ class TerritorialDefender(BehaviorAlgorithm):
 
         # Chase away intruders - use inline distance calculations
         intruders = []
-        for f in fish.environment.get_agents_of_type(FishClass):
+        for f in fish.environment.get_agents_of_type(Fish):
             if f is fish:
                 continue
             dx = f.pos.x - center_x
@@ -123,6 +122,7 @@ class RandomExplorer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Fish
         from core.math_utils import Vector2
 
         # Check for important stimuli
@@ -171,7 +171,7 @@ class RandomExplorer(BehaviorAlgorithm):
 
         # Sometimes explore toward unexplored areas (away from other fish)
         if self.rng.random() < 0.1:
-            allies = fish.environment.get_agents_of_type(FishClass)
+            allies = fish.environment.get_agents_of_type(Fish)
             if len(allies) > 1:
                 # Find average position of other fish using inline math
                 sum_x, sum_y, count = 0.0, 0.0, 0
@@ -331,6 +331,7 @@ class RoutePatroller(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
@@ -472,6 +473,7 @@ class NomadicWanderer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)

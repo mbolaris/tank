@@ -26,8 +26,6 @@ from core.config.display import (
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
 )
-from core.entities import Crab
-from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -158,6 +156,8 @@ class FreezeResponse(BehaviorAlgorithm):
         is_desperate = energy_percent < self.parameters["desperation_threshold"]
 
         # Check for predators (but may ignore if desperate)
+        from core.entities import Crab
+
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and not is_desperate:
             distance = (nearest_predator.pos - fish.pos).length()
@@ -223,6 +223,7 @@ class ErraticEvader(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Fish
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:
@@ -260,9 +261,7 @@ class ErraticEvader(BehaviorAlgorithm):
 
                 # Sometimes join nearby fish for group defense (use environment RNG)
                 if fish.environment.rng.random() < 0.2:
-                    allies = [
-                        f for f in fish.environment.get_agents_of_type(FishClass) if f != fish
-                    ]
+                    allies = [f for f in fish.environment.get_agents_of_type(Fish) if f != fish]
                     if allies:
                         nearest_ally = min(allies, key=lambda f: (f.pos - fish.pos).length())
                         if (nearest_ally.pos - fish.pos).length() < 100:
@@ -299,6 +298,7 @@ class VerticalEscaper(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -336,11 +336,12 @@ class GroupDefender(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Fish
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 200:
             # Find nearest ally
-            allies = [f for f in fish.environment.get_agents_of_type(FishClass) if f != fish]
+            allies = [f for f in fish.environment.get_agents_of_type(Fish) if f != fish]
             if allies:
                 nearest_ally = min(allies, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest_ally.pos - fish.pos)
@@ -382,6 +383,7 @@ class SpiralEscape(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -428,6 +430,7 @@ class BorderHugger(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 180:
@@ -472,6 +475,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator and (nearest_predator.pos - fish.pos).length() < 150:
@@ -522,6 +526,7 @@ class DistanceKeeper(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
         if nearest_predator:

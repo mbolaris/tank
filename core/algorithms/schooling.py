@@ -22,21 +22,21 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.entities import Crab
-from core.entities import Fish as FishClass
 
 
-def _get_nearby_fish(fish: "FishClass", radius: float) -> List["FishClass"]:
+def _get_nearby_fish(fish: "Fish", radius: float) -> List["Fish"]:
     """Get nearby fish using the fastest available spatial query method.
 
     OPTIMIZATION: Use dedicated nearby_evolving_agents method when available (faster).
     """
+    from core.entities import Fish
+
     env = fish.environment
     nearby = []
     if hasattr(env, "nearby_evolving_agents"):
         nearby = env.nearby_evolving_agents(fish, radius)
     else:
-        nearby = env.nearby_agents_by_type(fish, radius, FishClass)
+        nearby = env.nearby_agents_by_type(fish, radius, Fish)
 
     # Filter out dead or migrated fish
     # This prevents "ghost attraction" where fish school towards empty spots
@@ -442,6 +442,8 @@ class BoidsBehavior(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
+        from core.entities import Crab
+
         allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
 
         fish_x = fish.pos.x
@@ -588,9 +590,10 @@ class DynamicSchooler(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         # Check for danger with graded threat levels
-        fish.environment.get_agents_of_type(Crab)
+        # fish.environment.get_agents_of_type(Crab)
         nearest_predator = self._find_nearest(fish, Crab)
 
         # Calculate threat level (0 = no threat, 1 = extreme threat)
