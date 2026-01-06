@@ -67,8 +67,6 @@ def test_old_genome_loads_with_migration():
     When loading a legacy genome that has 'code_policy_kind'='movement_policy',
     it should populate 'movement_policy_id' and 'movement_policy_params'.
     """
-    from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
-
     rng = random.Random(123)
 
     # Simulate a legacy genome with single-policy fields
