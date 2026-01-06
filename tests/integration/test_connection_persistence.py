@@ -32,15 +32,15 @@ def _run_connection_persistence():
     test_connections = [
         TankConnection(
             id="tank1->tank2",
-            source_tank_id="tank1-uuid-1234",
-            destination_tank_id="tank2-uuid-5678",
+            source_world_id="tank1-uuid-1234",
+            destination_world_id="tank2-uuid-5678",
             probability=25,
             direction="right",
         ),
         TankConnection(
             id="tank2->tank3",
-            source_tank_id="tank2-uuid-5678",
-            destination_tank_id="tank3-uuid-9012",
+            source_world_id="tank2-uuid-5678",
+            destination_world_id="tank3-uuid-9012",
             probability=50,
             direction="left",
             source_server_id="server-a",
@@ -48,8 +48,8 @@ def _run_connection_persistence():
         ),
         TankConnection(
             id="tank3->tank1",
-            source_tank_id="tank3-uuid-9012",
-            destination_tank_id="tank1-uuid-1234",
+            source_world_id="tank3-uuid-9012",
+            destination_world_id="tank1-uuid-1234",
             probability=75,
             direction="right",
         ),
@@ -102,8 +102,8 @@ def _run_connection_persistence():
 
         # Check all fields match
         if (
-            original.source_tank_id != restored.source_tank_id
-            or original.destination_tank_id != restored.destination_tank_id
+            original.source_world_id != restored.source_world_id
+            or original.destination_world_id != restored.destination_world_id
             or original.probability != restored.probability
             or original.direction != restored.direction
             or original.source_server_id != restored.source_server_id
