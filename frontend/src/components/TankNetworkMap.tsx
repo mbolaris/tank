@@ -83,14 +83,22 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
 
     // Load connections from backend
     useEffect(() => {
-        fetch(`${config.apiBaseUrl}/api/connections`)
-            .then((res) => res.json())
-            .then((data) => {
+        const loadConnections = async () => {
+            try {
+                const res = await fetch(`${config.apiBaseUrl}/api/connections`);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.detail || data.error || `Failed to load connections: ${res.status}`);
+                }
                 if (data.connections) {
                     setConnections(data.connections);
                 }
-            })
-            .catch((err) => addError(err, 'Failed to load connections'));
+            } catch (err) {
+                addError(err, 'Failed to load connections');
+            }
+        };
+
+        loadConnections();
     }, [addError]);
 
     const fetchTransfers = useCallback(async () => {
@@ -184,17 +192,20 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newConnection),
             });
+            const data = await res.json().catch(() => ({}));
 
-            if (res.ok) {
-                const savedConnection = await res.json();
-                setConnections((prev) => {
-                    const existing = prev.find((c) => c.id === savedConnection.id);
-                    if (existing) {
-                        return prev.map((c) => (c.id === existing.id ? savedConnection : c));
-                    }
-                    return [...prev, savedConnection];
-                });
+            if (!res.ok) {
+                throw new Error(data.detail || data.error || `Failed to save connection: ${res.status}`);
             }
+
+            const savedConnection = data;
+            setConnections((prev) => {
+                const existing = prev.find((c) => c.id === savedConnection.id);
+                if (existing) {
+                    return prev.map((c) => (c.id === existing.id ? savedConnection : c));
+                }
+                return [...prev, savedConnection];
+            });
         } catch (err) {
             addError(err, 'Failed to save connection');
         }
@@ -205,10 +216,13 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
             const res = await fetch(`${config.apiBaseUrl}/api/connections/${id}`, {
                 method: 'DELETE',
             });
+            const data = await res.json().catch(() => ({}));
 
-            if (res.ok) {
-                setConnections((prev) => prev.filter((c) => c.id !== id));
+            if (!res.ok) {
+                throw new Error(data.detail || data.error || `Failed to delete connection: ${res.status}`);
             }
+
+            setConnections((prev) => prev.filter((c) => c.id !== id));
         } catch (err) {
             addError(err, 'Failed to delete connection');
         }

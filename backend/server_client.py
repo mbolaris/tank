@@ -328,7 +328,10 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict) and "connections" in data:
+                    return data["connections"]
+                return data
             except Exception as e:
                 logger.error("Failed to parse connections: %s", e)
 
