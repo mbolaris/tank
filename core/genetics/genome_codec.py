@@ -92,7 +92,7 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
-    # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
+    # DEPRECATED: Legacy code policy fields (kept for migration support)
     code_policy_kind = (
         genome.behavioral.code_policy_kind.value
         if genome.behavioral.code_policy_kind and genome.behavioral.code_policy_kind.value
@@ -140,7 +140,7 @@ def genome_to_dict(
         "poker_policy_params": poker_policy_params,
         "soccer_policy_id": soccer_policy_id,
         "soccer_policy_params": soccer_policy_params,
-        # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
+        # DEPRECATED: Legacy code policy fields (kept for migration support)
         "code_policy_kind": code_policy_kind,
         "code_policy_component_id": code_policy_component_id,
         "code_policy_params": code_policy_params,
@@ -331,7 +331,7 @@ def genome_from_dict(
     except Exception:
         logger.debug("Failed deserializing per-kind policies; keeping defaults", exc_info=True)
 
-    # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
+    # DEPRECATED: Legacy code policy fields (kept for migration support)
     try:
         from core.genetics.trait import GeneticTrait
 

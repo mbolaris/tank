@@ -40,8 +40,7 @@ def test_code_policy_movement_overrides_composable_behavior():
     env = Environment(width=800, height=600, rng=rng)
     env.genome_code_pool.pool.register("fixed_policy", lambda obs, rng: (0.0, 1.0))
     fish = _make_fish(env, StubBehavior(-1.0, 0.0))
-    fish.genome.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    fish.genome.behavioral.code_policy_component_id = GeneticTrait("fixed_policy")
+    fish.genome.behavioral.movement_policy_id = GeneticTrait("fixed_policy")
 
     fish.movement_strategy.move(fish)
 
@@ -53,8 +52,7 @@ def test_code_policy_fallbacks_when_pool_missing():
     rng = random.Random(7)
     env = Environment(width=800, height=600, rng=rng)
     fish = _make_fish(env, StubBehavior(1.0, 0.0))
-    fish.genome.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    fish.genome.behavioral.code_policy_component_id = GeneticTrait("missing_policy")
+    fish.genome.behavioral.movement_policy_id = GeneticTrait("missing_policy")
 
     fish.movement_strategy.move(fish)
 
@@ -66,8 +64,7 @@ def test_code_policy_fallbacks_when_component_missing():
     pool = CodePool()
     env = Environment(width=800, height=600, rng=rng, code_pool=pool)
     fish = _make_fish(env, StubBehavior(1.0, 0.0))
-    fish.genome.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    fish.genome.behavioral.code_policy_component_id = GeneticTrait("missing_policy")
+    fish.genome.behavioral.movement_policy_id = GeneticTrait("missing_policy")
 
     fish.movement_strategy.move(fish)
 

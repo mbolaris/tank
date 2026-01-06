@@ -327,7 +327,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
             # Use new per-kind field
             player.genome.behavioral.soccer_policy_id = GeneticTrait(component_id)
             player.genome.behavioral.soccer_policy_params = GeneticTrait(None)
-            # Also set legacy fields for backward compatibility
+            # Also set legacy fields for migration support
             player.genome.behavioral.code_policy_kind = GeneticTrait(SOCCER_POLICY_KIND)
             player.genome.behavioral.code_policy_component_id = GeneticTrait(component_id)
 

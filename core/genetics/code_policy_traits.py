@@ -97,7 +97,7 @@ def apply_policy_set_to_behavioral(
     """Apply a GenomePolicySet to BehavioralTraits.
 
     Writes ALL policy kinds (movement, poker, soccer) to their respective per-kind fields.
-    Also updates legacy single-policy fields for backward compatibility during migration.
+    Also updates legacy single-policy fields for migration support during migration.
 
     Args:
         behavioral: The BehavioralTraits to update
@@ -115,7 +115,7 @@ def apply_policy_set_to_behavioral(
         setattr(behavioral, id_attr, GeneticTrait(component_id))
         setattr(behavioral, params_attr, GeneticTrait(params))
 
-    # Also update legacy single-policy fields for backward compatibility
+    # Also update legacy single-policy fields for migration support
     # Use movement as the "primary" policy for legacy consumers
     primary_kind = None
     primary_id = None

@@ -375,7 +375,7 @@ class BehavioralTraits:
                 rng,
             )
 
-        # DEPRECATED: Populate legacy single-policy fields from movement policy for backward compatibility
+        # DEPRECATED: Populate legacy single-policy fields from movement policy for migration support
         movement_id = inherited.get("movement_policy_id")
         movement_params = inherited.get("movement_policy_params")
         cp_kind = "movement_policy" if movement_id and movement_id.value else None
@@ -498,7 +498,7 @@ class BehavioralTraits:
                 rng,
             )
 
-        # DEPRECATED: Populate legacy single-policy fields from movement policy for backward compatibility
+        # DEPRECATED: Populate legacy single-policy fields from movement policy for migration support
         movement_id = inherited.get("movement_policy_id")
         movement_params = inherited.get("movement_policy_params")
         cp_kind = "movement_policy" if movement_id and movement_id.value else None

@@ -8,7 +8,7 @@ Key Design Decisions:
 - PokerSkillStrategy wraps PokerStrategyAlgorithm to implement SkillStrategy
 - PokerSkillGame wraps poker engine to implement SkillGame
 - Existing poker logic is reused, not duplicated
-- Backward compatibility maintained with existing poker system
+- Migration support maintained with existing poker system
 
 Benefits:
 - Poker is now interchangeable with other skill games

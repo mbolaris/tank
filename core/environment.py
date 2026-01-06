@@ -643,7 +643,7 @@ class Environment:
             from core.code_pool import create_default_genome_code_pool
 
             self.genome_code_pool = create_default_genome_code_pool()
-            self.code_pool = self.genome_code_pool.pool  # Backward compatibility
+            self.code_pool = self.genome_code_pool.pool  # Migration support
         else:
             # Legacy CodePool provided
             self.code_pool = code_pool
