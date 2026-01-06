@@ -220,3 +220,131 @@ class TestWorldOperations:
             json={"world_type": "invalid", "name": "Bad World"},
         )
         assert response.status_code == 400
+
+
+class TestPauseResumeEndpoints:
+    """Tests for pause/resume and start_paused functionality."""
+
+    def test_start_paused_tank_world(self, test_client):
+        """Test that creating a tank world with start_paused=true works."""
+        response = test_client.post(
+            "/api/worlds",
+            json={
+                "world_type": "tank",
+                "name": "Paused Tank",
+                "start_paused": True,
+                "seed": 42,
+            },
+        )
+        assert response.status_code == 201
+        world_id = response.json()["world_id"]
+
+        # Verify the world is actually paused
+        get_response = test_client.get(f"/api/worlds/{world_id}")
+        assert get_response.status_code == 200
+        assert get_response.json()["paused"] is True
+
+    def test_start_paused_petri_world(self, test_client):
+        """Test that creating a petri world with start_paused=true works."""
+        response = test_client.post(
+            "/api/worlds",
+            json={
+                "world_type": "petri",
+                "name": "Paused Petri",
+                "start_paused": True,
+                "seed": 42,
+            },
+        )
+        assert response.status_code == 201
+        world_id = response.json()["world_id"]
+
+        # Verify the world is actually paused
+        get_response = test_client.get(f"/api/worlds/{world_id}")
+        assert get_response.status_code == 200
+        assert get_response.json()["paused"] is True
+
+    def test_pause_resume_cycle(self, test_client):
+        """Test that pause and resume endpoints correctly flip paused state."""
+        # Create a world (not paused initially)
+        create_response = test_client.post(
+            "/api/worlds",
+            json={
+                "world_type": "tank",
+                "name": "Pause Test",
+                "seed": 42,
+            },
+        )
+        assert create_response.status_code == 201
+        world_id = create_response.json()["world_id"]
+
+        # Pause the world
+        pause_response = test_client.post(f"/api/worlds/{world_id}/pause")
+        assert pause_response.status_code == 200
+        assert pause_response.json()["paused"] is True
+
+        # Verify it's paused via GET
+        get_response = test_client.get(f"/api/worlds/{world_id}")
+        assert get_response.json()["paused"] is True
+
+        # Resume the world
+        resume_response = test_client.post(f"/api/worlds/{world_id}/resume")
+        assert resume_response.status_code == 200
+        assert resume_response.json()["paused"] is False
+
+        # Verify it's no longer paused via GET
+        get_response = test_client.get(f"/api/worlds/{world_id}")
+        assert get_response.json()["paused"] is False
+
+
+class TestFastForwardEndpoint:
+    """Tests for fast_forward endpoint across world types."""
+
+    def test_fast_forward_tank_world(self, test_client):
+        """Test that fast_forward works on tank worlds."""
+        create_response = test_client.post(
+            "/api/worlds",
+            json={
+                "world_type": "tank",
+                "name": "FF Tank",
+                "seed": 42,
+            },
+        )
+        world_id = create_response.json()["world_id"]
+
+        # Enable fast forward
+        response = test_client.post(
+            f"/api/worlds/{world_id}/fast_forward",
+            params={"enabled": True},
+        )
+        assert response.status_code == 200
+        assert response.json()["fast_forward"] is True
+
+        # Disable fast forward
+        response = test_client.post(
+            f"/api/worlds/{world_id}/fast_forward",
+            params={"enabled": False},
+        )
+        assert response.status_code == 200
+        assert response.json()["fast_forward"] is False
+
+    def test_fast_forward_soccer_world_no_crash(self, test_client):
+        """Test that fast_forward doesn't crash on soccer (WorldRunner) worlds."""
+        create_response = test_client.post(
+            "/api/worlds",
+            json={
+                "world_type": "soccer",
+                "name": "FF Soccer",
+                "config": {"team_size": 1},
+                "seed": 42,
+            },
+        )
+        world_id = create_response.json()["world_id"]
+
+        # Enable fast forward - should succeed (no-op for WorldRunner)
+        response = test_client.post(
+            f"/api/worlds/{world_id}/fast_forward",
+            params={"enabled": True},
+        )
+        assert response.status_code == 200
+        # WorldRunner.fast_forward is always False (no-op)
+        assert response.json()["fast_forward"] is True  # Returns what was set

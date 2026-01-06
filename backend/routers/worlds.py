@@ -26,6 +26,7 @@ class CreateWorldRequest(BaseModel):
     persistent: bool = True
     seed: Optional[int] = None
     description: str = ""
+    start_paused: bool = False
 
 
 class UpdateWorldModeRequest(BaseModel):
@@ -105,6 +106,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 persistent=request.persistent,
                 seed=request.seed,
                 description=request.description,
+                start_paused=request.start_paused,
             )
             return JSONResponse(
                 {
@@ -264,6 +266,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
         if instance is None:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
+        instance.runner.paused = False
         return JSONResponse(
             {
                 "world_id": world_id,
@@ -296,52 +299,6 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             }
         )
 
-    @router.post("/{world_id}/change_type")
-    async def change_world_type(world_id: str, new_type: str):
-        """Change the world type (e.g., tank <-> petri).
-
-        This hot-swaps between compatible world types while preserving entities.
-        Only tank <-> petri switching is currently supported.
-
-        Args:
-            world_id: The world ID to change
-            new_type: The new world type
-
-        Returns:
-            Updated world info or 404/400 if not found/invalid
-        """
-        instance = world_manager.get_world(world_id)
-        if instance is None:
-            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
-
-        try:
-            # Use the runner's switch_world_type method
-            if hasattr(instance.runner, "switch_world_type"):
-                instance.runner.switch_world_type(new_type)
-
-                # Update instance metadata to match
-                instance.world_type = new_type
-                instance.mode_id = instance.runner.mode_id
-                instance.view_mode = instance.runner.view_mode
-
-                return JSONResponse(
-                    {
-                        "world_id": world_id,
-                        "world_type": new_type,
-                        "mode_id": instance.mode_id,
-                        "view_mode": instance.view_mode,
-                        "message": f"World type changed to {new_type}",
-                    }
-                )
-
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="World type switching not supported for this world",
-                )
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
     @router.put("/{world_id}/mode")
     async def update_world_mode(world_id: str, request: UpdateWorldModeRequest):
         """Update the world mode (e.g., switch between tank and petri).
@@ -358,29 +315,24 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
         try:
-            # Use the runner's switch_world_type method
-            if hasattr(instance.runner, "switch_world_type"):
-                instance.runner.switch_world_type(request.world_type)
+            # Use the runner's switch_world_type method (part of RunnerProtocol)
+            # WorldRunner raises ValueError if switching not supported
+            instance.runner.switch_world_type(request.world_type)
 
-                # Update instance metadata to match
-                instance.world_type = request.world_type
-                instance.mode_id = instance.runner.mode_id
-                instance.view_mode = instance.runner.view_mode
+            # Update instance metadata to match
+            instance.world_type = request.world_type
+            instance.mode_id = instance.runner.mode_id
+            instance.view_mode = instance.runner.view_mode
 
-                return JSONResponse(
-                    {
-                        "world_id": world_id,
-                        "world_type": request.world_type,
-                        "mode_id": instance.mode_id,
-                        "view_mode": instance.view_mode,
-                        "message": f"World type changed to {request.world_type}",
-                    }
-                )
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="World type switching not supported for this world",
-                )
+            return JSONResponse(
+                {
+                    "world_id": world_id,
+                    "world_type": request.world_type,
+                    "mode_id": instance.mode_id,
+                    "view_mode": instance.view_mode,
+                    "message": f"World type changed to {request.world_type}",
+                }
+            )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
