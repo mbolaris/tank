@@ -410,8 +410,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "max_energy": entity.max_energy,
                     "hunt_cooldown": getattr(entity, "hunt_cooldown", 0),
+                    "genome_data": entity.genome.to_dict(),
+                    "motion": {
+                        "theta": getattr(entity, "_orbit_theta", None),
+                        "dir": getattr(entity, "_orbit_dir", None),
+                    },
+                    # Legacy keys for old snapshot format support
+                    "max_energy": entity.max_energy,
                     "genome": {
                         "size_modifier": (
                             entity.genome.physical.size_modifier.value if entity.genome else 1.0

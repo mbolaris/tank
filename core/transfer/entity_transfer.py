@@ -89,6 +89,23 @@ class PlantTransferCodec:
         return _deserialize_plant(data, target_world)
 
 
+class CrabTransferCodec:
+    """Codec for Crab entity serialization/deserialization."""
+
+    type_name = "crab"
+
+    def can_serialize(self, entity: Any) -> bool:
+        from core.entities.predators import Crab
+
+        return isinstance(entity, Crab)
+
+    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
+        return _serialize_crab(entity)
+
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+        return _deserialize_crab(data, target_world)
+
+
 def _normalize_migration_direction(direction: Optional[str]) -> Optional[str]:
     if direction is None:
         return None
@@ -272,7 +289,9 @@ class TransferRegistry:
         return outcome.value
 
 
-DEFAULT_REGISTRY = TransferRegistry(codecs=[FishTransferCodec(), PlantTransferCodec()])
+DEFAULT_REGISTRY = TransferRegistry(
+    codecs=[FishTransferCodec(), PlantTransferCodec(), CrabTransferCodec()]
+)
 
 
 def _require_keys(data: SerializedEntity, keys: List[str], *, entity_type: str) -> bool:
@@ -652,4 +671,97 @@ def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]
         raise
     except Exception as e:
         logger.error(f"Failed to deserialize plant: {e}", exc_info=True)
+        return None
+
+
+def _serialize_crab(crab: Any) -> SerializedEntity:
+    """Serialize a Crab entity."""
+    return {
+        "type": "crab",
+        "x": crab.pos.x,
+        "y": crab.pos.y,
+        "energy": crab.energy,
+        "hunt_cooldown": getattr(crab, "hunt_cooldown", 0),
+        "genome_data": crab.genome.to_dict(),
+        "motion": {
+            "theta": getattr(crab, "_orbit_theta", None),
+            "dir": getattr(crab, "_orbit_dir", None),
+        },
+        # Legacy keys for old snapshot format support
+        "max_energy": crab.max_energy,
+        "genome": {
+            "size_modifier": crab.genome.physical.size_modifier.value,
+            "color_hue": crab.genome.physical.color_hue.value,
+        },
+    }
+
+
+def _deserialize_crab(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
+    """Deserialize and create a Crab entity."""
+    try:
+        from core.entities.predators import Crab
+        from core.genetics import Genome
+
+        if not _require_keys(data, ["x", "y"], entity_type="crab"):
+            return None
+
+        # Resolve engine/environment from target_world
+        engine = None
+        if hasattr(target_world, "world") and hasattr(target_world.world, "engine"):
+            engine = target_world.world.engine
+        elif hasattr(target_world, "engine"):
+            engine = target_world.engine
+
+        if engine is None:
+            logger.error("Cannot deserialize crab: no engine found")
+            return None
+
+        environment = engine.environment
+
+        # Get RNG for genome creation
+        rng = getattr(target_world, "rng", None)
+        if rng is None and engine:
+            rng = getattr(engine, "rng", None)
+
+        # Rebuild genome - prefer genome_data (full), fallback to legacy genome
+        genome = None
+        genome_data = data.get("genome_data")
+        if genome_data and isinstance(genome_data, dict):
+            genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
+        else:
+            # Legacy format: minimal genome with size/color only
+            legacy_genome = data.get("genome", {})
+            genome = Genome.random(rng=rng)
+            if "size_modifier" in legacy_genome:
+                genome.physical.size_modifier.value = legacy_genome["size_modifier"]
+            if "color_hue" in legacy_genome:
+                genome.physical.color_hue.value = legacy_genome["color_hue"]
+
+        # Create crab
+        crab = Crab(
+            environment=environment,
+            genome=genome,
+            x=data["x"],
+            y=data["y"],
+        )
+
+        # Restore energy (clamped to max_energy)
+        if "energy" in data:
+            crab.energy = min(data["energy"], crab.max_energy)
+
+        # Restore cooldown
+        if "hunt_cooldown" in data:
+            crab.hunt_cooldown = data["hunt_cooldown"]
+
+        # Restore motion state (for Petri orbit resume)
+        motion = data.get("motion", {})
+        if motion:
+            if motion.get("theta") is not None:
+                crab._orbit_theta = motion["theta"]
+            if motion.get("dir") is not None:
+                crab._orbit_dir = motion["dir"]
+
+        return crab
+    except Exception as e:
+        logger.error(f"Failed to deserialize crab: {e}", exc_info=True)
         return None

@@ -51,6 +51,10 @@ class Crab(Agent):
         # Hunting mechanics
         self.hunt_cooldown: int = 0
 
+        # Petri mode orbit state (for perimeter movement)
+        self._orbit_theta: Optional[float] = None
+        self._orbit_dir: Optional[int] = None  # +1 or -1
+
     def can_hunt(self) -> bool:
         """Check if crab can hunt (cooldown expired)."""
         return self.hunt_cooldown <= 0
@@ -86,9 +90,12 @@ class Crab(Agent):
     ) -> "EntityUpdateResult":
         """Update the crab state.
 
-        Simple patrol behavior: crab walks back and forth across the tank bottom.
-        Eating is handled by the collision system when the crab bumps into food/fish.
+        Movement is world-aware:
+        - Tank mode: patrol back and forth across the tank bottom
+        - Petri mode: orbit along the circular dish perimeter
         """
+        import math
+
         from core.entities.base import EntityUpdateResult
 
         # Update cooldown
@@ -98,11 +105,28 @@ class Crab(Agent):
         # Consume energy
         self.consume_energy()
 
-        # Simple patrol: just keep walking in current direction
-        # If no horizontal velocity, pick a random direction (use environment RNG)
-        if abs(self.vel.x) < 0.1:
-            from core.util.rng import require_rng
+        # Determine movement mode based on world type
+        world_type = getattr(self.environment, "world_type", None)
+        dish = getattr(self.environment, "dish", None)
 
+        if world_type == "petri" and dish is not None:
+            # Petri mode: orbit the dish perimeter
+            self._update_petri_orbit(time_modifier, dish, math)
+        else:
+            # Tank mode: patrol bottom
+            self._update_tank_patrol()
+
+        # Call parent update which handles position updates and boundary bouncing
+        super().update(frame_count, time_modifier, time_of_day)
+
+        return EntityUpdateResult()
+
+    def _update_tank_patrol(self) -> None:
+        """Tank mode: patrol back and forth on the bottom."""
+        from core.util.rng import require_rng
+
+        # If no horizontal velocity, pick a random direction
+        if abs(self.vel.x) < 0.1:
             rng = require_rng(self.environment, "Crab.update.patrol")
             direction = rng.choice([-1, 1])
             self.vel.x = direction * self.speed
@@ -110,7 +134,48 @@ class Crab(Agent):
         # Stay on bottom (no vertical movement)
         self.vel.y = 0
 
-        # Call parent update which handles position updates and boundary bouncing
-        super().update(frame_count, time_modifier, time_of_day)
+    def _update_petri_orbit(self, time_modifier: float, dish: "PetriDish", math) -> None:
+        """Petri mode: orbit along the dish perimeter."""
+        from core.util.rng import require_rng
 
-        return EntityUpdateResult()
+        # Calculate agent radius (approximate as half of width)
+        agent_r = self.width / 2
+        orbit_radius = dish.r - agent_r - 2.0  # 2px margin from edge
+
+        if orbit_radius <= 0:
+            # Dish too small, stay at center
+            return
+
+        # Initialize theta from current position if not set
+        if self._orbit_theta is None:
+            dx = self.pos.x + agent_r - dish.cx
+            dy = self.pos.y + agent_r - dish.cy
+            self._orbit_theta = math.atan2(dy, dx)
+
+        # Initialize orbit direction if not set (deterministic via RNG)
+        if self._orbit_dir is None:
+            rng = require_rng(self.environment, "Crab.orbit_dir")
+            self._orbit_dir = rng.choice([-1, 1])
+
+        # Calculate angular velocity: omega = speed / radius
+        omega = (self.speed / orbit_radius) * self._orbit_dir * time_modifier * 0.1
+
+        # Update theta
+        self._orbit_theta += omega
+
+        # Set position on perimeter (top-left corner, not center)
+        cx = dish.cx + orbit_radius * math.cos(self._orbit_theta)
+        cy = dish.cy + orbit_radius * math.sin(self._orbit_theta)
+        self.pos.x = cx - agent_r
+        self.pos.y = cy - agent_r
+
+        # Set velocity tangent to circle for physics coherence
+        tangent_x = -math.sin(self._orbit_theta) * self._orbit_dir
+        tangent_y = math.cos(self._orbit_theta) * self._orbit_dir
+        self.vel.x = tangent_x * self.speed
+        self.vel.y = tangent_y * self.speed
+
+        # Sync rect if present
+        if hasattr(self, "rect"):
+            self.rect.x = self.pos.x
+            self.rect.y = self.pos.y

@@ -203,7 +203,7 @@ def restore_world_from_snapshot(
                 nectar_data_list.append(entity_data)
                 continue
 
-            if entity_type in ("fish", "plant"):
+            if entity_type in ("fish", "plant", "crab"):
                 # Use deserialization logic from entity_transfer
                 entity = deserialize_entity(entity_data, target_world)
                 if entity:

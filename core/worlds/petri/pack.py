@@ -84,7 +84,6 @@ class PetriPack(TankLikePackBase):
 
         # Note: SimEvents (AteFood, Moved, etc.) are no longer used for energy tracking.
         # Energy tracking is handled via direct recorder injection in engine.
-        pass
 
         display = self.config.display
 
