@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from backend.connection_manager import ConnectionManager, TankConnection
 from backend.connection_persistence import save_connections
@@ -13,6 +14,12 @@ from backend.world_manager import WorldManager
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/connections", tags=["connections"])
+
+
+class ConnectionResponse(BaseModel):
+    """Response model for a list of connections."""
+
+    connections: List[Dict]
 
 
 def setup_router(
@@ -64,16 +71,22 @@ def setup_router(
 
         if is_local(connection.source_server_id):
             if world_manager.get_world(connection.source_tank_id) is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Source tank not found: {connection.source_tank_id}",
-                )
+                # Try source_id as fallback if source_tank_id is missing (the model uses both)
+                # TankConnection.from_dict populates source_world_id
+                world_id = getattr(connection, "source_world_id", None) or getattr(connection, "source_tank_id", None)
+                if world_id and world_manager.get_world(world_id) is None:
+                     raise HTTPException(
+                        status_code=404,
+                        detail=f"Source tank not found: {world_id}",
+                    )
 
         if is_local(connection.destination_server_id):
-            if world_manager.get_world(connection.destination_tank_id) is None:
+             # Similar check for destination
+             world_id = getattr(connection, "destination_world_id", None) or getattr(connection, "destination_tank_id", None)
+             if world_id and world_manager.get_world(world_id) is None:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Destination tank not found: {connection.destination_tank_id}",
+                    detail=f"Destination tank not found: {world_id}",
                 )
 
         existing = connection_manager.get_connection(connection.id)
