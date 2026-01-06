@@ -83,7 +83,8 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     petri_world.paused = True
     # Reset phase so we can add entities directly (test setup privilege)
     petri_world.engine._current_phase = None
-    petri_world.engine.entities_list.clear()  # Clear default stuff
+    # Clear default entities using EntityManager.clear() for proper cache invalidation
+    petri_world.engine._entity_manager.clear()
 
     # Add 1 fish
     # We must use AlgorithmicMovement for Fish now
