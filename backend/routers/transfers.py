@@ -16,13 +16,13 @@ def setup_router() -> APIRouter:
     @router.get("")
     async def list_transfers(
         limit: int = Query(default=50, ge=1, le=200),
-        tank_id: Optional[str] = Query(default=None),
+        world_id: Optional[str] = Query(default=None),
         success_only: bool = Query(default=False),
     ) -> JSONResponse:
         """List recent transfers with optional filters."""
         transfers = get_transfer_history(
             limit=limit,
-            tank_id=tank_id,
+            world_id=world_id,
             success_only=success_only,
         )
         return JSONResponse({"transfers": transfers, "count": len(transfers)})

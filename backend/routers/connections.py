@@ -1,7 +1,7 @@
 """Connection management API endpoints."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -30,10 +30,10 @@ def setup_router(
     """Create and configure the connections router."""
 
     @router.get("")
-    async def list_connections(tank_id: Optional[str] = Query(default=None)) -> JSONResponse:
-        """List all migration connections, optionally filtered by source tank."""
-        if tank_id:
-            connections = connection_manager.get_connections_for_tank(tank_id)
+    async def list_connections(world_id: Optional[str] = Query(default=None)) -> JSONResponse:
+        """List all migration connections, optionally filtered by source world."""
+        if world_id:
+            connections = connection_manager.get_connections_for_world(world_id)
         else:
             connections = connection_manager.list_connections()
 
@@ -70,23 +70,17 @@ def setup_router(
             return server_id == local_server_id
 
         if is_local(connection.source_server_id):
-            if world_manager.get_world(connection.source_tank_id) is None:
-                # Try source_id as fallback if source_tank_id is missing (the model uses both)
-                # TankConnection.from_dict populates source_world_id
-                world_id = getattr(connection, "source_world_id", None) or getattr(connection, "source_tank_id", None)
-                if world_id and world_manager.get_world(world_id) is None:
-                     raise HTTPException(
-                        status_code=404,
-                        detail=f"Source tank not found: {world_id}",
-                    )
-
-        if is_local(connection.destination_server_id):
-             # Similar check for destination
-             world_id = getattr(connection, "destination_world_id", None) or getattr(connection, "destination_tank_id", None)
-             if world_id and world_manager.get_world(world_id) is None:
+            if world_manager.get_world(connection.source_world_id) is None:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Destination tank not found: {world_id}",
+                    detail=f"Source world not found: {connection.source_world_id}",
+                )
+
+        if is_local(connection.destination_server_id):
+            if world_manager.get_world(connection.destination_world_id) is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Destination world not found: {connection.destination_world_id}",
                 )
 
         existing = connection_manager.get_connection(connection.id)
