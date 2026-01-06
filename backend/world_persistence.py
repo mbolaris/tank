@@ -24,8 +24,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Current schema version for saved snapshots
-from core.worlds.tank.schema import SCHEMA_VERSION
 
 # Base directory for all world data (reusing existing path for compatibility)
 DATA_DIR = Path("data/tanks")

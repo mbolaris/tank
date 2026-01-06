@@ -14,7 +14,7 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Set
+from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from fastapi import WebSocket
 
@@ -51,14 +51,14 @@ class WorldInstance:
     description: str = ""
     broadcast_adapter: WorldBroadcastAdapter | None = None
     # WebSocket clients connected to this world
-    _connected_clients: Set[WebSocket] = field(default_factory=set)
+    _connected_clients: set[WebSocket] = field(default_factory=set)
 
     def is_tank(self) -> bool:
         """Check if this is a tank (or petri) world using SimulationRunner."""
         return self.world_type in ("tank", "petri")
 
     @property
-    def connected_clients(self) -> Set[WebSocket]:
+    def connected_clients(self) -> set[WebSocket]:
         """Get the set of connected WebSocket clients."""
         return self._connected_clients
 
