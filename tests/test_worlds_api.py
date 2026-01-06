@@ -98,13 +98,14 @@ class TestCreatePetriWorld:
 
     def test_step_petri_world(self, test_client):
         """Test stepping a petri world advances frame."""
-        # Create petri world
+        # Create petri world paused to avoid background frame advancement
         create_response = test_client.post(
             "/api/worlds",
             json={
                 "world_type": "petri",
                 "name": "Step Test Petri",
                 "seed": 42,
+                "start_paused": True,
             },
         )
         assert create_response.status_code == 201
@@ -146,7 +147,7 @@ class TestCreateSoccerWorld:
 
     def test_step_soccer_world(self, test_client):
         """Test stepping a soccer world advances frame."""
-        # Create soccer world
+        # Create soccer world paused to avoid background frame advancement
         create_response = test_client.post(
             "/api/worlds",
             json={
@@ -154,6 +155,7 @@ class TestCreateSoccerWorld:
                 "name": "Step Test Soccer",
                 "config": {"team_size": 1},
                 "seed": 42,
+                "start_paused": True,
             },
         )
         assert create_response.status_code == 201
