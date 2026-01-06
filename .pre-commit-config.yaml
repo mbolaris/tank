@@ -2,6 +2,16 @@
 # Install with: pip install pre-commit && pre-commit install
 
 repos:
+  # Local hook to prevent compiled Python artifacts from being committed
+  - repo: local
+    hooks:
+      - id: no-pycache
+        name: Check for __pycache__ and .pyc files
+        entry: bash -c 'if find backend/ core/ -name "__pycache__" -type d 2>/dev/null | grep -q . || find backend/ core/ -name "*.pyc" 2>/dev/null | grep -q .; then echo "ERROR: Compiled Python artifacts found in backend/ or core/"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
