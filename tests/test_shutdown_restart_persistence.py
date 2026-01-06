@@ -100,6 +100,10 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     )
     petri_world.engine.add_entity(petri_fish)
 
+    # DIAGNOSTIC: Verify we have exactly 1 entity before saving
+    pre_save_count = len(petri_world.engine.entities_list)
+    assert pre_save_count == 1, f"Expected 1 entity before save, got {pre_save_count}"
+
     # --- PHASE 2: SHUTDOWN (SAVE) ---
 
     # This should trigger auto_save_service.save_all_on_shutdown()
