@@ -1,8 +1,8 @@
-"""Legacy brain adapter for Tank world.
+"""Action bridge for Tank world.
 
-This module wraps the existing fish decision logic (movement_strategy.move)
-to produce Action objects for the action pipeline. This preserves current
-behavior exactly while enabling external brain integration.
+This module bridges fish internal decision logic (movement_strategy.move)
+to produce Action objects for the action pipeline. This allows the pipeline
+to treat builtin fish behavior uniformly with external brain integration.
 
 Design Notes:
     - Does NOT change fish behavior - just captures the result as Action
@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from core.brains.contracts import BrainAction, BrainActionMap, BrainObservationMap
 
-# Backward-compatibility aliases
+# Convenience aliases
 Action = BrainAction
 ActionMap = BrainActionMap
 ObservationMap = BrainObservationMap
@@ -39,14 +39,14 @@ def decide_actions(
     2. Capturing their current velocity (already set by update cycle)
     3. Returning it as an Action
 
-    In legacy mode, fish have already made their movement decisions during
+    In builtin mode, fish have already made their movement decisions during
     the entity update phase. This adapter just packages those decisions
     as Actions for pipeline consistency.
 
     Args:
         observations: Per-agent observations (used for entity lookup)
         world: The TankWorld instance
-        rng: Optional random number generator (unused in legacy mode)
+        rng: Optional random number generator (unused in builtin mode)
 
     Returns:
         Dictionary mapping entity_id to Action
@@ -67,13 +67,13 @@ def decide_actions(
         if fish is None:
             continue
 
-        # In legacy mode, fish velocity is already set by movement_strategy.move()
+        # In builtin mode, fish velocity is already set by movement_strategy.move()
         # We just capture it as an Action for pipeline consistency
         actions[entity_id] = Action(
             entity_id=entity_id,
             target_velocity=(fish.vel.x, fish.vel.y),
             extra={
-                "source": "legacy",
+                "source": "builtin",
                 "movement_strategy": type(fish.movement_strategy).__name__,
             },
         )
@@ -88,7 +88,7 @@ def apply_actions(
     """Apply actions to fish entities.
 
     In external brain mode, this applies actions from an external decision maker.
-    In legacy mode, this is effectively a no-op since fish already moved.
+    In builtin mode, this is effectively a no-op since fish already moved.
 
     Args:
         actions: Per-agent actions to apply
@@ -108,8 +108,8 @@ def apply_actions(
         if fish is None:
             continue
 
-        # Skip legacy actions (fish already moved)
-        if action.extra.get("source") == "legacy":
+        # Skip builtin actions (fish already moved)
+        if action.extra.get("source") == "builtin":
             continue
 
         # Apply external brain velocity

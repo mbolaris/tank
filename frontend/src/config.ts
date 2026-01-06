@@ -16,12 +16,7 @@ function getWorldIdFromUrl(): string | null {
     return null;
 }
 
-/**
- * @deprecated Use getWorldIdFromUrl instead
- */
-function getTankIdFromUrl(): string | null {
-    return getWorldIdFromUrl();
-}
+
 
 /**
  * Get the base WebSocket URL (without world ID)
@@ -120,9 +115,6 @@ export const config = {
     /** World ID from URL (if specified) */
     worldId: getWorldIdFromUrl(),
 
-    /** @deprecated Use worldId instead */
-    tankId: getTankIdFromUrl(),
-
     /** Get the current server URL (for display purposes) */
     get serverDisplay(): string {
         return this.apiBaseUrl.replace(/^https?:\/\//, '');
@@ -134,13 +126,6 @@ export const config = {
      */
     getWsUrlForWorld(worldId: string): string {
         return `${getBaseWebSocketUrl()}/ws/world/${worldId}`;
-    },
-
-    /**
-     * @deprecated Use getWsUrlForWorld instead
-     */
-    getWsUrlForTank(tankId: string): string {
-        return `${getBaseWebSocketUrl()}/ws/world/${tankId}`;
     },
 
     /**
@@ -197,14 +182,6 @@ export interface ServerWithWorlds {
 }
 
 /**
- * @deprecated Use ServerWithWorlds instead
- */
-export interface ServerWithTanks {
-    server: ServerInfo;
-    tanks: WorldStatus[];
-}
-
-/**
  * World information returned from the API
  */
 export interface WorldInfo {
@@ -216,13 +193,6 @@ export interface WorldInfo {
     server_id: string;
     is_public: boolean;
     allow_transfers: boolean;
-}
-
-/**
- * @deprecated Use WorldInfo instead
- */
-export interface TankInfo extends WorldInfo {
-    tank_id: string;
 }
 
 export interface WorldStatsSummary {
@@ -248,11 +218,6 @@ export interface WorldStatsSummary {
         total_energy_lost: number;
     };
 }
-
-/**
- * @deprecated Use WorldStatsSummary instead
- */
-export type TankStatsSummary = WorldStatsSummary;
 
 /**
  * Tank status returned from the API

@@ -152,14 +152,6 @@ def restore_world_from_snapshot(
         from core.entities.plant import Plant
         from core.transfer.entity_transfer import deserialize_entity
 
-        def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:
-            """Regression-safe inference for snapshots missing type field."""
-            if "species" in entity_data and "genome_data" in entity_data:
-                return "fish"
-            if "root_spot_id" in entity_data and "genome_data" in entity_data:
-                return "plant"
-            return None
-
         # Resolve engine from target_world (which might be an adapter)
         # Try multiple resolution paths for cross-Python-version compatibility
         engine = None
@@ -221,10 +213,11 @@ def restore_world_from_snapshot(
 
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot.get("entities", []):
-            entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
+            entity_type = entity_data.get("type")
 
-            if entity_type and "type" not in entity_data:
-                entity_data["type"] = entity_type
+            if not entity_type:
+                logger.error(f"Missing 'type' field in entity data: {entity_data}")
+                return False
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)

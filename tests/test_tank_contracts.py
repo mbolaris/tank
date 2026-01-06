@@ -124,12 +124,12 @@ class TestObservationBuilder:
         assert isinstance(first_obs.nearby_threats, list)
 
 
-class TestLegacyBrainAdapter:
-    """Test legacy brain adapter."""
+class TestActionBridge:
+    """Test action bridge adapter."""
 
-    def test_legacy_adapter_produces_actions_for_fish(self):
-        """Legacy adapter should produce actions for each fish in observations."""
-        from core.worlds.tank.legacy_brain_adapter import decide_actions
+    def test_action_bridge_produces_actions_for_fish(self):
+        """Action bridge should produce actions for each fish in observations."""
+        from core.worlds.tank.action_bridge import decide_actions
         from core.worlds.tank.observation_builder import build_tank_observations
 
         adapter = TankWorldBackendAdapter(seed=42)
@@ -158,7 +158,7 @@ class TestLegacyBrainAdapter:
     def test_action_velocities_match_fish_velocities(self):
         """Action velocities should match actual fish velocities."""
         from core.entities import Fish
-        from core.worlds.tank.legacy_brain_adapter import decide_actions
+        from core.worlds.tank.action_bridge import decide_actions
         from core.worlds.tank.observation_builder import build_tank_observations
 
         adapter = TankWorldBackendAdapter(seed=42)

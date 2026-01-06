@@ -27,7 +27,6 @@ The server will start on `http://localhost:8000`
 
 - `GET /` - API information (includes Tank World Net status)
 - `GET /health` - Health check with simulation stats
-- `GET /api/tank/info` - Get default tank metadata (backwards compatible)
 - `GET /api/lineage` - Get phylogenetic lineage data for default tank
 
 ### Tank World Net - Multi-World API
@@ -113,7 +112,7 @@ functions, so they work across Linux, macOS, Windows, and ARM boards like Raspbe
 - Automatic cleanup (keeps last 10 snapshots per world)
 - Complete state preservation (entities, ecosystem stats, frame number)
 - Atomic load with validation
-- Snapshots stored in `data/worlds/{world_id}/snapshots/` (mapped from `data/tanks` for backward compatibility)
+- Snapshots stored in `data/worlds/{world_id}/snapshots/`
 
 #### Transfer History API (Phase 4A)
 
@@ -129,7 +128,7 @@ functions, so they work across Linux, macOS, Windows, and ARM boards like Raspbe
 
 ### WebSocket Endpoints
 
-- `WS /ws` - Connect to default world (backwards compatible)
+- `WS /ws` - Connect to default world
 - `WS /ws/world/{world_id}` - Connect to a specific world by ID
 
 **Frontend URL Parameters:**
