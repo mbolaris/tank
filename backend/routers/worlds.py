@@ -337,7 +337,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"World type switching not supported for this world",
+                    detail="World type switching not supported for this world",
                 )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -379,7 +379,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"World type switching not supported for this world",
+                    detail="World type switching not supported for this world",
                 )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
