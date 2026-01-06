@@ -213,7 +213,7 @@ class AlgorithmicMovement(MovementStrategy):
         behavioral = fish.genome.behavioral
 
         # Quick check: extract value and see if it's set
-        trait = getattr(behavioral, "code_policy_component_id", None)
+        trait = getattr(behavioral, "movement_policy_id", None)
         if trait is not None and hasattr(trait, "value"):
             trait = trait.value
 

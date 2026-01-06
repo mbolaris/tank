@@ -116,7 +116,22 @@ class TankSnapshotBuilder:
 
         # Render hints & Genome Data
         if hasattr(fish, "genome"):
-            snapshot.genome_data = fish.genome.to_dict()
+            gd = fish.genome.to_dict()
+
+            # OPTIMIZATION: Strip heavy fields for WebSocket broadcast (saves ~6-10KB per fish)
+            # These fields are needed for persistence/full inspection but not for 30fps visualization
+            if "trait_meta" in gd:
+                del gd["trait_meta"]
+            if "poker_strategy" in gd:
+                del gd["poker_strategy"]
+            if (
+                "behavior" in gd
+                and isinstance(gd["behavior"], dict)
+                and "parameters" in gd["behavior"]
+            ):
+                del gd["behavior"]["parameters"]
+
+            snapshot.genome_data = gd
 
         genome = fish.genome
         snapshot.render_hint = {

@@ -1106,6 +1106,7 @@ class SimulationRunner(CommandHandlerMixin):
         return FullStatePayload(**state_dict)
 
     def _collect_entities(self) -> List[EntitySnapshot]:
+        # Optimization: Use fast path if available (e.g. from C++ backend or optimized step result)
         get_step_result = getattr(self.world, "get_last_step_result", None)
         if callable(get_step_result):
             step_result = get_step_result()
@@ -1117,7 +1118,25 @@ class SimulationRunner(CommandHandlerMixin):
         else:
             live_entities = getattr(self.world, "entities_list", [])
 
-        return self._entity_snapshot_builder.collect(live_entities)
+        snapshots = self._entity_snapshot_builder.collect(live_entities)
+
+        # OPTIMIZATION: Post-process snapshots to strip heavy fields not needed for WebSocket visualization
+        # This bypasses potential hot-reload issues with the snapshot builder itself
+        for s in snapshots:
+            gd = s.genome_data
+            if gd:
+                if "trait_meta" in gd:
+                    del gd["trait_meta"]
+                if "poker_strategy" in gd:
+                    del gd["poker_strategy"]
+                if (
+                    "behavior" in gd
+                    and isinstance(gd["behavior"], dict)
+                    and "parameters" in gd["behavior"]
+                ):
+                    del gd["behavior"]["parameters"]
+
+        return snapshots
 
     def _collect_poker_stats_payload(self, stats: Dict[str, Any]) -> PokerStatsPayload:
         """Delegate to state_builders module."""

@@ -121,7 +121,6 @@ class Genome:
         """Validate trait ranges/types; returns a dict with any issues found."""
         from core.genetics.behavioral import (
             BEHAVIORAL_TRAIT_SPECS,
-            validate_code_policy,
         )
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
@@ -135,24 +134,27 @@ class Genome:
             )
         )
 
-        # Validate code policy fields only if they exist
-        cp_kind = None
-        if (
-            self.behavioral.code_policy_kind is not None
-            and self.behavioral.code_policy_kind.value is not None
-        ):
-            cp_kind = self.behavioral.code_policy_kind.value
-        cp_id = (
-            self.behavioral.code_policy_component_id.value
-            if self.behavioral.code_policy_component_id
-            else None
-        )
-        cp_params = (
-            self.behavioral.code_policy_params.value if self.behavioral.code_policy_params else None
-        )
-        cp_issues = validate_code_policy(cp_kind, cp_id, cp_params)
-        for issue in cp_issues:
-            issues.append(f"genome.behavioral.{issue}")
+        # Validate per-kind policy params fields
+        from core.genetics.behavioral import validate_policy_fields
+
+        for kind, id_attr, params_attr in [
+            ("movement_policy", "movement_policy_id", "movement_policy_params"),
+            ("poker_policy", "poker_policy_id", "poker_policy_params"),
+            ("soccer_policy", "soccer_policy_id", "soccer_policy_params"),
+        ]:
+            policy_id = (
+                getattr(self.behavioral, id_attr).value
+                if getattr(self.behavioral, id_attr, None)
+                else None
+            )
+            policy_params = (
+                getattr(self.behavioral, params_attr).value
+                if getattr(self.behavioral, params_attr, None)
+                else None
+            )
+            policy_issues = validate_policy_fields(policy_id, policy_params, policy_kind=kind)
+            for issue in policy_issues:
+                issues.append(f"genome.behavioral.{issue}")
 
         return {"ok": not issues, "issues": issues}
 

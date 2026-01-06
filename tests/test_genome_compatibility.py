@@ -48,73 +48,67 @@ def test_code_policy_has_defaults():
     rng = random.Random(42)
     g = Genome.random(use_algorithm=False, rng=rng)
 
-    # Code policy traits exist and have default values
-    assert g.behavioral.code_policy_kind is not None
-    assert g.behavioral.code_policy_kind.value == "movement_policy"
+    # Movement policy should have default
+    assert g.behavioral.movement_policy_id is not None
+    assert g.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
-    assert g.behavioral.code_policy_component_id is not None
-    assert g.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
+    # Other policies None by default
+    assert g.behavioral.poker_policy_id is not None
+    assert g.behavioral.poker_policy_id.value is None
 
     # Params should be None by default (no tuning yet)
-    assert g.behavioral.code_policy_params is not None
-    assert g.behavioral.code_policy_params.value is None
+    assert g.behavioral.movement_policy_params is not None
+    assert g.behavioral.movement_policy_params.value is None
 
 
-def test_old_genome_loads_without_code_policy():
-    """Old genomes (schema v1) without code policy get default policy assigned.
+def test_old_genome_loads_with_migration():
+    """Old genomes (legacy schema) with code_policy fields should migrate to per-kind fields.
 
-    When loading old genomes that don't have code_policy fields, the factory
-    creates a new genome with defaults, which includes the default movement policy.
+    When loading a legacy genome that has 'code_policy_kind'='movement_policy',
+    it should populate 'movement_policy_id' and 'movement_policy_params'.
     """
     from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 
     rng = random.Random(123)
 
-    # Simulate an old genome without code policy fields
-    old_genome_data = {
-        "schema_version": 1,
+    # Simulate a legacy genome with single-policy fields
+    legacy_genome_data = {
+        "schema_version": 2,
         "size_modifier": 1.0,
         "color_hue": 0.5,
-        "color_saturation": 0.5,
-        "color_brightness": 0.5,
         "fin_size": 0.5,
         "tail_size": 0.5,
-        "pattern_type": 0,
-        "pattern_intensity": 0.5,
         "body_aspect": 0.5,
         "eye_size": 0.5,
-        "template_id": 0,
-        "aggression": 0.5,
-        "social_tendency": 0.5,
-        "pursuit_aggression": 0.5,
-        "prediction_skill": 0.5,
-        "hunting_stamina": 0.5,
-        "asexual_reproduction_chance": 0.1,
-        # No code_policy_* fields - they get defaults from factory
+        "code_policy_kind": "movement_policy",
+        "code_policy_component_id": "test_legacy_id",
+        "code_policy_params": {"legacy_param": 1.0},
+        # Per-kind fields missing -> should trigger migration
     }
 
-    # Should load without crashing
-    g = Genome.from_dict(old_genome_data, rng=rng, use_algorithm=False)
+    # Should load and migrate
+    g = Genome.from_dict(legacy_genome_data, rng=rng, use_algorithm=False)
 
-    # Code policy defaults from factory (not None)
-    assert g.behavioral.code_policy_kind.value == "movement_policy"
-    assert g.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
-    assert g.behavioral.code_policy_params.value is None
+    # Verified migration to per-kind fields
+    assert g.behavioral.movement_policy_id.value == "test_legacy_id"
+    assert g.behavioral.movement_policy_params.value == {"legacy_param": 1.0}
 
-    # Other traits should be loaded
-    assert abs(g.physical.size_modifier.value - 1.0) < 1e-6
-    assert abs(g.behavioral.aggression.value - 0.5) < 1e-6
+    # Poker/Soccer should be empty
+    assert g.behavioral.poker_policy_id.value is None
+    assert g.behavioral.soccer_policy_id.value is None
 
 
 def test_genome_with_code_policy_round_trip():
-    """Genome with code policy should serialize and deserialize correctly."""
+    """Genome with per-kind code policy should serialize and deserialize correctly."""
     rng = random.Random(456)
     g = Genome.random(use_algorithm=False, rng=rng)
 
-    # Set code policy fields
-    g.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    g.behavioral.code_policy_component_id = GeneticTrait("comp_abc123")
-    g.behavioral.code_policy_params = GeneticTrait({"speed_mult": 1.5, "turn_rate": 0.8})
+    # Set per-kind policy fields
+    g.behavioral.movement_policy_id = GeneticTrait("comp_move")
+    g.behavioral.movement_policy_params = GeneticTrait({"speed": 1.0})
+
+    g.behavioral.poker_policy_id = GeneticTrait("comp_poker")
+    g.behavioral.poker_policy_params = GeneticTrait({"bet": 0.5})
 
     # Serialize and deserialize
     data = g.to_dict()
@@ -122,9 +116,11 @@ def test_genome_with_code_policy_round_trip():
     g2 = Genome.from_dict(data, rng=rng2, use_algorithm=False)
 
     # Verify round-trip
-    assert g2.behavioral.code_policy_kind.value == "movement_policy"
-    assert g2.behavioral.code_policy_component_id.value == "comp_abc123"
-    assert g2.behavioral.code_policy_params.value == {"speed_mult": 1.5, "turn_rate": 0.8}
+    assert g2.behavioral.movement_policy_id.value == "comp_move"
+    assert g2.behavioral.movement_policy_params.value == {"speed": 1.0}
+
+    assert g2.behavioral.poker_policy_id.value == "comp_poker"
+    assert g2.behavioral.poker_policy_params.value == {"bet": 0.5}
 
 
 def test_code_policy_validation():
@@ -132,26 +128,13 @@ def test_code_policy_validation():
     rng = random.Random(789)
     g = Genome.random(use_algorithm=False, rng=rng)
 
-    # Valid: all None
-    result = g.validate()
-    assert result["ok"], f"Unexpected issues: {result['issues']}"
-
-    # Invalid: component_id set but kind is None
-    g.behavioral.code_policy_component_id = GeneticTrait("comp_xyz")
-    g.behavioral.code_policy_kind = GeneticTrait(None)
-    result = g.validate()
-    assert not result["ok"]
-    assert any(
-        "code_policy_component_id is set but code_policy_kind is not" in i for i in result["issues"]
-    )
-
-    # Valid: both set
-    g.behavioral.code_policy_kind = GeneticTrait("foraging_policy")
+    # Valid: defaults
     result = g.validate()
     assert result["ok"], f"Unexpected issues: {result['issues']}"
 
     # Invalid: param out of range
-    g.behavioral.code_policy_params = GeneticTrait({"bad_param": 999.0})
+    g.behavioral.movement_policy_id = GeneticTrait("comp_move")
+    g.behavioral.movement_policy_params = GeneticTrait({"bad_param": 999.0})  # Max is 100.0 usually
     result = g.validate()
     assert not result["ok"]
     assert any("out of range" in i for i in result["issues"])
@@ -159,7 +142,7 @@ def test_code_policy_validation():
     # Invalid: param is NaN
     import math
 
-    g.behavioral.code_policy_params = GeneticTrait({"nan_param": math.nan})
+    g.behavioral.movement_policy_params = GeneticTrait({"nan_param": math.nan})
     result = g.validate()
     assert not result["ok"]
     assert any("must be finite" in i for i in result["issues"])
@@ -170,36 +153,33 @@ def test_code_policy_inheritance_deterministic():
     rng1 = random.Random(111)
     rng2 = random.Random(111)
 
-    # Create parents with code policies
+    # Create parents with per-kind policies
     parent1 = Genome.random(use_algorithm=False, rng=random.Random(1))
-    parent1.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    parent1.behavioral.code_policy_component_id = GeneticTrait("parent1_comp")
-    parent1.behavioral.code_policy_params = GeneticTrait({"x": 1.0})
+    parent1.behavioral.movement_policy_id = GeneticTrait("p1_move")
+    parent1.behavioral.movement_policy_params = GeneticTrait({"x": 1.0})
 
     parent2 = Genome.random(use_algorithm=False, rng=random.Random(2))
-    parent2.behavioral.code_policy_kind = GeneticTrait("foraging_policy")
-    parent2.behavioral.code_policy_component_id = GeneticTrait("parent2_comp")
-    parent2.behavioral.code_policy_params = GeneticTrait({"y": 2.0})
+    parent2.behavioral.movement_policy_id = GeneticTrait("p2_move")
+    parent2.behavioral.movement_policy_params = GeneticTrait({"y": 2.0})
 
     # Create offspring twice with same RNG seed
     child1 = Genome.from_parents_weighted(parent1, parent2, rng=rng1)
     child2 = Genome.from_parents_weighted(parent1, parent2, rng=rng2)
 
     # Should be identical
-    assert child1.behavioral.code_policy_kind.value == child2.behavioral.code_policy_kind.value
-    assert (
-        child1.behavioral.code_policy_component_id.value
-        == child2.behavioral.code_policy_component_id.value
-    )
+    assert child1.behavioral.movement_policy_id.value == child2.behavioral.movement_policy_id.value
     # Params may have been mutated, but deterministically
-    assert child1.behavioral.code_policy_params.value == child2.behavioral.code_policy_params.value
+    assert (
+        child1.behavioral.movement_policy_params.value
+        == child2.behavioral.movement_policy_params.value
+    )
 
 
 def test_code_policy_inheritance_from_single_parent():
     """Code policy inheritance when one parent has custom policy, other has default."""
     from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 
-    # Parent with custom code policy (set via new per-kind fields)
+    # Parent with custom code policy
     parent1 = Genome.random(use_algorithm=False, rng=random.Random(10))
     parent1.behavioral.movement_policy_id = GeneticTrait("custom_parent_comp")
     parent1.behavioral.movement_policy_params = GeneticTrait({"z": 3.0})

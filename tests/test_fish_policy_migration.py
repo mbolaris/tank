@@ -42,7 +42,7 @@ def test_legacy_fish_deserialization_assigns_default_policy():
             "behavioral": {
                 "aggression": {"value": 0.5},
                 "social_tendency": {"value": 0.5},
-                # code_policy fields missing
+                # movement_policy_id missing
             },
         },
     }
@@ -50,9 +50,9 @@ def test_legacy_fish_deserialization_assigns_default_policy():
     fish = _deserialize_fish(legacy_data, mock_world)
 
     assert fish is not None
-    assert fish.genome.behavioral.code_policy_component_id is not None
-    assert fish.genome.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
-    assert fish.genome.behavioral.code_policy_kind.value == "movement_policy"
+    # Should have migrated to use the default movement policy via movement_policy_id
+    assert fish.genome.behavioral.movement_policy_id is not None
+    assert fish.genome.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
 
 def test_behavioral_traits_random_defaults():
@@ -60,8 +60,8 @@ def test_behavioral_traits_random_defaults():
     rng = random.Random(42)
     traits = BehavioralTraits.random(rng)
 
-    assert traits.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
-    assert traits.code_policy_kind.value == "movement_policy"
+    assert traits.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
+    # Legacy fields should be gone/None (not testing them as they are removed)
 
 
 def test_mutation_can_swap_policy():
@@ -70,7 +70,7 @@ def test_mutation_can_swap_policy():
 
     # Parent with default policy
     parent = BehavioralTraits.random(rng)
-    assert parent.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
+    assert parent.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
     # Force mutation with a new available policy
     # We need to run many trials because swap chance is small (10% of mutation rate)
@@ -87,7 +87,7 @@ def test_mutation_can_swap_policy():
             rng=rng,
             available_policies=available,
         )
-        if child.code_policy_component_id.value == "NEW_POLICY_ID":
+        if child.movement_policy_id.value == "NEW_POLICY_ID":
             swapped = True
             break
 

@@ -76,18 +76,35 @@ def run(seed: int) -> Dict[str, Any]:
     final_fitness = world.get_fitness_summary()
 
     # Calculate score
-    # Goal differential (most important)
+    # Goal differential (primary objective)
     goal_diff = final_fitness["score"]["left"] - final_fitness["score"]["right"]
+
+    # Possession differential (secondary objective)
+    # Possession stats are tracked in agent_fitness (frames in possession)
+    possession_left = 0
+    possession_right = 0
+    for agent_data in final_fitness["agent_fitness"].values():
+        if agent_data["team"] == "left":
+            possession_left += agent_data["possessions"]
+        else:
+            possession_right += agent_data["possessions"]
+
+    # Convert frames to seconds (approximate using timestep if available, or just use raw frames for now)
+    # The config has frame_rate = 30 default.
+    # We'll use raw frames for the diff score since it's relative.
+    possession_diff = (possession_left - possession_right) / 30.0  # Convert to seconds roughly
 
     # Team fitness (energy efficiency)
     team_energy = final_fitness["team_fitness"]["left"] + final_fitness["team_fitness"]["right"]
-    avg_energy = team_energy / max(len(world._players), 1)
+    # Provide a floor for player count to avoid division by zero
+    player_count = max(config.team_size * 2, 1)
+    avg_energy = team_energy / player_count
 
     # Score formula:
     # - Goal differential: 100 points per goal
-    # - Average energy remaining: 1 point per unit
-    # This incentivizes both scoring AND efficiency
-    score = (goal_diff * 100.0) + avg_energy
+    # - Possession diff: 1.0 point per second of advantage
+    # - Average energy: 0.1 points per energy unit (efficiency bonus)
+    score = (goal_diff * 100.0) + (possession_diff * 1.0) + (avg_energy * 0.1)
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -99,6 +116,9 @@ def run(seed: int) -> Dict[str, Any]:
             "score_left": final_fitness["score"]["left"],
             "score_right": final_fitness["score"]["right"],
             "goal_diff": goal_diff,
+            "possession_left": possession_left,
+            "possession_right": possession_right,
+            "possession_diff": possession_diff,
             "avg_energy": avg_energy,
             "team_energy_left": final_fitness["team_fitness"]["left"],
             "team_energy_right": final_fitness["team_fitness"]["right"],

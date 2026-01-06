@@ -48,7 +48,7 @@ def run_movement_policy(
         (vx, vy) if successful and valid, None otherwise.
         Values are clamped to [-1.0, 1.0].
     """
-    # 1. extract policy config - use new per-kind field directly
+    # 1. extract policy config - use per-kind field directly
     movement_id_trait = getattr(genome.behavioral, "movement_policy_id", None)
     movement_params_trait = getattr(genome.behavioral, "movement_policy_params", None)
 
@@ -56,26 +56,12 @@ def run_movement_policy(
     component_id = (
         movement_id_trait.value if hasattr(movement_id_trait, "value") else movement_id_trait
     )
+
     params = (
         movement_params_trait.value
         if hasattr(movement_params_trait, "value")
         else movement_params_trait
     )
-
-    # Fallback to legacy fields if new field is not set (migration compatibility)
-    if not component_id:
-        policy_kind = getattr(genome.behavioral, "code_policy_kind", None)
-        legacy_id = getattr(genome.behavioral, "code_policy_component_id", None)
-        legacy_params = getattr(genome.behavioral, "code_policy_params", None)
-        if hasattr(policy_kind, "value"):
-            policy_kind = policy_kind.value
-        if hasattr(legacy_id, "value"):
-            legacy_id = legacy_id.value
-        if hasattr(legacy_params, "value"):
-            legacy_params = legacy_params.value
-        if policy_kind == "movement_policy" and legacy_id:
-            component_id = legacy_id
-            params = legacy_params
 
     # Identify if we have a valid policy to run
     if not component_id:
@@ -96,6 +82,7 @@ def run_movement_policy(
     )
 
     if not result.success:
+        print(f"DEBUG: Policy validation failed: {result.error_message}")
         _log_error(fish_id, component_id, f"Execution failed: {result.error_message}")
         return None
 

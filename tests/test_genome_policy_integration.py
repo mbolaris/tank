@@ -155,7 +155,7 @@ class TestTankFishWithGenomeCodePool:
         apply_policy_set_to_behavioral(fish.genome.behavioral, policy_set, rng)
 
         # Verify genome was updated
-        assert fish.genome.behavioral.code_policy_component_id.value == BUILTIN_FLEE_FROM_THREAT_ID
+        assert fish.genome.behavioral.movement_policy_id.value == BUILTIN_FLEE_FROM_THREAT_ID
 
 
 class TestSoccerWithGenomeCodePool:

@@ -55,7 +55,6 @@ def extract_policy_set_from_behavioral(
     """Extract a GenomePolicySet from BehavioralTraits.
 
     Extracts ALL policy kinds (movement, poker, soccer) from the per-kind fields.
-    Also checks legacy single-policy fields for migration compatibility.
 
     Args:
         behavioral: The BehavioralTraits to extract from
@@ -67,7 +66,7 @@ def extract_policy_set_from_behavioral(
 
     policy_set = GenomePolicySet()
 
-    # Extract from new per-kind policy fields
+    # Extract from per-kind policy fields
     for kind, id_attr, params_attr in [
         (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
         (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
@@ -77,14 +76,6 @@ def extract_policy_set_from_behavioral(
         params = _get_trait_value(getattr(behavioral, params_attr, None))
         if component_id:
             policy_set.set_policy(kind, component_id, params)
-
-    # Fallback: if no policies found, check legacy single-policy fields for migration
-    if not any(policy_set.get_component_id(k) for k in ALL_POLICY_KINDS):
-        legacy_kind = _get_trait_value(behavioral.code_policy_kind)
-        legacy_id = _get_trait_value(behavioral.code_policy_component_id)
-        legacy_params = _get_trait_value(behavioral.code_policy_params)
-        if legacy_kind and legacy_id:
-            policy_set.set_policy(legacy_kind, legacy_id, legacy_params)
 
     return policy_set
 
@@ -97,14 +88,13 @@ def apply_policy_set_to_behavioral(
     """Apply a GenomePolicySet to BehavioralTraits.
 
     Writes ALL policy kinds (movement, poker, soccer) to their respective per-kind fields.
-    Also updates legacy single-policy fields for migration support during migration.
 
     Args:
         behavioral: The BehavioralTraits to update
         policy_set: The policy set to apply
         rng: Random number generator for trait meta-values
     """
-    # Write to new per-kind policy fields
+    # Write to per-kind policy fields
     for kind, id_attr, params_attr in [
         (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
         (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
@@ -115,23 +105,6 @@ def apply_policy_set_to_behavioral(
         setattr(behavioral, id_attr, GeneticTrait(component_id))
         setattr(behavioral, params_attr, GeneticTrait(params))
 
-    # Also update legacy single-policy fields for migration support
-    # Use movement as the "primary" policy for legacy consumers
-    primary_kind = None
-    primary_id = None
-    primary_params = None
-    for kind in [MOVEMENT_POLICY, POKER_POLICY, SOCCER_POLICY]:
-        component_id = policy_set.get_component_id(kind)
-        if component_id:
-            primary_kind = kind
-            primary_id = component_id
-            primary_params = policy_set.get_params(kind)
-            break
-
-    behavioral.code_policy_kind = GeneticTrait(primary_kind)
-    behavioral.code_policy_component_id = GeneticTrait(primary_id)
-    behavioral.code_policy_params = GeneticTrait(primary_params)
-
 
 def mutate_code_policies(
     behavioral: BehavioralTraits,
@@ -141,7 +114,7 @@ def mutate_code_policies(
 ) -> BehavioralTraits:
     """Mutate code policy traits using the GenomeCodePool.
 
-    This performs pool-aware mutation:
+    This performs pool-aware mutation on ALL per-kind policy fields:
     1. May swap to a different component of the same kind
     2. May drop the policy entirely
     3. May mutate policy parameters
@@ -157,34 +130,38 @@ def mutate_code_policies(
     """
     config = config or CodePolicyMutationConfig()
 
-    kind = _get_trait_value(behavioral.code_policy_kind)
-    component_id = _get_trait_value(behavioral.code_policy_component_id)
-    params = _get_trait_value(behavioral.code_policy_params)
+    # Mutate each policy kind independently
+    for kind, id_attr, params_attr in [
+        (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
+        (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
+        (SOCCER_POLICY, "soccer_policy_id", "soccer_policy_params"),
+    ]:
+        component_id = _get_trait_value(getattr(behavioral, id_attr, None))
+        params = _get_trait_value(getattr(behavioral, params_attr, None))
 
-    # Skip if no policy
-    if not kind or not component_id:
-        return behavioral
+        # Skip if no policy for this kind
+        if not component_id:
+            continue
 
-    # Chance to drop the policy
-    if rng.random() < config.drop_probability:
-        behavioral.code_policy_kind = GeneticTrait(None)
-        behavioral.code_policy_component_id = GeneticTrait(None)
-        behavioral.code_policy_params = GeneticTrait(None)
-        return behavioral
+        # Chance to drop the policy
+        if rng.random() < config.drop_probability:
+            setattr(behavioral, id_attr, GeneticTrait(None))
+            setattr(behavioral, params_attr, GeneticTrait(None))
+            continue
 
-    # Chance to swap to a different component
-    if rng.random() < config.swap_probability:
-        available = pool.get_components_by_kind(kind)
-        if available:
-            new_id = rng.choice(available)
-            if new_id != component_id:
-                behavioral.code_policy_component_id = GeneticTrait(new_id)
-                component_id = new_id
+        # Chance to swap to a different component
+        if rng.random() < config.swap_probability:
+            available = pool.get_components_by_kind(kind)
+            if available:
+                new_id = rng.choice(available)
+                if new_id != component_id:
+                    setattr(behavioral, id_attr, GeneticTrait(new_id))
+                    component_id = new_id
 
-    # Mutate parameters
-    if params:
-        mutated_params = _mutate_params(params, rng, config)
-        behavioral.code_policy_params = GeneticTrait(mutated_params)
+        # Mutate parameters
+        if params:
+            mutated_params = _mutate_params(params, rng, config)
+            setattr(behavioral, params_attr, GeneticTrait(mutated_params))
 
     return behavioral
 
@@ -195,8 +172,8 @@ def crossover_code_policies(
     pool: GenomeCodePool,
     rng: pyrandom.Random,
     weight1: float = 0.5,
-) -> tuple[str | None, str | None, dict[str, float] | None]:
-    """Crossover code policy traits from two parents.
+) -> dict[str, tuple[str | None, dict[str, float] | None]]:
+    """Crossover code policy traits from two parents for ALL policy kinds.
 
     Args:
         parent1: First parent's behavioral traits
@@ -206,53 +183,62 @@ def crossover_code_policies(
         weight1: Probability of inheriting from parent1
 
     Returns:
-        Tuple of (kind, component_id, params) for the offspring
+        Dict mapping policy kind to (component_id, params) tuple
     """
-    p1_kind = _get_trait_value(parent1.code_policy_kind)
-    p1_id = _get_trait_value(parent1.code_policy_component_id)
-    p1_params = _get_trait_value(parent1.code_policy_params)
+    result: dict[str, tuple[str | None, dict[str, float] | None]] = {}
 
-    p2_kind = _get_trait_value(parent2.code_policy_kind)
-    p2_id = _get_trait_value(parent2.code_policy_component_id)
-    p2_params = _get_trait_value(parent2.code_policy_params)
+    for kind, id_attr, params_attr in [
+        (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
+        (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
+        (SOCCER_POLICY, "soccer_policy_id", "soccer_policy_params"),
+    ]:
+        p1_id = _get_trait_value(getattr(parent1, id_attr, None))
+        p1_params = _get_trait_value(getattr(parent1, params_attr, None))
+        p2_id = _get_trait_value(getattr(parent2, id_attr, None))
+        p2_params = _get_trait_value(getattr(parent2, params_attr, None))
 
-    # Both have no policy
-    if not p1_id and not p2_id:
-        return None, None, None
+        # Both have no policy for this kind
+        if not p1_id and not p2_id:
+            result[kind] = (None, None)
+            continue
 
-    # Choose which parent's policy to inherit
-    if p1_id and p2_id:
-        # Both have policies - weighted selection
-        if rng.random() < weight1:
-            kind, component_id = p1_kind, p1_id
+        # Choose which parent's policy to inherit
+        if p1_id and p2_id:
+            # Both have policies - weighted selection
+            if rng.random() < weight1:
+                component_id = p1_id
+            else:
+                component_id = p2_id
+        elif p1_id:
+            # Only parent1 has policy
+            if rng.random() < weight1 or rng.random() < 0.3:  # Gene flow
+                component_id = p1_id
+            else:
+                result[kind] = (None, None)
+                continue
         else:
-            kind, component_id = p2_kind, p2_id
-    elif p1_id:
-        # Only parent1 has policy
-        if rng.random() < weight1 or rng.random() < 0.3:  # Gene flow
-            kind, component_id = p1_kind, p1_id
-        else:
-            return None, None, None
-    else:
-        # Only parent2 has policy
-        if rng.random() < (1 - weight1) or rng.random() < 0.3:  # Gene flow
-            kind, component_id = p2_kind, p2_id
-        else:
-            return None, None, None
+            # Only parent2 has policy
+            if rng.random() < (1 - weight1) or rng.random() < 0.3:  # Gene flow
+                component_id = p2_id
+            else:
+                result[kind] = (None, None)
+                continue
 
-    # Validate component still exists
-    if component_id and not pool.has_component(component_id):
-        # Component no longer exists - try to find a replacement
-        available = pool.get_components_by_kind(kind) if kind else []
-        if available:
-            component_id = rng.choice(available)
-        else:
-            return None, None, None
+        # Validate component still exists
+        if component_id and not pool.has_component(component_id):
+            # Component no longer exists - try to find a replacement
+            available = pool.get_components_by_kind(kind)
+            if available:
+                component_id = rng.choice(available)
+            else:
+                result[kind] = (None, None)
+                continue
 
-    # Blend parameters from both parents
-    blended_params = _blend_params(p1_params, p2_params, weight1)
+        # Blend parameters from both parents
+        blended_params = _blend_params(p1_params, p2_params, weight1)
+        result[kind] = (component_id, blended_params)
 
-    return kind, component_id, blended_params
+    return result
 
 
 def validate_code_policy_ids(
@@ -260,7 +246,7 @@ def validate_code_policy_ids(
     pool: GenomeCodePool,
     rng: pyrandom.Random,
 ) -> list[str]:
-    """Validate that code policy IDs reference valid components.
+    """Validate that per-kind policy IDs reference valid components.
 
     If invalid, attempts to fix by:
     1. Using the pool's default for the kind
@@ -277,34 +263,30 @@ def validate_code_policy_ids(
     """
     issues = []
 
-    kind = _get_trait_value(behavioral.code_policy_kind)
-    component_id = _get_trait_value(behavioral.code_policy_component_id)
+    for kind, id_attr, params_attr in [
+        (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
+        (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
+        (SOCCER_POLICY, "soccer_policy_id", "soccer_policy_params"),
+    ]:
+        component_id = _get_trait_value(getattr(behavioral, id_attr, None))
 
-    if not component_id:
-        return issues  # No policy is valid
+        if not component_id:
+            continue  # No policy for this kind is valid
 
-    if not kind:
-        issues.append("code_policy_component_id set but code_policy_kind is not")
-        behavioral.code_policy_kind = GeneticTrait(None)
-        behavioral.code_policy_component_id = GeneticTrait(None)
-        behavioral.code_policy_params = GeneticTrait(None)
-        return issues
+        if not pool.has_component(component_id):
+            issues.append(f"{id_attr} {component_id} not found in pool")
 
-    if not pool.has_component(component_id):
-        issues.append(f"code_policy_component_id {component_id} not found in pool")
-
-        # Try to fix
-        default_id = pool.get_default(kind)
-        if default_id:
-            behavioral.code_policy_component_id = GeneticTrait(default_id)
-        else:
-            available = pool.get_components_by_kind(kind)
-            if available:
-                behavioral.code_policy_component_id = GeneticTrait(rng.choice(available))
+            # Try to fix
+            default_id = pool.get_default(kind)
+            if default_id:
+                setattr(behavioral, id_attr, GeneticTrait(default_id))
             else:
-                behavioral.code_policy_kind = GeneticTrait(None)
-                behavioral.code_policy_component_id = GeneticTrait(None)
-                behavioral.code_policy_params = GeneticTrait(None)
+                available = pool.get_components_by_kind(kind)
+                if available:
+                    setattr(behavioral, id_attr, GeneticTrait(rng.choice(available)))
+                else:
+                    setattr(behavioral, id_attr, GeneticTrait(None))
+                    setattr(behavioral, params_attr, GeneticTrait(None))
 
     return issues
 
@@ -335,9 +317,19 @@ def assign_random_policy(
         available = [default_id]
 
     component_id = rng.choice(available)
-    behavioral.code_policy_kind = GeneticTrait(kind)
-    behavioral.code_policy_component_id = GeneticTrait(component_id)
-    behavioral.code_policy_params = GeneticTrait({})
+
+    # Map kind to the appropriate per-kind field
+    kind_to_attr = {
+        MOVEMENT_POLICY: ("movement_policy_id", "movement_policy_params"),
+        POKER_POLICY: ("poker_policy_id", "poker_policy_params"),
+        SOCCER_POLICY: ("soccer_policy_id", "soccer_policy_params"),
+    }
+    id_attr, params_attr = kind_to_attr.get(kind, (None, None))
+    if id_attr is None:
+        return False
+
+    setattr(behavioral, id_attr, GeneticTrait(component_id))
+    setattr(behavioral, params_attr, GeneticTrait({}))
     return True
 
 

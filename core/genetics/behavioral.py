@@ -217,15 +217,6 @@ class BehavioralTraits:
     soccer_policy_id: Optional[GeneticTrait[Optional[str]]] = None
     soccer_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
 
-    # ==========================================================================
-    # DEPRECATED: Legacy single-policy fields (for migration compatibility)
-    # ==========================================================================
-    # These fields are deprecated and will be removed. Use the per-kind fields above.
-    # On deserialization, these are migrated to the appropriate per-kind field.
-    code_policy_kind: Optional[GeneticTrait[Optional[str]]] = None
-    code_policy_component_id: Optional[GeneticTrait[Optional[str]]] = None
-    code_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
-
     @classmethod
     def random(
         cls,
@@ -261,11 +252,6 @@ class BehavioralTraits:
         traits["poker_policy_params"] = random_genetic_trait(None, rng)
         traits["soccer_policy_id"] = random_genetic_trait(None, rng)
         traits["soccer_policy_params"] = random_genetic_trait(None, rng)
-
-        # DEPRECATED: Legacy single-policy fields (kept for migration compatibility)
-        traits["code_policy_kind"] = random_genetic_trait("movement_policy", rng)
-        traits["code_policy_component_id"] = random_genetic_trait(BUILTIN_SEEK_NEAREST_FOOD_ID, rng)
-        traits["code_policy_params"] = random_genetic_trait(None, rng)
 
         return cls(**traits)
 
@@ -375,23 +361,6 @@ class BehavioralTraits:
                 rng,
             )
 
-        # DEPRECATED: Populate legacy single-policy fields from movement policy for migration support
-        movement_id = inherited.get("movement_policy_id")
-        movement_params = inherited.get("movement_policy_params")
-        cp_kind = "movement_policy" if movement_id and movement_id.value else None
-        cp_id = movement_id.value if movement_id and movement_id.value else None
-        cp_params = movement_params.value if movement_params and movement_params.value else None
-
-        inherited["code_policy_kind"] = _inherit_trait_meta(
-            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
-        )
-        inherited["code_policy_component_id"] = _inherit_trait_meta(
-            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
-        )
-        inherited["code_policy_params"] = _inherit_trait_meta(
-            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
-        )
-
         return cls(**inherited)
 
     @classmethod
@@ -497,23 +466,6 @@ class BehavioralTraits:
                 policy_params,
                 rng,
             )
-
-        # DEPRECATED: Populate legacy single-policy fields from movement policy for migration support
-        movement_id = inherited.get("movement_policy_id")
-        movement_params = inherited.get("movement_policy_params")
-        cp_kind = "movement_policy" if movement_id and movement_id.value else None
-        cp_id = movement_id.value if movement_id and movement_id.value else None
-        cp_params = movement_params.value if movement_params and movement_params.value else None
-
-        inherited["code_policy_kind"] = _inherit_trait_meta(
-            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
-        )
-        inherited["code_policy_component_id"] = _inherit_trait_meta(
-            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
-        )
-        inherited["code_policy_params"] = _inherit_trait_meta(
-            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
-        )
 
         return cls(**inherited)
 
@@ -799,15 +751,14 @@ def _inherit_single_policy(
     return chosen_id, mutated_params
 
 
-def validate_code_policy(
-    kind: Optional[str],
-    component_id: Optional[str],
+def validate_policy_fields(
+    policy_id: Optional[str],
     params: Optional[Dict[str, float]],
+    policy_kind: str = "policy",
 ) -> List[str]:
-    """Validate code policy fields and return a list of issues.
+    """Validate policy id/params fields and return a list of issues.
 
     Validation rules:
-    - If code_policy_component_id is set, code_policy_kind must be set.
     - params must have finite numbers, bounded in [CODE_POLICY_PARAM_MIN, CODE_POLICY_PARAM_MAX].
 
     Returns:
@@ -817,28 +768,34 @@ def validate_code_policy(
 
     issues: List[str] = []
 
-    # If component_id is set, kind must also be set
-    if component_id is not None and kind is None:
-        issues.append("code_policy_component_id is set but code_policy_kind is not set")
-
     # Validate params if present
     if params is not None:
         if not isinstance(params, dict):
-            issues.append(f"code_policy_params must be a dict, got {type(params).__name__}")
+            issues.append(f"{policy_kind}_params must be a dict, got {type(params).__name__}")
         else:
             for key, val in params.items():
                 if not isinstance(key, str):
-                    issues.append(f"code_policy_params key must be str, got {type(key).__name__}")
+                    issues.append(f"{policy_kind}_params key must be str, got {type(key).__name__}")
                 if not isinstance(val, (int, float)):
                     issues.append(
-                        f"code_policy_params[{key!r}] must be numeric, got {type(val).__name__}"
+                        f"{policy_kind}_params[{key!r}] must be numeric, got {type(val).__name__}"
                     )
                 elif math.isnan(val) or math.isinf(val):
-                    issues.append(f"code_policy_params[{key!r}] must be finite, got {val}")
+                    issues.append(f"{policy_kind}_params[{key!r}] must be finite, got {val}")
                 elif val < CODE_POLICY_PARAM_MIN or val > CODE_POLICY_PARAM_MAX:
                     issues.append(
-                        f"code_policy_params[{key!r}]={val} out of range "
+                        f"{policy_kind}_params[{key!r}]={val} out of range "
                         f"[{CODE_POLICY_PARAM_MIN}, {CODE_POLICY_PARAM_MAX}]"
                     )
 
     return issues
+
+
+# Alias for migration support during transition
+def validate_code_policy(
+    kind: Optional[str],
+    component_id: Optional[str],
+    params: Optional[Dict[str, float]],
+) -> List[str]:
+    """Validate code policy fields - migration alias for validate_policy_fields."""
+    return validate_policy_fields(component_id, params, policy_kind=kind or "code_policy")
