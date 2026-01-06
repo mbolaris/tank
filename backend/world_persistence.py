@@ -177,8 +177,14 @@ def restore_world_from_snapshot(
         if "frame" in snapshot:
             engine.frame_count = snapshot["frame"]
 
-        # Clear existing entities
-        engine.entities_list.clear()
+        # Clear existing entities using EntityManager.clear() to properly invalidate caches.
+        # Using engine.entities_list.clear() only clears the list but doesn't invalidate
+        # CacheManager, which can cause stale cached entities to persist.
+        if hasattr(engine, "_entity_manager") and hasattr(engine._entity_manager, "clear"):
+            engine._entity_manager.clear()
+        else:
+            # Fallback for engines without EntityManager
+            engine.entities_list.clear()
         if engine.environment:
             engine.environment.spatial_grid.clear()
 
