@@ -127,16 +127,22 @@ class TankSnapshotBuilder:
             "has_egg": getattr(fish, "is_gravid", False),
         }
 
-        # Additional data - safely access poker traits if they exist
-        # if hasattr(fish, "active_poker_game") and fish.active_poker_game:
-        #      snapshot.poker_effect_state = {
-        #         "active_game": fish.active_poker_game,
-        #     }
+        # Additional data - safely access visual effects if they exist
+        vs = getattr(fish, "visual_state", None)
+        if vs:
+            snapshot.poker_effect_state = vs.poker_effect_state
+            snapshot.birth_effect_timer = vs.birth_effect_timer
+            if vs.death_effect_state:
+                snapshot.death_effect_state = vs.death_effect_state
 
     def _enrich_plant(self, snapshot: EntitySnapshot, plant: Plant) -> None:
         snapshot.energy = plant.energy
         snapshot.max_energy = plant.max_energy
         snapshot.size_multiplier = getattr(plant, "size_multiplier", 1.0)
+
+        # Poker effect state for plants
+        if hasattr(plant, "poker_effect_state"):
+            snapshot.poker_effect_state = plant.poker_effect_state
 
         # Genome integration
         if plant.genome:
