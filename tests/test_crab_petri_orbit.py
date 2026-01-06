@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import math
 
-import pytest
-
 from core.entities.predators import Crab
 from core.worlds.petri.dish import PetriDish
 
