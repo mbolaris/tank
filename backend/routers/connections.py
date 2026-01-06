@@ -1,7 +1,7 @@
 """Connection management API endpoints."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -30,7 +30,9 @@ def setup_router(
     """Create and configure the connections router."""
 
     @router.get("")
-    async def list_connections(world_id: Optional[str] = Query(default=None)) -> JSONResponse:
+    async def list_connections(
+        world_id: Annotated[Optional[str], Query(default=None)] = None,
+    ) -> JSONResponse:
         """List all migration connections, optionally filtered by source world."""
         if world_id:
             connections = connection_manager.get_connections_for_world(world_id)
@@ -42,7 +44,7 @@ def setup_router(
 
     @router.post("")
     async def create_connection(
-        payload: Dict[str, Any] = Body(...),
+        payload: Annotated[Dict[str, Any], Body(...)],
     ) -> JSONResponse:
         """Create or update a migration connection."""
         try:
