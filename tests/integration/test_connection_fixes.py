@@ -64,8 +64,8 @@ def test_from_dict_validation():
     try:
         conn = TankConnection.from_dict(
             {
-                "source_tank_id": "tank1-uuid",
-                "destination_tank_id": "tank2-uuid",
+                "source_world_id": "tank1-uuid",
+                "destination_world_id": "tank2-uuid",
                 "probability": 50,
             }
         )
@@ -90,8 +90,8 @@ def test_validate_connections_preserves_remote():
     print("\n1. Adding local connection...")
     local_conn = TankConnection(
         id="local-conn",
-        source_tank_id="tank1-local",
-        destination_tank_id="tank2-local",
+        source_world_id="tank1-local",
+        destination_world_id="tank2-local",
         probability=25,
         direction="right",
     )
@@ -102,8 +102,8 @@ def test_validate_connections_preserves_remote():
     print("\n2. Adding remote connection...")
     remote_conn = TankConnection(
         id="remote-conn",
-        source_tank_id="tank1-server-a",
-        destination_tank_id="tank2-server-b",
+        source_world_id="tank1-server-a",
+        destination_world_id="tank2-server-b",
         probability=50,
         direction="right",
         source_server_id="server-a",
@@ -116,8 +116,8 @@ def test_validate_connections_preserves_remote():
     print("\n3. Adding hybrid connection...")
     hybrid_conn = TankConnection(
         id="hybrid-conn",
-        source_tank_id="tank1-local",
-        destination_tank_id="tank3-server-c",
+        source_world_id="tank1-local",
+        destination_world_id="tank3-server-c",
         probability=75,
         direction="left",
         source_server_id="local-server",
@@ -128,8 +128,8 @@ def test_validate_connections_preserves_remote():
 
     # Validate with only local tank IDs
     print("\n4. Validating connections (only tank1-local is valid locally)...")
-    valid_tank_ids = ["tank1-local"]
-    removed_count = manager.validate_connections(valid_tank_ids, local_server_id="local-server")
+    valid_world_ids = ["tank1-local"]
+    removed_count = manager.validate_connections(valid_world_ids, local_server_id="local-server")
     print(f"  Removed {removed_count} connection(s)")
 
     # Check which connections remain

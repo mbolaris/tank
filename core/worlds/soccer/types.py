@@ -1,20 +1,21 @@
-"""Soccer-specific observation and action interfaces.
+# ruff: noqa: UP006
+"""Canonical soccer types for all soccer-related modules.
 
-This module defines the domain-agnostic interfaces for soccer agents that can work with:
-1. Pure-python SoccerTrainingWorld for evolution/training
-2. Future rcssserver adapter for evaluation (via UDP protocol)
-
-The interfaces are designed to be high-level enough for policies to reason about,
-while being translatable to low-level rcssserver commands (dash, turn, kick).
+This module contains the unified action/observation contract used by:
+- core/worlds/soccer/backend.py (pure-python training)
+- core/worlds/soccer/rcssserver_adapter.py (RCSS evaluation)
+- core/worlds/soccer_training (GenomeCodePool training)
 """
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from __future__ import annotations
 
-# Type aliases for clarity
-Observation = Dict[str, Any]
+from dataclasses import dataclass
+from typing import Any, Dict, List, Literal, Tuple
+
+# Type aliases
 TeamID = Literal["left", "right"]
 PlayerID = str  # e.g., "left_1", "right_5"
+Observation = Dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -28,7 +29,7 @@ class Vector2D:
         """Calculate the magnitude of the vector."""
         return (self.x**2 + self.y**2) ** 0.5
 
-    def normalized(self) -> "Vector2D":
+    def normalized(self) -> Vector2D:
         """Return a unit vector in the same direction."""
         mag = self.magnitude()
         if mag == 0:
@@ -57,20 +58,58 @@ class BallState:
 
 
 @dataclass(frozen=True)
+class SoccerAction:
+    """Normalized soccer action for policies.
+
+    This is the canonical action format used across all soccer backends.
+    Maps cleanly to RCSS server commands (dash, turn, kick).
+
+    Attributes:
+        turn: Normalized turn command in [-1, 1] (scaled by turn rate).
+        dash: Normalized dash command in [-1, 1] (scaled by acceleration).
+        kick_power: Kick power in [0, 1], 0 means no kick.
+        kick_angle: Kick direction offset in radians (relative to facing).
+    """
+
+    turn: float = 0.0
+    dash: float = 0.0
+    kick_power: float = 0.0
+    kick_angle: float = 0.0
+
+    def is_valid(self) -> bool:
+        if self.kick_power < 0.0 or self.kick_power > 1.0:
+            return False
+        return True
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "turn": self.turn,
+            "dash": self.dash,
+            "kick_power": self.kick_power,
+            "kick_angle": self.kick_angle,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> SoccerAction:
+        def _to_float(value: Any, default: float = 0.0) -> float:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        return cls(
+            turn=_to_float(data.get("turn", 0.0)),
+            dash=_to_float(data.get("dash", 0.0)),
+            kick_power=_to_float(data.get("kick_power", 0.0)),
+            kick_angle=_to_float(data.get("kick_angle", 0.0)),
+        )
+
+
+@dataclass(frozen=True)
 class SoccerObservation:
     """Complete observation for a soccer agent.
 
-    This is what a policy sees when deciding what action to take.
     Designed to be translatable to/from rcssserver's visual/sensory info.
-
-    Attributes:
-        self_state: The observing player's own state
-        ball: Ball state (may be estimated/noisy in rcssserver mode)
-        teammates: List of visible teammate states
-        opponents: List of visible opponent states
-        game_time: Current game time in seconds
-        play_mode: Current play mode (e.g., "play_on", "kick_off_left", "goal_left")
-        field_bounds: (width, height) of the field in meters
     """
 
     self_state: PlayerState
@@ -115,68 +154,9 @@ class SoccerObservation:
         }
 
 
-@dataclass(frozen=True)
-class SoccerAction:
-    """High-level soccer action that can be translated to rcssserver commands.
-
-    This represents the agent's intent, which will be translated to:
-    - Training mode: Direct physics updates
-    - rcssserver mode: (dash power angle), (turn angle), (kick power direction) commands
-
-    Attributes:
-        move_target: Target position to move towards (None = no movement intent)
-        face_angle: Desired facing angle in radians (None = no turn intent)
-        kick_power: Kick power [0.0, 1.0] (0 = no kick)
-        kick_angle: Kick direction relative to facing angle in radians
-    """
-
-    move_target: Optional[Vector2D] = None
-    face_angle: Optional[float] = None
-    kick_power: float = 0.0
-    kick_angle: float = 0.0
-
-    def is_valid(self) -> bool:
-        """Check if action parameters are within valid bounds."""
-        if self.kick_power < 0.0 or self.kick_power > 1.0:
-            return False
-        return True
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary format."""
-        result = {
-            "kick_power": self.kick_power,
-            "kick_angle": self.kick_angle,
-        }
-        if self.move_target is not None:
-            result["move_target"] = {"x": self.move_target.x, "y": self.move_target.y}
-        if self.face_angle is not None:
-            result["face_angle"] = self.face_angle
-        return result
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SoccerAction":
-        """Create action from dictionary format."""
-        move_target = None
-        if "move_target" in data and data["move_target"] is not None:
-            move_target = Vector2D(x=data["move_target"]["x"], y=data["move_target"]["y"])
-
-        face_angle = data.get("face_angle")
-
-        return cls(
-            move_target=move_target,
-            face_angle=face_angle,
-            kick_power=data.get("kick_power", 0.0),
-            kick_angle=data.get("kick_angle", 0.0),
-        )
-
-
 @dataclass
 class SoccerReward:
-    """Reward shaping components for soccer training.
-
-    These are used in the training environment to provide learning signals.
-    Not used in rcssserver evaluation mode.
-    """
+    """Reward shaping components for soccer training."""
 
     goal_scored: float = 0.0
     goal_conceded: float = 0.0
@@ -184,9 +164,9 @@ class SoccerReward:
     pass_completed: float = 0.0
     pass_failed: float = 0.0
     ball_possession: float = 0.0
-    distance_to_ball_delta: float = 0.0  # Reward approaching ball
-    spacing_quality: float = 0.0  # Reward good field positioning
-    stamina_efficiency: float = 0.0  # Reward efficient movement
+    distance_to_ball_delta: float = 0.0
+    spacing_quality: float = 0.0
+    stamina_efficiency: float = 0.0
 
     def total(self) -> float:
         """Calculate total reward."""

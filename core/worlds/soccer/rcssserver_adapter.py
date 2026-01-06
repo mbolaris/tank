@@ -18,14 +18,6 @@ References:
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-from core.policies.soccer_interfaces import (
-    BallState,
-    PlayerID,
-    PlayerState,
-    SoccerAction,
-    SoccerObservation,
-    Vector2D,
-)
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.rcss_protocol import (
@@ -35,6 +27,14 @@ from core.worlds.soccer.rcss_protocol import (
     build_init_command,
 )
 from core.worlds.soccer.socket_interface import FakeSocket, SocketInterface
+from core.worlds.soccer.types import (
+    BallState,
+    PlayerID,
+    PlayerState,
+    SoccerAction,
+    SoccerObservation,
+    Vector2D,
+)
 
 logger = logging.getLogger(__name__)
 

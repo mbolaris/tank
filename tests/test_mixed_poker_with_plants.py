@@ -179,6 +179,7 @@ class TestPlantPokerDetection:
 class TestPlantPokerGames:
     """Tests for actual poker game execution with plants."""
 
+    @pytest.mark.slow
     def test_plants_can_play_poker(self, run_simulation):
         """Verify plants can participate in poker games.
 
@@ -193,6 +194,7 @@ class TestPlantPokerGames:
 
         pytest.fail("At least one plant should have played poker in 5 trials of 1200 frames")
 
+    @pytest.mark.slow
     def test_plant_poker_records_wins_and_losses(self, run_simulation):
         """Verify poker games properly record wins and losses for plants."""
         # Run 5 trials with 1200 frames each for better coverage
@@ -518,6 +520,7 @@ class TestPokerEffectState:
 class TestSimulationIntegration:
     """Integration tests for the full simulation with plants."""
 
+    @pytest.mark.slow
     def test_long_simulation_stability(self, engine):
         """Verify simulation runs stably with plant poker for extended time."""
         # Run for 30 seconds (1800 frames)

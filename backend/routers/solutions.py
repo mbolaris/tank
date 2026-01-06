@@ -132,24 +132,24 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             logger.error(f"Error generating leaderboard: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
-    @router.post("/capture/{tank_id}")
+    @router.post("/capture/{world_id}")
     async def capture_solution(
-        tank_id: str,
+        world_id: str,
         request: CaptureRequest,
         background_tasks: BackgroundTasks,
     ):
-        """Capture the best solution from a running tank.
+        """Capture the best solution from a running world.
 
         Args:
-            tank_id: The tank to capture from
+            world_id: The world to capture from
             request: Capture configuration
 
         Returns:
             The captured solution record
         """
-        instance = world_manager.get_world(tank_id)
+        instance = world_manager.get_world(world_id)
         if instance is None:
-            raise HTTPException(status_code=404, detail=f"World not found: {tank_id}")
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
         try:
             # Get the best fish from the world
@@ -164,7 +164,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             fish_list = [e for e in entities_list if isinstance(e, Fish)]
 
             if not fish_list:
-                raise HTTPException(status_code=400, detail="No fish in tank")
+                raise HTTPException(status_code=400, detail="No fish in world")
 
             selection_detail = {}
 
@@ -260,7 +260,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error capturing solution from tank {tank_id}: {e}", exc_info=True)
+            logger.error(f"Error capturing solution from world {world_id}: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
 
     @router.post("/evaluate/{solution_id}")

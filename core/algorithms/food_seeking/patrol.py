@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
@@ -11,7 +11,9 @@ from core.config.food import (
     FOOD_PURSUIT_RANGE_NORMAL,
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
-from core.entities import Crab
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 
 @dataclass
@@ -39,6 +41,8 @@ class PatrolFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
+
         # IMPROVEMENT: Check energy and predators
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3

@@ -81,6 +81,12 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     # Add entities to Petri World
     petri_world = petri_world_instance.runner.world
     petri_world.paused = True
+
+    # Give the simulation thread time to process the pause flag to avoid race conditions
+    import time
+
+    time.sleep(0.1)
+
     # Reset phase so we can add entities directly (test setup privilege)
     petri_world.engine._current_phase = None
     # Clear default entities using EntityManager.clear() for proper cache invalidation

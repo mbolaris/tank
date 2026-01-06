@@ -226,8 +226,8 @@ class WorldManager:
         # Create SimulationRunner directly (no SimulationManager intermediary)
         runner = SimulationRunner(
             seed=seed,
-            tank_id=world_id,
-            tank_name=name,
+            world_id=world_id,
+            world_name=name,
             world_type=world_type,
         )
         runner.world_manager = self

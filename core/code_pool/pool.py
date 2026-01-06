@@ -233,7 +233,7 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         rng: Random number generator for slight variations
 
     Returns:
-        Dict representing SoccerAction
+        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
     """
     _ = rng
     try:
@@ -243,17 +243,28 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
         ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
         field_width = float(observation.get("field_width", 100.0))
+        facing_angle = float(observation.get("facing_angle", 0.0))
 
-        # Move toward ball
-        move_target = {"x": ball_x, "y": ball_y}
-
-        # Calculate distance to ball
+        # Calculate direction to ball
         dx = ball_x - self_x
         dy = ball_y - self_y
         dist_sq = dx * dx + dy * dy
         dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
 
-        # Kick if close to ball (within 2 units)
+        # Calculate turn needed to face ball
+        target_angle = math.atan2(dy, dx)
+        angle_delta = target_angle - facing_angle
+        # Normalize to [-pi, pi]
+        while angle_delta > math.pi:
+            angle_delta -= 2 * math.pi
+        while angle_delta < -math.pi:
+            angle_delta += 2 * math.pi
+        turn = max(-1.0, min(1.0, angle_delta / 0.35))  # Assuming turn_rate ~0.35
+
+        # Dash toward ball if not too close
+        dash = 1.0 if dist > 0.5 else 0.0
+
+        # Kick if close to ball
         kick_power = 0.0
         kick_angle = 0.0
         if dist < 2.0:
@@ -262,18 +273,18 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
             goal_y = 0.0
             goal_dx = goal_x - ball_x
             goal_dy = goal_y - ball_y
-            kick_angle = math.atan2(goal_dy, goal_dx)
+            kick_angle = math.atan2(goal_dy, goal_dx) - facing_angle
             kick_power = 0.8
 
         return {
-            "move_target": move_target,
-            "face_angle": None,
+            "turn": turn,
+            "dash": dash,
             "kick_power": kick_power,
             "kick_angle": kick_angle,
         }
     except (TypeError, ValueError, KeyError):
         # Fallback: do nothing
-        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}
+        return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
 def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
@@ -284,7 +295,7 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
         rng: Random number generator
 
     Returns:
-        Dict representing SoccerAction
+        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
     """
     _ = rng
     try:
@@ -294,41 +305,55 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
         ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
         ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
         field_width = float(observation.get("field_width", 100.0))
-        float(observation.get("field_height", 60.0))
+        facing_angle = float(observation.get("facing_angle", 0.0))
 
         # Own goal is on left side
         own_goal_x = -field_width / 2.0
         defensive_line_x = own_goal_x + field_width * 0.25  # Stay in defensive quarter
 
-        # If ball is in defensive zone, move toward it
+        # Determine target position
         if ball_x < defensive_line_x:
-            move_target = {"x": ball_x, "y": ball_y}
+            target_x, target_y = ball_x, ball_y
         else:
-            # Otherwise, patrol defensive line aligned with ball's y
-            move_target = {"x": defensive_line_x, "y": ball_y}
+            target_x, target_y = defensive_line_x, ball_y
 
-        # Calculate distance to ball for kicking
-        dx = ball_x - self_x
-        dy = ball_y - self_y
+        # Calculate direction to target
+        dx = target_x - self_x
+        dy = target_y - self_y
         dist_sq = dx * dx + dy * dy
         dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+
+        # Calculate turn needed
+        target_angle = math.atan2(dy, dx)
+        angle_delta = target_angle - facing_angle
+        while angle_delta > math.pi:
+            angle_delta -= 2 * math.pi
+        while angle_delta < -math.pi:
+            angle_delta += 2 * math.pi
+        turn = max(-1.0, min(1.0, angle_delta / 0.35))
+
+        dash = 1.0 if dist > 0.5 else 0.0
+
+        # Distance to ball for kicking
+        ball_dx = ball_x - self_x
+        ball_dy = ball_y - self_y
+        ball_dist = math.sqrt(ball_dx * ball_dx + ball_dy * ball_dy)
 
         # Clear ball away if close
         kick_power = 0.0
         kick_angle = 0.0
-        if dist < 2.0:
-            # Kick toward opponent's side
-            kick_angle = 0.0  # Kick toward positive x
+        if ball_dist < 2.0:
+            kick_angle = 0.0  # Kick toward positive x (opponent's side)
             kick_power = 1.0
 
         return {
-            "move_target": move_target,
-            "face_angle": None,
+            "turn": turn,
+            "dash": dash,
             "kick_power": kick_power,
             "kick_angle": kick_angle,
         }
     except (TypeError, ValueError, KeyError):
-        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}
+        return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
 def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
@@ -339,7 +364,7 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
         rng: Random number generator
 
     Returns:
-        Dict representing SoccerAction
+        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
     """
     _ = rng
     try:
@@ -349,39 +374,54 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
         ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
         ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
         field_width = float(observation.get("field_width", 100.0))
-        float(observation.get("field_height", 60.0))
+        facing_angle = float(observation.get("facing_angle", 0.0))
 
         # Opponent goal is on right side
         opp_goal_x = field_width / 2.0
         offensive_line_x = opp_goal_x - field_width * 0.25  # Stay in offensive quarter
 
-        # If ball is in offensive zone or nearby, chase it
-        dx = ball_x - self_x
-        dy = ball_y - self_y
-        dist_sq = dx * dx + dy * dy
-        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+        # Calculate distance to ball
+        ball_dx = ball_x - self_x
+        ball_dy = ball_y - self_y
+        ball_dist = math.sqrt(ball_dx * ball_dx + ball_dy * ball_dy)
 
-        if ball_x > offensive_line_x or dist < 10.0:
-            move_target = {"x": ball_x, "y": ball_y}
+        # Determine target position
+        if ball_x > offensive_line_x or ball_dist < 10.0:
+            target_x, target_y = ball_x, ball_y
         else:
-            # Otherwise, position in offensive zone
-            move_target = {"x": offensive_line_x, "y": 0.0}
+            target_x, target_y = offensive_line_x, 0.0
+
+        # Calculate direction to target
+        dx = target_x - self_x
+        dy = target_y - self_y
+        dist = math.sqrt(dx * dx + dy * dy)
+
+        # Calculate turn needed
+        target_angle = math.atan2(dy, dx)
+        angle_delta = target_angle - facing_angle
+        while angle_delta > math.pi:
+            angle_delta -= 2 * math.pi
+        while angle_delta < -math.pi:
+            angle_delta += 2 * math.pi
+        turn = max(-1.0, min(1.0, angle_delta / 0.35))
+
+        dash = 1.0 if dist > 0.5 else 0.0
 
         # Shoot on goal if close to ball
         kick_power = 0.0
         kick_angle = 0.0
-        if dist < 2.0:
+        if ball_dist < 2.0:
             # Aim for goal
             goal_dx = opp_goal_x - ball_x
             goal_dy = 0.0 - ball_y
-            kick_angle = math.atan2(goal_dy, goal_dx)
+            kick_angle = math.atan2(goal_dy, goal_dx) - facing_angle
             kick_power = 1.0
 
         return {
-            "move_target": move_target,
-            "face_angle": None,
+            "turn": turn,
+            "dash": dash,
             "kick_power": kick_power,
             "kick_angle": kick_angle,
         }
     except (TypeError, ValueError, KeyError):
-        return {"move_target": None, "face_angle": None, "kick_power": 0.0, "kick_angle": 0.0}
+        return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}

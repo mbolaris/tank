@@ -6,7 +6,6 @@ based on the rcssserver protocol documentation.
 
 import math
 
-from core.policies.soccer_interfaces import PlayerState, SoccerAction, Vector2D
 from core.worlds.soccer.rcss_protocol import (
     HearInfo,
     SeeInfo,
@@ -22,6 +21,7 @@ from core.worlds.soccer.rcss_protocol import (
     parse_see_message,
     parse_sense_body_message,
 )
+from core.worlds.soccer.types import PlayerState, SoccerAction, Vector2D
 
 # ============================================================================
 # Golden test fixtures - real-ish message samples
@@ -305,49 +305,10 @@ class TestCommandBuilders:
 
 
 class TestActionTranslation:
-    """Tests for action to command translation."""
+    """Tests for action to command translation (normalized format)."""
 
-    def test_action_to_commands_move_target_forward(self):
-        """Test translating move_target to dash command when facing target."""
-        player_state = PlayerState(
-            player_id="test_1",
-            team="left",
-            position=Vector2D(0.0, 0.0),
-            velocity=Vector2D(0.0, 0.0),
-            stamina=1.0,
-            facing_angle=0.0,  # Facing right
-        )
-
-        action = SoccerAction(move_target=Vector2D(10.0, 0.0))
-
-        commands = action_to_commands(action, player_state)
-
-        # Should dash forward (no turn needed)
-        assert len(commands) == 1
-        assert commands[0].startswith("(dash")
-
-    def test_action_to_commands_move_target_requires_turn(self):
-        """Test translating move_target to turn command when not facing target."""
-        player_state = PlayerState(
-            player_id="test_1",
-            team="left",
-            position=Vector2D(0.0, 0.0),
-            velocity=Vector2D(0.0, 0.0),
-            stamina=1.0,
-            facing_angle=0.0,  # Facing right
-        )
-
-        # Target is to the left (90 degrees)
-        action = SoccerAction(move_target=Vector2D(0.0, 10.0))
-
-        commands = action_to_commands(action, player_state)
-
-        # Should turn first
-        assert len(commands) == 1
-        assert commands[0].startswith("(turn")
-
-    def test_action_to_commands_face_angle(self):
-        """Test translating face_angle to turn command."""
+    def test_action_to_commands_dash(self):
+        """Test translating dash action to dash command."""
         player_state = PlayerState(
             player_id="test_1",
             team="left",
@@ -357,14 +318,53 @@ class TestActionTranslation:
             facing_angle=0.0,
         )
 
-        # Turn 45 degrees
-        action = SoccerAction(face_angle=math.radians(45))
+        action = SoccerAction(dash=1.0)
+
+        commands = action_to_commands(action, player_state)
+
+        assert len(commands) == 1
+        assert commands[0].startswith("(dash")
+        assert "100" in commands[0]  # 1.0 * 100 = 100
+
+    def test_action_to_commands_turn(self):
+        """Test translating turn action to turn command."""
+        player_state = PlayerState(
+            player_id="test_1",
+            team="left",
+            position=Vector2D(0.0, 0.0),
+            velocity=Vector2D(0.0, 0.0),
+            stamina=1.0,
+            facing_angle=0.0,
+        )
+
+        # Turn at half rate (0.5 * 180 = 90 degrees)
+        action = SoccerAction(turn=0.5)
 
         commands = action_to_commands(action, player_state)
 
         assert len(commands) == 1
         assert commands[0].startswith("(turn")
-        assert "45" in commands[0]
+        assert "90" in commands[0]
+
+    def test_action_to_commands_turn_and_dash(self):
+        """Test translating combined turn+dash action."""
+        player_state = PlayerState(
+            player_id="test_1",
+            team="left",
+            position=Vector2D(0.0, 0.0),
+            velocity=Vector2D(0.0, 0.0),
+            stamina=1.0,
+            facing_angle=0.0,
+        )
+
+        action = SoccerAction(turn=0.25, dash=0.5)
+
+        commands = action_to_commands(action, player_state)
+
+        # Should have both turn and dash
+        assert len(commands) == 2
+        assert any("turn" in cmd for cmd in commands)
+        assert any("dash" in cmd for cmd in commands)
 
     def test_action_to_commands_kick(self):
         """Test translating kick to kick command."""
@@ -386,7 +386,7 @@ class TestActionTranslation:
         assert "80" in commands[0]  # 0.8 * 100 = 80
 
     def test_action_to_commands_combined(self):
-        """Test action with both movement and kick."""
+        """Test action with turn, dash and kick."""
         player_state = PlayerState(
             player_id="test_1",
             team="left",
@@ -397,15 +397,17 @@ class TestActionTranslation:
         )
 
         action = SoccerAction(
-            move_target=Vector2D(10.0, 0.0),
+            turn=0.1,
+            dash=1.0,
             kick_power=0.5,
             kick_angle=0.0,
         )
 
         commands = action_to_commands(action, player_state)
 
-        # Should have dash and kick
-        assert len(commands) == 2
+        # Should have turn, dash and kick
+        assert len(commands) == 3
+        assert any("turn" in cmd for cmd in commands)
         assert any("dash" in cmd for cmd in commands)
         assert any("kick" in cmd for cmd in commands)
 

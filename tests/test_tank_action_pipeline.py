@@ -38,7 +38,7 @@ class TestActionPipeline:
     def test_step_returns_observations(self):
         """Step should return observations only in external brain mode (for performance).
 
-        In legacy mode, observations are skipped to avoid the spatial grid query overhead.
+        In builtin mode, observations are skipped to avoid the spatial grid query overhead.
         In external mode, observations are built for the external brain to use.
         """
         adapter = TankWorldBackendAdapter(seed=42)
@@ -48,13 +48,13 @@ class TestActionPipeline:
         fast_result = adapter.step({"__fast_step__": True})
         assert fast_result.obs_by_agent == {}
 
-        # Legacy mode step should NOT build observations (performance optimization)
+        # Builtin mode step should NOT build observations (performance optimization)
         result = adapter.step()
         assert isinstance(result.obs_by_agent, dict)
-        # In legacy mode, obs_by_agent should be empty (fish make their own decisions)
+        # In builtin mode, obs_by_agent should be empty (fish make their own decisions)
         assert (
             result.obs_by_agent == {}
-        ), "Legacy mode should not build observations for performance"
+        ), "Builtin mode should not build observations for performance"
 
     def test_step_returns_brain_mode_in_info(self):
         """Step should return brain_mode in info."""
@@ -65,8 +65,8 @@ class TestActionPipeline:
         assert "brain_mode" in result.info
         assert result.info["brain_mode"] == "builtin"
 
-    def test_legacy_mode_is_default(self):
-        """Legacy mode should be the default brain mode."""
+    def test_builtin_mode_is_default(self):
+        """Builtin mode should be the default brain mode."""
         config = SimulationConfig()
         assert config.tank.brain_mode == "builtin"
 

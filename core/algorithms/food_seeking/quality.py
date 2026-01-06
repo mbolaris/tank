@@ -2,7 +2,10 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
@@ -21,9 +24,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
-from core.entities import Crab, Food
 from core.predictive_movement import predict_falling_intercept, predict_intercept_point
-from core.world import World
 
 
 @dataclass
@@ -48,6 +49,8 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Food
+        from core.world import World
 
         # IMPROVEMENT: Use new critical energy methods for smarter decisions
         is_critical = fish.is_critical_energy()

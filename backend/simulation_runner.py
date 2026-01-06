@@ -54,16 +54,16 @@ class SimulationRunner(CommandHandlerMixin):
     def __init__(
         self,
         seed: Optional[int] = None,
-        tank_id: Optional[str] = None,
-        tank_name: Optional[str] = None,
+        world_id: Optional[str] = None,
+        world_name: Optional[str] = None,
         world_type: str = "tank",
     ):
         """Initialize the simulation runner.
 
         Args:
             seed: Optional random seed for deterministic behavior
-            tank_id: Optional unique identifier for the tank
-            tank_name: Optional human-readable name for the tank
+            world_id: Optional unique identifier for the world
+            world_name: Optional human-readable name for the world
             world_type: Type of world to create (default "tank")
         """
         # Create world via registry (world-agnostic)
@@ -94,9 +94,9 @@ class SimulationRunner(CommandHandlerMixin):
             "serialize": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
         }
 
-        # Tank identity (used for persistence, migration context, and UI attribution)
-        self.tank_id = tank_id or str(uuid.uuid4())
-        self.tank_name = tank_name or f"Tank {self.tank_id[:8]}"
+        # World identity (used for persistence, migration context, and UI attribution)
+        self.world_id = world_id or str(uuid.uuid4())
+        self.world_name = world_name or f"World {self.world_id[:8]}"
 
         self.evolution_benchmark_tracker = None
 
@@ -170,22 +170,22 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_hooks.standard_poker_series = value
 
     def _get_evolution_benchmark_export_path(self) -> Path:
-        """Get the benchmark export path scoped to this tank."""
-        tank_id = getattr(self, "tank_id", None) or "default"
-        # Write to shared benchmarks directory to avoid creating orphan tank directories
-        return Path("data") / "benchmarks" / f"poker_evolution_{tank_id[:8]}.json"
+        """Get the benchmark export path scoped to this world."""
+        world_id = getattr(self, "world_id", None) or "default"
+        # Write to shared benchmarks directory to avoid creating orphan world directories
+        return Path("data") / "benchmarks" / f"poker_evolution_{world_id[:8]}.json"
 
-    def set_tank_identity(self, tank_id: str, tank_name: Optional[str] = None) -> None:
-        """Update tank identity for restored/renamed tanks.
+    def set_world_identity(self, world_id: str, world_name: Optional[str] = None) -> None:
+        """Update world identity for restored/renamed worlds.
 
         This keeps runner-level persistence paths and migration context consistent
-        with the SimulationManager's tank metadata.
+        with the SimulationManager's world metadata.
         """
-        self.tank_id = tank_id
-        if tank_name is not None:
-            self.tank_name = tank_name
+        self.world_id = world_id
+        if world_name is not None:
+            self.world_name = world_name
 
-        # Update hooks with new tank identity
+        # Update hooks with new world identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
             self.world_hooks.update_benchmark_tracker_path(self)
 
@@ -438,8 +438,8 @@ class SimulationRunner(CommandHandlerMixin):
             if env:
                 env.connection_manager = self.connection_manager
                 env.world_manager = self.world_manager
-                env.tank_id = self.tank_id
-                env.tank_name = self.tank_name
+                env.world_id = self.world_id
+                env.world_name = self.world_name
 
                 # Create (or clear) a migration handler based on available dependencies.
                 # Core entities depend only on the MigrationHandler protocol, while the backend
@@ -461,7 +461,7 @@ class SimulationRunner(CommandHandlerMixin):
                     env.migration_handler = None
 
                 logger.info(
-                    f"Migration context updated for tank {self.tank_id[:8] if self.tank_id else 'None'}: "
+                    f"Migration context updated for world {self.world_id[:8] if self.world_id else 'None'}: "
                     f"conn_mgr={'SET' if self.connection_manager else 'NULL'}, "
                     f"manager={'SET' if self.world_manager else 'NULL'}"
                 )
@@ -507,11 +507,6 @@ class SimulationRunner(CommandHandlerMixin):
     def engine(self):
         """Expose the underlying simulation engine for testing."""
         return self.world.engine
-
-    @property
-    def world_id(self) -> str:
-        """World ID (alias for tank_id for RunnerProtocol conformance)."""
-        return self.tank_id
 
     @property
     def frame_count(self) -> int:
@@ -614,16 +609,26 @@ class SimulationRunner(CommandHandlerMixin):
             self.thread.join(timeout=2.0)
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
-        """Advance the simulation by one step."""
-        with self.lock:
-            # Apply agent actions if provided
-            # (Tank/Petri world currently handles actions internally or via step args)
-            # For now, we assume simple stepping is enough for verification tasks.
+        """Advance the simulation by one step.
 
-            if getattr(self.world, "supports_fast_step", False):
-                self.world.step({FAST_STEP_ACTION: True})
-            else:
-                self.world.step()
+        Note: This explicitly steps even if the world is paused,
+        allowing API-driven stepping for testing and manual control.
+        """
+        with self.lock:
+            # Temporarily unpause to allow stepping (API step should always work)
+            was_paused = self.world.paused
+            if was_paused:
+                self.world.paused = False
+
+            try:
+                if getattr(self.world, "supports_fast_step", False):
+                    self.world.step({FAST_STEP_ACTION: True})
+                else:
+                    self.world.step()
+            finally:
+                # Restore paused state
+                if was_paused:
+                    self.world.paused = True
 
             self._start_auto_evaluation_if_needed()
             self.fps_frame_count += 1
@@ -720,12 +725,14 @@ class SimulationRunner(CommandHandlerMixin):
                             if parts:
                                 perf_log = " | " + " ".join(parts)
 
-                        tank_label = self.tank_name or self.tank_id or "Unknown Tank"
+                        world_label = self.world_name or self.world_id or "Unknown World"
 
                         # Get migration counts since last report
                         from backend.transfer_history import get_and_reset_migration_counts
 
-                        migrations_in, migrations_out = get_and_reset_migration_counts(self.tank_id)
+                        migrations_in, migrations_out = get_and_reset_migration_counts(
+                            self.world_id
+                        )
                         migration_str = ""
                         if migrations_in > 0 or migrations_out > 0:
                             migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
@@ -745,7 +752,7 @@ class SimulationRunner(CommandHandlerMixin):
                                     poker_str += f", vsExp={vs_expert_bb:.1f}bb/100"
 
                         logger.info(
-                            f"{tank_label} Simulation Status "
+                            f"{world_label} Simulation Status "
                             f"FPS={self.current_actual_fps:.1f}, "
                             f"Fish={stats.get('fish_count', 0)}, "
                             f"Plants={stats.get('plant_count', 0)}, "
@@ -994,7 +1001,7 @@ class SimulationRunner(CommandHandlerMixin):
                     stats=stats,
                     poker_events=poker_events,  # Include events in full update
                     auto_evaluation=self._collect_auto_eval(),  # Re-using existing _collect_auto_eval
-                    tank_id=self.tank_id,
+                    world_id=self.world_id,
                     poker_leaderboard=self._collect_poker_leaderboard(),  # Re-using existing _collect_poker_leaderboard
                     mode_id=self.mode_id,
                     world_type=self.world_type,
@@ -1025,7 +1032,7 @@ class SimulationRunner(CommandHandlerMixin):
                     removed=removed,
                     stats=stats,
                     # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
-                    tank_id=self.tank_id,
+                    world_id=self.world_id,
                     mode_id=self.mode_id,
                     world_type=self.world_type,
                     view_mode=self.view_mode,

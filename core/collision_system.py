@@ -250,8 +250,9 @@ class CollisionSystem(BaseSystem):
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        # PERF: Simple sort key for determinism - uses id() which is stable within a frame
-        # This is much faster than the complex key that was doing multiple getattr/isinstance calls
+        # PERF: Simple sort key for determinism
+        # Replaced id() with stable properties (fish_id or position) to ensure
+        # cross-process reproducibility (essential for benchmarks).
         Fish_type = Fish
         Food_type = Food
         Crab_type = Crab
@@ -261,14 +262,22 @@ class CollisionSystem(BaseSystem):
             e_type = type(entity)
             if e_type is Fish_type:
                 type_rank = 0
+                # Fish have stable IDs
+                secondary = entity.fish_id
             elif e_type is Food_type:
                 type_rank = 1
+                # Food doesn't have ID, use X pos
+                secondary = entity.pos.x
             elif e_type is Crab_type:
                 type_rank = 2
+                # Crabs use X pos
+                secondary = entity.pos.x
             else:
                 type_rank = 3
-            # Use Python id() for stable ordering within a frame (no getattr calls!)
-            return (type_rank, id(entity))
+                secondary = entity.pos.x
+
+            # Use Y pos as final tie breaker
+            return (type_rank, secondary, entity.pos.y)
 
         # Single pass over all fish
         for fish in fish_list:
@@ -389,14 +398,16 @@ class CollisionSystem(BaseSystem):
             return
 
         # Sort crabs for deterministic processing order
-        crabs.sort(key=lambda c: id(c))
+        # Use position instead of id() for cross-process reproducibility
+        crabs.sort(key=lambda c: (c.pos.x, c.pos.y))
 
         environment = self._engine.environment
         check_collision = self.check_collision
 
         # Helper for deterministic sorting of food
         def food_sort_key(f):
-            return id(f)
+            # Use position instead of id() for cross-process reproducibility
+            return (f.pos.x, f.pos.y)
 
         for crab in crabs:
             if self._engine.is_pending_removal(crab):

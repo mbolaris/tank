@@ -18,8 +18,8 @@ class TankConnection:
     """
 
     id: str
-    source_tank_id: str
-    destination_tank_id: str
+    source_world_id: str
+    destination_world_id: str
     probability: int  # 0-100, percentage chance of migration per check
     direction: str = "right"  # "left" or "right" - which boundary triggers migration
     source_server_id: Optional[str] = None  # Server hosting source tank (None = local)
@@ -40,8 +40,8 @@ class TankConnection:
         """Convert to dictionary for JSON serialization."""
         result = {
             "id": self.id,
-            "sourceId": self.source_tank_id,
-            "destinationId": self.destination_tank_id,
+            "sourceId": self.source_world_id,
+            "destinationId": self.destination_world_id,
             "probability": self.probability,
             "direction": self.direction,
         }
@@ -66,22 +66,22 @@ class TankConnection:
                        destinationId/destination_tank_id) are missing
         """
         # Extract required fields with fallback to snake_case
-        source_tank_id = data.get("sourceId", data.get("source_tank_id"))
-        destination_tank_id = data.get("destinationId", data.get("destination_tank_id"))
+        source_world_id = data.get("sourceId", data.get("source_world_id"))
+        destination_world_id = data.get("destinationId", data.get("destination_world_id"))
 
         # Validate required fields
-        if not source_tank_id:
-            raise ValueError("Missing required field: sourceId or source_tank_id")
-        if not destination_tank_id:
-            raise ValueError("Missing required field: destinationId or destination_tank_id")
+        if not source_world_id:
+            raise ValueError("Missing required field: sourceId or source_world_id")
+        if not destination_world_id:
+            raise ValueError("Missing required field: destinationId or destination_world_id")
 
         # Generate ID if not provided
-        connection_id = data.get("id", f"{source_tank_id}->{destination_tank_id}")
+        connection_id = data.get("id", f"{source_world_id}->{destination_world_id}")
 
         return TankConnection(
             id=connection_id,
-            source_tank_id=source_tank_id,
-            destination_tank_id=destination_tank_id,
+            source_world_id=source_world_id,
+            destination_world_id=destination_world_id,
             probability=data.get("probability", 25),
             direction=data.get("direction", "right"),
             source_server_id=data.get("sourceServerId", data.get("source_server_id")),
@@ -117,8 +117,8 @@ class ConnectionManager:
             to_remove = []
             for existing_id, existing_conn in self._connections.items():
                 if (
-                    existing_conn.source_tank_id == connection.source_tank_id
-                    and existing_conn.destination_tank_id == connection.destination_tank_id
+                    existing_conn.source_world_id == connection.source_world_id
+                    and existing_conn.destination_world_id == connection.destination_world_id
                 ):
                     to_remove.append(existing_id)
 
@@ -130,8 +130,8 @@ class ConnectionManager:
             # Add the new connection
             self._connections[connection.id] = connection
             logger.info(
-                f"Added connection: {connection.source_tank_id[:8]} -> "
-                f"{connection.destination_tank_id[:8]} ({connection.probability}%, {connection.direction})"
+                f"Added connection: {connection.source_world_id[:8]} -> "
+                f"{connection.destination_world_id[:8]} ({connection.probability}%, {connection.direction})"
             )
 
     def remove_connection(self, connection_id: str) -> bool:
@@ -147,8 +147,8 @@ class ConnectionManager:
             if connection_id in self._connections:
                 conn = self._connections.pop(connection_id)
                 logger.info(
-                    f"Removed connection: {conn.source_tank_id[:8]} -> "
-                    f"{conn.destination_tank_id[:8]}"
+                    f"Removed connection: {conn.source_world_id[:8]} -> "
+                    f"{conn.destination_world_id[:8]}"
                 )
                 return True
             return False
@@ -174,13 +174,13 @@ class ConnectionManager:
         with self._lock:
             return list(self._connections.values())
 
-    def get_connections_for_tank(
-        self, tank_id: str, direction: Optional[str] = None
+    def get_connections_for_world(
+        self, world_id: str, direction: Optional[str] = None
     ) -> List[TankConnection]:
-        """Get connections where the tank is the source, optionally filtered by direction.
+        """Get connections where the world is the source, optionally filtered by direction.
 
         Args:
-            tank_id: The source tank ID
+            world_id: The source world ID
             direction: Optional direction to filter by ("left" or "right")
 
         Returns:
@@ -188,7 +188,7 @@ class ConnectionManager:
         """
         with self._lock:
             connections = [
-                conn for conn in self._connections.values() if conn.source_tank_id == tank_id
+                conn for conn in self._connections.values() if conn.source_world_id == world_id
             ]
 
             if direction:
@@ -196,11 +196,11 @@ class ConnectionManager:
 
             return connections
 
-    def clear_connections_for_tank(self, tank_id: str) -> int:
-        """Remove all connections involving a specific tank.
+    def clear_connections_for_world(self, world_id: str) -> int:
+        """Remove all connections involving a specific world.
 
         Args:
-            tank_id: The tank ID to clear connections for
+            world_id: The world ID to clear connections for
 
         Returns:
             Number of connections removed
@@ -209,32 +209,32 @@ class ConnectionManager:
             to_remove = [
                 conn_id
                 for conn_id, conn in self._connections.items()
-                if conn.source_tank_id == tank_id or conn.destination_tank_id == tank_id
+                if conn.source_world_id == world_id or conn.destination_world_id == world_id
             ]
             for conn_id in to_remove:
                 del self._connections[conn_id]
 
             if to_remove:
-                logger.info(f"Cleared {len(to_remove)} connections for tank {tank_id[:8]}")
+                logger.info(f"Cleared {len(to_remove)} connections for world {world_id[:8]}")
 
             return len(to_remove)
 
     def validate_connections(
-        self, valid_tank_ids: List[str], local_server_id: Optional[str] = None
+        self, valid_world_ids: List[str], local_server_id: Optional[str] = None
     ) -> int:
-        """Remove connections that reference non-existent local tanks.
+        """Remove connections that reference non-existent local worlds.
 
         Only validates connections where both ends are on the local server.
-        Remote connections are preserved since we can't validate tanks on other servers.
+        Remote connections are preserved since we can't validate worlds on other servers.
 
         Args:
-            valid_tank_ids: List of currently valid local tank IDs
+            valid_world_ids: List of currently valid local world IDs
             local_server_id: Optional local server ID for validation
 
         Returns:
             Number of invalid connections removed
         """
-        valid_ids_set = set(valid_tank_ids)
+        valid_ids_set = set(valid_world_ids)
         removed_count = 0
 
         with self._lock:
@@ -253,27 +253,27 @@ class ConnectionManager:
                 # Only validate if both ends are supposed to be local tanks
                 if is_source_local and is_dest_local:
                     if (
-                        conn.source_tank_id not in valid_ids_set
-                        or conn.destination_tank_id not in valid_ids_set
+                        conn.source_world_id not in valid_ids_set
+                        or conn.destination_world_id not in valid_ids_set
                     ):
                         to_remove.append(conn_id)
                         logger.debug(
-                            f"Marking local connection for removal: {conn.source_tank_id[:8]} -> "
-                            f"{conn.destination_tank_id[:8]} (tank not in registry)"
+                            f"Marking local connection for removal: {conn.source_world_id[:8]} -> "
+                            f"{conn.destination_world_id[:8]} (world not in registry)"
                         )
                 else:
                     # Log that we're preserving a remote connection
                     logger.debug(
-                        f"Preserving remote connection: {conn.source_tank_id[:8]} -> "
-                        f"{conn.destination_tank_id[:8]} "
+                        f"Preserving remote connection: {conn.source_world_id[:8]} -> "
+                        f"{conn.destination_world_id[:8]} "
                         f"(source_server={conn.source_server_id}, dest_server={conn.destination_server_id})"
                     )
 
             for conn_id in to_remove:
                 conn = self._connections.pop(conn_id)
                 logger.info(
-                    f"Removed invalid local connection: {conn.source_tank_id[:8]} -> "
-                    f"{conn.destination_tank_id[:8]} (referenced missing tank)"
+                    f"Removed invalid local connection: {conn.source_world_id[:8]} -> "
+                    f"{conn.destination_world_id[:8]} (referenced missing world)"
                 )
                 removed_count += 1
 

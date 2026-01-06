@@ -20,8 +20,6 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.entities import Crab, Food
-from core.entities import Fish as FishClass
 
 
 @dataclass
@@ -49,6 +47,7 @@ class EnergyConserver(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
@@ -133,6 +132,7 @@ class BurstSwimmer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -225,6 +225,7 @@ class OpportunisticRester(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Food
 
         # Check for nearby stimuli
         foods = fish.environment.get_agents_of_type(Food)
@@ -521,6 +522,7 @@ class AdaptivePacer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab, Fish
 
         energy_ratio = fish.energy / fish.max_energy
 
@@ -569,7 +571,7 @@ class AdaptivePacer(BehaviorAlgorithm):
         if vx == 0 and vy == 0:
             allies = [
                 f
-                for f in fish.environment.get_agents_of_type(FishClass)
+                for f in fish.environment.get_agents_of_type(Fish)
                 if f != fish and (f.pos - fish.pos).length() < 100
             ]
             if allies:

@@ -1,0 +1,19 @@
+{
+    "benchmark_id": "soccer/training_5k",
+    "version": 1,
+    "champion": {
+        "score": 0.0,
+        "seed": 42,
+        "timestamp": 1767729102.915529,
+        "metadata": {
+            "frames": 5000,
+            "score_left": 0,
+            "score_right": 0,
+            "goal_diff": 0,
+            "avg_energy": 0.0,
+            "team_energy_left": 0.0,
+            "team_energy_right": 0.0
+        }
+    },
+    "history": []
+}

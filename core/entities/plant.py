@@ -756,13 +756,13 @@ class Plant(Agent):
         if migration_handler is None:
             return False
 
-        tank_id = getattr(self.environment, "tank_id", None)
-        if tank_id is None:
+        world_id = getattr(self.environment, "world_id", None)
+        if world_id is None:
             return False
 
         # Delegate migration logic to the handler (backend implementation)
         try:
-            success = migration_handler.attempt_entity_migration(self, direction, tank_id)
+            success = migration_handler.attempt_entity_migration(self, direction, world_id)
 
             if success:
                 # Mark this plant for removal from source tank

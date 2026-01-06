@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef, memo } from 'react';
-import { config, type ServerWithTanks } from '../config';
+import { config, type ServerWithWorlds } from '../config';
 import { useErrorNotification } from '../hooks/useErrorNotification';
 import { ErrorNotification } from './ErrorNotification';
 
@@ -21,7 +21,7 @@ export interface TankConnection {
 }
 
 interface TankNetworkMapProps {
-    servers: ServerWithTanks[];
+    servers: ServerWithWorlds[];
 }
 
 interface TransferRecord {
@@ -30,10 +30,10 @@ interface TransferRecord {
     entity_type: string;
     entity_old_id: number;
     entity_new_id: number | null;
-    source_tank_id: string;
-    destination_tank_id: string;
-    source_tank_name: string;
-    destination_tank_name: string;
+    source_world_id: string;
+    destination_world_id: string;
+    source_world_name: string;
+    destination_world_name: string;
     success: boolean;
 }
 
@@ -42,7 +42,7 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
 
     const tanks = useMemo(() => {
         return servers.flatMap((server) =>
-            server.tanks.map((tankStatus) => ({
+            server.worlds.map((tankStatus) => ({
                 id: tankStatus.world_id,
                 name: tankStatus.name,
                 allowTransfers: true,
@@ -242,14 +242,14 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
             fetchTransfers();
 
             const matching = connections.find(
-                (c) => c.sourceId === latest.source_tank_id && c.destinationId === latest.destination_tank_id,
+                (c) => c.sourceId === latest.source_world_id && c.destinationId === latest.destination_world_id,
             );
 
             if (matching) {
                 setActiveConnection({
                     connectionId: matching.id,
                     entity: latest.entity_type,
-                    label: `${latest.source_tank_name} → ${latest.destination_tank_name}`,
+                    label: `${latest.source_world_name} → ${latest.destination_world_name}`,
                 });
             }
         } catch (err) {
@@ -278,7 +278,7 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
     const connectionMigrationCounts = useMemo(() => {
         const counts = new Map<string, number>();
         transfers.forEach((transfer) => {
-            const id = `${transfer.source_tank_id}->${transfer.destination_tank_id}`;
+            const id = `${transfer.source_world_id}->${transfer.destination_world_id}`;
             counts.set(id, (counts.get(id) ?? 0) + 1);
         });
         return counts;
@@ -348,7 +348,7 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
                             </marker>
                             <marker
                                 id="tubeArrowActive"
-                                viewBox="0 0 10 10"
+                                viewBox="0 10 10"
                                 refX="5"
                                 refY="5"
                                 markerWidth="5"
@@ -730,9 +730,9 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
                                         }}
                                     >
                                         <div style={{ fontWeight: 700, fontSize: 13, color: '#e2e8f0' }}>
-                                            {transfer.entity_type === 'fish' ? '🐟' : '🌿'} {transfer.source_tank_name}
+                                            {transfer.entity_type === 'fish' ? '🐟' : '🌿'} {transfer.source_world_name}
                                             <span style={{ margin: '0 6px', color: '#38bdf8' }}>→</span>
-                                            {transfer.destination_tank_name}
+                                            {transfer.destination_world_name}
                                         </div>
                                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
                                             {formatTimestamp(transfer.timestamp)}

@@ -332,9 +332,7 @@ async def start_broadcast_for_world(
         runner_or_adapter, WorldBroadcastAdapter
     ):
         if world_id is None:
-            world_id = getattr(runner_or_adapter, "world_id", None) or getattr(
-                runner_or_adapter, "tank_id", None
-            )
+            world_id = getattr(runner_or_adapter, "world_id", None)
         if world_id is None:
             raise ValueError("world_id is required when passing a runner")
 

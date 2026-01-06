@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from core.tank_world import TankWorld, TankWorldConfig
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
-from core.worlds.tank.legacy_brain_adapter import apply_actions
+from core.worlds.tank.action_bridge import apply_actions
 from core.worlds.tank.observation_builder import build_tank_observations
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._cached_brain_mode is not None:
             return self._cached_brain_mode
 
-        brain_mode = "legacy"
+        brain_mode = "builtin"
         if self._world is not None:
             engine = getattr(self._world, "engine", None)
             if engine is not None:
@@ -191,7 +191,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                 if config is not None:
                     tank_config = getattr(config, "tank", None)
                     if tank_config is not None:
-                        brain_mode = getattr(tank_config, "brain_mode", "legacy")
+                        brain_mode = getattr(tank_config, "brain_mode", "builtin")
 
         self._cached_brain_mode = brain_mode
         return brain_mode
@@ -595,7 +595,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return {
             "version": SCHEMA_VERSION,
-            "tank_id": getattr(self, "tank_id", "unknown"),
+            "world_id": getattr(self.environment, "world_id", "unknown"),
             "frame": self._world.frame_count,
             "paused": self._world.paused,
             "config": self._base_config.to_dict(),

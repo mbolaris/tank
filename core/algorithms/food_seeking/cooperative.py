@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
@@ -14,7 +14,9 @@ from core.config.food import (
     SOCIAL_FOOD_PROXIMITY_THRESHOLD,
     SOCIAL_SIGNAL_DETECTION_RANGE,
 )
-from core.entities import Crab
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 
 @dataclass
@@ -40,6 +42,8 @@ class CooperativeForager(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
+
         # IMPROVEMENT: Check energy state
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3

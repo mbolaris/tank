@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
@@ -11,7 +11,9 @@ from core.config.food import (
     PREDATOR_GUARDING_FOOD_DISTANCE,
     PREDATOR_PROXIMITY_THRESHOLD,
 )
-from core.entities import Crab
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 from core.math_utils import Vector2
 
 
@@ -40,6 +42,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
 
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()

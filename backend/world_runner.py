@@ -102,6 +102,16 @@ class WorldRunner:
         self.world.set_paused(value)
 
     @property
+    def fast_forward(self) -> bool:
+        """Fast forward is not applicable for step-based worlds."""
+        return False
+
+    @fast_forward.setter
+    def fast_forward(self, value: bool) -> None:
+        """No-op for step-based worlds."""
+        pass
+
+    @property
     def entities_list(self) -> list[Any]:
         """Get all entities from the world.
 
@@ -185,3 +195,17 @@ class WorldRunner:
             The most recent StepResult, or None if never reset/stepped
         """
         return self._last_step_result
+
+    def switch_world_type(self, new_world_type: str) -> None:
+        """Switch to a different world type.
+
+        Not supported for generic WorldRunner - only SimulationRunner
+        supports hot-swapping between tank and petri modes.
+
+        Args:
+            new_world_type: Target world type
+
+        Raises:
+            ValueError: Always, as switching is not supported
+        """
+        raise ValueError(f"World type switching not supported for {self.world_type} worlds")

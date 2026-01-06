@@ -65,6 +65,16 @@ class RunnerProtocol(Protocol):
         """Set the simulation paused state."""
         ...
 
+    @property
+    def fast_forward(self) -> bool:
+        """Whether fast forward mode is enabled."""
+        ...
+
+    @fast_forward.setter
+    def fast_forward(self, value: bool) -> None:
+        """Set fast forward mode."""
+        ...
+
     def get_entities_snapshot(self) -> list[EntitySnapshot]:
         """Get entity snapshots for frontend rendering.
 
@@ -110,5 +120,19 @@ class RunnerProtocol(Protocol):
 
         Returns:
             Reset result (typically StepResult or None)
+        """
+        ...
+
+    def switch_world_type(self, new_world_type: str) -> None:
+        """Switch to a different world type while preserving entities.
+
+        Only supported for tank <-> petri switching. Other runners
+        should raise ValueError if called.
+
+        Args:
+            new_world_type: Target world type ("tank" or "petri")
+
+        Raises:
+            ValueError: If switching is not supported or invalid
         """
         ...

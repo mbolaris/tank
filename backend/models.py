@@ -219,7 +219,7 @@ class ServerInfo(BaseModel):
     host: str  # IP address or hostname for connections
     port: int  # Port number for API/WebSocket connections
     status: str  # "online" | "offline" | "degraded"
-    tank_count: int  # Number of tanks currently running on this server
+    world_count: int  # Number of worlds currently running on this server
     version: str  # Server version
     uptime_seconds: float = 0.0  # How long the server has been running
     cpu_percent: Optional[float] = None  # CPU usage percentage (0-100)
@@ -232,17 +232,17 @@ class ServerInfo(BaseModel):
     physical_cpus: Optional[int] = None  # Physical core count when available
 
 
-class ServerWithTanks(BaseModel):
-    """Server information with list of tanks running on it."""
+class ServerWithWorlds(BaseModel):
+    """Server information with list of worlds running on it."""
 
     server: ServerInfo
-    tanks: List[Dict[str, Any]]  # List of tank status dictionaries
+    worlds: List[Dict[str, Any]]  # List of world status dictionaries
 
 
 class RemoteTransferRequest(BaseModel):
     """Request body for cross-server entity transfer."""
 
-    destination_tank_id: str
+    destination_world_id: str
     entity_data: Dict[str, Any]
     source_server_id: str
-    source_tank_id: str
+    source_world_id: str

@@ -8,8 +8,8 @@ import { config } from '../config';
 interface TransferDialogProps {
     entityId: number;
     entityType: string;
-    sourceTankId: string;
-    sourceTankName: string;
+    sourceWorldId: string;
+    sourceWorldName: string;
     onClose: () => void;
     onTransferComplete: (success: boolean, message: string) => void;
 }
@@ -17,15 +17,15 @@ interface TransferDialogProps {
 export function TransferDialog({
     entityId,
     entityType,
-    sourceTankId,
-    sourceTankName,
+    sourceWorldId,
+    sourceWorldName,
     onClose,
     onTransferComplete,
 }: TransferDialogProps) {
-    const [tanks, setTanks] = useState<any[]>([]);
+    const [worlds, setWorlds] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [transferring, setTransferring] = useState(false);
-    const [selectedTankId, setSelectedTankId] = useState<string | null>(null);
+    const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const fetchTanks = useCallback(async () => {
@@ -37,30 +37,30 @@ export function TransferDialog({
             }
             const data = await response.json();
             // Filter out source tank and tanks that don't allow transfers
-            const eligibleTanks = data.worlds.filter(
+            const eligibleWorlds = data.worlds.filter(
                 (world: any) =>
-                    world.id !== sourceTankId && world.allow_transfers
+                    world.id !== sourceWorldId && world.allow_transfers
             );
-            setTanks(eligibleTanks);
+            setWorlds(eligibleWorlds);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load worlds';
             setError(message);
         } finally {
             setLoading(false);
         }
-    }, [sourceTankId]);
+    }, [sourceWorldId]);
 
     useEffect(() => {
         fetchTanks();
     }, [fetchTanks]);
 
     const handleTransfer = async () => {
-        if (!selectedTankId) return;
+        if (!selectedWorldId) return;
 
         setTransferring(true);
         try {
             const response = await fetch(
-                `${config.apiBaseUrl}/api/worlds/${sourceTankId}/transfer?entity_id=${entityId}&destination_world_id=${selectedTankId}`,
+                `${config.apiBaseUrl}/api/worlds/${sourceWorldId}/transfer?entity_id=${entityId}&destination_world_id=${selectedWorldId}`,
                 { method: 'POST' }
             );
 
@@ -114,12 +114,12 @@ export function TransferDialog({
                     Transfer Entity
                 </h2>
                 <p style={{ margin: '0 0 20px 0', color: '#94a3b8', fontSize: '14px' }}>
-                    Transfer {entityTypeDisplay} #{entityId} from {sourceTankName}
+                    Transfer {entityTypeDisplay} #{entityId} from {sourceWorldName}
                 </p>
 
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>
-                        Loading available tanks...
+                        Loading available worlds...
                     </div>
                 ) : error ? (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -142,19 +142,19 @@ export function TransferDialog({
                             Retry
                         </button>
                     </div>
-                ) : tanks.length === 0 ? (
+                ) : worlds.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
                         <p style={{ color: '#94a3b8', margin: 0 }}>
-                            No eligible destination tanks found
+                            No eligible destination worlds found
                         </p>
                         <p style={{ color: '#64748b', fontSize: '13px', marginTop: '8px' }}>
-                            Tanks must have transfers enabled to receive entities
+                            Worlds must have transfers enabled to receive entities
                         </p>
                     </div>
                 ) : (
                     <div>
                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
-                            Select Destination Tank:
+                            Select Destination World:
                         </label>
                         <div
                             style={{
@@ -165,15 +165,15 @@ export function TransferDialog({
                                 borderRadius: '8px',
                             }}
                         >
-                            {tanks.map((world) => (
+                            {worlds.map((world) => (
                                 <div
                                     key={world.id}
-                                    onClick={() => setSelectedTankId(world.id)}
+                                    onClick={() => setSelectedWorldId(world.id)}
                                     style={{
                                         padding: '12px 16px',
                                         cursor: 'pointer',
                                         backgroundColor:
-                                            selectedTankId === world.id
+                                            selectedWorldId === world.id
                                                 ? '#3b82f6'
                                                 : '#0f172a',
                                         borderBottom: '1px solid #334155',
@@ -220,18 +220,18 @@ export function TransferDialog({
                     </button>
                     <button
                         onClick={handleTransfer}
-                        disabled={!selectedTankId || transferring || tanks.length === 0}
+                        disabled={!selectedWorldId || transferring || worlds.length === 0}
                         style={{
                             padding: '10px 20px',
                             backgroundColor:
-                                !selectedTankId || transferring || tanks.length === 0
+                                !selectedWorldId || transferring || worlds.length === 0
                                     ? '#475569'
                                     : '#22c55e',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             cursor:
-                                !selectedTankId || transferring || tanks.length === 0
+                                !selectedWorldId || transferring || worlds.length === 0
                                     ? 'not-allowed'
                                     : 'pointer',
                             fontSize: '14px',

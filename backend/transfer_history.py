@@ -33,10 +33,10 @@ class TransferRecord:
     entity_type: str  # "fish" or "plant"
     entity_old_id: int
     entity_new_id: Optional[int]
-    source_tank_id: str
-    source_tank_name: str
-    destination_tank_id: str
-    destination_tank_name: str
+    source_world_id: str
+    source_world_name: str
+    destination_world_id: str
+    destination_world_name: str
     success: bool
     error: Optional[str] = None
     generation: Optional[int] = None  # Fish generation (for tracking migration stats)
@@ -46,10 +46,10 @@ def log_transfer(
     entity_type: str,
     entity_old_id: int,
     entity_new_id: Optional[int],
-    source_tank_id: str,
-    source_tank_name: str,
-    destination_tank_id: str,
-    destination_tank_name: str,
+    source_world_id: str,
+    source_world_name: str,
+    destination_world_id: str,
+    destination_world_name: str,
     success: bool,
     error: Optional[str] = None,
     generation: Optional[int] = None,
@@ -60,10 +60,10 @@ def log_transfer(
         entity_type: Type of entity ("fish" or "plant")
         entity_old_id: Entity ID in source tank
         entity_new_id: Entity ID in destination tank (None if failed)
-        source_tank_id: Source tank identifier
-        source_tank_name: Source tank display name
-        destination_tank_id: Destination tank identifier
-        destination_tank_name: Destination tank display name
+        source_world_id: Source world identifier
+        source_world_name: Source world display name
+        destination_world_id: Destination world identifier
+        destination_world_name: Destination world display name
         success: Whether transfer succeeded
         error: Error message if failed
 
@@ -76,10 +76,10 @@ def log_transfer(
         entity_type=entity_type,
         entity_old_id=entity_old_id,
         entity_new_id=entity_new_id,
-        source_tank_id=source_tank_id,
-        source_tank_name=source_tank_name,
-        destination_tank_id=destination_tank_id,
-        destination_tank_name=destination_tank_name,
+        source_world_id=source_world_id,
+        source_world_name=source_world_name,
+        destination_world_id=destination_world_id,
+        destination_world_name=destination_world_name,
         success=success,
         error=error,
         generation=generation,
@@ -93,16 +93,16 @@ def log_transfer(
 
     # Update migration counters (for summary stats)
     if success:
-        _migration_out_counts[source_tank_id] = _migration_out_counts.get(source_tank_id, 0) + 1
-        _migration_in_counts[destination_tank_id] = (
-            _migration_in_counts.get(destination_tank_id, 0) + 1
+        _migration_out_counts[source_world_id] = _migration_out_counts.get(source_world_id, 0) + 1
+        _migration_in_counts[destination_world_id] = (
+            _migration_in_counts.get(destination_world_id, 0) + 1
         )
 
     # Log at DEBUG level to reduce noise (summary appears in Simulation Status)
     status = "success" if success else f"failed: {error}"
     logger.debug(
         f"Transfer {entity_type} #{entity_old_id} "
-        f"{source_tank_name} → {destination_tank_name} ({status})"
+        f"{source_world_name} → {destination_world_name} ({status})"
     )
 
     return record
@@ -128,14 +128,14 @@ def _append_to_log(record: TransferRecord) -> None:
 
 def get_transfer_history(
     limit: int = 50,
-    tank_id: Optional[str] = None,
+    world_id: Optional[str] = None,
     success_only: bool = False,
 ) -> List[Dict]:
     """Get transfer history records.
 
     Args:
         limit: Maximum number of records to return
-        tank_id: Filter by tank ID (source or destination)
+        world_id: Filter by world ID (source or destination)
         success_only: Only return successful transfers
 
     Returns:
@@ -146,9 +146,11 @@ def get_transfer_history(
     records.reverse()
 
     # Apply filters
-    if tank_id:
+    if world_id:
         records = [
-            r for r in records if r.source_tank_id == tank_id or r.destination_tank_id == tank_id
+            r
+            for r in records
+            if r.source_world_id == world_id or r.destination_world_id == world_id
         ]
 
     if success_only:
@@ -176,11 +178,11 @@ def get_transfer_by_id(transfer_id: str) -> Optional[Dict]:
     return None
 
 
-def get_tank_transfer_stats(tank_id: str) -> Dict[str, int]:
-    """Get transfer statistics for a tank.
+def get_world_transfer_stats(world_id: str) -> Dict[str, int]:
+    """Get transfer statistics for a world.
 
     Args:
-        tank_id: The tank identifier
+        world_id: The world identifier
 
     Returns:
         Dictionary with transfer counts
@@ -195,14 +197,14 @@ def get_tank_transfer_stats(tank_id: str) -> Dict[str, int]:
     }
 
     for record in _transfer_history:
-        if record.destination_tank_id == tank_id:
+        if record.destination_world_id == world_id:
             stats["transfers_in"] += 1
             if record.success:
                 stats["transfers_in_success"] += 1
             else:
                 stats["transfers_in_failed"] += 1
 
-        if record.source_tank_id == tank_id:
+        if record.source_world_id == world_id:
             stats["transfers_out"] += 1
             if record.success:
                 stats["transfers_out_success"] += 1
@@ -254,28 +256,28 @@ def clear_history() -> None:
     logger.warning("Transfer history cleared")
 
 
-def record_migration_in(tank_id: Optional[str] = None) -> None:
+def record_migration_in(world_id: Optional[str] = None) -> None:
     """Record an incoming migration for summary stats.
 
     Prefer relying on log_transfer for counts; this is a fallback for paths that
     don't record a TransferRecord.
     """
-    if not tank_id:
+    if not world_id:
         return
-    _migration_in_counts[tank_id] = _migration_in_counts.get(tank_id, 0) + 1
+    _migration_in_counts[world_id] = _migration_in_counts.get(world_id, 0) + 1
 
 
-def get_and_reset_migration_counts(tank_id: Optional[str] = None) -> tuple:
+def get_and_reset_migration_counts(world_id: Optional[str] = None) -> tuple:
     """Get migration counts since last reset and reset them.
 
     Returns:
         Tuple of (migrations_in, migrations_out)
     """
-    if tank_id:
-        in_count = _migration_in_counts.get(tank_id, 0)
-        out_count = _migration_out_counts.get(tank_id, 0)
-        _migration_in_counts[tank_id] = 0
-        _migration_out_counts[tank_id] = 0
+    if world_id:
+        in_count = _migration_in_counts.get(world_id, 0)
+        out_count = _migration_out_counts.get(world_id, 0)
+        _migration_in_counts[world_id] = 0
+        _migration_out_counts[world_id] = 0
         return (in_count, out_count)
 
     in_count = sum(_migration_in_counts.values())

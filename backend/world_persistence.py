@@ -25,8 +25,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Base directory for all world data (reusing existing path for compatibility)
-DATA_DIR = Path("data/tanks")
+# Base directory for all world data (mapped from data/tanks for legacy support)
+DATA_DIR = Path("data/worlds")
 
 
 def ensure_world_directory(world_id: str) -> Path:
@@ -152,14 +152,6 @@ def restore_world_from_snapshot(
         from core.entities.plant import Plant
         from core.transfer.entity_transfer import deserialize_entity
 
-        def _infer_entity_type(entity_data: Dict[str, Any]) -> Optional[str]:
-            """Regression-safe inference for snapshots missing type field."""
-            if "species" in entity_data and "genome_data" in entity_data:
-                return "fish"
-            if "root_spot_id" in entity_data and "genome_data" in entity_data:
-                return "plant"
-            return None
-
         # Resolve engine from target_world (which might be an adapter)
         # Try multiple resolution paths for cross-Python-version compatibility
         engine = None
@@ -221,10 +213,20 @@ def restore_world_from_snapshot(
 
         # Pass 1: Restore non-nectar entities
         for entity_data in snapshot.get("entities", []):
-            entity_type = entity_data.get("type") or _infer_entity_type(entity_data)
+            entity_type = entity_data.get("type")
 
-            if entity_type and "type" not in entity_data:
-                entity_data["type"] = entity_type
+            # Try to infer type for legacy/incomplete snapshots
+            if not entity_type:
+                if (
+                    "genome_data" in entity_data
+                    and entity_data["genome_data"].get("type") == "lsystem"
+                ):
+                    entity_type = "plant"
+                    entity_data["type"] = "plant"
+
+            if not entity_type:
+                logger.error(f"Missing 'type' field in entity data: {entity_data}")
+                return False
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)
@@ -264,6 +266,14 @@ def restore_world_from_snapshot(
             source_plant_id = nectar_data.get("source_plant_id")
             source_plant = plants_by_id.get(source_plant_id) if source_plant_id else None
 
+            # Skip orphaned nectar whose source plant wasn't restored
+            if source_plant is None:
+                logger.warning(
+                    f"Skipping nectar at ({nectar_data['x']:.1f}, {nectar_data['y']:.1f}): "
+                    f"source plant {source_plant_id} not found"
+                )
+                continue
+
             nectar = PlantNectar(
                 x=nectar_data["x"],
                 y=nectar_data["y"],
@@ -296,8 +306,9 @@ def restore_world_from_snapshot(
         if "paused" in snapshot and hasattr(target_world, "paused"):
             target_world.paused = snapshot["paused"]
 
+        world_id_label = snapshot.get("world_id") or snapshot.get("tank_id") or "unknown"
         logger.info(
-            f"Restored world {snapshot.get('tank_id', 'unknown')[:8]} to frame {snapshot.get('frame', 0)} "
+            f"Restored world {world_id_label[:8]} to frame {snapshot.get('frame', 0)} "
             f"({restored_count} entities)"
         )
         return True

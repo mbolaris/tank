@@ -1,0 +1,26 @@
+name: Evolution Benchmarks
+
+on:
+  pull_request:
+    paths:
+      - 'benchmarks/**'
+      - 'champions/**'
+      - 'core/**'
+      - 'tools/**'
+  push:
+    branches:
+      - master
+
+jobs:
+  verify-champions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -e .
+      - name: Verify Champions
+        run: python3 tools/verify_all_champions.py

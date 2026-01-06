@@ -6,14 +6,14 @@ and soccer-specific interfaces.
 
 import pytest
 
-from core.policies.soccer_interfaces import (
-    SoccerAction,
-    Vector2D,
-)
 from core.worlds import StepResult, WorldRegistry
 from core.worlds.soccer.backend import SoccerWorldBackendAdapter
 from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
+from core.worlds.soccer.types import (
+    SoccerAction,
+    Vector2D,
+)
 
 
 class TestSoccerWorldBackendAdapter:
@@ -78,10 +78,11 @@ class TestSoccerWorldBackendAdapter:
         initial_player = initial_snapshot["players"][0]
         initial_x = initial_player["x"]
 
-        # Move player right
+        # Move player right (using normalized format: turn=0 to face right, dash=1 to move)
         actions = {
             "left_1": {
-                "move_target": {"x": initial_x + 10, "y": 0},
+                "turn": 0.0,  # Already facing right
+                "dash": 1.0,  # Full speed ahead
                 "kick_power": 0.0,
             }
         }
@@ -488,23 +489,51 @@ class TestSoccerInterfaces:
         assert action.is_valid() is False
 
     def test_soccer_action_to_from_dict(self):
-        """Test SoccerAction serialization."""
+        """Test SoccerAction serialization (normalized format)."""
         action = SoccerAction(
-            move_target=Vector2D(10, 5),
-            face_angle=1.57,
+            turn=0.5,
+            dash=1.0,
             kick_power=0.8,
             kick_angle=0.5,
         )
 
         action_dict = action.to_dict()
         assert action_dict["kick_power"] == 0.8
-        assert action_dict["move_target"]["x"] == 10
-        assert action_dict["face_angle"] == 1.57
+        assert action_dict["turn"] == 0.5
+        assert action_dict["dash"] == 1.0
 
         # Round trip
         restored = SoccerAction.from_dict(action_dict)
         assert restored.kick_power == action.kick_power
-        assert restored.move_target.x == action.move_target.x
+        assert restored.turn == action.turn
+
+    def test_legacy_soccer_action_format_rejected(self):
+        """Test that legacy move_target/face_angle format is rejected."""
+        adapter = SoccerWorldBackendAdapter(seed=42, team_size=1)
+        adapter.reset(seed=42)
+
+        # Legacy format should not work - player should not move
+        initial_snapshot = adapter.get_current_snapshot()
+        initial_player = initial_snapshot["players"][0]
+
+        # Try legacy format action (move_target)
+        legacy_action = {
+            "move_target": {"x": 50.0, "y": 0.0},
+            "face_angle": 0.0,
+            "kick_power": 0.0,
+        }
+
+        # Step with legacy action - should be ignored
+        adapter.step(actions_by_agent={"left_1": legacy_action})
+
+        # Player should NOT have moved significantly since action was rejected
+        # (The step() method applies no action, so position changes only from physics)
+        final_snapshot = adapter.get_current_snapshot()
+        final_player = final_snapshot["players"][0]
+
+        # Position should be very close to initial (floating point tolerance)
+        assert abs(final_player["x"] - initial_player["x"]) < 0.1
+        assert abs(final_player["y"] - initial_player["y"]) < 0.1
 
 
 class TestSoccerWorldConfig:

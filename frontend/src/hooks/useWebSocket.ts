@@ -10,7 +10,7 @@ import { config } from '../config';
 // At 30fps over long sessions, this prevents 100k+ short-lived allocations per hour.
 const sharedTextDecoder = new TextDecoder();
 
-export function useWebSocket(tankId?: string) {
+export function useWebSocket(worldId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
@@ -19,7 +19,7 @@ export function useWebSocket(tankId?: string) {
     const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
     const unmountedRef = useRef(false);  // Track if component is unmounted
 
-    const connect = useCallback(() => {
+    const connect = useCallback(async () => {
         // Don't connect if component is unmounted
         if (unmountedRef.current) return;
 
@@ -33,11 +33,27 @@ export function useWebSocket(tankId?: string) {
         }
 
         try {
-            // Use tankId if provided, otherwise fall back to config
-            const wsUrl = tankId ? config.getWsUrlForTank(tankId) : config.wsUrl;
+            // Use worldId if provided, otherwise fetch default world ID
+            let wsUrl = worldId ? config.getWsUrlForWorld(worldId) : config.wsUrl;
 
             if (!wsUrl) {
-                // No valid URL, cannot connect.
+                // No world ID in URL/config - fetch the default world ID from API
+                try {
+                    const response = await fetch(config.defaultWorldIdUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const defaultWorldId = data.world_id;
+                        if (defaultWorldId) {
+                            wsUrl = config.getWsUrlForWorld(defaultWorldId);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch default world ID:', e);
+                }
+            }
+
+            if (!wsUrl) {
+                // Still no valid URL, cannot connect.
                 return;
             }
 
@@ -111,7 +127,7 @@ export function useWebSocket(tankId?: string) {
             console.error('WebSocket connection error:', error);
             setIsConnected(false);
         }
-    }, [tankId]);
+    }, [worldId]);
 
     // Store connect function in ref without mutating during render
     useEffect(() => {
@@ -181,8 +197,8 @@ export function useWebSocket(tankId?: string) {
         sendCommandWithResponse,
         /** Current server URL for display */
         serverUrl: config.serverDisplay,
-        /** Current tank ID (from state) */
-        tankId: state?.tank_id ?? null,
+        /** Current world ID (from state) */
+        worldId: state?.world_id ?? null,
     };
 }
 
@@ -258,7 +274,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
 
     return {
         ...state,
-        tank_id: delta.tank_id ?? state.tank_id,
+        world_id: delta.world_id ?? state.world_id,
         world_type: delta.world_type ?? state.world_type,
         view_mode: delta.view_mode ?? state.view_mode,
         mode_id: (delta as any).mode_id ?? (state as any).mode_id ?? 'tank',
