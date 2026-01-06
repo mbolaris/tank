@@ -84,6 +84,7 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
 
     # Give the simulation thread time to process the pause flag to avoid race conditions
     import time
+
     time.sleep(0.1)
 
     # Reset phase so we can add entities directly (test setup privilege)
