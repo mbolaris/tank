@@ -609,16 +609,26 @@ class SimulationRunner(CommandHandlerMixin):
             self.thread.join(timeout=2.0)
 
     def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
-        """Advance the simulation by one step."""
-        with self.lock:
-            # Apply agent actions if provided
-            # (Tank/Petri world currently handles actions internally or via step args)
-            # For now, we assume simple stepping is enough for verification tasks.
+        """Advance the simulation by one step.
 
-            if getattr(self.world, "supports_fast_step", False):
-                self.world.step({FAST_STEP_ACTION: True})
-            else:
-                self.world.step()
+        Note: This explicitly steps even if the world is paused,
+        allowing API-driven stepping for testing and manual control.
+        """
+        with self.lock:
+            # Temporarily unpause to allow stepping (API step should always work)
+            was_paused = self.world.paused
+            if was_paused:
+                self.world.paused = False
+
+            try:
+                if getattr(self.world, "supports_fast_step", False):
+                    self.world.step({FAST_STEP_ACTION: True})
+                else:
+                    self.world.step()
+            finally:
+                # Restore paused state
+                if was_paused:
+                    self.world.paused = True
 
             self._start_auto_evaluation_if_needed()
             self.fps_frame_count += 1
