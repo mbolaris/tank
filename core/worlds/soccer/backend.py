@@ -8,8 +8,12 @@ import logging
 import random
 from typing import Any, Dict, List, Optional
 
-from core.policies.soccer_interfaces import (
+from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.soccer.config import SoccerWorldConfig
+from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
+from core.worlds.soccer.types import (
     BallState,
+    LegacySoccerAction,
     PlayerID,
     PlayerState,
     SoccerAction,
@@ -18,9 +22,6 @@ from core.policies.soccer_interfaces import (
     TeamID,
     Vector2D,
 )
-from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
-from core.worlds.soccer.config import SoccerWorldConfig
-from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
 
 logger = logging.getLogger(__name__)
 
@@ -267,29 +268,46 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         }
 
     def _process_actions(self, actions_by_agent: Dict[str, Any]) -> None:
-        """Process actions from all agents."""
+        """Process actions from all agents.
+
+        Supports both normalized format (turn/dash) and legacy format (move_target/face_angle).
+        """
+        import math
+
         for player_id, action_data in actions_by_agent.items():
             if player_id == FAST_STEP_ACTION or player_id not in self._players:
                 continue
 
             player = self._players[player_id]
 
-            # Parse action
-            try:
-                action = SoccerAction.from_dict(action_data)
-            except Exception as e:
-                logger.warning(f"Invalid action for {player_id}: {e}")
+            # Parse action - try normalized first, then legacy
+            action = self._parse_action(action_data, player)
+            if action is None or not action.is_valid():
+                logger.warning(f"Invalid action for {player_id}")
                 continue
 
-            # Validate action
-            if not action.is_valid():
-                logger.warning(f"Invalid action bounds for {player_id}")
-                continue
+            # Apply turn
+            if action.turn != 0.0:
+                turn_delta = action.turn * self._config.player_turn_rate
+                player.facing_angle = self._normalize_angle(player.facing_angle + turn_delta)
 
-            # Update movement
-            move_target = action.move_target
-            face_angle = action.face_angle
-            self._physics.update_player_movement(player, move_target, face_angle)
+            # Apply dash
+            if action.dash != 0.0:
+                direction = Vector2D(
+                    math.cos(player.facing_angle),
+                    math.sin(player.facing_angle),
+                )
+                accel_x = direction.x * action.dash * self._config.player_acceleration
+                accel_y = direction.y * action.dash * self._config.player_acceleration
+                new_vx = player.velocity.x + accel_x
+                new_vy = player.velocity.y + accel_y
+                # Clamp to max speed
+                speed = math.sqrt(new_vx**2 + new_vy**2)
+                if speed > self._config.player_max_speed:
+                    scale = self._config.player_max_speed / speed
+                    new_vx *= scale
+                    new_vy *= scale
+                player.velocity = Vector2D(new_vx, new_vy)
 
             # Handle kick
             if action.kick_power > 0:
@@ -309,10 +327,83 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
                         }
                     )
 
+    def _parse_action(self, action_data: Any, player: Player) -> Optional[SoccerAction]:
+        """Parse action from dict, supporting both normalized and legacy formats."""
+        import math
+
+        if isinstance(action_data, SoccerAction):
+            return action_data
+
+        if not isinstance(action_data, dict):
+            return None
+
+        # Check for normalized format (turn/dash)
+        if "turn" in action_data or "dash" in action_data:
+            return SoccerAction.from_dict(action_data)
+
+        # Legacy format (move_target/face_angle) -> convert to normalized
+        try:
+            legacy = LegacySoccerAction.from_dict(action_data)
+        except Exception:
+            return None
+
+        turn = 0.0
+        dash = 0.0
+
+        if legacy.face_angle is not None:
+            angle_delta = self._normalize_angle(legacy.face_angle - player.facing_angle)
+            turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
+
+        if legacy.move_target is not None:
+            dx = legacy.move_target.x - player.position.x
+            dy = legacy.move_target.y - player.position.y
+            if dx * dx + dy * dy > 0.5:
+                target_angle = math.atan2(dy, dx)
+                angle_delta = self._normalize_angle(target_angle - player.facing_angle)
+                turn = self._clamp(angle_delta / self._config.player_turn_rate, -1.0, 1.0)
+                dash = 1.0
+
+        return SoccerAction(
+            turn=turn,
+            dash=dash,
+            kick_power=legacy.kick_power,
+            kick_angle=legacy.kick_angle,
+        )
+
+    @staticmethod
+    def _normalize_angle(angle: float) -> float:
+        """Normalize angle to [-pi, pi]."""
+        import math
+
+        while angle > math.pi:
+            angle -= 2 * math.pi
+        while angle < -math.pi:
+            angle += 2 * math.pi
+        return angle
+
+    @staticmethod
+    def _clamp(value: float, min_val: float, max_val: float) -> float:
+        return max(min_val, min(max_val, value))
+
     def _update_physics(self) -> None:
         """Update ball and player physics."""
         # Update ball
         self._physics.update_ball(self._ball)
+
+        # Update player positions from velocities
+        for player in self._players.values():
+            # Apply friction
+            player.velocity = Vector2D(
+                player.velocity.x * 0.95,
+                player.velocity.y * 0.95,
+            )
+            # Update position
+            new_x = player.position.x + player.velocity.x
+            new_y = player.position.y + player.velocity.y
+            # Clamp to field bounds
+            new_x = max(-self._config.field_width / 2, min(self._config.field_width / 2, new_x))
+            new_y = max(-self._config.field_height / 2, min(self._config.field_height / 2, new_y))
+            player.position = Vector2D(new_x, new_y)
 
         # Handle player collisions
         self._physics.check_player_collisions(list(self._players.values()))

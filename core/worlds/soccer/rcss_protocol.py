@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional
 
-from core.policies.soccer_interfaces import PlayerState, SoccerAction, Vector2D
+from core.worlds.soccer.types import PlayerState, SoccerAction, Vector2D
 
 # ============================================================================
 # Structured output models for parsed messages
@@ -443,62 +443,33 @@ def build_init_command(team_name: str, version: int = 15) -> str:
 def action_to_commands(
     action: SoccerAction,
     player_state: PlayerState,
+    turn_rate: float = 1.0,
 ) -> List[str]:
     """Translate high-level SoccerAction to rcssserver command strings.
 
-    This converts the domain-agnostic SoccerAction into low-level server commands.
-    Multiple commands may be needed (e.g., turn then dash).
+    Supports the normalized action format (turn/dash/kick_power/kick_angle).
 
     Args:
         action: High-level action intent
         player_state: Current player state (for calculating relative angles)
+        turn_rate: Maximum turn rate in radians (for scaling turn command)
 
     Returns:
         List of command strings to send to server
     """
     commands = []
 
-    # Handle movement
-    if action.move_target is not None:
-        # Calculate desired direction
-        dx = action.move_target.x - player_state.position.x
-        dy = action.move_target.y - player_state.position.y
-        target_angle = math.atan2(dy, dx)
+    # Handle normalized turn command
+    if action.turn != 0.0:
+        # Scale normalized [-1, 1] to degrees [-180, 180]
+        turn_degrees = action.turn * 180.0
+        commands.append(build_turn_command(turn_degrees))
 
-        # Calculate turn needed (convert to degrees)
-        current_angle = player_state.facing_angle
-        angle_diff = target_angle - current_angle
-
-        # Normalize to [-pi, pi]
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
-
-        angle_diff_deg = math.degrees(angle_diff)
-
-        # Turn if needed (threshold: 10 degrees)
-        if abs(angle_diff_deg) > 10:
-            commands.append(build_turn_command(angle_diff_deg))
-        else:
-            # Dash forward
-            distance = math.sqrt(dx * dx + dy * dy)
-            power = min(100.0, distance * 10)  # Simple power scaling
-            commands.append(build_dash_command(power))
-
-    # Handle explicit face angle
-    elif action.face_angle is not None:
-        current_angle = player_state.facing_angle
-        angle_diff = action.face_angle - current_angle
-
-        # Normalize to [-pi, pi]
-        while angle_diff > math.pi:
-            angle_diff -= 2 * math.pi
-        while angle_diff < -math.pi:
-            angle_diff += 2 * math.pi
-
-        angle_diff_deg = math.degrees(angle_diff)
-        commands.append(build_turn_command(angle_diff_deg))
+    # Handle normalized dash command
+    if action.dash != 0.0:
+        # Scale normalized [-1, 1] to power [-100, 100]
+        power = action.dash * 100.0
+        commands.append(build_dash_command(power))
 
     # Handle kick
     if action.kick_power > 0:

@@ -21,6 +21,7 @@ DEFAULT_BALL_FRICTION = 0.98  # Ball velocity decay per frame
 DEFAULT_PLAYER_MAX_SPEED = 1.2  # m/s
 DEFAULT_PLAYER_ACCELERATION = 0.3  # m/s^2
 DEFAULT_BALL_KICK_POWER_MAX = 3.0  # m/s max ball velocity from kick
+DEFAULT_PLAYER_TURN_RATE = 0.15  # radians per frame max turn rate
 DEFAULT_BALL_RADIUS = 0.085  # meters (official soccer ball radius)
 DEFAULT_PLAYER_RADIUS = 0.3  # meters (collision radius)
 
@@ -60,6 +61,7 @@ class SoccerWorldConfig:
     player_max_speed: float = DEFAULT_PLAYER_MAX_SPEED
     player_acceleration: float = DEFAULT_PLAYER_ACCELERATION
     ball_kick_power_max: float = DEFAULT_BALL_KICK_POWER_MAX
+    player_turn_rate: float = DEFAULT_PLAYER_TURN_RATE
     ball_radius: float = DEFAULT_BALL_RADIUS
     player_radius: float = DEFAULT_PLAYER_RADIUS
 
@@ -91,6 +93,7 @@ class SoccerWorldConfig:
             "player_max_speed": self.player_max_speed,
             "player_acceleration": self.player_acceleration,
             "ball_kick_power_max": self.ball_kick_power_max,
+            "player_turn_rate": self.player_turn_rate,
             "ball_radius": self.ball_radius,
             "player_radius": self.player_radius,
             "stamina_max": self.stamina_max,

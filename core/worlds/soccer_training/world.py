@@ -19,13 +19,9 @@ from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.soccer.types import LegacySoccerAction
 from core.worlds.soccer_training.config import SoccerTrainingConfig
 from core.worlds.soccer_training.interfaces import SoccerAction
-
-try:  # Optional legacy action support
-    from core.policies.soccer_interfaces import SoccerAction as LegacySoccerAction
-except Exception:  # pragma: no cover - defensive fallback
-    LegacySoccerAction = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -469,16 +465,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
     def _coerce_action(self, output: Any, player: SoccerPlayer) -> SoccerAction | None:
         if isinstance(output, SoccerAction):
             return output
-        if LegacySoccerAction is not None and isinstance(output, LegacySoccerAction):
+        if isinstance(output, LegacySoccerAction):
             return self._legacy_action_to_action(output, player)
         if isinstance(output, dict):
             if "turn" in output or "dash" in output:
                 return SoccerAction.from_dict(output)
             if "move_target" in output or "face_angle" in output:
-                if LegacySoccerAction is not None:
-                    return self._legacy_action_to_action(
-                        LegacySoccerAction.from_dict(output), player
-                    )
+                return self._legacy_action_to_action(LegacySoccerAction.from_dict(output), player)
         if isinstance(output, (tuple, list)) and len(output) >= 4:
             try:
                 return SoccerAction(

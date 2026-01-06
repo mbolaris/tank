@@ -266,6 +266,14 @@ def restore_world_from_snapshot(
             source_plant_id = nectar_data.get("source_plant_id")
             source_plant = plants_by_id.get(source_plant_id) if source_plant_id else None
 
+            # Skip orphaned nectar whose source plant wasn't restored
+            if source_plant is None:
+                logger.warning(
+                    f"Skipping nectar at ({nectar_data['x']:.1f}, {nectar_data['y']:.1f}): "
+                    f"source plant {source_plant_id} not found"
+                )
+                continue
+
             nectar = PlantNectar(
                 x=nectar_data["x"],
                 y=nectar_data["y"],

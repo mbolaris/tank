@@ -6,14 +6,15 @@ and soccer-specific interfaces.
 
 import pytest
 
-from core.policies.soccer_interfaces import (
-    SoccerAction,
-    Vector2D,
-)
 from core.worlds import StepResult, WorldRegistry
 from core.worlds.soccer.backend import SoccerWorldBackendAdapter
 from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
+from core.worlds.soccer.types import (
+    LegacySoccerAction,
+    SoccerAction,
+    Vector2D,
+)
 
 
 class TestSoccerWorldBackendAdapter:
@@ -78,10 +79,11 @@ class TestSoccerWorldBackendAdapter:
         initial_player = initial_snapshot["players"][0]
         initial_x = initial_player["x"]
 
-        # Move player right
+        # Move player right (using normalized format: turn=0 to face right, dash=1 to move)
         actions = {
             "left_1": {
-                "move_target": {"x": initial_x + 10, "y": 0},
+                "turn": 0.0,  # Already facing right
+                "dash": 1.0,  # Full speed ahead
                 "kick_power": 0.0,
             }
         }
@@ -488,8 +490,27 @@ class TestSoccerInterfaces:
         assert action.is_valid() is False
 
     def test_soccer_action_to_from_dict(self):
-        """Test SoccerAction serialization."""
+        """Test SoccerAction serialization (normalized format)."""
         action = SoccerAction(
+            turn=0.5,
+            dash=1.0,
+            kick_power=0.8,
+            kick_angle=0.5,
+        )
+
+        action_dict = action.to_dict()
+        assert action_dict["kick_power"] == 0.8
+        assert action_dict["turn"] == 0.5
+        assert action_dict["dash"] == 1.0
+
+        # Round trip
+        restored = SoccerAction.from_dict(action_dict)
+        assert restored.kick_power == action.kick_power
+        assert restored.turn == action.turn
+
+    def test_legacy_soccer_action_to_from_dict(self):
+        """Test LegacySoccerAction serialization (move_target format)."""
+        action = LegacySoccerAction(
             move_target=Vector2D(10, 5),
             face_angle=1.57,
             kick_power=0.8,
@@ -502,7 +523,7 @@ class TestSoccerInterfaces:
         assert action_dict["face_angle"] == 1.57
 
         # Round trip
-        restored = SoccerAction.from_dict(action_dict)
+        restored = LegacySoccerAction.from_dict(action_dict)
         assert restored.kick_power == action.kick_power
         assert restored.move_target.x == action.move_target.x
 

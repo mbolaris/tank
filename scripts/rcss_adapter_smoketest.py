@@ -10,7 +10,6 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.policies.soccer_interfaces import PlayerState, SoccerAction, Vector2D
 from core.worlds.soccer.rcss_protocol import (
     action_to_commands,
     build_dash_command,
@@ -23,6 +22,7 @@ from core.worlds.soccer.rcss_protocol import (
 )
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
 from core.worlds.soccer.socket_interface import FakeSocket
+from core.worlds.soccer.types import PlayerState, SoccerAction, Vector2D
 
 
 def print_section(title: str) -> None:

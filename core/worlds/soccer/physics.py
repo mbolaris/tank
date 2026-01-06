@@ -9,8 +9,8 @@ import random
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-from core.policies.soccer_interfaces import PlayerID, TeamID, Vector2D
 from core.util.rng import require_rng_param
+from core.worlds.soccer.types import PlayerID, TeamID, Vector2D
 
 
 @dataclass

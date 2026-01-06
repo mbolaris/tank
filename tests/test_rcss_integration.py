@@ -4,14 +4,9 @@ These tests verify the full stack:
 RCSSWorld -> RCSSServerAdapter -> FakeRCSSServer -> RCSSServerAdapter -> RCSSWorld
 """
 
-import pytest
-
-from core.worlds.soccer.rcss_world import RCSSWorld
 from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
 
 from .fakes.fake_rcssserver import FakeRCSSServer
-
-pytestmark = pytest.mark.integration
 
 
 class TestRCSSIntegration:
@@ -32,7 +27,6 @@ class TestRCSSIntegration:
             socket_factory=lambda: fake_server,
             # We must enable "synchronous" mode or ensure we step correctly
         )
-        world = RCSSWorld(adapter)
 
         # 3. Connection happens on first step or reset.
         # Let's call reset explicitly to connect
@@ -43,15 +37,9 @@ class TestRCSSIntegration:
         assert last is not None
         assert last.startswith("(init")
 
-        # 4. Step with a movement action
-        # The adapter internally maps actions. For now, we use a simple dict format
-        # accepted by adapter._process_actions or just raw commands if backend supports it.
-        # The RCSSServerAdapter expects {player_id: {"dash_power": ..., "dash_dir": ...}}
-
-        # Let's assume player_id "left_1" (our spawned player)
-        # Player starts at (-15.0, 0.0) based on reset logic
-        # We set a target to the right to induce movement
-        actions = {"left_1": {"move_target": {"x": -10.0, "y": 0.0}}}
+        # 4. Step with a movement action (normalized format: turn/dash)
+        # Player starts facing right (angle 0), and we want to dash forward
+        actions = {"left_1": {"turn": 0.0, "dash": 1.0, "kick_power": 0.0}}
 
         # We also need to ensuring the fake server is ready to receive a dash
         # The fake server "step" logic in adapter is: send command -> recv see/sense
@@ -59,7 +47,7 @@ class TestRCSSIntegration:
         fake_server.queue_sense_body(10, stamina=3500)
         fake_server.queue_see(10, ["((b) 5 0)", "((g r) 40 0)"])
 
-        step_result = world.step(actions)
+        step_result = adapter.step(actions)
 
         # 5. Verify command sent
         # We should see a dash command in the fake server sent log
@@ -86,7 +74,6 @@ class TestRCSSIntegration:
         """Test kicking behavior."""
         fake_server = FakeRCSSServer()
         adapter = RCSSServerAdapter(server_host="fake", socket_factory=lambda: fake_server)
-        world = RCSSWorld(adapter)
         adapter.reset()
 
         actions = {
@@ -99,7 +86,7 @@ class TestRCSSIntegration:
         fake_server.queue_sense_body(20)
         fake_server.queue_see(20)
 
-        world.step(actions)
+        adapter.step(actions)
 
         # Verify kick command
         sent = fake_server._sent_commands
