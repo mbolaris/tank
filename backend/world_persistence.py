@@ -215,6 +215,15 @@ def restore_world_from_snapshot(
         for entity_data in snapshot.get("entities", []):
             entity_type = entity_data.get("type")
 
+            # Try to infer type for legacy/incomplete snapshots
+            if not entity_type:
+                if (
+                    "genome_data" in entity_data
+                    and entity_data["genome_data"].get("type") == "lsystem"
+                ):
+                    entity_type = "plant"
+                    entity_data["type"] = "plant"
+
             if not entity_type:
                 logger.error(f"Missing 'type' field in entity data: {entity_data}")
                 return False
