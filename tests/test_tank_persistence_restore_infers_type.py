@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from core.transfer.entity_transfer import serialize_entity_for_transfer
 from backend.world_persistence import restore_world_from_snapshot
 from core.config.server import PLANTS_ENABLED
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.tank_world import TankWorld, TankWorldConfig
+from core.transfer.entity_transfer import serialize_entity_for_transfer
 
 
 def _make_world(seed: int) -> TankWorld:

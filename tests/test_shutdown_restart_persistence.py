@@ -1,12 +1,12 @@
-import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
-from backend.startup_manager import StartupManager
-from backend.world_manager import WorldManager
+import pytest
+
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.server_client import ServerClient
+from backend.startup_manager import StartupManager
+from backend.world_manager import WorldManager
 from core.entities.base import Castle
 from core.entities.fish import Fish, Genome
 from core.movement_strategy import AlgorithmicMovement
