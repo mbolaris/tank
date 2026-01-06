@@ -1,0 +1,16 @@
+{
+  "benchmark_id": "tank/survival_30k",
+  "version": 1,
+  "champion": {
+    "score": 835.4710010474582,
+    "seed": 42,
+    "timestamp": 1767688524.865686,
+    "metadata": {
+      "frames": 5000,
+      "avg_energy": 2238.7258649940036,
+      "avg_pop": 373.1904,
+      "extinct": false
+    }
+  },
+  "history": []
+}
