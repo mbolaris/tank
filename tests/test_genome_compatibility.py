@@ -199,15 +199,14 @@ def test_code_policy_inheritance_from_single_parent():
     """Code policy inheritance when one parent has custom policy, other has default."""
     from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 
-    # Parent with custom code policy
+    # Parent with custom code policy (set via new per-kind fields)
     parent1 = Genome.random(use_algorithm=False, rng=random.Random(10))
-    parent1.behavioral.code_policy_kind = GeneticTrait("movement_policy")
-    parent1.behavioral.code_policy_component_id = GeneticTrait("custom_parent_comp")
-    parent1.behavioral.code_policy_params = GeneticTrait({"z": 3.0})
+    parent1.behavioral.movement_policy_id = GeneticTrait("custom_parent_comp")
+    parent1.behavioral.movement_policy_params = GeneticTrait({"z": 3.0})
 
     # Parent with default code policy (from Genome.random)
     parent2 = Genome.random(use_algorithm=False, rng=random.Random(20))
-    # parent2 has default: movement_policy + BUILTIN_SEEK_NEAREST_FOOD_ID
+    # parent2 has default: movement_policy_id = BUILTIN_SEEK_NEAREST_FOOD_ID
 
     # Create multiple offspring to check probability distribution
     custom_count = 0
@@ -216,10 +215,10 @@ def test_code_policy_inheritance_from_single_parent():
     for i in range(total):
         rng = random.Random(1000 + i)
         child = Genome.from_parents_weighted(parent1, parent2, parent1_weight=0.5, rng=rng)
-        if child.behavioral.code_policy_component_id.value is not None:
-            if child.behavioral.code_policy_component_id.value == "custom_parent_comp":
+        if child.behavioral.movement_policy_id.value is not None:
+            if child.behavioral.movement_policy_id.value == "custom_parent_comp":
                 custom_count += 1
-            elif child.behavioral.code_policy_component_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID:
+            elif child.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID:
                 default_count += 1
 
     # Both policies should be inherited sometimes (probabilistic)
@@ -230,22 +229,20 @@ def test_code_policy_inheritance_from_single_parent():
 def test_code_policy_params_mutation():
     """Code policy params should mutate slightly during inheritance."""
     parent1 = Genome.random(use_algorithm=False, rng=random.Random(30))
-    parent1.behavioral.code_policy_kind = GeneticTrait("test_policy")
-    parent1.behavioral.code_policy_component_id = GeneticTrait("test_comp")
-    parent1.behavioral.code_policy_params = GeneticTrait({"a": 5.0, "b": -2.0})
+    parent1.behavioral.movement_policy_id = GeneticTrait("test_comp")
+    parent1.behavioral.movement_policy_params = GeneticTrait({"a": 5.0, "b": -2.0})
 
     parent2 = Genome.random(use_algorithm=False, rng=random.Random(40))
-    parent2.behavioral.code_policy_kind = GeneticTrait("test_policy")
-    parent2.behavioral.code_policy_component_id = GeneticTrait("test_comp")
-    parent2.behavioral.code_policy_params = GeneticTrait({"a": 5.0, "b": -2.0})
+    parent2.behavioral.movement_policy_id = GeneticTrait("test_comp")
+    parent2.behavioral.movement_policy_params = GeneticTrait({"a": 5.0, "b": -2.0})
 
     # Check if any mutations occur over many offspring
     mutated = False
     for i in range(100):
         rng = random.Random(2000 + i)
         child = Genome.from_parents_weighted(parent1, parent2, rng=rng)
-        if child.behavioral.code_policy_params.value is not None:
-            params = child.behavioral.code_policy_params.value
+        if child.behavioral.movement_policy_params.value is not None:
+            params = child.behavioral.movement_policy_params.value
             if params.get("a") != 5.0 or params.get("b") != -2.0:
                 mutated = True
                 break

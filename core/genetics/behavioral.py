@@ -347,26 +347,6 @@ class BehavioralTraits:
             parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
         )
 
-        # Inherit code policy traits
-        cp_kind, cp_id, cp_params = _inherit_code_policy(
-            parent1,
-            parent2,
-            weight1=weight1,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
-            rng=rng,
-            available_policies=available_policies,
-        )
-        inherited["code_policy_kind"] = _inherit_trait_meta(
-            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
-        )
-        inherited["code_policy_component_id"] = _inherit_trait_meta(
-            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
-        )
-        inherited["code_policy_params"] = _inherit_trait_meta(
-            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
-        )
-
         # Inherit per-kind policy traits (new multi-policy system)
         for kind in ("movement_policy", "poker_policy", "soccer_policy"):
             id_attr = f"{kind}_id"
@@ -380,6 +360,7 @@ class BehavioralTraits:
                 mutation_rate=mutation_rate,
                 mutation_strength=mutation_strength,
                 rng=rng,
+                available_policies=available_policies,
             )
             inherited[id_attr] = _inherit_trait_meta(
                 getattr(parent1, id_attr, None),
@@ -393,6 +374,23 @@ class BehavioralTraits:
                 policy_params,
                 rng,
             )
+
+        # DEPRECATED: Populate legacy single-policy fields from movement policy for backward compatibility
+        movement_id = inherited.get("movement_policy_id")
+        movement_params = inherited.get("movement_policy_params")
+        cp_kind = "movement_policy" if movement_id and movement_id.value else None
+        cp_id = movement_id.value if movement_id and movement_id.value else None
+        cp_params = movement_params.value if movement_params and movement_params.value else None
+
+        inherited["code_policy_kind"] = _inherit_trait_meta(
+            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
+        )
+        inherited["code_policy_component_id"] = _inherit_trait_meta(
+            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
+        )
+        inherited["code_policy_params"] = _inherit_trait_meta(
+            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
+        )
 
         return cls(**inherited)
 
@@ -470,27 +468,6 @@ class BehavioralTraits:
             parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
         )
 
-        # Inherit code policy traits (using recombination weight)
-        recomb_weight = 1.0 if rng.random() < parent1_probability else 0.0
-        cp_kind, cp_id, cp_params = _inherit_code_policy(
-            parent1,
-            parent2,
-            weight1=recomb_weight,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
-            rng=rng,
-            available_policies=available_policies,
-        )
-        inherited["code_policy_kind"] = _inherit_trait_meta(
-            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
-        )
-        inherited["code_policy_component_id"] = _inherit_trait_meta(
-            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
-        )
-        inherited["code_policy_params"] = _inherit_trait_meta(
-            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
-        )
-
         # Inherit per-kind policy traits (new multi-policy system)
         for kind in ("movement_policy", "poker_policy", "soccer_policy"):
             id_attr = f"{kind}_id"
@@ -506,6 +483,7 @@ class BehavioralTraits:
                 mutation_rate=mutation_rate,
                 mutation_strength=mutation_strength,
                 rng=rng,
+                available_policies=available_policies,
             )
             inherited[id_attr] = _inherit_trait_meta(
                 getattr(parent1, id_attr, None),
@@ -519,6 +497,23 @@ class BehavioralTraits:
                 policy_params,
                 rng,
             )
+
+        # DEPRECATED: Populate legacy single-policy fields from movement policy for backward compatibility
+        movement_id = inherited.get("movement_policy_id")
+        movement_params = inherited.get("movement_policy_params")
+        cp_kind = "movement_policy" if movement_id and movement_id.value else None
+        cp_id = movement_id.value if movement_id and movement_id.value else None
+        cp_params = movement_params.value if movement_params and movement_params.value else None
+
+        inherited["code_policy_kind"] = _inherit_trait_meta(
+            parent1.code_policy_kind, parent2.code_policy_kind, cp_kind, rng
+        )
+        inherited["code_policy_component_id"] = _inherit_trait_meta(
+            parent1.code_policy_component_id, parent2.code_policy_component_id, cp_id, rng
+        )
+        inherited["code_policy_params"] = _inherit_trait_meta(
+            parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
+        )
 
         return cls(**inherited)
 
@@ -699,111 +694,6 @@ CODE_POLICY_PARAM_MIN: float = -10.0  # Minimum allowed param value
 CODE_POLICY_PARAM_MAX: float = 10.0  # Maximum allowed param value
 
 
-def _inherit_code_policy(
-    parent1: "BehavioralTraits",
-    parent2: "BehavioralTraits",
-    weight1: float,
-    mutation_rate: float,
-    mutation_strength: float,
-    rng: pyrandom.Random,
-    available_policies: Optional[List[str]] = None,
-) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, float]]]:
-    """Inherit code policy traits from parents.
-
-    Rules:
-    - If both parents have code policies, inherit one based on weight1 probability.
-    - If only one parent has a code policy, child may inherit it with probability.
-    - Mutation can drop the code policy (set to None) with small probability.
-    - Mutation can duplicate params if not swapping policy.
-    - If available_policies is provided, small chance to swap to a random policy from the list.
-
-    Returns:
-        Tuple of (code_policy_kind, code_policy_component_id, code_policy_params)
-    """
-    # Extract parent values
-    p1_kind = (
-        parent1.code_policy_kind.value
-        if parent1.code_policy_kind and parent1.code_policy_kind.value
-        else None
-    )
-    p1_id = (
-        parent1.code_policy_component_id.value
-        if parent1.code_policy_component_id and parent1.code_policy_component_id.value
-        else None
-    )
-    p1_params = (
-        parent1.code_policy_params.value
-        if parent1.code_policy_params and parent1.code_policy_params.value
-        else None
-    )
-
-    p2_kind = (
-        parent2.code_policy_kind.value
-        if parent2.code_policy_kind and parent2.code_policy_kind.value
-        else None
-    )
-    p2_id = (
-        parent2.code_policy_component_id.value
-        if parent2.code_policy_component_id and parent2.code_policy_component_id.value
-        else None
-    )
-    p2_params = (
-        parent2.code_policy_params.value
-        if parent2.code_policy_params and parent2.code_policy_params.value
-        else None
-    )
-
-    # Both parents have no code policy
-    if p1_id is None and p2_id is None:
-        return None, None, None
-
-    # Determine which parent's code policy to inherit
-    if p1_id is not None and p2_id is not None:
-        # Both have code policies - use weighted selection
-        if rng.random() < weight1:
-            kind, component_id, params = p1_kind, p1_id, p1_params
-        else:
-            kind, component_id, params = p2_kind, p2_id, p2_params
-    elif p1_id is not None:
-        # Only parent1 has a code policy
-        # Inherit with probability proportional to weight1
-        if rng.random() < weight1:
-            kind, component_id, params = p1_kind, p1_id, p1_params
-        else:
-            # Small chance to inherit anyway (gene flow)
-            if rng.random() < 0.3:
-                kind, component_id, params = p1_kind, p1_id, p1_params
-            else:
-                return None, None, None
-    else:
-        # Only parent2 has a code policy
-        weight2 = 1.0 - weight1
-        if rng.random() < weight2:
-            kind, component_id, params = p2_kind, p2_id, p2_params
-        else:
-            # Small chance to inherit anyway
-            if rng.random() < 0.3:
-                kind, component_id, params = p2_kind, p2_id, p2_params
-            else:
-                return None, None, None
-
-    # Mutation: chance to drop the code policy entirely
-    if rng.random() < CODE_POLICY_DROP_PROBABILITY * mutation_rate:
-        return None, None, None
-
-    # Mutation: chance to swap to a different available policy
-    if available_policies and rng.random() < mutation_rate * 0.1:  # 10% of mutation rate
-        # Pick a random policy from available ones
-        new_id = rng.choice(available_policies)
-        # If we swapped, reset params or keep? Let's reset to None for fresh start
-        return "movement_policy", new_id, None
-
-    # Mutation: mutate params if present
-    mutated_params = _mutate_code_policy_params(params, mutation_rate, mutation_strength, rng)
-
-    return kind, component_id, mutated_params
-
-
 def _mutate_code_policy_params(
     params: Optional[Dict[str, float]],
     mutation_rate: float,
@@ -843,6 +733,7 @@ def _inherit_single_policy(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    available_policies: Optional[List[str]] = None,
 ) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
     """Inherit a single policy kind (id and params) from two parents.
 
@@ -855,6 +746,7 @@ def _inherit_single_policy(
         mutation_rate: Base mutation probability
         mutation_strength: Mutation magnitude
         rng: Random number generator
+        available_policies: Optional list of policy IDs to swap to during mutation
 
     Returns:
         Tuple of (component_id, params) for offspring
@@ -891,6 +783,13 @@ def _inherit_single_policy(
     # Chance to drop
     if rng.random() < CODE_POLICY_DROP_PROBABILITY * mutation_rate:
         return None, None
+
+    # Mutation: chance to swap to a different available policy
+    if available_policies and rng.random() < mutation_rate * 0.1:  # 10% of mutation rate
+        # Pick a random policy from available ones
+        new_id = rng.choice(available_policies)
+        # Reset params for fresh start with new policy
+        return new_id, None
 
     # Mutate params if present
     mutated_params = _mutate_code_policy_params(
