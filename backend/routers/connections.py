@@ -31,7 +31,7 @@ def setup_router(
 
     @router.get("")
     async def list_connections(
-        world_id: Annotated[Optional[str], Query(default=None)] = None,
+        world_id: Annotated[Optional[str], Query()] = None,
     ) -> JSONResponse:
         """List all migration connections, optionally filtered by source world."""
         if world_id:
