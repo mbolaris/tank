@@ -14,7 +14,10 @@ from core.policies.movement_policy_runner import run_movement_policy
 @pytest.fixture
 def mock_genome():
     genome = MagicMock()
-    # Configure mostly valid defaults
+    # Configure for new per-kind policy fields
+    genome.behavioral.movement_policy_id.value = "test_policy_id"
+    genome.behavioral.movement_policy_params.value = None
+    # Also set legacy fields for backward compatibility testing
     genome.behavioral.code_policy_kind.value = "movement_policy"
     genome.behavioral.code_policy_component_id.value = "test_policy_id"
     genome.behavioral.code_policy_params.value = None
@@ -89,7 +92,9 @@ def test_run_movement_policy_clamping(mock_genome, mock_code_pool):
 
 
 def test_run_movement_policy_invalid_kind(mock_genome, mock_code_pool):
-    """Test early return if policy kind is wrong."""
+    """Test early return if no movement policy is set."""
+    # Clear both new and legacy fields
+    mock_genome.behavioral.movement_policy_id.value = None
     mock_genome.behavioral.code_policy_kind.value = "soccer_policy"
 
     rng = random.Random(42)

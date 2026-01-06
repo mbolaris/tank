@@ -48,21 +48,37 @@ def run_movement_policy(
         (vx, vy) if successful and valid, None otherwise.
         Values are clamped to [-1.0, 1.0].
     """
-    # 1. extract policy config
-    policy_kind = getattr(genome.behavioral, "code_policy_kind", None)
-    component_id = getattr(genome.behavioral, "code_policy_component_id", None)
-    params = getattr(genome.behavioral, "code_policy_params", None)
+    # 1. extract policy config - use new per-kind field directly
+    movement_id_trait = getattr(genome.behavioral, "movement_policy_id", None)
+    movement_params_trait = getattr(genome.behavioral, "movement_policy_params", None)
 
     # Unwrap values if they are traits
-    if hasattr(policy_kind, "value"):
-        policy_kind = policy_kind.value
-    if hasattr(component_id, "value"):
-        component_id = component_id.value
-    if hasattr(params, "value"):
-        params = params.value
+    component_id = (
+        movement_id_trait.value if hasattr(movement_id_trait, "value") else movement_id_trait
+    )
+    params = (
+        movement_params_trait.value
+        if hasattr(movement_params_trait, "value")
+        else movement_params_trait
+    )
+
+    # Fallback to legacy fields if new field is not set (migration compatibility)
+    if not component_id:
+        policy_kind = getattr(genome.behavioral, "code_policy_kind", None)
+        legacy_id = getattr(genome.behavioral, "code_policy_component_id", None)
+        legacy_params = getattr(genome.behavioral, "code_policy_params", None)
+        if hasattr(policy_kind, "value"):
+            policy_kind = policy_kind.value
+        if hasattr(legacy_id, "value"):
+            legacy_id = legacy_id.value
+        if hasattr(legacy_params, "value"):
+            legacy_params = legacy_params.value
+        if policy_kind == "movement_policy" and legacy_id:
+            component_id = legacy_id
+            params = legacy_params
 
     # Identify if we have a valid policy to run
-    if policy_kind != "movement_policy" or not component_id:
+    if not component_id:
         # Not configured for movement code policy
         return None
 

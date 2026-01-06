@@ -54,25 +54,37 @@ def extract_policy_set_from_behavioral(
 ) -> GenomePolicySet:
     """Extract a GenomePolicySet from BehavioralTraits.
 
-    This bridges the current single-policy approach to the multi-policy GenomePolicySet.
+    Extracts ALL policy kinds (movement, poker, soccer) from the per-kind fields.
+    Also checks legacy single-policy fields for migration compatibility.
 
     Args:
         behavioral: The BehavioralTraits to extract from
 
     Returns:
-        A GenomePolicySet with the extracted policies
+        A GenomePolicySet with all extracted policies
     """
     from core.code_pool import GenomePolicySet
 
     policy_set = GenomePolicySet()
 
-    # Extract current code policy (if any)
-    kind = _get_trait_value(behavioral.code_policy_kind)
-    component_id = _get_trait_value(behavioral.code_policy_component_id)
-    params = _get_trait_value(behavioral.code_policy_params)
+    # Extract from new per-kind policy fields
+    for kind, id_attr, params_attr in [
+        (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
+        (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
+        (SOCCER_POLICY, "soccer_policy_id", "soccer_policy_params"),
+    ]:
+        component_id = _get_trait_value(getattr(behavioral, id_attr, None))
+        params = _get_trait_value(getattr(behavioral, params_attr, None))
+        if component_id:
+            policy_set.set_policy(kind, component_id, params)
 
-    if kind and component_id:
-        policy_set.set_policy(kind, component_id, params)
+    # Fallback: if no policies found, check legacy single-policy fields for migration
+    if not any(policy_set.get_component_id(k) for k in ALL_POLICY_KINDS):
+        legacy_kind = _get_trait_value(behavioral.code_policy_kind)
+        legacy_id = _get_trait_value(behavioral.code_policy_component_id)
+        legacy_params = _get_trait_value(behavioral.code_policy_params)
+        if legacy_kind and legacy_id:
+            policy_set.set_policy(legacy_kind, legacy_id, legacy_params)
 
     return policy_set
 
@@ -84,19 +96,30 @@ def apply_policy_set_to_behavioral(
 ) -> None:
     """Apply a GenomePolicySet to BehavioralTraits.
 
-    This updates the behavioral traits with the primary policy from the set.
-    Currently, we only store one policy in behavioral traits (the movement policy).
+    Writes ALL policy kinds (movement, poker, soccer) to their respective per-kind fields.
+    Also updates legacy single-policy fields for backward compatibility during migration.
 
     Args:
         behavioral: The BehavioralTraits to update
         policy_set: The policy set to apply
         rng: Random number generator for trait meta-values
     """
-    # Find the primary policy (movement takes precedence)
+    # Write to new per-kind policy fields
+    for kind, id_attr, params_attr in [
+        (MOVEMENT_POLICY, "movement_policy_id", "movement_policy_params"),
+        (POKER_POLICY, "poker_policy_id", "poker_policy_params"),
+        (SOCCER_POLICY, "soccer_policy_id", "soccer_policy_params"),
+    ]:
+        component_id = policy_set.get_component_id(kind)
+        params = policy_set.get_params(kind)
+        setattr(behavioral, id_attr, GeneticTrait(component_id))
+        setattr(behavioral, params_attr, GeneticTrait(params))
+
+    # Also update legacy single-policy fields for backward compatibility
+    # Use movement as the "primary" policy for legacy consumers
     primary_kind = None
     primary_id = None
     primary_params = None
-
     for kind in [MOVEMENT_POLICY, POKER_POLICY, SOCCER_POLICY]:
         component_id = policy_set.get_component_id(kind)
         if component_id:
@@ -105,7 +128,6 @@ def apply_policy_set_to_behavioral(
             primary_params = policy_set.get_params(kind)
             break
 
-    # Update behavioral traits
     behavioral.code_policy_kind = GeneticTrait(primary_kind)
     behavioral.code_policy_component_id = GeneticTrait(primary_id)
     behavioral.code_policy_params = GeneticTrait(primary_params)

@@ -199,22 +199,31 @@ class BehavioralTraits:
     mate_preferences: Optional[GeneticTrait[Dict[str, float]]] = None
 
     # ==========================================================================
-    # Code Policy Traits (for linking to CodePool components)
+    # Multi-Policy Traits (for linking to CodePool components by kind)
     # ==========================================================================
-    # These traits allow a genome to carry references into the CodePool,
-    # enabling fish to use evolved code policies. This is purely data plumbing;
-    # the actual code execution happens elsewhere.
+    # These traits allow a genome to carry references into the CodePool for
+    # multiple policy kinds simultaneously. Each kind (movement, poker, soccer)
+    # has its own component_id and params fields.
 
-    # The kind of policy this genome references (e.g. "movement_policy", "foraging_policy")
-    # Must be set if code_policy_component_id is set.
+    # Movement policy (tank fish navigation, foraging behavior)
+    movement_policy_id: Optional[GeneticTrait[Optional[str]]] = None
+    movement_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
+
+    # Poker policy (in-game poker decisions, betting behavior)
+    poker_policy_id: Optional[GeneticTrait[Optional[str]]] = None
+    poker_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
+
+    # Soccer policy (soccer training world behavior)
+    soccer_policy_id: Optional[GeneticTrait[Optional[str]]] = None
+    soccer_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
+
+    # ==========================================================================
+    # DEPRECATED: Legacy single-policy fields (for migration compatibility)
+    # ==========================================================================
+    # These fields are deprecated and will be removed. Use the per-kind fields above.
+    # On deserialization, these are migrated to the appropriate per-kind field.
     code_policy_kind: Optional[GeneticTrait[Optional[str]]] = None
-
-    # The component ID from the CodePool. This references an existing component;
-    # genetics does NOT generate new component IDs (that's CodePool's job).
     code_policy_component_id: Optional[GeneticTrait[Optional[str]]] = None
-
-    # Optional tuning parameters for the code policy.
-    # Keys are parameter names, values are floats in [-10.0, 10.0] range.
     code_policy_params: Optional[GeneticTrait[Optional[Dict[str, float]]]] = None
 
     @classmethod
@@ -245,6 +254,15 @@ class BehavioralTraits:
         mate_preferences = normalize_mate_preferences({}, physical=physical, rng=rng)
         traits["mate_preferences"] = random_genetic_trait(mate_preferences, rng)
 
+        # New per-kind policy fields: only movement policy is set by default
+        traits["movement_policy_id"] = random_genetic_trait(BUILTIN_SEEK_NEAREST_FOOD_ID, rng)
+        traits["movement_policy_params"] = random_genetic_trait(None, rng)
+        traits["poker_policy_id"] = random_genetic_trait(None, rng)
+        traits["poker_policy_params"] = random_genetic_trait(None, rng)
+        traits["soccer_policy_id"] = random_genetic_trait(None, rng)
+        traits["soccer_policy_params"] = random_genetic_trait(None, rng)
+
+        # DEPRECATED: Legacy single-policy fields (kept for migration compatibility)
         traits["code_policy_kind"] = random_genetic_trait("movement_policy", rng)
         traits["code_policy_component_id"] = random_genetic_trait(BUILTIN_SEEK_NEAREST_FOOD_ID, rng)
         traits["code_policy_params"] = random_genetic_trait(None, rng)
@@ -349,6 +367,33 @@ class BehavioralTraits:
             parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
         )
 
+        # Inherit per-kind policy traits (new multi-policy system)
+        for kind in ("movement_policy", "poker_policy", "soccer_policy"):
+            id_attr = f"{kind}_id"
+            params_attr = f"{kind}_params"
+            policy_id, policy_params = _inherit_single_policy(
+                getattr(parent1, id_attr, None),
+                getattr(parent2, id_attr, None),
+                getattr(parent1, params_attr, None),
+                getattr(parent2, params_attr, None),
+                weight1=weight1,
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                rng=rng,
+            )
+            inherited[id_attr] = _inherit_trait_meta(
+                getattr(parent1, id_attr, None),
+                getattr(parent2, id_attr, None),
+                policy_id,
+                rng,
+            )
+            inherited[params_attr] = _inherit_trait_meta(
+                getattr(parent1, params_attr, None),
+                getattr(parent2, params_attr, None),
+                policy_params,
+                rng,
+            )
+
         return cls(**inherited)
 
     @classmethod
@@ -445,6 +490,35 @@ class BehavioralTraits:
         inherited["code_policy_params"] = _inherit_trait_meta(
             parent1.code_policy_params, parent2.code_policy_params, cp_params, rng
         )
+
+        # Inherit per-kind policy traits (new multi-policy system)
+        for kind in ("movement_policy", "poker_policy", "soccer_policy"):
+            id_attr = f"{kind}_id"
+            params_attr = f"{kind}_params"
+            # Each policy kind gets its own recombination weight
+            kind_recomb_weight = 1.0 if rng.random() < parent1_probability else 0.0
+            policy_id, policy_params = _inherit_single_policy(
+                getattr(parent1, id_attr, None),
+                getattr(parent2, id_attr, None),
+                getattr(parent1, params_attr, None),
+                getattr(parent2, params_attr, None),
+                weight1=kind_recomb_weight,
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                rng=rng,
+            )
+            inherited[id_attr] = _inherit_trait_meta(
+                getattr(parent1, id_attr, None),
+                getattr(parent2, id_attr, None),
+                policy_id,
+                rng,
+            )
+            inherited[params_attr] = _inherit_trait_meta(
+                getattr(parent1, params_attr, None),
+                getattr(parent2, params_attr, None),
+                policy_params,
+                rng,
+            )
 
         return cls(**inherited)
 
@@ -758,6 +832,72 @@ def _mutate_code_policy_params(
             mutated[key] = new_val
 
     return mutated
+
+
+def _inherit_single_policy(
+    id_trait1: Optional[GeneticTrait[Optional[str]]],
+    id_trait2: Optional[GeneticTrait[Optional[str]]],
+    params_trait1: Optional[GeneticTrait[Optional[Dict[str, float]]]],
+    params_trait2: Optional[GeneticTrait[Optional[Dict[str, float]]]],
+    weight1: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+) -> Tuple[Optional[str], Optional[Dict[str, float]]]:
+    """Inherit a single policy kind (id and params) from two parents.
+
+    Args:
+        id_trait1: First parent's policy ID trait
+        id_trait2: Second parent's policy ID trait
+        params_trait1: First parent's policy params trait
+        params_trait2: Second parent's policy params trait
+        weight1: How much parent1 contributes (0.0-1.0)
+        mutation_rate: Base mutation probability
+        mutation_strength: Mutation magnitude
+        rng: Random number generator
+
+    Returns:
+        Tuple of (component_id, params) for offspring
+    """
+    # Extract values
+    id1 = id_trait1.value if id_trait1 and id_trait1.value else None
+    id2 = id_trait2.value if id_trait2 and id_trait2.value else None
+    params1 = params_trait1.value if params_trait1 and params_trait1.value else None
+    params2 = params_trait2.value if params_trait2 and params_trait2.value else None
+
+    # Both empty
+    if id1 is None and id2 is None:
+        return None, None
+
+    # Choose parent's policy based on weight
+    if id1 is not None and id2 is not None:
+        if rng.random() < weight1:
+            chosen_id, chosen_params = id1, params1
+        else:
+            chosen_id, chosen_params = id2, params2
+    elif id1 is not None:
+        # Only parent1 has this policy kind
+        if rng.random() < weight1 or rng.random() < 0.3:  # Gene flow
+            chosen_id, chosen_params = id1, params1
+        else:
+            return None, None
+    else:
+        # Only parent2 has this policy kind
+        if rng.random() < (1 - weight1) or rng.random() < 0.3:  # Gene flow
+            chosen_id, chosen_params = id2, params2
+        else:
+            return None, None
+
+    # Chance to drop
+    if rng.random() < CODE_POLICY_DROP_PROBABILITY * mutation_rate:
+        return None, None
+
+    # Mutate params if present
+    mutated_params = _mutate_code_policy_params(
+        chosen_params, mutation_rate, mutation_strength, rng
+    )
+
+    return chosen_id, mutated_params
 
 
 def validate_code_policy(

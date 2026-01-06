@@ -315,10 +315,10 @@ class TestGenomePolicySetOperations:
         assert offspring_policy in [BUILTIN_SEEK_NEAREST_FOOD_ID, BUILTIN_FLEE_FROM_THREAT_ID]
 
     def test_multi_policy_genome(self):
-        """Genome stores primary policy when multiple are set in GenomePolicySet.
+        """Genome stores ALL policies in GenomePolicySet (FIXED!).
 
-        Currently, behavioral traits only store ONE primary policy.
-        Movement policy takes precedence over others.
+        After the multi-policy refactor, behavioral traits store ALL policy kinds
+        independently. Both movement and soccer policies should persist.
         """
         create_default_genome_code_pool()
         rng = random.Random(444)
@@ -332,11 +332,11 @@ class TestGenomePolicySetOperations:
         genome = Genome.random(rng=rng)
         apply_policy_set_to_behavioral(genome.behavioral, policy_set, rng)
 
-        # Extract and verify primary policy (movement takes precedence)
+        # Extract and verify - BOTH policies should now be extracted!
         from core.genetics.code_policy_traits import extract_policy_set_from_behavioral
 
         extracted = extract_policy_set_from_behavioral(genome.behavioral)
-        # Movement policy is primary and should be extracted
+        # Movement policy should be extracted
         assert extracted.get_component_id("movement_policy") == BUILTIN_SEEK_NEAREST_FOOD_ID
-        # Soccer policy is NOT stored (current design limitation)
-        assert extracted.get_component_id("soccer_policy") is None
+        # Soccer policy is NOW ALSO EXTRACTED (multi-policy support works!)
+        assert extracted.get_component_id("soccer_policy") == BUILTIN_CHASE_BALL_SOCCER_ID

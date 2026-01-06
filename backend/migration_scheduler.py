@@ -141,13 +141,13 @@ class MigrationScheduler:
             connection: The TankConnection
         """
         # Get source and destination worlds
-        source_instance = self.world_manager.get_world(connection.source_tank_id)
-        dest_instance = self.world_manager.get_world(connection.destination_tank_id)
+        source_instance = self.world_manager.get_world(connection.source_world_id)
+        dest_instance = self.world_manager.get_world(connection.destination_world_id)
 
         if not source_instance or not dest_instance:
             logger.warning(
-                f"Migration failed: world not found (source={connection.source_tank_id[:8]}, "
-                f"dest={connection.destination_tank_id[:8]})"
+                f"Migration failed: world not found (source={connection.source_world_id[:8]}, "
+                f"dest={connection.destination_world_id[:8]})"
             )
             return
 
@@ -216,10 +216,10 @@ class MigrationScheduler:
                     entity_type=entity_type,
                     entity_old_id=entity_id,
                     entity_new_id=None,
-                    source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_instance.name,
-                    destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_instance.name,
+                    source_world_id=connection.source_world_id,
+                    source_world_name=source_instance.name,
+                    destination_world_id=connection.destination_world_id,
+                    destination_world_name=dest_instance.name,
                     success=False,
                     error=(
                         outcome.error.message
@@ -257,10 +257,10 @@ class MigrationScheduler:
                 entity_type=entity_type,
                 entity_old_id=entity_id,
                 entity_new_id=id(new_entity),
-                source_tank_id=connection.source_tank_id,
-                source_tank_name=source_instance.name,
-                destination_tank_id=connection.destination_tank_id,
-                destination_tank_name=dest_instance.name,
+                source_world_id=connection.source_world_id,
+                source_world_name=source_instance.name,
+                destination_world_id=connection.destination_world_id,
+                destination_world_name=dest_instance.name,
                 success=True,
             )
 
@@ -286,10 +286,10 @@ class MigrationScheduler:
             return
 
         # Get source world (must be local)
-        source_instance = self.world_manager.get_world(connection.source_tank_id)
+        source_instance = self.world_manager.get_world(connection.source_world_id)
         if not source_instance:
             logger.warning(
-                f"Remote migration failed: source world not found: {connection.source_tank_id[:8]}"
+                f"Remote migration failed: source world not found: {connection.source_world_id[:8]}"
             )
             return
 
@@ -352,10 +352,10 @@ class MigrationScheduler:
             # Send to remote server
             result = await self.server_client.remote_transfer_entity(
                 server=dest_server,
-                destination_tank_id=connection.destination_tank_id,
+                destination_world_id=connection.destination_world_id,
                 entity_data=entity_data,
                 source_server_id=self.local_server_id,
-                source_tank_id=connection.source_tank_id,
+                source_world_id=connection.source_world_id,
             )
 
             if result and result.get("success"):
@@ -371,10 +371,10 @@ class MigrationScheduler:
                     entity_type=entity_type,
                     entity_old_id=entity_id,
                     entity_new_id=result.get("entity", {}).get("new_id", -1),
-                    source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_instance.name,
-                    destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
-                    destination_tank_name=f"Remote tank on {connection.destination_server_id}",
+                    source_world_id=connection.source_world_id,
+                    source_world_name=source_instance.name,
+                    destination_world_id=f"{connection.destination_server_id}:{connection.destination_world_id}",
+                    destination_world_name=f"Remote tank on {connection.destination_server_id}",
                     success=True,
                 )
             else:
@@ -400,10 +400,10 @@ class MigrationScheduler:
                     entity_type=entity_type,
                     entity_old_id=entity_id,
                     entity_new_id=None,
-                    source_tank_id=connection.source_tank_id,
-                    source_tank_name=source_instance.name,
-                    destination_tank_id=f"{connection.destination_server_id}:{connection.destination_tank_id}",
-                    destination_tank_name=f"Remote tank on {connection.destination_server_id}",
+                    source_world_id=connection.source_world_id,
+                    source_world_name=source_instance.name,
+                    destination_world_id=f"{connection.destination_server_id}:{connection.destination_world_id}",
+                    destination_world_name=f"Remote tank on {connection.destination_server_id}",
                     success=False,
                     error=error_msg,
                 )

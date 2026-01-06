@@ -57,7 +57,42 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
-    # Serialize code policy fields
+    # Helper to safely get policy value
+    def _get_policy_value(trait):
+        if trait is None:
+            return None
+        val = trait.value if hasattr(trait, "value") else trait
+        return val if val else None
+
+    def _get_policy_params(trait):
+        if trait is None:
+            return None
+        val = trait.value if hasattr(trait, "value") else trait
+        return dict(val) if val else None
+
+    # Serialize new per-kind policy fields
+    movement_policy_id = _get_policy_value(genome.behavioral.movement_policy_id)
+    movement_policy_params = _get_policy_params(genome.behavioral.movement_policy_params)
+    poker_policy_id = _get_policy_value(genome.behavioral.poker_policy_id)
+    poker_policy_params = _get_policy_params(genome.behavioral.poker_policy_params)
+    soccer_policy_id = _get_policy_value(genome.behavioral.soccer_policy_id)
+    soccer_policy_params = _get_policy_params(genome.behavioral.soccer_policy_params)
+
+    # Collect trait metadata for new per-kind policy fields
+    for name, trait in (
+        ("movement_policy_id", genome.behavioral.movement_policy_id),
+        ("movement_policy_params", genome.behavioral.movement_policy_params),
+        ("poker_policy_id", genome.behavioral.poker_policy_id),
+        ("poker_policy_params", genome.behavioral.poker_policy_params),
+        ("soccer_policy_id", genome.behavioral.soccer_policy_id),
+        ("soccer_policy_params", genome.behavioral.soccer_policy_params),
+    ):
+        if trait is not None:
+            meta = trait_meta_for_trait(trait)
+            if meta:
+                trait_meta[name] = meta
+
+    # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
     code_policy_kind = (
         genome.behavioral.code_policy_kind.value
         if genome.behavioral.code_policy_kind and genome.behavioral.code_policy_kind.value
@@ -75,7 +110,7 @@ def genome_to_dict(
         else None
     )
 
-    # Collect trait metadata for code policy traits
+    # Collect trait metadata for legacy code policy traits
     for name, trait in (
         ("code_policy_kind", genome.behavioral.code_policy_kind),
         ("code_policy_component_id", genome.behavioral.code_policy_component_id),
@@ -98,7 +133,14 @@ def genome_to_dict(
             if genome.behavioral.mate_preferences
             else {}
         ),
-        # Code policy fields (optional, for linking to CodePool components)
+        # New per-kind policy fields
+        "movement_policy_id": movement_policy_id,
+        "movement_policy_params": movement_policy_params,
+        "poker_policy_id": poker_policy_id,
+        "poker_policy_params": poker_policy_params,
+        "soccer_policy_id": soccer_policy_id,
+        "soccer_policy_params": soccer_policy_params,
+        # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
         "code_policy_kind": code_policy_kind,
         "code_policy_component_id": code_policy_component_id,
         "code_policy_params": code_policy_params,
@@ -197,7 +239,99 @@ def genome_from_dict(
     except Exception:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
 
-    # Code policy fields (optional, for linking to CodePool components)
+    # New per-kind policy fields
+    try:
+        from core.genetics.trait import GeneticTrait
+
+        # Helper to deserialize and validate policy params
+        def _deserialize_params(params_data):
+            if params_data is None or not isinstance(params_data, dict):
+                return None
+            validated = {}
+            for key, val in params_data.items():
+                try:
+                    validated[str(key)] = float(val)
+                except (TypeError, ValueError):
+                    pass
+            return validated if validated else None
+
+        # Deserialize new per-kind policy fields
+        for kind, id_key, params_key, id_attr, params_attr in [
+            (
+                "movement_policy",
+                "movement_policy_id",
+                "movement_policy_params",
+                "movement_policy_id",
+                "movement_policy_params",
+            ),
+            (
+                "poker_policy",
+                "poker_policy_id",
+                "poker_policy_params",
+                "poker_policy_id",
+                "poker_policy_params",
+            ),
+            (
+                "soccer_policy",
+                "soccer_policy_id",
+                "soccer_policy_params",
+                "soccer_policy_id",
+                "soccer_policy_params",
+            ),
+        ]:
+            policy_id = data.get(id_key)
+            policy_params = _deserialize_params(data.get(params_key))
+
+            if policy_id is not None:
+                setattr(genome.behavioral, id_attr, GeneticTrait(str(policy_id)))
+            if policy_params is not None:
+                setattr(genome.behavioral, params_attr, GeneticTrait(policy_params))
+
+        # Migration: if new fields are empty, migrate from legacy fields
+        # Check if all new policy id fields are empty
+        has_new_policies = any(
+            getattr(genome.behavioral, attr, None) is not None
+            and getattr(genome.behavioral, attr).value is not None
+            for attr in ("movement_policy_id", "poker_policy_id", "soccer_policy_id")
+        )
+
+        if not has_new_policies:
+            # Try to migrate from legacy single-policy fields
+            legacy_kind = data.get("code_policy_kind")
+            legacy_id = data.get("code_policy_component_id")
+            legacy_params = _deserialize_params(data.get("code_policy_params"))
+
+            if legacy_kind and legacy_id:
+                # Map legacy kind to new per-kind field
+                if legacy_kind == "movement_policy":
+                    genome.behavioral.movement_policy_id = GeneticTrait(str(legacy_id))
+                    genome.behavioral.movement_policy_params = GeneticTrait(legacy_params)
+                elif legacy_kind == "poker_policy":
+                    genome.behavioral.poker_policy_id = GeneticTrait(str(legacy_id))
+                    genome.behavioral.poker_policy_params = GeneticTrait(legacy_params)
+                elif legacy_kind == "soccer_policy":
+                    genome.behavioral.soccer_policy_id = GeneticTrait(str(legacy_id))
+                    genome.behavioral.soccer_policy_params = GeneticTrait(legacy_params)
+
+        # Apply trait metadata for new per-kind policy fields
+        if isinstance(trait_meta, dict):
+            for name, attr in [
+                ("movement_policy_id", "movement_policy_id"),
+                ("movement_policy_params", "movement_policy_params"),
+                ("poker_policy_id", "poker_policy_id"),
+                ("poker_policy_params", "poker_policy_params"),
+                ("soccer_policy_id", "soccer_policy_id"),
+                ("soccer_policy_params", "soccer_policy_params"),
+            ]:
+                trait = getattr(genome.behavioral, attr, None)
+                if trait is not None:
+                    meta = trait_meta.get(name)
+                    if isinstance(meta, dict):
+                        apply_trait_meta_to_trait(trait, meta)
+    except Exception:
+        logger.debug("Failed deserializing per-kind policies; keeping defaults", exc_info=True)
+
+    # DEPRECATED: Legacy code policy fields (kept for backward compatibility)
     try:
         from core.genetics.trait import GeneticTrait
 
@@ -232,7 +366,7 @@ def genome_from_dict(
             else:
                 genome.behavioral.code_policy_params.value = validated_params
 
-        # Apply trait metadata for code policy traits
+        # Apply trait metadata for legacy code policy traits
         if isinstance(trait_meta, dict):
             for name, trait in (
                 ("code_policy_kind", genome.behavioral.code_policy_kind),
@@ -244,7 +378,7 @@ def genome_from_dict(
                     if isinstance(meta, dict):
                         apply_trait_meta_to_trait(trait, meta)
     except Exception:
-        logger.debug("Failed deserializing code_policy; keeping defaults", exc_info=True)
+        logger.debug("Failed deserializing legacy code_policy; keeping defaults", exc_info=True)
 
     invalidate = getattr(genome, "invalidate_caches", None)
     if callable(invalidate):

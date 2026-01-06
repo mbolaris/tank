@@ -324,6 +324,10 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         for player in self._players.values():
             if player.team != team:
                 continue
+            # Use new per-kind field
+            player.genome.behavioral.soccer_policy_id = GeneticTrait(component_id)
+            player.genome.behavioral.soccer_policy_params = GeneticTrait(None)
+            # Also set legacy fields for backward compatibility
             player.genome.behavioral.code_policy_kind = GeneticTrait(SOCCER_POLICY_KIND)
             player.genome.behavioral.code_policy_component_id = GeneticTrait(component_id)
 
@@ -378,12 +382,20 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
                 return action
 
         # Fall back to legacy CodePool approach
-        policy_kind = player.genome.behavioral.code_policy_kind
-        component_id = player.genome.behavioral.code_policy_component_id
-        kind_val = policy_kind.value if policy_kind else None
-        comp_val = component_id.value if component_id else None
+        # First try new per-kind field, then legacy fields
+        soccer_id = player.genome.behavioral.soccer_policy_id
+        comp_val = soccer_id.value if soccer_id else None
 
-        if kind_val != SOCCER_POLICY_KIND or not comp_val or self.code_pool is None:
+        # Fallback to legacy fields if new field not set
+        if not comp_val:
+            policy_kind = player.genome.behavioral.code_policy_kind
+            component_id = player.genome.behavioral.code_policy_component_id
+            kind_val = policy_kind.value if policy_kind else None
+            comp_val = component_id.value if component_id else None
+            if kind_val != SOCCER_POLICY_KIND:
+                comp_val = None
+
+        if not comp_val or self.code_pool is None:
             return self._default_policy(player)
 
         func = self.code_pool.get_callable(comp_val)
