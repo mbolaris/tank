@@ -343,7 +343,6 @@ async def start_broadcast_for_world(
             mode_id=getattr(runner_or_adapter, "mode_id", "tank"),
             view_mode=getattr(runner_or_adapter, "view_mode", "side"),
             step_on_access=False,  # Tank worlds run their own loop
-            use_runner_state=True,
         )
     else:
         adapter = runner_or_adapter  # type: ignore

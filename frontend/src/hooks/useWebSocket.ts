@@ -203,16 +203,27 @@ export function useWebSocket(worldId?: string) {
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
-    // Optimization: Only create copies of entities that are actually modified.
-    // Previously we spread-copied ALL entities every frame, creating ~45 objects x 30fps = 1350 allocations/sec.
+    // V1 Schema: All payloads have nested snapshot structure
+    // Backend always sends delta.snapshot with updates/added/removed
 
-    // Resolve delta inputs (support both nested snapshot and legacy fields)
-    const updates = delta.snapshot?.updates ?? delta.updates ?? [];
-    const added = delta.snapshot?.added ?? delta.added ?? [];
-    const removed = delta.snapshot?.removed ?? delta.removed ?? [];
+    // Get delta data from snapshot (V1 schema)
+    const deltaSnapshot = delta.snapshot;
+    if (!deltaSnapshot) {
+        // Defensive: if no snapshot, return unchanged state
+        console.warn('applyDelta: Received delta without snapshot, ignoring');
+        return state;
+    }
 
-    // Resolve state inputs
-    const currentEntities = state.snapshot?.entities ?? state.entities ?? [];
+    const { updates, added, removed, frame: nextFrame, elapsed_time: nextElapsedTime, stats: deltaStats, poker_events: deltaEvents } = deltaSnapshot;
+
+    // Current state entities (from V1 snapshot)
+    const currentSnapshot = state.snapshot;
+    if (!currentSnapshot) {
+        console.warn('applyDelta: Current state has no snapshot, ignoring delta');
+        return state;
+    }
+
+    const currentEntities = currentSnapshot.entities;
 
     // Build a set of IDs to remove for O(1) lookup
     const removedIds = new Set(removed);
@@ -220,7 +231,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
     // Build a map of updates for O(1) lookup
     const updateMap = new Map(updates.map(u => [u.id, u]));
 
-    // Filter out removed entities and update existing ones IN PLACE where possible
+    // Optimization: Only create copies of entities that are actually modified.
     const entities = currentEntities
         .filter(e => !removedIds.has(e.id))
         .map(e => {
@@ -242,53 +253,44 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
 
     // Add new entities
     added.forEach(entity => {
-        // Only add if not already in the list (shouldn't happen but defensive)
         if (!entities.some(e => e.id === entity.id)) {
             entities.push(entity);
         }
     });
 
-    // Resolve other fields
-    const nextFrame = delta.snapshot?.frame ?? delta.frame ?? state.snapshot?.frame ?? state.frame ?? 0;
-    const nextElapsedTime = delta.snapshot?.elapsed_time ?? delta.elapsed_time ?? state.snapshot?.elapsed_time ?? state.elapsed_time ?? 0;
+    // Handle stats (use delta stats if present, otherwise preserve current)
+    const nextStats = deltaStats ?? currentSnapshot.stats;
 
-    // Handle stats
-    const nextStats = delta.snapshot?.stats ?? delta.stats ?? state.snapshot?.stats ?? state.stats!;
-
-    // Handle poker events
-    const deltaEvents = delta.snapshot?.poker_events ?? delta.poker_events;
-    const currentEvents = state.snapshot?.poker_events ?? state.poker_events ?? [];
+    // Handle poker events (use delta events if present, otherwise preserve current)
+    const currentEvents = currentSnapshot.poker_events ?? [];
     const nextEvents = (deltaEvents && deltaEvents.length > 0) ? deltaEvents.slice(-100) : currentEvents;
 
-    // Construct new snapshot if one exists or if we want to start maintaining one
-    const nextSnapshot = state.snapshot ? {
-        ...state.snapshot,
+    // Construct new snapshot
+    const nextSnapshot = {
+        ...currentSnapshot,
         frame: nextFrame,
         elapsed_time: nextElapsedTime,
         entities,
         stats: nextStats,
         poker_events: nextEvents,
-        // Preserve leaderboard if not in delta (commonly isn't)
-        poker_leaderboard: state.snapshot.poker_leaderboard,
-    } : undefined;
+    };
 
     return {
         ...state,
         world_id: delta.world_id ?? state.world_id,
         world_type: delta.world_type ?? state.world_type,
         view_mode: delta.view_mode ?? state.view_mode,
-        mode_id: (delta as any).mode_id ?? (state as any).mode_id ?? 'tank',
+        mode_id: delta.mode_id ?? state.mode_id ?? 'tank',
 
-        // Nested snapshot
+        // V1: Snapshot is the source of truth
         snapshot: nextSnapshot,
 
-        // Sync flattened fields
+        // Convenience fields (synced from snapshot for component access)
         frame: nextFrame,
         elapsed_time: nextElapsedTime,
         entities,
         poker_events: nextEvents,
         stats: nextStats,
-        // poker_leaderboard isn't usually in delta, so preserve state's
         poker_leaderboard: state.poker_leaderboard,
     };
 }

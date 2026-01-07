@@ -1,9 +1,9 @@
 """Tests for WorldSnapshotAdapter broadcast behavior.
 
 These tests verify:
-1. Tank runners get their state passthrough with actual force_full/allow_delta params
-2. Non-tank runners emit WorldUpdatePayload with mode_id and view_mode
-3. serialize_state handles both payload types correctly
+1. All runners delegate to runner.get_state() with correct params
+2. serialize_state uses to_json() from unified payload types
+3. step_on_access behavior is respected
 """
 
 from __future__ import annotations
@@ -14,17 +14,28 @@ from typing import Any
 
 @dataclass
 class MockFullStatePayload:
-    """Mock tank state payload with to_json method."""
+    """Mock state payload with to_json method (matches FullStatePayload interface)."""
 
     frame: int
     entities: list[Any]
     stats: dict[str, Any]
+    mode_id: str = "tank"
+    world_type: str = "tank"
+    view_mode: str = "side"
 
     def to_json(self) -> str:
         import json
 
         return json.dumps(
-            {"type": "full", "frame": self.frame, "entities": [], "stats": self.stats}
+            {
+                "type": "update",
+                "frame": self.frame,
+                "entities": [],
+                "stats": self.stats,
+                "mode_id": self.mode_id,
+                "world_type": self.world_type,
+                "view_mode": self.view_mode,
+            }
         )
 
 
@@ -42,7 +53,7 @@ class MockDeltaStatePayload:
 
 
 class MockTankRunner:
-    """Mock runner that behaves like TankWorldAdapter with get_state()."""
+    """Mock runner that behaves like SimulationRunner with get_state()."""
 
     def __init__(self) -> None:
         self.world_id = "mock-tank-id"
@@ -83,7 +94,7 @@ class MockTankRunner:
 
 
 class MockWorldRunner:
-    """Mock runner for non-tank worlds (petri, soccer)."""
+    """Mock runner for non-tank worlds (petri, soccer) with get_state()."""
 
     def __init__(self) -> None:
         self.world_id = "mock-petri-id"
@@ -92,12 +103,25 @@ class MockWorldRunner:
         self.view_mode = "topdown"
         self.frame_count = 50
         self.paused = False
+        self._step_count = 0
+
+    def get_state(self, force_full: bool = False, allow_delta: bool = True) -> MockFullStatePayload:
+        """All runners now implement get_state() with unified interface."""
+        return MockFullStatePayload(
+            frame=self.frame_count,
+            entities=[],
+            stats={"microbe_count": 5},
+            mode_id=self.mode_id,
+            world_type=self.world_type,
+            view_mode=self.view_mode,
+        )
 
     def get_entities_snapshot(self) -> list[Any]:
         return []
 
     def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
         self.frame_count += 1
+        self._step_count += 1
 
     def get_stats(self) -> dict[str, Any]:
         return {"microbe_count": 5}
@@ -109,11 +133,11 @@ class MockWorldRunner:
         self.frame_count = 0
 
 
-class TestWorldSnapshotAdapterTankBroadcast:
-    """Tests verifying tank broadcast path honors params and preserves state richness."""
+class TestWorldSnapshotAdapterUnifiedBehavior:
+    """Tests verifying unified adapter behavior for all runners."""
 
-    def test_tank_runner_get_state_passes_force_full_param(self) -> None:
-        """Verify force_full param is passed through to tank runner, not hardcoded."""
+    def test_adapter_passes_force_full_param_to_runner(self) -> None:
+        """Verify force_full param is passed through to runner.get_state()."""
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
         runner = MockTankRunner()
@@ -124,21 +148,20 @@ class TestWorldSnapshotAdapterTankBroadcast:
             mode_id=runner.mode_id,
             view_mode=runner.view_mode,
             step_on_access=False,
-            use_runner_state=True,
         )
 
-        # Call with force_full=False (the default that was being ignored)
+        # Call with force_full=False (delta mode)
         adapter.get_state(force_full=False, allow_delta=True)
         assert runner._last_force_full is False, "force_full should be passed through"
         assert runner._last_allow_delta is True, "allow_delta should be passed through"
 
-        # Call with force_full=True
+        # Call with force_full=True (full state mode)
         adapter.get_state(force_full=True, allow_delta=False)
         assert runner._last_force_full is True
         assert runner._last_allow_delta is False
 
-    def test_tank_runner_returns_rich_state_directly(self) -> None:
-        """Verify tank state is returned directly, not re-wrapped into minimal payload."""
+    def test_adapter_returns_runner_state_directly(self) -> None:
+        """Verify adapter returns runner's payload directly."""
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
         runner = MockTankRunner()
@@ -149,17 +172,16 @@ class TestWorldSnapshotAdapterTankBroadcast:
             mode_id=runner.mode_id,
             view_mode=runner.view_mode,
             step_on_access=False,
-            use_runner_state=True,
         )
 
         state = adapter.get_state(force_full=True, allow_delta=False)
 
-        # Should be the runner's payload directly, not WorldUpdatePayload
-        assert isinstance(state, MockFullStatePayload), "Tank state should be returned directly"
+        # Should be the runner's payload directly
+        assert isinstance(state, MockFullStatePayload), "State should be runner's payload"
         assert state.stats == {"fish_count": 10}, "Stats should be preserved"
 
-    def test_serialize_state_handles_tank_payload(self) -> None:
-        """Verify serialize_state works with tank payloads that have to_json()."""
+    def test_serialize_state_uses_to_json(self) -> None:
+        """Verify serialize_state uses to_json() method from unified payloads."""
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
         runner = MockTankRunner()
@@ -170,7 +192,6 @@ class TestWorldSnapshotAdapterTankBroadcast:
             mode_id=runner.mode_id,
             view_mode=runner.view_mode,
             step_on_access=False,
-            use_runner_state=True,
         )
 
         state = adapter.get_state(force_full=True)
@@ -180,35 +201,53 @@ class TestWorldSnapshotAdapterTankBroadcast:
         assert b'"fish_count": 10' in serialized or b'"fish_count":10' in serialized
 
 
-class TestWorldSnapshotAdapterNonTankBroadcast:
-    """Tests verifying non-tank worlds emit WorldUpdatePayload with mode_id."""
+class TestWorldSnapshotAdapterStepOnAccess:
+    """Tests verifying step_on_access behavior."""
 
-    def test_non_tank_runner_returns_world_update_payload(self) -> None:
-        """Verify non-tank runners return WorldUpdatePayload with mode_id/view_mode."""
-        from backend.snapshots.world_snapshot import WorldUpdatePayload
+    def test_step_on_access_true_steps_world(self) -> None:
+        """Verify step_on_access=True causes world to step before getting state."""
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
         runner = MockWorldRunner()
+        initial_step_count = runner._step_count
         adapter = WorldSnapshotAdapter(
             world_id=runner.world_id,
             runner=runner,  # type: ignore[arg-type]
             world_type=runner.world_type,
             mode_id=runner.mode_id,
             view_mode=runner.view_mode,
-            step_on_access=False,  # Don't step for this test
-            use_runner_state=False,
+            step_on_access=True,
         )
 
-        state = adapter.get_state()
+        adapter.get_state()
 
-        assert isinstance(state, WorldUpdatePayload)
-        assert state.mode_id == "petri"
-        assert state.view_mode == "topdown"
-        assert state.snapshot.frame == 50
-        assert state.snapshot.world_type == "petri"
+        assert runner._step_count == initial_step_count + 1, "World should have been stepped"
 
-    def test_serialize_state_handles_world_update_payload(self) -> None:
-        """Verify serialize_state works with WorldUpdatePayload."""
+    def test_step_on_access_false_does_not_step(self) -> None:
+        """Verify step_on_access=False does not step the world."""
+        from backend.world_broadcast_adapter import WorldSnapshotAdapter
+
+        runner = MockWorldRunner()
+        initial_step_count = runner._step_count
+        adapter = WorldSnapshotAdapter(
+            world_id=runner.world_id,
+            runner=runner,  # type: ignore[arg-type]
+            world_type=runner.world_type,
+            mode_id=runner.mode_id,
+            view_mode=runner.view_mode,
+            step_on_access=False,
+        )
+
+        adapter.get_state()
+
+        assert runner._step_count == initial_step_count, "World should not have been stepped"
+
+
+class TestWorldSnapshotAdapterNonTankWorlds:
+    """Tests verifying non-tank worlds work with unified path."""
+
+    def test_non_tank_runner_uses_unified_get_state(self) -> None:
+        """Verify non-tank runners use the same get_state() interface."""
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
         runner = MockWorldRunner()
@@ -219,7 +258,28 @@ class TestWorldSnapshotAdapterNonTankBroadcast:
             mode_id=runner.mode_id,
             view_mode=runner.view_mode,
             step_on_access=False,
-            use_runner_state=False,
+        )
+
+        state = adapter.get_state()
+
+        # Should return FullStatePayload-like object with mode_id
+        assert isinstance(state, MockFullStatePayload)
+        assert state.mode_id == "petri"
+        assert state.view_mode == "topdown"
+        assert state.frame == 50
+
+    def test_non_tank_serialize_state_works(self) -> None:
+        """Verify serialize_state works with non-tank payloads."""
+        from backend.world_broadcast_adapter import WorldSnapshotAdapter
+
+        runner = MockWorldRunner()
+        adapter = WorldSnapshotAdapter(
+            world_id=runner.world_id,
+            runner=runner,  # type: ignore[arg-type]
+            world_type=runner.world_type,
+            mode_id=runner.mode_id,
+            view_mode=runner.view_mode,
+            step_on_access=False,
         )
 
         state = adapter.get_state()

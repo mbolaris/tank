@@ -24,10 +24,15 @@ export class TankSideRenderer implements Renderer {
         const { ctx, canvas } = rc;
         const state = frame.snapshot;
 
-        // Extract entities from nested snapshot structure (new format) or top-level (legacy)
-        const entities: EntityData[] = state?.snapshot?.entities ?? state?.entities ?? [];
-        const stats = state?.snapshot?.stats ?? state?.stats;
-        const elapsedTime = state?.snapshot?.elapsed_time ?? state?.elapsed_time ?? 0;
+        // V1 Schema: Extract data from the required snapshot structure
+        const snapshot = state?.snapshot;
+        if (!snapshot) {
+            return; // No data to render
+        }
+
+        const entities: EntityData[] = snapshot.entities ?? [];
+        const stats = snapshot.stats;
+        const elapsedTime = snapshot.elapsed_time ?? 0;
 
         // Initialize or re-initialize legacy renderer if context changes
         if (!this.legacyRenderer || this.currentCtx !== ctx) {

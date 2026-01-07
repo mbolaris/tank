@@ -63,6 +63,7 @@ class SimulationRunner(CommandHandlerMixin):
         """
         super().__init__()
         self.world_manager = world_manager
+        self._seed = seed  # Store for later use (e.g., switch_world_type)
         # Create world via registry (world-agnostic)
         self.world, self._entity_snapshot_builder = create_world(world_type, seed=seed)
 
@@ -230,11 +231,13 @@ class SimulationRunner(CommandHandlerMixin):
 
             # Set up the new adapter
             new_world = PetriWorldBackendAdapter(
-                seed=self.seed,
+                seed=self._seed,
                 config=self.world.config if hasattr(self.world, "config") else None,
             )
             new_world.supports_fast_step = True
             new_world._last_step_result = None
+            # Initialize the new world (required before step())
+            new_world.reset()
         else:
             # Switching to tank - just use the tank backend directly
             new_world = tank_backend
@@ -523,8 +526,8 @@ class SimulationRunner(CommandHandlerMixin):
     def paused(self, value: bool) -> None:
         """Set the simulation paused state."""
         self.world.set_paused(value)
-        # Also set the attribute directly for backward compatibility with
-        # tests and external code that expects the attribute to exist.
+        # Also set the attribute directly so tests and external code
+        # that access the attribute directly see the correct value.
         if hasattr(self.world, "paused"):
             self.world.paused = value
 

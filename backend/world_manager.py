@@ -377,8 +377,8 @@ class WorldManager:
 
         from backend.world_broadcast_adapter import WorldSnapshotAdapter
 
+        # Tank/petri worlds have their own run loop, non-tank worlds step on access
         step_on_access = not instance.is_tank()
-        use_runner_state = instance.is_tank()
 
         adapter = WorldSnapshotAdapter(
             world_id=instance.world_id,
@@ -387,7 +387,6 @@ class WorldManager:
             mode_id=instance.mode_id,
             view_mode=instance.view_mode,
             step_on_access=step_on_access,
-            use_runner_state=use_runner_state,
         )
         instance.broadcast_adapter = adapter
         return adapter
