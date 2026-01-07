@@ -98,6 +98,10 @@ class TestSoccerEvolutionRunner:
         assert elapsed < 5.0, f"Smoke test took too long: {elapsed:.2f}s"
         assert len(result.generations) == 2
 
+        # Verify best genome has soccer policy traits
+        assert hasattr(result.best_genome.behavioral, "soccer_policy_id")
+        assert result.best_genome.behavioral.soccer_policy_id.value is not None
+
     def test_generation_stats_structure(self):
         """GenerationStats has correct structure."""
         result = run_generations(
