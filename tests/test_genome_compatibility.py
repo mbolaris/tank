@@ -88,8 +88,12 @@ def test_old_genome_loads_with_migration():
     g = Genome.from_dict(legacy_genome_data, rng=rng, use_algorithm=False)
 
     # Verified migration to per-kind fields
-    assert g.behavioral.movement_policy_id.value == "test_legacy_id"
-    assert g.behavioral.movement_policy_params.value == {"legacy_param": 1.0}
+    # NEW BEHAVIOR: Legacy migration is removed, so we expect defaults (ignoring legacy ID)
+    from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
+
+    assert g.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
+    # Params should be None or default, definitively NOT the legacy param
+    assert g.behavioral.movement_policy_params.value is None
 
     # Poker/Soccer should be empty
     assert g.behavioral.poker_policy_id.value is None
