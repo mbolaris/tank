@@ -1,4 +1,4 @@
-"""Tank Survival Benchmark (30k frames).
+"""Tank Survival Benchmark (5k frames).
 
 Measures the stability and robustness of the ecosystem over a medium duration.
 Score is calculated based on integral energy and population stability.
@@ -11,7 +11,8 @@ from typing import Any, Dict
 from core.worlds import WorldRegistry
 
 BENCHMARK_ID = "tank/survival_5k"
-FRAMES = 5000  # Reduced for MVP verification (was 30000)
+FRAMES = 5000
+METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
 
 
 def run(seed: int) -> Dict[str, Any]:
@@ -46,25 +47,37 @@ def run(seed: int) -> Dict[str, Any]:
     total_energy_integral = 0.0
     total_pop_integral = 0
     extinctions = 0
+    samples = 0
 
-    # Run loop
+    # Track last sample values for interpolation
+    last_energy = 0.0
+    last_pop = 0
+
+    # Run loop - use update() for fast stepping, sample metrics periodically
     for i in range(FRAMES):
-        world.step()
+        # Use fast step path (no events/metrics collection)
+        world.update()
 
-        # Accumulate metrics - disable distributions for speed
-        metrics = world.get_current_metrics(include_distributions=False)
-        entities = world.get_entities_for_snapshot()
+        # Sample metrics periodically (every METRICS_INTERVAL frames) or on last frame
+        if (i + 1) % METRICS_INTERVAL == 0 or i == FRAMES - 1:
+            metrics = world.get_current_metrics(include_distributions=False)
+            entities = world.get_entities_for_snapshot()
 
-        total_energy_integral += metrics.get("total_energy", 0)
-        total_pop_integral += len(entities)
+            last_energy = metrics.get("total_energy", 0)
+            last_pop = len(entities)
+            samples += 1
 
-        # Check specific failure modes
-        if len(entities) == 0:
-            extinctions += 1
-            break
+            # Check specific failure modes
+            if last_pop == 0:
+                extinctions += 1
+                break
 
-        if (i + 1) % 1000 == 0:
-            print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
+            if (i + 1) % 1000 == 0:
+                print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
+
+        # Accumulate using last sampled values (cheaper than sampling every frame)
+        total_energy_integral += last_energy
+        total_pop_integral += last_pop
 
     runtime = time.time() - start_time
 
@@ -88,6 +101,7 @@ def run(seed: int) -> Dict[str, Any]:
             "avg_energy": avg_energy,
             "avg_pop": avg_pop,
             "extinct": extinctions > 0,
+            "samples": samples,
         },
     }
 

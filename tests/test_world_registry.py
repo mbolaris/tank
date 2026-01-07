@@ -88,7 +88,7 @@ class TestTankWorldBackendAdapter:
         """Test basic adapter initialization."""
         adapter = TankWorldBackendAdapter(seed=42)
         assert adapter._seed == 42
-        assert adapter._world is None
+        assert adapter._engine is None
         assert adapter._current_frame == 0
 
     def test_reset_returns_step_result(self):
@@ -108,9 +108,9 @@ class TestTankWorldBackendAdapter:
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
         adapter.reset(seed=42)
 
-        assert adapter._world is not None
-        assert adapter._world.frame_count == 0
-        assert len(adapter._world.entities_list) > 0  # Should have initial entities
+        assert adapter._engine is not None
+        assert adapter._engine.frame_count == 0
+        assert len(adapter._engine.entities_list) > 0  # Should have initial entities
 
     def test_reset_with_seed_override(self):
         """Test that reset() can override constructor seed."""
@@ -145,12 +145,12 @@ class TestTankWorldBackendAdapter:
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
         adapter.reset(seed=42)
 
-        initial_frame = adapter._world.frame_count
+        initial_frame = adapter._engine.frame_count
         adapter.step()
-        assert adapter._world.frame_count == initial_frame + 1
+        assert adapter._engine.frame_count == initial_frame + 1
 
         adapter.step()
-        assert adapter._world.frame_count == initial_frame + 2
+        assert adapter._engine.frame_count == initial_frame + 2
 
     def test_get_current_snapshot(self):
         """Test get_current_snapshot() returns valid snapshot."""
@@ -222,12 +222,12 @@ class TestTankWorldBackendAdapter:
         adapter.reset(seed=42)
         adapter.step()
         adapter.step()
-        frame_after_steps = adapter._world.frame_count
+        frame_after_steps = adapter._engine.frame_count
         assert frame_after_steps > 0
 
         # Reset and verify state is cleared
         adapter.reset(seed=42)
-        assert adapter._world.frame_count == 0
+        assert adapter._engine.frame_count == 0
         assert adapter._current_frame == 0
 
     def test_deterministic_reset_with_same_seed(self):
@@ -248,15 +248,18 @@ class TestTankWorldBackendAdapter:
         assert result1.snapshot["width"] == result2.snapshot["width"]
         assert result1.snapshot["height"] == result2.snapshot["height"]
 
-    def test_world_property_access(self):
-        """Test that world property provides access to underlying TankWorld."""
+    def test_engine_access_via_property(self):
+        """Test that engine property provides access to underlying SimulationEngine."""
         adapter = TankWorldBackendAdapter(seed=42)
-        assert adapter.world is None
+
+        # Before reset, should raise
+        with pytest.raises(RuntimeError, match="World not initialized"):
+            _ = adapter.engine
 
         adapter.reset(seed=42)
-        assert adapter.world is not None
-        assert hasattr(adapter.world, "engine")
-        assert hasattr(adapter.world, "entities_list")
+        assert adapter.engine is not None
+        assert hasattr(adapter.engine, "update")
+        assert hasattr(adapter.engine, "entities_list")
 
 
 class TestTankWorldBackendAdapterCompatibility:
@@ -375,9 +378,9 @@ class TestTankWorldBackendAdapterCompatibility:
 
         # setup() should create and initialize the world
         adapter.setup()
-        assert adapter._world is not None
-        assert adapter._world.frame_count == 0
-        assert len(adapter._world.entities_list) > 0
+        assert adapter._engine is not None
+        assert adapter._engine.frame_count == 0
+        assert len(adapter._engine.entities_list) > 0
 
     def test_update_method(self):
         """Test update() compatibility method."""

@@ -99,3 +99,24 @@ def run(seed: int) -> Dict[str, Any]:
             "team_energy_right": final_fitness["team_fitness"]["right"],
         },
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--verify-determinism", action="store_true")
+    args = parser.parse_args()
+
+    if args.verify_determinism:
+        res1 = run(args.seed)
+        res2 = run(args.seed)
+        if res1["score"] != res2["score"]:
+            print(f"DETERMINISM FAILED: {res1['score']} != {res2['score']}", file=sys.stderr)
+            sys.exit(1)
+        print(f"DETERMINISM PASSED: {res1['score']}")
+    else:
+        result = run(args.seed)
+        print(json.dumps(result, indent=2))

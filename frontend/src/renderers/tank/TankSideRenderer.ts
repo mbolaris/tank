@@ -1,11 +1,11 @@
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
-import { Renderer as LegacyRenderer } from '../../utils/renderer';
+import { Renderer as TankRenderer } from '../../utils/renderer';
 import type { EntityData } from '../../types/simulation';
 
 export class TankSideRenderer implements Renderer {
     id = "tank-side";
-    private legacyRenderer: LegacyRenderer | null = null;
+    private tankRenderer: TankRenderer | null = null;
     private currentCtx: CanvasRenderingContext2D | null = null;
 
     // Tank world dimensions (from core/constants.py & Canvas.tsx)
@@ -13,9 +13,9 @@ export class TankSideRenderer implements Renderer {
     private readonly WORLD_HEIGHT = 612;
 
     dispose() {
-        if (this.legacyRenderer) {
-            this.legacyRenderer.dispose();
-            this.legacyRenderer = null;
+        if (this.tankRenderer) {
+            this.tankRenderer.dispose();
+            this.tankRenderer = null;
         }
         this.currentCtx = null;
     }
@@ -34,16 +34,16 @@ export class TankSideRenderer implements Renderer {
         const stats = snapshot.stats;
         const elapsedTime = snapshot.elapsed_time ?? 0;
 
-        // Initialize or re-initialize legacy renderer if context changes
-        if (!this.legacyRenderer || this.currentCtx !== ctx) {
-            if (this.legacyRenderer) {
-                this.legacyRenderer.dispose();
+        // Initialize or re-initialize tank renderer if context changes
+        if (!this.tankRenderer || this.currentCtx !== ctx) {
+            if (this.tankRenderer) {
+                this.tankRenderer.dispose();
             }
-            this.legacyRenderer = new LegacyRenderer(ctx);
+            this.tankRenderer = new TankRenderer(ctx);
             this.currentCtx = ctx;
         }
 
-        const r = this.legacyRenderer;
+        const r = this.tankRenderer;
 
         // Calculate scale to fit world in canvas
         // This logic matches Canvas.tsx

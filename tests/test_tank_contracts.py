@@ -100,10 +100,8 @@ class TestObservationBuilder:
         for _ in range(10):
             adapter.step()
 
-        world = adapter.world
-        assert world is not None
-
-        observations = build_tank_observations(world)
+        # The adapter itself is the world interface now
+        observations = build_tank_observations(adapter)
 
         # Should have at least one fish observation
         assert len(observations) > 0
@@ -139,11 +137,9 @@ class TestActionBridge:
         for _ in range(10):
             adapter.step()
 
-        world = adapter.world
-        assert world is not None
-
-        observations = build_tank_observations(world)
-        actions = decide_actions(observations, world, rng=random.Random(42))
+        # The adapter itself is the world interface now
+        observations = build_tank_observations(adapter)
+        actions = decide_actions(observations, adapter, rng=random.Random(42))
 
         # Should have an action for each observation
         assert len(actions) == len(observations)
@@ -168,15 +164,13 @@ class TestActionBridge:
         for _ in range(20):
             adapter.step()
 
-        world = adapter.world
-        assert world is not None
-
-        observations = build_tank_observations(world)
-        actions = decide_actions(observations, world, rng=random.Random(42))
+        # The adapter itself is the world interface now
+        observations = build_tank_observations(adapter)
+        actions = decide_actions(observations, adapter, rng=random.Random(42))
 
         # Build fish lookup
         fish_by_id = {}
-        for entity in world.entities_list:
+        for entity in adapter.entities_list:
             if isinstance(entity, Fish):
                 fish_by_id[str(entity.fish_id)] = entity
 

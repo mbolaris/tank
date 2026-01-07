@@ -21,7 +21,7 @@ ObservationMap = BrainObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.legacy.tank_world import TankWorld
+    from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
 # Perception radius for nearby entities (matches existing fish detection)
@@ -29,7 +29,7 @@ DEFAULT_PERCEPTION_RADIUS = 200.0
 
 
 def build_tank_observations(
-    world: TankWorld,
+    world: TankWorldBackendAdapter,
     config: dict[str, Any] | None = None,
 ) -> ObservationMap:
     """Build per-agent observations from Tank world state.

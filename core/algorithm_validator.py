@@ -289,11 +289,12 @@ class AlgorithmValidator:
         Returns:
             Performance metrics dict
         """
-        from core.legacy.tank_world import TankWorld
+        from core.worlds import WorldRegistry
 
-        # Create simulation with seed
-        tank_world = TankWorld(seed=seed)
-        engine = tank_world.engine
+        # Create simulation via WorldRegistry
+        world = WorldRegistry.create_world("tank", seed=seed)
+        world.reset(seed=seed)
+        engine = world.engine
 
         # Run simulation
         logger.info(f"  Running {self.test_frames} frame simulation...")

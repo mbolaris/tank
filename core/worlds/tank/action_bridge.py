@@ -24,12 +24,12 @@ ObservationMap = BrainObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.legacy.tank_world import TankWorld
+    from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
 def decide_actions(
     observations: ObservationMap,
-    world: TankWorld,
+    world: TankWorldBackendAdapter,
     rng: random.Random | None = None,
 ) -> ActionMap:
     """Call existing fish decision path and translate to Actions.
@@ -83,7 +83,7 @@ def decide_actions(
 
 def apply_actions(
     actions: ActionMap,
-    world: TankWorld,
+    world: TankWorldBackendAdapter,
 ) -> None:
     """Apply actions to fish entities.
 
