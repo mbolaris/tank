@@ -6,7 +6,7 @@ evaluates fitness, and selects/mutates genomes for the next generation.
 
 Fitness Formula:
     fitness = total_team_energy + (goals_scored * goal_weight)
-    
+
 Energy-focused evolution ensures continuity with the tank evolution patterns
 where survival (energy management) is the primary selection pressure.
 """
