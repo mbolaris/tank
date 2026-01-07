@@ -915,6 +915,16 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._paused = value
 
     @property
+    def frame_count(self) -> int:
+        """Current frame count of the simulation."""
+        return self._frame
+
+    @frame_count.setter
+    def frame_count(self, value: int) -> None:
+        """Set the frame count (usually for reset)."""
+        self._frame = value
+
+    @property
     def is_paused(self) -> bool:
         """Whether the simulation is paused (protocol method)."""
         return self._paused

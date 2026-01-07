@@ -909,11 +909,13 @@ class SimulationRunner(CommandHandlerMixin):
         elapsed_time = self.world.frame_count * 33
 
         # Check if we can access the engine's elapsed_time directly or via adapter
-        if hasattr(self.world, "engine") and hasattr(self.world.engine, "elapsed_time"):
-            elapsed_time = self.world.engine.elapsed_time
+        engine = getattr(self.world, "engine", None)
+        if engine is not None and hasattr(engine, "elapsed_time"):
+            elapsed_time = engine.elapsed_time
         elif (
             hasattr(self.world, "world")
             and hasattr(self.world.world, "engine")
+            and self.world.world.engine is not None
             and hasattr(self.world.world.engine, "elapsed_time")
         ):
             # Handle TankWorldBackendAdapter
@@ -1225,7 +1227,10 @@ class SimulationRunner(CommandHandlerMixin):
 
     def _collect_poker_events(self) -> List[PokerEventPayload]:
         poker_events: List[PokerEventPayload] = []
-        recent_events = self.world.engine.poker_events
+
+        # Use world-agnostic API instead of reaching into engine
+        recent_events = self.world.get_recent_poker_events(max_age_frames=60)
+
         for event in recent_events:
             if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
                 continue
