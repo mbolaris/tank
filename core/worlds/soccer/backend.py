@@ -269,7 +269,8 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
     def _process_actions(self, actions_by_agent: Dict[str, Any]) -> None:
         """Process actions from all agents.
 
-        Supports both normalized format (turn/dash) and legacy format (move_target/face_angle).
+        Only supports normalized format (turn/dash/kick_power/kick_angle).
+        Legacy formats are rejected.
         """
         import math
 
@@ -279,7 +280,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
             player = self._players[player_id]
 
-            # Parse action - try normalized first, then legacy
+            # Parse action
             action = self._parse_action(action_data, player)
             if action is None or not action.is_valid():
                 logger.warning(f"Invalid action for {player_id}")
@@ -329,8 +330,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
     def _parse_action(self, action_data: Any, player: Player) -> Optional[SoccerAction]:
         """Parse action from dict - normalized format only.
 
-        Legacy move_target/face_angle formats are no longer supported.
-        Use SoccerAction with turn/dash/kick_power/kick_angle instead.
+        Legacy move_target/face_angle formats are NOT supported and will return None.
         """
         if isinstance(action_data, SoccerAction):
             return action_data
@@ -339,10 +339,16 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             return None
 
         # Only normalized format (turn/dash) is supported
-        if "turn" in action_data or "dash" in action_data:
+        # We also check for kick_power/kick_angle as valid components of a normalized action
+        if (
+            "turn" in action_data
+            or "dash" in action_data
+            or "kick_power" in action_data
+            or "kick_angle" in action_data
+        ):
             return SoccerAction.from_dict(action_data)
 
-        # Legacy formats are rejected - log warning for debugging
+        # Legacy formats are explicitly rejected
         if "move_target" in action_data or "face_angle" in action_data:
             logger.warning(
                 "Legacy soccer action format (move_target/face_angle) is no longer supported. "
@@ -350,8 +356,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             )
             return None
 
-        # Try to parse as SoccerAction anyway (kick_power/kick_angle only)
-        return SoccerAction.from_dict(action_data)
+        return None
 
     @staticmethod
     def _normalize_angle(angle: float) -> float:

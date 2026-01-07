@@ -29,13 +29,6 @@ from core.worlds.soccer_training.config import (
     DEFAULT_TEAM_SIZE,
 )
 
-LEGACY_KEY_ALIASES = {
-    "width": "field_width",
-    "height": "field_height",
-    "fps": "frame_rate",
-    "players_per_team": "team_size",
-}
-
 SOCCER_TRAINING_DEFAULTS = {
     "field_width": DEFAULT_FIELD_WIDTH,
     "field_height": DEFAULT_FIELD_HEIGHT,
@@ -64,10 +57,6 @@ SOCCER_TRAINING_DEFAULTS = {
 
 def _normalize_soccer_training_config(config: ModeConfig) -> ModeConfig:
     normalized: dict[str, Any] = dict(config)
-
-    for legacy_key, canonical_key in LEGACY_KEY_ALIASES.items():
-        if legacy_key in normalized and canonical_key not in normalized:
-            normalized[canonical_key] = normalized.pop(legacy_key)
 
     for key, default in SOCCER_TRAINING_DEFAULTS.items():
         normalized.setdefault(key, default)

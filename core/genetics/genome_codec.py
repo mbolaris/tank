@@ -254,32 +254,6 @@ def genome_from_dict(
             if policy_params is not None:
                 setattr(genome.behavioral, params_attr, GeneticTrait(policy_params))
 
-        # Migration: if new fields are empty, migrate from legacy fields
-        # Check if all new policy id fields are empty
-        has_new_policies = any(
-            getattr(genome.behavioral, attr, None) is not None
-            and getattr(genome.behavioral, attr).value is not None
-            for attr in ("movement_policy_id", "poker_policy_id", "soccer_policy_id")
-        )
-
-        if not has_new_policies:
-            # Try to migrate from legacy single-policy fields
-            legacy_kind = data.get("code_policy_kind")
-            legacy_id = data.get("code_policy_component_id")
-            legacy_params = _deserialize_params(data.get("code_policy_params"))
-
-            if legacy_kind and legacy_id:
-                # Map legacy kind to new per-kind field
-                if legacy_kind == "movement_policy":
-                    genome.behavioral.movement_policy_id = GeneticTrait(str(legacy_id))
-                    genome.behavioral.movement_policy_params = GeneticTrait(legacy_params)
-                elif legacy_kind == "poker_policy":
-                    genome.behavioral.poker_policy_id = GeneticTrait(str(legacy_id))
-                    genome.behavioral.poker_policy_params = GeneticTrait(legacy_params)
-                elif legacy_kind == "soccer_policy":
-                    genome.behavioral.soccer_policy_id = GeneticTrait(str(legacy_id))
-                    genome.behavioral.soccer_policy_params = GeneticTrait(legacy_params)
-
         # Apply trait metadata for new per-kind policy fields
         if isinstance(trait_meta, dict):
             for name, attr in [
@@ -297,41 +271,6 @@ def genome_from_dict(
                         apply_trait_meta_to_trait(trait, meta)
     except Exception:
         logger.debug("Failed deserializing per-kind policies; keeping defaults", exc_info=True)
-
-    # Migration: Read legacy fields and populate per-kind fields if not already set
-    # (This handles old genomes that use the single-policy system)
-    try:
-        from core.genetics.trait import GeneticTrait
-
-        legacy_kind = data.get("code_policy_kind")
-        legacy_id = data.get("code_policy_component_id")
-        legacy_params = data.get("code_policy_params")
-
-        # Only migrate if we have legacy data and the corresponding per-kind field is empty
-        if legacy_kind and legacy_id:
-            # Map legacy kind to new per-kind field
-            kind_to_attr = {
-                "movement_policy": ("movement_policy_id", "movement_policy_params"),
-                "poker_policy": ("poker_policy_id", "poker_policy_params"),
-                "soccer_policy": ("soccer_policy_id", "soccer_policy_params"),
-            }
-            attr_pair = kind_to_attr.get(legacy_kind)
-            if attr_pair:
-                id_attr, params_attr = attr_pair
-                # Check if new field was present in INPUT DATA (not just on the object, which has defaults)
-                # If absent from input data, we accept migration from legacy fields
-                if data.get(id_attr) is None:
-                    setattr(genome.behavioral, id_attr, GeneticTrait(str(legacy_id)))
-                    if legacy_params and isinstance(legacy_params, dict):
-                        validated_params = {}
-                        for key, val in legacy_params.items():
-                            try:
-                                validated_params[str(key)] = float(val)
-                            except (TypeError, ValueError):
-                                pass
-                        setattr(genome.behavioral, params_attr, GeneticTrait(validated_params))
-    except Exception:
-        logger.debug("Failed migrating legacy code_policy fields", exc_info=True)
 
     invalidate = getattr(genome, "invalidate_caches", None)
     if callable(invalidate):

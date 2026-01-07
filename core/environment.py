@@ -7,13 +7,10 @@ for agents in the simulation.
 import math
 import random
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
 from core.entities import Agent, Food
 from core.interfaces import MigrationHandler
-
-if TYPE_CHECKING:
-    from core.code_pool import CodePool
 
 # Type alias for energy delta recorder callback
 # Signature: (entity, delta, source, metadata) -> None
@@ -614,7 +611,6 @@ class Environment:
         time_system: Optional[Any] = None,
         rng: Optional[random.Random] = None,
         event_bus: Optional[Any] = None,
-        code_pool: Optional["CodePool"] = None,
         simulation_config: Optional[Any] = None,
     ):
         """
@@ -638,16 +634,12 @@ class Environment:
         from core.util.rng import require_rng_param
 
         self._rng = require_rng_param(rng, "__init__")
-        if code_pool is None:
-            # Default to GenomeCodePool with all builtins for better safety + determinism
-            from core.code_pool import create_default_genome_code_pool
+        self._rng = require_rng_param(rng, "__init__")
 
-            self.genome_code_pool = create_default_genome_code_pool()
-            self.code_pool = self.genome_code_pool.pool  # Migration support
-        else:
-            # Legacy CodePool provided
-            self.code_pool = code_pool
-            self.genome_code_pool = None  # Set explicitly if needed
+        # Default to GenomeCodePool with all builtins for better safety + determinism
+        from core.code_pool import create_default_genome_code_pool
+
+        self.genome_code_pool = create_default_genome_code_pool()
 
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled

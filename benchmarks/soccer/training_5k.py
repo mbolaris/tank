@@ -8,8 +8,8 @@ import sys
 import time
 from typing import Any, Dict
 
-from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
 from core.worlds.soccer_training.config import SoccerTrainingConfig
+from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
 
 BENCHMARK_ID = "soccer/training_5k"
 FRAMES = 5000
@@ -36,35 +36,9 @@ def run(seed: int) -> Dict[str, Any]:
     world = SoccerTrainingWorldBackendAdapter(seed=seed, config=config)
     world.reset(seed=seed)
 
-    # Metrics accumulators
-    total_possession_left = 0
-    total_possession_right = 0
-    goals_left = 0
-    goals_right = 0
-    total_energy = 0.0
-
     # Run loop
     for i in range(FRAMES):
-        result = world.step()
-
-        # Track goals from events
-        for event in result.events:
-            if event.get("type") == "goal":
-                if event.get("team") == "left":
-                    goals_left += 1
-                else:
-                    goals_right += 1
-
-        # Track possession and energy
-        metrics = world.get_current_metrics()
-        if "score_left" in metrics:
-            # Use cumulative possession from player stats via fitness summary
-            pass
-
-        # Sum player energies
-        fitness = world.get_fitness_summary()
-        for player_data in fitness.get("agent_fitness", {}).values():
-            total_energy += player_data.get("energy", 0)
+        world.step()
 
         if (i + 1) % 1000 == 0:
             print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
@@ -72,7 +46,8 @@ def run(seed: int) -> Dict[str, Any]:
     runtime = time.time() - start_time
 
     # Final metrics
-    final_metrics = world.get_current_metrics()
+    # Final metrics
+    world.get_current_metrics()
     final_fitness = world.get_fitness_summary()
 
     # Calculate score

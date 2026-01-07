@@ -81,7 +81,7 @@ class PackableEngine(Protocol):
     config: SimulationConfig
     rng: random.Random
     event_bus: Any
-    code_pool: Any
+    genome_code_pool: Any
     environment: environment.Environment | None
     ecosystem: EcosystemManager | None
     plant_manager: PlantManager | None

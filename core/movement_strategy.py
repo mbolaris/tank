@@ -204,7 +204,7 @@ class AlgorithmicMovement(MovementStrategy):
         Delegates to the movement_policy_runner to handle:
         - Extraction of policy ID from genome
         - Safety checks and validation
-        - Execution via GenomeCodePool (preferred) or legacy CodePool (fallback)
+        - Execution via GenomeCodePool
         """
         from core.policies.movement_policy_runner import run_movement_policy
 

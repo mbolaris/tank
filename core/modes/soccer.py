@@ -28,14 +28,6 @@ from core.worlds.soccer.config import (
     DEFAULT_TEAM_SIZE,
 )
 
-# Legacy key aliases for backwards compatibility
-LEGACY_KEY_ALIASES = {
-    "width": "field_width",
-    "height": "field_height",
-    "fps": "frame_rate",
-    "players_per_team": "team_size",
-}
-
 # Default configuration values
 SOCCER_MODE_DEFAULTS = {
     # Field dimensions
@@ -78,11 +70,6 @@ def _normalize_soccer_config(config: ModeConfig) -> ModeConfig:
         Normalized configuration with all defaults applied
     """
     normalized: dict[str, Any] = dict(config)
-
-    # Handle legacy key aliases
-    for legacy_key, canonical_key in LEGACY_KEY_ALIASES.items():
-        if legacy_key in normalized and canonical_key not in normalized:
-            normalized[canonical_key] = normalized.pop(legacy_key)
 
     # Apply defaults for missing keys
     for key, default in SOCCER_MODE_DEFAULTS.items():

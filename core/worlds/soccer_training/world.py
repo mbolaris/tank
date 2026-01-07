@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.code_pool import CodePool, GenomeCodePool
+from core.code_pool import GenomeCodePool
 from core.entities.base import LifeStage
 from core.fish.energy_component import EnergyComponent
 from core.genetics import Genome
@@ -124,7 +124,6 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: int | None = None,
         config: SoccerTrainingConfig | None = None,
-        code_pool: CodePool | None = None,
         genome_code_pool: GenomeCodePool | None = None,
         **config_overrides: Any,
     ) -> None:
@@ -144,8 +143,7 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self._last_touch: tuple[PlayerID, TeamID, int] | None = None
         self._prev_touch: tuple[PlayerID, TeamID, int] | None = None
 
-        # Support both old CodePool and new GenomeCodePool
-        self.code_pool = code_pool
+        # GenomeCodePool support
         self.genome_code_pool = genome_code_pool
         self.supports_fast_step = True
 
@@ -372,34 +370,13 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         return actions
 
     def _action_from_policy(self, player: SoccerPlayer) -> SoccerAction:
-        # Try GenomeCodePool first (preferred for safety + determinism)
+        # Try GenomeCodePool (preferred for safety + determinism)
         if self.genome_code_pool is not None:
             action = self._action_from_genome_pool(player)
             if action is not None:
                 return action
 
-        # Fall back to legacy CodePool approach
-        soccer_id = player.genome.behavioral.soccer_policy_id
-        comp_val = soccer_id.value if soccer_id else None
-
-        if not comp_val or self.code_pool is None:
-            return self._default_policy(player)
-
-        func = self.code_pool.get_callable(comp_val)
-        if func is None:
-            return self._default_policy(player)
-
-        observation = self._build_observation(player)
-        try:
-            output = func(observation, self._rng)
-        except Exception as exc:  # pragma: no cover - defensive guard
-            logger.warning("Soccer policy %s failed: %s", comp_val, exc)
-            return self._default_policy(player)
-
-        action = self._coerce_action(output, player)
-        if action is None or not action.is_valid():
-            return self._default_policy(player)
-        return action
+        return self._default_policy(player)
 
     def _action_from_genome_pool(self, player: SoccerPlayer) -> SoccerAction | None:
         """Execute soccer policy via GenomeCodePool with safety + determinism.
