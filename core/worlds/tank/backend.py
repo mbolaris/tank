@@ -109,7 +109,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if reset_seed is None:
             # Fallback to a default seed if none provided to satisfy determinism policy
             reset_seed = 42
-        
+
         self._rng = random.Random(reset_seed)
 
         # Create fresh SimulationEngine
@@ -314,7 +314,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """
         if self._engine is None:
             raise RuntimeError("World not initialized. Call reset() before update().")
-        
+
         self._engine.update()
         self._current_frame = self._engine.frame_count
 
