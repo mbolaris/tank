@@ -589,13 +589,13 @@ class TestSoccerModePackIntegration:
         mode_pack = WorldRegistry.get_mode_pack("soccer")
         assert mode_pack is not None
 
-        # Test legacy key aliases
+        # Test legacy key aliases (Removed, use canonical)
         normalized = mode_pack.configure(
             {
-                "width": 120,
-                "height": 80,
-                "fps": 30,
-                "players_per_team": 5,
+                "field_width": 120,
+                "field_height": 80,
+                "frame_rate": 30,
+                "team_size": 5,
             }
         )
 

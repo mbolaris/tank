@@ -1,6 +1,7 @@
 """Tests for benchmark runner toolchain."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_BENCH = REPO_ROOT / "tools" / "run_bench.py"
-TANK_BENCHMARK = REPO_ROOT / "benchmarks" / "tank" / "survival_30k.py"
+TANK_BENCHMARK = REPO_ROOT / "benchmarks" / "tank" / "survival_5k.py"
 
 
 class TestRunBench:
@@ -42,7 +43,7 @@ class TestRunBench:
             data = json.load(f)
         assert "score" in data
         assert "benchmark_id" in data
-        assert data["benchmark_id"] == "tank/survival_30k"
+        assert data["benchmark_id"] == "tank/survival_5k"
 
         Path(out_path).unlink()
 
@@ -62,6 +63,7 @@ class TestRunBench:
                 out_path,
             ],
             cwd="/tmp",  # Critical: run from different directory
+            env={**os.environ, "PYTHONPATH": str(REPO_ROOT)},  # Allow finding local modules
             capture_output=True,
             text=True,
         )

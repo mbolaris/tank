@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from core.code_pool import CodePool
+from core.code_pool import CodePool, GenomeCodePool
 from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
 
 
@@ -58,8 +58,10 @@ def test_soccer_training_deterministic_with_seed() -> None:
 
 
 def test_soccer_training_code_pool_policy_controls_players() -> None:
-    pool = CodePool()
-    component_id = pool.add_component(
+    # effective_code_pool = CodePool() wrapped in GenomeCodePool
+    genome_pool = GenomeCodePool()
+
+    component_id = genome_pool.pool.add_component(
         kind="soccer_policy",
         name="dash_forward",
         source=(
@@ -72,7 +74,8 @@ def test_soccer_training_code_pool_policy_controls_players() -> None:
             "    }\n"
         ),
     )
-    world = SoccerTrainingWorldBackendAdapter(seed=5, code_pool=pool)
+
+    world = SoccerTrainingWorldBackendAdapter(seed=5, genome_code_pool=genome_pool)
     world.reset(seed=5)
     world.assign_team_policy("left", component_id)
 
