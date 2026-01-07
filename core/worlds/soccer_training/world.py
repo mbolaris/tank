@@ -14,7 +14,7 @@ from typing import Any
 
 from core.code_pool import GenomeCodePool
 from core.entities.base import LifeStage
-from core.fish.energy_component import EnergyComponent
+from core.energy.energy_component import EnergyComponent
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2

@@ -1,7 +1,7 @@
-"""Energy management component for fish.
+"""Energy management component for entities.
 
 This module provides the EnergyComponent class which handles all energy-related
-functionality for fish, including metabolism, consumption, and energy state checks.
+functionality for entities, including metabolism, consumption, and energy state checks.
 Separating energy logic into its own component improves code organization and testability.
 
 Protocol Conformance:
@@ -41,9 +41,9 @@ if TYPE_CHECKING:
 
 
 class EnergyComponent:
-    """Manages fish energy, metabolism, and starvation mechanics.
+    """Manages entity energy, metabolism, and starvation mechanics.
 
-    This component encapsulates all energy-related logic for a fish, including:
+    This component encapsulates all energy-related logic for an entity, including:
     - Energy consumption based on metabolism and movement
     - Energy state checks (starving, low energy, safe energy)
     - Life stage-specific metabolism modifiers
@@ -66,7 +66,7 @@ class EnergyComponent:
         """Initialize the energy component.
 
         Args:
-            max_energy: Maximum energy capacity for the fish
+            max_energy: Maximum energy capacity for the entity
             base_metabolism: Base metabolic rate (energy consumption per frame)
             initial_energy_ratio: Starting energy as a fraction of max (default 0.5)
         """
@@ -90,8 +90,8 @@ class EnergyComponent:
         3. SPRINT - penalty above 70% speed (quadratic)
 
         Args:
-            velocity: Current velocity vector of the fish.
-            speed: Maximum speed of the fish.
+            velocity: Current velocity vector of the entity.
+            speed: Maximum speed of the entity.
             life_stage: Current life stage (affects all costs).
             time_modifier: Time-based modifier (e.g., for day/night cycles).
             size: Body size multiplier (0.5 for baby, 1.0+ for adult).
@@ -184,11 +184,11 @@ class EnergyComponent:
         self.energy = max(0.0, min(self.max_energy, new_energy))
 
     def is_starving(self) -> bool:
-        """Check if fish is starving (will die soon).
+        """Check if entity is starving (will die soon).
 
         Uses ratio-based threshold to ensure consistent behavior across
-        different fish sizes. A large fish at 10% is just as desperate
-        as a small fish at 10%.
+        different entity sizes. A large entity at 10% is just as desperate
+        as a small entity at 10%.
 
         Returns:
             True if energy ratio is below starvation threshold.
@@ -196,7 +196,7 @@ class EnergyComponent:
         return self.get_energy_ratio() < STARVATION_THRESHOLD_RATIO
 
     def is_critical_energy(self) -> bool:
-        """Check if fish is in critical energy state (emergency survival mode).
+        """Check if entity is in critical energy state (emergency survival mode).
 
         Uses ratio-based threshold for size-independent behavior.
 
@@ -206,7 +206,7 @@ class EnergyComponent:
         return self.get_energy_ratio() < CRITICAL_ENERGY_THRESHOLD_RATIO
 
     def is_low_energy(self) -> bool:
-        """Check if fish has low energy (should prioritize finding food).
+        """Check if entity has low energy (should prioritize finding food).
 
         Uses ratio-based threshold for size-independent behavior.
 
@@ -216,7 +216,7 @@ class EnergyComponent:
         return self.get_energy_ratio() < LOW_ENERGY_THRESHOLD_RATIO
 
     def is_safe_energy(self) -> bool:
-        """Check if fish has safe energy level (can explore/breed).
+        """Check if entity has safe energy level (can explore/breed).
 
         Uses ratio-based threshold for size-independent behavior.
 
@@ -229,7 +229,7 @@ class EnergyComponent:
         """Get current energy as a ratio of maximum energy.
 
         This is useful for decision-making in behavior algorithms, as it provides
-        a normalized value regardless of the fish's maximum energy capacity.
+        a normalized value regardless of the entity's maximum energy capacity.
 
         Returns:
             Energy ratio between 0.0 (empty) and 1.0 (full).
@@ -248,7 +248,7 @@ class EnergyComponent:
         return self.get_energy_ratio() * 100.0
 
     def has_enough_energy(self, threshold: float) -> bool:
-        """Check if fish has at least the specified energy level.
+        """Check if entity has at least the specified energy level.
 
         Args:
             threshold: Energy threshold to check against.

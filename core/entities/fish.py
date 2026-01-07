@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 # Runtime imports (moved from local scopes)
 
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
-from core.fish.energy_component import EnergyComponent
+from core.energy.energy_component import EnergyComponent
 from core.fish.energy_state import EnergyState
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
@@ -857,14 +857,10 @@ class Fish(Agent):
 
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
-        # Get available policies for mutation
-        available_policies = None
-        if hasattr(self.environment, "code_pool"):
-            # Get only valid movement policies
-            components = self.environment.code_pool.list_components()
-            available_policies = [
-                comp.component_id for comp in components if comp.kind == "movement_policy"
-            ]
+        # Get available policies for mutation via canonical API
+        available_policies = self.environment.list_policy_component_ids("movement_policy")
+        if not available_policies:
+            available_policies = None  # Maintain existing mutation behavior with None
 
         # Generate offspring genome (also sets cooldown)
         offspring_genome, _unused_fraction = (

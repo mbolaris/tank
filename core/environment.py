@@ -1082,3 +1082,19 @@ class Environment:
             Random instance for deterministic simulation
         """
         return self._rng
+
+    def list_policy_component_ids(self, kind: str) -> List[str]:
+        """List available policy component IDs for a given policy kind.
+
+        Canonical API for querying available policies. Use this instead of
+        probing for code_pool attribute.
+
+        Args:
+            kind: Policy kind (e.g., "movement_policy", "soccer_policy")
+
+        Returns:
+            List of component IDs, or empty list if no pool configured.
+        """
+        if self.genome_code_pool is None:
+            return []
+        return self.genome_code_pool.get_components_by_kind(kind)
