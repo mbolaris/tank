@@ -123,7 +123,7 @@ def test_backend_adapter_returns_deltas(simulation_engine):
 
     # Request a spawn on the underlying engine
     test_fish = Fish(
-        adapter.world.environment, AlgorithmicMovement(), "fish1.png", 100, 100, speed=1.0
+        adapter.engine.environment, AlgorithmicMovement(), "fish1.png", 100, 100, speed=1.0
     )
     adapter.engine._entity_mutations.request_spawn(test_fish, reason="contract_test")
 

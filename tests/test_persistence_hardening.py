@@ -19,7 +19,7 @@ def test_persistence_round_trip():
     }
     adapter = WorldRegistry.create_world("tank", seed=42, config=config)
     adapter.reset(seed=42, config=config)
-    world = adapter.world
+    world = adapter
 
     # Add a Fish with specific properties we can verify
     test_fish = Fish(
@@ -79,7 +79,7 @@ def test_persistence_round_trip():
     assert success, "Restore should succeed"
 
     # Verify Restoration
-    dest_entities = dest_adapter.world.entities_list
+    dest_entities = dest_adapter.entities_list
 
     # Verify our specific Plant (ID 999) was restored
     restored_test_plant = next(

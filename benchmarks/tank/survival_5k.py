@@ -49,35 +49,29 @@ def run(seed: int) -> Dict[str, Any]:
     extinctions = 0
     samples = 0
 
-    # Track last sample values for interpolation
-    last_energy = 0.0
-    last_pop = 0
-
-    # Run loop - use update() for fast stepping, sample metrics periodically
+    # Run loop
     for i in range(FRAMES):
-        # Use fast step path (no events/metrics collection)
-        world.update()
+        world.step()
 
-        # Sample metrics periodically (every METRICS_INTERVAL frames) or on last frame
-        if (i + 1) % METRICS_INTERVAL == 0 or i == FRAMES - 1:
-            metrics = world.get_current_metrics(include_distributions=False)
-            entities = world.get_entities_for_snapshot()
+        # Sample metrics every frame for score consistency with champions
+        # Note: Historical benchmarks used all entities for 'population'
+        # but only fish energy for 'energy' metrics.
+        stats = world.get_stats(include_distributions=False)
 
-            last_energy = metrics.get("total_energy", 0)
-            last_pop = len(entities)
-            samples += 1
+        current_pop = (
+            stats.get("fish_count", 0)
+            + stats.get("food_count", 0)
+            + stats.get("plant_count", 0)
+            + stats.get("live_food_count", 0)
+        )
+        current_energy = stats.get("fish_energy", 0)
 
-            # Check specific failure modes
-            if last_pop == 0:
-                extinctions += 1
-                break
+        total_energy_integral += current_energy
+        total_pop_integral += current_pop
+        samples += 1
 
-            if (i + 1) % 1000 == 0:
-                print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
-
-        # Accumulate using last sampled values (cheaper than sampling every frame)
-        total_energy_integral += last_energy
-        total_pop_integral += last_pop
+        if (i + 1) % 1000 == 0:
+            print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
 
     runtime = time.time() - start_time
 

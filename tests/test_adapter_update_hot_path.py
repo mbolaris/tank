@@ -1,7 +1,6 @@
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from core.legacy.tank_world import TankWorld
 from core.worlds import WorldRegistry
 
 
@@ -12,15 +11,17 @@ def test_adapter_update_avoids_expensive_calls():
     adapter = WorldRegistry.create_world("tank", seed=42, headless=True)
     adapter.reset(seed=42)
 
-    # Mock the underlying world's expensive methods
+    # Mock the underlying engine's expensive methods
     # We want to ensure these are NOT called during update()
     with ExitStack() as stack:
+        from core.simulation.engine import SimulationEngine
+
         mock_get_stats = stack.enter_context(
-            patch.object(TankWorld, "get_stats", wraps=adapter._world.get_stats)
+            patch.object(SimulationEngine, "get_stats", wraps=adapter.engine.get_stats)
         )
         mock_get_events = stack.enter_context(
             patch.object(
-                TankWorld, "get_recent_poker_events", wraps=adapter._world.get_recent_poker_events
+                SimulationEngine, "drain_frame_outputs", wraps=adapter.engine.drain_frame_outputs
             )
         )
         # Action: Run update loop
@@ -46,7 +47,9 @@ def test_adapter_step_uses_lightweight_metrics_by_default():
     adapter = WorldRegistry.create_world("tank", seed=42, headless=True)
     adapter.reset(seed=42)
 
-    with patch.object(TankWorld, "get_stats", return_value={}) as mock_get_stats:
+    from core.simulation.engine import SimulationEngine
+
+    with patch.object(SimulationEngine, "get_stats", return_value={}) as mock_get_stats:
         # Action
         adapter.step()
 

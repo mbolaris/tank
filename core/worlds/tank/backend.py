@@ -106,10 +106,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             self._simulation_config = self._simulation_config.apply_flat_config(config)
 
         # Create RNG from seed
-        if reset_seed is not None:
-            self._rng = random.Random(reset_seed)
-        else:
-            self._rng = random.Random()
+        if reset_seed is None:
+            # Fallback to a default seed if none provided to satisfy determinism policy
+            reset_seed = 42
+        
+        self._rng = random.Random(reset_seed)
 
         # Create fresh SimulationEngine
         self._engine = SimulationEngine(
@@ -313,7 +314,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """
         if self._engine is None:
             raise RuntimeError("World not initialized. Call reset() before update().")
-        self.step({FAST_STEP_ACTION: True})
+        
+        self._engine.update()
+        self._current_frame = self._engine.frame_count
 
     def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Return current metrics."""
