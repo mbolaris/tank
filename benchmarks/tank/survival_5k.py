@@ -54,17 +54,11 @@ def run(seed: int) -> Dict[str, Any]:
         world.step()
 
         # Sample metrics every frame for score consistency with champions
-        # Note: Historical benchmarks used all entities for 'population'
-        # but only fish energy for 'energy' metrics.
+        # Original formula: population = len(entities_list), energy = total_energy from ecosystem
         stats = world.get_stats(include_distributions=False)
 
-        current_pop = (
-            stats.get("fish_count", 0)
-            + stats.get("food_count", 0)
-            + stats.get("plant_count", 0)
-            + stats.get("live_food_count", 0)
-        )
-        current_energy = stats.get("fish_energy", 0)
+        current_pop = len(world.entities_list)
+        current_energy = stats.get("total_energy", 0)
 
         total_energy_integral += current_energy
         total_pop_integral += current_pop

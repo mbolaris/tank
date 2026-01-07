@@ -645,9 +645,9 @@ class Environment:
         self.world_manager: Any = None  # Set by backend if migrations enabled
         self.world_id: Optional[str] = None  # Set by backend if migrations enabled
         self.world_name: Optional[str] = None  # Set by backend for lineage tracking
-        self.migration_handler: Optional[
-            MigrationHandler
-        ] = None  # Set by backend if migrations enabled
+        self.migration_handler: Optional[MigrationHandler] = (
+            None  # Set by backend if migrations enabled
+        )
 
         # Optional circular dish geometry for Petri mode (set during mode switching)
         # When set, resolve_boundary_collision will use circular physics
