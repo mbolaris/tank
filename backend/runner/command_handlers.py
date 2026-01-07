@@ -37,9 +37,14 @@ class CommandHandlerMixin:
 
     def _cmd_add_food(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'add_food' command."""
-        x = self.world.rng.randint(0, SCREEN_WIDTH)
+        rng = self.world.rng
+        if rng is None:
+            return self._create_error_response("RNG not available")
+
+        x = rng.randint(0, SCREEN_WIDTH)
+        environment = getattr(self.world, "environment", None)
         food = entities.Food(
-            self.world.environment,
+            environment,
             x,
             0,
             source_plant=None,
@@ -54,16 +59,21 @@ class CommandHandlerMixin:
         """Handle 'spawn_fish' command."""
         try:
             logger.info("Spawn fish command received")
+            rng = self.world.rng
+            if rng is None:
+                return self._create_error_response("RNG not available")
+
             # Random spawn position (avoid edges)
-            x = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
-            y = self.world.rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
+            x = rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_WIDTH - SPAWN_MARGIN_PIXELS)
+            y = rng.randint(SPAWN_MARGIN_PIXELS, SCREEN_HEIGHT - SPAWN_MARGIN_PIXELS)
 
             logger.info(f"Creating fish at position ({x}, {y})")
 
             # Create new fish with random genome
-            genome = Genome.random(use_algorithm=True, rng=self.world.rng)
+            environment = getattr(self.world, "environment", None)
+            genome = Genome.random(use_algorithm=True, rng=rng)
             new_fish = entities.Fish(
-                self.world.environment,
+                environment,
                 movement_strategy.AlgorithmicMovement(),
                 FILES["schooling_fish"][0],
                 x,
@@ -71,7 +81,7 @@ class CommandHandlerMixin:
                 4,  # Base speed
                 genome=genome,
                 generation=0,
-                ecosystem=self.world.ecosystem,
+                ecosystem=getattr(self.world, "ecosystem", None),
             )
             self.world.add_entity(new_fish)
             new_fish.register_birth()  # Record in lineage tracker
@@ -82,13 +92,13 @@ class CommandHandlerMixin:
 
     def _cmd_pause(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'pause' command."""
-        self.world.paused = True
+        self.paused = True
         logger.info("Simulation paused")
         return None
 
     def _cmd_resume(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'resume' command."""
-        self.world.paused = False
+        self.paused = False
         logger.info("Simulation resumed")
         return None
 
@@ -101,7 +111,7 @@ class CommandHandlerMixin:
             self.world.setup()
         self._invalidate_state_cache()
         # Unpause after reset for intuitive behavior
-        self.world.paused = False
+        self.paused = False
         self.fast_forward = False
         logger.info("Simulation reset")
         return None
@@ -122,7 +132,8 @@ class CommandHandlerMixin:
         logger.info("Starting human poker game...")
         try:
             # Get top 3 fish from leaderboard
-            fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+            entities_list = self.world.get_entities_for_snapshot()
+            fish_list = [e for e in entities_list if isinstance(e, Fish)]
 
             if len(fish_list) < 3:
                 logger.warning(
@@ -133,7 +144,11 @@ class CommandHandlerMixin:
                 )
 
             # Get leaderboard
-            leaderboard = self.world.ecosystem.get_poker_leaderboard(
+            ecosystem = getattr(self.world, "ecosystem", None)
+            if not ecosystem:
+                return self._create_error_response("Ecosystem not available for poker")
+
+            leaderboard = ecosystem.get_poker_leaderboard(
                 fish_list=fish_list, limit=3, sort_by="net_energy"
             )
 
@@ -255,7 +270,7 @@ class CommandHandlerMixin:
             hole_cards=human_player.hole_cards,
             community_cards=game.community_cards,
             position_on_button=(game.current_player_index == game.button_index),
-            rng=getattr(self.world, "rng", None),  # Pass world RNG for determinism
+            rng=self.world.rng,  # Pass world RNG for determinism
         )
 
         # Convert BettingAction enum to string
@@ -281,7 +296,8 @@ class CommandHandlerMixin:
         logger.info("Starting standard poker benchmark series...")
         try:
             # Get top fish from leaderboard
-            fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+            entities_list = self.world.get_entities_for_snapshot()
+            fish_list = [e for e in entities_list if isinstance(e, Fish)]
 
             if len(fish_list) < 1:
                 logger.warning("No fish available for benchmark series")
@@ -289,7 +305,11 @@ class CommandHandlerMixin:
 
             # Get top 3 fish from leaderboard
             num_fish = min(3, len(fish_list))
-            leaderboard = self.world.ecosystem.get_poker_leaderboard(
+            ecosystem = getattr(self.world, "ecosystem", None)
+            if not ecosystem:
+                return self._create_error_response("Ecosystem not available for benchmark")
+
+            leaderboard = ecosystem.get_poker_leaderboard(
                 fish_list=fish_list, limit=num_fish, sort_by="net_energy"
             )
 

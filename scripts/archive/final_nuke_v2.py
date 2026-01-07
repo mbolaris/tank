@@ -15,7 +15,6 @@ def nuke():
         logger.error("DATA_DIR not found!")
         return
 
-    kept = False
     trash_dir = Path(f"data/tanks_trash_final_{int(time.time())}")
 
     # Identify keeper path
@@ -35,7 +34,6 @@ def nuke():
     for p in DATA_DIR.iterdir():
         if p.name == KEEPER_ID:
             logger.info(f"Keeping {p.name}")
-            kept = True
             continue
 
         logger.info(f"Trashing {p.name}")

@@ -46,7 +46,6 @@ def run(seed: int) -> Dict[str, Any]:
     # Metrics accumulators
     total_energy_integral = 0.0
     total_pop_integral = 0
-    deaths = 0
     extinctions = 0
 
     # Run loop

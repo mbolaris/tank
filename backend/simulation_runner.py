@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
+    from backend.world_manager import WorldManager
+    from core.root_spots import RootSpotManager
     from core.worlds.petri.dish import PetriDish
 
 import orjson
@@ -37,7 +39,6 @@ from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
 from core.entities import Fish
-from core.entities.plant import Plant
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 logger = logging.getLogger(__name__)
@@ -55,15 +56,13 @@ class SimulationRunner(CommandHandlerMixin):
         world_id: Optional[str] = None,
         world_name: Optional[str] = None,
         world_type: str = "tank",
+        world_manager: Optional["WorldManager"] = None,
     ):
         """Initialize the simulation runner.
-
-        Args:
-            seed: Optional random seed for deterministic behavior
-            world_id: Optional unique identifier for the world
-            world_name: Optional human-readable name for the world
-            world_type: Type of world to create (default "tank")
+        world_type: Type of world to create (default "tank")
         """
+        super().__init__()
+        self.world_manager = world_manager
         # Create world via registry (world-agnostic)
         self.world, self._entity_snapshot_builder = create_world(world_type, seed=seed)
 
@@ -77,7 +76,7 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_hooks = get_hooks_for_world(world_type)
 
         # Worlds start unpaused by default - they run as soon as the server starts
-        self.world.paused = False
+        self.world.set_paused(False)
 
         self.running = False
         self.thread: Optional[threading.Thread] = None
@@ -226,13 +225,14 @@ class SimulationRunner(CommandHandlerMixin):
             # Currently tank
             tank_backend = self.world
 
-        # Create the new adapter wrapping the existing tank backend
         if new_world_type == "petri":
             from core.worlds.petri.backend import PetriWorldBackendAdapter
 
-            # Create petri adapter wrapping the existing tank backend
-            new_world = PetriWorldBackendAdapter.__new__(PetriWorldBackendAdapter)
-            new_world._tank_backend = tank_backend
+            # Set up the new adapter
+            new_world = PetriWorldBackendAdapter(
+                seed=self.seed,
+                config=self.world.config if hasattr(self.world, "config") else None,
+            )
             new_world.supports_fast_step = True
             new_world._last_step_result = None
         else:
@@ -351,6 +351,7 @@ class SimulationRunner(CommandHandlerMixin):
         Args:
             manager: The new RootSpotManager instance
         """
+        from core.entities import Plant
         from core.math_utils import Vector2
 
         # Get all plants
@@ -509,17 +510,23 @@ class SimulationRunner(CommandHandlerMixin):
     @property
     def frame_count(self) -> int:
         """Current frame count from the simulation."""
-        return self.world.frame_count
+        # MultiAgentWorldBackend doesn't have frame_count directly, but adapters often do.
+        # Fall back to 0 if not present.
+        return int(getattr(self.world, "frame_count", 0))
 
     @property
     def paused(self) -> bool:
         """Whether the simulation is paused."""
-        return self.world.paused
+        return self.world.is_paused
 
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set the simulation paused state."""
-        self.world.paused = value
+        self.world.set_paused(value)
+        # Also set the attribute directly for backward compatibility with
+        # tests and external code that expects the attribute to exist.
+        if hasattr(self.world, "paused"):
+            self.world.paused = value
 
     def get_entities_snapshot(self) -> List[EntitySnapshot]:
         """Get entity snapshots for rendering (public API for RunnerProtocol).
@@ -594,7 +601,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         if not self.running:
             # Override the initial paused state based on caller preference
-            self.world.paused = start_paused
+            self.world.set_paused(start_paused)
 
             self.running = True
             self.thread = threading.Thread(target=self._run_loop, daemon=True)
@@ -614,9 +621,9 @@ class SimulationRunner(CommandHandlerMixin):
         """
         with self.lock:
             # Temporarily unpause to allow stepping (API step should always work)
-            was_paused = self.world.paused
+            was_paused = self.world.is_paused
             if was_paused:
-                self.world.paused = False
+                self.world.set_paused(False)
 
             try:
                 if getattr(self.world, "supports_fast_step", False):
@@ -626,7 +633,7 @@ class SimulationRunner(CommandHandlerMixin):
             finally:
                 # Restore paused state
                 if was_paused:
-                    self.world.paused = True
+                    self.world.set_paused(True)
 
             self._start_auto_evaluation_if_needed()
             self.fps_frame_count += 1
@@ -650,7 +657,9 @@ class SimulationRunner(CommandHandlerMixin):
             self.world, self._entity_snapshot_builder = create_world(
                 self.world_type, seed=self.seed
             )
-            self.frame_count = 0
+            # Use getattr/setattr or direct access if known to be an adapter
+            if hasattr(self.world, "frame_count"):
+                self.world.frame_count = 0
             self._invalidate_state_cache()
 
     def _run_loop(self):

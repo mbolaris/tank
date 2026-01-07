@@ -29,12 +29,6 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
     print("=" * 70)
 
     # Tracking
-    food_eaten_count = 0
-    poker_games_fish_vs_fish = 0
-    poker_games_fish_vs_plant = 0
-    total_energy_gained_food = 0.0
-    total_energy_gained_poker = 0.0
-    total_energy_consumed = 0.0
 
     # Track per-frame stats
     samples = []
@@ -46,18 +40,18 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
         # Snapshot before update
         entities = tank.engine.get_all_entities()
         fish_list = [e for e in entities if isinstance(e, Fish)]
-        food_list = [e for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)]
-        plant_list = [e for e in entities if isinstance(e, Plant)]
+        [e for e in entities if isinstance(e, (Food, PlantNectar))]
+        [e for e in entities if isinstance(e, Plant)]
 
         # Track energy before update
-        energy_before = sum(f.energy for f in fish_list)
+        sum(f.energy for f in fish_list)
 
         tank.update()
 
         # Track energy after update
         entities_after = tank.engine.get_all_entities()
         fish_list_after = [e for e in entities_after if isinstance(e, Fish)]
-        energy_after = sum(f.energy for f in fish_list_after)
+        sum(f.energy for f in fish_list_after)
 
         # Sample every 300 frames
         if frame % 300 == 0:

@@ -76,7 +76,7 @@ class SolutionTracker:
         Returns:
             List of (fish, score) tuples, sorted by score descending
         """
-        candidates = []
+        candidates: list[tuple[Fish, float]] = []
 
         for fish in fish_list:
             if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
@@ -225,7 +225,7 @@ class SolutionTracker:
         showdown_wr = stats.get_showdown_win_rate()
         showdown_bonus = (showdown_wr - 0.5) * 100
 
-        return base_elo + elo_adjustment + roi_adjustment + showdown_bonus
+        return float(base_elo + elo_adjustment + roi_adjustment + showdown_bonus)
 
     def capture_solution(
         self,
@@ -357,7 +357,7 @@ class SolutionTracker:
         Returns:
             List of all SolutionRecord objects
         """
-        solutions = []
+        solutions: list[SolutionRecord] = []
 
         if not os.path.exists(self.solutions_dir):
             return solutions
@@ -581,7 +581,7 @@ class SolutionTracker:
             leaderboard.append(entry)
 
         # Sort by Elo descending
-        leaderboard.sort(key=lambda x: x["elo_rating"], reverse=True)
+        leaderboard.sort(key=lambda x: float(x["elo_rating"]), reverse=True)
 
         # Set ranks
         for i, entry in enumerate(leaderboard):

@@ -20,7 +20,7 @@ import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -36,15 +36,15 @@ class TournamentConfig:
     benchmark_seed: int
     matchup_hands: int
     output_path: str
-    json_output_path: Optional[str]
+    json_output_path: str | None
     write_back: bool
     include_all_authors: bool
     include_live_tank: bool
     api_base_url: str
-    tank_id: Optional[str]
+    tank_id: str | None
     live_name: str
     live_author: str
-    live_description: Optional[str]
+    live_description: str | None
     live_selection_mode: str
     live_candidate_pool_size: int
     live_hands_per_matchup: int
@@ -54,7 +54,7 @@ class TournamentConfig:
 def _http_json(
     url: str,
     method: str = "GET",
-    data: Optional[dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
     timeout_s: float = 5.0,
 ) -> dict[str, Any]:
     body = None
@@ -69,7 +69,7 @@ def _http_json(
         return json.loads(payload)
 
 
-def _resolve_default_tank_id(api_base_url: str) -> Optional[str]:
+def _resolve_default_tank_id(api_base_url: str) -> str | None:
     url = api_base_url.rstrip("/") + "/api/tanks"
     data = _http_json(url, method="GET")
 
@@ -90,7 +90,7 @@ def _resolve_default_tank_id(api_base_url: str) -> Optional[str]:
     return None
 
 
-def _capture_best_from_live_tank(config: TournamentConfig) -> Optional[str]:
+def _capture_best_from_live_tank(config: TournamentConfig) -> str | None:
     tank_id = config.tank_id or _resolve_default_tank_id(config.api_base_url)
     if not tank_id:
         raise RuntimeError(
@@ -115,14 +115,14 @@ def _capture_best_from_live_tank(config: TournamentConfig) -> Optional[str]:
     return None
 
 
-def _git_head_sha() -> Optional[str]:
+def _git_head_sha() -> str | None:
     try:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     except Exception:
         return None
 
 
-def _git_branch() -> Optional[str]:
+def _git_branch() -> str | None:
     try:
         return subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"], text=True
@@ -205,7 +205,7 @@ def run_tournament(config: TournamentConfig) -> tuple[str, dict[str, Any]]:
     head_sha = _git_head_sha()
     branch = _git_branch()
 
-    captured_live_solution_id: Optional[str] = None
+    captured_live_solution_id: str | None = None
     if config.include_live_tank:
         try:
             captured_live_solution_id = _capture_best_from_live_tank(config)

@@ -143,7 +143,7 @@ def _get_network_ip() -> str:
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return ip
+        return str(ip)
     except Exception:
         return "localhost"
 

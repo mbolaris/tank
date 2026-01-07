@@ -60,7 +60,7 @@ def main():
 
     adapter = PetriWorldBackendAdapter(seed=42, config=config)
 
-    env = adapter.reset(seed=42).snapshot  # This just resets, return value isn't the Env object
+    adapter.reset(seed=42)  # This just resets, return value isn't the Env object
 
     # Access the real environment to manipulate entities
     real_env = adapter.world.environment

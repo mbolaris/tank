@@ -143,6 +143,9 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
         self._last_touch: tuple[PlayerID, TeamID, int] | None = None
         self._prev_touch: tuple[PlayerID, TeamID, int] | None = None
 
+        # Pause state (stored but doesn't affect soccer physics)
+        self._paused = False
+
         # GenomeCodePool support
         self.genome_code_pool = genome_code_pool
         self.supports_fast_step = True
@@ -809,25 +812,43 @@ class SoccerTrainingWorldBackendAdapter(MultiAgentWorldBackend):
     # =========================================================================
 
     @property
-    def is_paused(self) -> bool:
-        """Whether the simulation is paused (protocol method).
+    def rng(self) -> Any:
+        """Access the world's random number generator (protocol override)."""
+        return self._rng
 
-        Soccer training matches don't support pausing - always returns False.
-        """
-        return False
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused (stores state for protocol compatibility)."""
+        return self._paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set the simulation paused state."""
+        self._paused = value
+
+    @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method)."""
+        return self._paused
 
     def set_paused(self, value: bool) -> None:
-        """Set the simulation paused state (protocol method).
-
-        Soccer training matches don't support pausing - this is a no-op.
-        """
-        pass  # Soccer training matches are not pausable
+        """Set the simulation paused state (protocol method)."""
+        self._paused = value
 
     def get_entities_for_snapshot(self) -> list[Any]:
         """Get entities for snapshot building (protocol method).
 
         Soccer training uses a different rendering model (players/ball in snapshot),
         not entities. Returns empty list.
+        """
+        return []
+
+    @property
+    def entities_list(self) -> list[Any]:
+        """Legacy access to entities list (protocol method).
+
+        Soccer training doesn't use entities in the same way as tank/petri.
+        Returns empty list.
         """
         return []
 

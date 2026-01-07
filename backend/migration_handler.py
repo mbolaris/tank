@@ -43,7 +43,7 @@ class MigrationHandler:
             True if migration successful, False otherwise
         """
         # Find connections for this world and direction
-        connections = self.connection_manager.get_connections_for_tank(source_world_id, direction)
+        connections = self.connection_manager.get_connections_for_world(source_world_id, direction)
 
         if not connections:
             return False  # No connection in this direction
@@ -57,9 +57,9 @@ class MigrationHandler:
         connection = random.choice(connections)
 
         # Get destination world
-        dest_instance = self.world_manager.get_world(connection.destination_tank_id)
+        dest_instance = self.world_manager.get_world(connection.destination_world_id)
         if not dest_instance:
-            logger.warning(f"Destination world {connection.destination_tank_id} not found")
+            logger.warning(f"Destination world {connection.destination_world_id} not found")
             return False
 
         # Get source instance for logging
@@ -139,6 +139,9 @@ class MigrationHandler:
             # Optimistic removal causes flickering if destination fails.
             # New flow: Check destination first -> then remove/add.
 
+            if entity_data is None:
+                return False
+
             # Deserialize in destination (Check)
             new_entity_outcome = try_deserialize_entity(entity_data, dest_world)
             if not new_entity_outcome.ok:
@@ -152,10 +155,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
                     entity_new_id=None,
-                    source_tank_id=source_world_id,
-                    source_tank_name=source_instance.name,
-                    destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_instance.name,
+                    source_world_id=source_world_id,
+                    source_world_name=source_instance.name,
+                    destination_world_id=connection.destination_world_id,
+                    destination_world_name=dest_instance.name,
                     success=False,
                     error=f"Failed to deserialize in destination: {new_entity_outcome.error.code if new_entity_outcome.error else 'unknown'}",
                     generation=getattr(entity, "generation", None),
@@ -168,6 +171,8 @@ class MigrationHandler:
             removed_from_source = True
 
             new_entity = new_entity_outcome.value
+            if new_entity is None:
+                return False
 
             # Position entity at opposite edge of destination world
             if direction == "left":
@@ -209,10 +214,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=old_id,
                     entity_new_id=id(new_entity),
-                    source_tank_id=source_world_id,
-                    source_tank_name=source_instance.name,
-                    destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=dest_instance.name,
+                    source_world_id=source_world_id,
+                    source_world_name=source_instance.name,
+                    destination_world_id=connection.destination_world_id,
+                    destination_world_name=dest_instance.name,
                     success=True,
                     generation=generation,
                 )
@@ -252,10 +257,10 @@ class MigrationHandler:
                     entity_type=type(entity).__name__.lower(),
                     entity_old_id=id(entity),
                     entity_new_id=None,
-                    source_tank_id=source_world_id,
-                    source_tank_name=source_instance.name if source_instance else "unknown",
-                    destination_tank_id=connection.destination_tank_id,
-                    destination_tank_name=(dest_instance.name if dest_instance else "unknown"),
+                    source_world_id=source_world_id,
+                    source_world_name=source_instance.name if source_instance else "unknown",
+                    destination_world_id=connection.destination_world_id,
+                    destination_world_name=(dest_instance.name if dest_instance else "unknown"),
                     success=False,
                     error=str(e),
                     generation=getattr(entity, "generation", None),

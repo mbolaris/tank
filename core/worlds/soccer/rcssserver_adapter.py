@@ -448,6 +448,11 @@ class RCSSServerAdapter(MultiAgentWorldBackend):
         """Get entities for snapshot building (protocol method)."""
         return []  # Soccer uses different rendering model
 
+    @property
+    def entities_list(self) -> List[Any]:
+        """Legacy access to entities list (protocol method)."""
+        return []  # Soccer uses different rendering model
+
     def capture_state_for_save(self) -> Dict[str, Any]:
         """Capture complete world state for persistence (protocol method)."""
         return {}  # rcssserver matches are ephemeral

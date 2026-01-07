@@ -142,6 +142,12 @@ class MultiAgentWorldBackend(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def entities_list(self) -> List[Any]:
+        """Legacy access to entities list."""
+        pass
+
     @abstractmethod
     def capture_state_for_save(self) -> Dict[str, Any]:
         """Capture complete world state for persistence.
@@ -160,3 +166,58 @@ class MultiAgentWorldBackend(ABC):
             state: Previously captured state dictionary
         """
         pass
+
+    @property
+    def rng(self) -> Any:
+        """Access the world's random number generator."""
+        return None
+
+    @property
+    def environment(self) -> Any:
+        """Access the world's simulation environment."""
+        return None
+
+    @property
+    def ecosystem(self) -> Any:
+        """Access the world's ecosystem/statistics tracker."""
+        return None
+
+    def add_entity(self, entity: Any) -> None:
+        """Add an entity to the world.
+
+        Args:
+            entity: The entity instance to add
+        """
+        pass
+
+    def setup(self) -> None:
+        """Initialize the world state (legacy hook)."""
+        pass
+
+    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
+        """Return current metrics/statistics."""
+        return self.get_current_metrics()
+
+    @property
+    def engine(self) -> Any:
+        """Access the world's simulation engine if available."""
+        return None
+
+    @property
+    def frame_count(self) -> int:
+        """Current frame count of the simulation."""
+        return 0
+
+    @frame_count.setter
+    def frame_count(self, value: int) -> None:
+        """Set the frame count (usually for reset)."""
+        pass
+
+    @property
+    def world_type(self) -> str:
+        """Return the world type identifier."""
+        return "unknown"
+
+    def get_recent_poker_events(self, max_age_frames: int = 60) -> List[Dict[str, Any]]:
+        """Get recent poker events if supported."""
+        return []

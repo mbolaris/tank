@@ -213,6 +213,11 @@ class TankWorld:
         """Current frame count."""
         return self.engine.frame_count
 
+    @frame_count.setter
+    def frame_count(self, value: int):
+        """Set the frame count."""
+        self.engine.frame_count = value
+
     @property
     def paused(self) -> bool:
         """Whether simulation is paused."""

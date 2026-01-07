@@ -59,7 +59,7 @@ class Plant(Agent):
         genome: PlantGenome with L-system parameters and traits
         energy: Current energy level (determines size)
         max_energy: Maximum energy capacity
-        root_spot: The RootSpot this plant is anchored to
+        root_spot: The RootSpot this plant is anchored to (Optional)
         poker_cooldown: Frames until can play poker again
         nectar_cooldown: Frames until can produce nectar again
         age: Frames since sprouting
@@ -72,7 +72,7 @@ class Plant(Agent):
         self,
         environment: "World",
         genome: PlantGenome,
-        root_spot: "RootSpot",
+        root_spot: Optional["RootSpot"],
         initial_energy: float = PLANT_INITIAL_ENERGY,
         ecosystem: Optional["EcosystemManager"] = None,
         *,

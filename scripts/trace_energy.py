@@ -29,9 +29,6 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
     print("=" * 70)
 
     # Track totals
-    total_food_energy_spawned = 0.0
-    total_food_energy_eaten = 0.0
-    total_energy_consumed = 0.0
     fish_energy_start = 0.0
     fish_energy_end = 0.0
 
@@ -45,15 +42,13 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
         sample_fish = fish_list[0]
         fish_energy_start = sum(f.energy for f in fish_list)
 
-    prev_food_energy_sum = sum(
-        e.energy for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)
-    )
+    sum(e.energy for e in entities if isinstance(e, (Food, PlantNectar)))
 
     for frame in range(frames):
         # Snapshot before update
         entities = tank.engine.get_all_entities()
         fish_list = [e for e in entities if isinstance(e, Fish)]
-        food_list = [e for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)]
+        food_list = [e for e in entities if isinstance(e, (Food, PlantNectar))]
 
         fish_energy_before = sum(f.energy for f in fish_list)
         food_energy_before = sum(f.energy for f in food_list)
@@ -68,21 +63,17 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
         # Snapshot after update
         entities_after = tank.engine.get_all_entities()
         fish_list_after = [e for e in entities_after if isinstance(e, Fish)]
-        food_list_after = [
-            e for e in entities_after if isinstance(e, Food) or isinstance(e, PlantNectar)
-        ]
+        food_list_after = [e for e in entities_after if isinstance(e, (Food, PlantNectar))]
 
         fish_energy_after = sum(f.energy for f in fish_list_after)
         food_energy_after = sum(f.energy for f in food_list_after)
 
         # Calculate energy transfers
-        fish_energy_delta = fish_energy_after - fish_energy_before
-        food_energy_delta = food_energy_after - food_energy_before
+        fish_energy_after - fish_energy_before
+        food_energy_after - food_energy_before
 
         # New food spawned = positive food delta when no eating happened
-        new_food_spawned = max(
-            0, food_energy_after - food_energy_before + (fish_energy_after - fish_energy_before)
-        )
+        max(0, food_energy_after - food_energy_before + (fish_energy_after - fish_energy_before))
 
         # Frame 100 checkpoint
         if frame == 100:
@@ -97,7 +88,7 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
     # Final stats
     entities = tank.engine.get_all_entities()
     fish_list = [e for e in entities if isinstance(e, Fish)]
-    food_list = [e for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)]
+    food_list = [e for e in entities if isinstance(e, (Food, PlantNectar))]
 
     fish_energy_end = sum(f.energy for f in fish_list)
 

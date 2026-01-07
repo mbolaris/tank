@@ -170,7 +170,7 @@ def cmd_evaluate(args):
             return
 
         print(f"Evaluating {len(solutions)} solutions...")
-        results = benchmark.evaluate_all_solutions(solutions, verbose=True)
+        benchmark.evaluate_all_solutions(solutions, verbose=True)
 
         # Save all solutions with updated results
         for sol in solutions:

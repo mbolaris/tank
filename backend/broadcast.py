@@ -407,9 +407,9 @@ def get_broadcast_task(world_id: str, stream_id: Optional[str] = None) -> Option
                 return task
         return None
 
-    task = _broadcast_tasks.get((world_id, stream_id))
-    if task and not task.done():
-        return task
+    existing_task = _broadcast_tasks.get((world_id, stream_id))
+    if existing_task and not existing_task.done():
+        return existing_task
     return None
 
 

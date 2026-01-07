@@ -7,8 +7,8 @@ repos:
     hooks:
       - id: no-pycache
         name: Check for __pycache__ and .pyc files
-        entry: 'bash -c "if find backend/ core/ -name \"__pycache__\" -type d 2>/dev/null | grep -q . || find backend/ core/ -name \"*.pyc\" 2>/dev/null | grep -q .; then echo \"ERROR: Compiled Python artifacts found in backend/ or core/\"; exit 1; fi"'
-        language: system
+        entry: python -m scripts.check_pycache
+        language: python
         pass_filenames: false
         always_run: true
 
@@ -39,7 +39,7 @@ repos:
     rev: v0.1.9
     hooks:
       - id: ruff
-        args: ['--fix']
+        args: ['--fix', '--extend-ignore', 'N802']
         exclude: ^frontend/
 
   - repo: https://github.com/pre-commit/mirrors-mypy

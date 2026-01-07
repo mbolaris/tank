@@ -74,6 +74,8 @@ class WorldRunner:
         self.world = world
         self.snapshot_builder = snapshot_builder
         self.world_type = world_type
+        self.world_id = "default"  # Default world ID for generic runners
+        self.running = False
         self.mode_id = mode_id or world_type
         self.view_mode = view_mode
         self._last_step_result: StepResult | None = None
@@ -195,6 +197,53 @@ class WorldRunner:
             The most recent StepResult, or None if never reset/stepped
         """
         return self._last_step_result
+
+    def get_state(self, force_full: bool = False, allow_delta: bool = True) -> Any:
+        """Get current simulation state for WebSocket broadcast.
+
+        Simple implementation for generic runners that returns a full update.
+        """
+        from backend.state_payloads import FullStatePayload, StatsPayload
+
+        frame = self.frame_count
+        # Simplified stats for generic world types
+        metrics = self.get_stats()
+
+        # Build StatsPayload from metrics dict
+        # We fill only common fields, others get defaults
+        stats = StatsPayload(
+            frame=frame,
+            population=metrics.get("population", 0),
+            generation=metrics.get("generation", 0),
+            max_generation=metrics.get("max_generation", 0),
+            births=metrics.get("births", 0),
+            deaths=metrics.get("deaths", 0),
+            capacity=metrics.get("capacity", "0%"),
+            time=metrics.get("time", "00:00"),
+            death_causes=metrics.get("death_causes", {}),
+            fish_count=metrics.get("fish_count", metrics.get("population", 0)),
+            food_count=metrics.get("food_count", 0),
+            plant_count=metrics.get("plant_count", 0),
+            total_energy=metrics.get("total_energy", 0.0),
+            food_energy=metrics.get("food_energy", 0.0),
+            live_food_count=metrics.get("live_food_count", 0),
+            live_food_energy=metrics.get("live_food_energy", 0.0),
+            fish_energy=metrics.get("fish_energy", 0.0),
+            plant_energy=metrics.get("plant_energy", 0.0),
+        )
+
+        return FullStatePayload(
+            frame=frame,
+            elapsed_time=int(frame * 33),  # Placeholder
+            entities=self.get_entities_snapshot(),
+            stats=stats,
+            poker_events=[],
+            poker_leaderboard=[],
+            world_id=self.world_id,
+            mode_id=self.mode_id,
+            world_type=self.world_type,
+            view_mode=self.view_mode,
+        )
 
     def switch_world_type(self, new_world_type: str) -> None:
         """Switch to a different world type.

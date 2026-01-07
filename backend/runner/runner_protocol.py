@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from backend.state_payloads import EntitySnapshot
+    from backend.state_payloads import DeltaStatePayload, EntitySnapshot, FullStatePayload
 
 
 @runtime_checkable
@@ -23,16 +23,33 @@ class RunnerProtocol(Protocol):
 
     Properties:
         world_id: Unique identifier for this world instance
+        running: Whether the simulation is currently running (readable and writable)
         world_type: Type of world (tank, petri, soccer, etc.)
         mode_id: Mode identifier for UI display
         view_mode: Default view mode (side, topdown)
         frame_count: Current simulation frame
         paused: Whether simulation is paused (readable and writable)
+        world: The underlying world adapter
     """
+
+    @property
+    def world(self) -> Any:
+        """The underlying world adapter (MultiAgentWorldBackend)."""
+        ...
 
     @property
     def world_id(self) -> str:
         """Unique identifier for this world instance."""
+        ...
+
+    @property
+    def running(self) -> bool:
+        """Whether the simulation is currently running."""
+        ...
+
+    @running.setter
+    def running(self, value: bool) -> None:
+        """Set the simulation running state."""
         ...
 
     @property
@@ -97,6 +114,12 @@ class RunnerProtocol(Protocol):
         Returns:
             Dictionary with mode_id, world_type, and view_mode
         """
+        ...
+
+    def get_state(
+        self, force_full: bool = False, allow_delta: bool = True
+    ) -> FullStatePayload | DeltaStatePayload:
+        # returns FullStatePayload | DeltaStatePayload
         ...
 
     def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:

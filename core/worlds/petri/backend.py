@@ -109,6 +109,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def frame_count(self) -> int:
         return self._tank_backend.frame_count
 
+    @frame_count.setter
+    def frame_count(self, value: int) -> None:
+        self._tank_backend.frame_count = value
+
     @property
     def paused(self) -> bool:
         return self._tank_backend.paused

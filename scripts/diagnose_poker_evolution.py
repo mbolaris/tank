@@ -142,8 +142,6 @@ def test_mutation_destroying_adaptations():
     print("  raise_threshold: 0.70")
     print("  bluff_frequency: 0.12")
 
-    current_pop = [optimal]
-
     for gen in range(n_generations):
         next_gen = []
         preserved_type = 0
@@ -163,7 +161,7 @@ def test_mutation_destroying_adaptations():
             for s in next_gen
             if "weak_fold_threshold" in s.parameters
         ]
-        raise_vals = [
+        [
             s.parameters.get("strong_raise_threshold", 0)
             for s in next_gen
             if "strong_raise_threshold" in s.parameters
@@ -322,7 +320,6 @@ def simulate_evolution_over_generations():
     # Start with random population
     population_size = 20
     n_generations = 10
-    games_per_generation = 5
 
     # Initialize population with random strategies
     population = [get_random_poker_strategy() for _ in range(population_size)]

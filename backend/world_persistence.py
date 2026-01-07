@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    from backend.runner.runner_protocol import RunnerProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def save_snapshot_data(world_id: str, snapshot: Dict[str, Any]) -> Optional[str]
 
 
 def save_world_state(
-    world_id: str, runner: "SimulationRunner", metadata: Optional[Dict[str, Any]] = None
+    world_id: str, runner: "RunnerProtocol", metadata: Optional[Dict[str, Any]] = None
 ) -> Optional[str]:
     """Save complete world state to disk.
 

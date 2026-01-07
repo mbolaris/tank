@@ -491,7 +491,7 @@ class StartupManager:
                 host=parsed.hostname,
                 port=port,
                 status="online",
-                tank_count=0,
+                world_count=0,
                 version="unknown",
                 is_local=False,
             )

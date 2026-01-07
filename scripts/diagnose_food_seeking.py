@@ -39,7 +39,7 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
     for frame in range(frames):
         entities = tank.engine.get_all_entities()
         fish_list = [e for e in entities if isinstance(e, Fish)]
-        food_list = [e for e in entities if isinstance(e, Food) or isinstance(e, PlantNectar)]
+        food_list = [e for e in entities if isinstance(e, (Food, PlantNectar))]
 
         current_food_ids = {id(f) for f in food_list}
         food_eaten_this_frame = len(prev_food_ids - current_food_ids)

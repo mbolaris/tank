@@ -73,7 +73,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._config = config
 
         # Initialize RNG for determinism
-        self.rng = random.Random(seed)
+        self._rng = random.Random(seed)
 
         # Game state (initialized in reset())
         self._players: Dict[PlayerID, Player] = {}
@@ -91,6 +91,9 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         # Event tracking
         self._recent_events: List[Dict[str, Any]] = []
 
+        # Pause state (stored but doesn't affect soccer physics)
+        self._paused = False
+
         self.supports_fast_step = True
 
     def reset(
@@ -107,7 +110,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         """
         # Use provided seed or fall back to constructor seed
         reset_seed = seed if seed is not None else self._seed
-        self.rng = random.Random(reset_seed)
+        self._rng = random.Random(reset_seed)
 
         if config:
             merged = {**self._config.to_dict(), **config}
@@ -125,7 +128,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             player_max_speed=self._config.player_max_speed,
             player_acceleration=self._config.player_acceleration,
             ball_kick_power_max=self._config.ball_kick_power_max,
-            rng=self.rng,
+            rng=self._rng,
         )
 
         # Create ball at center
@@ -139,7 +142,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._players = {}
         for team in ["left", "right"]:
             positions = self._field.get_initial_player_positions(
-                team=team, team_size=self._config.team_size, rng=self.rng
+                team=team, team_size=self._config.team_size, rng=self._rng
             )
             for i, pos in enumerate(positions):
                 player_id = f"{team}_{i + 1}"
@@ -604,25 +607,43 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
     # =========================================================================
 
     @property
-    def is_paused(self) -> bool:
-        """Whether the simulation is paused (protocol method).
+    def rng(self) -> Any:
+        """Access the world's random number generator (protocol override)."""
+        return self._rng
 
-        Soccer matches don't support pausing - always returns False.
-        """
-        return False
+    @property
+    def paused(self) -> bool:
+        """Whether the simulation is paused (stores state for protocol compatibility)."""
+        return self._paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set the simulation paused state."""
+        self._paused = value
+
+    @property
+    def is_paused(self) -> bool:
+        """Whether the simulation is paused (protocol method)."""
+        return self._paused
 
     def set_paused(self, value: bool) -> None:
-        """Set the simulation paused state (protocol method).
-
-        Soccer matches don't support pausing - this is a no-op.
-        """
-        pass  # Soccer matches are not pausable
+        """Set the simulation paused state (protocol method)."""
+        self._paused = value
 
     def get_entities_for_snapshot(self) -> List[Any]:
         """Get entities for snapshot building (protocol method).
 
         Soccer uses a different rendering model (players/ball in snapshot),
         not entities. Returns empty list.
+        """
+        return []
+
+    @property
+    def entities_list(self) -> List[Any]:
+        """Legacy access to entities list (protocol method).
+
+        Soccer doesn't use entities in the same way as tank/petri.
+        Returns empty list.
         """
         return []
 

@@ -39,8 +39,7 @@ def find_snapshots(base: Path):
         snap_dir = tank_dir / "snapshots"
         if not snap_dir.exists():
             continue
-        for snap in snap_dir.glob("snapshot_*.json"):
-            yield snap
+        yield from snap_dir.glob("snapshot_*.json")
 
 
 def load(path: Path):

@@ -28,8 +28,6 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
     print("=" * 70)
 
     # Tracking variables
-    birth_count = 0
-    death_count = 0
     max_pop_reached = 0
     frames_at_max = 0
 

@@ -34,6 +34,10 @@ class TestSimulationRunnerCommands:
             mock_world.ecosystem = MagicMock()
             mock_world.entities_list = []
             mock_world.paused = False
+            mock_world.is_paused = False
+            mock_world.set_paused = MagicMock(
+                side_effect=lambda v: setattr(mock_world, "is_paused", v)
+            )
             mock_world.frame_count = 0
 
             runner = SimulationRunner(seed=123)
@@ -50,11 +54,11 @@ class TestSimulationRunnerCommands:
     def test_pause_resume(self, runner):
         # Pause
         runner.handle_command("pause")
-        assert runner.world.paused is True
+        assert runner.paused is True
 
         # Resume
         runner.handle_command("resume")
-        assert runner.world.paused is False
+        assert runner.paused is False
 
     def test_add_food(self, runner):
         runner.world.rng.randint.return_value = 100
@@ -85,7 +89,7 @@ class TestSimulationRunnerCommands:
             runner.world.setup.assert_called()
 
         assert runner._invalidate_state_cache.called
-        assert runner.world.paused is False
+        assert runner.paused is False
         assert runner.fast_forward is False
 
     def test_fast_forward(self, runner):

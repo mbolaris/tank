@@ -127,6 +127,13 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             raise RuntimeError("World not initialized. Call reset() before accessing frame_count.")
         return self._world.frame_count
 
+    @frame_count.setter
+    def frame_count(self, value: int) -> None:
+        """Set the frame count on the underlying world."""
+        if self._world is not None:
+            self._world.frame_count = value
+        self._current_frame = value
+
     @property
     def paused(self) -> bool:
         """Whether the simulation is paused."""

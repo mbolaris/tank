@@ -427,6 +427,6 @@ class MigrationScheduler:
                         )
             except Exception as restore_error:
                 logger.error(
-                    f"Failed to restore entity {entity.id} after migration failure: {restore_error}",
+                    f"Failed to restore entity {entity_id} after migration failure: {restore_error}",
                     exc_info=True,
                 )
