@@ -401,8 +401,8 @@ export interface SimulationUpdate {
     mode_id?: string;
     render_hint?: Record<string, unknown>;
 
-    // New nested snapshot
-    snapshot?: {
+    // V1 schema: All data flows through nested snapshot
+    snapshot: {
         frame: number;
         elapsed_time: number;
         entities: EntityData[];
@@ -413,7 +413,7 @@ export interface SimulationUpdate {
         render_hint?: Record<string, unknown>;
     };
 
-    // Legacy fields (optional)
+    // Convenience fields (populated by useWebSocket from snapshot)
     frame?: number;
     elapsed_time?: number;
     entities?: EntityData[];
@@ -430,8 +430,8 @@ export interface DeltaUpdate {
     view_mode?: string;
     mode_id?: string;
 
-    // New nested snapshot
-    snapshot?: {
+    // V1 schema: All data flows through nested snapshot
+    snapshot: {
         frame: number;
         elapsed_time: number;
         updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
@@ -441,15 +441,6 @@ export interface DeltaUpdate {
         stats?: StatsData;
         render_hint?: Record<string, unknown>;
     };
-
-    // Legacy fields (optional)
-    frame?: number;
-    elapsed_time?: number;
-    updates?: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
-    added?: EntityData[];
-    removed?: number[];
-    poker_events?: PokerEventData[];
-    stats?: StatsData;
 }
 
 export interface Command {

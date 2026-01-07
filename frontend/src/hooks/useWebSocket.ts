@@ -77,16 +77,14 @@ export function useWebSocket(worldId?: string) {
 
                     if (data.type === 'update') {
                         const update = data as SimulationUpdate;
-                        // Normalize: Populate top-level fields from snapshot for convenience
-                        if (update.snapshot) {
-                            update.frame = update.snapshot.frame;
-                            update.elapsed_time = update.snapshot.elapsed_time;
-                            update.entities = update.snapshot.entities;
-                            update.stats = update.snapshot.stats;
-                            update.poker_events = update.snapshot.poker_events;
-                            update.poker_leaderboard = update.snapshot.poker_leaderboard;
-                            update.auto_evaluation = update.snapshot.auto_evaluation;
-                        }
+                        // V1 schema: Populate convenience fields from snapshot for component access
+                        update.frame = update.snapshot.frame;
+                        update.elapsed_time = update.snapshot.elapsed_time;
+                        update.entities = update.snapshot.entities;
+                        update.stats = update.snapshot.stats;
+                        update.poker_events = update.snapshot.poker_events;
+                        update.poker_leaderboard = update.snapshot.poker_leaderboard;
+                        update.auto_evaluation = update.snapshot.auto_evaluation;
                         // Preserve mode fields from server
                         update.view_mode = update.view_mode ?? 'side';
                         update.mode_id = update.mode_id ?? 'tank';
@@ -203,10 +201,10 @@ export function useWebSocket(worldId?: string) {
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {
-    // V1 Schema: All payloads have nested snapshot structure
+    // V1 Schema: All payloads require nested snapshot structure
     // Backend always sends delta.snapshot with updates/added/removed
 
-    // Get delta data from snapshot (V1 schema)
+    // Get delta data from snapshot (V1 schema - snapshot is required)
     const deltaSnapshot = delta.snapshot;
     if (!deltaSnapshot) {
         // Defensive: if no snapshot, return unchanged state
