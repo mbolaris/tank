@@ -12,7 +12,7 @@ from typing import Dict, Any
 from core.tank_world import TankWorld, TankWorldConfig
 
 
-BENCHMARK_ID = "tank/survival_30k"
+BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000  # Reduced for MVP verification (was 30000)
 
 

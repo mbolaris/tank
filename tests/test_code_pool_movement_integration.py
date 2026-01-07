@@ -61,8 +61,7 @@ def test_code_policy_fallbacks_when_pool_missing():
 
 def test_code_policy_fallbacks_when_component_missing():
     rng = random.Random(11)
-    pool = CodePool()
-    env = Environment(width=800, height=600, rng=rng, code_pool=pool)
+    env = Environment(width=800, height=600, rng=rng)
     fish = _make_fish(env, StubBehavior(1.0, 0.0))
     fish.genome.behavioral.movement_policy_id = GeneticTrait("missing_policy")
 
