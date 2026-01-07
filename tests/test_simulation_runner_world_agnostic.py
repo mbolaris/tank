@@ -79,14 +79,14 @@ class TestTankBackwardCompatibility:
 class TestNonTankWorldAgnosticism:
     """Tests verifying non-tank worlds work without tank assumptions."""
 
-    def test_soccer_training_initializes(self):
-        """Soccer training world should initialize without errors."""
+    def test_soccer_initializes(self):
+        """Soccer world should initialize without errors."""
         try:
-            runner = SimulationRunner(world_type="soccer_training", seed=42)
+            runner = SimulationRunner(world_type="soccer", seed=42)
             assert runner.world is not None
-            assert runner.world_type == "soccer_training"
+            assert runner.world_type == "soccer"
         except Exception as e:
-            pytest.skip(f"Soccer training world not fully implemented: {e}")
+            pytest.skip(f"Soccer world not fully implemented: {e}")
 
     def test_petri_initializes(self):
         """Petri world should initialize without errors."""
@@ -100,9 +100,9 @@ class TestNonTankWorldAgnosticism:
     def test_non_tank_world_basic_operations(self):
         """Non-tank worlds should support universal commands."""
         try:
-            runner = SimulationRunner(world_type="soccer_training", seed=42)
+            runner = SimulationRunner(world_type="soccer", seed=42)
         except Exception:
-            pytest.skip("Soccer training world not fully implemented")
+            pytest.skip("Soccer world not fully implemented")
 
         runner.start()
 
@@ -124,9 +124,9 @@ class TestNonTankWorldAgnosticism:
     def test_non_tank_rejects_tank_commands(self):
         """Non-tank worlds should reject tank-specific commands gracefully."""
         try:
-            runner = SimulationRunner(world_type="soccer_training", seed=42)
+            runner = SimulationRunner(world_type="soccer", seed=42)
         except Exception:
-            pytest.skip("Soccer training world not fully implemented")
+            pytest.skip("Soccer world not fully implemented")
 
         # Tank-specific commands should return error, not crash
         result = runner.handle_command("add_food")
@@ -141,9 +141,9 @@ class TestNonTankWorldAgnosticism:
     def test_non_tank_full_state_universal_keys(self):
         """Full state for non-tank worlds should have universal keys."""
         try:
-            runner = SimulationRunner(world_type="soccer_training", seed=42)
+            runner = SimulationRunner(world_type="soccer", seed=42)
         except Exception:
-            pytest.skip("Soccer training world not fully implemented")
+            pytest.skip("Soccer world not fully implemented")
 
         runner.world.step()
 
@@ -153,8 +153,8 @@ class TestNonTankWorldAgnosticism:
         assert state.frame == 1
         assert state.entities is not None
         assert state.stats is not None
-        assert state.mode_id == "soccer_training"
-        assert state.world_type == "soccer_training"
+        assert state.mode_id == "soccer"
+        assert state.world_type == "soccer"
         assert state.view_mode is not None
 
 

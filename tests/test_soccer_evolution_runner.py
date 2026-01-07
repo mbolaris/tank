@@ -140,7 +140,6 @@ class TestSoccerEvolutionRunner:
                 player_id=f"p{i}",
                 team="left",
                 goals=0,
-                energy=float(i * 10),
                 fitness=float(i * 10),
                 genome=Genome.random(use_algorithm=False, rng=rng),
             )

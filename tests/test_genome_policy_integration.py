@@ -20,8 +20,8 @@ from core.genetics import Genome
 from core.genetics.code_policy_traits import apply_policy_set_to_behavioral
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
-from core.worlds.soccer_training.config import SoccerTrainingConfig
-from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
+from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+from core.worlds.soccer.config import SoccerWorldConfig
 
 
 class TestGenomeCodePoolCreation:
@@ -164,11 +164,9 @@ class TestSoccerWithGenomeCodePool:
     def test_soccer_world_with_genome_code_pool(self):
         """Soccer world should use genome_code_pool to execute policies."""
         genome_pool = create_default_genome_code_pool()
-        config = SoccerTrainingConfig(team_size=1)
+        config = SoccerWorldConfig(team_size=1)
 
-        world = SoccerTrainingWorldBackendAdapter(
-            seed=789, config=config, genome_code_pool=genome_pool
-        )
+        world = SoccerWorldBackendAdapter(seed=789, config=config, genome_code_pool=genome_pool)
 
         result = world.reset(seed=789)
 
@@ -179,21 +177,14 @@ class TestSoccerWithGenomeCodePool:
     def test_soccer_player_uses_chase_ball_policy(self):
         """Player with chase_ball policy should pursue the ball."""
         genome_pool = create_default_genome_code_pool()
-        config = SoccerTrainingConfig(team_size=1)
+        config = SoccerWorldConfig(team_size=1)
 
-        world = SoccerTrainingWorldBackendAdapter(
-            seed=111, config=config, genome_code_pool=genome_pool
-        )
+        world = SoccerWorldBackendAdapter(seed=111, config=config, genome_code_pool=genome_pool)
 
         world.reset(seed=111)
 
-        # Assign chase_ball policy to left player
-        left_player = world._players["left_1"]
-        policy_set = GenomePolicySet()
-        policy_set.set_policy("soccer_policy", BUILTIN_CHASE_BALL_SOCCER_ID)
-
-        rng = random.Random(111)
-        apply_policy_set_to_behavioral(left_player.genome.behavioral, policy_set, rng)
+        # Use public API to assign policy to left team
+        world.assign_team_policy("left", BUILTIN_CHASE_BALL_SOCCER_ID)
 
         # Step without explicit actions - should use genome policy
         result = world.step()

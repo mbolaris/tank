@@ -52,4 +52,3 @@ class SoccerMovementObservationBuilder:
 
 _soccer_movement_builder = SoccerMovementObservationBuilder()
 register_observation_builder("soccer", "movement", _soccer_movement_builder)
-register_observation_builder("soccer_training", "movement", _soccer_movement_builder)

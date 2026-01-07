@@ -317,27 +317,11 @@ class SoccerRuleSet(ModeRuleSet):
         )
 
 
-class SoccerTrainingRuleSet(SoccerRuleSet):
-    """Rules for Soccer training mode (inherits from Soccer).
-
-    Same rules as Soccer with potential training-specific adjustments.
-    """
-
-    @property
-    def mode_id(self) -> str:
-        return "soccer_training"
-
-    @property
-    def display_name(self) -> str:
-        return "Soccer Training"
-
-
 # Registry of built-in rulesets
 _RULESETS: dict[str, ModeRuleSet] = {
     "tank": TankRuleSet(),
     "petri": PetriRuleSet(),
     "soccer": SoccerRuleSet(),
-    "soccer_training": SoccerTrainingRuleSet(),
 }
 
 

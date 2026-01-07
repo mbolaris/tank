@@ -2,11 +2,16 @@
 
 This provides a pure-python training environment for evolving soccer policies.
 It can be used standalone or as a component in a larger simulation.
+With GenomeCodePool integration, supports autopolicy-driven evolution.
 """
 
+from __future__ import annotations
+
 import logging
+import math
 import random
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.soccer.config import SoccerWorldConfig
@@ -22,7 +27,25 @@ from core.worlds.soccer.types import (
     Vector2D,
 )
 
+if TYPE_CHECKING:
+    from core.code_pool import GenomeCodePool
+    from core.genetics import Genome
+
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PlayerStats:
+    """Per-player statistics for fitness calculation."""
+
+    goals: int = 0
+    assists: int = 0
+    possessions: int = 0
+    kicks: int = 0
+
+    def fitness(self) -> float:
+        """Calculate fitness from stats."""
+        return self.goals * 100.0 + self.assists * 50.0 + self.possessions * 0.1
 
 
 class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
@@ -53,6 +76,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: Optional[int] = None,
         config: Optional[SoccerWorldConfig] = None,
+        genome_code_pool: Optional[GenomeCodePool] = None,
         **config_overrides,
     ):
         """Initialize the soccer world backend.
@@ -60,6 +84,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         Args:
             seed: Random seed for deterministic simulation
             config: Complete SoccerWorldConfig (if provided, overrides are ignored)
+            genome_code_pool: Optional GenomeCodePool for autopolicy-driven stepping
             **config_overrides: Individual config parameters to override
         """
         self._seed = seed
@@ -76,7 +101,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._rng = random.Random(seed)
 
         # Game state (initialized in reset())
-        self._players: Dict[PlayerID, Player] = {}
+        self._players: dict[PlayerID, Player] = {}
         self._ball: Optional[Ball] = None
         self._field: Optional[FieldBounds] = None
         self._physics: Optional[SoccerPhysics] = None
@@ -85,19 +110,24 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._frame = 0
         self._score = {"left": 0, "right": 0}
         self._play_mode = "before_kick_off"
-        self._possession_tracker: Dict[TeamID, int] = {"left": 0, "right": 0}
-        self._last_ball_distances: Dict[PlayerID, float] = {}
+        self._possession_tracker: dict[TeamID, int] = {"left": 0, "right": 0}
+        self._last_ball_distances: dict[PlayerID, float] = {}
 
         # Event tracking
-        self._recent_events: List[Dict[str, Any]] = []
+        self._recent_events: list[dict[str, Any]] = []
 
         # Pause state (stored but doesn't affect soccer physics)
         self._paused = False
 
+        # GenomeCodePool for autopolicy-driven evolution
+        self._genome_code_pool = genome_code_pool
+        self._genome_by_player: dict[PlayerID, Genome] = {}
+        self._stats_by_player: dict[PlayerID, PlayerStats] = {}
+
         self.supports_fast_step = True
 
     def reset(
-        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, config: Optional[dict[str, Any]] = None
     ) -> StepResult:
         """Reset the soccer world to initial state.
 
@@ -166,6 +196,9 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         self._last_ball_distances = {}
         self._recent_events = []
 
+        # Reset genome and stats tracking (preserve genomes if they exist)
+        self._stats_by_player = {pid: PlayerStats() for pid in self._players}
+
         logger.info(
             f"Soccer world reset with seed={reset_seed}, "
             f"team_size={self._config.team_size}, "
@@ -189,14 +222,17 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             },
         )
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> StepResult:
         """Advance the simulation by one timestep.
 
         Args:
-            actions_by_agent: Dict mapping player_id to action dict
-                Action dict format: {
-                    "move_target": {"x": float, "y": float} or None,
-                    "face_angle": float or None,
+            actions_by_agent: Dict mapping player_id to action dict. If an action
+                is missing for a player and genome_code_pool is set, the action
+                is computed via autopolicy.
+
+                Action dict format (normalized): {
+                    "turn": float (-1 to 1),
+                    "dash": float (-1 to 1),
                     "kick_power": float (0-1),
                     "kick_angle": float (radians),
                 }
@@ -207,9 +243,12 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
         self._recent_events = []
 
+        # Fill in missing actions via autopolicy if genome_code_pool is set
+        all_actions = self._fill_actions_via_autopolicy(actions_by_agent or {})
+
         # Process player actions
-        if actions_by_agent:
-            self._process_actions(actions_by_agent)
+        if all_actions:
+            self._process_actions(all_actions)
 
         # Update physics
         self._update_physics()
@@ -252,11 +291,162 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             },
         )
 
-    def get_current_snapshot(self) -> Dict[str, Any]:
+    def _fill_actions_via_autopolicy(self, actions_by_agent: dict[str, Any]) -> dict[str, Any]:
+        """Fill in missing actions using autopolicy from GenomeCodePool.
+
+        For each player without an action, computes action via:
+        1. Their assigned genome's soccer_policy_id (if set)
+        2. The pool's default soccer policy (fallback)
+        3. A built-in chase-ball default (if no pool)
+        """
+        if not self._genome_code_pool:
+            # No pool - return actions as-is (players with no action do nothing)
+            return actions_by_agent
+
+        # Build observations once for all players who need autopolicy
+        observations: Optional[dict[PlayerID, dict[str, Any]]] = None
+
+        result = dict(actions_by_agent)
+        for player_id in sorted(self._players.keys()):
+            if player_id in result and player_id != FAST_STEP_ACTION:
+                continue  # Already have action
+
+            # Lazy-build observations
+            if observations is None:
+                observations = self._build_observations()
+
+            player_obs = observations.get(player_id, {})
+            action = self._compute_autopolicy_action(player_id, player_obs)
+            if action:
+                result[player_id] = action.to_dict()
+
+        return result
+
+    def _compute_autopolicy_action(
+        self, player_id: PlayerID, observation: dict[str, Any]
+    ) -> Optional[SoccerAction]:
+        """Compute action for a player using their genome's policy."""
+        from core.genetics.code_policy_traits import extract_policy_set_from_behavioral
+
+        genome = self._genome_by_player.get(player_id)
+        if genome is None:
+            # No genome assigned - use default policy
+            return self._default_chase_ball_action(observation)
+
+        # Extract policy set from genome
+        policy_set = extract_policy_set_from_behavioral(genome.behavioral)
+        component_id = policy_set.get_component_id("soccer_policy")
+
+        if component_id is None:
+            # No soccer policy set - try pool default
+            default_id = self._genome_code_pool.get_default("soccer_policy")
+            if default_id:
+                component_id = default_id
+            else:
+                return self._default_chase_ball_action(observation)
+
+        # Execute policy
+        params = policy_set.get_params("soccer_policy")
+        dt = 1.0 / self._config.frame_rate
+
+        result = self._genome_code_pool.execute_policy(
+            component_id=component_id,
+            observation=observation,
+            rng=self._rng,
+            dt=dt,
+            params=params,
+        )
+
+        if not result.success:
+            logger.warning(
+                "Policy %s failed for %s: %s",
+                component_id,
+                player_id,
+                result.error_message,
+            )
+            return self._default_chase_ball_action(observation)
+
+        # Coerce output to SoccerAction
+        action = self._coerce_output_to_action(result.output)
+        if action is None or not action.is_valid():
+            logger.warning("Policy %s returned invalid action for %s", component_id, player_id)
+            return self._default_chase_ball_action(observation)
+
+        return action
+
+    def _coerce_output_to_action(self, output: Any) -> Optional[SoccerAction]:
+        """Coerce policy output to SoccerAction."""
+        if isinstance(output, SoccerAction):
+            return output
+        if isinstance(output, dict):
+            if "turn" in output or "dash" in output:
+                return SoccerAction.from_dict(output)
+        if isinstance(output, (tuple, list)) and len(output) >= 4:
+            try:
+                return SoccerAction(
+                    turn=float(output[0]),
+                    dash=float(output[1]),
+                    kick_power=float(output[2]),
+                    kick_angle=float(output[3]),
+                )
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def _default_chase_ball_action(self, observation: dict[str, Any]) -> SoccerAction:
+        """Default policy: chase ball and kick toward goal."""
+        try:
+            self_x = float(observation.get("position", {}).get("x", 0.0))
+            self_y = float(observation.get("position", {}).get("y", 0.0))
+            ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
+            ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
+            field_width = float(observation.get("field_width", 100.0))
+            facing_angle = float(observation.get("facing_angle", 0.0))
+
+            # Calculate direction to ball
+            dx = ball_x - self_x
+            dy = ball_y - self_y
+            dist_sq = dx * dx + dy * dy
+            dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+
+            # Calculate turn needed to face ball
+            target_angle = math.atan2(dy, dx)
+            angle_delta = target_angle - facing_angle
+            while angle_delta > math.pi:
+                angle_delta -= 2 * math.pi
+            while angle_delta < -math.pi:
+                angle_delta += 2 * math.pi
+            turn = max(-1.0, min(1.0, angle_delta / 0.35))
+
+            # Dash toward ball if not too close
+            dash = 1.0 if dist > 0.5 else 0.0
+
+            # Kick if close to ball
+            kick_power = 0.0
+            kick_angle = 0.0
+            if dist < 2.0:
+                # Kick toward opponent goal (right side)
+                goal_x = field_width / 2.0
+                goal_y = 0.0
+                goal_dx = goal_x - ball_x
+                goal_dy = goal_y - ball_y
+                kick_angle = math.atan2(goal_dy, goal_dx) - facing_angle
+                kick_power = 0.8
+
+            return SoccerAction(
+                turn=turn,
+                dash=dash,
+                kick_power=kick_power,
+                kick_angle=kick_angle,
+            )
+        except (TypeError, ValueError, KeyError):
+            return SoccerAction()
+
+    def get_current_snapshot(self) -> dict[str, Any]:
         """Get current world state for rendering."""
         return self._build_snapshot()
 
-    def get_current_metrics(self) -> Dict[str, Any]:
+    def get_current_metrics(self) -> dict[str, Any]:
         """Get current simulation metrics."""
         return {
             "frame": self._frame,
@@ -269,7 +459,100 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             "play_mode": self._play_mode,
         }
 
-    def _process_actions(self, actions_by_agent: Dict[str, Any]) -> None:
+    # =========================================================================
+    # Public API for evolution experiments
+    # =========================================================================
+
+    def list_agents(self) -> list[PlayerID]:
+        """Return list of all player IDs.
+
+        Returns:
+            List of player IDs like ["left_1", "left_2", "right_1", ...]
+        """
+        return list(self._players.keys())
+
+    def set_player_genome(self, player_id: PlayerID, genome: Genome) -> None:
+        """Assign a genome to a player.
+
+        The genome's soccer_policy_id will be used for autopolicy actions.
+
+        Args:
+            player_id: Player to assign genome to
+            genome: Genome with soccer_policy_id set
+        """
+        if player_id not in self._players:
+            logger.warning("set_player_genome: player %s not found", player_id)
+            return
+        self._genome_by_player[player_id] = genome
+
+    def assign_team_policy(self, team: TeamID, component_id: str) -> None:
+        """Assign a soccer policy to all players on a team.
+
+        Convenience method for benchmarks/tests. Creates or updates genomes
+        for all players on the team with the specified soccer policy.
+
+        Args:
+            team: "left" or "right"
+            component_id: Soccer policy component ID from the pool
+        """
+        from core.genetics import Genome
+        from core.genetics.trait import GeneticTrait
+
+        for player_id, player in self._players.items():
+            if player.team != team:
+                continue
+
+            # Get existing genome or create new one
+            genome = self._genome_by_player.get(player_id)
+            if genome is None:
+                genome = Genome.random(use_algorithm=False, rng=self._rng)
+                self._genome_by_player[player_id] = genome
+
+            # Update soccer policy
+            genome.behavioral.soccer_policy_id = GeneticTrait(component_id)
+            genome.behavioral.soccer_policy_params = GeneticTrait({})
+
+    def get_fitness_summary(self) -> dict[str, Any]:
+        """Get fitness summary for all players.
+
+        Returns a dict with:
+        - score: {left: int, right: int}
+        - team_fitness: {left: float, right: float}
+        - agent_fitness: {player_id: {...stats...}}
+        """
+        per_agent: dict[str, Any] = {}
+        for player_id, player in self._players.items():
+            stats = self._stats_by_player.get(player_id, PlayerStats())
+            per_agent[player_id] = {
+                "team": player.team,
+                "goals": stats.goals,
+                "assists": stats.assists,
+                "possessions": stats.possessions,
+                "kicks": stats.kicks,
+                "stamina": player.stamina,
+                "fitness": stats.fitness(),
+            }
+
+        team_fitness = {
+            "left": sum(
+                self._stats_by_player.get(pid, PlayerStats()).fitness()
+                for pid, p in self._players.items()
+                if p.team == "left"
+            ),
+            "right": sum(
+                self._stats_by_player.get(pid, PlayerStats()).fitness()
+                for pid, p in self._players.items()
+                if p.team == "right"
+            ),
+        }
+
+        return {
+            "score": dict(self._score),
+            "team_fitness": team_fitness,
+            "agent_fitness": per_agent,
+        }
+
+    def _process_actions(self, actions_by_agent: dict[str, Any]) -> None:
         """Process actions from all agents.
 
         Only supports normalized format (turn/dash/kick_power/kick_angle).
@@ -320,6 +603,9 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
                 if success:
                     # Consume stamina for kick
                     player.stamina = max(0.0, player.stamina - self._config.stamina_kick_cost)
+                    # Track kick in stats
+                    if player_id in self._stats_by_player:
+                        self._stats_by_player[player_id].kicks += 1
                     self._recent_events.append(
                         {
                             "type": "kick",
@@ -428,6 +714,10 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
         scorer_id = result[0].player_id if result else "unknown"
 
+        # Track stats for scorer
+        if scorer_id in self._stats_by_player:
+            self._stats_by_player[scorer_id].goals += 1
+
         self._recent_events.append(
             {
                 "type": "goal",
@@ -460,8 +750,11 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             # Consider possession if within 2 meters
             if distance < 2.0:
                 self._possession_tracker[closest_player.team] += 1
+                # Track stats
+                if closest_player.player_id in self._stats_by_player:
+                    self._stats_by_player[closest_player.player_id].possessions += 1
 
-    def _build_observations(self) -> Dict[PlayerID, Dict[str, Any]]:
+    def _build_observations(self) -> dict[PlayerID, dict[str, Any]]:
         """Build observations for all players."""
         observations = {}
 
@@ -517,7 +810,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
 
         return observations
 
-    def _build_snapshot(self) -> Dict[str, Any]:
+    def _build_snapshot(self) -> dict[str, Any]:
         """Build snapshot for rendering/persistence."""
         return {
             "frame": self._frame,
@@ -549,7 +842,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
             "play_mode": self._play_mode,
         }
 
-    def calculate_rewards(self) -> Dict[PlayerID, SoccerReward]:
+    def calculate_rewards(self) -> dict[PlayerID, SoccerReward]:
         """Calculate shaped rewards for all players (training only).
 
         Returns:
@@ -630,7 +923,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         """Set the simulation paused state (protocol method)."""
         self._paused = value
 
-    def get_entities_for_snapshot(self) -> List[Any]:
+    def get_entities_for_snapshot(self) -> list[Any]:
         """Get entities for snapshot building (protocol method).
 
         Soccer uses a different rendering model (players/ball in snapshot),
@@ -639,7 +932,7 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         return []
 
     @property
-    def entities_list(self) -> List[Any]:
+    def entities_list(self) -> list[Any]:
         """Legacy access to entities list (protocol method).
 
         Soccer doesn't use entities in the same way as tank/petri.
@@ -647,14 +940,14 @@ class SoccerWorldBackendAdapter(MultiAgentWorldBackend):
         """
         return []
 
-    def capture_state_for_save(self) -> Dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, Any]:
         """Capture complete world state for persistence (protocol method).
 
         Soccer matches are ephemeral and don't support saving.
         """
         return {}
 
-    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, Any]) -> None:
         """Restore world state from a saved snapshot (protocol method).
 
         Soccer matches are ephemeral and don't support restoration.

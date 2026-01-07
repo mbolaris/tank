@@ -199,46 +199,5 @@ def _register_builtin_modes() -> None:
     else:
         WorldRegistry.register_mode_pack(soccer_mode_pack)
 
-    soccer_training_mode_pack_factory = None
-    if (modes_dir / "soccer_training.py").exists():
-        soccer_training_module = importlib.import_module("core.modes.soccer_training")
-        soccer_training_mode_pack_factory = getattr(
-            soccer_training_module, "create_soccer_training_mode_pack", None
-        )
-
-    if soccer_training_mode_pack_factory is not None:
-        soccer_training_mode_pack = soccer_training_mode_pack_factory()
-    else:
-        soccer_training_mode_pack = ModePackDefinition(
-            mode_id="soccer_training",
-            world_type="soccer_training",
-            default_view_mode="topdown",
-            display_name="Soccer Training",
-            normalizer=_identity_config,
-            supports_persistence=False,
-            supports_actions=True,
-            supports_websocket=False,
-            supports_transfer=False,
-            has_fish=False,
-        )
-
-    soccer_training_backend: type[MultiAgentWorldBackend] | None = None
-    if (worlds_dir / "soccer_training" / "world.py").exists():
-        soccer_training_module = importlib.import_module("core.worlds.soccer_training.world")
-        soccer_training_backend = getattr(
-            soccer_training_module, "SoccerTrainingWorldBackendAdapter", None
-        )
-
-    if soccer_training_backend is not None:
-        WorldRegistry.register_world_type(
-            world_type="soccer_training",
-            factory=lambda **kwargs: soccer_training_backend(**kwargs),
-            mode_pack=soccer_training_mode_pack,
-            default_view_mode="topdown",
-            display_name="Soccer Training",
-        )
-    else:
-        WorldRegistry.register_mode_pack(soccer_training_mode_pack)
-
 
 _register_builtin_modes()

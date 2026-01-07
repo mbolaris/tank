@@ -21,7 +21,7 @@ LEGACY_EXCEEDS: Set[str] = {
     "human_poker_game.py",
     "behavioral.py",  # genetics/behavioral.py
     "evolution_benchmark_tracker.py",
-    "world.py",  # soccer_training world
+    "world.py",  # soccer world (deprecated comment)
     "interaction.py",  # mixed_poker interaction
     "schooling.py",
     "base.py",  # algorithms/base.py

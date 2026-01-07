@@ -1,29 +1,28 @@
-"""Soccer training evolution experiment runner.
+"""Soccer evolution experiment runner.
 
 This module provides a deterministic, seeded experiment runner for evolving
-soccer policies using the SoccerTrainingWorld. It runs generations of agents,
-evaluates fitness, and selects/mutates genomes for the next generation.
+soccer policies using the consolidated SoccerWorldBackendAdapter. It runs
+generations of agents, evaluates fitness, and selects/mutates genomes.
 
 Fitness Formula:
-    fitness = total_team_energy + (goals_scored * goal_weight)
-
-Energy-focused evolution ensures continuity with the tank evolution patterns
-where survival (energy management) is the primary selection pressure.
+    fitness = goals * goal_weight + possessions * possession_weight
 """
 
 from __future__ import annotations
 
 import random
 from dataclasses import dataclass
-from typing import Any
 
 from core.code_pool import GenomeCodePool, create_default_genome_code_pool
 from core.genetics import Genome
-from core.worlds.soccer_training.world import (
-    LEFT_TEAM,
-    RIGHT_TEAM,
-    SoccerTrainingWorldBackendAdapter,
+from core.genetics.code_policy_traits import (
+    assign_random_policy,
+    mutate_code_policies,
 )
+from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+
+LEFT_TEAM = "left"
+RIGHT_TEAM = "right"
 
 
 @dataclass
@@ -33,7 +32,6 @@ class AgentResult:
     player_id: str
     team: str
     goals: int
-    energy: float
     fitness: float
     genome: Genome
 
@@ -66,7 +64,7 @@ def create_population(
     population_size: int,
     genome_code_pool: GenomeCodePool,
 ) -> list[Genome]:
-    """Create initial population with random genomes.
+    """Create initial population with random genomes and soccer policies.
 
     Args:
         rng: Seeded RNG for determinism
@@ -74,22 +72,15 @@ def create_population(
         genome_code_pool: Pool containing available soccer policies
 
     Returns:
-        List of initialized Genome objects
+        List of initialized Genome objects with soccer policies assigned
     """
     population: list[Genome] = []
-
-    # Get available soccer policies
-    soccer_policy_ids = genome_code_pool.get_components_by_kind("soccer_policy")
 
     for _ in range(population_size):
         genome = Genome.random(use_algorithm=False, rng=rng)
 
-        # Assign random soccer policy if available
-        if soccer_policy_ids:
-            policy_id = rng.choice(soccer_policy_ids)
-            genome.behavioral.soccer_policy_id = genome.behavioral.soccer_policy_id.__class__(
-                policy_id
-            )
+        # Assign random soccer policy using pool-aware API
+        assign_random_policy(genome.behavioral, genome_code_pool, "soccer_policy", rng)
 
         population.append(genome)
 
@@ -101,67 +92,72 @@ def evaluate_population(
     seed: int,
     episode_frames: int,
     genome_code_pool: GenomeCodePool,
-    goal_weight: float = 10.0,
+    goal_weight: float = 100.0,
+    possession_weight: float = 0.1,
 ) -> list[AgentResult]:
     """Evaluate all genomes by running soccer episodes.
 
-    Each genome is assigned to a player, episodes are run, and fitness is computed.
+    Uses public API instead of accessing internal _players directly.
 
     Args:
         population: List of genomes to evaluate
         seed: Seed for deterministic episode
         episode_frames: Number of frames per episode
         genome_code_pool: Pool for policy execution
-        goal_weight: Weight for goals in fitness calculation
+        goal_weight: Weight for goals in fitness
+        possession_weight: Weight for possession in fitness
 
     Returns:
         List of AgentResult with fitness scores
     """
     # Create world with deterministic seed
-    config: dict[str, Any] = {
-        "team_size": max(1, len(population) // 2),
-    }
+    team_size = max(1, len(population) // 2)
 
-    world = SoccerTrainingWorldBackendAdapter(
+    world = SoccerWorldBackendAdapter(
         seed=seed,
         genome_code_pool=genome_code_pool,
-        **config,
+        team_size=team_size,
     )
-
-    # Reset to initialize field and players
     world.reset(seed=seed)
 
-    # Assign genomes to players
-    player_ids = list(world._players.keys())
+    # Assign genomes to players using public API
+    player_ids = world.list_agents()
+    genome_by_player: dict[str, Genome] = {}
     for i, genome in enumerate(population[: len(player_ids)]):
         if i < len(player_ids):
-            player = world._players[player_ids[i]]
-            player.genome = genome
+            player_id = player_ids[i]
+            world.set_player_genome(player_id, genome)
+            genome_by_player[player_id] = genome
 
-    # Run episode
+    # Run episode - autopolicy drives all players
     for _ in range(episode_frames):
         world.step()
 
-    # Collect results
+    # Collect results using public API
     results: list[AgentResult] = []
     fitness_summary = world.get_fitness_summary()
 
-    for player_id, player in world._players.items():
+    for player_id in player_ids:
         agent_data = fitness_summary.get("agent_fitness", {}).get(player_id, {})
         goals = agent_data.get("goals", 0)
-        energy = agent_data.get("energy", 0.0)
+        possessions = agent_data.get("possessions", 0)
+        team = agent_data.get("team", "left")
 
-        # Fitness = energy + weighted goals
-        fitness = energy + (goals * goal_weight)
+        # Fitness = weighted goals + weighted possessions
+        fitness = (goals * goal_weight) + (possessions * possession_weight)
+
+        genome = genome_by_player.get(player_id)
+        if genome is None:
+            # Player without genome - create placeholder
+            genome = Genome.random(use_algorithm=False, rng=random.Random(seed))
 
         results.append(
             AgentResult(
                 player_id=player_id,
-                team=player.team,
+                team=team,
                 goals=goals,
-                energy=energy,
                 fitness=fitness,
-                genome=player.genome,
+                genome=genome,
             )
         )
 
@@ -193,24 +189,22 @@ def create_next_generation(
     population_size: int,
     rng: random.Random,
     genome_code_pool: GenomeCodePool,
-    mutation_rate: float = 0.1,
 ) -> list[Genome]:
-    """Create next generation via reproduction and mutation.
+    """Create next generation via reproduction and pool-aware mutation.
+
+    Uses mutate_code_policies() for proper per-kind mutation instead of
+    the flat available_policies approach.
 
     Args:
         parents: Selected parent genomes
         population_size: Target size for next generation
         rng: Seeded RNG for determinism
         genome_code_pool: Pool for policy mutation
-        mutation_rate: Rate of genome mutation (unused, kept for API compat)
 
     Returns:
         New population of genomes
     """
     next_gen: list[Genome] = []
-
-    # Get available policies for mutation
-    available_policies = genome_code_pool.get_components_by_kind("soccer_policy")
 
     # Elitism: keep best parent unchanged
     if parents:
@@ -220,12 +214,16 @@ def create_next_generation(
     while len(next_gen) < population_size:
         parent = rng.choice(parents) if parents else Genome.random(use_algorithm=False, rng=rng)
 
-        # Clone with mutation using the correct API
-        child = Genome.clone_with_mutation(
-            parent,
-            rng=rng,
-            available_policies=available_policies or None,
-        )
+        # Clone and apply pool-aware mutation
+        child = Genome.clone_with_mutation(parent, rng=rng)
+
+        # Apply pool-aware mutation to code policies (soccer-specific)
+        mutate_code_policies(child.behavioral, genome_code_pool, rng)
+
+        # Ensure child has a soccer policy
+        if child.behavioral.soccer_policy_id.value is None:
+            assign_random_policy(child.behavioral, genome_code_pool, "soccer_policy", rng)
+
         next_gen.append(child)
 
     return next_gen[:population_size]
@@ -237,7 +235,7 @@ def run_generations(
     population_size: int = 20,
     episode_frames: int = 300,
     top_k_selection: int = 5,
-    goal_weight: float = 10.0,
+    goal_weight: float = 100.0,
     mutation_rate: float = 0.1,
     verbose: bool = False,
 ) -> EvolutionResult:
@@ -250,7 +248,7 @@ def run_generations(
         episode_frames: Frames per evaluation episode
         top_k_selection: Number of top performers to select as parents
         goal_weight: Weight for goals in fitness calculation
-        mutation_rate: Probability of mutation
+        mutation_rate: Probability of mutation (unused, for API compat)
         verbose: If True, print per-generation progress
 
     Returns:
@@ -320,7 +318,6 @@ def run_generations(
                 population_size,
                 rng,
                 genome_code_pool,
-                mutation_rate,
             )
 
     # Return result

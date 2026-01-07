@@ -36,9 +36,9 @@ class TestWorldTypeFirstClass:
         """WorldManager can create soccer world instances."""
         manager = WorldManager()
         try:
-            instance = manager.create_world(name="Soccer Test", world_type="soccer_training")
-            assert instance.world_type == "soccer_training"
-            assert instance.runner.world_type == "soccer_training"
+            instance = manager.create_world(name="Soccer Test", world_type="soccer")
+            assert instance.world_type == "soccer"
+            assert instance.runner.world_type == "soccer"
             assert not instance.is_tank()
         finally:
             manager.stop_all_worlds()

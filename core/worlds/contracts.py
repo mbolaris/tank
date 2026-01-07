@@ -25,14 +25,14 @@ if TYPE_CHECKING:
 # World Type Definition
 # =============================================================================
 
-WorldType = Literal["tank", "petri", "soccer", "soccer_training"]
+WorldType = Literal["tank", "petri", "soccer"]
 """Canonical world type identifier.
 
 This is the single source of truth for valid world types.
 Use this instead of string literals throughout the codebase.
 """
 
-ALL_WORLD_TYPES: tuple[str, ...] = ("tank", "petri", "soccer", "soccer_training")
+ALL_WORLD_TYPES: tuple[str, ...] = ("tank", "petri", "soccer")
 """Tuple of all valid world types for iteration and validation."""
 
 
@@ -79,7 +79,6 @@ class RenderHint:
 TANK_RENDER_HINT = RenderHint(style="side", entity_style="fish")
 PETRI_RENDER_HINT = RenderHint(style="topdown", entity_style="microbe")
 SOCCER_RENDER_HINT = RenderHint(style="topdown", entity_style="player")
-SOCCER_TRAINING_RENDER_HINT = RenderHint(style="topdown", entity_style="player")
 
 
 def get_default_render_hint(world_type: str) -> RenderHint:
@@ -88,7 +87,6 @@ def get_default_render_hint(world_type: str) -> RenderHint:
         "tank": TANK_RENDER_HINT,
         "petri": PETRI_RENDER_HINT,
         "soccer": SOCCER_RENDER_HINT,
-        "soccer_training": SOCCER_TRAINING_RENDER_HINT,
     }
     return hints.get(world_type, TANK_RENDER_HINT)
 

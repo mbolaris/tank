@@ -28,7 +28,6 @@ class TestWorldTypeDefinitions:
         assert "tank" in ALL_WORLD_TYPES
         assert "petri" in ALL_WORLD_TYPES
         assert "soccer" in ALL_WORLD_TYPES
-        assert "soccer_training" in ALL_WORLD_TYPES
 
     def test_is_valid_world_type_valid(self) -> None:
         """is_valid_world_type returns True for valid types."""

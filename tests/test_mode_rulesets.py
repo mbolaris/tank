@@ -16,7 +16,6 @@ from core.modes.rulesets import (
     PetriRuleSet,
     ScoringModel,
     SoccerRuleSet,
-    SoccerTrainingRuleSet,
     TankRuleSet,
     get_ruleset,
     list_rulesets,
@@ -166,20 +165,6 @@ class TestSoccerRuleSet:
         tank = TankRuleSet()
         soccer = SoccerRuleSet()
         assert soccer.action_space.max_speed > tank.action_space.max_speed
-
-
-class TestSoccerTrainingRuleSet:
-    """Tests for SoccerTrainingRuleSet."""
-
-    def test_inherits_from_soccer(self):
-        """Should inherit from SoccerRuleSet."""
-        ruleset = SoccerTrainingRuleSet()
-        assert isinstance(ruleset, SoccerRuleSet)
-
-    def test_mode_id(self):
-        """Should have distinct mode ID."""
-        ruleset = SoccerTrainingRuleSet()
-        assert ruleset.mode_id == "soccer_training"
 
 
 class TestRulesetRegistry:
