@@ -8,7 +8,8 @@ for the fish tank ecosystem simulation without modifying the core simulation.
 import logging
 from typing import Any, Dict, List, Optional
 
-from core.tank_world import TankWorld, TankWorldConfig
+from core.config.simulation_config import SimulationConfig
+from core.legacy.tank_world import TankWorld
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.tank.action_bridge import apply_actions
 from core.worlds.tank.observation_builder import build_tank_observations
@@ -39,24 +40,32 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def __init__(
         self,
         seed: Optional[int] = None,
-        config: Optional[TankWorldConfig] = None,
+        config: Optional[Dict[str, Any]] = None,
         **config_overrides,
     ):
         """Initialize the Tank world backend adapter.
 
         Args:
             seed: Random seed for deterministic simulation
-            config: Complete TankWorldConfig (if provided, overrides are ignored)
+            config: Optional config dict
             **config_overrides: Individual config parameters to override
         """
         self._seed = seed
-        self._config_overrides = config_overrides
 
-        # Create config from overrides if not provided
-        if config is None:
-            config = TankWorldConfig(**config_overrides)
+        # Start with production defaults
+        base_config = SimulationConfig.production(headless=True)
 
-        self._base_config = config
+        merged_config = {}
+        if config and isinstance(config, dict):
+            merged_config.update(config)
+        elif config and hasattr(config, "apply_flat_config"):
+            # If it's already a SimulationConfig, use it as the base
+            base_config = config
+
+        if config_overrides:
+            merged_config.update(config_overrides)
+
+        self._simulation_config = base_config.apply_flat_config(merged_config)
         self._world: Optional[TankWorld] = None
         self._current_frame = 0
         self._last_step_result: Optional[StepResult] = None
@@ -90,18 +99,19 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Use provided seed or fall back to constructor seed
         reset_seed = seed if seed is not None else self._seed
         if config:
-            merged = {**self._base_config.to_dict(), **config}
-            self._base_config = TankWorldConfig.from_dict(merged)
+            self._simulation_config = self._simulation_config.apply_flat_config(config)
 
         # Create fresh TankWorld instance
-        self._world = TankWorld(config=self._base_config, seed=reset_seed, pack=pack)
+        self._world = TankWorld(
+            simulation_config=self._simulation_config, seed=reset_seed, pack=pack
+        )
 
         # Setup the simulation (creates initial entities)
         self._world.setup()
         self._current_frame = 0
 
         logger.info(
-            f"Tank world reset with seed={reset_seed}, " f"config={self._base_config.to_dict()}"
+            f"Tank world reset with seed={reset_seed}, " f"config={self._simulation_config}"
         )
 
         # Return initial state
@@ -340,8 +350,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             "frame": self._world.frame_count,
             "world_type": "tank",
             "paused": self._world.paused,
-            "width": self._world.config.screen_width,
-            "height": self._world.config.screen_height,
+            "width": self._simulation_config.display.screen_width,
+            "height": self._simulation_config.display.screen_height,
             "render_hint": {
                 "style": "side",
                 "entity_style": "fish",
@@ -565,12 +575,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return getattr(self._world, "ecosystem", None)
 
     @property
-    def config(self) -> TankWorldConfig:
+    def config(self) -> SimulationConfig:
         """Access configuration."""
-        # Config is available before reset
-        if self._world is not None:
-            return self._world.config
-        return self._base_config
+        return self._simulation_config
 
     @property
     def rng(self) -> Any:
@@ -605,7 +612,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             "world_id": getattr(self.environment, "world_id", "unknown"),
             "frame": self._world.frame_count,
             "paused": self._world.paused,
-            "config": self._base_config.to_dict(),
+            "config": {},  # Config serialization should be handled by SimulationConfig
             "seed": self._seed,
             "entities": self._build_entities_list(),
         }

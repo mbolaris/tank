@@ -13,9 +13,8 @@ from core.entities import Fish, Food
 from core.genetics.genome import Genome
 from core.movement_strategy import AlgorithmicMovement
 from core.policies.behavior_adapter import SimplePolicy
-from core.tank_world import TankWorldConfig
+from core.worlds import WorldRegistry
 from core.worlds.interfaces import FAST_STEP_ACTION
-from core.worlds.petri.backend import PetriWorldBackendAdapter
 
 # Configuration
 WIDTH = 600
@@ -50,15 +49,15 @@ def main():
     print(f"Starting Petri Dish Training (Size: {WIDTH}x{HEIGHT})...")
 
     # 1. Setup World
-    config = TankWorldConfig(
-        screen_width=WIDTH,
-        screen_height=HEIGHT,
-        auto_food_enabled=False,  # We manually spawn food
-        max_population=10,  # Allow up to 10 manual fish
-        headless=True,
-    )
+    config = {
+        "screen_width": WIDTH,
+        "screen_height": HEIGHT,
+        "auto_food_enabled": False,  # We manually spawn food
+        "max_population": 10,  # Allow up to 10 manual fish
+        "headless": True,
+    }
 
-    adapter = PetriWorldBackendAdapter(seed=42, config=config)
+    adapter = WorldRegistry.create_world("petri", seed=42, **config)
 
     adapter.reset(seed=42)  # This just resets, return value isn't the Env object
 

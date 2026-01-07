@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameType
 from core.skills.config import SkillGameConfig, get_active_skill_game, set_skill_game_config
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 # Configure logging
 logging.basicConfig(
@@ -69,9 +69,8 @@ def run_skill_game_simulation(
     logger.info("")
 
     # Create tank world
-    world_config = TankWorldConfig(headless=True)
-    world = TankWorld(config=world_config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     engine = world.engine
 

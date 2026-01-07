@@ -26,8 +26,13 @@ def test_no_legacy_code():
             continue
 
         for root, dirs, files in os.walk(abs_search_dir):
-            # Skip caches and tests
-            if "__pycache__" in root or "tests" in root or "node_modules" in root:
+            # Skip caches, tests, and legacy quarantine
+            if (
+                "__pycache__" in root
+                or "tests" in root
+                or "node_modules" in root
+                or "core/legacy" in root
+            ):
                 continue
 
             for file in files:

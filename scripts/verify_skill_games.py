@@ -24,7 +24,7 @@ from core.skills.base import SkillGameType
 from core.skills.config import SkillGameConfig, set_active_skill_game, set_skill_game_config
 from core.skills.games.number_guessing import NumberGuessingGame, NumberGuessingStrategy
 from core.skills.games.rock_paper_scissors import RockPaperScissorsGame, RPSStrategy
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 # Configure logging
 logging.basicConfig(
@@ -161,9 +161,8 @@ def test_game_swapping():
     logger.info("=" * 60)
 
     # Create a short simulation
-    world_config = TankWorldConfig(headless=True)
-    world = TankWorld(config=world_config, seed=123)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=123, headless=True)
+    world.reset(seed=123)
     engine = world.engine
 
     # Start with RPS
@@ -230,9 +229,8 @@ def test_inheritance_in_simulation():
     logger.info("=" * 60)
 
     # Run simulation long enough for reproduction
-    world_config = TankWorldConfig(headless=True)
-    world = TankWorld(config=world_config, seed=456)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=456, headless=True)
+    world.reset(seed=456)
     engine = world.engine
 
     config = SkillGameConfig(
@@ -312,9 +310,8 @@ def test_both_games_functional():
     results = {}
 
     for game_type in [SkillGameType.ROCK_PAPER_SCISSORS, SkillGameType.NUMBER_GUESSING]:
-        world_config = TankWorldConfig(headless=True)
-        world = TankWorld(config=world_config, seed=789)
-        world.setup()
+        world = WorldRegistry.create_world("tank", seed=789, headless=True)
+        world.reset(seed=789)
         engine = world.engine
 
         config = SkillGameConfig(

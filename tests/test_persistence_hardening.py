@@ -4,22 +4,21 @@ from backend.world_persistence import restore_world_from_snapshot
 from core.entities import Fish, Plant, PlantNectar
 from core.genetics import PlantGenome
 from core.movement_strategy import AlgorithmicMovement
-from core.tank_world import TankWorldConfig
-from core.worlds.tank.backend import TankWorldBackendAdapter
+from core.worlds import WorldRegistry
 
 
 def test_persistence_round_trip():
     """Test that saving and restoring a world preserves entity state and references."""
-    # Setup Source World
-    config = TankWorldConfig(
-        headless=True,
-        screen_width=1000,
-        screen_height=1000,
-        max_population=100,
-        auto_food_enabled=False,
-    )
-    adapter = TankWorldBackendAdapter("test-tank", config)
-    adapter.reset()
+    # Setup Source World via canonical WorldRegistry path
+    config = {
+        "headless": True,
+        "screen_width": 1000,
+        "screen_height": 1000,
+        "max_population": 100,
+        "auto_food_enabled": False,
+    }
+    adapter = WorldRegistry.create_world("tank", seed=42, config=config)
+    adapter.reset(seed=42, config=config)
     world = adapter.world
 
     # Add a Fish with specific properties we can verify
@@ -72,8 +71,8 @@ def test_persistence_round_trip():
     ), f"Expected at least 3 entities, got {len(snapshot['entities'])}"
 
     # Setup Destination World (Fresh)
-    dest_adapter = TankWorldBackendAdapter("dest-tank", config)
-    dest_adapter.reset()
+    dest_adapter = WorldRegistry.create_world("tank", seed=43, config=config)
+    dest_adapter.reset(seed=43, config=config)
 
     # Restore
     success = restore_world_from_snapshot(snapshot, dest_adapter)

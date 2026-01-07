@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.WARNING)
 
 from core.entities import Fish, Food
 from core.entities.plant import PlantNectar
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 
 def trace_energy_economy(tank: TankWorld, frames: int = 500):
@@ -137,22 +137,22 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
 def main():
     print("Starting energy economy bug hunt...")
 
-    config = TankWorldConfig(
-        max_population=100,
-        auto_food_enabled=True,
-    )
+    config = {
+        "max_population": 100,
+        "auto_food_enabled": True,
+    }
 
-    tank = TankWorld(config=config)
-    tank.setup()
+    world = WorldRegistry.create_world("tank", seed=42, **config)
+    world.reset(seed=42)
 
     # Spawn initial population
     for _ in range(15):
-        tank.engine.spawn_emergency_fish()
+        world.engine.spawn_emergency_fish()
 
-    fish_count = len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])
+    fish_count = len([e for e in world.entities_list if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
 
-    trace_energy_economy(tank, frames=500)
+    trace_energy_economy(world, frames=500)
 
 
 if __name__ == "__main__":

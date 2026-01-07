@@ -212,3 +212,60 @@ class SimulationConfig:
     def with_overrides(self, **kwargs) -> SimulationConfig:
         """Return a copy of the config with updated fields."""
         return replace(self, **kwargs)
+
+    def apply_flat_config(self, config_dict: dict[str, Any]) -> SimulationConfig:
+        """Apply a flat dictionary of overrides to this configuration.
+
+        This handles the mapping from flat keys (used by legacy and external APIs)
+        to the nested dataclass structure of SimulationConfig.
+
+        Returns:
+            A new SimulationConfig with the overrides applied.
+        """
+        cfg = deepcopy(self)
+
+        # Headless mode
+        if "headless" in config_dict:
+            cfg.headless = bool(config_dict["headless"])
+
+        # Display
+        display_map = {
+            "screen_width": "screen_width",
+            "screen_height": "screen_height",
+            "frame_rate": "frame_rate",
+        }
+        for flat_key, attr in display_map.items():
+            if flat_key in config_dict:
+                setattr(cfg.display, attr, config_dict[flat_key])
+
+        # Ecosystem
+        ecosystem_map = {
+            "max_population": "max_population",
+            "critical_population_threshold": "critical_population_threshold",
+            "emergency_spawn_cooldown": "emergency_spawn_cooldown",
+        }
+        for flat_key, attr in ecosystem_map.items():
+            if flat_key in config_dict:
+                setattr(cfg.ecosystem, attr, config_dict[flat_key])
+
+        # Food
+        food_map = {
+            "auto_food_enabled": "auto_food_enabled",
+            "auto_food_spawn_rate": "spawn_rate",
+            "food_spawn_rate": "spawn_rate",
+        }
+        for flat_key, attr in food_map.items():
+            if flat_key in config_dict:
+                setattr(cfg.food, attr, config_dict[flat_key])
+
+        # Server/Feature Flags
+        server_map = {
+            "plants_enabled": "plants_enabled",
+            "poker_activity_enabled": "poker_activity_enabled",
+        }
+        for flat_key, attr in server_map.items():
+            if flat_key in config_dict:
+                setattr(cfg.server, attr, config_dict[flat_key])
+
+        cfg.validate()
+        return cfg

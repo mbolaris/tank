@@ -33,12 +33,11 @@ def run_benchmark(num_frames: int = 1000, warmup_frames: int = 100) -> dict:
     Returns:
         Dictionary with timing statistics
     """
-    from core.tank_world import TankWorld, TankWorldConfig
+    from core.worlds import WorldRegistry
 
     # Create headless simulation
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=42)  # Fixed seed for reproducibility
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=42, headless=True)
+    world.reset(seed=42)
 
     frame_times = []
 
@@ -81,12 +80,11 @@ def run_profiled_benchmark(num_frames: int = 500) -> None:
     Args:
         num_frames: Number of frames to profile
     """
-    from core.tank_world import TankWorld, TankWorldConfig
+    from core.worlds import WorldRegistry
 
     # Create headless simulation
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=42)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=42, headless=True)
+    world.reset(seed=42)
 
     # Warmup
     for _ in range(50):

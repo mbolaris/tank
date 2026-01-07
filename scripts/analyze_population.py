@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 from core.entities import Fish
 from core.entities.base import LifeStage
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 
-def analyze_population(tank: TankWorld, frames: int = 3000):
+def analyze_population(adapter, frames: int = 3000):
     """Run simulation and analyze population dynamics."""
 
     print("\n" + "=" * 70)
@@ -35,17 +35,17 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
     samples = []
 
     for frame in range(frames):
-        tank.update()
+        adapter.step()
 
         # Get current fish list
-        fish_list = [e for e in tank.engine.get_all_entities() if isinstance(e, Fish)]
+        fish_list = [e for e in adapter.get_entities_for_snapshot() if isinstance(e, Fish)]
         fish_count = len(fish_list)
 
         # Track max population
         if fish_count > max_pop_reached:
             max_pop_reached = fish_count
 
-        if fish_count >= tank.config.max_population - 5:
+        if fish_count >= adapter.config.max_population - 5:
             frames_at_max += 1
 
         # Sample every 100 frames
@@ -99,19 +99,19 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
                 )
 
     # Final analysis
-    ecosystem = tank.ecosystem
+    ecosystem = adapter.ecosystem
 
     print("\n" + "-" * 70)
     print("FINAL STATISTICS")
     print("-" * 70)
 
     print("\nPopulation:")
-    print(f"  Max capacity: {tank.config.max_population}")
+    print(f"  Max capacity: {adapter.config.max_population}")
     print(
-        f"  Final population: {len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])}"
+        f"  Final population: {len([e for e in adapter.get_entities_for_snapshot() if isinstance(e, Fish)])}"
     )
     print(f"  Peak population reached: {max_pop_reached}")
-    print(f"  Frames near max (>={tank.config.max_population - 5}): {frames_at_max}")
+    print(f"  Frames near max (>={adapter.config.max_population - 5}): {frames_at_max}")
 
     print("\nBirths & Deaths:")
     print(f"  Total births: {ecosystem.total_births}")
@@ -193,43 +193,42 @@ def analyze_population(tank: TankWorld, frames: int = 3000):
 def main():
     print("Initializing simulation...")
 
-    config = TankWorldConfig(
-        max_population=100,
-        auto_food_enabled=True,
-    )
+    config = {
+        "max_population": 100,
+        "auto_food_enabled": True,
+        "headless": True,
+    }
 
-    tank = TankWorld(config=config)
-
-    # Initialize the simulation first
-    tank.setup()
+    adapter = WorldRegistry.create_world("tank", config=config)
+    adapter.reset(config=config)
 
     # Check if ecosystem and environment are ready
-    if tank.engine.ecosystem is None:
+    if adapter.ecosystem is None:
         print("ERROR: Ecosystem not initialized!")
         return
-    if tank.engine.environment is None:
+    if adapter.environment is None:
         print("ERROR: Environment not initialized!")
         return
 
-    print(f"Ecosystem: {tank.engine.ecosystem}")
-    print(f"Environment: {tank.engine.environment}")
+    print(f"Ecosystem: {adapter.ecosystem}")
+    print(f"Environment: {adapter.environment}")
 
     # Spawn initial population
     initial_spawn = 20
     for _ in range(initial_spawn):
-        tank.engine.spawn_emergency_fish()
+        adapter.engine.spawn_emergency_fish()
 
-    fish_count = len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])
+    fish_count = len([e for e in adapter.get_entities_for_snapshot() if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
 
     if fish_count == 0:
         print("WARNING: No fish spawned! Check spawn_emergency_fish implementation.")
         return
 
-    print(f"Max population: {config.max_population}")
+    print(f"Max population: {config['max_population']}")
     print("\nRunning 100 seconds of simulation (3000 frames at 30fps)...")
 
-    analyze_population(tank, frames=3000)
+    analyze_population(adapter, frames=3000)
 
     print("\n" + "=" * 70)
     print("RECOMMENDATIONS")

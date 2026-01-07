@@ -72,19 +72,30 @@ def run_headless(
         export_stats: Optional filename to export JSON stats for LLM analysis
         trace_output: Optional filename to export debug trace data (currently unused)
     """
-    from core.tank_world import TankWorld, TankWorldConfig
+    import json
 
-    # Create configuration for headless mode
-    config = TankWorldConfig(headless=True)
+    from core.worlds import WorldRegistry
 
-    # Create TankWorld with optional seed
-    world = TankWorld(config=config, seed=seed)
-    # Note: run_headless() calls setup() internally
-    world.run_headless(
-        max_frames=max_frames,
-        stats_interval=stats_interval,
-        export_json=export_stats,
-    )
+    # Create world via the canonical WorldRegistry path
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
+
+    # Run simulation loop
+    for frame in range(max_frames):
+        world.step()
+
+        if stats_interval and (frame + 1) % stats_interval == 0:
+            stats = world.get_current_metrics(include_distributions=False)
+            pop = stats.get("population", len(world.get_entities_for_snapshot()))
+            logger.info(f"Frame {frame + 1}/{max_frames}: population={pop}")
+
+    # Export stats if requested
+    if export_stats:
+        stats = world.get_current_metrics(include_distributions=True)
+        stats["frame"] = max_frames
+        with open(export_stats, "w") as f:
+            json.dump(stats, f, indent=2, default=str)
+        logger.info(f"Stats exported to: {export_stats}")
 
 
 def main():

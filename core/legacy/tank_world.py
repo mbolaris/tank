@@ -1,4 +1,6 @@
-"""TankWorld: A clean wrapper around the fish tank simulation.
+"""TankWorld: Legacy wrapper around the fish tank simulation.
+
+DEPRECATED: This module is deprecated. Use core.worlds.WorldRegistry instead.
 
 This module provides a TankWorld class that encapsulates the entire simulation,
 including configuration and random number generation, making it easy to:
@@ -7,81 +9,22 @@ including configuration and random number generation, making it easy to:
 - Interface with both headless and web backends
 """
 
+import warnings
+
+warnings.warn(
+    "core.tank_world / core.legacy.tank_world is deprecated. "
+    "Use core.worlds.WorldRegistry.create_world('tank', ...) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 import logging
 import random
-from dataclasses import dataclass, replace
 from typing import Any, Dict, List, Optional
 
-from core.config.display import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH
-from core.config.ecosystem import CRITICAL_POPULATION_THRESHOLD, MAX_POPULATION
-from core.config.food import AUTO_FOOD_ENABLED, AUTO_FOOD_SPAWN_RATE
 from core.config.simulation_config import SimulationConfig
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class TankWorldConfig:
-    """Configuration for TankWorld simulation.
-
-    All parameters have defaults from constants.py but can be overridden.
-    """
-
-    # Screen dimensions
-    screen_width: int = SCREEN_WIDTH
-    screen_height: int = SCREEN_HEIGHT
-
-    # Simulation parameters
-    frame_rate: int = FRAME_RATE
-    max_population: int = MAX_POPULATION
-    critical_population_threshold: int = CRITICAL_POPULATION_THRESHOLD
-
-    # Food spawning
-    auto_food_spawn_rate: int = AUTO_FOOD_SPAWN_RATE
-    auto_food_enabled: bool = AUTO_FOOD_ENABLED
-
-    # Headless mode
-    headless: bool = True
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert config to dictionary."""
-        return {
-            "screen_width": self.screen_width,
-            "screen_height": self.screen_height,
-            "frame_rate": self.frame_rate,
-            "max_population": self.max_population,
-            "critical_population_threshold": self.critical_population_threshold,
-            "auto_food_spawn_rate": self.auto_food_spawn_rate,
-            "auto_food_enabled": self.auto_food_enabled,
-            "headless": self.headless,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TankWorldConfig":
-        """Create config from dictionary."""
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
-
-    def to_simulation_config(self) -> SimulationConfig:
-        """Convert legacy TankWorldConfig to SimulationConfig."""
-        sim_cfg = SimulationConfig.production(headless=self.headless)
-        sim_cfg.display = replace(
-            sim_cfg.display,
-            screen_width=self.screen_width,
-            screen_height=self.screen_height,
-            frame_rate=self.frame_rate,
-        )
-        sim_cfg.ecosystem = replace(
-            sim_cfg.ecosystem,
-            max_population=self.max_population,
-            critical_population_threshold=self.critical_population_threshold,
-        )
-        sim_cfg.food = replace(
-            sim_cfg.food,
-            spawn_rate=self.auto_food_spawn_rate,
-            auto_food_enabled=self.auto_food_enabled,
-        )
-        sim_cfg.validate()
-        return sim_cfg
 
 
 class TankWorld:
@@ -92,14 +35,13 @@ class TankWorld:
     is managed through this class.
 
     Attributes:
-        config: Simulation configuration
+        simulation_config: Simulation configuration
         rng: Random number generator for deterministic behavior
         engine: The underlying simulation engine
     """
 
     def __init__(
         self,
-        config: Optional[TankWorldConfig] = None,
         simulation_config: Optional[SimulationConfig] = None,
         rng: Optional[random.Random] = None,
         seed: Optional[int] = None,
@@ -108,15 +50,13 @@ class TankWorld:
         """Initialize TankWorld.
 
         Args:
-            config: Simulation configuration (uses defaults if None)
-            simulation_config: New aggregate SimulationConfig (overrides config if provided)
+            simulation_config: Aggregate SimulationConfig (uses defaults if None)
             rng: Random number generator instance (creates new if None)
             seed: Random seed (only used if rng is None)
             pack: Optional custom SystemPack (defaults to TankPack)
         """
         # Store configuration
-        self.config = config if config is not None else TankWorldConfig()
-        self.simulation_config = simulation_config or self.config.to_simulation_config()
+        self.simulation_config = simulation_config or SimulationConfig.production(headless=True)
 
         # Setup RNG
         if rng is not None:

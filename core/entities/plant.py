@@ -149,7 +149,10 @@ class Plant(Agent):
         )
 
         # Anchor using root spot semantics (bottom vs center)
-        if hasattr(self.root_spot, "get_anchor_topleft"):
+        if self.root_spot is None:
+            # Stationary fallback if root spot is lost
+            self.rect.topleft = self.pos
+        elif hasattr(self.root_spot, "get_anchor_topleft"):
             self.pos.x, self.pos.y = self.root_spot.get_anchor_topleft(self.width, self.height)
             self.rect.topleft = self.pos
         else:

@@ -350,9 +350,9 @@ class TestTankWorldBackendAdapterCompatibility:
 
         # Should be accessible before initialization
         config = adapter.config
-        assert config.max_population == 50
-        assert config.screen_width == 800
-        assert config.screen_height == 600
+        assert config.ecosystem.max_population == 50
+        assert config.display.screen_width == 800
+        assert config.display.screen_height == 600
 
     def test_rng_property(self):
         """Test rng compatibility property."""

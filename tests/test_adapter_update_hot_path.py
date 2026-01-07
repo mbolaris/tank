@@ -1,15 +1,15 @@
 from contextlib import ExitStack
 from unittest.mock import patch
 
-from core.tank_world import TankWorld
-from core.worlds.tank.backend import TankWorldBackendAdapter
+from core.legacy.tank_world import TankWorld
+from core.worlds import WorldRegistry
 
 
 def test_adapter_update_avoids_expensive_calls():
     """Verify that adapter.update() does not call get_stats() or other expensive methods."""
 
-    # Setup
-    adapter = TankWorldBackendAdapter()
+    # Setup via canonical WorldRegistry path
+    adapter = WorldRegistry.create_world("tank", seed=42, headless=True)
     adapter.reset(seed=42)
 
     # Mock the underlying world's expensive methods
@@ -43,7 +43,7 @@ def test_adapter_update_avoids_expensive_calls():
 def test_adapter_step_uses_lightweight_metrics_by_default():
     """Verify that adapter.step() calls get_stats(include_distributions=False) by default."""
 
-    adapter = TankWorldBackendAdapter()
+    adapter = WorldRegistry.create_world("tank", seed=42, headless=True)
     adapter.reset(seed=42)
 
     with patch.object(TankWorld, "get_stats", return_value={}) as mock_get_stats:

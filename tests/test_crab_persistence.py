@@ -10,13 +10,13 @@ import pytest
 
 from backend.world_persistence import restore_world_from_snapshot
 from core.entities.predators import Crab
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 
-def _make_world(seed: int) -> TankWorld:
-    """Create a headless TankWorld for testing."""
-    world = TankWorld(config=TankWorldConfig(headless=True), seed=seed)
-    world.setup()
+def _make_world(seed: int):
+    """Create a headless world for testing via WorldRegistry."""
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
     return world
 
 

@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,26 +33,25 @@ AI_MODELS = [
 ]
 
 
-def run_simulation(seed: int, max_frames: int) -> TankWorld:
+def run_simulation(seed: int, max_frames: int):
     """Run a simulation to evolve fish with poker skills."""
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     for frame in range(max_frames):
-        world.update()
+        world.step()
         if frame > 0 and frame % 10000 == 0:
             logger.info(f"  Frame {frame}/{max_frames}")
 
     return world
 
 
-def capture_solution_from_world(world: TankWorld, name: str, author: str) -> SolutionRecord:
+def capture_solution_from_world(world, name: str, author: str) -> SolutionRecord:
     """Capture the best fish as a solution."""
     from core.entities import Fish
 
     tracker = SolutionTracker()
-    fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
+    fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
 
     # Find fish with most poker experience or highest energy
     best_fish = None

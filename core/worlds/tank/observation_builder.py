@@ -21,7 +21,7 @@ ObservationMap = BrainObservationMap
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.tank_world import TankWorld
+    from core.legacy.tank_world import TankWorld
 
 
 # Perception radius for nearby entities (matches existing fish detection)

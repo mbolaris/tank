@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.WARNING)
 
 from core.entities import Fish, Food
 from core.entities.plant import PlantNectar
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 
 def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
@@ -125,23 +125,24 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
 def main():
     print("Initializing simulation for food-seeking diagnosis...")
 
-    config = TankWorldConfig(
-        max_population=100,
-        auto_food_enabled=True,
-    )
+    config = {
+        "max_population": 100,
+        "auto_food_enabled": True,
+    }
 
-    tank = TankWorld(config=config)
-    tank.setup()
+    world = WorldRegistry.create_world("tank", seed=42, **config)
+    world.reset(seed=42)
 
     # Spawn initial population
     for _ in range(20):
-        tank.engine.spawn_emergency_fish()
+        # Access engine directly for emergency spawn
+        world.engine.spawn_emergency_fish()
 
-    fish_count = len([e for e in tank.engine.get_all_entities() if isinstance(e, Fish)])
+    fish_count = len([e for e in world.entities_list if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
     print("\nRunning 33 seconds of simulation (1000 frames)...")
 
-    analyze_food_seeking(tank, frames=1000)
+    analyze_food_seeking(world, frames=1000)
 
 
 if __name__ == "__main__":

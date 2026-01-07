@@ -8,7 +8,7 @@ import sys
 import time
 from typing import Any, Dict
 
-from core.tank_world import TankWorld
+from core.worlds import WorldRegistry
 
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000  # Reduced for MVP verification (was 30000)
@@ -25,23 +25,22 @@ def run(seed: int) -> Dict[str, Any]:
     """
     start_time = time.time()
 
-    # Configure deterministic environment
-    # Use SimulationConfig directly for precise control
-    from core.config.simulation_config import SimulationConfig
+    # Configure via WorldRegistry with custom config
+    # Replicates SimulationConfig.headless_fast() parameters
+    config = {
+        "headless": True,
+        "screen_width": 2000,
+        "screen_height": 2000,
+        "max_population": 60,
+        "critical_population_threshold": 5,
+        "emergency_spawn_cooldown": 90,
+        "poker_activity_enabled": False,
+        "plants_enabled": False,
+        "auto_food_spawn_rate": 9,
+    }
 
-    sim_config = SimulationConfig.headless_fast()
-
-    # Customize for this benchmark
-    sim_config.display.screen_width = 2000
-    sim_config.display.screen_height = 2000
-
-    # Set population constraints
-    # Note: Initial population is derived from max_population/species count in engine logic,
-    # or we let it auto-seed. headless_fast defaults are usually good for benchmarking.
-    sim_config.ecosystem.max_population = 60
-
-    world = TankWorld(simulation_config=sim_config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, config=config)
+    world.reset(seed=seed, config=config)
 
     # Metrics accumulators
     total_energy_integral = 0.0
@@ -50,20 +49,17 @@ def run(seed: int) -> Dict[str, Any]:
 
     # Run loop
     for i in range(FRAMES):
-        world.update()
+        world.step()
 
         # Accumulate metrics - disable distributions for speed
-        metrics = world.get_stats(include_distributions=False)
-        # total_energy is sometimes missing if no tracker, but headless_fast might not have it enabled by default?
-        # Check if we need to enable energy tracking explicitly.
-        # But headless_fast() disables phase debug, maybe not metrics?
-        # SimulationRunner usually handles metrics. TankWorld.get_metrics() delegates to engine.get_metrics()
+        metrics = world.get_current_metrics(include_distributions=False)
+        entities = world.get_entities_for_snapshot()
 
         total_energy_integral += metrics.get("total_energy", 0)
-        total_pop_integral += len(world.entities_list)
+        total_pop_integral += len(entities)
 
         # Check specific failure modes
-        if len(world.entities_list) == 0:
+        if len(entities) == 0:
             extinctions += 1
             break
 
@@ -94,3 +90,26 @@ def run(seed: int) -> Dict[str, Any]:
             "extinct": extinctions > 0,
         },
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--verify-determinism", action="store_true")
+    args = parser.parse_args()
+
+    if args.verify_determinism:
+        res1 = run(args.seed)
+        res2 = run(args.seed)
+        if res1["score"] == res2["score"]:
+            print(f"DETERMINISM PASSED: {res1['score']}")
+            sys.exit(0)
+        else:
+            print(f"DETERMINISM FAILED: {res1['score']} != {res2['score']}")
+            sys.exit(1)
+
+    result = run(args.seed)
+    print(json.dumps(result, indent=2))
