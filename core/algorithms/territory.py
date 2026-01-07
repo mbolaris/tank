@@ -20,10 +20,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.config.display import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
+from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 @dataclass
@@ -214,7 +211,6 @@ class WallFollower(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Find nearest wall
         dist_to_left = fish.pos.x
         dist_to_right = SCREEN_WIDTH - fish.pos.x
@@ -254,7 +250,6 @@ class CornerSeeker(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Determine corner position
         corners = {
             "top_left": Vector2(50, 50),
@@ -293,7 +288,6 @@ class CenterHugger(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         distance = (center - fish.pos).length()
 
@@ -440,7 +434,6 @@ class BoundaryExplorer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Move toward edges
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         direction = self._safe_normalize(fish.pos - center)

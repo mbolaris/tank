@@ -24,6 +24,7 @@ class EnvironmentLike(Protocol):
     """
 
     def update_agent_position(self, agent: Any) -> None: ...
+
     def update_detection_modifier(self) -> None: ...
 
 

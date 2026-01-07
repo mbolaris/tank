@@ -20,7 +20,7 @@ class MultiAgentWorldBackend(ABC):
     def step(self, actions: dict[str, Any] | None) -> StepResult: ...
     def get_current_snapshot(self) -> dict[str, Any]: ...
     def get_current_metrics(self) -> dict[str, Any]: ...
-    
+
     @property
     def world_type(self) -> str: ...  # "tank", "petri", "soccer", etc.
 ```
@@ -123,7 +123,7 @@ from core.actions.action_registry import ActionSpace, register_action_translator
 class MyWorldActionTranslator:
     def get_action_space(self) -> ActionSpace:
         return {"movement": {"type": "continuous", "shape": (2,)}}
-    
+
     def translate_action(self, agent_id: str, raw_action: Any) -> Action:
         return Action(entity_id=agent_id, target_velocity=raw_action)
 
@@ -138,11 +138,11 @@ register_action_translator("my_world", MyWorldActionTranslator())
        @property
        def world_type(self) -> str:
            return "my_world"
-       
+
        def reset(self, seed, config) -> StepResult:
            # Initialize world, return initial state
            ...
-       
+
        def step(self, actions) -> StepResult:
            # Advance simulation, return step result
            ...

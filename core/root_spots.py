@@ -8,10 +8,7 @@ import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from core.config.display import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
+from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import PLANT_ROOT_SPOT_COUNT
 
 if TYPE_CHECKING:
@@ -66,7 +63,6 @@ class RootSpot:
         if self.anchor_mode == "center":
             return (self.x - width / 2, self.y - height / 2)
         elif self.anchor_mode == "radial_inward":
-
             # Spot is on the perimeter. Plant body grows inward.
             # We treat the plant as roughly circular/blobby with radius = max(w,h)/2
             # Center of plant should be radius distance inward from spot.

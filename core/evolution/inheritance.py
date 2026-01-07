@@ -133,10 +133,7 @@ def inherit_algorithm(
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
-    from core.algorithms.registry import (
-        crossover_algorithms_weighted,
-        get_random_algorithm,
-    )
+    from core.algorithms.registry import crossover_algorithms_weighted, get_random_algorithm
 
     # Handle None cases
     if alg1 is None and alg2 is None:

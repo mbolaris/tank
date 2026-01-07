@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import SCREEN_HEIGHT
-from core.config.food import (
-    PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
-)
+from core.config.food import PREDATOR_FLEE_DISTANCE_CONSERVATIVE
 
 if TYPE_CHECKING:
     from core.entities import Fish
+
 from core.predictive_movement import predict_falling_intercept
 
 

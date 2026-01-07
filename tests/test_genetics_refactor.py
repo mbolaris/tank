@@ -14,7 +14,6 @@ from core.genetics import (
 
 
 class TestGeneticsRefactor:
-
     def test_genetic_trait_initialization(self):
         """Test that GeneticTrait initializes correctly with default and custom metadata."""
         # Default metadata

@@ -44,7 +44,6 @@ class PokerGameState:
         button_position: int = 1,
         rng: Optional[random.Random] = None,
     ):
-
         self.current_round = BettingRound.PRE_FLOP
         self.pot = 0.0
         self.player1_total_bet = 0.0

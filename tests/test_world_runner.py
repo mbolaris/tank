@@ -12,11 +12,7 @@ from __future__ import annotations
 import pytest
 
 from backend.snapshots import TankSnapshotBuilder
-from backend.world_registry import (
-    create_world,
-    get_registered_world_types,
-    get_world_metadata,
-)
+from backend.world_registry import create_world, get_registered_world_types, get_world_metadata
 from backend.world_runner import WorldRunner
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 

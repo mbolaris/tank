@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
-from core.config.entities import (
-    FOOD_ID_OFFSET,
-    NECTAR_ID_OFFSET,
-)
+from core.config.entities import FOOD_ID_OFFSET, NECTAR_ID_OFFSET
 from core.entities.plant import PlantNectar
 from core.entities.resources import Food
 from core.math_utils import Vector2

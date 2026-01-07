@@ -20,10 +20,7 @@ import logging
 import random
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol
 
-from core.config.display import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
+from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import (
     PLANT_CRITICAL_POPULATION,
     PLANT_CULL_INTERVAL,

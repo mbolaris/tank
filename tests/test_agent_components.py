@@ -6,11 +6,7 @@ in isolation and with basic integration scenarios.
 
 from __future__ import annotations
 
-from core.agents.components import (
-    FeedingComponent,
-    LocomotionComponent,
-    PerceptionComponent,
-)
+from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
 from core.fish_memory import FishMemorySystem
 from core.math_utils import Vector2
 

@@ -6,7 +6,7 @@ from pathlib import Path
 # Suppress DeprecationWarnings from simplejson/json interaction if any
 warnings.simplefilter("ignore", DeprecationWarning)
 
-from backend.world_persistence import DATA_DIR, list_world_snapshots
+from backend.world_persistence import DATA_DIR
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

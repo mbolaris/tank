@@ -159,7 +159,7 @@ if AUTO_FOOD_ENABLED and self.environment is not None:
     self.auto_food_timer += 1
     if self.auto_food_timer >= AUTO_FOOD_SPAWN_RATE:
         # ... same logic ...
-        
+
 # Collision handling
 self.handle_collisions()
 
@@ -188,7 +188,7 @@ class SimulationCore:
         self.ecosystem = ecosystem
         self.time_system = time_system
         self.entities_list = []  # Generic list
-        
+
     def update(self, elapsed_time, time_modifier):
         # Single implementation of core logic
         # Works with both agents and entities
@@ -478,7 +478,7 @@ def create_initial_population(
 ) -> List[Union[entities.Entity, agents.Agent]]:
     """
     Create initial population, optionally wrapped in pygame sprites.
-    
+
     Args:
         use_pygame_wrappers: If True, return pygame Agent wrappers.
                             If False, return pure entities.
@@ -486,7 +486,7 @@ def create_initial_population(
     population_entities = [
         # ... create pure entities ...
     ]
-    
+
     if use_pygame_wrappers:
         return [wrap_in_agent(e) for e in population_entities]
     return population_entities
@@ -509,4 +509,3 @@ def create_initial_agents(env, ecosystem):
 - **No unused imports** that cause issues - Well-maintained
 - **No obvious memory leaks** - Resource management appears solid
 - **Test coverage is good** - 50 test functions across 10 test files
-

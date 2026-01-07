@@ -18,11 +18,7 @@ from core.config.fish import (
     LIFE_STAGE_MATURE_MAX,
     PREDATOR_ENCOUNTER_WINDOW,
 )
-from core.constants import (
-    DEATH_REASON_MIGRATION,
-    DEATH_REASON_OLD_AGE,
-    DEATH_REASON_STARVATION,
-)
+from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_REASON_STARVATION
 from core.entities.base import Agent, EntityState, LifeStage
 from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
@@ -47,11 +43,7 @@ from core.fish_memory import FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
-from core.telemetry.events import (
-    BirthEvent,
-    FoodEatenEvent,
-    ReproductionEvent,
-)
+from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 
 class Fish(Agent):
@@ -863,10 +855,11 @@ class Fish(Agent):
             available_policies = None  # Maintain existing mutation behavior with None
 
         # Generate offspring genome (also sets cooldown)
-        offspring_genome, _unused_fraction = (
-            self._reproduction_component.trigger_asexual_reproduction(
-                self.genome, rng=rng, available_policies=available_policies
-            )
+        (
+            offspring_genome,
+            _unused_fraction,
+        ) = self._reproduction_component.trigger_asexual_reproduction(
+            self.genome, rng=rng, available_policies=available_policies
         )
 
         # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)

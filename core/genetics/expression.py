@@ -100,10 +100,7 @@ def calculate_vision_range(physical: PhysicalTraits) -> float:
         return 1.0
 
     # Clamp to allowed physical bounds to avoid out-of-range visual traits
-    from core.config.fish import (
-        EYE_SIZE_MAX,
-        EYE_SIZE_MIN,
-    )
+    from core.config.fish import EYE_SIZE_MAX, EYE_SIZE_MIN
 
     val = float(get_trait_value(physical.eye_size, default=1.0))
     return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))

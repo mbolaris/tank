@@ -96,7 +96,6 @@ class DiscoveryService:
                     and existing_server.host == server_info.host
                     and existing_server.port == server_info.port
                 ):
-
                     logger.info(
                         "Found duplicate server %s at %s:%d. Removing in favor of new registration %s.",
                         existing_id,

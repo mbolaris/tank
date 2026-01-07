@@ -10,10 +10,7 @@ from core.worlds import StepResult, WorldRegistry
 from core.worlds.soccer.backend import SoccerWorldBackendAdapter
 from core.worlds.soccer.config import SoccerWorldConfig
 from core.worlds.soccer.physics import Ball, FieldBounds, Player, SoccerPhysics
-from core.worlds.soccer.types import (
-    SoccerAction,
-    Vector2D,
-)
+from core.worlds.soccer.types import SoccerAction, Vector2D
 
 
 class TestSoccerWorldBackendAdapter:

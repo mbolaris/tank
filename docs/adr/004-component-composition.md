@@ -31,7 +31,7 @@ class Fish(Agent):
         self._lifecycle_component = LifecycleComponent()
         self._reproduction_component = ReproductionComponent()
         self._skill_game_component = SkillGameComponent()
-        
+
         # Visual state is separate from domain logic
         self.visual_state = FishVisualState()
 ```
@@ -78,7 +78,7 @@ class EnergyState:
     """Immutable snapshot of energy state."""
     current_energy: float
     max_energy: float
-    
+
     @property
     def is_critical(self) -> bool:
         return self.percentage < 0.10

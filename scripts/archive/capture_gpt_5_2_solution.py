@@ -16,7 +16,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -49,7 +49,7 @@ def _load_opponents_from_tournament_json(
     tournament_json_path: str,
     *,
     solutions_dir: str,
-) -> List[SolutionRecord]:
+) -> list[SolutionRecord]:
     with open(tournament_json_path, encoding="utf-8") as f:
         payload = json.load(f)
 
@@ -64,8 +64,8 @@ def _load_opponents_from_tournament_json(
 
     by_id = {s.metadata.solution_id: s for s in solutions}
 
-    opponents: List[SolutionRecord] = []
-    missing: List[str] = []
+    opponents: list[SolutionRecord] = []
+    missing: list[str] = []
     for sid in ids:
         if not isinstance(sid, str) or not sid:
             continue
@@ -86,7 +86,7 @@ def _load_opponents_from_tournament_json(
     return opponents
 
 
-def _run_headless_simulation(*, frames: int, seed: int) -> Tuple[List[Fish], int]:
+def _run_headless_simulation(*, frames: int, seed: int) -> tuple[list[Fish], int]:
     config = TankWorldConfig(headless=True)
     world = TankWorld(config=config, seed=seed)
     world.setup()
@@ -182,7 +182,7 @@ def main() -> int:
 
     tracker = SolutionTracker(solutions_dir=args.solutions_dir, min_games_threshold=args.min_games)
 
-    results: List[CandidateResult] = []
+    results: list[CandidateResult] = []
     for seed in seeds:
         logger.info("=" * 70)
         logger.info("Simulating seed %s for %s frames", seed, args.frames)
@@ -260,7 +260,7 @@ def main() -> int:
         best.solution.metadata.name,
     )
 
-    out_payload: Dict[str, Any] = {
+    out_payload: dict[str, Any] = {
         "author": best.solution.metadata.author,
         "name": best.solution.metadata.name,
         "solution_id": best.solution.metadata.solution_id,

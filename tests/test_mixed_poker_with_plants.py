@@ -20,10 +20,7 @@ import math
 import pytest
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE
-from core.config.plants import (
-    PLANT_POKER_MAX_DISTANCE,
-    PLANT_POKER_MIN_DISTANCE,
-)
+from core.config.plants import PLANT_POKER_MAX_DISTANCE, PLANT_POKER_MIN_DISTANCE
 from core.config.poker import POKER_MAX_PLAYERS
 from core.entities import Fish
 from core.entities.plant import Plant

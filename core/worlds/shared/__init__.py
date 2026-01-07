@@ -5,14 +5,8 @@ world modes (Tank, Petri) that share similar simulation mechanics.
 """
 
 from core.worlds.shared.action_translator import FishActionTranslator
-from core.worlds.shared.fish_plant_phase_hooks import (
-    FishPlantPhaseHooks,
-    TankPhaseHooks,
-)
-from core.worlds.shared.identity import (
-    TankEntityIdentityProvider,
-    TankLikeEntityIdentityProvider,
-)
+from core.worlds.shared.fish_plant_phase_hooks import FishPlantPhaseHooks, TankPhaseHooks
+from core.worlds.shared.identity import TankEntityIdentityProvider, TankLikeEntityIdentityProvider
 from core.worlds.shared.movement_observations import (
     FishMovementObservationBuilder,
     create_tank_observation_builder,

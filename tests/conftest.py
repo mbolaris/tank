@@ -60,10 +60,7 @@ def mock_data_dir(tmp_path):
 def simulation_env(seeded_rng):
     """Provide a clean simulation environment for each test."""
     from core.agents_wrapper import AgentsWrapper
-    from core.config.display import (
-        SCREEN_HEIGHT,
-        SCREEN_WIDTH,
-    )
+    from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
     from core.environment import Environment
 
     entities_list = []

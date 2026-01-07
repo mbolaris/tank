@@ -8,11 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.agents.components import (
-    FeedingComponent,
-    LocomotionComponent,
-    PerceptionComponent,
-)
+from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
 from core.entities.base import Agent
 from core.fish_memory import FishMemorySystem
 

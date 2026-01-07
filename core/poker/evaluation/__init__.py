@@ -36,10 +36,7 @@ from core.poker.evaluation.evolution_benchmark_tracker import (
     get_global_benchmark_tracker,
     reset_global_tracker,
 )
-from core.poker.evaluation.hand_evaluator import (
-    evaluate_hand,
-    evaluate_hand_cached,
-)
+from core.poker.evaluation.hand_evaluator import evaluate_hand, evaluate_hand_cached
 from core.poker.evaluation.strength import (
     calculate_pot_odds,
     evaluate_starting_hand_strength,

@@ -119,9 +119,7 @@ class Genome:
 
     def validate(self) -> Dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
-        from core.genetics.behavioral import (
-            BEHAVIORAL_TRAIT_SPECS,
-        )
+        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
         issues = []

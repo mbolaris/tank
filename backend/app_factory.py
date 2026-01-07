@@ -288,13 +288,7 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.routers import (
-        connections,
-        discovery,
-        servers,
-        transfers,
-        websocket,
-    )
+    from backend.routers import connections, discovery, servers, transfers, websocket
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
 

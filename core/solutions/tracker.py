@@ -14,10 +14,7 @@ import subprocess
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from core.solutions.models import (
-    SolutionMetadata,
-    SolutionRecord,
-)
+from core.solutions.models import SolutionMetadata, SolutionRecord
 
 if TYPE_CHECKING:
     from core.entities import Fish

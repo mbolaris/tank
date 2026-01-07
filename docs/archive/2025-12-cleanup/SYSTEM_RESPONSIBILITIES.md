@@ -35,7 +35,7 @@ This document defines clear responsibilities for each system in the simulation a
 
 ## CollisionSystem
 
-**Phase:** `COLLISION`  
+**Phase:** `COLLISION`
 **File:** `core/collision_system.py`
 
 ### Responsibilities
@@ -63,7 +63,7 @@ def _handle_fish_proximity(self)  # Triggers poker
 
 ## PokerSystem
 
-**Phase:** `COLLISION`  
+**Phase:** `COLLISION`
 **File:** `core/poker_system.py`
 
 ### Responsibilities
@@ -90,7 +90,7 @@ def _create_post_poker_offspring(winner, mate, rng)
 
 ## EntityLifecycleSystem
 
-**Phase:** `LIFECYCLE`  
+**Phase:** `LIFECYCLE`
 **File:** `core/systems/entity_lifecycle.py`
 
 ### Responsibilities
@@ -117,7 +117,7 @@ def record_birth()
 
 ## ReproductionSystem
 
-**Phase:** `REPRODUCTION`  
+**Phase:** `REPRODUCTION`
 **File:** `core/systems/reproduction_system.py`
 
 ### Responsibilities
@@ -141,7 +141,7 @@ def _check_asexual_reproduction(fish)
 
 ## SkillGameSystem
 
-**Phase:** `COLLISION` (triggered during proximity)  
+**Phase:** `COLLISION` (triggered during proximity)
 **File:** `core/skill_game_system.py`
 
 ### Responsibilities
@@ -158,7 +158,7 @@ def _check_asexual_reproduction(fish)
 
 ## TimeSystem
 
-**Phase:** `ENVIRONMENT`  
+**Phase:** `ENVIRONMENT`
 **File:** `core/systems/time_system.py`
 
 ### Responsibilities
@@ -185,11 +185,11 @@ from core.update_phases import UpdatePhase, runs_in_phase
 @runs_in_phase(UpdatePhase.ENVIRONMENT)
 class WeatherSystem(BaseSystem):
     """Manages weather conditions and their effects."""
-    
+
     def __init__(self, engine: "SimulationEngine"):
         super().__init__(engine, "Weather")
         self.current_weather = "sunny"
-    
+
     def _do_update(self, frame: int) -> SystemResult:
         # Weather logic here
         return SystemResult(details={"weather": self.current_weather})

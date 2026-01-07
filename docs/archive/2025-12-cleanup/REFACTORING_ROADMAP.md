@@ -10,8 +10,8 @@ This document tracks architectural improvements made to the simulation codebase.
 
 ### Priority 1: Inline BaseSimulator into SimulationEngine
 
-**Status**: ✅ Complete  
-**Completed**: December 2024  
+**Status**: ✅ Complete
+**Completed**: December 2024
 **Impact**: High (removed unnecessary abstraction layer)
 
 The `BaseSimulator` class has been completely removed. All logic was:
@@ -26,7 +26,7 @@ The `core/simulators/` folder has been deleted.
 
 ### Priority 2: Pure Delegation Methods
 
-**Status**: ✅ Intentionally Kept  
+**Status**: ✅ Intentionally Kept
 **Decision**: Keep delegation methods for API stability
 
 Methods like `handle_reproduction()` and `handle_mixed_poker_games()` were kept
@@ -37,7 +37,7 @@ internal system organization.
 
 ### Priority 3: Phase-Based Update Loop
 
-**Status**: ✅ Complete  
+**Status**: ✅ Complete
 **Completed**: December 2024
 
 The `update()` method was refactored into explicit phase methods:
@@ -57,7 +57,7 @@ The main `update()` is now ~30 lines showing phase order clearly.
 
 ### Priority 4: Extract EnergyTracker from EcosystemManager
 
-**Status**: ✅ Complete  
+**Status**: ✅ Complete
 
 `EnergyTracker` exists at `core/services/energy_tracker.py` (273 lines).
 `EcosystemManager` delegates to `EnergyTracker` for all energy accounting.
@@ -66,7 +66,7 @@ The main `update()` is now ~30 lines showing phase order clearly.
 
 ### Priority 5: HeadlessSimulator Wrapper
 
-**Status**: ✅ Removed / Not Needed  
+**Status**: ✅ Removed / Not Needed
 
 `SimulationEngine` now handles headless mode directly via config:
 ```python

@@ -26,10 +26,7 @@ from core.poker.evaluation.benchmark_eval import (
     SingleBenchmarkResult,
     evaluate_vs_single_benchmark_duplicate,
 )
-from core.poker.evaluation.benchmark_suite import (
-    BASELINE_OPPONENTS,
-    ComprehensiveBenchmarkConfig,
-)
+from core.poker.evaluation.benchmark_suite import BASELINE_OPPONENTS, ComprehensiveBenchmarkConfig
 from core.poker.evaluation.elo_rating import (
     EloRating,
     PopulationEloStats,

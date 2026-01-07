@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.code_pool import GenomeCodePool
-from core.entities.base import LifeStage
 from core.energy.energy_component import EnergyComponent
+from core.entities.base import LifeStage
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.math_utils import Vector2

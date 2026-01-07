@@ -9,9 +9,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm
-from core.config.food import (
-    FOOD_PURSUIT_RANGE_CLOSE,
-)
+from core.config.food import FOOD_PURSUIT_RANGE_CLOSE
 
 
 @dataclass
@@ -38,7 +36,6 @@ class ZigZagForager(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Check for nearby food
         nearest_food = self._find_nearest_food(fish)
         if nearest_food and (nearest_food.pos - fish.pos).length() < FOOD_PURSUIT_RANGE_CLOSE:

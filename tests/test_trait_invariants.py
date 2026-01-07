@@ -14,12 +14,7 @@ import random
 
 import pytest
 
-from core.genetics import (
-    BehavioralTraits,
-    GeneticTrait,
-    Genome,
-    PhysicalTraits,
-)
+from core.genetics import BehavioralTraits, GeneticTrait, Genome, PhysicalTraits
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.genetics.trait import (

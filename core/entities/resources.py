@@ -3,10 +3,7 @@
 import random
 from typing import TYPE_CHECKING, Optional
 
-from core.config.food import (
-    FOOD_SINK_ACCELERATION,
-    FOOD_TYPES,
-)
+from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
 from core.entities.base import Agent
 from core.entities.fish import Fish
 from core.math_utils import Vector2

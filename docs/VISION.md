@@ -192,16 +192,16 @@ Visualization alone isn’t enough. Most people need a story.
 
 A planned layer for Tank World is an AI narrator that acts as an in-sim oceanographer. Its responsibilities:
 
-- **Explain experiments in plain language**  
+- **Explain experiments in plain language**
   “This tank is exploring energy-efficient foraging strategies under predation pressure,” instead of “we’re running an EA on fitness function F.”
 
-- **Call out emergent behavior**  
+- **Call out emergent behavior**
   Highlight when new strategies appear, niches form, or species collapse – and tie those events back to changes in the underlying algorithms.
 
-- **Map tank activity to real-world frames**  
+- **Map tank activity to real-world frames**
   When appropriate, relate what the tank is doing to real domains: routing, scheduling, optimization, or (eventually) problem templates that users actually care about. Most of these will be proxy problems, and the system should be explicit about that.
 
-- **Experiment with formats**  
+- **Experiment with formats**
   Short “episodes,” daily summaries, or longer-form “nature documentaries” built from logs and replay data – all generated automatically from the simulation history.
 
 This “AI oceanographer” doesn’t change the core two-layer evolution paradigm, but it makes the system legible and worth watching for non-experts. If people enjoy following the story of their tank, they will keep donating compute to the underlying research.

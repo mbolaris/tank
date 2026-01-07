@@ -170,14 +170,14 @@ server {
     location /api/ {
         limit_req zone=api_limit burst=20 nodelay;
         limit_conn conn_limit 10;
-        
+
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Timeouts
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -193,7 +193,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        
+
         # WebSocket timeouts
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;

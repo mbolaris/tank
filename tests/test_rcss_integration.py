@@ -10,7 +10,6 @@ from .fakes.fake_rcssserver import FakeRCSSServer
 
 
 class TestRCSSIntegration:
-
     def test_full_loop_boot_and_move(self):
         """Test binding world, connecting, sending move command, and parsing update."""
         # 1. Setup Fake Server script

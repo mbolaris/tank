@@ -1,7 +1,5 @@
 """Tests for the canonical policy pool API in Environment."""
 
-import pytest
-
 from core.environment import Environment
 
 

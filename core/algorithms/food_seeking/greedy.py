@@ -49,7 +49,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Use helper to check energy state (consolidates 3 method calls)
         is_critical, is_low, energy_ratio = self._get_energy_state(fish)
 

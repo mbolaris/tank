@@ -27,11 +27,7 @@ Design Philosophy (ALife vs GA):
 """
 
 from core.evolution.crossover import CrossoverMode
-from core.evolution.inheritance import (
-    inherit_algorithm,
-    inherit_discrete_trait,
-    inherit_trait,
-)
+from core.evolution.inheritance import inherit_algorithm, inherit_discrete_trait, inherit_trait
 from core.evolution.mutation import (
     DEFAULT_MUTATION_CONFIG,
     MutationConfig,

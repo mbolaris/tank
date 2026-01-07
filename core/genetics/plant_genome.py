@@ -230,10 +230,7 @@ class PlantGenome:
         Returns:
             PlantGenome configured for the specified strategy type
         """
-        from core.plants.plant_strategy_types import (
-            PlantStrategyType,
-            get_strategy_visual_config,
-        )
+        from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")

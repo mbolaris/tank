@@ -1,12 +1,12 @@
 # Architecture Deep Dive: Tank Simulation
-**Date:** 2024-12-24  
+**Date:** 2024-12-24
 **Focus:** Software design excellence, maintainability, and extensibility
 
 ---
 
 ## Executive Summary
 
-Your simulation demonstrates **excellent architectural maturity** with strong separation of concerns, protocol-based design, and component composition. You've already completed significant refactoring work (poker system, stats system, simulation engine decomposition). 
+Your simulation demonstrates **excellent architectural maturity** with strong separation of concerns, protocol-based design, and component composition. You've already completed significant refactoring work (poker system, stats system, simulation engine decomposition).
 
 **Current State: B+ Architecture** (Very Good, with clear path to A+)
 
@@ -37,7 +37,7 @@ SimulationEngine (803 lines)
 BaseSimulator (852 lines)
     ↓ contains
     - handle_fish_collisions() - 257 lines
-    - handle_food_collisions() - 81 lines  
+    - handle_food_collisions() - 81 lines
     - _attempt_post_poker_reproduction() - 112 lines
     - _create_post_poker_offspring() - 95 lines
 ```
@@ -69,7 +69,7 @@ class CollisionSystem(BaseSystem):
         # Fish-food, fish-crab, fish-fish proximity, food-crab all handled here
         self._handle_fish_collisions()
         self._handle_food_collisions()
-        
+
         return SystemResult(
             entities_affected=self._frame_collisions_detected,
             details={"collisions": self._frame_collisions_detected}
@@ -84,7 +84,7 @@ class PokerSystem(BaseSystem):
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Process poker results including reproduction."""
         super().handle_poker_result(poker)
-        
+
         # Move _attempt_post_poker_reproduction() logic here
         offspring = self._attempt_reproduction_after_poker(poker)
         if offspring:
@@ -95,13 +95,13 @@ class PokerSystem(BaseSystem):
 
 Once the above logic is moved, BaseSimulator will only have:
 - `record_fish_death()` - Move to EntityLifecycleSystem
-- `cleanup_dying_fish()` - Move to EntityLifecycleSystem  
+- `cleanup_dying_fish()` - Move to EntityLifecycleSystem
 - `keep_entity_on_screen()` - Move to SimulationEngine (simple utility)
 
 Then delete `core/simulators/base_simulator.py` entirely.
 
-**Effort:** 4-6 hours  
-**Risk:** Low (well-tested code, just moving it)  
+**Effort:** 4-6 hours
+**Risk:** Low (well-tested code, just moving it)
 **Impact:** High (eliminates architectural debt, improves clarity)
 
 ---
@@ -118,7 +118,7 @@ class Fish(Agent):
     # Domain logic
     self.energy: float
     self.genome: Genome
-    
+
     # ❌ RENDERING CONCERNS (should not be here)
     self.poker_effect_state: Optional[Dict[str, Any]] = None
     self.poker_effect_timer: int = 0
@@ -145,7 +145,7 @@ from typing import Optional, Dict, Any
 @dataclass
 class FishVisualState:
     """Visual state for rendering fish effects (frontend concern).
-    
+
     This is separate from Fish domain logic to maintain clean separation
     between business logic and presentation.
     """
@@ -154,17 +154,17 @@ class FishVisualState:
     birth_effect_timer: int = 0
     death_effect_state: Optional[Dict[str, Any]] = None
     death_effect_timer: int = 0
-    
+
     def update(self) -> None:
         """Decrement all active timers."""
         if self.poker_effect_timer > 0:
             self.poker_effect_timer -= 1
             if self.poker_effect_timer <= 0:
                 self.poker_effect_state = None
-                
+
         if self.birth_effect_timer > 0:
             self.birth_effect_timer -= 1
-            
+
         if self.death_effect_timer > 0:
             self.death_effect_timer -= 1
             if self.death_effect_timer <= 0:
@@ -180,10 +180,10 @@ class Fish(Agent):
         # Domain state
         self.energy: float
         self.genome: Genome
-        
+
         # Visual state (separate component)
         self.visual_state = FishVisualState()
-    
+
     def set_poker_effect(self, status: str, amount: float = 0.0, duration: int = 15, ...):
         """Set poker visual effect (delegates to visual_state)."""
         self.visual_state.poker_effect_state = {
@@ -202,8 +202,8 @@ class Fish(Agent):
 - ✅ Frontend can own visual concerns
 - ✅ Easier to add new visual effects without touching Fish
 
-**Effort:** 2 hours  
-**Risk:** Very Low (simple extraction)  
+**Effort:** 2 hours
+**Risk:** Very Low (simple extraction)
 **Impact:** Medium-High (cleaner architecture, better separation)
 
 ---
@@ -222,7 +222,7 @@ def _get_energy_state(self, fish) -> EnergyState:
     if ratio < 0.35: return EnergyState.LOW
     # ...
 
-# Pattern 2: In fish/energy_component.py  
+# Pattern 2: In fish/energy_component.py
 def is_critical_energy(self) -> bool:
     return self.energy / self.max_energy < 0.15
 
@@ -257,24 +257,24 @@ class EnergyLevel(Enum):
 @dataclass
 class EnergyState:
     """Immutable snapshot of an entity's energy state.
-    
+
     Provides consistent energy threshold checking across the entire codebase.
     All energy-based decisions should use this class.
     """
     energy: float
     max_energy: float
-    
+
     # Thresholds (configurable at class level)
     STARVING_THRESHOLD = 0.05
     CRITICAL_THRESHOLD = 0.15
     LOW_THRESHOLD = 0.35
     MODERATE_THRESHOLD = 0.65
-    
+
     @property
     def ratio(self) -> float:
         """Energy as fraction of max (0.0 to 1.0)."""
         return self.energy / self.max_energy if self.max_energy > 0 else 0.0
-    
+
     @property
     def level(self) -> EnergyLevel:
         """Categorize current energy level."""
@@ -289,27 +289,27 @@ class EnergyState:
             return EnergyLevel.MODERATE
         else:
             return EnergyLevel.HIGH
-    
+
     @property
     def is_starving(self) -> bool:
         return self.ratio < self.STARVING_THRESHOLD
-    
+
     @property
     def is_critical(self) -> bool:
         return self.ratio < self.CRITICAL_THRESHOLD
-    
+
     @property
     def is_low(self) -> bool:
         return self.ratio < self.LOW_THRESHOLD
-    
+
     @property
     def is_moderate(self) -> bool:
         return self.LOW_THRESHOLD <= self.ratio < self.MODERATE_THRESHOLD
-    
+
     @property
     def is_high(self) -> bool:
         return self.ratio >= self.MODERATE_THRESHOLD
-    
+
     def __str__(self) -> str:
         return f"EnergyState({self.energy:.1f}/{self.max_energy:.1f} = {self.ratio:.1%}, {self.level.name})"
 ```
@@ -356,8 +356,8 @@ match state.level:
 - ✅ Testable in isolation
 - ✅ Type-safe energy level checking
 
-**Effort:** 3 hours (create class + update ~20 call sites)  
-**Risk:** Low (backwards compatible, gradual migration)  
+**Effort:** 3 hours (create class + update ~20 call sites)
+**Risk:** Low (backwards compatible, gradual migration)
 **Impact:** Medium (better consistency, easier maintenance)
 
 ---
@@ -522,12 +522,12 @@ def test_collision_system_fish_food():
     engine = create_test_engine()
     fish = create_test_fish(x=100, y=100)
     food = create_test_food(x=105, y=105)  # Overlapping
-    
+
     engine.add_entity(fish)
     engine.add_entity(food)
-    
+
     result = engine.collision_system.update(frame=1)
-    
+
     assert result.entities_affected == 1
     assert fish.energy > initial_energy  # Fish ate food
     assert food not in engine.entities_list  # Food consumed
@@ -544,10 +544,10 @@ def test_collision_system_fish_food():
 def test_fish_implements_energy_holder():
     """Verify Fish correctly implements EnergyHolder protocol."""
     from core.interfaces import EnergyHolder
-    
+
     fish = create_test_fish()
     assert isinstance(fish, EnergyHolder)
-    
+
     initial = fish.energy
     fish.modify_energy(10.0)
     assert fish.energy == initial + 10.0
@@ -567,12 +567,12 @@ def test_energy_state_thresholds():
     state = EnergyState(energy=4, max_energy=100)
     assert state.is_starving
     assert state.level == EnergyLevel.STARVING
-    
+
     # Critical
     state = EnergyState(energy=10, max_energy=100)
     assert state.is_critical
     assert not state.is_starving
-    
+
     # High
     state = EnergyState(energy=80, max_energy=100)
     assert state.is_high

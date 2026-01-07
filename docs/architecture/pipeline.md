@@ -10,23 +10,23 @@ flowchart LR
         MP[ModePackDefinition]
         PF[pipeline_factory]
     end
-    
+
     subgraph SystemPack
         SP[TankPack/PetriPack]
         GP[get_pipeline]
     end
-    
+
     subgraph Engine
         SE[SimulationEngine]
         P[pipeline]
         U[update]
     end
-    
+
     MP --> PF
     SP --> GP
     SE --> P
     P --> U
-    
+
     GP -.->|returns| P
     PF -.->|creates| P
 ```
@@ -51,10 +51,10 @@ Ordered sequence of steps that define the update loop:
 ```python
 class EnginePipeline:
     def __init__(self, steps: list[PipelineStep]): ...
-    
+
     @property
     def step_names(self) -> list[str]: ...
-    
+
     def run(self, engine: SimulationEngine) -> None:
         for step in self.steps:
             step.fn(engine)

@@ -18,23 +18,23 @@ Multiple files contain magic numbers that should be extracted to named constants
   self.avoidance_velocity -= velocity_change * 0.15  # AVOIDANCE_SPEED_CHANGE
   ```
   Status: Comment explains intent, but should be extracted constant
-  
+
 - **Line 160**: Magic multiplier `0.1` for alignment
   ```python
   self.vel += difference.normalize() * 0.1  # ALIGNMENT_SPEED_CHANGE
   ```
-  
+
 - **Line 242**: Magic constant `0.5` for initial energy
   ```python
   self.energy: float = self.max_energy * 0.5  # Start with 50% energy
   ```
-  
+
 - **Line 329, 331**: Life stage multipliers (0.7, 1.2)
   ```python
   metabolism *= 0.7  # Babies need less energy
   metabolism *= 1.2  # Elders need more energy
   ```
-  
+
 - **Line 339**: Hardcoded starvation threshold `20.0`
   ```python
   return self.energy < 20.0
@@ -49,7 +49,7 @@ Multiple files contain magic numbers that should be extracted to named constants
   'duration': 180  # Show for 6 seconds at 30fps (line 297)
   if len(self.poker_notifications) > 5:  # Keep only last 5 (line 302)
   ```
-  
+
 - **Line 376-377**: Bar dimensions and colors
   ```python
   bar_width = 30
@@ -123,18 +123,18 @@ Extract to a helper method in `FishTankSimulator`:
 ```python
 def record_fish_death(self, fish: agents.Fish, cause: str) -> None:
     """Record a fish's death in the ecosystem manager.
-    
+
     Args:
         fish: Fish that died
         cause: Cause of death ('starvation', 'old_age', 'predation', etc.)
     """
     if self.ecosystem is None:
         return
-    
+
     algorithm_id = None
     if fish.genome.behavioral.behavior_algorithm.value is not None:
         algorithm_id = get_algorithm_index(fish.genome.behavioral.behavior_algorithm.value)
-    
+
     self.ecosystem.record_death(
         fish.fish_id,
         fish.generation,
@@ -167,26 +167,26 @@ This function has multiple responsibilities:
 Split into smaller functions:
 ```python
 def _format_algorithm_ranking_section(
-    self, 
-    title: str, 
-    algorithms: List[Tuple[int, AlgorithmStats]], 
+    self,
+    title: str,
+    algorithms: List[Tuple[int, AlgorithmStats]],
     stat_func,
     count: int = 10
 ) -> List[str]:
     """Format a generic ranking section for the report."""
-    
+
 def _get_reproduction_rate_section(self) -> List[str]:
     """Get top performers by reproduction rate."""
-    
+
 def _get_survival_rate_section(self) -> List[str]:
     """Get top performers by survival rate."""
-    
+
 def _get_lifespan_section(self) -> List[str]:
     """Get longest-lived algorithms."""
-    
+
 def _get_starvation_section(self) -> List[str]:
     """Get worst performers by starvation rate."""
-    
+
 def _get_recommendations(self) -> List[str]:
     """Generate recommendations based on data."""
 ```
@@ -204,12 +204,12 @@ def _get_recommendations(self) -> List[str]:
   ```python
   self.max_age: int = int(self.BASE_MAX_AGE * self.genome.max_energy)  # Hardier fish live longer
   ```
-  
+
 - **Line 254** (104 chars):
   ```python
   self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age_when_found) for food hotspots
   ```
-  
+
 - **Line 500** (101 chars)
 
 **File: `/home/user/tank/core/ecosystem.py`** (9 long lines)
@@ -231,16 +231,16 @@ def _get_recommendations(self) -> List[str]:
 Use line continuation or extract to multiple lines:
 ```python
 # Instead of:
-self._entity = core_entities.Crab(environment, genome, *INIT_POS['crab'], 
+self._entity = core_entities.Crab(environment, genome, *INIT_POS['crab'],
                                    SCREEN_WIDTH, SCREEN_HEIGHT)
 
 # Better:
 init_pos = INIT_POS['crab']
 self._entity = core_entities.Crab(
-    environment, 
-    genome, 
-    *init_pos, 
-    SCREEN_WIDTH, 
+    environment,
+    genome,
+    *init_pos,
+    SCREEN_WIDTH,
     SCREEN_HEIGHT
 )
 ```
@@ -320,15 +320,15 @@ Improve docstring completeness:
 ```python
 def draw_health_bar(self, fish: agents.Fish) -> None:
     """Draw energy status bar above a fish.
-    
+
     The bar displays fish energy relative to max capacity:
     - Green: >60% energy (healthy)
     - Yellow: 30-60% energy (caution)
     - Red: <30% energy (critical)
-    
+
     Args:
         fish: The fish to draw health bar for
-        
+
     Returns:
         None (modifies screen in-place)
     """
@@ -394,7 +394,7 @@ def handle_fish_poker_collision(self, fish1: agents.Fish, fish2: agents.Fish) ->
     poker = PokerInteraction(fish1, fish2)
     if not poker.play_poker():
         return
-    
+
     self.add_poker_notification(poker)
     # ... handle deaths ...
 
@@ -460,4 +460,3 @@ Type hints are generally good. Only minor cleanup needed in edge cases.
 2. **`/home/user/tank/core/entities.py`** - Magic multipliers, 11 long lines
 3. **`/home/user/tank/core/ecosystem.py`** - 136-line function, 9 long lines
 4. **`/home/user/tank/simulation_engine.py`** - Death recording duplications
-

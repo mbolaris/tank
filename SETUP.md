@@ -103,7 +103,7 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
    ```
 
 4. **Run the application**
-   
+
    **Terminal 1:**
    ```bash
    python3 main.py

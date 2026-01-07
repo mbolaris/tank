@@ -5,7 +5,7 @@ description: Remove BaseSimulator architectural debt
 # Workflow: Remove BaseSimulator
 
 > **STATUS: COMPLETED (2024-12-24)**
-> All phases of this workflow have been successfully completed. 
+> All phases of this workflow have been successfully completed.
 > BaseSimulator has been removed and its responsibilities distributed to systems.
 
 This workflow eliminates the BaseSimulator abstraction layer by moving its logic into the appropriate systems.
@@ -46,7 +46,7 @@ Move `_attempt_post_poker_reproduction()` and `_create_post_poker_offspring()` f
 def handle_poker_result(self, poker: PokerInteraction) -> None:
     """Process poker results including reproduction."""
     super().handle_poker_result(poker)
-    
+
     # Move _attempt_post_poker_reproduction() logic here
     offspring = self._attempt_post_poker_reproduction(poker)
     if offspring:
@@ -96,7 +96,7 @@ def cleanup_dying_fish(self) -> None:
 def _do_update(self, frame: int) -> SystemResult:
     """Update lifecycle tracking and cleanup dying entities."""
     self.cleanup_dying_fish()
-    
+
     return SystemResult(
         details={"births": self._birth_count, "deaths": self._death_count}
     )
@@ -122,13 +122,13 @@ def record_fish_death(self, fish: Fish, cause: Optional[str] = None) -> None:
 def keep_entity_on_screen(self, entity: Agent) -> None:
     """Keep an entity fully within screen bounds."""
     display = self.config.display
-    
+
     # Clamp horizontally
     if entity.pos.x < 0:
         entity.pos.x = 0
     elif entity.pos.x + entity.width > display.screen_width:
         entity.pos.x = display.screen_width - entity.width
-    
+
     # Clamp vertically
     if entity.pos.y < 0:
         entity.pos.y = 0

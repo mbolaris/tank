@@ -7,8 +7,7 @@ This module re-exports them for convenience.
 """
 
 # Re-export from new canonical location
-from core.brains.contracts import (
-    # Backward-compatibility aliases
+from core.brains.contracts import (  # Backward-compatibility aliases
     Action,
     ActionMap,
     BrainAction,

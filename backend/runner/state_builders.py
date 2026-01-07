@@ -6,9 +6,7 @@ Extracted from SimulationRunner to reduce class size.
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from backend.state_payloads import (
-    PokerStatsPayload,
-)
+from backend.state_payloads import PokerStatsPayload
 
 if TYPE_CHECKING:
     pass

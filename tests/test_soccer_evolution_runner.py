@@ -1,16 +1,13 @@
 """Tests for the soccer evolution experiment runner."""
 
-import pytest
-
+from core.code_pool import create_default_genome_code_pool
 from core.experiments.soccer_training_evolution import (
     EvolutionResult,
     GenerationStats,
     create_population,
-    evaluate_population,
     run_generations,
     select_parents,
 )
-from core.code_pool import create_default_genome_code_pool
 
 
 class TestSoccerEvolutionRunner:
@@ -132,9 +129,10 @@ class TestSoccerEvolutionRunner:
 
     def test_select_parents_top_k(self):
         """select_parents returns top K genomes by fitness."""
+        import random
+
         from core.experiments.soccer_training_evolution import AgentResult
         from core.genetics import Genome
-        import random
 
         rng = random.Random(42)
         results = [

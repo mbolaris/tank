@@ -401,10 +401,10 @@ self.food_memory: List[Tuple[Vector2, int]] = []  # (position, age) for food hot
 **Examples:**
 ```python
 # GOOD: Complete docstring
-def record_death(self, fish_id: int, generation: int, age: int, 
+def record_death(self, fish_id: int, generation: int, age: int,
                  cause: str, genome: Genome) -> None:
     """Record a fish's death in the ecosystem.
-    
+
     Args:
         fish_id: Unique fish identifier
         generation: Generation number when fish died
@@ -522,12 +522,12 @@ direction: Tuple[float, float]  # Should specify more
 ```python
 class EnergyComponent:
     """Manages fish energy, metabolism, and starvation."""
-    
+
     def __init__(self, max_energy: float, base_metabolism: float):
         self.energy = max_energy * 0.5
         self.max_energy = max_energy
         self.base_metabolism = base_metabolism
-    
+
     def consume_energy(self, time_modifier: float = 1.0) -> None: ...
     def is_starving(self) -> bool: ...
     def is_low_energy(self) -> bool: ...
@@ -553,7 +553,7 @@ core/
 ```python
 class CollisionHandler:
     """Handles different types of collisions."""
-    
+
     @staticmethod
     def handle_crab_collision(fish: Fish, crab: Crab) -> None: ...
     @staticmethod
@@ -626,11 +626,11 @@ def count_fish(agents: sprite.Group) -> int:
 ```python
 class FoodSeekingAlgorithm(BehaviorAlgorithm):
     """Base for all food-seeking algorithms."""
-    
+
     @staticmethod
     def find_nearest_food(fish: Fish, env: Environment) -> Optional[Food]:
         """Shared implementation."""
-    
+
     @staticmethod
     def calculate_urgency_boost(energy_level: float) -> float:
         """Shared energy-based urgency calculation."""
@@ -689,12 +689,12 @@ class AlgorithmError(SimulationError):
 @dataclass
 class EnergySystem:
     """Energy management for fish."""
-    
+
     # Clear, documented thresholds
     STARVATION_THRESHOLD: float = 20.0      # Fish dies below this
     LOW_ENERGY_THRESHOLD: float = 30.0      # Fish feels hungry
     SAFE_ENERGY_THRESHOLD: float = 60.0     # Can explore/breed
-    
+
     def is_starving(self) -> bool:
         return self.energy < self.STARVATION_THRESHOLD
 ```
@@ -731,9 +731,9 @@ ALGORITHM_METADATA = {
 # core/fish/lifecycle.py
 class LifecycleConfig:
     """Configuration for fish life stages."""
-    
+
     BABY_AGE = 300  # 10 seconds
-    JUVENILE_AGE = 900  # 30 seconds  
+    JUVENILE_AGE = 900  # 30 seconds
     ADULT_AGE = 1800  # 1 minute
     ELDER_AGE = 3600  # 2 minutes
     MAX_AGE = 5400  # 3 minutes
@@ -754,7 +754,7 @@ class LifecycleConfig:
 ```python
 class Genome:
     """Fish genetic makeup.
-    
+
     Genes control:
     - Movement: speed_multiplier, agility
     - Physiology: max_energy, metabolism_rate
@@ -772,21 +772,21 @@ class Genome:
 ```python
 class NeuralBrain:
     """Evolving neural network for fish behavior.
-    
+
     Architecture (MLP):
-    - Input layer (12): 
-      [nearest_food_dist, nearest_food_angle, 
+    - Input layer (12):
+      [nearest_food_dist, nearest_food_angle,
        nearest_ally_dist, nearest_ally_angle,
        nearest_predator_dist, nearest_predator_angle,
        energy_ratio, current_speed, age_stage,
        social_signal_strength, danger_signal_strength,
        time_of_day_phase]
-    
+
     - Hidden layer (8 neurons, ReLU activation)
-    
+
     - Output layer (2):
       [velocity_x, velocity_y]
-    
+
     Evolution:
     - Weights mutate with Gaussian noise
     - Better networks = more reproduction

@@ -1,13 +1,13 @@
 # Architecture Refinement Plan
 
-**Date**: 2024-12-25  
+**Date**: 2024-12-25
 **Status**: In Progress (Quick Wins Completed)
 
 ## Summary of Completed Work This Session
 
-✅ **559 unused imports removed** from `core/algorithms/food_seeking/` directory  
-✅ **4 additional unused imports removed** from `core/algorithms/`  
-✅ **All stale BaseSimulator comments updated** (comments now reflect current architecture)  
+✅ **559 unused imports removed** from `core/algorithms/food_seeking/` directory
+✅ **4 additional unused imports removed** from `core/algorithms/`
+✅ **All stale BaseSimulator comments updated** (comments now reflect current architecture)
 ✅ **All 1020 tests passing**
 
 ---
@@ -79,7 +79,7 @@ This document identifies **remaining opportunities for quality improvement**, fo
 
 If `fitness_score` is deprecated, verify it's fully removed and clean up any remaining references.
 
-**Effort**: 10 minutes  
+**Effort**: 10 minutes
 **Impact**: Remove confusion about deprecated features
 
 ---
@@ -101,7 +101,7 @@ If `fitness_score` is deprecated, verify it's fully removed and clean up any rem
 
 This follows Single Responsibility Principle and makes testing easier.
 
-**Effort**: 2-3 hours  
+**Effort**: 2-3 hours
 **Impact**: Better testability, clearer module boundaries
 
 ---
@@ -112,12 +112,12 @@ This follows Single Responsibility Principle and makes testing easier.
 
 These two files have significant overlap:
 - Both manage poker game state
-- Both have betting round logic  
+- Both have betting round logic
 - Both have showdown logic
 
 **Recommendation**: Extract shared poker game state management into a common base or utility module.
 
-**Effort**: 4-6 hours  
+**Effort**: 4-6 hours
 **Impact**: DRY principle, easier maintenance
 
 ---
@@ -133,7 +133,7 @@ def get_active_skill_game(rng: Optional["random.Random"] = None) -> Optional[Ski
 
 The `random.Random` type hint is quoted but `random` isn't imported in `TYPE_CHECKING`. This works but is technically incorrect.
 
-**Effort**: 5 minutes  
+**Effort**: 5 minutes
 
 ---
 
@@ -147,12 +147,12 @@ While this is valid Python, consider adding `raise NotImplementedError` to catch
 def play(self, player1, player2):
     pass
 
-# Better  
+# Better
 def play(self, player1, player2):
     raise NotImplementedError("Subclasses must implement play()")
 ```
 
-**Effort**: 30 minutes  
+**Effort**: 30 minutes
 **Impact**: Better error messages during development
 
 ---
@@ -177,7 +177,7 @@ The codebase uses `Result[T, E]` in some places but not others. Consider standar
 
 ```python
 # Environmental context (optional)
-# time_of_day = fish.environment.time_system.get_time_of_day()  
+# time_of_day = fish.environment.time_system.get_time_of_day()
 # is_night = time_of_day in ["night", "dusk"]
 ```
 
@@ -251,4 +251,3 @@ Your simulation is already an example of good software design. The major archite
 3. **Consistency** - Apply patterns (like `Result[T, E]`) more uniformly
 
 Focus on **incremental improvement** rather than large refactorings. The architecture is sound.
-

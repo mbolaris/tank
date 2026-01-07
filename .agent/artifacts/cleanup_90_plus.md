@@ -1,7 +1,7 @@
 # Path to 90+: Architecture Cleanup Plan
 
-**Score**: 84/100 → Target: 90+  
-**Created**: 2024-12-24  
+**Score**: 84/100 → Target: 90+
+**Created**: 2024-12-24
 **Based on**: External code review of ~74k LOC Python across 333 .py files
 
 ---
@@ -89,16 +89,16 @@ def create_app(
 ) -> FastAPI:
     # Configure logging
     logger = configure_logging(extra_loggers=("backend",))
-    
+
     # Create singletons
     tank_registry = TankRegistry(create_default=False)
     connection_manager = ConnectionManager()
     discovery_service = DiscoveryService()
     server_client = ServerClient()
-    
+
     # Create app with lifespan
     app = FastAPI(...)
-    
+
     return app
 ```
 
@@ -143,7 +143,7 @@ Split each into 3-5 focused files, not 50 tiny ones.
 core/mixed_poker/
 ├── __init__.py          # Re-exports for backward compat
 ├── types.py             # Already exists
-├── state.py             # Already exists  
+├── state.py             # Already exists
 ├── interaction.py       # Core interaction logic (~200 lines)
 ├── betting_round.py     # _play_betting_round (~150 lines)
 ├── showdown.py          # Showdown logic (~150 lines)
@@ -213,7 +213,7 @@ import random
 def foo():
     return random.random()
 
-# After  
+# After
 def foo(rng: random.Random):
     return rng.random()
 ```

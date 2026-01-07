@@ -22,10 +22,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm
-from core.config.display import (
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
-)
+from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 @dataclass
@@ -50,7 +47,6 @@ class PanicFlee(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         predator, distance, escape_dir = self._get_predator_threat(
             fish, self.parameters["panic_distance"]
         )
@@ -92,7 +88,6 @@ class StealthyAvoider(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         predator, distance, escape_dir = self._get_predator_threat(
             fish, self.parameters["awareness_range"]
         )

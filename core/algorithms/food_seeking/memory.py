@@ -33,7 +33,6 @@ class FoodMemorySeeker(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # Look for current food
         nearest_food = self._find_nearest_food(fish)
         if nearest_food:

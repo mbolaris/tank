@@ -14,14 +14,8 @@ import random
 import pytest
 
 from core.algorithms.food_seeking import GreedyFoodSeeker
-from core.algorithms.registry import (
-    crossover_algorithms,
-)
-from core.evolution.crossover import (
-    CrossoverMode,
-    blend_discrete,
-    blend_values,
-)
+from core.algorithms.registry import crossover_algorithms
+from core.evolution.crossover import CrossoverMode, blend_discrete, blend_values
 from core.evolution.mutation import (
     MutationConfig,
     calculate_adaptive_mutation_rate,

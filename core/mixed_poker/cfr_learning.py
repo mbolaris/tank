@@ -18,10 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
-from core.poker.evaluation.strength import (
-    evaluate_hand_strength,
-    evaluate_starting_hand_strength,
-)
+from core.poker.evaluation.strength import evaluate_hand_strength, evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
     from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext

@@ -20,12 +20,7 @@ from core.config.fish import (
     LIFE_STAGE_BABY_MAX,
     LIFE_STAGE_JUVENILE_MAX,
 )
-from core.state_machine import (
-    LIFE_STAGE_TRANSITIONS,
-    LifeStage,
-    StateMachine,
-    StateTransition,
-)
+from core.state_machine import LIFE_STAGE_TRANSITIONS, LifeStage, StateMachine, StateTransition
 
 if TYPE_CHECKING:
     pass

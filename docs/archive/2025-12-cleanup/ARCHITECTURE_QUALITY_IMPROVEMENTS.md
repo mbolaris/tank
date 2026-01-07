@@ -12,7 +12,7 @@ This document tracks safe, incremental architectural improvements to move the co
 
 **Solution**: Added deprecation warnings directing developers to use the canonical API (`Genome.from_parents()` and `Genome.from_parents_weighted_params()`).
 
-**Impact**: 
+**Impact**:
 - Clearer API surface for developers
 - Reduced confusion about which function to use
 - Backward compatible (functions still work, just emit warnings)
@@ -31,7 +31,7 @@ This document tracks safe, incremental architectural improvements to move the co
 
 **Solution**: Updated to use new API and `should_trigger_reproduction()` function.
 
-### 4. ✅ Fixed Import Error (test_proper_energy_scaling.py)  
+### 4. ✅ Fixed Import Error (test_proper_energy_scaling.py)
 
 **Problem**: Imported from deleted module `core.fish_poker`.
 
@@ -83,14 +83,14 @@ core.evolution.crossover.CrossoverMode       # AVERAGING, RECOMBINATION, WEIGHTE
 core.genetics.genome.GeneticCrossoverMode    # AVERAGING, RECOMBINATION, DOMINANT_RECESSIVE
 ```
 
-**Recommendation**: 
-1. Keep only `GeneticCrossoverMode` 
+**Recommendation**:
+1. Keep only `GeneticCrossoverMode`
 2. Deprecate `CrossoverMode` with alias to `GeneticCrossoverMode`
 3. Add `WEIGHTED` to `GeneticCrossoverMode` if needed
 
 **Files to change**:
 - `core/evolution/crossover.py` - deprecate `CrossoverMode`
-- `core/evolution/__init__.py` - re-export `GeneticCrossoverMode` 
+- `core/evolution/__init__.py` - re-export `GeneticCrossoverMode`
 - `tests/test_evolution_module.py` - use `GeneticCrossoverMode`
 
 ---
@@ -106,7 +106,7 @@ core.genetics.genome.GeneticCrossoverMode    # AVERAGING, RECOMBINATION, DOMINAN
 
 **Recommended Expansion** (operations where errors should be explicit):
 - Fish reproduction (can fail for many reasons)
-- Energy transfer operations  
+- Energy transfer operations
 - Migration attempts
 - Poker game initiation
 
@@ -133,12 +133,12 @@ def try_reproduce(self) -> Result[Fish, str]:
 **Status**: Low effort, documentation improvement
 
 **Problem**: Several functions in `evolution/crossover.py` are test utilities but look like public API:
-- `blend_values()` 
+- `blend_values()`
 - `blend_discrete()`
 - `crossover_dict_values()`
 
 **Recommendation**: Rename with leading underscore to signal internal use:
-- `_blend_values()` 
+- `_blend_values()`
 - `_blend_discrete()`
 - `_crossover_dict_values()`
 
@@ -157,7 +157,7 @@ from core.evolution.crossover import _blend_values  # Clear this is internal
 ```
 core/algorithms/__init__.py:
   - crossover_algorithms()
-  - crossover_algorithms_weighted() 
+  - crossover_algorithms_weighted()
   - crossover_poker_algorithms()
   - _crossover_algorithms_base()
 
@@ -165,7 +165,7 @@ core/evolution/inheritance.py:
   - inherit_algorithm()  # Wraps crossover_algorithms_weighted
 ```
 
-**Recommendation**: 
+**Recommendation**:
 1. `inherit_algorithm()` is the high-level API - keep it
 2. Consider moving low-level functions from `algorithms/__init__.py` to a dedicated module
 3. Document the intended usage pattern

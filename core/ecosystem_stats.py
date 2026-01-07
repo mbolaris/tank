@@ -7,10 +7,7 @@ Extracted from ecosystem.py to improve code organization and maintainability.
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
-from core.config.ecosystem import (
-    TOTAL_ALGORITHM_COUNT,
-    TOTAL_SPECIES_COUNT,
-)
+from core.config.ecosystem import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
 
 
 @dataclass

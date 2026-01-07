@@ -181,4 +181,3 @@ python -c "from simulation_engine import SimulationEngine; e = SimulationEngine(
 1. Fix magic numbers in backend (30 min)
 2. Extract spatial constants (15 min)
 3. Create FishSpawner utility (45 min)
-

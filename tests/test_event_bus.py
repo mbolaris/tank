@@ -1,10 +1,7 @@
 """Tests for the EventBus domain event dispatch system."""
 
 from core.events import EventBus
-from core.events.domain_events import (
-    EntityAteFoodEvent,
-    EntityDiedEvent,
-)
+from core.events.domain_events import EntityAteFoodEvent, EntityDiedEvent
 
 
 class TestEventBus:

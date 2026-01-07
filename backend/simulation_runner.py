@@ -35,9 +35,7 @@ from backend.state_payloads import (
 )
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
-from core.config.display import (
-    FRAME_RATE,
-)
+from core.config.display import FRAME_RATE
 from core.entities import Fish
 from core.entities.plant import Plant
 from core.worlds.interfaces import FAST_STEP_ACTION

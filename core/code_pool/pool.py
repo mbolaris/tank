@@ -5,11 +5,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from .models import (
-    CodeComponent,
-    CompilationError,
-    ComponentNotFoundError,
-)
+from .models import CodeComponent, CompilationError, ComponentNotFoundError
 from .sandbox import build_restricted_globals, parse_and_validate
 
 # Builtin component IDs for default policies

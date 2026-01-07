@@ -26,13 +26,13 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class EnergyHolder(Protocol):
     """Entity that has and consumes energy."""
-    
+
     @property
     def energy(self) -> float: ...
-    
+
     @property
     def max_energy(self) -> float: ...
-    
+
     def consume_energy(self, amount: float) -> None: ...
 ```
 

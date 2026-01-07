@@ -14,7 +14,7 @@ where survival (energy management) is the primary selection pressure.
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from core.code_pool import GenomeCodePool, create_default_genome_code_pool
@@ -145,7 +145,6 @@ def evaluate_population(
     # Collect results
     results: list[AgentResult] = []
     fitness_summary = world.get_fitness_summary()
-    team_scores = fitness_summary.get("score", {})
 
     for player_id, player in world._players.items():
         agent_data = fitness_summary.get("agent_fitness", {}).get(player_id, {})

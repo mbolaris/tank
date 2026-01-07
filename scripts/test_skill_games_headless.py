@@ -19,11 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameType
-from core.skills.config import (
-    SkillGameConfig,
-    get_active_skill_game,
-    set_skill_game_config,
-)
+from core.skills.config import SkillGameConfig, get_active_skill_game, set_skill_game_config
 from core.tank_world import TankWorld, TankWorldConfig
 
 # Configure logging

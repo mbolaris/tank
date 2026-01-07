@@ -26,10 +26,10 @@ from typing import Protocol, runtime_checkable
 class EnergyHolder(Protocol):
     @property
     def energy(self) -> float: ...
-    
+
     @property
     def max_energy(self) -> float: ...
-    
+
     def modify_energy(self, amount: float) -> None: ...
 ```
 
@@ -275,11 +275,11 @@ collision_system = engine._system_registry.get_system("Collision")
 def test_determinism():
     eng1 = SimulationEngine(seed=42)
     eng2 = SimulationEngine(seed=42)
-    
+
     for _ in range(100):
         eng1.update()
         eng2.update()
-    
+
     assert eng1.get_state() == eng2.get_state()
 ```
 
@@ -289,7 +289,7 @@ def test_determinism():
 def test_system_returns_result():
     system = MySystem(engine)
     result = system.update(frame=1)
-    
+
     assert isinstance(result, SystemResult)
     assert result.entities_affected >= 0
 ```

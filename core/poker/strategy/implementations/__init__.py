@@ -7,10 +7,7 @@ from core.poker.strategy.implementations.advanced import (
     TrapSetterStrategy,
 )
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
-from core.poker.strategy.implementations.baseline import (
-    AlwaysFoldStrategy,
-    RandomStrategy,
-)
+from core.poker.strategy.implementations.baseline import AlwaysFoldStrategy, RandomStrategy
 from core.poker.strategy.implementations.expert import GTOExpertStrategy
 from core.poker.strategy.implementations.factory import (
     ALL_POKER_STRATEGIES,

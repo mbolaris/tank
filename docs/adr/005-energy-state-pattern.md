@@ -12,7 +12,7 @@ Energy checking was scattered across the codebase with inconsistent patterns:
 if fish.energy / fish.max_energy < 0.15:
     # critical behavior
 
-# In fish.py  
+# In fish.py
 if self.energy < self.max_energy * 0.10:
     # starvation check
 
@@ -36,30 +36,30 @@ Introduce an **`EnergyState` value object** that encapsulates all energy thresho
 @dataclass(frozen=True)
 class EnergyState:
     """Immutable snapshot of energy state."""
-    
+
     current_energy: float
     max_energy: float
-    
+
     @property
     def percentage(self) -> float:
         """Energy as 0.0-1.0 ratio."""
         return self.current_energy / self.max_energy
-    
+
     @property
     def is_critical(self) -> bool:
         """Below 10% - emergency survival mode."""
         return self.percentage < CRITICAL_ENERGY_THRESHOLD_RATIO
-    
+
     @property
     def is_hungry(self) -> bool:
         """Below 20% - should prioritize food."""
         return self.percentage < LOW_ENERGY_THRESHOLD_RATIO
-    
+
     @property
     def can_reproduce(self) -> bool:
         """Has enough energy for reproduction."""
         return self.current_energy >= REPRODUCTION_MIN_ENERGY
-    
+
     @property
     def is_saturated(self) -> bool:
         """At or above max capacity."""

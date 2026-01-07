@@ -14,19 +14,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from core.poker.evaluation.benchmark_eval import (
-    BenchmarkEvalConfig,
-    evaluate_vs_benchmark_suite,
-)
-from core.poker.evaluation.elo_rating import (
-    compute_elo_from_benchmarks,
-    rating_to_skill_tier,
-)
-from core.solutions.models import (
-    BenchmarkResult,
-    SolutionComparison,
-    SolutionRecord,
-)
+from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig, evaluate_vs_benchmark_suite
+from core.poker.evaluation.elo_rating import compute_elo_from_benchmarks, rating_to_skill_tier
+from core.solutions.models import BenchmarkResult, SolutionComparison, SolutionRecord
 
 logger = logging.getLogger(__name__)
 
@@ -294,10 +284,7 @@ class SolutionBenchmark:
 
         Returns a PokerStrategyAlgorithm that can be used in benchmarks.
         """
-        from core.poker.strategy.implementations import (
-            BalancedStrategy,
-            PokerStrategyAlgorithm,
-        )
+        from core.poker.strategy.implementations import BalancedStrategy, PokerStrategyAlgorithm
 
         # Create a deterministic RNG based on solution ID (avoid Python's salted hash()).
         seed_material = f"strategy|{solution.metadata.solution_id}".encode()

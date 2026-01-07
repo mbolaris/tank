@@ -34,7 +34,6 @@ class AmbushFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()

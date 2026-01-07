@@ -402,7 +402,6 @@ class StarvationPreventer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()

@@ -76,4 +76,3 @@ If you change any energy-modifying codepaths, add/adjust tests there to keep:
 - reconciliation stable,
 - house cut attribution correct,
 - transfers net to zero when intended.
-

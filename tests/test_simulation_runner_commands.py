@@ -13,7 +13,6 @@ class TestSimulationRunnerCommands:
         with patch("backend.simulation_runner.create_world") as mock_create_world, patch(
             "backend.simulation_runner.get_world_metadata"
         ) as mock_get_metadata:
-
             # Configure mock world
             mock_world = MagicMock()
             mock_snapshot_builder = MagicMock()

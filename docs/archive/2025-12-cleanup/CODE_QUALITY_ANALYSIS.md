@@ -120,19 +120,19 @@ def __init__(self, ...):
 1. **Performance Penalty**: Imports executed on every function call
    - Expected impact: 5-10% performance improvement when fixed
    - Each import parses modules and builds namespace
-   
+
 2. **Circular Import Workaround**: Indicates architectural issues
    - Local imports are often used to avoid circular dependencies
    - Suggests need for refactoring module structure
-   
+
 3. **Readability**: Dependencies unclear at module level
    - Makes code analysis tools ineffective
    - Harder to understand what's imported
-   
+
 4. **TYPE_CHECKING Pattern Not Used**: Could use deferred imports:
    ```python
    from typing import TYPE_CHECKING
-   
+
    if TYPE_CHECKING:
        from core.genetics import Genome
    ```
@@ -311,7 +311,7 @@ if (treeError) {
 ```
 
 #### Issues
-- References non-existent `time_system` 
+- References non-existent `time_system`
 - Dead code in template file
 - Confuses developers reading the template
 
@@ -527,7 +527,7 @@ repos:
     rev: 23.0.0
     hooks:
       - id: black
-  
+
   - repo: https://github.com/PyCQA/pylint
     rev: pylint-2.17.0
     hooks:
@@ -539,10 +539,10 @@ Add to GitHub Actions:
 ```yaml
 - name: Lint Python
   run: pylint core/ backend/
-  
+
 - name: Format Check
   run: black --check .
-  
+
 - name: Type Check
   run: mypy core/
 ```

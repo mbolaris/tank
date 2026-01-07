@@ -158,7 +158,7 @@ server {
     location /api/ {
         limit_req zone=api_limit burst=20 nodelay;
         limit_conn conn_limit 10;
-        
+
         proxy_pass http://127.0.0.1:8000;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;

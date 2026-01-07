@@ -69,7 +69,7 @@ F -> FF                   (100% - stem extension)
 |-----------|-------|
 | **Type** | Stochastic L-System (aerial root recursion) |
 | **Color Palette** | Cool jade trunks (hue: 0.30–0.40) with neon ink highlights (0.55–0.60) |
-| **Visual Style** | Tiered canopies with looping roots that reconnect to the soil and trunk | 
+| **Visual Style** | Tiered canopies with looping roots that reconnect to the soil and trunk |
 | **Special Features** | Woven bark striations hinting at brackets/semicolons, oscillating leaf fans, nectar nodes pulsing like cursor blinks |
 | **Poker Style** | Patient setup with sharp counter-bluffs |
 

@@ -16,10 +16,7 @@ Design Philosophy (ALife vs GA):
 
 # Re-export main classes for package convenience
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, BehavioralTraits
-from core.genetics.genome import (
-    GeneticCrossoverMode,
-    Genome,
-)
+from core.genetics.genome import GeneticCrossoverMode, Genome
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant_genome import PlantGenome
 from core.genetics.reproduction import ReproductionParams

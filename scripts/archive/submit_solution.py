@@ -18,11 +18,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.solutions import (
-    SolutionBenchmark,
-    SolutionRecord,
-    SolutionTracker,
-)
+from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
 
 logging.basicConfig(

@@ -4,13 +4,11 @@ Measures the stability and robustness of the ecosystem over a medium duration.
 Score is calculated based on integral energy and population stability.
 """
 
-import time
-import hashlib
 import sys
-from typing import Dict, Any
+import time
+from typing import Any, Dict
 
-from core.tank_world import TankWorld, TankWorldConfig
-
+from core.tank_world import TankWorld
 
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000  # Reduced for MVP verification (was 30000)
@@ -29,7 +27,7 @@ def run(seed: int) -> Dict[str, Any]:
 
     # Configure deterministic environment
     # Use SimulationConfig directly for precise control
-    from core.config.simulation_config import SimulationConfig, DisplayConfig, EcosystemConfig
+    from core.config.simulation_config import SimulationConfig
 
     sim_config = SimulationConfig.headless_fast()
 

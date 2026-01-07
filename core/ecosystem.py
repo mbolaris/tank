@@ -8,10 +8,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
-from core.config.ecosystem import (
-    ENERGY_STATS_WINDOW_FRAMES,
-    MAX_ECOSYSTEM_EVENTS,
-)
+from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS
 from core.ecosystem_stats import (
     EcosystemEvent,
     GeneticDiversityStats,
@@ -25,11 +22,7 @@ from core.poker_stats_manager import PokerStatsManager
 from core.population_tracker import PopulationTracker
 from core.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
-from core.telemetry.events import (
-    BirthEvent,
-    FoodEatenEvent,
-    ReproductionEvent,
-)
+from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -523,11 +516,7 @@ class EcosystemManager:
         """Get comprehensive ecosystem summary statistics."""
         from statistics import median
 
-        from core.config.fish import (
-            FISH_ADULT_SIZE,
-            FISH_SIZE_MODIFIER_MAX,
-            FISH_SIZE_MODIFIER_MIN,
-        )
+        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
 
         total_pop = self.get_total_population()
         poker_summary = self.get_poker_stats_summary()

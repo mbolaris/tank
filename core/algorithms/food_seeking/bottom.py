@@ -33,7 +33,6 @@ class BottomFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
-
         target_y = SCREEN_HEIGHT * self.parameters["preferred_depth"]
         vy = (target_y - fish.pos.y) / 100
 

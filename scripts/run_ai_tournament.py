@@ -20,7 +20,7 @@ import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -54,9 +54,9 @@ class TournamentConfig:
 def _http_json(
     url: str,
     method: str = "GET",
-    data: Optional[Dict[str, Any]] = None,
+    data: Optional[dict[str, Any]] = None,
     timeout_s: float = 5.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     body = None
     headers = {}
     if data is not None:
@@ -138,10 +138,10 @@ def _ensure_parent_dir(path: str) -> None:
 
 
 def _avg_head_to_head_win_rates(
-    solution_ids: List[str],
-    head_to_head: Dict[str, Dict[str, float]],
-) -> Dict[str, float]:
-    avg: Dict[str, float] = {}
+    solution_ids: list[str],
+    head_to_head: dict[str, dict[str, float]],
+) -> dict[str, float]:
+    avg: dict[str, float] = {}
     for sid in solution_ids:
         row = head_to_head.get(sid, {})
         vals = [v for opp, v in row.items() if opp != sid]
@@ -150,9 +150,9 @@ def _avg_head_to_head_win_rates(
 
 
 def _format_head_to_head_matrix(
-    selected: List[SolutionRecord],
-    head_to_head: Dict[str, Dict[str, float]],
-) -> List[str]:
+    selected: list[SolutionRecord],
+    head_to_head: dict[str, dict[str, float]],
+) -> list[str]:
     ids = [s.metadata.solution_id for s in selected]
     authors = [s.metadata.author for s in selected]
 
@@ -163,7 +163,7 @@ def _format_head_to_head_matrix(
     for row_sol in selected:
         row_id = row_sol.metadata.solution_id
         row_author = row_sol.metadata.author[:16]
-        cells: List[str] = []
+        cells: list[str] = []
         for col_id in ids:
             if col_id == row_id:
                 cells.append("   --    ")
@@ -174,18 +174,18 @@ def _format_head_to_head_matrix(
     return lines
 
 
-def load_solutions(solutions_dir: str) -> List[SolutionRecord]:
+def load_solutions(solutions_dir: str) -> list[SolutionRecord]:
     tracker = SolutionTracker(solutions_dir=solutions_dir)
     return tracker.load_all_solutions()
 
 
-def choose_best_per_author(solutions: List[SolutionRecord]) -> List[SolutionRecord]:
-    by_author: Dict[str, List[SolutionRecord]] = defaultdict(list)
+def choose_best_per_author(solutions: list[SolutionRecord]) -> list[SolutionRecord]:
+    by_author: dict[str, list[SolutionRecord]] = defaultdict(list)
     for sol in solutions:
         author = (sol.metadata.author or "unknown").strip() or "unknown"
         by_author[author].append(sol)
 
-    winners: List[SolutionRecord] = []
+    winners: list[SolutionRecord] = []
     for author, items in by_author.items():
         items.sort(
             key=lambda s: s.benchmark_result.elo_rating if s.benchmark_result else 0.0,
@@ -200,7 +200,7 @@ def choose_best_per_author(solutions: List[SolutionRecord]) -> List[SolutionReco
     return winners
 
 
-def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
+def run_tournament(config: TournamentConfig) -> tuple[str, dict[str, Any]]:
     started_at = datetime.utcnow().isoformat()
     head_sha = _git_head_sha()
     branch = _git_branch()
@@ -253,7 +253,7 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
     standings = sorted(avg_wr.items(), key=lambda kv: kv[1], reverse=True)
     id_to_solution = {s.metadata.solution_id: s for s in selected}
 
-    lines: List[str] = []
+    lines: list[str] = []
     lines.extend(
         [
             "=" * 60,
@@ -299,7 +299,7 @@ def run_tournament(config: TournamentConfig) -> Tuple[str, Dict[str, Any]]:
 
     report_text = "\n".join(lines)
 
-    artifact: Dict[str, Any] = {
+    artifact: dict[str, Any] = {
         "generated_at": datetime.utcnow().isoformat(),
         "started_at": started_at,
         "git": {"branch": branch, "commit": head_sha},
