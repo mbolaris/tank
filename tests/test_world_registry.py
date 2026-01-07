@@ -6,7 +6,7 @@ including the WorldRegistry and TankWorldBackendAdapter.
 
 import pytest
 
-from core.config.display import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH
+from core.config.display import FRAME_RATE, SCREEN_WIDTH
 from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
 from core.worlds.petri.backend import PetriWorldBackendAdapter
 from core.worlds.tank.backend import TankWorldBackendAdapter

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from core.code_pool import CodePool, GenomeCodePool
+from core.code_pool import GenomeCodePool
 from core.worlds.soccer_training.world import SoccerTrainingWorldBackendAdapter
 
 
