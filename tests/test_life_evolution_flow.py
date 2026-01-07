@@ -94,6 +94,10 @@ class MiniEnvironment:
         if entity not in self.agents:
             self.agents.append(entity)
 
+    def list_policy_component_ids(self, kind: str) -> list:
+        """Return empty list - no code pool in test environment."""
+        return []
+
 
 class MiniEngine:
     """Engine stub that supports the ReproductionSystem API."""
