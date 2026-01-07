@@ -3,7 +3,6 @@ from typing import Tuple
 
 import pytest
 
-from core.code_pool import CodePool
 from core.entities.fish import Fish
 from core.environment import Environment
 from core.genetics.trait import GeneticTrait
