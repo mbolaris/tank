@@ -4,18 +4,20 @@ This module provides a thin wrapper around the RCSS-Lite engine for running
 evaluation episodes. It's designed for training/benchmarking, not interactive play.
 
 Key features:
-- Deterministic seeded episodes
+- Deterministic seeded episodes with forked RNG per player
 - Batch stepping (no observation building overhead)
 - Fitness extraction from engine stats
+- Uses GenomeCodePool.execute_policy() for safe policy execution
 """
 
 from __future__ import annotations
 
 import math
-import random
+import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
+from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import RCSSParams
 
@@ -152,10 +154,13 @@ class SoccerMatchRunner:
             player = self._engine.get_player(pid)
             player_stats[pid] = PlayerStats(player_id=pid, team=player.team if player else "left")
 
+        # Create deterministic RNG from seed for policy execution
+        episode_rng = pyrandom.Random(seed)
+
         # Run episode
         for frame in range(frames):
-            # Queue autopolicy commands
-            self._queue_autopolicy_commands(player_stats, genome_by_player)
+            # Queue autopolicy commands with forked RNG
+            self._queue_autopolicy_commands(player_stats, genome_by_player, episode_rng)
 
             # Step engine
             step_result = self._engine.step_cycle()
@@ -194,7 +199,7 @@ class SoccerMatchRunner:
             stats = player_stats[pid]
             genome = genome_by_player.get(pid)
             if genome is None:
-                rng = random.Random(seed)
+                rng = pyrandom.Random(seed)
                 from core.genetics import Genome as GenomeClass
 
                 genome = GenomeClass.random(use_algorithm=False, rng=rng)
@@ -218,9 +223,18 @@ class SoccerMatchRunner:
         return episode_result, agent_results
 
     def _queue_autopolicy_commands(
-        self, player_stats: dict[str, PlayerStats], genome_by_player: dict[str, Genome]
+        self,
+        player_stats: dict[str, PlayerStats],
+        genome_by_player: dict[str, Genome],
+        episode_rng: pyrandom.Random,
     ) -> None:
-        """Queue autopolicy commands for all players."""
+        """Queue autopolicy commands for all players.
+
+        Args:
+            player_stats: Per-player stats for tracking
+            genome_by_player: Mapping of player ID to genome
+            episode_rng: Episode-level RNG (forked per player for determinism)
+        """
         if self._engine is None:
             return
 
@@ -243,8 +257,17 @@ class SoccerMatchRunner:
             # Get genome
             genome = genome_by_player.get(pid)
 
-            # Run policy
-            action = run_policy(self._genome_code_pool, genome, obs, rng=None)
+            # Fork RNG for this player's policy execution
+            player_rng = fork_rng(episode_rng)
+
+            # Run policy with forked RNG for determinism
+            action = run_policy(
+                code_source=self._genome_code_pool,
+                genome=genome,
+                observation=obs,
+                rng=player_rng,
+                dt=0.1,  # 100ms RCSS cycle
+            )
 
             # Additional stats tracking for kicks
             if "kick" in action and action["kick"]:

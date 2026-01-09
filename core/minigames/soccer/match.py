@@ -8,15 +8,19 @@ Key design decisions:
 - Entity-agnostic: uses SoccerParticipant protocol, not Fish directly
 - Field-space output: all coordinates in meters, origin at field center
 - Snapshot includes field dimensions so frontend can scale dynamically
+- Uses GenomeCodePool directly for policy execution (no local copying)
+- Deterministic RNG forked per player for reproducible matches
 """
 
 from __future__ import annotations
 
 import logging
 import math
+import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
+from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import RCSSParams
 from core.minigames.soccer.participant import create_participants_from_fish
@@ -81,11 +85,12 @@ class SoccerMatch:
         # Convert fish to participants
         self.participants, self.player_map = create_participants_from_fish(fish_players)
 
-        # Store code source for policy lookup
+        # Store code source for policy lookup (used directly, no copying)
         self._code_source = code_source
 
-        # Initialize policy pool for this match
-        self._init_policy_pool()
+        # Initialize deterministic RNG from match seed
+        self._match_seed = seed if seed is not None else pyrandom.randint(0, 2**32 - 1)
+        self._rng = pyrandom.Random(self._match_seed)
 
         # Configure RCSS-Lite engine
         self._params = RCSSParams(
@@ -116,36 +121,6 @@ class SoccerMatch:
             f"Soccer Match {match_id} initialized with {len(self.participants)} players "
             f"({team_size} vs {team_size})"
         )
-
-    def _init_policy_pool(self) -> None:
-        """Initialize local policy pool and copy policies from code_source."""
-        from core.code_pool import GenomeCodePool
-
-        self._code_pool = GenomeCodePool()
-
-        for participant in self.participants:
-            if not participant.genome_ref or not self._code_source:
-                continue
-
-            behavior = getattr(participant.genome_ref, "behavioral", None)
-            if not behavior:
-                continue
-
-            trait = getattr(behavior, "soccer_policy_id", None)
-            policy_id = trait.value if trait else None
-
-            if policy_id:
-                try:
-                    component = self._code_source.get_component(policy_id)
-                    self._code_pool.add_component(
-                        kind=component.kind,
-                        name=component.name,
-                        source=component.source,
-                        entrypoint=component.entrypoint,
-                        metadata=component.metadata,
-                    )
-                except Exception:
-                    pass  # Policy not found or error
 
     def _setup_formations(self, team_size: int) -> None:
         """Set up initial player formations."""
@@ -222,7 +197,11 @@ class SoccerMatch:
         return self.get_state()
 
     def _queue_autopolicy_commands(self) -> None:
-        """Queue autopolicy commands for all players using shared adapter."""
+        """Queue autopolicy commands for all players using shared adapter.
+
+        Uses GenomeCodePool directly (no local copying) and forks RNG per player
+        to ensure deterministic but independent policy execution.
+        """
         from core.minigames.soccer.policy_adapter import (
             action_to_command,
             build_observation,
@@ -237,12 +216,16 @@ class SoccerMatch:
             if not obs:
                 continue
 
-            # Run policy (uses code pool or falls back to default)
+            # Fork RNG for this player's policy execution (deterministic per player)
+            player_rng = fork_rng(self._rng)
+
+            # Run policy using _code_source directly (not a local copy)
             action = run_policy(
-                self._code_pool,
-                participant.genome_ref,
-                obs,
-                rng=None,  # Could pass match seed rng if needed
+                code_source=self._code_source,
+                genome=participant.genome_ref,
+                observation=obs,
+                rng=player_rng,
+                dt=0.1,  # 100ms RCSS cycle
             )
 
             # Convert to command
