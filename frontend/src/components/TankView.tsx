@@ -4,6 +4,7 @@ import { Canvas } from './Canvas';
 import { ControlPanel } from './ControlPanel';
 import { PhylogeneticTree } from './PhylogeneticTree';
 import { PokerGame } from './PokerGame';
+import { SoccerGame } from './SoccerGame';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
@@ -14,7 +15,7 @@ import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { initRenderers } from '../renderers/init';
-import { CollapsibleSection, Button, PlantIcon, CardsIcon } from './ui';
+import { CollapsibleSection, Button, PlantIcon, CardsIcon, GlobeIcon } from './ui';
 import styles from './TankView.module.css';
 
 import type { PokerGameState } from '../types/simulation';
@@ -27,6 +28,7 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket(worldId);
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
     const [showPokerGame, setShowPokerGame] = useState(false);
+    const [showSoccerGame, setShowSoccerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
     const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
 
@@ -397,7 +399,38 @@ export function TankView({ worldId }: TankViewProps) {
                 </CollapsibleSection>
             </div>
 
-
+            {/* Soccer Pitch - Collapsible Panel */}
+            <div className="glass-panel" style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto', padding: '16px', boxSizing: 'border-box' }}>
+                <CollapsibleSection
+                    title={
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                            <span style={{ fontSize: '16px', fontWeight: 600, color: '#60a5fa' }}>Soccer Pitch</span>
+                        </div>
+                    }
+                    defaultExpanded={showSoccerGame}
+                >
+                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', minHeight: '300px' }}>
+                        {!showSoccerGame ? (
+                            <div className={styles.pokerWelcome}>
+                                <GlobeIcon size={48} style={{ color: '#60a5fa' }} />
+                                <div className={styles.pokerWelcomeText}>
+                                    Watch an exhibition match between top fish!
+                                </div>
+                                <Button
+                                    onClick={() => setShowSoccerGame(true)}
+                                    disabled={!isConnected}
+                                    variant="secondary"
+                                    style={{ padding: '12px 32px', fontSize: '16px' }}
+                                >
+                                    <GlobeIcon size={16} /> Enter Pitch
+                                </Button>
+                            </div>
+                        ) : (
+                            <SoccerGame sendCommandWithResponse={sendCommandWithResponse} />
+                        )}
+                    </div>
+                </CollapsibleSection>
+            </div>
 
             {/* Poker Skill Benchmark (bb/100) */}
             <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>

@@ -154,3 +154,15 @@ Visit http://localhost:3000 in your browser. You should now see the Fish Tank Si
 - **Frontend**: React 19, TypeScript, Vite
 - **Backend**: Python, FastAPI, WebSocket
 - **Simulation**: Custom physics engine with neural networks
+
+## Viewing Soccer Mode
+
+Soccer mode is now watchable end-to-end in the web UI:
+
+1. **Start the application** (as described above)
+2. **Open Network Dashboard** at http://localhost:3000
+3. **Open any world** by clicking on it
+4. **Switch to Soccer mode** using the mode selector dropdown and choosing "Soccer Pitch"
+5. **Watch players chase and kick the ball** - animation should be continuous
+
+Soccer uses autopolicy: players automatically move toward the ball and kick toward their opponent's goal. The left team kicks toward the right goal (+x direction), and the right team kicks toward the left goal (-x direction).

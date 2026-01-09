@@ -4,12 +4,9 @@ This module handles saving and loading complete world states to/from disk,
 enabling durable simulations that can be resumed after restarts.
 
 Schema Versioning:
-    - Version 1.0: Original schema with genome.max_energy
-    - Version 2.0: Removed genome.max_energy (now computed from size)
-                   Fish max_energy is dynamically computed from lifecycle size
-
-Compatibility:
-    - Old saves with max_energy are loaded successfully (max_energy ignored)
+    - Version 3.0: Strict schema with explicit contracts
+                   All entities must have "type" field
+                   No legacy compatibility - old saves will not load
 """
 
 import json
@@ -19,13 +16,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
+
 if TYPE_CHECKING:
     from backend.runner.runner_protocol import RunnerProtocol
 
 logger = logging.getLogger(__name__)
 
 
-# Base directory for all world data (mapped from data/tanks for legacy support)
+# Base directory for all world data
 DATA_DIR = Path("data/worlds")
 
 
@@ -54,6 +53,9 @@ def save_snapshot_data(world_id: str, snapshot: Dict[str, Any]) -> Optional[str]
         Filepath of saved snapshot, or None if save failed
     """
     try:
+        # Stamp snapshot with current schema version
+        snapshot["schema_version"] = SNAPSHOT_VERSION
+
         # Generate snapshot filename with timestamp
         saved_at = snapshot.get("saved_at")
         if saved_at:
@@ -148,9 +150,17 @@ def restore_world_from_snapshot(
         True if restoration succeeded, False otherwise
     """
     try:
+        from core.contracts import VersionMismatchError
         from core.entities import Food, PlantNectar
         from core.entities.plant import Plant
         from core.transfer.entity_transfer import deserialize_entity
+
+        # Validate snapshot version (strict: no legacy compatibility)
+        try:
+            validate_snapshot_version(snapshot.get("schema_version"))
+        except VersionMismatchError as e:
+            logger.error(f"Cannot restore snapshot: {e}")
+            return False
 
         # Resolve engine from target_world (which might be an adapter)
         # Try multiple resolution paths for cross-Python-version compatibility
@@ -184,19 +194,9 @@ def restore_world_from_snapshot(
         if "frame" in snapshot:
             engine.frame_count = snapshot["frame"]
 
-        # Clear existing entities - use multiple methods to ensure complete clearing
-        # This is critical for cross-Python-version compatibility
-        entity_manager = getattr(engine, "_entity_manager", None)
-        if entity_manager is not None and hasattr(entity_manager, "clear"):
-            entity_manager.clear()
-            logger.debug(f"Cleared via EntityManager, now: {len(engine.entities_list)} entities")
-
-        # Always also clear the list directly as a safety measure
-        if len(engine.entities_list) > 0:
-            engine.entities_list.clear()
-            logger.debug(
-                f"Cleared entities_list directly, now: {len(engine.entities_list)} entities"
-            )
+        # Clear existing entities via EntityManager (authoritative path)
+        engine._entity_manager.clear()
+        logger.debug("Cleared entities via EntityManager")
 
         if engine.environment:
             engine.environment.spatial_grid.clear()
@@ -211,22 +211,14 @@ def restore_world_from_snapshot(
         nectar_data_list = []
         restored_count = 0
 
-        # Pass 1: Restore non-nectar entities
         for entity_data in snapshot.get("entities", []):
             entity_type = entity_data.get("type")
 
-            # Try to infer type for legacy/incomplete snapshots
+            # Strict schema: type field is required (no legacy inference)
             if not entity_type:
-                if (
-                    "genome_data" in entity_data
-                    and entity_data["genome_data"].get("type") == "lsystem"
-                ):
-                    entity_type = "plant"
-                    entity_data["type"] = "plant"
-
-            if not entity_type:
-                logger.error(f"Missing 'type' field in entity data: {entity_data}")
-                return False
+                raise ValueError(
+                    f"Missing required 'type' field in entity data: {list(entity_data.keys())}"
+                )
 
             if entity_type == "plant_nectar":
                 nectar_data_list.append(entity_data)
@@ -236,9 +228,6 @@ def restore_world_from_snapshot(
                 # Use deserialization logic from entity_transfer
                 entity = deserialize_entity(entity_data, target_world)
                 if entity:
-                    # Restore original ID for consistency
-                    if isinstance(entity, Plant) and "id" in entity_data:
-                        entity.plant_id = entity_data["id"]
                     engine.add_entity(entity)
                     restored_count += 1
                     if isinstance(entity, Plant):
@@ -306,7 +295,7 @@ def restore_world_from_snapshot(
         if "paused" in snapshot and hasattr(target_world, "paused"):
             target_world.paused = snapshot["paused"]
 
-        world_id_label = snapshot.get("world_id") or snapshot.get("tank_id") or "unknown"
+        world_id_label = snapshot.get("world_id") or "unknown"
         logger.info(
             f"Restored world {world_id_label[:8]} to frame {snapshot.get('frame', 0)} "
             f"({restored_count} entities)"

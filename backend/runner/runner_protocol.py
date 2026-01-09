@@ -159,3 +159,11 @@ class RunnerProtocol(Protocol):
             ValueError: If switching is not supported or invalid
         """
         ...
+
+    def get_evolution_benchmark_data(self) -> dict[str, Any]:
+        """Get evolution benchmark data for this world instance.
+
+        Returns:
+            Dictionary with benchmark history and metrics
+        """
+        ...

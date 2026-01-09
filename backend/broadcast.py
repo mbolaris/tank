@@ -180,6 +180,11 @@ async def broadcast_updates_for_world(
                         return None
                     except asyncio.TimeoutError:
                         return "timeout"
+                    except RuntimeError as exc:
+                        # Starlette raises RuntimeError if sending to a closed socket
+                        if 'Cannot call "send" once a close message has been sent' in str(exc):
+                            return "disconnected"
+                        return exc
                     except Exception as exc:
                         return exc
 
@@ -212,6 +217,10 @@ async def broadcast_updates_for_world(
                         slow_send_windows[client] = (strikes, window_start)
                         if strikes >= slow_send_strikes:
                             disconnected.add(client)
+                        continue
+
+                    if result == "disconnected":
+                        disconnected.add(client)
                         continue
 
                     logger.warning(

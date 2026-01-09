@@ -6,9 +6,7 @@ and associating them with high-level mode packs.
 
 from __future__ import annotations
 
-import importlib
 import logging
-from pathlib import Path
 from typing import Callable
 
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
@@ -160,44 +158,9 @@ def _register_builtin_modes() -> None:
         mode_pack=create_petri_mode_pack(),
     )
 
-    core_dir = Path(__file__).resolve().parents[1]
-    modes_dir = core_dir / "modes"
-    soccer_mode_pack_factory = None
-    if (modes_dir / "soccer.py").exists():
-        soccer_mode_module = importlib.import_module("core.modes.soccer")
-        soccer_mode_pack_factory = getattr(soccer_mode_module, "create_soccer_mode_pack", None)
-
-    if soccer_mode_pack_factory is not None:
-        soccer_mode_pack = soccer_mode_pack_factory()
-    else:
-        soccer_mode_pack = ModePackDefinition(
-            mode_id="soccer",
-            world_type="soccer",
-            default_view_mode="topdown",
-            display_name="Soccer Pitch",
-            normalizer=_identity_config,
-            supports_persistence=False,
-            supports_actions=True,
-            supports_websocket=False,
-            supports_transfer=False,
-            has_fish=False,
-        )
-    soccer_backend: type[MultiAgentWorldBackend] | None = None
-    worlds_dir = Path(__file__).parent
-    if (worlds_dir / "soccer" / "backend.py").exists():
-        soccer_module = importlib.import_module("core.worlds.soccer.backend")
-        soccer_backend = getattr(soccer_module, "SoccerWorldBackendAdapter", None)
-
-    if soccer_backend is not None:
-        WorldRegistry.register_world_type(
-            world_type="soccer",
-            factory=lambda **kwargs: soccer_backend(**kwargs),
-            mode_pack=soccer_mode_pack,
-            default_view_mode="topdown",
-            display_name="Soccer Pitch",
-        )
-    else:
-        WorldRegistry.register_mode_pack(soccer_mode_pack)
+    # Note: Soccer is NOT registered as a world mode.
+    # It is a minigame accessible via the "start_soccer" command handler.
+    # See core/minigames/soccer/ for the RCSS-Lite engine.
 
 
 _register_builtin_modes()

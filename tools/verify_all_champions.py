@@ -39,7 +39,16 @@ def main():
                 print(f"  SKIP: No benchmark_id in {champ_path}")
                 continue
 
-            seed = champ_data["champion"]["seed"]
+            # Support both standard (nested) and legacy (flat) format
+            if "champion" in champ_data:
+                seed = champ_data["champion"].get("seed")
+            else:
+                seed = champ_data.get("seed")
+
+            if seed is None:
+                print(f"  ERROR: Could not find seed in {champ_path}")
+                failed = True
+                continue
 
             # Find benchmark file
             # benchmark_id "tank/survival_30k" -> benchmarks/tank/survival_30k.py
@@ -63,10 +72,10 @@ def main():
 
             subprocess.check_call(cmd)
 
-            # Validate
+            # Validate reproduction
             cmd_val = [
                 sys.executable,
-                str(ROOT / "tools" / "validate_improvement.py"),
+                str(ROOT / "tools" / "validate_reproduction.py"),
                 out_file,
                 champ_path,
             ]

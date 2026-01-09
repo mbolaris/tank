@@ -26,7 +26,6 @@ The backend registry (`backend/world_registry.py`) only attaches runtime snapsho
 | `tank` | tank | side | yes | no | yes | yes | yes |
 | `petri` | petri | topdown | yes | no | no | yes | yes |
 | `soccer` | soccer | topdown | no | yes | no | no | no |
-| `soccer_training` | soccer_training | topdown | no | yes | no | no | no |
 
 ## Capability Flags
 
@@ -81,11 +80,6 @@ All world types share these core systems:
 - Episodic (match-based, not persistent)
 - Requires agent actions for player movement
 - Goal-based scoring and rewards
-
-### Soccer Training Mode
-- Single-agent training environment
-- Simplified physics for rapid iteration
-- Focused on individual skill development
 
 ## Config Normalization
 

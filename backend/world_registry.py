@@ -165,10 +165,6 @@ def _register_petri_mode() -> None:
 _register_petri_mode()
 
 
-def _register_soccer_mode() -> None:
-    from backend.snapshots.soccer_snapshot_builder import SoccerSnapshotBuilder
-
-    register_snapshot_builder("soccer", SoccerSnapshotBuilder)
-
-
-_register_soccer_mode()
+# Note: Soccer is NOT registered as a world mode.
+# It is a minigame accessible via the "start_soccer" command handler.
+# Snapshot building is handled inline by core/soccer_match.py.

@@ -33,13 +33,15 @@ class TestWorldTypeFirstClass:
             manager.stop_all_worlds()
 
     def test_world_manager_creates_soccer_world(self):
-        """WorldManager can create soccer world instances."""
+        """WorldManager cannot create soccer world instances (soccer is a minigame)."""
+        import pytest
+
+        # Soccer is no longer a world mode - it's a minigame
+        # This test documents that behavior
         manager = WorldManager()
         try:
-            instance = manager.create_world(name="Soccer Test", world_type="soccer")
-            assert instance.world_type == "soccer"
-            assert instance.runner.world_type == "soccer"
-            assert not instance.is_tank()
+            with pytest.raises(ValueError, match="Unknown world type 'soccer'"):
+                manager.create_world(name="Soccer Test", world_type="soccer")
         finally:
             manager.stop_all_worlds()
 

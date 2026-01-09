@@ -82,7 +82,6 @@ function getIconForWorldType(worldType: WorldType, size: number = 16) {
             return <FishIcon size={size} />;
         case 'petri':
             return <MicroscopeIcon size={size} />;
-        case 'soccer_training':
         case 'soccer':
             return <SoccerIcon size={size} />;
         default:
@@ -113,8 +112,6 @@ export function WorldModeSelector({ worldType, onChange }: WorldModeSelectorProp
             >
                 <option value="tank">{WORLD_TYPE_LABELS.tank}</option>
                 <option value="petri">{WORLD_TYPE_LABELS.petri}</option>
-                <option value="soccer_training">{WORLD_TYPE_LABELS.soccer_training}</option>
-                <option value="soccer">{WORLD_TYPE_LABELS.soccer}</option>
             </select>
         </div>
     );

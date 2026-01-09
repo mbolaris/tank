@@ -310,7 +310,7 @@ def get_hooks_for_world(world_type: str) -> WorldHooks:
     """Factory function to get the appropriate hooks for a world type.
 
     Args:
-        world_type: The type of world (tank, soccer_training, petri, etc)
+        world_type: The type of world (tank, petri, etc)
 
     Returns:
         WorldHooks instance for the world type

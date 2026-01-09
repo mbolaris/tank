@@ -6,7 +6,6 @@ instead of directly importing from core.tank_world.
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 
@@ -14,15 +13,22 @@ def test_no_direct_tank_world_imports():
     """Ensure production code doesn't import core.tank_world directly."""
     project_root = Path(__file__).resolve().parents[1]
 
-    # Find all .py files that import from core.tank_world
-    result = subprocess.run(
-        ["grep", "-r", "from core.tank_world import", "--include=*.py", "."],
-        capture_output=True,
-        text=True,
-        cwd=project_root,
-    )
+    # Find all .py files that import from core.tank_world using Python (cross-platform)
+    pattern = "from core.tank_world import"
+    lines = []
 
-    lines = result.stdout.strip().split("\n") if result.stdout.strip() else []
+    for py_file in project_root.rglob("*.py"):
+        if "__pycache__" in str(py_file):
+            continue
+        try:
+            content = py_file.read_text(encoding="utf-8")
+            if pattern in content:
+                rel_path = py_file.relative_to(project_root)
+                for i, line in enumerate(content.splitlines(), 1):
+                    if pattern in line:
+                        lines.append(f"./{rel_path}:{i}: {line.strip()}")
+        except Exception:
+            pass
 
     # Filter out acceptable usages
     violations = []
@@ -30,7 +36,7 @@ def test_no_direct_tank_world_imports():
         if not line:
             continue
         # Acceptable: core/legacy/ (backward compat)
-        if "core/legacy/" in line:
+        if "core/legacy/" in line or "core\\legacy\\" in line:
             continue
         # Acceptable: this test file
         if "test_no_tank_world_imports" in line:
@@ -39,13 +45,13 @@ def test_no_direct_tank_world_imports():
         if "__pycache__" in line:
             continue
         # Acceptable: archive directories (legacy scripts)
-        if "/archive/" in line:
+        if "/archive/" in line or "\\archive\\" in line:
             continue
         # Acceptable: scripts directory (can use deprecated API for now)
-        if "./scripts/" in line or "scripts/" in line:
+        if "scripts/" in line or "scripts\\" in line:
             continue
         # Acceptable: tools directory (can use deprecated API for now)
-        if "./tools/" in line or "tools/" in line:
+        if "tools/" in line or "tools\\" in line:
             continue
 
         violations.append(line)

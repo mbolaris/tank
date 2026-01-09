@@ -1,11 +1,12 @@
 """Soccer evolution experiment runner.
 
 This module provides a deterministic, seeded experiment runner for evolving
-soccer policies using the consolidated SoccerWorldBackendAdapter. It runs
-generations of agents, evaluates fitness, and selects/mutates genomes.
+soccer policies using the RCSS-Lite minigame engine. It runs generations of
+agents, evaluates fitness, and selects/mutates genomes.
 
 Fitness Formula:
-    fitness = goals * goal_weight + possessions * possession_weight
+    fitness = goals * 100 + assists * 50 + possessions * 0.1 + shaped_rewards
+    (Shaped rewards include distance to ball, shot quality, and stamina efficiency)
 """
 
 from __future__ import annotations
@@ -16,21 +17,10 @@ from dataclasses import dataclass
 from core.code_pool import GenomeCodePool, create_default_genome_code_pool
 from core.genetics import Genome
 from core.genetics.code_policy_traits import assign_random_policy, mutate_code_policies
-from core.worlds.soccer.backend import SoccerWorldBackendAdapter
+from core.minigames.soccer import AgentResult, SoccerMatchRunner
 
 LEFT_TEAM = "left"
 RIGHT_TEAM = "right"
-
-
-@dataclass
-class AgentResult:
-    """Results for a single agent after an episode."""
-
-    player_id: str
-    team: str
-    goals: int
-    fitness: float
-    genome: Genome
 
 
 @dataclass
@@ -76,8 +66,17 @@ def create_population(
     for _ in range(population_size):
         genome = Genome.random(use_algorithm=False, rng=rng)
 
-        # Assign random soccer policy using pool-aware API
-        assign_random_policy(genome.behavioral, genome_code_pool, "soccer_policy", rng)
+        # Assign default soccer policy for Gen0 (functional baseline)
+        # This ensures all initial agents can actually play soccer
+        default_id = genome_code_pool.get_default("soccer_policy")
+        if default_id:
+            from core.genetics.trait import GeneticTrait
+
+            genome.behavioral.soccer_policy_id = GeneticTrait(default_id)
+            genome.behavioral.soccer_policy_params = GeneticTrait({})
+        else:
+            # Fallback: assign random if no default (shouldn't happen)
+            assign_random_policy(genome.behavioral, genome_code_pool, "soccer_policy", rng)
 
         population.append(genome)
 
@@ -92,9 +91,7 @@ def evaluate_population(
     goal_weight: float = 100.0,
     possession_weight: float = 0.1,
 ) -> list[AgentResult]:
-    """Evaluate all genomes by running soccer episodes.
-
-    Uses public API instead of accessing internal _players directly.
+    """Evaluate all genomes by running soccer episodes using RCSS-Lite engine.
 
     Args:
         population: List of genomes to evaluate
@@ -107,58 +104,23 @@ def evaluate_population(
     Returns:
         List of AgentResult with fitness scores
     """
-    # Create world with deterministic seed
+    # Create match runner with deterministic seed
     team_size = max(1, len(population) // 2)
 
-    world = SoccerWorldBackendAdapter(
-        seed=seed,
-        genome_code_pool=genome_code_pool,
+    runner = SoccerMatchRunner(
         team_size=team_size,
+        genome_code_pool=genome_code_pool,
     )
-    world.reset(seed=seed)
 
-    # Assign genomes to players using public API
-    player_ids = world.list_agents()
-    genome_by_player: dict[str, Genome] = {}
-    for i, genome in enumerate(population[: len(player_ids)]):
-        if i < len(player_ids):
-            player_id = player_ids[i]
-            world.set_player_genome(player_id, genome)
-            genome_by_player[player_id] = genome
+    # Run episode and get results
+    _episode_result, agent_results = runner.run_episode(
+        genomes=population,
+        seed=seed,
+        frames=episode_frames,
+        goal_weight=goal_weight,
+    )
 
-    # Run episode - autopolicy drives all players
-    for _ in range(episode_frames):
-        world.step()
-
-    # Collect results using public API
-    results: list[AgentResult] = []
-    fitness_summary = world.get_fitness_summary()
-
-    for player_id in player_ids:
-        agent_data = fitness_summary.get("agent_fitness", {}).get(player_id, {})
-        goals = agent_data.get("goals", 0)
-        possessions = agent_data.get("possessions", 0)
-        team = agent_data.get("team", "left")
-
-        # Fitness = weighted goals + weighted possessions
-        fitness = (goals * goal_weight) + (possessions * possession_weight)
-
-        genome = genome_by_player.get(player_id)
-        if genome is None:
-            # Player without genome - create placeholder
-            genome = Genome.random(use_algorithm=False, rng=random.Random(seed))
-
-        results.append(
-            AgentResult(
-                player_id=player_id,
-                team=team,
-                goals=goals,
-                fitness=fitness,
-                genome=genome,
-            )
-        )
-
-    return results
+    return agent_results
 
 
 def select_parents(

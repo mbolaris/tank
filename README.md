@@ -432,7 +432,7 @@ tank/
 |-- frontend/                # React + Vite frontend (npm run dev)
 |   `-- src/                 # Components, hooks, rendering utilities
 |-- core/                    # Shared simulation logic
-|   |-- tank_world.py        # Simulation wrapper with config + RNG
+|   |-- world.py             # Abstract World interface for simulation
 |   |-- agents/              # Reusable agent components
 |   |   |-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
 |   |   `-- petri_agent.py   # PetriMicrobeAgent stub (component composition example)
@@ -674,7 +674,7 @@ The simulation uses a clean architecture with separation of concerns:
   - `FeedingComponent` - bite size, food consumption
   - Enables composition of new agent types (Fish, PetriMicrobe, SoccerPlayer)
 
-- **TankWorld** (`tank_world.py`): Tank simulation wrapper
+- **TankWorldBackendAdapter** (`core/worlds/tank/backend.py`): Tank simulation wrapper
   - Clean interface for configuration management
   - Random number generator (RNG) management for deterministic behavior
   - Unified API for both headless and web modes

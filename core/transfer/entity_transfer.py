@@ -685,12 +685,6 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
             "theta": getattr(crab, "_orbit_theta", None),
             "dir": getattr(crab, "_orbit_dir", None),
         },
-        # Legacy keys for old snapshot format support
-        "max_energy": crab.max_energy,
-        "genome": {
-            "size_modifier": crab.genome.physical.size_modifier.value,
-            "color_hue": crab.genome.physical.color_hue.value,
-        },
     }
 
 
@@ -721,19 +715,14 @@ def _deserialize_crab(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         if rng is None and engine:
             rng = getattr(engine, "rng", None)
 
-        # Rebuild genome - prefer genome_data (full), fallback to legacy genome
+        # Rebuild genome from genome_data (required)
         genome = None
         genome_data = data.get("genome_data")
         if genome_data and isinstance(genome_data, dict):
             genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
         else:
-            # Legacy format: minimal genome with size/color only
-            legacy_genome = data.get("genome", {})
-            genome = Genome.random(rng=rng)
-            if "size_modifier" in legacy_genome:
-                genome.physical.size_modifier.value = legacy_genome["size_modifier"]
-            if "color_hue" in legacy_genome:
-                genome.physical.color_hue.value = legacy_genome["color_hue"]
+            logger.error("Cannot deserialize crab: genome_data is required")
+            return None
 
         # Create crab
         crab = Crab(

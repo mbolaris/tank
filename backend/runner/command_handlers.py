@@ -21,6 +21,7 @@ from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
+from core.minigames.soccer import SoccerMatch
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -426,3 +427,88 @@ class CommandHandlerMixin:
                 return {"success": True, "rate": rate}
 
         return self._create_error_response("Could not access plant configuration")
+
+    def _cmd_start_soccer(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Handle 'start_soccer' command.
+
+        Starts a soccer match with selected fish.
+        """
+        try:
+            num_players = data.get("num_players", 22)  # Default 22 (11 vs 11)
+
+            # Get Fish
+            entities_list = self.world.get_entities_for_snapshot()
+            fish_list = [e for e in entities_list if isinstance(e, Fish)]
+
+            if len(fish_list) < 2:
+                return self._create_error_response("Not enough fish for soccer!")
+
+            # Select players (Top Energy)
+            fish_list.sort(key=lambda f: f.energy, reverse=True)
+            selected = fish_list[:num_players]
+
+            match_id = str(uuid.uuid4())
+            code_source = getattr(self.world, "genome_code_pool", None)
+            # Pass the view_mode so soccer can render correct avatar type
+            view_mode = getattr(self, "view_mode", "side")  # "side" = tank, "top" = petri
+            self.soccer_match = SoccerMatch(
+                match_id, selected, code_source=code_source, view_mode=view_mode
+            )
+            logger.info(
+                f"Started soccer match {match_id} with {len(selected)} players (view_mode={view_mode})"
+            )
+
+            return {"success": True, "state": self.soccer_match.get_state()}
+        except Exception as e:
+            logger.error(f"Error starting soccer match: {e}", exc_info=True)
+            return self._create_error_response(f"Failed to start soccer match: {str(e)}")
+
+    def _cmd_soccer_step(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Handle 'soccer_step' command.
+
+        Steps the ongoing soccer match.
+        """
+        try:
+            match = getattr(self, "soccer_match", None)
+            if not match:
+                return self._create_error_response("No active soccer match")
+
+            # Batch multiple steps for faster gameplay (default 2 steps per request)
+            num_steps = data.get("num_steps", 2)
+            state = match.step(num_steps=num_steps)
+            return {"success": True, "state": state}
+        except Exception as e:
+            logger.error(f"Error stepping soccer match: {e}", exc_info=True)
+            return self._create_error_response(f"Failed to step soccer match: {str(e)}")
+
+    def _cmd_end_soccer(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Handle 'end_soccer' command.
+
+        Ends the current match and distributes rewards.
+        """
+        try:
+            match = getattr(self, "soccer_match", None)
+            if not match:
+                return self._create_error_response("No active soccer match")
+
+            # Reward logic
+            if match.game_over and match.winner_team and match.winner_team != "draw":
+                for pid, fish in match.player_map.items():
+                    if pid.startswith(match.winner_team):
+                        # Set winners to max energy as reward
+                        max_energy = getattr(fish, "max_energy", 1000.0)
+                        fish.energy = max_energy
+
+                logger.info(f"Rewarded team {match.winner_team}")
+
+            self.soccer_match = None
+            logger.info("Soccer match ended")
+
+            return {"success": True}
+        except Exception as e:
+            logger.error(f"Error ending soccer match: {e}", exc_info=True)
+            return self._create_error_response(f"Failed to end soccer match: {str(e)}")

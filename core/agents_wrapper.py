@@ -28,7 +28,7 @@ class AgentsWrapper:
             entities_or_engine: Either a list of entities (for testing)
                 or a SimulationEngine instance (for production use)
         """
-        # Support both legacy list usage and engine-aware management
+        # Support both list usage (for tests) and engine-aware management
         # Check for _entity_manager to detect SimulationEngine
         if hasattr(entities_or_engine, "_entity_manager") and hasattr(
             entities_or_engine, "entities_list"
@@ -40,7 +40,11 @@ class AgentsWrapper:
             self._entities = entities_or_engine
 
     def add(self, *entities: Any) -> None:
-        """Add entities to the list or engine-aware collection."""
+        """Add entities to the list or engine-aware collection.
+
+        When backed by an engine, uses the public add_entity() API which
+        enforces phase safety (will raise if called during update phases).
+        """
         for entity in entities:
             if entity in self._entities:
                 if hasattr(entity, "add_internal"):
@@ -48,19 +52,23 @@ class AgentsWrapper:
                 continue
 
             if self._engine is not None:
-                self._engine._add_entity(entity)
+                self._engine.add_entity(entity)
             else:
                 self._entities.append(entity)
             if hasattr(entity, "add_internal"):
                 entity.add_internal(self)
 
     def remove(self, *entities: Any) -> None:
-        """Remove entities from the list or engine-aware collection."""
+        """Remove entities from the list or engine-aware collection.
+
+        When backed by an engine, uses the public remove_entity() API which
+        enforces phase safety (will raise if called during update phases).
+        """
         for entity in entities:
             if entity not in self._entities:
                 continue
             if self._engine is not None:
-                self._engine._remove_entity(entity)
+                self._engine.remove_entity(entity)
             else:
                 self._entities.remove(entity)
 

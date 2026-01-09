@@ -2,11 +2,26 @@
 
 These tests verify the full stack:
 RCSSWorld -> RCSSServerAdapter -> FakeRCSSServer -> RCSSServerAdapter -> RCSSWorld
+
+NOTE: These tests are currently SKIPPED because the legacy soccer world
+stack (core/worlds/soccer/) was removed in the RCSS-Lite consolidation.
+The RCSSServerAdapter can be migrated to core/minigames/soccer/external/
+if real rcssserver integration is needed later.
 """
 
-from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
+import pytest
 
-from .fakes.fake_rcssserver import FakeRCSSServer
+# Skip all tests in this module until RCSS adapter code is migrated
+pytestmark = pytest.mark.skip(
+    reason="Legacy soccer world stack removed; RCSS integration tests archived"
+)
+
+try:
+    from core.worlds.soccer.rcssserver_adapter import RCSSServerAdapter
+
+    from .fakes.fake_rcssserver import FakeRCSSServer
+except ImportError:
+    pass
 
 
 class TestRCSSIntegration:

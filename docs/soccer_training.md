@@ -26,13 +26,20 @@ Observation Space
 -----------------
 Each agent receives a dict with:
 
-- `ball_relative_pos`: vector from player to ball.
-- `ball_relative_vel`: ball velocity relative to player velocity.
-- `nearest_teammate`: relative position/velocity and distance to closest teammate.
-- `nearest_opponent`: relative position/velocity and distance to closest opponent.
-- `goal_direction`: normalized vector pointing to the opponent goal center.
-- `stamina`: energy ratio (0.0 to 1.0).
-- `energy`: current energy value.
+- `position`: `{"x": float, "y": float}`
+- `velocity`: `{"x": float, "y": float}`
+- `stamina`: float [0, 1]
+- `facing_angle`: float (radians)
+- `ball_position`: `{"x": float, "y": float}`
+- `ball_velocity`: `{"x": float, "y": float}`
+- `ball_relative_pos`: `{"x": float, "y": float}` from player to ball.
+- `ball_relative_vel`: `{"x": float, "y": float}` ball velocity relative to player.
+- `goal_direction`: `{"x": float, "y": float}` vector pointing to opponent goal center.
+- `teammates`: list of player states (id, position, velocity, stamina).
+- `opponents`: list of player states (id, position, velocity, stamina).
+- `game_time`: current frame / frame_rate.
+- `play_mode`: current match mode (e.g. "play", "kick_off_left").
+- `field_width`/`field_height`: dimensions.
 
 Reward Shaping and Energy
 -------------------------

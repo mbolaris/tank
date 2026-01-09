@@ -96,8 +96,6 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_id = world_id or str(uuid.uuid4())
         self.world_name = world_name or f"World {self.world_id[:8]}"
 
-        self.evolution_benchmark_tracker = None
-
         # Target frame rate
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
@@ -166,6 +164,27 @@ class SimulationRunner(CommandHandlerMixin):
     def standard_poker_series(self, value):
         self._require_hook_attr("standard_poker_series")
         self.world_hooks.standard_poker_series = value
+
+    @property
+    def evolution_benchmark_tracker(self):
+        """Delegate to world hooks for the evolution benchmark tracker."""
+        return getattr(self.world_hooks, "evolution_benchmark_tracker", None)
+
+    @property
+    def _evolution_benchmark_guard(self):
+        """Delegate to world hooks for the benchmark threading guard."""
+        return getattr(self.world_hooks, "_evolution_benchmark_guard", None)
+
+    @property
+    def _evolution_benchmark_last_completed_time(self):
+        """Delegate to world hooks for the last benchmark completion time."""
+        return getattr(self.world_hooks, "_evolution_benchmark_last_completed_time", 0.0)
+
+    @_evolution_benchmark_last_completed_time.setter
+    def _evolution_benchmark_last_completed_time(self, value):
+        """Set the last benchmark completion time on world hooks."""
+        if hasattr(self.world_hooks, "_evolution_benchmark_last_completed_time"):
+            self.world_hooks._evolution_benchmark_last_completed_time = value
 
     def _get_evolution_benchmark_export_path(self) -> Path:
         """Get the benchmark export path scoped to this world."""
@@ -1336,6 +1355,9 @@ class SimulationRunner(CommandHandlerMixin):
                 "poker_autopilot_action": self._cmd_poker_autopilot_action,
                 "standard_poker_series": self._cmd_standard_poker_series,
                 "set_plant_energy_input": self._cmd_set_plant_energy_input,
+                "start_soccer": self._cmd_start_soccer,
+                "soccer_step": self._cmd_soccer_step,
+                "end_soccer": self._cmd_end_soccer,
             }
 
             # Try universal handlers first

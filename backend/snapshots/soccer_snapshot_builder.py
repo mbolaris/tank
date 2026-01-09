@@ -46,22 +46,46 @@ class SoccerSnapshotBuilder:
         )
 
     def build(self, step_result: Any, world: Any) -> list[EntitySnapshot]:
-        _ = world
         snapshots: list[EntitySnapshot] = []
         snapshot_data = getattr(step_result, "snapshot", {}) or {}
 
+        # Transform configuration
+        # Match frontend's hardcoded dimensions in SoccerTopDownRenderer.ts
+        RENDER_WIDTH = 1088.0
+        RENDER_HEIGHT = 612.0
+
+        # Get sim dimensions from world config or defaults
+        config = getattr(world, "_config", None)
+        sim_width = getattr(config, "field_width", 100.0)
+        sim_height = getattr(config, "field_height", 60.0)
+
+        # Calculate scale and offsets
+        # Sim is centered at (0,0), Render is (0,0) at top-left
+        scale_x = RENDER_WIDTH / sim_width
+        scale_y = RENDER_HEIGHT / sim_height
+        # Use uniform scale for entities to preserve aspect ratio
+        entity_scale = (scale_x + scale_y) / 2.0
+
+        offset_x = RENDER_WIDTH / 2.0
+        offset_y = RENDER_HEIGHT / 2.0
+
         ball_data = snapshot_data.get("ball")
         if ball_data:
-            radius = ball_data.get("radius", 0.2)
+            raw_radius = ball_data.get("radius", 0.2)
+            radius = raw_radius * entity_scale
+
+            raw_x = ball_data.get("x", 0.0)
+            raw_y = ball_data.get("y", 0.0)
+
             ball_snapshot = EntitySnapshot(
                 id=self._get_stable_id("ball"),
                 type="ball",
-                x=ball_data.get("x", 0.0),
-                y=ball_data.get("y", 0.0),
+                x=raw_x * scale_x + offset_x,
+                y=raw_y * scale_y + offset_y,
                 width=radius * 2,
                 height=radius * 2,
-                vel_x=ball_data.get("vx", 0.0),
-                vel_y=ball_data.get("vy", 0.0),
+                vel_x=ball_data.get("vx", 0.0) * scale_x,
+                vel_y=ball_data.get("vy", 0.0) * scale_y,
                 render_hint={
                     "style": "soccer",
                     "sprite": "ball",
@@ -74,21 +98,45 @@ class SoccerSnapshotBuilder:
         players_data = snapshot_data.get("players", [])
         for player_data in players_data:
             player_id = player_data.get("id", "player")
-            radius = player_data.get("radius", 0.3)
+
+            raw_radius = player_data.get("radius", 0.3)
+            radius = raw_radius * entity_scale
+
             facing_angle = player_data.get("facing", player_data.get("facing_angle", 0.0))
             stamina = player_data.get("stamina")
             energy = player_data.get("energy")
 
+            raw_x = player_data.get("x", 0.0)
+            raw_y = player_data.get("y", 0.0)
+
+            # Try to get genome data from the world's player_map
+            genome_data = None
+            player_map = getattr(world, "player_map", {})
+            # Backend IDs are typically "left_0", "right_1", etc.
+            # Convert player_data['id'] (which is likely the string ID) back to Fish object
+            # Note: player_data['id'] is what we use.
+            fish = player_map.get(str(player_id))
+
+            if fish and hasattr(fish, "genome") and hasattr(fish.genome, "physical"):
+                # Extract physical traits for rendering
+                from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+
+                genome_data = {
+                    spec.name: getattr(fish.genome.physical, spec.name).value
+                    for spec in PHYSICAL_TRAIT_SPECS
+                }
+
             player_snapshot = EntitySnapshot(
                 id=self._get_stable_id(f"player:{player_id}"),
                 type="player",
-                x=player_data.get("x", 0.0),
-                y=player_data.get("y", 0.0),
+                x=raw_x * scale_x + offset_x,
+                y=raw_y * scale_y + offset_y,
                 width=radius * 2,
                 height=radius * 2,
-                vel_x=player_data.get("vx", 0.0),
-                vel_y=player_data.get("vy", 0.0),
+                vel_x=player_data.get("vx", 0.0) * scale_x,
+                vel_y=player_data.get("vy", 0.0) * scale_y,
                 energy=energy if energy is not None else stamina,
+                genome_data=genome_data,
                 render_hint={
                     "style": "soccer",
                     "sprite": "player",

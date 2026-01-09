@@ -120,23 +120,4 @@ describe('WebSocket Update Normalization', () => {
         expect(result.entities![0].id).toBe(1);
     });
 
-    it('should handle payloads without snapshot', () => {
-        const legacyPayload = {
-            type: 'update' as const,
-            world_id: 'legacy-world',
-            frame: 10,
-            elapsed_time: 1.0,
-            entities: [],
-            stats: {} as any,
-            // No snapshot, view_mode, or mode_id
-        };
-
-        const result = normalizeWorldUpdate(legacyPayload);
-
-        // Should get defaults
-        expect(result.view_mode).toBe('side');
-        expect(result.mode_id).toBe('tank');
-        // Original fields should be preserved
-        expect(result.frame).toBe(10);
-    });
 });

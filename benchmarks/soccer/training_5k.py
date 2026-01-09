@@ -1,7 +1,9 @@
 """Soccer Training Benchmark (5k frames).
 
-Measures team performance and coordination in soccer world.
+Measures team performance and coordination in soccer using RCSS-Lite engine.
 Score is based on goal differential, possession time, and stamina efficiency.
+
+Restored for historical compatibility with training_5k.json champion.
 """
 
 import sys
@@ -9,8 +11,8 @@ import time
 from typing import Any, Dict
 
 from core.code_pool import create_default_genome_code_pool
-from core.worlds.soccer.backend import SoccerWorldBackendAdapter
-from core.worlds.soccer.config import SoccerWorldConfig
+from core.genetics import Genome
+from core.minigames.soccer import SoccerMatchRunner
 
 BENCHMARK_ID = "soccer/training_5k"
 FRAMES = 5000
@@ -25,55 +27,70 @@ def run(seed: int) -> Dict[str, Any]:
     Returns:
         Result dictionary with score, metrics, and metadata
     """
+    import random
+
     start_time = time.time()
 
     # Create genome code pool for autopolicy
     genome_code_pool = create_default_genome_code_pool()
 
-    # Configure deterministic environment
-    config = SoccerWorldConfig(
-        team_size=3,  # 3v3 for faster training
-        field_width=60.0,
-        field_height=40.0,
+    # Create population with default policies
+    rng = random.Random(seed)
+    team_size = 3  # 3v3 for faster training
+    population_size = team_size * 2
+
+    population = []
+    for _ in range(population_size):
+        genome = Genome.random(use_algorithm=False, rng=rng)
+        # Assign default soccer policy
+        default_id = genome_code_pool.get_default("soccer_policy")
+        if default_id:
+            from core.genetics.trait import GeneticTrait
+
+            genome.behavioral.soccer_policy_id = GeneticTrait(default_id)
+        population.append(genome)
+
+    # Create match runner
+    runner = SoccerMatchRunner(
+        team_size=team_size,
+        genome_code_pool=genome_code_pool,
     )
 
-    world = SoccerWorldBackendAdapter(seed=seed, config=config, genome_code_pool=genome_code_pool)
-    world.reset(seed=seed)
-
-    # Run loop - autopolicy drives players automatically
-    for i in range(FRAMES):
-        world.step()
-
-        if (i + 1) % 1000 == 0:
-            print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
+    # Run episode
+    print(f"  Running {FRAMES} frames...", file=sys.stderr)
+    episode_result, agent_results = runner.run_episode(
+        genomes=population,
+        seed=seed,
+        frames=FRAMES,
+        goal_weight=100.0,
+    )
 
     runtime = time.time() - start_time
 
-    # Final metrics
-    final_fitness = world.get_fitness_summary()
+    # Calculate metrics from episode result
+    score_left = episode_result.score_left
+    score_right = episode_result.score_right
+    goal_diff = score_left - score_right
+    total_goals = score_left + score_right
 
-    # Calculate score
-    # Goal differential (primary objective)
-    goal_diff = final_fitness["score"]["left"] - final_fitness["score"]["right"]
-    total_goals = final_fitness["score"]["left"] + final_fitness["score"]["right"]
-
-    # Possession differential (secondary objective)
+    # Possession from player stats
     possession_left = 0
     possession_right = 0
-    for agent_data in final_fitness["agent_fitness"].values():
-        if agent_data["team"] == "left":
-            possession_left += agent_data["possessions"]
+    for pid, stats in episode_result.player_stats.items():
+        if stats.team == "left":
+            possession_left += stats.possessions
         else:
-            possession_right += agent_data["possessions"]
+            possession_right += stats.possessions
 
     total_possession = possession_left + possession_right
     # Convert frames to approximate seconds
     possession_diff = (possession_left - possession_right) / 60.0
 
-    # Team fitness (based on accumulated stats, not energy)
-    team_fitness = final_fitness["team_fitness"]["left"] + final_fitness["team_fitness"]["right"]
-    player_count = max(config.team_size * 2, 1)
-    avg_fitness = team_fitness / player_count
+    # Team fitness from agent results
+    team_fitness_left = sum(r.fitness for r in agent_results if r.team == "left")
+    team_fitness_right = sum(r.fitness for r in agent_results if r.team == "right")
+    team_fitness = team_fitness_left + team_fitness_right
+    avg_fitness = team_fitness / max(population_size, 1)
 
     # Score formula:
     # - Goal differential: 100 points per goal
@@ -88,8 +105,8 @@ def run(seed: int) -> Dict[str, Any]:
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,
-            "score_left": final_fitness["score"]["left"],
-            "score_right": final_fitness["score"]["right"],
+            "score_left": score_left,
+            "score_right": score_right,
             "total_goals": total_goals,
             "goal_diff": goal_diff,
             "possession_left": possession_left,
@@ -97,8 +114,8 @@ def run(seed: int) -> Dict[str, Any]:
             "total_possession": total_possession,
             "possession_diff": possession_diff,
             "avg_fitness": avg_fitness,
-            "team_fitness_left": final_fitness["team_fitness"]["left"],
-            "team_fitness_right": final_fitness["team_fitness"]["right"],
+            "team_fitness_left": team_fitness_left,
+            "team_fitness_right": team_fitness_right,
         },
     }
 

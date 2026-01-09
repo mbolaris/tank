@@ -272,38 +272,6 @@ class TestPetriPackBoundaries:
             pytest.fail(msg)
 
 
-class TestSoccerTrainingBoundaries:
-    """Verify core/worlds/soccer_training does not import core/fish.
-
-    Soccer training should use core/energy (shared) not core/fish (tank-specific).
-    This ensures soccer_training is a true first-class domain, not fish-adjacent.
-    """
-
-    def test_soccer_training_does_not_import_core_fish(self):
-        """core/worlds/soccer_training/* must not import core/fish/*.
-
-        EnergyComponent should be imported from core/energy, not core/fish.
-        """
-        repo_root = get_repo_root()
-        soccer_training_dir = repo_root / "core" / "worlds" / "soccer_training"
-
-        if not soccer_training_dir.exists():
-            pytest.skip("core/worlds/soccer_training directory not found")
-
-        violations = check_forbidden_imports(
-            soccer_training_dir,
-            forbidden_patterns=["core.fish"],
-        )
-
-        if violations:
-            msg = "core/worlds/soccer_training must not import core/fish:\n"
-            for path, imp in violations:
-                rel_path = path.relative_to(repo_root)
-                msg += f"  {rel_path}: imports '{imp}'\n"
-            msg += "\nUse core/energy for EnergyComponent instead."
-            pytest.fail(msg)
-
-
 class TestCoreInterfacesBoundaries:
     """Verify core/interfaces.py is clean of circular dependencies."""
 

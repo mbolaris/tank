@@ -2,26 +2,44 @@
 
 This module contains golden tests using real-ish message samples
 based on the rcssserver protocol documentation.
+
+NOTE: These tests are currently SKIPPED because the legacy soccer world
+stack (core/worlds/soccer/) was removed in the RCSS-Lite consolidation.
+The protocol parsing code can be migrated to core/minigames/soccer/external/
+if real rcssserver integration is needed later.
 """
+
+import pytest
+
+# Skip all tests in this module until RCSS protocol code is migrated
+pytestmark = pytest.mark.skip(
+    reason="Legacy soccer world stack removed; RCSS protocol tests archived"
+)
 
 import math
 
-from core.worlds.soccer.rcss_protocol import (
-    HearInfo,
-    SeeInfo,
-    SenseBodyInfo,
-    action_to_commands,
-    build_dash_command,
-    build_init_command,
-    build_kick_command,
-    build_move_command,
-    build_turn_command,
-    estimate_position_from_polar,
-    parse_hear_message,
-    parse_see_message,
-    parse_sense_body_message,
-)
-from core.worlds.soccer.types import PlayerState, SoccerAction, Vector2D
+# These imports will fail until the protocol code is migrated
+# Keeping them here for documentation of what needs to be restored
+try:
+    from core.worlds.soccer.rcss_protocol import (
+        HearInfo,
+        SeeInfo,
+        SenseBodyInfo,
+        action_to_commands,
+        build_dash_command,
+        build_init_command,
+        build_kick_command,
+        build_move_command,
+        build_turn_command,
+        estimate_position_from_polar,
+        parse_hear_message,
+        parse_see_message,
+        parse_sense_body_message,
+    )
+    from core.worlds.soccer.types import PlayerState, SoccerAction, Vector2D
+except ImportError:
+    # Provide stubs to prevent import errors when module is loaded
+    pass
 
 # ============================================================================
 # Golden test fixtures - real-ish message samples

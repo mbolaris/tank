@@ -50,7 +50,7 @@ tank/
 |   |-- systems/                   # BaseSystem + system implementations
 |   |-- config/                    # Simulation configuration modules
 |   |-- environment.py             # Spatial queries (implements World Protocol)
-|   `-- tank_world.py              # Simulation wrapper with config + RNG
+|   `-- world.py                   # Abstract World interface
 |-- backend/                       # FastAPI WebSocket server
 |   |-- main.py                    # FastAPI app with Tank World Net API
 |   |-- tank_registry.py           # Multi-tank management (Tank World Net)
@@ -80,7 +80,7 @@ tank/
 - **environment.py**: Spatial grid for efficient proximity queries
 - **ecosystem.py / ecosystem_stats.py / population_tracker.py**: Population tracking, death cause tallies, and reproduction stats
 - **fish_communication.py / fish_memory.py**: Shared memory and communication helpers for strategies
-- **tank_world.py**: Entry wrapper that wires config, RNG, and engine setup
+- **world.py**: Abstract World Protocol for environment-agnostic simulation
 - **simulation/engine.py**: Central loop with system registry, plant management, and deterministic RNG plumbing
 
 ### World Backends (core/worlds/)

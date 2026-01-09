@@ -18,73 +18,8 @@ function normalizeBins(bins: number[] | undefined): number[] {
     return bins.map(b => (b / total) * 100);
 }
 
-function legacyPhysicalGeneDistributions(stats: Partial<StatsData>): GeneDistributionEntry[] {
-    // Back-compat: build a small set of physical distributions from legacy flat fields
-    const getNum = (key: string): number => {
-        const val = (stats as StatsData)[key];
-        return typeof val === 'number' ? val : 0;
-    };
 
-    const getBins = (key: string): number[] => {
-        const val = (stats as StatsData)[key];
-        return Array.isArray(val) ? val : [];
-    };
 
-    const mk = (
-        key: string,
-        label: string,
-        bins?: number[],
-        bin_edges?: number[],
-        min?: number,
-        median?: number,
-        max?: number,
-        allowedMin?: number,
-        allowedMax?: number,
-        discrete: boolean = false
-    ): GeneDistributionEntry => ({
-        key,
-        label,
-        category: 'physical',
-        discrete,
-        allowed_min: allowedMin ?? 0,
-        allowed_max: allowedMax ?? 0,
-        min: min ?? 0,
-        median: median ?? 0,
-        max: max ?? 0,
-        bins: bins ?? [],
-        bin_edges: bin_edges ?? [],
-        meta: {
-            mut_rate_mean: getNum(`${key}_mut_rate_mean`),
-            mut_rate_std: getNum(`${key}_mut_rate_std`),
-            mut_strength_mean: getNum(`${key}_mut_strength_mean`),
-            mut_strength_std: getNum(`${key}_mut_strength_std`),
-            hgt_prob_mean: getNum(`${key}_hgt_prob_mean`),
-            hgt_prob_std: getNum(`${key}_hgt_prob_std`),
-        }
-    });
-
-    return [
-        mk(
-            'adult_size',
-            'Adult Size',
-            stats.adult_size_bins,
-            stats.adult_size_bin_edges,
-            stats.adult_size_min,
-            stats.adult_size_median,
-            stats.adult_size_max,
-            stats.allowed_adult_size_min,
-            stats.allowed_adult_size_max,
-        ),
-        mk('eye_size', 'Eye Size', stats.eye_size_bins, stats.eye_size_bin_edges, stats.eye_size_min, stats.eye_size_median, stats.eye_size_max, stats.allowed_eye_size_min, stats.allowed_eye_size_max),
-        mk('fin_size', 'Fin Size', stats.fin_size_bins, stats.fin_size_bin_edges, stats.fin_size_min, stats.fin_size_median, stats.fin_size_max, stats.allowed_fin_size_min, stats.allowed_fin_size_max),
-        mk('tail_size', 'Tail Size', getBins('tail_size_bins'), getBins('tail_size_bin_edges'), getNum('tail_size_min'), getNum('tail_size_median'), getNum('tail_size_max'), getNum('allowed_tail_size_min'), getNum('allowed_tail_size_max')),
-        mk('body_aspect', 'Body Aspect', getBins('body_aspect_bins'), getBins('body_aspect_bin_edges'), getNum('body_aspect_min'), getNum('body_aspect_median'), getNum('body_aspect_max'), getNum('allowed_body_aspect_min'), getNum('allowed_body_aspect_max')),
-        mk('template_id', 'Template', getBins('template_id_bins'), getBins('template_id_bin_edges'), getNum('template_id_min'), getNum('template_id_median'), getNum('template_id_max'), getNum('allowed_template_id_min'), getNum('allowed_template_id_max'), true),
-        mk('pattern_type', 'Pattern', getBins('pattern_type_bins'), getBins('pattern_type_bin_edges'), getNum('pattern_type_min'), getNum('pattern_type_median'), getNum('pattern_type_max'), getNum('allowed_pattern_type_min'), getNum('allowed_pattern_type_max'), true),
-        mk('pattern_intensity', 'Pattern Intensity', getBins('pattern_intensity_bins'), getBins('pattern_intensity_bin_edges'), getNum('pattern_intensity_min'), getNum('pattern_intensity_median'), getNum('pattern_intensity_max'), getNum('allowed_pattern_intensity_min'), getNum('allowed_pattern_intensity_max')),
-        mk('lifespan_modifier', 'Lifespan Mod', getBins('lifespan_modifier_bins'), getBins('lifespan_modifier_bin_edges'), getNum('lifespan_modifier_min'), getNum('lifespan_modifier_median'), getNum('lifespan_modifier_max'), getNum('allowed_lifespan_modifier_min'), getNum('allowed_lifespan_modifier_max')),
-    ];
-}
 
 function GeneDistributionPanel({
     title,
@@ -278,7 +213,7 @@ export function EcosystemStats({ stats }: EcosystemStatsProps) {
     const chartWidth = 280;
 
     const geneDistributions = safeStats.gene_distributions;
-    const physicalGenes = geneDistributions?.physical ?? legacyPhysicalGeneDistributions(safeStats);
+    const physicalGenes = geneDistributions?.physical ?? [];
     const behavioralGenes = geneDistributions?.behavioral ?? [];
 
     // Energy source percentages

@@ -41,13 +41,11 @@ class TestWorldRegistry:
         assert isinstance(world, MultiAgentWorldBackend)
         assert isinstance(world, PetriWorldBackendAdapter)
 
-    def test_create_soccer_world(self):
-        """Test creating a soccer world through the registry."""
-        world = WorldRegistry.create_world("soccer", seed=42, team_size=3)
-        assert isinstance(world, MultiAgentWorldBackend)
-        from core.worlds.soccer.backend import SoccerWorldBackendAdapter
-
-        assert isinstance(world, SoccerWorldBackendAdapter)
+    def test_soccer_not_registered_as_world_mode(self):
+        """Soccer is a minigame, not a registered world mode."""
+        # Soccer should NOT be in the registry
+        mode_pack = WorldRegistry.get_mode_pack("soccer")
+        assert mode_pack is None, "Soccer should not be a registered world mode"
 
     def test_create_unknown_world(self):
         """Test that unknown world type raises ValueError."""
@@ -59,7 +57,8 @@ class TestWorldRegistry:
         types = WorldRegistry.list_world_types()
         assert types["tank"] == "implemented"
         assert types["petri"] == "implemented"
-        assert types["soccer"] == "implemented"
+        # Soccer is NOT a world type - it's a minigame
+        assert "soccer" not in types
 
     def test_tank_mode_pack_config_normalization(self):
         """Mode pack should normalize legacy keys and fill defaults."""
@@ -543,13 +542,8 @@ class TestWorldTypeRegistryCanonical:
         assert tank.supports_transfer is True
         assert tank.has_fish is True
 
-        # Soccer: ephemeral match, requires actions
-        soccer = WorldRegistry.get_mode_pack("soccer")
-        assert soccer is not None
-        assert soccer.supports_persistence is False
-        assert soccer.supports_actions is True
-        assert soccer.supports_transfer is False
-        assert soccer.has_fish is False
+        # Note: Soccer is NOT a registered world mode - it's a minigame
+        # so we skip testing soccer capability flags here.
 
         # Petri: similar to tank
         petri = WorldRegistry.get_mode_pack("petri")

@@ -233,44 +233,44 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
     """
     _ = rng
     try:
-        # Extract agent and ball positions
-        self_x = float(observation.get("position", {}).get("x", 0.0))
-        self_y = float(observation.get("position", {}).get("y", 0.0))
-        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
-        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
-        field_width = float(observation.get("field_width", 100.0))
+        # Use relative observations for simplicity
+        ball_rel = observation.get("ball_relative_pos", {})
+        brx = float(ball_rel.get("x", 0.0))
+        bry = float(ball_rel.get("y", 0.0))
+        dist = math.sqrt(brx * brx + bry * bry)
+
         facing_angle = float(observation.get("facing_angle", 0.0))
 
-        # Calculate direction to ball
-        dx = ball_x - self_x
-        dy = ball_y - self_y
-        dist_sq = dx * dx + dy * dy
-        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
-
         # Calculate turn needed to face ball
-        target_angle = math.atan2(dy, dx)
+        target_angle = math.atan2(bry, brx)
+        # We need to adjust target_angle because atan2(bry, brx) is already relative to us
+        # But wait, if brx, bry are (ball_x - self_x), then atan2(bry, brx) is the absolute angle
+        # from our position to the ball.
         angle_delta = target_angle - facing_angle
+
         # Normalize to [-pi, pi]
         while angle_delta > math.pi:
             angle_delta -= 2 * math.pi
         while angle_delta < -math.pi:
             angle_delta += 2 * math.pi
-        turn = max(-1.0, min(1.0, angle_delta / 0.35))  # Assuming turn_rate ~0.35
+
+        # Scale turn to be more responsive
+        turn = max(-1.0, min(1.0, angle_delta / 0.3))
 
         # Dash toward ball if not too close
-        dash = 1.0 if dist > 0.5 else 0.0
+        dash = 1.0 if dist > 0.4 else 0.0
 
         # Kick if close to ball
         kick_power = 0.0
         kick_angle = 0.0
         if dist < 2.0:
-            # Kick toward opponent goal (right side)
-            goal_x = field_width / 2.0
-            goal_y = 0.0
-            goal_dx = goal_x - ball_x
-            goal_dy = goal_y - ball_y
-            kick_angle = math.atan2(goal_dy, goal_dx) - facing_angle
-            kick_power = 0.8
+            # Kick toward opponent goal
+            goal_rel = observation.get("goal_direction", {})
+            grx = float(goal_rel.get("x", 0.0))
+            gry = float(goal_rel.get("y", 0.0))
+            # Kick angle relative to facing
+            kick_angle = math.atan2(gry, grx) - facing_angle
+            kick_power = 1.0
 
         return {
             "turn": turn,
@@ -279,7 +279,6 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
             "kick_angle": kick_angle,
         }
     except (TypeError, ValueError, KeyError):
-        # Fallback: do nothing
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
@@ -295,31 +294,30 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
     """
     _ = rng
     try:
-        # Extract positions
-        self_x = float(observation.get("position", {}).get("x", 0.0))
-        self_y = float(observation.get("position", {}).get("y", 0.0))
-        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
-        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
+        # Defensive logic: stay between own goal and ball
+        self_pos = observation.get("position", {})
+        sx = float(self_pos.get("x", 0.0))
+        sy = float(self_pos.get("y", 0.0))
+
+        ball_pos = observation.get("ball_position", {})
+        bx = float(ball_pos.get("x", 0.0))
+        by = float(ball_pos.get("y", 0.0))
+
         field_width = float(observation.get("field_width", 100.0))
         facing_angle = float(observation.get("facing_angle", 0.0))
 
-        # Own goal is on left side
-        own_goal_x = -field_width / 2.0
-        defensive_line_x = own_goal_x + field_width * 0.25  # Stay in defensive quarter
+        own_goal_x = -field_width / 2.0  # Assumes we are team "left"
+        # If we are team "right", own goal is on the right
+        # A better defensive policy would be team-aware
+        # For now, let's assume this is used by the defender of the left team
 
-        # Determine target position
-        if ball_x < defensive_line_x:
-            target_x, target_y = ball_x, ball_y
-        else:
-            target_x, target_y = defensive_line_x, ball_y
+        target_x = (own_goal_x + bx) / 2.0
+        target_y = by * 0.5  # Stay somewhat centered
 
-        # Calculate direction to target
-        dx = target_x - self_x
-        dy = target_y - self_y
-        dist_sq = dx * dx + dy * dy
-        dist = math.sqrt(dist_sq) if dist_sq > 0 else 0.0
+        dx = target_x - sx
+        dy = target_y - sy
+        dist = math.sqrt(dx * dx + dy * dy)
 
-        # Calculate turn needed
         target_angle = math.atan2(dy, dx)
         angle_delta = target_angle - facing_angle
         while angle_delta > math.pi:
@@ -330,16 +328,17 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
 
         dash = 1.0 if dist > 0.5 else 0.0
 
-        # Distance to ball for kicking
-        ball_dx = ball_x - self_x
-        ball_dy = ball_y - self_y
-        ball_dist = math.sqrt(ball_dx * ball_dx + ball_dy * ball_dy)
+        # Kick away if close to ball
+        ball_rel = observation.get("ball_relative_pos", {})
+        brx = float(ball_rel.get("x", 0.0))
+        bry = float(ball_rel.get("y", 0.0))
+        ball_dist = math.sqrt(brx * brx + bry * bry)
 
-        # Clear ball away if close
         kick_power = 0.0
         kick_angle = 0.0
         if ball_dist < 2.0:
-            kick_angle = 0.0  # Kick toward positive x (opponent's side)
+            # Clear it forward
+            kick_angle = -facing_angle  # Kick toward positive X (assuming left team)
             kick_power = 1.0
 
         return {
@@ -364,53 +363,43 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
     """
     _ = rng
     try:
-        # Extract positions
-        self_x = float(observation.get("position", {}).get("x", 0.0))
-        self_y = float(observation.get("position", {}).get("y", 0.0))
-        ball_x = float(observation.get("ball_position", {}).get("x", 0.0))
-        ball_y = float(observation.get("ball_position", {}).get("y", 0.0))
-        field_width = float(observation.get("field_width", 100.0))
+        # Relative features
+        ball_rel = observation.get("ball_relative_pos", {})
+        brx = float(ball_rel.get("x", 0.0))
+        bry = float(ball_rel.get("y", 0.0))
+        ball_dist = math.sqrt(brx * brx + bry * bry)
+
+        goal_rel = observation.get("goal_direction", {})
+        grx = float(goal_rel.get("x", 0.0))
+        gry = float(goal_rel.get("y", 0.0))
+
         facing_angle = float(observation.get("facing_angle", 0.0))
 
-        # Opponent goal is on right side
-        opp_goal_x = field_width / 2.0
-        offensive_line_x = opp_goal_x - field_width * 0.25  # Stay in offensive quarter
-
-        # Calculate distance to ball
-        ball_dx = ball_x - self_x
-        ball_dy = ball_y - self_y
-        ball_dist = math.sqrt(ball_dx * ball_dx + ball_dy * ball_dy)
-
-        # Determine target position
-        if ball_x > offensive_line_x or ball_dist < 10.0:
-            target_x, target_y = ball_x, ball_y
+        # Determine target: ball if reasonably close or in offensive zone
+        if ball_dist < 20.0 or brx > 0:
+            tx, ty = brx, bry
         else:
-            target_x, target_y = offensive_line_x, 0.0
+            tx, ty = grx * 0.5, gry * 0.5
 
-        # Calculate direction to target
-        dx = target_x - self_x
-        dy = target_y - self_y
-        dist = math.sqrt(dx * dx + dy * dy)
+        dist = math.sqrt(tx * tx + ty * ty)
 
         # Calculate turn needed
-        target_angle = math.atan2(dy, dx)
+        target_angle = math.atan2(ty, tx)
         angle_delta = target_angle - facing_angle
         while angle_delta > math.pi:
             angle_delta -= 2 * math.pi
         while angle_delta < -math.pi:
             angle_delta += 2 * math.pi
-        turn = max(-1.0, min(1.0, angle_delta / 0.35))
+        turn = max(-1.0, min(1.0, angle_delta / 0.3))
 
-        dash = 1.0 if dist > 0.5 else 0.0
+        dash = 1.0 if dist > 0.4 else 0.0
 
         # Shoot on goal if close to ball
         kick_power = 0.0
         kick_angle = 0.0
         if ball_dist < 2.0:
             # Aim for goal
-            goal_dx = opp_goal_x - ball_x
-            goal_dy = 0.0 - ball_y
-            kick_angle = math.atan2(goal_dy, goal_dx) - facing_angle
+            kick_angle = math.atan2(gry, grx) - facing_angle
             kick_power = 1.0
 
         return {

@@ -144,6 +144,29 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             }
         )
 
+    @router.get("/evolution-benchmark")
+    async def get_default_evolution_benchmark():
+        """Get evolution benchmark data for the default world.
+
+        Returns:
+            Benchmark history, latest snapshot, and improvement metrics
+        """
+        worlds = world_manager.list_worlds()
+        if not worlds:
+            return JSONResponse(
+                {"status": "not_available", "history": [], "improvement": {}, "latest": None}
+            )
+
+        # Use first world as default
+        instance = world_manager.get_world(worlds[0].world_id)
+        if instance is None:
+            return JSONResponse(
+                {"status": "not_available", "history": [], "improvement": {}, "latest": None}
+            )
+
+        data = instance.runner.get_evolution_benchmark_data()
+        return JSONResponse(data)
+
     @router.get("/{world_id}")
     async def get_world(world_id: str):
         """Get information about a specific world.
@@ -298,6 +321,23 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 "message": f"World {world_id[:8]} fast forward {'enabled' if enabled else 'disabled'}",
             }
         )
+
+    @router.get("/{world_id}/evolution-benchmark")
+    async def get_evolution_benchmark(world_id: str):
+        """Get evolution benchmark data for a world.
+
+        Args:
+            world_id: The world ID
+
+        Returns:
+            Benchmark history, latest snapshot, and improvement metrics
+        """
+        instance = world_manager.get_world(world_id)
+        if instance is None:
+            raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
+
+        data = instance.runner.get_evolution_benchmark_data()
+        return JSONResponse(data)
 
     @router.put("/{world_id}/mode")
     async def update_world_mode(world_id: str, request: UpdateWorldModeRequest):

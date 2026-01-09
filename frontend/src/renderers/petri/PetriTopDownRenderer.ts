@@ -212,11 +212,12 @@ export class PetriTopDownRenderer implements Renderer {
         ctx.translate(offsetX, offsetY);
         ctx.scale(scale, scale);
 
-        // Draw petri dish border (circular feel)
+        // --- CLIPPED CONTENT BLOCK ---
+        ctx.save();
         if (scene.dish && scene.dish.shape === 'circle') {
             const { cx, cy, r } = scene.dish;
 
-            // Clip to circle so entities outside don't show (optional but clean)
+            // Clip to circle so entities/grid outside the glass don't show
             ctx.beginPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.clip();
@@ -224,6 +225,34 @@ export class PetriTopDownRenderer implements Renderer {
             // Draw dish background (faint glass tint)
             ctx.fillStyle = "rgba(20, 30, 40, 0.4)";
             ctx.fill();
+        }
+
+        // Subtle grid pattern (like microscope grid)
+        ctx.strokeStyle = "rgba(48, 54, 61, 0.3)";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        for (let x = 0; x <= scene.width; x += 50) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, scene.height);
+        }
+        for (let y = 0; y <= scene.height; y += 50) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(scene.width, y);
+        }
+        ctx.stroke();
+
+        // Pass 1: base entities (lowest layer)
+        scene.entities.forEach(entity => {
+            this.drawEntity(ctx, entity);
+        });
+
+        ctx.restore(); // End Clipping block
+
+        // --- UNCLIPPED CONTENT BLOCK (HUD, Borders, Effects) ---
+
+        // Draw petri dish border (circular feel) - outside clipping
+        if (scene.dish && scene.dish.shape === 'circle') {
+            const { cx, cy, r } = scene.dish;
 
             // Draw border
             ctx.strokeStyle = "#404850";
@@ -245,29 +274,6 @@ export class PetriTopDownRenderer implements Renderer {
             ctx.strokeRect(0, 0, scene.width, scene.height);
         }
 
-        // Subtle grid pattern (like microscope grid)
-        ctx.strokeStyle = "rgba(48, 54, 61, 0.3)";
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        // Only draw grid inside the circle if we have one
-        if (scene.dish) {
-            // Optimization: could limit loops to bounding box of circle
-        }
-        for (let x = 0; x <= scene.width; x += 50) {
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, scene.height);
-        }
-        for (let y = 0; y <= scene.height; y += 50) {
-            ctx.moveTo(0, y);
-            ctx.lineTo(scene.width, y);
-        }
-        ctx.stroke();
-
-        // Draw entities
-        // Pass 1: base entities (lowest layer)
-        scene.entities.forEach(entity => {
-            this.drawEntity(ctx, entity);
-        });
 
         if (showEffects) {
             // Pass 2: birth effects (above entities)
@@ -309,7 +315,16 @@ export class PetriTopDownRenderer implements Renderer {
             });
         }
 
-        // Pass 6: selection ring (HUD, top-most)
+        // Pass 6: plant strategy labels (HUD)
+        if (showEffects) {
+            scene.entities.forEach(entity => {
+                if (entity.sprite === 'colony' && entity.plant_genome_data?.strategy_type) {
+                    this.drawStrategyLabel(ctx, entity);
+                }
+            });
+        }
+
+        // Pass 7: selection ring (HUD, top-most)
         if (options.selectedEntityId !== undefined && options.selectedEntityId !== null) {
             const selected = scene.entities.find(e => e.id === options.selectedEntityId);
             if (selected) {
@@ -410,6 +425,57 @@ export class PetriTopDownRenderer implements Renderer {
             ctx.fillText('TIE', entity.x, entity.y - entity.radius - 15);
             ctx.restore();
         }
+    }
+
+    private drawStrategyLabel(ctx: CanvasRenderingContext2D, entity: PetriEntity) {
+        const genome = entity.plant_genome_data;
+        if (!genome || !genome.strategy_type) return;
+
+        ctx.save();
+        ctx.font = 'bold 8px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Get display-friendly label (matching Tank renderer)
+        const strategyLabels: Record<string, string> = {
+            'always_fold': 'FOLDER',
+            'random': 'RANDOM',
+            'loose_passive': 'PASSIVE',
+            'tight_passive': 'ROCK',
+            'tight_aggressive': 'TAG',
+            'loose_aggressive': 'LAG',
+            'balanced': 'BALANCED',
+            'maniac': 'MANIAC',
+            'gto_expert': 'GTO'
+        };
+        const label = strategyLabels[genome.strategy_type] || genome.strategy_type;
+
+        // Draw background pill
+        const labelWidth = ctx.measureText(label).width + 6;
+        const labelHeight = 11;
+
+        // Position radially outward from the root (toward the dish edge)
+        const angle = entity.perimeter_angle ?? 0;
+        const offsetDist = 14;
+        const lx = entity.x + Math.cos(angle) * offsetDist;
+        const ly = entity.y + Math.sin(angle) * offsetDist;
+
+        ctx.translate(lx, ly);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.beginPath();
+        if ((ctx as any).roundRect) {
+            (ctx as any).roundRect(-labelWidth / 2, -labelHeight / 2, labelWidth, labelHeight, 2);
+        } else {
+            ctx.rect(-labelWidth / 2, -labelHeight / 2, labelWidth, labelHeight);
+        }
+        ctx.fill();
+
+        // Draw text
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, 0, 0);
+
+        ctx.restore();
     }
 
     private drawBirthEffect(ctx: CanvasRenderingContext2D, x: number, y: number, timerRemaining: number) {

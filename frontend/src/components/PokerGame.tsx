@@ -95,7 +95,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
         }
         sessionOverRef.current = gameState?.session_over;
     }, [gameState?.session_over]);
-    if (!gameState) {
+    if (!gameState || !gameState.players) {
         return (
             <div className={styles.container}>
                 <div className={styles.header}>

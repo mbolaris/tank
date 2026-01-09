@@ -19,9 +19,8 @@ from core.environment import Environment
 from core.genetics import Genome
 from core.genetics.code_policy_traits import apply_policy_set_to_behavioral
 from core.math_utils import Vector2
+from core.minigames.soccer import SoccerMatchRunner
 from core.movement_strategy import AlgorithmicMovement
-from core.worlds.soccer.backend import SoccerWorldBackendAdapter
-from core.worlds.soccer.config import SoccerWorldConfig
 
 
 class TestGenomeCodePoolCreation:
@@ -161,36 +160,35 @@ class TestTankFishWithGenomeCodePool:
 class TestSoccerWithGenomeCodePool:
     """Test that Soccer agents can use genome-based policies."""
 
-    def test_soccer_world_with_genome_code_pool(self):
-        """Soccer world should use genome_code_pool to execute policies."""
+    def test_soccer_runner_with_genome_code_pool(self):
+        """Soccer runner should use genome_code_pool to execute policies."""
         genome_pool = create_default_genome_code_pool()
-        config = SoccerWorldConfig(team_size=1)
 
-        world = SoccerWorldBackendAdapter(seed=789, config=config, genome_code_pool=genome_pool)
+        runner = SoccerMatchRunner(team_size=2, genome_code_pool=genome_pool)
 
-        result = world.reset(seed=789)
+        # Create genomes with policies
+        rng = random.Random(789)
+        population = []
+        for _ in range(4):
+            genome = Genome.random(use_algorithm=False, rng=rng)
+            # Apply soccer policy
+            policy_set = GenomePolicySet()
+            policy_set.set_policy("soccer_policy", BUILTIN_CHASE_BALL_SOCCER_ID)
+            apply_policy_set_to_behavioral(genome.behavioral, policy_set, rng)
+            population.append(genome)
 
-        # World should have players
-        assert "left_1" in result.obs_by_agent
-        assert "right_1" in result.obs_by_agent
+        # Run episode
+        episode_result, agent_results = runner.run_episode(
+            genomes=population,
+            seed=789,
+            frames=50,
+        )
 
-    def test_soccer_player_uses_chase_ball_policy(self):
-        """Player with chase_ball policy should pursue the ball."""
-        genome_pool = create_default_genome_code_pool()
-        config = SoccerWorldConfig(team_size=1)
-
-        world = SoccerWorldBackendAdapter(seed=111, config=config, genome_code_pool=genome_pool)
-
-        world.reset(seed=111)
-
-        # Use public API to assign policy to left team
-        world.assign_team_policy("left", BUILTIN_CHASE_BALL_SOCCER_ID)
-
-        # Step without explicit actions - should use genome policy
-        result = world.step()
-
-        # Should complete without errors
-        assert result.done is False
+        # Should produce results for all players
+        assert len(agent_results) == 4
+        for result in agent_results:
+            assert result.player_id is not None
+            assert result.team in ("left", "right")
 
     def test_different_soccer_policies(self):
         """Different soccer policies should be available and usable."""

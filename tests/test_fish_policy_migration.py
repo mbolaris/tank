@@ -1,58 +1,10 @@
 import random
-from unittest.mock import MagicMock
 
 import pytest
 
 from core.code_pool.pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 from core.genetics import Genome
 from core.genetics.behavioral import BehavioralTraits
-from core.transfer.entity_transfer import _deserialize_fish
-
-
-def test_legacy_fish_deserialization_assigns_default_policy():
-    """Test that deseralizing a legacy fish without code policy assigns the default."""
-
-    # Mock world and dependencies
-    mock_world = MagicMock()
-    mock_world.rng = random.Random(42)
-    mock_world.engine.environment = MagicMock()
-    mock_world.engine.ecosystem = MagicMock()
-
-    # Minimal legacy fish dict (missing code_policy fields in genome)
-    # Using a simplified structure that matches what _deserialize_fish expects
-    legacy_data = {
-        "species": "Betta",
-        "x": 100,
-        "y": 100,
-        "speed": 5.0,
-        "generation": 1,
-        "energy": 100.0,
-        "genome_data": {
-            # Minimal genome dict
-            "physical": {
-                "size_modifier": {"value": 1.0},
-                "tail_size": {"value": 1.0},
-                "fin_size": {"value": 1.0},
-                "body_aspect": {"value": 1.0},
-                "color_hue": {"value": 0.5},
-                "color_saturation": {"value": 0.5},
-                "pattern_type": {"value": 0.0},
-                "eye_size": {"value": 1.0},
-            },
-            "behavioral": {
-                "aggression": {"value": 0.5},
-                "social_tendency": {"value": 0.5},
-                # movement_policy_id missing
-            },
-        },
-    }
-
-    fish = _deserialize_fish(legacy_data, mock_world)
-
-    assert fish is not None
-    # Should have migrated to use the default movement policy via movement_policy_id
-    assert fish.genome.behavioral.movement_policy_id is not None
-    assert fish.genome.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
 
 def test_behavioral_traits_random_defaults():

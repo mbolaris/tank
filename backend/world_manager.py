@@ -343,6 +343,24 @@ class WorldManager:
             name,
         )
 
+        # Start broadcast task for newly created generic worlds
+        if self._start_broadcast_callback:
+            adapter = self.get_broadcast_adapter(world_id)
+            if adapter:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
+                        self._start_broadcast_callback(adapter, world_id),
+                        name=f"broadcast_start_{world_id[:8]}",
+                    )
+                    logger.info("Scheduled broadcast task for generic world %s", world_id[:8])
+                except RuntimeError:
+                    # No running event loop - broadcast will be started when first client connects
+                    logger.debug(
+                        "No event loop available, broadcast task for %s will start on connection",
+                        world_id[:8],
+                    )
+
         return instance
 
     def get_world(self, world_id: str) -> WorldInstance | None:

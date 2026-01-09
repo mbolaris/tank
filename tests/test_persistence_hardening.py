@@ -64,7 +64,7 @@ def test_persistence_round_trip():
 
     # Verify Snapshot Structure
     assert snapshot is not None
-    assert "version" in snapshot, "Snapshot should have schema version"
+    assert "schema_version" in snapshot, "Snapshot should have schema_version"
     assert "entities" in snapshot, "Snapshot should have entities"
     assert (
         len(snapshot["entities"]) >= 3

@@ -5,6 +5,8 @@
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import type { EntityData } from '../../types/simulation';
+import { drawAvatar } from '../avatar_renderer';
+
 
 /** Soccer-specific render hint structure */
 interface SoccerRenderHint {
@@ -33,6 +35,7 @@ interface SoccerEntity {
     stamina?: number;
     facing?: number;
     has_ball?: boolean;
+    genome_data?: any;
 }
 
 /** Scene data for Soccer rendering */
@@ -48,21 +51,42 @@ function buildSoccerScene(snapshot: any): SoccerScene {
 
     const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
 
-    // Field dimensions (assuming standard soccer field proportions)
-    const worldWidth = 1088;
-    const worldHeight = 612;
+    // Read field dimensions from snapshot (meters) - with fallback
+    // New backend provides field.length and field.width in meters, centered at origin
+    const fieldData = snapshot.snapshot?.field ?? snapshot.field;
+    const fieldLength = fieldData?.length ?? 100.0; // meters (x-axis)
+    const fieldWidth = fieldData?.width ?? 60.0;    // meters (y-axis)
+
+    // Target canvas dimensions for the scene (16:9 aspect preserved)
+    // These are the "virtual" scene units before final canvas scaling
+    const SCENE_WIDTH = 1088;
+    const SCENE_HEIGHT = 612;
+
+    // Calculate scale from field meters to scene units
+    const scaleX = SCENE_WIDTH / fieldLength;
+    const scaleY = SCENE_HEIGHT / fieldWidth;
+    const entityScale = (scaleX + scaleY) / 2.0;
+
+    // Offset to center: field origin (0,0) maps to scene center
+    const offsetX = SCENE_WIDTH / 2;
+    const offsetY = SCENE_HEIGHT / 2;
 
     if (rawEntities && Array.isArray(rawEntities)) {
         rawEntities.forEach((e: EntityData) => {
             if (e.type === 'player' || e.type === 'ball') {
                 const hint = e.render_hint as SoccerRenderHint | undefined;
 
+                // Transform field-space (meters, centered) to scene-space (pixels, top-left origin)
+                const sceneX = e.x * scaleX + offsetX;
+                const sceneY = e.y * scaleY + offsetY;
+                const sceneRadius = (e.radius ?? 0.3) * entityScale;
+
                 entities.push({
                     id: e.id,
                     type: e.type,
-                    x: e.x + e.width / 2,
-                    y: e.y + e.height / 2,
-                    radius: e.radius ?? Math.max(e.width, e.height) / 2,
+                    x: sceneX,
+                    y: sceneY,
+                    radius: Math.max(sceneRadius, e.type === 'ball' ? 8 : 12), // Minimum visible size
                     vel_x: e.vel_x ?? hint?.velocity_x,
                     vel_y: e.vel_y ?? hint?.velocity_y,
                     team: e.team ?? hint?.team,
@@ -70,14 +94,15 @@ function buildSoccerScene(snapshot: any): SoccerScene {
                     stamina: e.stamina ?? hint?.stamina,
                     facing: e.facing ?? hint?.facing_angle,
                     has_ball: e.has_ball ?? hint?.has_ball,
+                    genome_data: e.genome_data,
                 });
             }
         });
     }
 
     return {
-        width: worldWidth,
-        height: worldHeight,
+        width: SCENE_WIDTH,
+        height: SCENE_HEIGHT,
         entities,
     };
 }
@@ -111,65 +136,73 @@ export class SoccerTopDownRenderer implements Renderer {
         const offsetY = (canvas.height - scene.height * scale) / 2;
 
         ctx.save();
-        ctx.translate(offsetX, offsetY);
-        ctx.scale(scale, scale);
+        try {
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
 
-        // Draw field markings
-        this.drawField(ctx, scene.width, scene.height);
+            // Draw field markings
+            this.drawField(ctx, scene.width, scene.height);
 
-        // Draw entities
-        const balls = scene.entities.filter(e => e.type === 'ball');
-        const players = scene.entities.filter(e => e.type === 'player');
+            // Draw entities
+            const balls = scene.entities.filter(e => e.type === 'ball');
+            const players = scene.entities.filter(e => e.type === 'player');
 
-        // Draw ball first (underneath players)
-        balls.forEach(ball => {
-            this.drawBall(ctx, ball);
-        });
+            // Draw ball first (underneath players)
+            balls.forEach(ball => {
+                this.drawBall(ctx, ball);
+            });
 
-        // Draw players
-        players.forEach(player => {
-            this.drawPlayer(ctx, player);
-        });
+            // Determine avatar mode based on view_mode
+            // "top" or "topdown" = petri/microbe mode, otherwise = fish mode
+            const forceMicrobe = (options as any).view_mode === 'top' || (options as any).view_mode === 'topdown';
 
-        // Draw stamina bars
-        players.forEach(player => {
-            if (player.stamina !== undefined) {
-                const barWidth = Math.max(player.radius * 2.5, 30);
-                this.drawStaminaBar(
-                    ctx,
-                    player.x - barWidth / 2,
-                    player.y - player.radius - 12,
-                    barWidth,
-                    player.stamina
-                );
+            // Draw players
+            players.forEach(player => {
+                this.drawPlayer(ctx, player, forceMicrobe);
+            });
+
+            // Draw stamina bars
+            players.forEach(player => {
+                if (player.stamina !== undefined) {
+                    const barWidth = Math.max(player.radius * 2.5, 30);
+                    this.drawStaminaBar(
+                        ctx,
+                        player.x - barWidth / 2,
+                        player.y - player.radius - 12,
+                        barWidth,
+                        player.stamina
+                    );
+                }
+            });
+
+            // Draw selection ring (top-most)
+            if (options.selectedEntityId !== undefined && options.selectedEntityId !== null) {
+                const selected = scene.entities.find(e => e.id === options.selectedEntityId);
+                if (selected) {
+                    ctx.save();
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(selected.x, selected.y, selected.radius + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
             }
-        });
-
-        // Draw selection ring (top-most)
-        if (options.selectedEntityId !== undefined && options.selectedEntityId !== null) {
-            const selected = scene.entities.find(e => e.id === options.selectedEntityId);
-            if (selected) {
-                ctx.save();
-                ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4, 4]);
-                ctx.beginPath();
-                ctx.arc(selected.x, selected.y, selected.radius + 4, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
+        } catch (e) {
+            console.error("Error in SoccerTopDownRenderer.render:", e);
+        } finally {
+            ctx.restore();
         }
-
-        ctx.restore();
     }
 
     private drawField(ctx: CanvasRenderingContext2D, width: number, height: number) {
-        // Field background (darker green)
-        ctx.fillStyle = "#3a661e";
+        // RCSS-style field background (bright green)
+        ctx.fillStyle = "#2e9a30";
         ctx.fillRect(0, 0, width, height);
 
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
 
         // Field boundary
         ctx.strokeRect(0, 0, width, height);
@@ -180,7 +213,7 @@ export class SoccerTopDownRenderer implements Renderer {
         ctx.lineTo(width / 2, height);
         ctx.stroke();
 
-        // Center circle
+        // Center circle (RCSS standard: 9.15m = ~15% of half field)
         const centerRadius = Math.min(width, height) * 0.15;
         ctx.beginPath();
         ctx.arc(width / 2, height / 2, centerRadius, 0, Math.PI * 2);
@@ -192,29 +225,32 @@ export class SoccerTopDownRenderer implements Renderer {
         ctx.arc(width / 2, height / 2, 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Goals
-        const goalWidth = height * 0.35;
+        // Goals - RCSS style (Black/Dark Grey box with depth)
+        const goalWidth = height * 0.25;
         const goalDepth = 20;
         const goalY = (height - goalWidth) / 2;
 
         // Left goal
-        ctx.strokeStyle = "#cccccc";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(-goalDepth, goalY, goalDepth, goalWidth);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+        ctx.fillStyle = "#222222";
         ctx.fillRect(-goalDepth, goalY, goalDepth, goalWidth);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-goalDepth, goalY, goalDepth, goalWidth);
 
         // Right goal
-        ctx.strokeRect(width, goalY, goalDepth, goalWidth);
+        ctx.fillStyle = "#222222";
         ctx.fillRect(width, goalY, goalDepth, goalWidth);
-
-        // Penalty boxes
-        const penaltyWidth = height * 0.6;
-        const penaltyDepth = width * 0.15;
-        const penaltyY = (height - penaltyWidth) / 2;
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(width, goalY, goalDepth, goalWidth);
 
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
+
+        // Penalty boxes (16.5m = larger area)
+        const penaltyWidth = height * 0.65;
+        const penaltyDepth = width * 0.16;
+        const penaltyY = (height - penaltyWidth) / 2;
 
         // Left penalty box
         ctx.strokeRect(0, penaltyY, penaltyDepth, penaltyWidth);
@@ -222,136 +258,213 @@ export class SoccerTopDownRenderer implements Renderer {
         // Right penalty box
         ctx.strokeRect(width - penaltyDepth, penaltyY, penaltyDepth, penaltyWidth);
 
+        // Goal area boxes (smaller boxes near goals)
+        const goalAreaWidth = height * 0.30;
+        const goalAreaDepth = width * 0.055;
+        const goalAreaY = (height - goalAreaWidth) / 2;
+
+        // Left goal area
+        ctx.strokeRect(0, goalAreaY, goalAreaDepth, goalAreaWidth);
+
+        // Right goal area
+        ctx.strokeRect(width - goalAreaDepth, goalAreaY, goalAreaDepth, goalAreaWidth);
+
         // Penalty spots
         ctx.fillStyle = "#ffffff";
-        const penaltySpotDist = width * 0.10;
+        const penaltySpotDist = width * 0.11;
         ctx.beginPath();
-        ctx.arc(penaltySpotDist, height / 2, 3, 0, Math.PI * 2);
+        ctx.arc(penaltySpotDist, height / 2, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(width - penaltySpotDist, height / 2, 3, 0, Math.PI * 2);
+        ctx.arc(width - penaltySpotDist, height / 2, 4, 0, Math.PI * 2);
         ctx.fill();
+
+        // Penalty arcs
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        const arcRadius = centerRadius;
+
+        // Left penalty arc
+        ctx.beginPath();
+        ctx.arc(penaltySpotDist, height / 2, arcRadius, -0.7, 0.7);
+        ctx.stroke();
+
+        // Right penalty arc
+        ctx.beginPath();
+        ctx.arc(width - penaltySpotDist, height / 2, arcRadius, Math.PI - 0.7, Math.PI + 0.7);
+        ctx.stroke();
+
+        // Corner arcs
+        const cornerRadius = 8;
+        ctx.beginPath();
+        ctx.arc(0, 0, cornerRadius, 0, Math.PI / 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(width, 0, cornerRadius, Math.PI / 2, Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(width, height, cornerRadius, Math.PI, Math.PI * 1.5);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, height, cornerRadius, Math.PI * 1.5, Math.PI * 2);
+        ctx.stroke();
     }
 
     private drawBall(ctx: CanvasRenderingContext2D, ball: SoccerEntity) {
         ctx.save();
 
-        // Shadow
-        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+        // Use a larger visible radius (minimum 10 pixels)
+        const visibleRadius = Math.max(ball.radius, 10);
+
+        // Glow effect for visibility
+        ctx.shadowColor = "#ffcc00";
+        ctx.shadowBlur = 15;
+
+        // Shadow on ground
+        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
         ctx.beginPath();
-        ctx.ellipse(ball.x, ball.y + 2, ball.radius * 0.8, ball.radius * 0.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(ball.x + 2, ball.y + 4, visibleRadius * 0.9, visibleRadius * 0.4, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ball body
+        ctx.shadowBlur = 0;
+
+        // Ball body - bright orange/yellow for visibility
         const gradient = ctx.createRadialGradient(
-            ball.x - ball.radius * 0.3,
-            ball.y - ball.radius * 0.3,
-            ball.radius * 0.2,
+            ball.x - visibleRadius * 0.3,
+            ball.y - visibleRadius * 0.3,
+            visibleRadius * 0.1,
             ball.x,
             ball.y,
-            ball.radius
+            visibleRadius
         );
-        gradient.addColorStop(0, "#ffffff");
-        gradient.addColorStop(0.7, "#e0e0e0");
-        gradient.addColorStop(1, "#b0b0b0");
+        gradient.addColorStop(0, "#ffff44");
+        gradient.addColorStop(0.5, "#ffaa00");
+        gradient.addColorStop(1, "#cc6600");
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.arc(ball.x, ball.y, visibleRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ball outline
-        ctx.strokeStyle = "#888888";
-        ctx.lineWidth = 1;
+        // Ball outline - white for contrast
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Simple pentagon pattern
-        ctx.strokeStyle = "#333333";
+        // Inner pattern (pentagon style like soccer ball)
+        ctx.strokeStyle = "#663300";
         ctx.lineWidth = 1.5;
         const sides = 5;
         ctx.beginPath();
         for (let i = 0; i <= sides; i++) {
             const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
-            const x = ball.x + Math.cos(angle) * ball.radius * 0.5;
-            const y = ball.y + Math.sin(angle) * ball.radius * 0.5;
+            const x = ball.x + Math.cos(angle) * visibleRadius * 0.5;
+            const y = ball.y + Math.sin(angle) * visibleRadius * 0.5;
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
+        ctx.closePath();
         ctx.stroke();
 
         ctx.restore();
     }
 
-    private drawPlayer(ctx: CanvasRenderingContext2D, player: SoccerEntity) {
+
+
+    private drawPlayer(ctx: CanvasRenderingContext2D, player: SoccerEntity, forceMicrobe: boolean = false) {
         ctx.save();
-        ctx.translate(player.x, player.y);
+        try {
+            ctx.translate(player.x, player.y);
 
-        // Determine team color
-        const teamColor = player.team === 'left' ? '#3b82f6' : '#ef4444'; // Blue vs Red
-        const teamColorDark = player.team === 'left' ? '#1e40af' : '#991b1b';
+            // Check if we have genome data for avatar rendering
+            const genomeData = (player as any).genome_data;
 
-        // Shadow
-        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-        ctx.beginPath();
-        ctx.ellipse(0, player.radius * 0.3, player.radius * 0.9, player.radius * 0.4, 0, 0, Math.PI * 2);
-        ctx.fill();
+            // Use a sensible avatar size (the raw radius from physics might be too small)
+            // Minimum player radius for visible avatars
+            const avatarRadius = Math.max(player.radius, 15);
 
-        // Player body (circle with team color)
-        const gradient = ctx.createRadialGradient(
-            -player.radius * 0.3,
-            -player.radius * 0.3,
-            player.radius * 0.2,
-            0,
-            0,
-            player.radius
-        );
-        gradient.addColorStop(0, teamColor);
-        gradient.addColorStop(1, teamColorDark);
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-        ctx.fill();
+            if (genomeData) {
+                // Use unified avatar renderer with proper size
+                // Pass forceMicrobe for Petri dish mode
+                drawAvatar(ctx, player.id, avatarRadius, player.vel_x, player.vel_y, genomeData, forceMicrobe);
 
-        // Player outline
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+                // Draw team indicator ring
+                const teamColor = player.team === 'left' ? '#ffff00' : '#ff0000';
+                ctx.strokeStyle = teamColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, avatarRadius + 5, 0, Math.PI * 2);
+                ctx.stroke();
 
-        // Facing indicator (small wedge pointing in direction)
-        if (player.facing !== undefined) {
-            ctx.save();
-            ctx.rotate(player.facing);
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.moveTo(player.radius * 0.7, 0);
-            ctx.lineTo(player.radius * 0.3, -player.radius * 0.3);
-            ctx.lineTo(player.radius * 0.3, player.radius * 0.3);
-            ctx.closePath();
-            ctx.fill();
+            } else {
+                // Fallback to simple circle rendering
+                // Left = Yellow, Right = Red
+                const teamColor = player.team === 'left' ? '#ffff00' : '#ff0000';
+                const teamColorDark = player.team === 'left' ? '#b3b300' : '#b30000';
+
+                // Shadow
+                ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+                ctx.beginPath();
+                ctx.ellipse(0, avatarRadius * 0.3, avatarRadius * 0.9, avatarRadius * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Player body
+                const gradient = ctx.createRadialGradient(-avatarRadius * 0.3, -avatarRadius * 0.3, avatarRadius * 0.2, 0, 0, avatarRadius);
+                gradient.addColorStop(0, teamColor);
+                gradient.addColorStop(1, teamColorDark);
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, avatarRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Direction highlight (Black segment like RCSS)
+                if (player.facing !== undefined) {
+                    ctx.save();
+                    ctx.rotate(player.facing);
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, avatarRadius, -0.5, 0.5);
+                    ctx.lineTo(0, 0);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Outline (Black for contrast)
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Jersey number
+            if (player.jersey_number !== undefined) {
+                ctx.fillStyle = "#ffffff";
+                ctx.font = `bold ${Math.max(10, avatarRadius * 0.6)}px Arial`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(player.jersey_number.toString(), 0, 0);
+                ctx.shadowBlur = 0;
+            }
+
+            // Ball possession indicator
+            if (player.has_ball) {
+                ctx.strokeStyle = "#fbbf24";
+                ctx.lineWidth = 3;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.arc(0, 0, avatarRadius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        } catch (e) {
+            console.error("Error drawing player:", e);
+        } finally {
             ctx.restore();
         }
-
-        // Jersey number
-        if (player.jersey_number !== undefined) {
-            ctx.fillStyle = "#ffffff";
-            ctx.font = `bold ${Math.max(10, player.radius * 0.8)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(String(player.jersey_number), 0, 0);
-        }
-
-        // Ball possession indicator
-        if (player.has_ball) {
-            ctx.strokeStyle = "#fbbf24";
-            ctx.lineWidth = 3;
-            ctx.setLineDash([3, 3]);
-            ctx.beginPath();
-            ctx.arc(0, 0, player.radius + 5, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        ctx.restore();
     }
+
+
 
     private drawStaminaBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, stamina: number) {
         const barHeight = 4;

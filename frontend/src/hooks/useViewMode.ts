@@ -9,7 +9,7 @@ const STORAGE_KEY = 'tank_view_mode_override';
 const WORLD_TYPE_KEY = 'tank_world_type';
 
 function isValidWorldType(value: string): boolean {
-    return value === 'tank' || value === 'petri' || value === 'soccer_training' || value === 'soccer';
+    return value === 'tank' || value === 'petri' || value === 'soccer';
 }
 
 export interface UseViewModeResult {
@@ -135,7 +135,7 @@ export function useViewMode(serverViewMode?: ViewMode, serverWorldType?: string,
     // Effective mode prioritizes override -> server -> default ('side')
     let effectiveViewMode = overrideViewMode ?? serverViewMode ?? 'side';
 
-    // Top-down only modes (petri, soccer_training, soccer) force top-down view
+    // Top-down only modes (petri, soccer) force top-down view
     if (isTopDownOnly(worldType)) {
         effectiveViewMode = 'topdown';
     }

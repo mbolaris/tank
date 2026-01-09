@@ -449,16 +449,6 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                         "theta": getattr(entity, "_orbit_theta", None),
                         "dir": getattr(entity, "_orbit_dir", None),
                     },
-                    # Legacy keys for old snapshot format support
-                    "max_energy": entity.max_energy,
-                    "genome": {
-                        "size_modifier": (
-                            entity.genome.physical.size_modifier.value if entity.genome else 1.0
-                        ),
-                        "color_hue": (
-                            entity.genome.physical.color_hue.value if entity.genome else 0.5
-                        ),
-                    },
                 }
             elif isinstance(entity, Castle):
                 entity_dict = {
@@ -613,10 +603,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return {}
 
         # Import locally to avoid circular imports (backend -> core)
-        from core.worlds.tank.schema import SCHEMA_VERSION
+        from core.contracts import SNAPSHOT_VERSION
 
         return {
-            "version": SCHEMA_VERSION,
+            "schema_version": SNAPSHOT_VERSION,
             "world_id": getattr(self.environment, "world_id", "unknown"),
             "frame": self._engine.frame_count,
             "paused": self._engine.paused,

@@ -258,3 +258,13 @@ class WorldRunner:
             ValueError: Always, as switching is not supported
         """
         raise ValueError(f"World type switching not supported for {self.world_type} worlds")
+
+    def get_evolution_benchmark_data(self) -> dict[str, Any]:
+        """Get evolution benchmark data for this world instance.
+
+        Generic worlds typically don't track evolution benchmarks yet.
+
+        Returns:
+            Dictionary with benchmark history and metrics (empty for generic runner)
+        """
+        return {}

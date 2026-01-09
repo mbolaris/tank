@@ -27,19 +27,20 @@ def test_client():
 class TestWorldTypesEndpoint:
     """Tests for GET /api/worlds/types endpoint."""
 
-    def test_list_world_types_returns_tank_petri_soccer(self, test_client):
-        """Test that world_types endpoint returns tank, petri, and soccer."""
+    def test_list_world_types_returns_tank_petri(self, test_client):
+        """Test that world_types endpoint returns tank and petri."""
         response = test_client.get("/api/worlds/types")
         assert response.status_code == 200
 
         types = response.json()
         assert isinstance(types, list)
-        assert len(types) >= 3
+        assert len(types) >= 2
 
         mode_ids = {t["mode_id"] for t in types}
         assert "tank" in mode_ids
         assert "petri" in mode_ids
-        assert "soccer" in mode_ids
+        # Soccer is NOT a world type - it's a minigame
+        assert "soccer" not in mode_ids
 
     def test_world_types_have_required_fields(self, test_client):
         """Test that each world type has all required metadata fields."""
@@ -65,14 +66,10 @@ class TestWorldTypesEndpoint:
         assert types["tank"]["supports_persistence"] is True
         assert types["tank"]["view_mode"] == "side"
 
+    @pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
     def test_soccer_does_not_support_persistence(self, test_client):
         """Test that soccer world does not support persistence."""
-        response = test_client.get("/api/worlds/types")
-        types = {t["mode_id"]: t for t in response.json()}
-
-        assert types["soccer"]["supports_persistence"] is False
-        assert types["soccer"]["supports_actions"] is True
-        assert types["soccer"]["view_mode"] == "topdown"
+        pass
 
 
 class TestCreatePetriWorld:
@@ -124,47 +121,17 @@ class TestCreatePetriWorld:
         assert step_response.json()["frame_count"] == initial_frame + 1
 
 
+@pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
 class TestCreateSoccerWorld:
-    """Tests for creating soccer worlds."""
+    """Tests for creating soccer worlds (SKIPPED - soccer is now a minigame)."""
 
     def test_create_soccer_world(self, test_client):
         """Test creating a soccer world."""
-        response = test_client.post(
-            "/api/worlds",
-            json={
-                "world_type": "soccer",
-                "name": "Test Soccer",
-                "config": {"team_size": 3},
-                "seed": 42,
-            },
-        )
-        assert response.status_code == 201
-
-        data = response.json()
-        assert data["world_type"] == "soccer"
-        assert data["name"] == "Test Soccer"
-        assert data["persistent"] is False  # Soccer can't be persistent
+        pass
 
     def test_step_soccer_world(self, test_client):
         """Test stepping a soccer world advances frame."""
-        # Create soccer world paused to avoid background frame advancement
-        create_response = test_client.post(
-            "/api/worlds",
-            json={
-                "world_type": "soccer",
-                "name": "Step Test Soccer",
-                "config": {"team_size": 1},
-                "seed": 42,
-                "start_paused": True,
-            },
-        )
-        assert create_response.status_code == 201
-        world_id = create_response.json()["world_id"]
-
-        # Step the world
-        step_response = test_client.post(f"/api/worlds/{world_id}/step")
-        assert step_response.status_code == 200
-        assert step_response.json()["frame_count"] == 1
+        pass
 
 
 class TestWorldOperations:
@@ -179,7 +146,7 @@ class TestWorldOperations:
         )
         test_client.post(
             "/api/worlds",
-            json={"world_type": "soccer", "name": "List Test 2", "seed": 2},
+            json={"world_type": "tank", "name": "List Test 2", "seed": 2},
         )
 
         # List all worlds
@@ -327,24 +294,7 @@ class TestFastForwardEndpoint:
         assert response.status_code == 200
         assert response.json()["fast_forward"] is False
 
+    @pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
     def test_fast_forward_soccer_world_no_crash(self, test_client):
         """Test that fast_forward doesn't crash on soccer (WorldRunner) worlds."""
-        create_response = test_client.post(
-            "/api/worlds",
-            json={
-                "world_type": "soccer",
-                "name": "FF Soccer",
-                "config": {"team_size": 1},
-                "seed": 42,
-            },
-        )
-        world_id = create_response.json()["world_id"]
-
-        # Enable fast forward - should succeed (no-op for WorldRunner)
-        response = test_client.post(
-            f"/api/worlds/{world_id}/fast_forward",
-            params={"enabled": True},
-        )
-        assert response.status_code == 200
-        # WorldRunner.fast_forward is always False (no-op)
-        assert response.json()["fast_forward"] is True  # Returns what was set
+        pass

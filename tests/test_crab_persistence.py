@@ -51,8 +51,11 @@ def test_crab_persistence_preserves_state() -> None:
     assert "genome_data" in crab_data, "Should include full genome_data"
     assert "motion" in crab_data, "Should include motion state"
 
-    # Now test restore
+    # Now test restore - must include schema_version for strict validation
+    from core.contracts import SNAPSHOT_VERSION
+
     snapshot = {
+        "schema_version": SNAPSHOT_VERSION,
         "tank_id": "test-crab-tank",
         "frame": 100,
         "entities": [crab_data],
@@ -73,41 +76,3 @@ def test_crab_persistence_preserves_state() -> None:
     assert restored.energy <= restored.max_energy
     assert restored.energy == pytest.approx(50.0, rel=0.1) or restored.energy == restored.max_energy
     assert restored.hunt_cooldown == 15
-
-
-def test_crab_restore_from_legacy_format() -> None:
-    """Test backward compatibility with legacy crab snapshots (minimal genome)."""
-    # Simulate legacy format (no genome_data, only minimal genome dict)
-    legacy_crab_data = {
-        "type": "crab",
-        "x": 100,
-        "y": 450,
-        "energy": 80.0,
-        "max_energy": 100.0,
-        "hunt_cooldown": 5,
-        "genome": {
-            "size_modifier": 1.2,
-            "color_hue": 0.7,
-        },
-    }
-
-    snapshot = {
-        "tank_id": "legacy-crab-tank",
-        "frame": 50,
-        "entities": [legacy_crab_data],
-    }
-
-    dest = _make_world(seed=202)
-    dest.engine.entities_list.clear()
-
-    assert restore_world_from_snapshot(snapshot, dest) is True
-
-    restored_crabs = [e for e in dest.engine.entities_list if isinstance(e, Crab)]
-    assert len(restored_crabs) == 1, "Should restore crab from legacy format"
-
-    restored = restored_crabs[0]
-    assert restored.pos.x == pytest.approx(100, abs=1)
-    assert restored.hunt_cooldown == 5
-    # Legacy genome values should be applied
-    assert restored.genome.physical.size_modifier.value == pytest.approx(1.2, rel=0.01)
-    assert restored.genome.physical.color_hue.value == pytest.approx(0.7, rel=0.01)

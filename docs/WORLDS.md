@@ -168,7 +168,6 @@ register_action_translator("my_world", MyWorldActionTranslator())
 | tank | `TankWorldBackendAdapter` | `SimulationEngine` | Fish ecosystem simulation |
 | petri | `PetriWorldBackendAdapter` | Reuses Tank | Microbe simulation (same rules, different visuals) |
 | soccer | `SoccerWorldBackendAdapter` | Custom | Soccer RL training with pure-Python physics |
-| soccer_training | `SoccerTrainingWorldBackendAdapter` | Custom | Soccer skill training environment |
 
 ## Related Files
 

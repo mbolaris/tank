@@ -2,6 +2,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+# Skip entire module if pytest-asyncio is not installed
+pytest.importorskip("pytest_asyncio")
+
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.server_client import ServerClient

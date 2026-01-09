@@ -682,11 +682,12 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const [actionLoading, setActionLoading] = useState(false);
     const [fullState, setFullState] = useState<SimulationUpdate | null>(null);
 
-    // Derived stats from fullState
-    const stats = fullState?.stats;
-    const fps = (stats as any)?.fps ?? 0;
-    const fast_forward = (stats as any)?.fast_forward ?? false;
-    const frame = fullState?.frame ?? frame_count;
+    // Derived stats from fullState - stats are nested inside snapshot
+    const stats = fullState?.snapshot?.stats || (fullState as any)?.stats;
+    const fps = stats?.fps ?? 0;
+    const fast_forward = stats?.fast_forward ?? false;
+    const frame = fullState?.snapshot?.frame ?? fullState?.frame ?? frame_count;
+
 
     // Fetch full state periodically
     useEffect(() => {
@@ -885,21 +886,22 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 />
 
                 {/* Auto-Evaluation Summary */}
-                {fullState?.auto_evaluation && fullState.auto_evaluation.players && fullState.auto_evaluation.players.length > 0 && (() => {
-                    const autoEval = fullState.auto_evaluation!;
-                    const history = autoEval.performance_history || [];
+                {(fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) && ((fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) as any).players && ((fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) as any).players.length > 0 && (() => {
+                    const autoEval = (fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation)!;
+                    const history = (autoEval as any).performance_history || [];
                     const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
-                    const players = latestSnapshot?.players || autoEval.players;
+                    const players = latestSnapshot?.players || (autoEval as any).players;
 
-                    const fishPlayers = players.filter((p) => !p.is_standard && p.species !== 'plant');
-                    const plantPlayers = players.filter((p) => !p.is_standard && p.species === 'plant');
-                    const standardPlayer = players.find((p) => p.is_standard);
+
+                    const fishPlayers = players.filter((p: any) => !p.is_standard && p.species !== 'plant');
+                    const plantPlayers = players.filter((p: any) => !p.is_standard && p.species === 'plant');
+                    const standardPlayer = players.find((p: any) => p.is_standard);
 
                     if (!fishPlayers.length || !standardPlayer) return null;
 
-                    const fishAvg = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length;
+                    const fishAvg = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
                     const plantAvg = plantPlayers.length > 0
-                        ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length
+                        ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length
                         : null;
                     const baseline = standardPlayer.net_energy;
                     const hasPlants = plantAvg !== null;

@@ -3,18 +3,33 @@
 This module provides a deterministic fake implementation of the rcssserver
 network protocol to allow end-to-end testing of the RCSS adapter and world
 without requiring a real server process.
+
+NOTE: This fake server is currently NOT USED because the legacy soccer world
+stack (core/worlds/soccer/) was removed in the RCSS-Lite consolidation.
+It can be restored if real rcssserver integration is needed later.
 """
 
 import logging
 from collections import deque
-from typing import Deque, List, Optional, Tuple
-
-from core.worlds.soccer.socket_interface import SocketInterface
+from typing import Deque, List, Optional, Protocol, Tuple
 
 logger = logging.getLogger(__name__)
 
 
-class FakeRCSSServer(SocketInterface):
+class SocketInterface(Protocol):
+    """Protocol for socket-like objects (needed for type hints)."""
+
+    def send(self, data: str, addr: Tuple[str, int]) -> None:
+        ...
+
+    def recv(self, bufsize: int) -> str:
+        ...
+
+    def close(self) -> None:
+        ...
+
+
+class FakeRCSSServer:
     """A fake RCSS server that responds to client commands deterministically.
 
     It implements the SocketInterface explicitly so it can be injected into
