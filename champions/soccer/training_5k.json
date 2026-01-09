@@ -4,21 +4,21 @@
     "champion": {
         "benchmark_id": "soccer/training_5k",
         "seed": 42,
-        "score": 1103.025,
-        "runtime_seconds": 0.2755544185638428,
+        "score": 1403.93,
+        "runtime_seconds": 0.35457444190979004,
         "metadata": {
             "frames": 5000,
-            "score_left": 14,
-            "score_right": 3,
-            "total_goals": 17,
-            "goal_diff": 11,
-            "possession_left": 45,
-            "possession_right": 20,
-            "total_possession": 65,
-            "possession_diff": 0.4166666666666667,
-            "avg_fitness": 26.083333333333332,
-            "team_fitness_left": 154.5,
-            "team_fitness_right": 2.0
+            "score_left": 18,
+            "score_right": 4,
+            "total_goals": 22,
+            "goal_diff": 14,
+            "possession_left": 177,
+            "possession_right": 121,
+            "total_possession": 298,
+            "possession_diff": 0.9333333333333333,
+            "avg_fitness": 29.966666666666665,
+            "team_fitness_left": 167.7,
+            "team_fitness_right": 12.100000000000001
         }
     },
     "history": []
