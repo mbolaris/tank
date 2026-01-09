@@ -44,6 +44,10 @@ jobs:
       run: |
         pytest tests/ --verbose --tb=short
 
+    - name: Auto-format with black
+      run: |
+        black core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
+
     - name: Check code formatting with black
       run: |
         black --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"

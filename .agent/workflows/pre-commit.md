@@ -11,13 +11,15 @@ Run these checks BEFORE every `git commit` to catch CI failures locally.
 ## 1. Format Check (Black)
 
 ```bash
-.venv\Scripts\python.exe -m black --check core/ tests/ backend/ --exclude="frontend|node_modules|.venv|venv"
+.venv\Scripts\python.exe -m black core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
 ```
 
-If this fails, run without `--check` to auto-fix:
+Then verify formatting:
 ```bash
-.venv\Scripts\python.exe -m black core/ tests/ backend/ --exclude="frontend|node_modules|.venv|venv"
+.venv\Scripts\python.exe -m black --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
 ```
+
+Note: Black is pinned to 23.12.1 in `pyproject.toml` and pre-commit to avoid drift.
 
 ## 2. Lint Check (Ruff)
 
