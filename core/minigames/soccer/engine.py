@@ -161,6 +161,11 @@ class RCSSLiteEngine:
         self._play_mode = "before_kick_off"
         self._score = {"left": 0, "right": 0}
 
+        # Goal attribution tracking
+        self._last_touch_player_id: str | None = None
+        self._last_touch_cycle: int = -1
+        self._prev_touch_player_id: str | None = None
+
     @property
     def cycle(self) -> int:
         """Current cycle number."""
@@ -255,9 +260,16 @@ class RCSSLiteEngine:
         self._handle_collisions()
 
         # Check for goals
-        goal_team = self._check_goal()
-        if goal_team:
-            events.append({"type": "goal", "team": goal_team, "cycle": self._cycle})
+        goal_info = self._check_goal()
+        if goal_info:
+            goal_team = goal_info["team"]
+            events.append({
+                "type": "goal",
+                "team": goal_team,
+                "cycle": self._cycle,
+                "scorer_id": goal_info.get("scorer_id"),
+                "assist_id": goal_info.get("assist_id"),
+            })
             self._score[goal_team] += 1
             self._reset_for_kickoff(goal_team)
 
@@ -364,6 +376,13 @@ class RCSSLiteEngine:
             math.cos(dir_rad) * kick_speed,
             math.sin(dir_rad) * kick_speed,
         )
+
+        # Track touch for goal attribution
+        # If different player than last touch, record assist candidate
+        if self._last_touch_player_id and self._last_touch_player_id != player.player_id:
+            self._prev_touch_player_id = self._last_touch_player_id
+        self._last_touch_player_id = player.player_id
+        self._last_touch_cycle = self._cycle
 
     def _apply_move(self, player: RCSSPlayerState, x: float, y: float) -> None:
         """Apply move command (before kick-off only)."""
@@ -497,8 +516,14 @@ class RCSSLiteEngine:
                 self._ball.position.x += nx * overlap
                 self._ball.position.y += ny * overlap
 
-    def _check_goal(self) -> str | None:
-        """Check if ball is in a goal. Returns scoring team or None."""
+    def _check_goal(self) -> dict[str, Any] | None:
+        """Check if ball is in a goal. Returns goal info or None.
+
+        Returns dict with:
+            - team: scoring team ("left" or "right")
+            - scorer_id: player who last touched ball (if known)
+            - assist_id: player who touched before scorer on same team (if applicable)
+        """
         half_length = self.params.field_length / 2
         half_goal = self.params.goal_width / 2
 
@@ -506,15 +531,42 @@ class RCSSLiteEngine:
         if abs(self._ball.position.y) > half_goal:
             return None
 
+        scoring_team: str | None = None
+
         # Left goal (right team scores)
         if self._ball.position.x < -half_length - self.params.goal_depth:
-            return "right"
+            scoring_team = "right"
 
         # Right goal (left team scores)
-        if self._ball.position.x > half_length + self.params.goal_depth:
-            return "left"
+        elif self._ball.position.x > half_length + self.params.goal_depth:
+            scoring_team = "left"
 
-        return None
+        if not scoring_team:
+            return None
+
+        # Attribute goal to last toucher
+        scorer_id = self._last_touch_player_id
+        assist_id: str | None = None
+
+        # Assist: previous toucher on same team within assist window (50 cycles = 5 seconds)
+        ASSIST_WINDOW = 50
+        if (
+            scorer_id
+            and self._prev_touch_player_id
+            and self._prev_touch_player_id != scorer_id
+            and (self._cycle - self._last_touch_cycle) <= ASSIST_WINDOW
+        ):
+            # Check if prev toucher is on same team as scorer
+            scorer_player = self._players.get(scorer_id)
+            prev_player = self._players.get(self._prev_touch_player_id)
+            if scorer_player and prev_player and scorer_player.team == prev_player.team:
+                assist_id = self._prev_touch_player_id
+
+        return {
+            "team": scoring_team,
+            "scorer_id": scorer_id,
+            "assist_id": assist_id,
+        }
 
     def _reset_for_kickoff(self, scoring_team: str) -> None:
         """Reset positions for kickoff after goal."""
@@ -523,6 +575,11 @@ class RCSSLiteEngine:
 
         # Set play mode (other team kicks off)
         self._play_mode = f"kick_off_{'right' if scoring_team == 'left' else 'left'}"
+
+        # Reset touch tracking for new play
+        self._last_touch_player_id = None
+        self._last_touch_cycle = -1
+        self._prev_touch_player_id = None
 
     def reset(self, seed: int | None = None) -> None:
         """Reset the engine to initial state."""
@@ -535,6 +592,9 @@ class RCSSLiteEngine:
         self._command_queue.clear()
         self._play_mode = "before_kick_off"
         self._score = {"left": 0, "right": 0}
+        self._last_touch_player_id = None
+        self._last_touch_cycle = -1
+        self._prev_touch_player_id = None
 
     def get_snapshot(self) -> dict[str, Any]:
         """Get current state as a snapshot dict."""
