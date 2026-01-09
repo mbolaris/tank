@@ -110,6 +110,24 @@ def build_observation(
         }
     )
 
+    # 4. Additional keys expected by builtin policies
+    # These provide the same data in the format the policies expect
+    obs.update(
+        {
+            # Position dict format
+            "position": {"x": player.position.x, "y": player.position.y},
+            "ball_position": {"x": ball.position.x, "y": ball.position.y},
+            # Relative vectors as dicts (used by builtin policies)
+            "ball_relative_pos": {"x": dx, "y": dy},
+            "goal_direction": {"x": gdx, "y": gdy},
+            # Facing angle (alias for self_angle)
+            "facing_angle": player.body_angle,
+            # Field dimensions
+            "field_width": config.field_width,
+            "field_length": config.field_length,
+        }
+    )
+
     return obs
 
 
@@ -143,9 +161,10 @@ def run_policy(
         return default_policy_action(observation)
 
     # Create fallback RNG if not provided (logs warning - caller should provide RNG)
+    # Use fixed seed 0 for fallback to maintain determinism (caller should provide RNG)
     if rng is None:
-        logger.warning("run_policy called without RNG - determinism not guaranteed")
-        rng = pyrandom.Random()
+        logger.warning("run_policy called without RNG - using fixed seed 0")
+        rng = pyrandom.Random(0)
 
     # Extract policy ID from genome.behavioral.soccer_policy_id.value
     policy_id = _get_policy_id(genome)

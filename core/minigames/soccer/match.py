@@ -89,7 +89,8 @@ class SoccerMatch:
         self._code_source = code_source
 
         # Initialize deterministic RNG from match seed
-        self._match_seed = seed if seed is not None else pyrandom.randint(0, 2**32 - 1)
+        # Use hash of match_id if no seed provided (deterministic, no global random)
+        self._match_seed = seed if seed is not None else hash(match_id) & 0xFFFFFFFF
         self._rng = pyrandom.Random(self._match_seed)
 
         # Configure RCSS-Lite engine
