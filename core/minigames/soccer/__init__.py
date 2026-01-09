@@ -29,6 +29,7 @@ from core.minigames.soccer.participant import (
     create_participants_from_fish,
     fish_to_participant,
 )
+from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 
 __all__ = [
     # Engine
@@ -51,6 +52,7 @@ __all__ = [
     "finalize_soccer_match",
     "apply_soccer_rewards",
     "select_soccer_participants",
+    "SoccerMinigameScheduler",
     # Participants
     "SoccerParticipant",
     "fish_to_participant",

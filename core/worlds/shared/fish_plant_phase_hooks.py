@@ -34,6 +34,9 @@ class FishPlantPhaseHooks(PhaseHooks):
     - Poker benchmark evaluation
     """
 
+    def __init__(self) -> None:
+        self._soccer_scheduler = None
+
     def on_entity_spawned(
         self,
         engine: SimulationEngine,
@@ -152,13 +155,35 @@ class FishPlantPhaseHooks(PhaseHooks):
         self,
         engine: SimulationEngine,
     ) -> None:
-        """Run poker benchmarks if enabled.
+        """Run poker benchmarks and scheduled soccer matches.
 
         Called at end of frame to optionally run benchmark evaluation.
         """
         if engine.benchmark_evaluator is not None:
             fish_list = engine.get_fish_list()
             engine.benchmark_evaluator.maybe_run(engine.frame_count, fish_list)
+
+        scheduler = self._get_soccer_scheduler(engine)
+        if scheduler is None:
+            return
+
+        seed_base = getattr(engine, "seed", None)
+        outcome = scheduler.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
+        if outcome is not None and hasattr(engine, "add_soccer_event"):
+            engine.add_soccer_event(outcome)
+
+    def _get_soccer_scheduler(self, engine: SimulationEngine):
+        if self._soccer_scheduler is not None:
+            return self._soccer_scheduler
+
+        config = getattr(getattr(engine, "config", None), "soccer", None)
+        if config is None:
+            return None
+
+        from core.minigames.soccer.scheduler import SoccerMinigameScheduler
+
+        self._soccer_scheduler = SoccerMinigameScheduler(config)
+        return self._soccer_scheduler
 
 
 # Backward-compatible alias

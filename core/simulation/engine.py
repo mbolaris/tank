@@ -38,6 +38,7 @@ import os
 import random
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -54,6 +55,7 @@ if TYPE_CHECKING:
     from core import entities, environment
     from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
+    from core.minigames.soccer.evaluator import SoccerMinigameOutcome
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
     from core.poker_interaction import PokerInteraction
@@ -93,17 +95,23 @@ class PackableEngine(Protocol):
     poker_system: PokerSystem
     poker_proximity_system: PokerProximitySystem
 
-    def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_spawn(self, entity: Any, **kwargs: Any) -> bool:
+        ...
 
-    def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_remove(self, entity: Any, **kwargs: Any) -> bool:
+        ...
 
-    def _apply_entity_mutations(self, stage: str) -> None: ...
+    def _apply_entity_mutations(self, stage: str) -> None:
+        ...
 
-    def create_initial_entities(self) -> None: ...
+    def create_initial_entities(self) -> None:
+        ...
 
-    def _block_root_spots_with_obstacles(self) -> None: ...
+    def _block_root_spots_with_obstacles(self) -> None:
+        ...
 
-    def _build_spawn_rate_config(self) -> SpawnRateConfig: ...
+    def _build_spawn_rate_config(self) -> SpawnRateConfig:
+        ...
 
 
 class SimulationEngine:
@@ -159,7 +167,7 @@ class SimulationEngine:
         # RNG handling
         if rng is not None:
             self.rng: random.Random = rng
-            self.seed = None
+            self.seed = seed
         elif seed is not None:
             self.rng = random.Random(seed)
             self.seed = seed
@@ -206,6 +214,7 @@ class SimulationEngine:
         self.food_spawning_system: FoodSpawningSystem | None = None
         self.plant_manager: PlantManager | None = None
         self.poker_events: list[Any] = []
+        self._soccer_events: deque = deque(maxlen=self.config.soccer.max_events)
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
@@ -960,6 +969,36 @@ class SimulationEngine:
             plant_hand,
             energy_transferred,
         )
+
+    # =========================================================================
+    # Soccer Events
+    # =========================================================================
+
+    def add_soccer_event(self, outcome: SoccerMinigameOutcome) -> None:
+        """Record a soccer minigame outcome for UI/event streams."""
+        event = {
+            "frame": self.frame_count,
+            "match_id": outcome.match_id,
+            "winner_team": outcome.winner_team,
+            "score_left": outcome.score_left,
+            "score_right": outcome.score_right,
+            "frames": outcome.frames,
+            "seed": outcome.seed,
+            "message": outcome.message,
+            "rewarded": dict(outcome.rewarded),
+            "teams": {
+                "left": list(outcome.teams.get("left", [])),
+                "right": list(outcome.teams.get("right", [])),
+            },
+        }
+        self._soccer_events.append(event)
+
+    def get_recent_soccer_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
+        """Get recent soccer events (within max_age_frames)."""
+        max_age = max_age_frames or self.config.soccer.event_max_age_frames
+        return [
+            event for event in self._soccer_events if self.frame_count - event["frame"] < max_age
+        ]
 
     # =========================================================================
     # Statistics

@@ -42,6 +42,15 @@ from core.config.food import (
 from core.config.plants import PLANT_MIN_ENERGY_GAIN
 from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
 from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
+from core.config.soccer import (
+    SOCCER_EVALUATOR_DURATION_FRAMES,
+    SOCCER_EVALUATOR_ENABLED,
+    SOCCER_EVALUATOR_INTERVAL_FRAMES,
+    SOCCER_EVALUATOR_MIN_PLAYERS,
+    SOCCER_EVALUATOR_NUM_PLAYERS,
+    SOCCER_EVENT_MAX_AGE_FRAMES,
+    SOCCER_MAX_EVENTS,
+)
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 
 
@@ -98,6 +107,19 @@ class PokerConfig:
 
 
 @dataclass
+class SoccerConfig:
+    """Soccer minigame evaluator configuration."""
+
+    enabled: bool = SOCCER_EVALUATOR_ENABLED
+    interval_frames: int = SOCCER_EVALUATOR_INTERVAL_FRAMES
+    min_players: int = SOCCER_EVALUATOR_MIN_PLAYERS
+    num_players: int = SOCCER_EVALUATOR_NUM_PLAYERS
+    duration_frames: int = SOCCER_EVALUATOR_DURATION_FRAMES
+    max_events: int = SOCCER_MAX_EVENTS
+    event_max_age_frames: int = SOCCER_EVENT_MAX_AGE_FRAMES
+
+
+@dataclass
 class FoodConfig:
     """Food spawning configuration."""
 
@@ -133,6 +155,7 @@ class SimulationConfig:
     display: DisplayConfig = field(default_factory=DisplayConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
     poker: PokerConfig = field(default_factory=PokerConfig)
+    soccer: SoccerConfig = field(default_factory=SoccerConfig)
     food: FoodConfig = field(default_factory=FoodConfig)
     plant: PlantConfig = field(default_factory=PlantConfig)
     tank: TankConfig = field(default_factory=TankConfig)
@@ -266,6 +289,19 @@ class SimulationConfig:
         for flat_key, attr in server_map.items():
             if flat_key in config_dict:
                 setattr(cfg.server, attr, config_dict[flat_key])
+
+        # Soccer evaluator
+        soccer_map = {
+            "soccer_evaluator_enabled": "enabled",
+            "soccer_enabled": "enabled",
+            "soccer_interval_frames": "interval_frames",
+            "soccer_min_players": "min_players",
+            "soccer_num_players": "num_players",
+            "soccer_duration_frames": "duration_frames",
+        }
+        for flat_key, attr in soccer_map.items():
+            if flat_key in config_dict:
+                setattr(cfg.soccer, attr, config_dict[flat_key])
 
         cfg.validate()
         return cfg

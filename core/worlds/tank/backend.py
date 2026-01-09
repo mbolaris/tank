@@ -116,6 +116,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._engine = SimulationEngine(
             config=self._simulation_config,
             rng=self._rng,
+            seed=reset_seed,
         )
 
         # Setup with pack (either provided or default TankPack)
@@ -540,6 +541,20 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                 )
         except Exception as e:
             logger.warning(f"Failed to collect poker events: {e}")
+
+        # Collect recent soccer events
+        try:
+            soccer_events = self._engine.get_recent_soccer_events(max_age_frames=60)
+            for soccer_event in soccer_events:
+                events.append(
+                    {
+                        "type": "soccer",
+                        "data": soccer_event,
+                        "frame": self._engine.frame_count,
+                    }
+                )
+        except Exception as e:
+            logger.warning(f"Failed to collect soccer events: {e}")
 
         return events
 
