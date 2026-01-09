@@ -177,9 +177,7 @@ def genome_code_pool():
     """Create a GenomeCodePool with soccer policies registered."""
     pool = GenomeCodePool()
     pool.register_builtin(BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy)
-    pool.register_builtin(
-        BUILTIN_DEFENSIVE_SOCCER_ID, "soccer_policy", defensive_soccer_policy
-    )
+    pool.register_builtin(BUILTIN_DEFENSIVE_SOCCER_ID, "soccer_policy", defensive_soccer_policy)
     pool.register_builtin(BUILTIN_STRIKER_SOCCER_ID, "soccer_policy", striker_soccer_policy)
     return pool
 
@@ -343,13 +341,11 @@ def test_different_policies_produce_different_actions(genome_code_pool):
 
     # Execute defensive policy
     defensive_genome = MockGenome(policy_id=BUILTIN_DEFENSIVE_SOCCER_ID)
-    defensive_action = run_policy(
-        genome_code_pool, defensive_genome, obs, rng=pyrandom.Random(42)
-    )
+    defensive_action = run_policy(genome_code_pool, defensive_genome, obs, rng=pyrandom.Random(42))
 
     # They should produce different actions (at least one field differs)
-    # Note: We can't guarantee they're always different, but structurally they should differ
-    # in their decision making (striker chases ball, defender positions)
+    # Note: We can't guarantee they're always different, but structurally
+    # they should differ in their decision making
     # For this test, just verify both executed successfully
     assert striker_action != {}
     assert defensive_action != {}
@@ -386,9 +382,7 @@ def test_rng_determinism_in_policy_execution(genome_code_pool):
 def test_run_policy_with_params(genome_code_pool):
     """Test that policy params are passed through to execution."""
     # Create genome with policy and params
-    genome = MockGenome(
-        policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8}
-    )
+    genome = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8})
 
     obs = {
         "self_x": 0.0,
