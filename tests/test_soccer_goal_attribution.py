@@ -75,25 +75,33 @@ def test_goal_attribution_deterministic():
 def test_assist_credited_same_team_only(engine):
     """Test that assists are only credited to teammates, not opponents."""
     # Setup: two players from different teams touch ball before goal
-    engine.add_player("left_1", "left", RCSSVector(40, 0))
-    engine.add_player("right_1", "right", RCSSVector(42, 0))
-    engine.set_ball_position(40, 0)
+    # Right team player positioned to score in left goal (negative x)
+    engine.add_player("left_1", "left", RCSSVector(-10, 0))
+    engine.add_player("right_1", "right", RCSSVector(-5, 0))
+    engine.set_ball_position(-10, 0)
 
     # Left player touches first
-    engine.queue_command("left_1", RCSSCommand.kick(50, 0))
+    engine.queue_command("left_1", RCSSCommand.kick(30, 0))
     engine.step_cycle()
 
-    # Move ball near right player
+    # Wait a bit for ball to move
+    for _ in range(3):
+        engine.step_cycle()
+
+    # Right player intercepts and scores toward left goal
     ball = engine.get_ball()
-    engine.set_ball_position(42, 0)
+    # Position right player near ball
+    right_player = engine.get_player("right_1")
+    right_player.position.x = ball.position.x
+    right_player.position.y = ball.position.y
 
-    # Right player scores (opponent scored, so no assist for left_1)
-    engine.queue_command("right_1", RCSSCommand.kick(100, 180))  # Toward left goal
+    # Right player kicks toward left goal (negative x direction)
+    engine.queue_command("right_1", RCSSCommand.kick(100, 180))  # 180 degrees = backward
     engine.step_cycle()
 
-    # Let ball travel
+    # Let ball travel to goal
     goal_event = None
-    for _ in range(50):
+    for _ in range(100):
         result = engine.step_cycle()
         for event in result.get("events", []):
             if event.get("type") == "goal":
@@ -148,29 +156,32 @@ def test_assist_credited_within_window(engine):
 
 def test_assist_credited_within_window_same_team(engine):
     """Test that assist is credited when all conditions are met."""
-    engine.add_player("assister", "left", RCSSVector(30, 0))
-    engine.add_player("scorer", "left", RCSSVector(35, 0))
-    engine.set_ball_position(30, 0)
+    # Position left team players to score in right goal (positive x)
+    engine.add_player("assister", "left", RCSSVector(35, 0))
+    engine.add_player("scorer", "left", RCSSVector(40, 0))
+    engine.set_ball_position(35, 0)
 
-    # Assister touches ball first
-    engine.queue_command("assister", RCSSCommand.kick(20, 0))
+    # Assister touches ball first, passes toward scorer
+    engine.queue_command("assister", RCSSCommand.kick(30, 0))
     engine.step_cycle()
 
-    # Wait a bit (but within window)
-    for _ in range(5):
+    # Wait a bit for ball to move (but within window)
+    for _ in range(3):
         engine.step_cycle()
 
-    # Move ball to scorer
+    # Position scorer near ball
     ball = engine.get_ball()
-    engine.set_ball_position(ball.position.x, 0)
+    scorer_player = engine.get_player("scorer")
+    scorer_player.position.x = ball.position.x
+    scorer_player.position.y = ball.position.y
 
-    # Scorer kicks into goal
+    # Scorer kicks into goal (toward right goal, positive x)
     engine.queue_command("scorer", RCSSCommand.kick(100, 0))
     engine.step_cycle()
 
-    # Let ball travel
+    # Let ball travel to goal
     goal_event = None
-    for _ in range(50):
+    for _ in range(100):
         result = engine.step_cycle()
         for event in result.get("events", []):
             if event.get("type") == "goal":
@@ -244,12 +255,30 @@ def test_goal_and_assist_increment_stats():
 
 def test_shaped_reward_adds_to_total_reward():
     """Test that ball progress toward goal contributes to total_reward."""
+    from core.code_pool import GenomeCodePool
+    from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
     from core.genetics import Genome
+    from core.genetics.trait import GeneticTrait
 
-    runner = SoccerMatchRunner(team_size=1)
-    genomes = [Genome.random(use_algorithm=False, rng=None) for _ in range(2)]
+    # Create a pool with a working policy
+    pool = GenomeCodePool()
+    pool.register_builtin(BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy)
 
-    # Run episode
+    # Create genomes with chase ball policy (will actually move)
+    class MockBehavioral:
+        def __init__(self):
+            self.soccer_policy_id = GeneticTrait(BUILTIN_CHASE_BALL_SOCCER_ID)
+            self.soccer_policy_params = GeneticTrait({})
+
+    genomes = []
+    for _ in range(2):
+        genome = Genome.random(use_algorithm=False, rng=None)
+        genome.behavioral = MockBehavioral()
+        genomes.append(genome)
+
+    runner = SoccerMatchRunner(team_size=1, genome_code_pool=pool)
+
+    # Run episode with active policies
     episode_result, _ = runner.run_episode(genomes, seed=55, frames=300)
 
     # At least one player should have non-zero total_reward from shaped rewards
@@ -283,3 +312,4 @@ def test_touch_tracking_resets_after_goal(engine):
     assert engine._last_touch_player_id is None
     assert engine._last_touch_cycle == -1
     assert engine._prev_touch_player_id is None
+    assert engine._prev_touch_cycle == -1
