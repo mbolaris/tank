@@ -7,7 +7,7 @@ matches, decoupling the match logic from specific entity types (Fish, Microbe).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -28,12 +28,12 @@ class SoccerParticipantProtocol(Protocol):
         ...
 
     @property
-    def genome_ref(self) -> Optional[Any]:
+    def genome_ref(self) -> Any | None:
         """Reference to genome for policy lookup."""
         ...
 
     @property
-    def render_hint(self) -> Optional[dict]:
+    def render_hint(self) -> dict | None:
         """Rendering hints (genome data for avatar)."""
         ...
 
@@ -55,9 +55,9 @@ class SoccerParticipant:
 
     participant_id: str
     team: str
-    genome_ref: Optional[Any] = None
-    render_hint: Optional[dict] = None
-    source_entity: Optional[Any] = field(default=None, repr=False)
+    genome_ref: Any | None = None
+    render_hint: dict | None = None
+    source_entity: Any | None = field(default=None, repr=False)
 
 
 def fish_to_participant(
@@ -76,7 +76,7 @@ def fish_to_participant(
         SoccerParticipant with fish data
     """
     # Extract genome data for rendering
-    render_hint: Optional[dict] = None
+    render_hint: dict | None = None
     genome_ref = getattr(fish, "genome", None)
 
     if genome_ref and hasattr(genome_ref, "physical"):

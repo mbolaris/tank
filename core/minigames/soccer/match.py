@@ -18,7 +18,7 @@ import logging
 import math
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
@@ -60,9 +60,9 @@ class SoccerMatch:
         match_id: str,
         fish_players: list[Fish],
         duration_frames: int = 3000,
-        code_source: Optional[GenomeCodePool] = None,
+        code_source: GenomeCodePool | None = None,
         view_mode: str = "side",
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         """Initialize a new soccer match.
 
@@ -78,7 +78,7 @@ class SoccerMatch:
         self.duration_frames = duration_frames
         self.current_frame = 0
         self.game_over = False
-        self.winner_team: Optional[str] = None
+        self.winner_team: str | None = None
         self.message = "Match starting..."
         self.view_mode = view_mode
 
