@@ -24,6 +24,16 @@ class SoccerMinigameOutcome:
     teams: dict[str, list[int]]
 
 
+@dataclass(frozen=True)
+class SoccerMatchSetup:
+    """Created match plus deterministic metadata for logging."""
+
+    match: SoccerMatch
+    seed: int | None
+    match_id: str
+    selected_count: int
+
+
 def select_soccer_participants(candidates: Sequence[Any], num_players: int) -> list[Any]:
     """Select participants for a soccer match based on energy."""
     if num_players <= 0 or not candidates:
@@ -40,6 +50,50 @@ def select_soccer_participants(candidates: Sequence[Any], num_players: int) -> l
     if len(selected) % 2 != 0:
         selected = selected[:-1]
     return selected
+
+
+def create_soccer_match(
+    candidates: Sequence[Any],
+    *,
+    num_players: int = 22,
+    duration_frames: int = 3000,
+    code_source: Any | None = None,
+    view_mode: str = "side",
+    seed: int | None = None,
+    seed_base: int | None = None,
+    match_counter: int = 0,
+    match_id: str | None = None,
+) -> SoccerMatchSetup:
+    """Create a soccer match with deterministic participant selection and seed."""
+    selected = select_soccer_participants(candidates, num_players)
+    if len(selected) < 2:
+        raise ValueError("Not enough participants for soccer minigame")
+
+    effective_seed = seed
+    if effective_seed is None and seed_base is not None:
+        effective_seed = (int(seed_base) + int(match_counter)) & 0xFFFFFFFF
+
+    if match_id is None:
+        if effective_seed is not None:
+            match_id = f"soccer_{effective_seed}_{match_counter}"
+        else:
+            match_id = str(uuid.uuid4())
+
+    match = SoccerMatch(
+        match_id=match_id,
+        fish_players=selected,
+        duration_frames=duration_frames,
+        code_source=code_source,
+        view_mode=view_mode,
+        seed=effective_seed,
+    )
+
+    return SoccerMatchSetup(
+        match=match,
+        seed=effective_seed,
+        match_id=match_id,
+        selected_count=len(selected),
+    )
 
 
 def apply_soccer_rewards(
@@ -74,42 +128,14 @@ def apply_soccer_rewards(
     return rewards
 
 
-def run_soccer_minigame(
-    candidates: Sequence[Any],
-    *,
-    num_players: int = 22,
-    duration_frames: int = 3000,
-    code_source: Any | None = None,
-    seed: int | None = None,
-    view_mode: str = "side",
-    match_id: str | None = None,
-) -> SoccerMinigameOutcome:
-    """Recruit participants, run a deterministic match, and apply rewards."""
-    selected = select_soccer_participants(candidates, num_players)
-    if len(selected) < 2:
-        raise ValueError("Not enough participants for soccer minigame")
-
-    if match_id is None:
-        match_id = f"soccer_{seed}" if seed is not None else str(uuid.uuid4())
-
-    match = SoccerMatch(
-        match_id=match_id,
-        fish_players=selected,
-        duration_frames=duration_frames,
-        code_source=code_source,
-        view_mode=view_mode,
-        seed=seed,
-    )
-
-    while not match.game_over:
-        match.step(num_steps=5)
-
+def finalize_soccer_match(match: SoccerMatch, *, seed: int | None = None) -> SoccerMinigameOutcome:
+    """Apply rewards and return a compact outcome summary."""
     state = match.get_state()
     rewards = apply_soccer_rewards(match.player_map, match.winner_team)
     score = state.get("score", {})
 
     return SoccerMinigameOutcome(
-        match_id=match_id,
+        match_id=match.match_id,
         winner_team=state.get("winner_team"),
         score_left=int(score.get("left", 0)),
         score_right=int(score.get("right", 0)),
@@ -122,3 +148,30 @@ def run_soccer_minigame(
             "right": list(state.get("teams", {}).get("right", [])),
         },
     )
+
+
+def run_soccer_minigame(
+    candidates: Sequence[Any],
+    *,
+    num_players: int = 22,
+    duration_frames: int = 3000,
+    code_source: Any | None = None,
+    seed: int | None = None,
+    view_mode: str = "side",
+    match_id: str | None = None,
+) -> SoccerMinigameOutcome:
+    """Recruit participants, run a deterministic match, and apply rewards."""
+    setup = create_soccer_match(
+        candidates,
+        num_players=num_players,
+        duration_frames=duration_frames,
+        code_source=code_source,
+        view_mode=view_mode,
+        seed=seed,
+        match_id=match_id,
+    )
+    match = setup.match
+
+    while not match.game_over:
+        match.step(num_steps=5)
+    return finalize_soccer_match(match, seed=setup.seed)

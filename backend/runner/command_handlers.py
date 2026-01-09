@@ -12,6 +12,7 @@ Command handlers are responsible for:
 
 import logging
 import uuid
+from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core import entities, movement_strategy
@@ -21,7 +22,7 @@ from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
-from core.minigames.soccer import SoccerMatch, apply_soccer_rewards, select_soccer_participants
+from core.minigames.soccer import create_soccer_match, finalize_soccer_match
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -437,6 +438,14 @@ class CommandHandlerMixin:
         """
         try:
             num_players = data.get("num_players", 22)  # Default 22 (11 vs 11)
+            seed_value = data.get("seed")
+            match_id = data.get("match_id")
+
+            seed: int | None
+            if seed_value is None:
+                seed = None
+            else:
+                seed = int(seed_value)
 
             # Get Fish
             entities_list = self.world.get_entities_for_snapshot()
@@ -445,22 +454,43 @@ class CommandHandlerMixin:
             if len(fish_list) < 2:
                 return self._create_error_response("Not enough fish for soccer!")
 
-            selected = select_soccer_participants(fish_list, num_players)
-            if len(selected) < 2:
-                return self._create_error_response("Not enough fish for soccer!")
+            counter = getattr(self, "_soccer_match_counter", 0)
+            seed_base = getattr(self, "_seed", None)
+            if seed_base is None:
+                seed_base = 0
 
-            match_id = str(uuid.uuid4())
             code_source = getattr(self.world, "genome_code_pool", None)
             # Pass the view_mode so soccer can render correct avatar type
             view_mode = getattr(self, "view_mode", "side")  # "side" = tank, "top" = petri
-            self.soccer_match = SoccerMatch(
-                match_id, selected, code_source=code_source, view_mode=view_mode
+            setup = create_soccer_match(
+                fish_list,
+                num_players=num_players,
+                code_source=code_source,
+                view_mode=view_mode,
+                seed=seed,
+                seed_base=seed_base,
+                match_counter=counter,
+                match_id=match_id,
             )
+            self.soccer_match = setup.match
+            self._soccer_match_seed = setup.seed
+            self._soccer_match_counter = counter + 1
             logger.info(
-                f"Started soccer match {match_id} with {len(selected)} players (view_mode={view_mode})"
+                "Started soccer match %s with %d players (view_mode=%s, seed=%s)",
+                setup.match_id,
+                setup.selected_count,
+                view_mode,
+                setup.seed,
             )
 
-            return {"success": True, "state": self.soccer_match.get_state()}
+            return {
+                "success": True,
+                "match_id": setup.match_id,
+                "seed": setup.seed,
+                "state": self.soccer_match.get_state(),
+            }
+        except ValueError as e:
+            return self._create_error_response(str(e))
         except Exception as e:
             logger.error(f"Error starting soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start soccer match: {str(e)}")
@@ -495,15 +525,21 @@ class CommandHandlerMixin:
             if not match:
                 return self._create_error_response("No active soccer match")
 
+            outcome = None
             if match.game_over:
-                rewards = apply_soccer_rewards(match.player_map, match.winner_team)
-                if rewards:
-                    logger.info("Rewarded team %s (%d players)", match.winner_team, len(rewards))
+                outcome = finalize_soccer_match(
+                    match, seed=getattr(self, "_soccer_match_seed", None)
+                )
+                if outcome.rewarded:
+                    logger.info(
+                        "Rewarded team %s (%d players)", match.winner_team, len(outcome.rewarded)
+                    )
 
             self.soccer_match = None
+            self._soccer_match_seed = None
             logger.info("Soccer match ended")
 
-            return {"success": True}
+            return {"success": True, "outcome": asdict(outcome) if outcome else None}
         except Exception as e:
             logger.error(f"Error ending soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to end soccer match: {str(e)}")
