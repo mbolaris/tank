@@ -19,14 +19,11 @@ logger = logging.getLogger(__name__)
 class SocketInterface(Protocol):
     """Protocol for socket-like objects (needed for type hints)."""
 
-    def send(self, data: str, addr: Tuple[str, int]) -> None:
-        ...
+    def send(self, data: str, addr: Tuple[str, int]) -> None: ...
 
-    def recv(self, bufsize: int) -> str:
-        ...
+    def recv(self, bufsize: int) -> str: ...
 
-    def close(self) -> None:
-        ...
+    def close(self) -> None: ...
 
 
 class FakeRCSSServer:
@@ -67,7 +64,7 @@ class FakeRCSSServer:
                 # Basic prefix check (e.g. "(init" matches "(init TankTeam ...)")
                 if not decoded.startswith(prefix):
                     logger.error(
-                        f"Script mismatch! Expected startswith '{prefix}', got '{decoded}'"
+                        f"Script mismatch! Expected startswith '{prefix}', " f"got '{decoded}'"
                     )
 
                 if response:
@@ -75,7 +72,7 @@ class FakeRCSSServer:
         else:
             # Default auto-responses for basic protocol handshake
             if decoded.startswith("(init"):
-                # Respond with init confirmation + server params + player params + initial see
+                # Respond with init confirmation + server/player params + see
                 self._response_queue.append(self._build_init_response(decoded))
                 self._response_queue.append(self._build_server_param_response())
                 self._response_queue.append(self._build_player_param_response())
@@ -83,7 +80,8 @@ class FakeRCSSServer:
                 self._response_queue.append(self._build_see(0))
             elif decoded.startswith("(move"):
                 # Move command just gets a sense/see update
-                # (Actual server wouldn't send see immediately typically, but for test speed we do)
+                # (Actual server wouldn't send see immediately, but for test
+                # speed we do)
                 pass
             else:
                 # Regular step
@@ -129,7 +127,11 @@ class FakeRCSSServer:
         return "(player_param (player_speed_max 1.05) (stamina_inc_max 45))"
 
     def _build_sense_body(self, time: int, stamina: float = 4000) -> str:
-        return f"(sense_body {time} (view_mode high normal) (stamina {stamina} 1) (speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) (turn_neck 0) (catch 0) (move 0) (change_view 0))"
+        return (
+            f"(sense_body {time} (view_mode high normal) (stamina {stamina} 1) "
+            f"(speed 0 0) (head_angle 0) (kick 0) (dash 0) (turn 0) (say 0) "
+            f"(turn_neck 0) (catch 0) (move 0) (change_view 0))"
+        )
 
     def _build_see(self, time: int, objects: Optional[List[str]] = None) -> str:
         if objects is None:
