@@ -1,9 +1,27 @@
+"""Policy adapter for soccer minigame.
+
+This module provides the bridge between genome policies and the RCSS-Lite engine.
+It handles:
+- Building observations for players
+- Executing policies (via GenomeCodePool or fallback)
+- Converting policy outputs to RCSS commands
+
+IMPORTANT: The primary execution path is GenomeCodePool.execute_policy() which
+provides safety checks and determinism guarantees. Direct callable execution
+is only used as a fallback for legacy CodePool usage.
+"""
+
 import logging
 import math
-from typing import Any, Dict, Optional
+import random as pyrandom
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine
 from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+
+if TYPE_CHECKING:
+    from core.code_pool import GenomeCodePool
+    from core.genetics import Genome
 
 logger = logging.getLogger(__name__)
 
@@ -96,53 +114,190 @@ def build_observation(
 
 
 def run_policy(
-    code_source: Any,  # GenomeCodePool or similar
-    genome: Any,
+    code_source: Optional["GenomeCodePool"],
+    genome: Optional["Genome"],
     observation: Dict[str, Any],
-    rng: Any = None,
+    rng: Optional[pyrandom.Random] = None,
+    dt: float = 0.1,
 ) -> Dict[str, Any]:
-    """Execute a genome's soccer policy.
+    """Execute a genome's soccer policy using GenomeCodePool.execute_policy().
+
+    This is the primary entry point for policy execution in soccer matches.
+    It handles:
+    1. Extracting policy ID and params from genome traits
+    2. Calling GenomeCodePool.execute_policy() with safety guarantees
+    3. Converting normalized policy output to RCSS command format
+    4. Falling back to default_policy_action() on any error
+
+    Args:
+        code_source: GenomeCodePool containing the policy components
+        genome: Genome with behavioral.soccer_policy_id trait
+        observation: Soccer observation dict from build_observation()
+        rng: Seeded RNG for determinism (REQUIRED for proper execution)
+        dt: Delta time since last step (default 0.1 = 100ms RCSS cycle)
 
     Returns:
-        Action dict, e.g. {"kick": [100, 30]} or {"dash": [50]}
+        Action dict in RCSS format, e.g. {"kick": [100, 30]} or {"dash": [50]}
     """
     if not genome or not code_source:
         return default_policy_action(observation)
 
-    # Resolve policy ID
-    # Usually: genome.behavioral.soccer_policy_id.value
-    policy_id = None
-    try:
-        if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_id"):
-            policy_id = genome.behavioral.soccer_policy_id.value
-    except Exception:
-        pass
+    # Create fallback RNG if not provided (logs warning - caller should provide RNG)
+    if rng is None:
+        logger.warning("run_policy called without RNG - determinism not guaranteed")
+        rng = pyrandom.Random()
 
+    # Extract policy ID from genome.behavioral.soccer_policy_id.value
+    policy_id = _get_policy_id(genome)
     if not policy_id:
         return default_policy_action(observation)
 
-    # Execute
-    try:
-        # Assuming code_pool.execute(policy_id, inputs={"obs": obs}, ...) pattern
-        # Or code_pool.get_callable(policy_id)(obs)
-        # Based on user context, we might need to adapt to the specific CodePool API.
-        # For now, let's assume get_callable or similar exists, or we use the `params` style.
-        # Checking `match.py`: uses `self._code_pool.add_component`...
-        # We need to know how to EXECUTE.
-        # Let's try to get a callable.
+    # Extract policy params from genome.behavioral.soccer_policy_params.value
+    policy_params = _get_policy_params(genome)
 
-        # If code_source is GenomeCodePool
-        if hasattr(code_source, "get_callable"):
+    # Execute via GenomeCodePool.execute_policy() - the correct API
+    try:
+        # Check if code_source has execute_policy (GenomeCodePool)
+        if hasattr(code_source, "execute_policy"):
+            result = code_source.execute_policy(
+                component_id=policy_id,
+                observation=observation,
+                rng=rng,
+                dt=dt,
+                params=policy_params,
+            )
+
+            if not result.success:
+                logger.debug(f"Policy {policy_id} execution failed: {result.error_message}")
+                return default_policy_action(observation)
+
+            # Convert normalized output to RCSS command format
+            return _normalize_policy_output(result.output)
+
+        # Fallback: legacy CodePool with get_callable (not recommended)
+        elif hasattr(code_source, "get_callable"):
             policy_func = code_source.get_callable(policy_id)
             if policy_func:
-                return policy_func(observation)
+                raw_output = policy_func(observation, rng)
+                return _normalize_policy_output(raw_output)
+            else:
+                return default_policy_action(observation)
 
-        # Fallback if specific execution API differs (will refine during integration)
-        return default_policy_action(observation)
+        else:
+            logger.warning(f"Unknown code_source type: {type(code_source)}")
+            return default_policy_action(observation)
 
     except Exception as e:
-        logger.warning(f"Policy {policy_id} execution failed: {e}")
+        logger.warning(f"Policy {policy_id} execution error: {e}")
         return default_policy_action(observation)
+
+
+def _get_policy_id(genome: "Genome") -> Optional[str]:
+    """Extract soccer_policy_id from genome behavioral traits."""
+    try:
+        if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_id"):
+            trait = genome.behavioral.soccer_policy_id
+            if trait is not None:
+                return trait.value
+    except Exception:
+        pass
+    return None
+
+
+def _get_policy_params(genome: "Genome") -> Optional[Dict[str, float]]:
+    """Extract soccer_policy_params from genome behavioral traits."""
+    try:
+        if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_params"):
+            trait = genome.behavioral.soccer_policy_params
+            if trait is not None and trait.value is not None:
+                return dict(trait.value)
+    except Exception:
+        pass
+    return None
+
+
+def _normalize_policy_output(output: Any) -> Dict[str, Any]:
+    """Convert policy output to RCSS command format.
+
+    Policies may return either:
+    1. Normalized format: {"turn": float, "dash": float, "kick_power": float, "kick_angle": float}
+       - turn: [-1, 1] normalized
+       - dash: [0, 1] normalized
+       - kick_power: [0, 1] normalized
+       - kick_angle: radians
+    2. RCSS format: {"kick": [power, angle_deg]} or {"dash": [power]} or {"turn": [moment_deg]}
+       - Values are lists with raw RCSS values
+
+    This function detects the format by checking if values are lists (RCSS) or floats (normalized).
+    """
+    if not isinstance(output, dict):
+        return {}
+
+    # Detect format by checking if values are lists (RCSS format) or scalars (normalized)
+    # RCSS format has list values: {"kick": [100, 45]} or {"dash": [80]}
+    for key in ("kick", "dash", "turn"):
+        if key in output and isinstance(output[key], (list, tuple)):
+            # RCSS command format - validate and return
+            return _validate_command_format(output)
+
+    # Normalized format - convert to RCSS
+    return _convert_normalized_to_rcss(output)
+
+
+def _validate_command_format(output: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate RCSS command format output."""
+    result = {}
+
+    if "kick" in output:
+        kick = output["kick"]
+        if isinstance(kick, (list, tuple)) and len(kick) >= 2:
+            result["kick"] = [_clamp(kick[0], 0, MAX_KICK_POWER), _clamp(kick[1], -180, 180)]
+    elif "turn" in output:
+        turn = output["turn"]
+        if isinstance(turn, (list, tuple)) and len(turn) >= 1:
+            result["turn"] = [_clamp(turn[0], -180, 180)]
+    elif "dash" in output:
+        dash = output["dash"]
+        if isinstance(dash, (list, tuple)) and len(dash) >= 1:
+            result["dash"] = [_clamp(dash[0], -MAX_DASH_POWER, MAX_DASH_POWER)]
+
+    return result
+
+
+def _convert_normalized_to_rcss(output: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert normalized policy output to RCSS command format.
+
+    Normalized format:
+    - turn: [-1, 1] -> moment in degrees [-180, 180]
+    - dash: [0, 1] -> power [0, 100]
+    - kick_power: [0, 1] -> power [0, 100]
+    - kick_angle: radians -> degrees [-180, 180]
+    """
+    # Priority: kick > turn > dash
+    kick_power = float(output.get("kick_power", 0.0))
+    if kick_power > 0.1:
+        # Convert kick
+        power = _clamp(kick_power * MAX_KICK_POWER, 0, MAX_KICK_POWER)
+        angle_rad = float(output.get("kick_angle", 0.0))
+        angle_deg = math.degrees(angle_rad)
+        angle_deg = _clamp(angle_deg, -180, 180)
+        return {"kick": [power, angle_deg]}
+
+    turn = float(output.get("turn", 0.0))
+    if abs(turn) > 0.1:
+        # Convert turn: [-1, 1] -> [-180, 180] degrees
+        moment = turn * 180.0
+        moment = _clamp(moment, -180, 180)
+        return {"turn": [moment]}
+
+    dash = float(output.get("dash", 0.0))
+    if dash > 0.1:
+        # Convert dash: [0, 1] -> [0, 100] power
+        power = _clamp(dash * MAX_DASH_POWER, 0, MAX_DASH_POWER)
+        return {"dash": [power]}
+
+    # No significant action
+    return {}
 
 
 def default_policy_action(obs: Dict[str, Any]) -> Dict[str, Any]:
