@@ -165,6 +165,7 @@ class RCSSLiteEngine:
         self._last_touch_player_id: str | None = None
         self._last_touch_cycle: int = -1
         self._prev_touch_player_id: str | None = None
+        self._prev_touch_cycle: int = -1
 
     @property
     def cycle(self) -> int:
@@ -381,6 +382,7 @@ class RCSSLiteEngine:
         # If different player than last touch, record assist candidate
         if self._last_touch_player_id and self._last_touch_player_id != player.player_id:
             self._prev_touch_player_id = self._last_touch_player_id
+            self._prev_touch_cycle = self._last_touch_cycle
         self._last_touch_player_id = player.player_id
         self._last_touch_cycle = self._cycle
 
@@ -554,7 +556,8 @@ class RCSSLiteEngine:
             scorer_id
             and self._prev_touch_player_id
             and self._prev_touch_player_id != scorer_id
-            and (self._cycle - self._last_touch_cycle) <= ASSIST_WINDOW
+            and self._prev_touch_cycle >= 0
+            and (self._last_touch_cycle - self._prev_touch_cycle) <= ASSIST_WINDOW
         ):
             # Check if prev toucher is on same team as scorer
             scorer_player = self._players.get(scorer_id)
@@ -580,6 +583,7 @@ class RCSSLiteEngine:
         self._last_touch_player_id = None
         self._last_touch_cycle = -1
         self._prev_touch_player_id = None
+        self._prev_touch_cycle = -1
 
     def reset(self, seed: int | None = None) -> None:
         """Reset the engine to initial state."""
@@ -595,6 +599,7 @@ class RCSSLiteEngine:
         self._last_touch_player_id = None
         self._last_touch_cycle = -1
         self._prev_touch_player_id = None
+        self._prev_touch_cycle = -1
 
     def get_snapshot(self) -> dict[str, Any]:
         """Get current state as a snapshot dict."""
