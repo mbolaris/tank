@@ -4,21 +4,21 @@
     "champion": {
         "benchmark_id": "soccer/training_3k",
         "seed": 42,
-        "score": -12677.548387626106,
-        "runtime_seconds": 1.4636404514312744,
+        "score": 602.825,
+        "runtime_seconds": 0.15285634994506836,
         "metadata": {
             "frames": 3000,
-            "score_left": 0,
-            "score_right": 130,
-            "total_goals": 130,
-            "goal_diff": -130,
-            "possession_left": 130,
-            "possession_right": 393,
-            "total_possession": 523,
-            "possession_diff": -4.383333333333334,
-            "avg_fitness": 3268.349457072263,
-            "team_fitness_left": -19470.107492401534,
-            "team_fitness_right": 39080.20423483511
+            "score_left": 8,
+            "score_right": 2,
+            "total_goals": 10,
+            "goal_diff": 6,
+            "possession_left": 30,
+            "possession_right": 15,
+            "total_possession": 45,
+            "possession_diff": 0.25,
+            "avg_fitness": 25.75,
+            "team_fitness_left": 153.0,
+            "team_fitness_right": 1.5
         }
     },
     "history": []

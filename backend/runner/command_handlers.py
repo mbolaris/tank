@@ -499,9 +499,17 @@ class CommandHandlerMixin:
             if match.game_over and match.winner_team and match.winner_team != "draw":
                 for pid, fish in match.player_map.items():
                     if pid.startswith(match.winner_team):
-                        # Set winners to max energy as reward
+                        # Set winners to max energy as reward using proper ledger
                         max_energy = getattr(fish, "max_energy", 1000.0)
-                        fish.energy = max_energy
+                        current_energy = getattr(fish, "energy", 0.0)
+                        delta = max_energy - current_energy
+
+                        if delta > 0:
+                            if hasattr(fish, "modify_energy"):
+                                fish.modify_energy(delta, source="soccer_win")
+                            else:
+                                # Fallback for non-Fish entities or mocks
+                                fish.energy = max_energy
 
                 logger.info(f"Rewarded team {match.winner_team}")
 

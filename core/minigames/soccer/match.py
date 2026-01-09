@@ -17,7 +17,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
-from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import RCSSParams
 from core.minigames.soccer.participant import create_participants_from_fish
 
@@ -222,51 +222,34 @@ class SoccerMatch:
         return self.get_state()
 
     def _queue_autopolicy_commands(self) -> None:
-        """Queue autopolicy commands for all players."""
-        ball = self._engine.get_ball()
-        ball_pos = ball.position
+        """Queue autopolicy commands for all players using shared adapter."""
+        from core.minigames.soccer.policy_adapter import (
+            action_to_command,
+            build_observation,
+            run_policy,
+        )
 
         for participant in self.participants:
             player_id = participant.participant_id
-            player = self._engine.get_player(player_id)
-            if player is None:
+
+            # Build observation
+            obs = build_observation(self._engine, player_id, self._params)
+            if not obs:
                 continue
 
-            # Simple chase-ball autopolicy
-            dx = ball_pos.x - player.position.x
-            dy = ball_pos.y - player.position.y
-            dist_to_ball = math.sqrt(dx * dx + dy * dy)
-
-            # Angle to ball relative to player facing
-            angle_to_ball = math.atan2(dy, dx)
-            relative_angle = angle_to_ball - player.body_angle
-
-            # Normalize to [-pi, pi]
-            while relative_angle > math.pi:
-                relative_angle -= 2 * math.pi
-            while relative_angle < -math.pi:
-                relative_angle += 2 * math.pi
-
-            # Determine team's goal direction
-            team = player.team
-            goal_x = (
-                self._params.field_length / 2 if team == "left" else -self._params.field_length / 2
+            # Run policy (uses code pool or falls back to default)
+            action = run_policy(
+                self._code_pool,
+                participant.genome_ref,
+                obs,
+                rng=None,  # Could pass match seed rng if needed
             )
 
-            if dist_to_ball < self._params.kickable_margin + self._params.ball_size:
-                # Can kick - kick toward opponent's goal
-                kick_dir = math.atan2(-player.position.y * 0.1, goal_x - ball_pos.x)
-                kick_dir_rel = math.degrees(kick_dir - player.body_angle)
-                self._engine.queue_command(player_id, RCSSCommand.kick(80, kick_dir_rel))
-            elif abs(relative_angle) > 0.2:
-                # Turn toward ball
-                turn_moment = math.degrees(relative_angle) * 0.5
-                turn_moment = max(-180, min(180, turn_moment))
-                self._engine.queue_command(player_id, RCSSCommand.turn(turn_moment))
-            else:
-                # Dash toward ball
-                power = min(100, dist_to_ball * 5)
-                self._engine.queue_command(player_id, RCSSCommand.dash(power, 0))
+            # Convert to command
+            cmd = action_to_command(action, self._params)
+
+            if cmd:
+                self._engine.queue_command(player_id, cmd)
 
     def _get_stable_id(self, key: str) -> int:
         """Get or assign a stable integer ID for an entity key."""

@@ -16,7 +16,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import RCSSParams
 
 if TYPE_CHECKING:
@@ -155,7 +155,7 @@ class SoccerMatchRunner:
         # Run episode
         for frame in range(frames):
             # Queue autopolicy commands
-            self._queue_autopolicy_commands(player_stats)
+            self._queue_autopolicy_commands(player_stats, genome_by_player)
 
             # Step engine
             step_result = self._engine.step_cycle()
@@ -217,56 +217,41 @@ class SoccerMatchRunner:
 
         return episode_result, agent_results
 
-    def _queue_autopolicy_commands(self, player_stats: dict[str, PlayerStats]) -> None:
+    def _queue_autopolicy_commands(
+        self, player_stats: dict[str, PlayerStats], genome_by_player: dict[str, Genome]
+    ) -> None:
         """Queue autopolicy commands for all players."""
         if self._engine is None:
             return
 
-        ball = self._engine.get_ball()
-        ball_pos = ball.position
+        from core.minigames.soccer.policy_adapter import (
+            action_to_command,
+            build_observation,
+            run_policy,
+        )
 
         for pid, stats in player_stats.items():
-            player = self._engine.get_player(pid)
-            if player is None:
+            # Build observation
+            obs = build_observation(self._engine, pid, self._params)
+            if not obs:
                 continue
 
-            # Simple chase-ball autopolicy
-            dx = ball_pos.x - player.position.x
-            dy = ball_pos.y - player.position.y
-            dist_to_ball = math.sqrt(dx * dx + dy * dy)
-
-            # Angle to ball relative to player facing
-            angle_to_ball = math.atan2(dy, dx)
-            relative_angle = angle_to_ball - player.body_angle
-
-            # Normalize to [-pi, pi]
-            while relative_angle > math.pi:
-                relative_angle -= 2 * math.pi
-            while relative_angle < -math.pi:
-                relative_angle += 2 * math.pi
-
-            # Track possession
-            if dist_to_ball < self._params.kickable_margin + self._params.ball_size:
+            # Track possession (re-implementing logic using obs for consistency)
+            if obs.get("is_kickable"):
                 stats.possessions += 1
 
-            # Determine team's goal direction
-            team = player.team
-            goal_x = (
-                self._params.field_length / 2 if team == "left" else -self._params.field_length / 2
-            )
+            # Get genome
+            genome = genome_by_player.get(pid)
 
-            if dist_to_ball < self._params.kickable_margin + self._params.ball_size:
-                # Can kick - kick toward opponent's goal
-                kick_dir = math.atan2(-player.position.y * 0.1, goal_x - ball_pos.x)
-                kick_dir_rel = math.degrees(kick_dir - player.body_angle)
-                self._engine.queue_command(pid, RCSSCommand.kick(80, kick_dir_rel))
+            # Run policy
+            action = run_policy(self._genome_code_pool, genome, obs, rng=None)
+
+            # Additional stats tracking for kicks
+            if "kick" in action and action["kick"]:
                 stats.kicks += 1
-            elif abs(relative_angle) > 0.2:
-                # Turn toward ball
-                turn_moment = math.degrees(relative_angle) * 0.5
-                turn_moment = max(-180, min(180, turn_moment))
-                self._engine.queue_command(pid, RCSSCommand.turn(turn_moment))
-            else:
-                # Dash toward ball
-                power = min(100, dist_to_ball * 5)
-                self._engine.queue_command(pid, RCSSCommand.dash(power, 0))
+
+            # Convert to command
+            cmd = action_to_command(action, self._params)
+
+            if cmd:
+                self._engine.queue_command(pid, cmd)
