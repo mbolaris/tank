@@ -68,7 +68,7 @@ class WorldRunner:
         Args:
             world: The MultiAgentWorldBackend to drive
             snapshot_builder: Snapshot builder for entity serialization
-            world_type: Type identifier (e.g., "tank", "petri", "soccer")
+            world_type: Type identifier (e.g., "tank", "petri")
             view_mode: Default view mode for frontend rendering
         """
         self.world = world

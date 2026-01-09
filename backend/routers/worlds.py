@@ -1,7 +1,7 @@
 """World-agnostic API endpoints for managing worlds of any type.
 
 This router provides endpoints for creating, listing, and managing
-worlds of all types (tank, petri, soccer) through a unified API.
+worlds of all types (tank, petri) through a unified API.
 """
 
 import logging
@@ -65,7 +65,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
         """List all available world types with their capabilities.
 
         Returns a list of registered world types including:
-        - mode_id: The mode identifier (e.g., "tank", "petri", "soccer")
+        - mode_id: The mode identifier (e.g., "tank", "petri")
         - world_type: The underlying world type
         - view_mode: Default view mode for rendering ("side", "topdown", etc.)
         - display_name: Human-readable name

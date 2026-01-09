@@ -1,7 +1,7 @@
 """Central manager for active world instances across all types.
 
 This module provides the WorldManager class which manages active world instances
-for all world types (tank, petri, soccer) through a unified pipeline.
+for all world types (tank, petri) through a unified pipeline.
 
 All world types now flow through the same creation/loop/broadcast path:
 WorldManager → WorldInstance → SimulationRunner → Broadcast
@@ -98,7 +98,7 @@ class WorldManager:
     """Central manager for all active world instances.
 
     This class provides unified management of world instances across all world
-    types (tank, petri, soccer). All worlds are stored in a single dictionary
+    types (tank, petri). All worlds are stored in a single dictionary
     and accessed through the same interface.
 
     For tank worlds, SimulationRunner is used directly (no intermediate adapter).
@@ -151,7 +151,7 @@ class WorldManager:
         All world types flow through this unified creation path.
 
         Args:
-            world_type: The type of world to create (tank, petri, soccer)
+            world_type: The type of world to create (tank, petri)
             name: Human-readable name for the world
             config: Optional configuration for the world
             persistent: Whether the world should be persisted

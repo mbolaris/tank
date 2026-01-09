@@ -27,19 +27,19 @@ class TestWorldTypeDefinitions:
         """ALL_WORLD_TYPES contains the canonical world types."""
         assert "tank" in ALL_WORLD_TYPES
         assert "petri" in ALL_WORLD_TYPES
-        assert "soccer" in ALL_WORLD_TYPES
+        assert "soccer" not in ALL_WORLD_TYPES
 
     def test_is_valid_world_type_valid(self) -> None:
         """is_valid_world_type returns True for valid types."""
         assert is_valid_world_type("tank") is True
         assert is_valid_world_type("petri") is True
-        assert is_valid_world_type("soccer") is True
 
     def test_is_valid_world_type_invalid(self) -> None:
         """is_valid_world_type returns False for invalid types."""
         assert is_valid_world_type("invalid") is False
         assert is_valid_world_type("") is False
         assert is_valid_world_type("TANK") is False  # Case sensitive
+        assert is_valid_world_type("soccer") is False
 
 
 class TestRenderHint:

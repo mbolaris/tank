@@ -19,7 +19,7 @@ def normalize_config(mode_id: str, config: dict[str, Any] | None = None) -> dict
     method to normalize legacy keys and fill in defaults.
 
     Args:
-        mode_id: The mode identifier (e.g., "tank", "petri", "soccer")
+        mode_id: The mode identifier (e.g., "tank", "petri")
         config: Optional raw config dict to normalize
 
     Returns:

@@ -21,7 +21,7 @@ from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
-from core.minigames.soccer import SoccerMatch
+from core.minigames.soccer import SoccerMatch, apply_soccer_rewards, select_soccer_participants
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -445,9 +445,9 @@ class CommandHandlerMixin:
             if len(fish_list) < 2:
                 return self._create_error_response("Not enough fish for soccer!")
 
-            # Select players (Top Energy)
-            fish_list.sort(key=lambda f: f.energy, reverse=True)
-            selected = fish_list[:num_players]
+            selected = select_soccer_participants(fish_list, num_players)
+            if len(selected) < 2:
+                return self._create_error_response("Not enough fish for soccer!")
 
             match_id = str(uuid.uuid4())
             code_source = getattr(self.world, "genome_code_pool", None)
@@ -495,23 +495,10 @@ class CommandHandlerMixin:
             if not match:
                 return self._create_error_response("No active soccer match")
 
-            # Reward logic
-            if match.game_over and match.winner_team and match.winner_team != "draw":
-                for pid, fish in match.player_map.items():
-                    if pid.startswith(match.winner_team):
-                        # Set winners to max energy as reward using proper ledger
-                        max_energy = getattr(fish, "max_energy", 1000.0)
-                        current_energy = getattr(fish, "energy", 0.0)
-                        delta = max_energy - current_energy
-
-                        if delta > 0:
-                            if hasattr(fish, "modify_energy"):
-                                fish.modify_energy(delta, source="soccer_win")
-                            else:
-                                # Fallback for non-Fish entities or mocks
-                                fish.energy = max_energy
-
-                logger.info(f"Rewarded team {match.winner_team}")
+            if match.game_over:
+                rewards = apply_soccer_rewards(match.player_map, match.winner_team)
+                if rewards:
+                    logger.info("Rewarded team %s (%d players)", match.winner_team, len(rewards))
 
             self.soccer_match = None
             logger.info("Soccer match ended")

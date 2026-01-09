@@ -24,7 +24,7 @@ class RunnerProtocol(Protocol):
     Properties:
         world_id: Unique identifier for this world instance
         running: Whether the simulation is currently running (readable and writable)
-        world_type: Type of world (tank, petri, soccer, etc.)
+        world_type: Type of world (tank, petri, etc.)
         mode_id: Mode identifier for UI display
         view_mode: Default view mode (side, topdown)
         frame_count: Current simulation frame
@@ -54,7 +54,7 @@ class RunnerProtocol(Protocol):
 
     @property
     def world_type(self) -> str:
-        """Type of world (tank, petri, soccer, etc.)."""
+        """Type of world (tank, petri, etc.)."""
         ...
 
     @property

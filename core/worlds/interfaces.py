@@ -1,7 +1,7 @@
 """Domain-agnostic world interface definitions.
 
 This module defines the core abstractions for multi-agent simulation worlds.
-These interfaces are implemented by specific world backends (Tank, Petri, Soccer).
+These interfaces are implemented by specific world backends (Tank, Petri).
 """
 
 from abc import ABC, abstractmethod

@@ -130,7 +130,7 @@ async def _handle_websocket_for_world(
     """Handle WebSocket connection for any world type.
 
     This is the unified handler that works with WorldManager to support
-    all world types (tank, petri, soccer).
+    all world types (tank, petri).
 
     Args:
         websocket: The WebSocket connection
@@ -183,7 +183,7 @@ def setup_router(
     async def websocket_world(websocket: WebSocket, world_id: str):
         """Unified WebSocket endpoint for any world type.
 
-        This endpoint works with all world types (tank, petri, soccer)
+        This endpoint works with all world types (tank, petri)
         through the WorldManager interface.
 
         Use world_id="default" to connect to the default world.

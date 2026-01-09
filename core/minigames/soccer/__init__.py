@@ -11,6 +11,12 @@ Components:
 """
 
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.evaluator import (
+    SoccerMinigameOutcome,
+    apply_soccer_rewards,
+    run_soccer_minigame,
+    select_soccer_participants,
+)
 from core.minigames.soccer.fake_server import FakeRCSSServer
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.match_runner import AgentResult, EpisodeResult, SoccerMatchRunner
@@ -34,6 +40,11 @@ __all__ = [
     "SoccerMatchRunner",
     "AgentResult",
     "EpisodeResult",
+    # Evaluation
+    "SoccerMinigameOutcome",
+    "run_soccer_minigame",
+    "apply_soccer_rewards",
+    "select_soccer_participants",
     # Participants
     "SoccerParticipant",
     "fish_to_participant",

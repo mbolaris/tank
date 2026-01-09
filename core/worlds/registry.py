@@ -74,7 +74,7 @@ class WorldRegistry:
         """Create a world backend for the given mode.
 
         Args:
-            mode_id: Mode identifier (e.g., "tank", "petri", "soccer")
+            mode_id: Mode identifier (e.g., "tank", "petri")
             seed: Optional random seed
             config: Optional config dict (normalized by the mode pack)
             **kwargs: Config overrides (merged into config)

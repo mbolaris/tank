@@ -1,7 +1,7 @@
 """World loop contracts for multi-world simulation support.
 
 This module defines canonical types and protocols for the world loop contract.
-All world backends (Tank, Petri, Soccer) implement these contracts to share
+All world backends (Tank, Petri) implement these contracts to share
 one engine core while maintaining distinct behavior.
 
 Design Principles:
@@ -25,14 +25,14 @@ if TYPE_CHECKING:
 # World Type Definition
 # =============================================================================
 
-WorldType = Literal["tank", "petri", "soccer"]
+WorldType = Literal["tank", "petri"]
 """Canonical world type identifier.
 
 This is the single source of truth for valid world types.
 Use this instead of string literals throughout the codebase.
 """
 
-ALL_WORLD_TYPES: tuple[str, ...] = ("tank", "petri", "soccer")
+ALL_WORLD_TYPES: tuple[str, ...] = ("tank", "petri")
 """Tuple of all valid world types for iteration and validation."""
 
 
@@ -54,7 +54,7 @@ class RenderHint:
     a world without coupling the backend to specific rendering code.
 
     Attributes:
-        style: View style ("side" for aquarium view, "topdown" for petri/soccer)
+        style: View style ("side" for aquarium view, "topdown" for petri)
         entity_style: Entity visual style hint (e.g., "fish", "microbe", "player")
         camera: Optional camera configuration (zoom, center, etc.)
         extra: Extension point for world-specific rendering hints
@@ -78,7 +78,6 @@ class RenderHint:
 # Pre-defined render hints for built-in world types
 TANK_RENDER_HINT = RenderHint(style="side", entity_style="fish")
 PETRI_RENDER_HINT = RenderHint(style="topdown", entity_style="microbe")
-SOCCER_RENDER_HINT = RenderHint(style="topdown", entity_style="player")
 
 
 def get_default_render_hint(world_type: str) -> RenderHint:
@@ -86,7 +85,6 @@ def get_default_render_hint(world_type: str) -> RenderHint:
     hints = {
         "tank": TANK_RENDER_HINT,
         "petri": PETRI_RENDER_HINT,
-        "soccer": SOCCER_RENDER_HINT,
     }
     return hints.get(world_type, TANK_RENDER_HINT)
 
