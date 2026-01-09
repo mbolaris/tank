@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
@@ -57,7 +57,7 @@ class EpisodeResult:
     score_left: int
     score_right: int
     player_stats: dict[str, PlayerStats]
-    winner: Optional[str]  # "left", "right", or None (draw)
+    winner: str | None  # "left", "right", or None (draw)
 
 
 @dataclass
@@ -81,8 +81,8 @@ class SoccerMatchRunner:
     def __init__(
         self,
         team_size: int = 3,
-        params: Optional[RCSSParams] = None,
-        genome_code_pool: Optional[GenomeCodePool] = None,
+        params: RCSSParams | None = None,
+        genome_code_pool: GenomeCodePool | None = None,
     ):
         """Initialize the match runner.
 
@@ -97,7 +97,7 @@ class SoccerMatchRunner:
             field_width=60.0,
         )
         self._genome_code_pool = genome_code_pool
-        self._engine: Optional[RCSSLiteEngine] = None
+        self._engine: RCSSLiteEngine | None = None
 
     def run_episode(
         self,

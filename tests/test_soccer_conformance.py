@@ -333,8 +333,6 @@ def test_different_policies_produce_different_actions(genome_code_pool):
         "field_width": 100.0,
     }
 
-    rng = pyrandom.Random(42)
-
     # Execute striker policy
     striker_genome = MockGenome(policy_id=BUILTIN_STRIKER_SOCCER_ID)
     striker_action = run_policy(genome_code_pool, striker_genome, obs, rng=pyrandom.Random(42))
