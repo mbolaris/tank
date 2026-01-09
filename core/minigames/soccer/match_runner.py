@@ -158,18 +158,52 @@ class SoccerMatchRunner:
         episode_rng = pyrandom.Random(seed)
 
         # Run episode
+        prev_ball_x = 0.0
         for frame in range(frames):
+            # Track ball position before step for shaped reward
+            ball_state = self._engine.get_ball()
+            prev_ball_x = ball_state.position.x
+
             # Queue autopolicy commands with forked RNG
             self._queue_autopolicy_commands(player_stats, genome_by_player, episode_rng)
 
             # Step engine
             step_result = self._engine.step_cycle()
 
-            # Track goals (events tracked by engine)
+            # Shaped reward: ball progress toward opponent goal
+            ball_state_after = self._engine.get_ball()
+            ball_delta_x = ball_state_after.position.x - prev_ball_x
+
+            # Award shaped reward to last toucher (if within recent window)
+            snapshot = self._engine.get_snapshot()
+            # Access private state for touch info (engine owns this)
+            last_touch_id = getattr(self._engine, "_last_touch_player_id", None)
+            last_touch_cycle = getattr(self._engine, "_last_touch_cycle", -1)
+
+            if last_touch_id and last_touch_id in player_stats:
+                # Only credit recent touches (within 10 cycles)
+                cycles_since_touch = self._engine.cycle - last_touch_cycle
+                if cycles_since_touch <= 10:
+                    stats = player_stats[last_touch_id]
+                    # Left team: wants ball to go right (positive x)
+                    # Right team: wants ball to go left (negative x)
+                    direction_multiplier = 1.0 if stats.team == "left" else -1.0
+                    shaped_reward = ball_delta_x * direction_multiplier * 0.01  # Small weight
+                    stats.total_reward += shaped_reward
+
+            # Track goals and assists from engine events
             for event in step_result.get("events", []):
                 if event.get("type") == "goal":
-                    # Could track scoring player or award assists here
-                    pass
+                    scorer_id = event.get("scorer_id")
+                    assist_id = event.get("assist_id")
+
+                    # Increment goal for scorer
+                    if scorer_id and scorer_id in player_stats:
+                        player_stats[scorer_id].goals += 1
+
+                    # Increment assist for assister
+                    if assist_id and assist_id in player_stats:
+                        player_stats[assist_id].assists += 1
 
         # Extract final score
         score = self._engine.score
