@@ -117,6 +117,8 @@ class SoccerConfig:
     duration_frames: int = SOCCER_EVALUATOR_DURATION_FRAMES
     max_events: int = SOCCER_MAX_EVENTS
     event_max_age_frames: int = SOCCER_EVENT_MAX_AGE_FRAMES
+    selection_strategy: str = "stratified"  # top_energy | weighted_energy | stratified
+    cooldown_matches: int = 3  # Matches to sit out after playing
 
 
 @dataclass
