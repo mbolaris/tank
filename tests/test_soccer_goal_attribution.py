@@ -76,27 +76,24 @@ def test_assist_credited_same_team_only(engine):
     """Test that assists are only credited to teammates, not opponents."""
     # Setup: two players from different teams touch ball before goal
     # Right team player positioned to score in left goal (negative x)
-    engine.add_player("left_1", "left", RCSSVector(-10, 0))
-    engine.add_player("right_1", "right", RCSSVector(-5, 0))
-    engine.set_ball_position(-10, 0)
+    # Place right_1 close enough to left goal to score (need < -7 to reach -52)
+    engine.add_player("left_1", "left", RCSSVector(-8, 0))
+    engine.add_player("right_1", "right", RCSSVector(-8, 2))
+    engine.set_ball_position(-8, 0)
 
-    # Left player touches first
-    engine.queue_command("left_1", RCSSCommand.kick(30, 0))
+    # Left player touches first with gentle kick
+    engine.queue_command("left_1", RCSSCommand.kick(10, 0))
     engine.step_cycle()
 
-    # Wait a bit for ball to move
-    for _ in range(3):
-        engine.step_cycle()
-
-    # Right player intercepts and scores toward left goal
+    # Ball moved slightly, position right player at ball
     ball = engine.get_ball()
-    # Position right player near ball
     right_player = engine.get_player("right_1")
     right_player.position.x = ball.position.x
     right_player.position.y = ball.position.y
+    right_player.body_angle = 3.14159  # Face left (negative x)
 
-    # Right player kicks toward left goal (negative x direction)
-    engine.queue_command("right_1", RCSSCommand.kick(100, 180))  # 180 degrees = backward
+    # Right player kicks toward left goal
+    engine.queue_command("right_1", RCSSCommand.kick(100, 0))  # Kick in facing direction
     engine.step_cycle()
 
     # Let ball travel to goal
