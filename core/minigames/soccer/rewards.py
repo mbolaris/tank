@@ -46,8 +46,6 @@ def apply_soccer_rewards(
     if not winner_team:
         return rewards
     if winner_team == "draw":
-        if mode != "pot_payout":
-            return rewards
         for participant_id, entity in player_map.items():
             if not hasattr(entity, "modify_energy"):
                 continue

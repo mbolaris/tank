@@ -199,6 +199,7 @@ def test_scheduler_applies_rewards_to_winners() -> None:
         cooldown_matches=0,  # Disable cooldown for this test
         entry_fee_energy=10.0,
         reward_mode="pot_payout",
+        reward_multiplier=1.0,
     )
 
     scheduler = SoccerMinigameScheduler(config, match_runner=forced_win_runner)
