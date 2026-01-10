@@ -285,6 +285,13 @@ class CommandHandlerMixin:
         elif action_str == "call":
             bet_amount = call_amount
         elif action_str == "raise":
+            if bet_amount <= 0:
+                if call_amount > 0:
+                    action_str = "call"
+                    bet_amount = call_amount
+                else:
+                    action_str = "check"
+                    bet_amount = 0
             # bet_amount is the raise amount on top of call
             pass
 
@@ -428,6 +435,116 @@ class CommandHandlerMixin:
                 return {"success": True, "rate": rate}
 
         return self._create_error_response("Could not access plant configuration")
+
+    def _cmd_set_soccer_league_enabled(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Handle 'set_soccer_league_enabled' command."""
+        if not data or "enabled" not in data:
+            return self._create_error_response("Missing 'enabled' parameter")
+
+        enabled = bool(data["enabled"])
+
+        engine = getattr(self.world, "engine", None)
+        config = getattr(engine, "config", None) if engine is not None else None
+        if config is None:
+            config = getattr(self.world, "simulation_config", None)
+
+        soccer_cfg = getattr(config, "soccer", None) if config is not None else None
+        if soccer_cfg is None:
+            return self._create_error_response("Could not access soccer configuration")
+
+        soccer_cfg.enabled = enabled
+        logger.info("Soccer league enabled set to %s", enabled)
+        self._invalidate_state_cache()
+        return {"success": True, "enabled": enabled}
+
+    def _cmd_set_soccer_league_config(
+        self: "SimulationRunner", data: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Handle 'set_soccer_league_config' command."""
+        if not data:
+            return self._create_error_response("Missing config payload")
+
+        engine = getattr(self.world, "engine", None)
+        config = getattr(engine, "config", None) if engine is not None else None
+        if config is None:
+            config = getattr(self.world, "simulation_config", None)
+
+        soccer_cfg = getattr(config, "soccer", None) if config is not None else None
+        if soccer_cfg is None:
+            return self._create_error_response("Could not access soccer configuration")
+
+        errors = []
+
+        def clamp_int(value: Any, min_value: int, max_value: int) -> int:
+            try:
+                ivalue = int(value)
+            except (TypeError, ValueError):
+                raise ValueError("must be an integer")
+            return max(min_value, min(max_value, ivalue))
+
+        def clamp_float(value: Any, min_value: float, max_value: float) -> float:
+            try:
+                fvalue = float(value)
+            except (TypeError, ValueError):
+                raise ValueError("must be a number")
+            return max(min_value, min(max_value, fvalue))
+
+        field_map = {
+            "match_every_frames": ("match_every_frames", lambda v: clamp_int(v, 1, 600)),
+            "duration_frames": ("duration_frames", lambda v: clamp_int(v, 10, 2000)),
+            "duration_cycles": ("duration_frames", lambda v: clamp_int(v, 10, 2000)),
+            "matches_per_tick": ("matches_per_tick", lambda v: clamp_int(v, 0, 5)),
+            "min_players": ("min_players", lambda v: clamp_int(v, 2, 200)),
+            "num_players": ("num_players", lambda v: clamp_int(v, 2, 200)),
+            "team_size": ("team_size", lambda v: clamp_int(v, 0, 100)),
+            "entry_fee_energy": ("entry_fee_energy", lambda v: clamp_float(v, 0.0, 500.0)),
+            "reward_multiplier": ("reward_multiplier", lambda v: clamp_float(v, 0.1, 5.0)),
+            "repro_credit_award": ("repro_credit_award", lambda v: clamp_float(v, 0.0, 10.0)),
+            "repro_credit_required": ("repro_credit_required", lambda v: clamp_float(v, 0.0, 10.0)),
+        }
+
+        for key, (attr, caster) in field_map.items():
+            if key not in data:
+                continue
+            try:
+                setattr(soccer_cfg, attr, caster(data[key]))
+            except ValueError as exc:
+                errors.append(f"{key} {exc}")
+
+        if "reward_mode" in data:
+            mode = str(data["reward_mode"]).strip().lower()
+            if mode not in {"pot_payout", "refill_to_max"}:
+                errors.append("reward_mode must be 'pot_payout' or 'refill_to_max'")
+            else:
+                soccer_cfg.reward_mode = mode
+
+        if "repro_reward_mode" in data:
+            mode = str(data["repro_reward_mode"]).strip().lower()
+            if mode not in {"credits"}:
+                errors.append("repro_reward_mode must be 'credits'")
+            else:
+                soccer_cfg.repro_reward_mode = mode
+
+        if "selection_strategy" in data:
+            soccer_cfg.selection_strategy = str(data["selection_strategy"]).strip().lower()
+
+        if "allow_repeat_within_match" in data:
+            soccer_cfg.allow_repeat_within_match = bool(data["allow_repeat_within_match"])
+
+        if "cooldown_matches" in data:
+            try:
+                soccer_cfg.cooldown_matches = clamp_int(data["cooldown_matches"], 0, 10)
+            except ValueError as exc:
+                errors.append(f"cooldown_matches {exc}")
+
+        if errors:
+            return self._create_error_response("; ".join(errors))
+
+        logger.info("Soccer league config updated")
+        self._invalidate_state_cache()
+        return {"success": True}
 
     def _cmd_start_soccer(
         self: "SimulationRunner", data: Dict[str, Any]

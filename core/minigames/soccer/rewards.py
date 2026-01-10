@@ -75,8 +75,6 @@ def apply_soccer_rewards(
             if applied != 0:
                 rewards[participant_id] = applied
     elif mode == "refill_to_max":
-        if sum(entry_fees.values()) <= 0:
-            return rewards
         for participant_id in winner_ids:
             entity = player_map[participant_id]
             if not hasattr(entity, "modify_energy"):

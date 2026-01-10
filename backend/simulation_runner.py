@@ -1407,6 +1407,8 @@ class SimulationRunner(CommandHandlerMixin):
                 "poker_autopilot_action": self._cmd_poker_autopilot_action,
                 "standard_poker_series": self._cmd_standard_poker_series,
                 "set_plant_energy_input": self._cmd_set_plant_energy_input,
+                "set_soccer_league_enabled": self._cmd_set_soccer_league_enabled,
+                "set_soccer_league_config": self._cmd_set_soccer_league_config,
                 "start_soccer": self._cmd_start_soccer,
                 "soccer_step": self._cmd_soccer_step,
                 "end_soccer": self._cmd_end_soccer,

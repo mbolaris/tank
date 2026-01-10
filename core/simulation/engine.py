@@ -312,6 +312,7 @@ class SimulationEngine:
         if hasattr(pack, "register_contracts"):
             pack.register_contracts(self)
         self._validate_system_phase_declarations()
+        self._assert_required_systems()
 
         # 4. Wire up the pipeline (pack can override or use default)
         from core.simulation.pipeline import default_pipeline
@@ -334,6 +335,19 @@ class SimulationEngine:
             self._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
         else:
             self._phase_hooks = NoOpPhaseHooks()
+
+    def _assert_required_systems(self) -> None:
+        """Fail fast if core systems were not wired by the SystemPack."""
+        required = {
+            "lifecycle_system": self.lifecycle_system,
+            "collision_system": self.collision_system,
+            "poker_proximity_system": self.poker_proximity_system,
+            "poker_system": self.poker_system,
+            "reproduction_system": self.reproduction_system,
+        }
+        missing = [name for name, system in required.items() if system is None]
+        if missing:
+            raise AssertionError(f"SystemPack did not initialize required systems: {missing}")
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
