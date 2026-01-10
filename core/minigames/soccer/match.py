@@ -82,6 +82,7 @@ class SoccerMatch:
         self.winner_team: str | None = None
         self.message = "Match starting..."
         self.view_mode = view_mode
+        self._last_goal_event: dict[str, Any] | None = None
 
         # Convert fish to participants
         self.participants, self.player_map = create_participants_from_fish(fish_players)
@@ -179,6 +180,9 @@ class SoccerMatch:
             # Check for goals
             for event in step_result.get("events", []):
                 if event.get("type") == "goal":
+                    event = dict(event)
+                    event["frame"] = self.current_frame
+                    self._last_goal_event = event
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
 
@@ -392,6 +396,7 @@ class SoccerMatch:
             "message": self.message,
             "frame": self.current_frame,
             "score": score,
+            "last_goal": self._last_goal_event,
             "entities": entities_dicts,
             "view_mode": self.view_mode,
             "teams": {

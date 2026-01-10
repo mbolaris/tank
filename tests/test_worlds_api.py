@@ -66,10 +66,11 @@ class TestWorldTypesEndpoint:
         assert types["tank"]["supports_persistence"] is True
         assert types["tank"]["view_mode"] == "side"
 
-    @pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
     def test_soccer_does_not_support_persistence(self, test_client):
-        """Test that soccer world does not support persistence."""
-        pass
+        """Soccer is a minigame; it should not appear as a world type."""
+        response = test_client.get("/api/worlds/types")
+        types = {t["mode_id"]: t for t in response.json()}
+        assert "soccer" not in types
 
 
 class TestCreatePetriWorld:
@@ -121,17 +122,16 @@ class TestCreatePetriWorld:
         assert step_response.json()["frame_count"] == initial_frame + 1
 
 
-@pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
-class TestCreateSoccerWorld:
-    """Tests for creating soccer worlds (SKIPPED - soccer is now a minigame)."""
+class TestSoccerWorldGuards:
+    """Tests that soccer cannot be created as a world."""
 
-    def test_create_soccer_world(self, test_client):
-        """Test creating a soccer world."""
-        pass
-
-    def test_step_soccer_world(self, test_client):
-        """Test stepping a soccer world advances frame."""
-        pass
+    def test_create_soccer_world_returns_400(self, test_client):
+        """Soccer should not be a valid world type."""
+        response = test_client.post(
+            "/api/worlds",
+            json={"world_type": "soccer", "name": "Soccer World"},
+        )
+        assert response.status_code == 400
 
 
 class TestWorldOperations:
@@ -294,7 +294,10 @@ class TestFastForwardEndpoint:
         assert response.status_code == 200
         assert response.json()["fast_forward"] is False
 
-    @pytest.mark.skip(reason="Soccer is now a minigame, not a world mode")
     def test_fast_forward_soccer_world_no_crash(self, test_client):
-        """Test that fast_forward doesn't crash on soccer (WorldRunner) worlds."""
-        pass
+        """Fast-forward should not accept soccer because it is not a world type."""
+        response = test_client.post(
+            "/api/worlds",
+            json={"world_type": "soccer", "name": "Soccer World"},
+        )
+        assert response.status_code == 400

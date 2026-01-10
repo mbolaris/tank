@@ -94,7 +94,7 @@ class MockTankRunner:
 
 
 class MockWorldRunner:
-    """Mock runner for non-tank worlds (petri, soccer) with get_state()."""
+    """Mock runner for non-tank worlds (petri, etc.) with get_state()."""
 
     def __init__(self) -> None:
         self.world_id = "mock-petri-id"

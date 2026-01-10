@@ -995,6 +995,7 @@ class SimulationEngine:
                 "left": list(outcome.teams.get("left", [])),
                 "right": list(outcome.teams.get("right", [])),
             },
+            "last_goal": outcome.last_goal,
             "skipped": outcome.skipped,
             "skip_reason": outcome.skip_reason,
         }

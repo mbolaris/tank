@@ -157,11 +157,11 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 - [ ] Add Petri mode benchmarks:
   - [ ] `benchmarks/petri/survival_30k.py`
   - [ ] `benchmarks/petri/reproduction_30k.py`
-- [ ] Add Soccer training benchmarks (when Soccer world is ready):
+- [ ] Add Soccer training benchmarks (when the soccer minigame is ready):
   - [ ] `benchmarks/soccer/goal_contribution.py`
   - [ ] `benchmarks/soccer/positioning.py`
 - [ ] Add cross-mode benchmarks:
-  - [ ] Algorithm portability across Tank/Petri/Soccer
+  - [ ] Algorithm portability across Tank/Petri + soccer minigame rules
   - [ ] Transfer learning effectiveness
 
 ### Genetic Analysis Challenge (GAC)

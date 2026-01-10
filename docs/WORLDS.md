@@ -4,7 +4,7 @@ This document defines the standard world loop contract that all world backends m
 
 ## Overview
 
-All worlds (Tank, Petri, Soccer) implement the same phase loop and action/observation interfaces. This enables:
+All worlds (Tank, Petri) implement the same phase loop and action/observation interfaces. This enables:
 
 - **Consistent API**: External brains interact with any world through the same interface
 - **Shared engine core**: Worlds reuse common infrastructure without code duplication
@@ -57,7 +57,7 @@ The `render_hint` provides frontend-agnostic rendering metadata:
 Built-in render hints:
 - **Tank**: `{"style": "side", "entity_style": "fish"}`
 - **Petri**: `{"style": "topdown", "entity_style": "microbe"}`
-- **Soccer**: `{"style": "topdown", "entity_style": "player"}`
+- **Soccer minigame**: Uses its own match snapshot format and rendering hints.
 
 ## Phase Order
 
@@ -167,7 +167,6 @@ register_action_translator("my_world", MyWorldActionTranslator())
 |-------|---------|--------|-------------|
 | tank | `TankWorldBackendAdapter` | `SimulationEngine` | Fish ecosystem simulation |
 | petri | `PetriWorldBackendAdapter` | Reuses Tank | Microbe simulation (same rules, different visuals) |
-| soccer | `SoccerWorldBackendAdapter` | Custom | Soccer RL training with pure-Python physics |
 
 ## Related Files
 

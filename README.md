@@ -441,13 +441,13 @@ tank/
 |   |   |-- rulesets.py      # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
 |   |   |-- tank.py          # Tank mode pack configuration
 |   |   |-- petri.py         # Petri mode pack configuration
-|   |   `-- soccer.py        # Soccer mode pack configuration
+|   |   `-- soccer.py        # Soccer ruleset configuration (minigame)
 |   |-- worlds/              # World backend implementations
 |   |   |-- interfaces.py    # MultiAgentWorldBackend, StepResult
 |   |   |-- registry.py      # WorldRegistry (factory for world backends)
 |   |   |-- tank/            # Tank world backend + system pack
 |   |   |-- petri/           # Petri world backend
-|   |   `-- soccer/          # Soccer world backend (pure-Python physics)
+|   |-- minigames/           # Soccer and other minigames
 |   |-- simulation/          # Engine orchestration + diagnostics
 |   |   |-- engine.py        # Simulation engine used by both modes
 |   |   |-- entity_manager.py
@@ -617,7 +617,7 @@ This simulation demonstrates:
 ## Recent Improvements & Future Enhancements
 
 Recently Completed: ✅
-- [✅] **Multi-World Backend Architecture** - WorldRegistry + MultiAgentWorldBackend for Tank/Petri/Soccer worlds
+- [✅] **Multi-World Backend Architecture** - WorldRegistry + MultiAgentWorldBackend for Tank/Petri worlds
 - [✅] **Mode RuleSet Abstraction** - TankRuleSet, PetriRuleSet, SoccerRuleSet with energy/scoring models
 - [✅] **Agent Component System** - PerceptionComponent, LocomotionComponent, FeedingComponent for reuse
 - [✅] **Fractal Plants with L-System Genetics** - Procedurally generated plants with genetic evolution!
@@ -658,7 +658,7 @@ Potential Future Additions:
 The simulation uses a clean architecture with separation of concerns:
 
 - **Multi-World Backend** (`core/worlds/`): Domain-agnostic world abstraction
-  - `MultiAgentWorldBackend` interface for all world types (Tank, Petri, Soccer)
+  - `MultiAgentWorldBackend` interface for Tank and Petri worlds
   - `WorldRegistry` factory for creating worlds from mode IDs
   - Each world type has its own backend adapter (e.g., `TankWorldBackendAdapter`)
   - Enables easy addition of new world types
@@ -666,7 +666,7 @@ The simulation uses a clean architecture with separation of concerns:
 - **Mode System** (`core/modes/`): Mode configuration and rules
   - `ModePack` defines mode configs, display names, and capabilities
   - `ModeRuleSet` encapsulates game rules (energy models, scoring, allowed actions)
-  - Built-in modes: Tank (fish ecosystem), Petri (microbes), Soccer (RL training)
+  - Built-in modes: Tank (fish ecosystem), Petri (microbes), Soccer (minigame ruleset)
 
 - **Agent Components** (`core/agents/components/`): Reusable agent building blocks
   - `PerceptionComponent` - memory queries, food/danger tracking

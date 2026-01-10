@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from core.minigames.soccer.match import SoccerMatch
 
@@ -27,6 +28,7 @@ class SoccerMinigameOutcome:
     teams: dict[str, list[int]]
     skipped: bool = False
     skip_reason: str = ""
+    last_goal: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

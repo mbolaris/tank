@@ -137,6 +137,38 @@ export interface PokerEventData {
     is_plant?: boolean;  // True if this is a plant poker game
 }
 
+export interface SoccerGoalEvent {
+    team: 'left' | 'right';
+    scorer_id?: string;
+    assist_id?: string;
+    cycle?: number;
+    frame?: number;
+}
+
+export interface SoccerEventData {
+    frame: number;
+    match_id: string;
+    match_counter: number;
+    winner_team: 'left' | 'right' | 'draw' | null;
+    score_left: number;
+    score_right: number;
+    frames: number;
+    seed?: number | null;
+    selection_seed?: number | null;
+    message?: string;
+    rewarded?: Record<string, number>;
+    entry_fees?: Record<string, number>;
+    energy_deltas?: Record<string, number>;
+    repro_credit_deltas?: Record<string, number>;
+    teams?: {
+        left: number[];
+        right: number[];
+    };
+    last_goal?: SoccerGoalEvent | null;
+    skipped?: boolean;
+    skip_reason?: string;
+}
+
 export interface PokerLeaderboardEntry {
     rank: number;
     fish_id: number;
@@ -408,6 +440,7 @@ export interface SimulationUpdate {
         entities: EntityData[];
         stats: StatsData;
         poker_events: PokerEventData[];
+        soccer_events: SoccerEventData[];
         poker_leaderboard: PokerLeaderboardEntry[];
         auto_evaluation?: AutoEvaluateStats;
         render_hint?: Record<string, unknown>;
@@ -419,6 +452,7 @@ export interface SimulationUpdate {
     entities?: EntityData[];
     stats?: StatsData;
     poker_events?: PokerEventData[];
+    soccer_events?: SoccerEventData[];
     poker_leaderboard?: PokerLeaderboardEntry[];
     auto_evaluation?: AutoEvaluateStats;
 }
@@ -438,6 +472,7 @@ export interface DeltaUpdate {
         added: EntityData[];
         removed: number[];
         poker_events: PokerEventData[];
+        soccer_events?: SoccerEventData[];
         stats?: StatsData;
         render_hint?: Record<string, unknown>;
     };

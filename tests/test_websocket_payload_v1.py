@@ -3,7 +3,7 @@
 These tests ensure:
 1. All world types return payloads with required V1 keys
 2. Frontend types don't regress to legacy patterns
-3. Payload structure is consistent across tank/petri/soccer
+3. Payload structure is consistent across tank/petri
 """
 
 import json
@@ -56,6 +56,7 @@ def test_tank_payload_has_required_v1_keys():
     assert "elapsed_time" in snapshot, "Snapshot must have 'elapsed_time'"
     assert "entities" in snapshot, "Snapshot must have 'entities'"
     assert "stats" in snapshot, "Snapshot must have 'stats'"
+    assert "soccer_events" in snapshot, "Snapshot must have 'soccer_events'"
 
 
 def test_petri_payload_has_required_v1_keys():

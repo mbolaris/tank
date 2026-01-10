@@ -520,6 +520,31 @@ class PokerEventPayload:
 
 
 @dataclass
+class SoccerEventPayload:
+    frame: int
+    match_id: str
+    match_counter: int
+    winner_team: str | None
+    score_left: int
+    score_right: int
+    frames: int
+    seed: int | None = None
+    selection_seed: int | None = None
+    message: str | None = None
+    rewarded: dict[str, float] = field(default_factory=dict)
+    entry_fees: dict[str, float] = field(default_factory=dict)
+    energy_deltas: dict[str, float] = field(default_factory=dict)
+    repro_credit_deltas: dict[str, float] = field(default_factory=dict)
+    teams: dict[str, list[int]] = field(default_factory=dict)
+    last_goal: dict[str, Any] | None = None
+    skipped: bool = False
+    skip_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return _to_dict(self)
+
+
+@dataclass
 class PokerLeaderboardEntryPayload:
     rank: int
     fish_id: int
@@ -571,6 +596,7 @@ class FullStatePayload:
     entities: list[EntitySnapshot]
     stats: StatsPayload
     poker_events: list[PokerEventPayload]
+    soccer_events: list[SoccerEventPayload]
     poker_leaderboard: list[PokerLeaderboardEntryPayload]
     auto_evaluation: AutoEvaluateStatsPayload | None = None
     type: str = "update"
@@ -587,6 +613,7 @@ class FullStatePayload:
             "entities": [e.to_full_dict() for e in self.entities],
             "stats": self.stats.to_dict(),
             "poker_events": [e.to_dict() for e in self.poker_events],
+            "soccer_events": [e.to_dict() for e in self.soccer_events],
             "poker_leaderboard": [e.to_dict() for e in self.poker_leaderboard],
         }
         if self.auto_evaluation:
@@ -624,6 +651,7 @@ class DeltaStatePayload:
     added: list[dict[str, Any]]
     removed: list[int]
     poker_events: list[PokerEventPayload] | None = None
+    soccer_events: list[SoccerEventPayload] | None = None
     stats: StatsPayload | None = None
     type: str = "delta"
     world_id: str | None = None  # World identifier for multi-world mode
@@ -642,6 +670,8 @@ class DeltaStatePayload:
         }
         if self.poker_events is not None:
             snapshot["poker_events"] = [e.to_dict() for e in self.poker_events]
+        if self.soccer_events is not None:
+            snapshot["soccer_events"] = [e.to_dict() for e in self.soccer_events]
         if self.stats:
             snapshot["stats"] = self.stats.to_dict()
 

@@ -183,6 +183,7 @@ def finalize_soccer_match(
         entry_fees=dict(entry_fees),
         energy_deltas=energy_deltas,
         repro_credit_deltas=repro_credit_deltas,
+        last_goal=state.get("last_goal"),
         teams={
             "left": list(state.get("teams", {}).get("left", [])),
             "right": list(state.get("teams", {}).get("right", [])),

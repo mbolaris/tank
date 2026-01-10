@@ -229,6 +229,7 @@ class WorldManager:
             world_id=world_id,
             world_name=name,
             world_type=world_type,
+            config=config,
         )
         runner.world_manager = self
 

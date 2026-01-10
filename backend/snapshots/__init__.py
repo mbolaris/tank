@@ -4,7 +4,8 @@ This package provides:
 - SnapshotBuilder: Protocol for building entity snapshots from world entities
 - TankSnapshotBuilder: Implementation for tank world (Fish, Plant, Crab, etc.)
 
-Other world implementations (Petri, Soccer) will add their own snapshot builders.
+Other world implementations (Petri) will add their own snapshot builders.
+Soccer uses a dedicated minigame snapshot path.
 """
 
 from backend.snapshots.interfaces import SnapshotBuilder

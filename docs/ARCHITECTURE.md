@@ -36,7 +36,7 @@ tank/
 |   |   |-- registry.py            # WorldRegistry (factory for world backends)
 |   |   |-- tank/                  # TankWorldBackendAdapter + TankSystemPack
 |   |   |-- petri/                 # PetriWorldBackendAdapter
-|   |   `-- soccer/                # SoccerWorldBackendAdapter (pure-Python physics)
+|   |-- minigames/                 # Soccer and other minigames
 |   |-- algorithms/                # Behavior strategy library + registry
 |   |-- entities/                  # Fish, plant, predator, and resource models
 |   |-- fish/                      # Componentized fish systems (energy, lifecycle, reproduction, poker stats)
@@ -101,7 +101,8 @@ The codebase uses a domain-agnostic world abstraction to support multiple simula
 - **Built-in backends**:
   - `TankWorldBackendAdapter` - Fish ecosystem simulation
   - `PetriWorldBackendAdapter` - Microbe simulation (same rules, different visuals)
-  - `SoccerWorldBackendAdapter` - Soccer RL training with pure-Python physics
+- **Minigames**:
+  - `core/minigames/soccer` - Soccer league + training primitives (pure-Python physics)
 
 ### Mode System (core/modes/)
 

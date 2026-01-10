@@ -2,7 +2,7 @@
 
 This module defines the SnapshotBuilder protocol that all world-specific
 snapshot builders must implement. The protocol ensures consistent entity
-serialization across different world types (Tank, Petri, Soccer, etc.).
+serialization across different world types (Tank, Petri, etc.).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class SnapshotBuilder(Protocol):
     """Protocol for building frontend entity snapshots from world entities.
 
-    Each world type (Tank, Petri, Soccer) provides its own implementation
+    Each world type (Tank, Petri) provides its own implementation
     that knows how to convert its specific entity types to EntitySnapshot DTOs.
 
     The protocol ensures:

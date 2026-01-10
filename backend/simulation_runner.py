@@ -33,6 +33,7 @@ from backend.state_payloads import (
     PokerEventPayload,
     PokerLeaderboardEntryPayload,
     PokerStatsPayload,
+    SoccerEventPayload,
     StatsPayload,
 )
 from backend.world_registry import create_world, get_world_metadata
@@ -57,6 +58,7 @@ class SimulationRunner(CommandHandlerMixin):
         world_name: Optional[str] = None,
         world_type: str = "tank",
         world_manager: Optional["WorldManager"] = None,
+        config: Optional[Dict[str, Any]] = None,
     ):
         """Initialize the simulation runner.
         world_type: Type of world to create (default "tank")
@@ -64,8 +66,11 @@ class SimulationRunner(CommandHandlerMixin):
         super().__init__()
         self.world_manager = world_manager
         self._seed = seed  # Store for later use (e.g., switch_world_type)
+        self._config = dict(config) if config else None
         # Create world via registry (world-agnostic)
-        self.world, self._entity_snapshot_builder = create_world(world_type, seed=seed)
+        self.world, self._entity_snapshot_builder = create_world(
+            world_type, seed=seed, config=self._config
+        )
 
         # Store world metadata for payloads
         metadata = get_world_metadata(world_type)
@@ -670,6 +675,8 @@ class SimulationRunner(CommandHandlerMixin):
         with self.lock:
             if seed is not None:
                 self.seed = seed
+            if config is not None:
+                self._config = dict(config)
 
             # create_world expects tank_type/world_type as first arg, but we call function create_world
             # self.create_world() in code refers to backend.world_registry.create_world?
@@ -677,7 +684,7 @@ class SimulationRunner(CommandHandlerMixin):
             # We import create_world at top level
 
             self.world, self._entity_snapshot_builder = create_world(
-                self.world_type, seed=self.seed
+                self.world_type, seed=self.seed, config=self._config
             )
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
@@ -975,12 +982,14 @@ class SimulationRunner(CommandHandlerMixin):
                 added=[],
                 removed=[],
                 poker_events=[],
+                soccer_events=[],
                 stats=None,
             )
 
         try:
             # Helper to get recent poker events
             poker_events = self._collect_poker_events()
+            soccer_events = self._collect_soccer_events()
 
             # Calculate derived stats properly
             # Calculate derived stats properly
@@ -1031,6 +1040,7 @@ class SimulationRunner(CommandHandlerMixin):
                     entities=entity_snapshots,
                     stats=stats,
                     poker_events=poker_events,  # Include events in full update
+                    soccer_events=soccer_events,
                     auto_evaluation=self._collect_auto_eval(),  # Re-using existing _collect_auto_eval
                     world_id=self.world_id,
                     poker_leaderboard=self._collect_poker_leaderboard(),  # Re-using existing _collect_poker_leaderboard
@@ -1063,6 +1073,7 @@ class SimulationRunner(CommandHandlerMixin):
                     removed=removed,
                     stats=stats,
                     # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
+                    # soccer_events=soccer_events, # REMOVED from delta to prevent leak/bloat
                     world_id=self.world_id,
                     mode_id=self.mode_id,
                     world_type=self.world_type,
@@ -1131,6 +1142,7 @@ class SimulationRunner(CommandHandlerMixin):
             logger.warning(f"Error building world extras from hooks: {e}")
             # Provide defaults
             state_dict["poker_events"] = []
+            state_dict["soccer_events"] = []
             state_dict["poker_leaderboard"] = []
             state_dict["auto_evaluation"] = None
 
@@ -1269,6 +1281,46 @@ class SimulationRunner(CommandHandlerMixin):
             )
 
         return poker_events
+
+    def _collect_soccer_events(self) -> List[SoccerEventPayload]:
+        soccer_events: List[SoccerEventPayload] = []
+
+        get_recent = getattr(self.world, "get_recent_soccer_events", None)
+        if callable(get_recent):
+            recent_events = get_recent(max_age_frames=60)
+        else:
+            engine = getattr(self.world, "engine", None)
+            if engine is None and hasattr(self.world, "world"):
+                engine = getattr(self.world.world, "engine", None)
+            if engine is None or not hasattr(engine, "get_recent_soccer_events"):
+                return soccer_events
+            recent_events = engine.get_recent_soccer_events(max_age_frames=60)
+
+        for event in recent_events:
+            soccer_events.append(
+                SoccerEventPayload(
+                    frame=event["frame"],
+                    match_id=event["match_id"],
+                    match_counter=event.get("match_counter", 0),
+                    winner_team=event.get("winner_team"),
+                    score_left=event.get("score_left", 0),
+                    score_right=event.get("score_right", 0),
+                    frames=event.get("frames", 0),
+                    seed=event.get("seed"),
+                    selection_seed=event.get("selection_seed"),
+                    message=event.get("message"),
+                    rewarded=event.get("rewarded", {}),
+                    entry_fees=event.get("entry_fees", {}),
+                    energy_deltas=event.get("energy_deltas", {}),
+                    repro_credit_deltas=event.get("repro_credit_deltas", {}),
+                    teams=event.get("teams", {}),
+                    last_goal=event.get("last_goal"),
+                    skipped=event.get("skipped", False),
+                    skip_reason=event.get("skip_reason"),
+                )
+            )
+
+        return soccer_events
 
     def _collect_poker_leaderboard(self) -> List[PokerLeaderboardEntryPayload]:
         # Guard: Only fish-based worlds have ecosystem with poker leaderboard

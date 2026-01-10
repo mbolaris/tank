@@ -83,6 +83,7 @@ export function useWebSocket(worldId?: string) {
                         update.entities = update.snapshot.entities;
                         update.stats = update.snapshot.stats;
                         update.poker_events = update.snapshot.poker_events;
+                        update.soccer_events = update.snapshot.soccer_events;
                         update.poker_leaderboard = update.snapshot.poker_leaderboard;
                         update.auto_evaluation = update.snapshot.auto_evaluation;
                         // Preserve mode fields from server
@@ -212,7 +213,16 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         return state;
     }
 
-    const { updates, added, removed, frame: nextFrame, elapsed_time: nextElapsedTime, stats: deltaStats, poker_events: deltaEvents } = deltaSnapshot;
+    const {
+        updates,
+        added,
+        removed,
+        frame: nextFrame,
+        elapsed_time: nextElapsedTime,
+        stats: deltaStats,
+        poker_events: deltaEvents,
+        soccer_events: deltaSoccerEvents
+    } = deltaSnapshot;
 
     // Current state entities (from V1 snapshot)
     const currentSnapshot = state.snapshot;
@@ -262,6 +272,10 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
     // Handle poker events (use delta events if present, otherwise preserve current)
     const currentEvents = currentSnapshot.poker_events ?? [];
     const nextEvents = (deltaEvents && deltaEvents.length > 0) ? deltaEvents.slice(-100) : currentEvents;
+    const currentSoccerEvents = currentSnapshot.soccer_events ?? [];
+    const nextSoccerEvents = (deltaSoccerEvents && deltaSoccerEvents.length > 0)
+        ? deltaSoccerEvents.slice(-100)
+        : currentSoccerEvents;
 
     // Construct new snapshot
     const nextSnapshot = {
@@ -271,6 +285,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         entities,
         stats: nextStats,
         poker_events: nextEvents,
+        soccer_events: nextSoccerEvents,
     };
 
     return {
@@ -288,6 +303,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         elapsed_time: nextElapsedTime,
         entities,
         poker_events: nextEvents,
+        soccer_events: nextSoccerEvents,
         stats: nextStats,
         poker_leaderboard: state.poker_leaderboard,
     };

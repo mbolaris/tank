@@ -1,6 +1,6 @@
 # Engine Pipeline Architecture
 
-The Engine Pipeline is the pluggable abstraction that controls the simulation update loop. It enables different modes (Tank, Petri, Soccer, etc.) to customize the simulation behavior without modifying `SimulationEngine`.
+The Engine Pipeline is the pluggable abstraction that controls the simulation update loop. It enables different modes (Tank, Petri, and soccer minigame rules) to customize the simulation behavior without modifying `SimulationEngine`.
 
 ## Overview
 

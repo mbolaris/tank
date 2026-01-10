@@ -51,6 +51,27 @@ def test_soccer_rewards_pot_payout_via_ledger() -> None:
     assert right.calls == [(-10.0, "soccer_entry_fee")]
 
 
+def test_soccer_rewards_draw_refunds_entry_fees() -> None:
+    """Draws refund entry fees to avoid silent energy sinks."""
+    left = DummyEnergyEntity(fish_id=1, energy=50.0, max_energy=200.0)
+    right = DummyEnergyEntity(fish_id=2, energy=50.0, max_energy=200.0)
+
+    entry_fees = apply_soccer_entry_fees([left, right], entry_fee_energy=10.0)
+    rewards = apply_soccer_rewards(
+        {"left_1": left, "right_1": right},
+        "draw",
+        reward_mode="pot_payout",
+        entry_fees=entry_fees,
+    )
+
+    assert entry_fees == {1: 10.0, 2: 10.0}
+    assert rewards == {"left_1": 10.0, "right_1": 10.0}
+    assert left.energy == 50.0
+    assert right.energy == 50.0
+    assert left.calls == [(-10.0, "soccer_entry_fee"), (10.0, "soccer_draw_refund")]
+    assert right.calls == [(-10.0, "soccer_entry_fee"), (10.0, "soccer_draw_refund")]
+
+
 def test_soccer_policy_mutation_changes_distribution() -> None:
     """Policy mutation should change the soccer policy distribution."""
     rng = random.Random(42)

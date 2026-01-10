@@ -21,18 +21,19 @@ The backend registry (`backend/world_registry.py`) only attaches runtime snapsho
 
 ## Available World Types
 
+Soccer runs as a minigame/league and is not registered as a world type.
+
 | Mode ID | World Type | View Mode | Persistent | Actions | Websocket | Transfer | Has Fish |
 |---------|-----------|-----------|------------|---------|-----------|----------|----------|
 | `tank` | tank | side | yes | no | yes | yes | yes |
 | `petri` | petri | topdown | yes | no | no | yes | yes |
-| `soccer` | soccer | topdown | no | yes | no | no | no |
 
 ## Capability Flags
 
 Each world type defines capability flags:
 
 - **`supports_persistence`**: Can save/restore world state (tanks persist their fish population)
-- **`supports_actions`**: Requires agent actions each step (soccer needs player inputs)
+- **`supports_actions`**: Requires agent actions each step
 - **`supports_websocket`**: Supports real-time websocket updates
 - **`supports_transfer`**: Supports entity transfer between worlds (fish migration)
 - **`has_fish`**: Contains fish entities and fish-specific systems
@@ -75,11 +76,10 @@ All world types share these core systems:
 - Same simulation rules as tank
 - Different visual perspective for organism studies
 
-### Soccer Mode
-- 2-team competitive gameplay
-- Episodic (match-based, not persistent)
-- Requires agent actions for player movement
-- Goal-based scoring and rewards
+### Soccer League (Minigame)
+- Scheduled, match-based evaluation layered onto tank/petri
+- Uses soccer rulesets and RCSS-Lite physics for training/evaluation
+- Rewards and repro credits are injected back into the main world
 
 ## Config Normalization
 

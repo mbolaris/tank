@@ -36,15 +36,28 @@ def apply_soccer_rewards(
     entry_fees: Mapping[int, float] | None = None,
     reward_multiplier: float = 1.0,
     reward_source: str = "soccer_win",
+    draw_refund_source: str = "soccer_draw_refund",
 ) -> dict[str, float]:
     """Apply energy rewards to the winning team via modify_energy()."""
-    if not winner_team or winner_team == "draw":
-        return {}
-
     mode = reward_mode.lower().strip()
     entry_fees = entry_fees or {}
 
     rewards: dict[str, float] = {}
+    if not winner_team:
+        return rewards
+    if winner_team == "draw":
+        if mode != "pot_payout":
+            return rewards
+        for participant_id, entity in player_map.items():
+            if not hasattr(entity, "modify_energy"):
+                continue
+            fee = entry_fees.get(get_entity_id(entity), 0.0)
+            if fee <= 0:
+                continue
+            applied = entity.modify_energy(fee, source=draw_refund_source)
+            if applied != 0:
+                rewards[participant_id] = applied
+        return rewards
     winner_ids = [pid for pid in player_map if pid.startswith(winner_team)]
     if not winner_ids:
         return rewards

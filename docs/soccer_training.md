@@ -1,8 +1,9 @@
-Soccer Training World
-=====================
+Soccer Training Minigame
+========================
 
-This world is a fast, in-process 2D soccer simulator for policy training and
-evolution. It is separate from the rcssserver adapter (evaluation target).
+This minigame is a fast, in-process 2D soccer simulator for policy training and
+evolution. It is separate from the rcssserver adapter (evaluation target) and
+runs as a league inside tank/petri worlds.
 
 Action Space
 ------------
@@ -50,6 +51,21 @@ Energy is tracked using the shared energy model:
 - Scoring a goal grants `goal_reward` energy to the scorer.
 - Assists grant `assist_reward` energy.
 - Possession within `possession_radius` grants `possession_reward` energy per tick.
+- Draws refund entry fees to avoid silent energy sinks.
 
 Fitness metrics are reported per agent and per team, with current energy as the
 primary fitness signal (plus raw goal/assist/possession counts for analysis).
+
+League Configuration Overrides
+------------------------------
+Enable the soccer league via world config overrides (CreateWorldRequest.config):
+
+- `soccer_enabled`: bool
+- `soccer_match_every_frames`: int (match cadence)
+- `soccer_matches_per_tick`: int
+- `soccer_entry_fee_energy`: float
+- `soccer_reward_mode`: "pot_payout" or "refill_to_max"
+- `soccer_reward_multiplier`: float
+- `soccer_repro_reward_mode`: "credits" or "none"
+- `soccer_repro_credit_award`: float
+- `soccer_repro_credit_required`: float

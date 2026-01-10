@@ -21,7 +21,7 @@ LEGACY_EXCEEDS: Set[str] = {
     "human_poker_game.py",
     "behavioral.py",  # genetics/behavioral.py
     "evolution_benchmark_tracker.py",
-    "world.py",  # soccer world (deprecated comment)
+    "world.py",  # legacy world facade (deprecated comment)
     "interaction.py",  # mixed_poker interaction
     "schooling.py",
     "base.py",  # algorithms/base.py
@@ -40,7 +40,7 @@ LEGACY_EXCEEDS: Set[str] = {
     "territory.py",
     "tracker.py",  # solutions/tracker.py
     "actions.py",  # composable/actions.py
-    "backend.py",  # soccer/backend.py
+    "backend.py",  # legacy soccer backend
     "benchmark.py",  # solutions/benchmark.py
     "interfaces.py",
     "collision_system.py",
@@ -53,7 +53,7 @@ LEGACY_EXCEEDS: Set[str] = {
     "skill_game_system.py",
     "standard.py",  # poker/strategy/implementations/standard.py
     "entity_transfer.py",  # core/transfer - 646 lines, migration serialization
-    "rcss_protocol.py",  # worlds/soccer - 537 lines, protocol handling
+    "rcss_protocol.py",  # legacy soccer protocol handling
 }
 
 # Maximum allowed lines for NEW files

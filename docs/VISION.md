@@ -218,7 +218,7 @@ Tank World development proceeds in phases, building toward fully automated resea
 - Deterministic simulation with headless mode (10-300x speedup)
 - Fish tank visualization with fractal plants and predators
 - Basic AI code evolution workflow (proven: 0% → 100% reproduction rate improvements)
-- Multi-world backend architecture (Tank/Petri/Soccer)
+- Multi-world backend architecture (Tank/Petri + soccer minigame)
 
 ### Phase 1: Evolution Loop MVP (Current Priority)
 **Goal**: Establish the BKS registry and evolutionary PR protocol.

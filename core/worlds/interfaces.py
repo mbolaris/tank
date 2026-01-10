@@ -52,7 +52,7 @@ class StepResult:
 class MultiAgentWorldBackend(ABC):
     """Abstract interface for multi-agent simulation worlds.
 
-    This interface is implemented by specific world backends (Tank, Petri, Soccer).
+    This interface is implemented by specific world backends (Tank, Petri).
     It provides a consistent API for:
     - Resetting the world with a seed and config
     - Stepping the simulation with agent actions

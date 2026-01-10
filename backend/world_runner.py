@@ -238,6 +238,7 @@ class WorldRunner:
             entities=self.get_entities_snapshot(),
             stats=stats,
             poker_events=[],
+            soccer_events=[],
             poker_leaderboard=[],
             world_id=self.world_id,
             mode_id=self.mode_id,

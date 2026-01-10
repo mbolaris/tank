@@ -33,7 +33,7 @@ Previously, the runner was tank-centric with hardcoded assumptions about poker, 
 ┌──────────────────▼──────────────────────┐
 │   World Backends + Simulation Core      │
 │  - TankWorld / TankWorldBackendAdapter  │
-│  - SoccerTrainingWorld                  │
+│  - Soccer minigame (league)             │
 │  - PetriWorld                           │
 │  - SimulationEngine + Entities          │
 └─────────────────────────────────────────┘
@@ -105,7 +105,7 @@ Default no-op implementation for non-tank worlds:
 - Doesn't support any special commands
 - No-op warmup/cleanup
 
-Used by: Soccer, Petri, and any future world types that don't need special features.
+Used by: Petri and any future world types that don't need special features.
 
 ## Integration with SimulationRunner
 

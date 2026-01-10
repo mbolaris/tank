@@ -7,6 +7,7 @@ import { PokerGame } from './PokerGame';
 import { SoccerGame } from './SoccerGame';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
+import SoccerLeagueEvents from './SoccerLeagueEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
@@ -431,6 +432,17 @@ export function TankView({ worldId }: TankViewProps) {
                     </div>
                 </CollapsibleSection>
             </div>
+
+            {state && (
+                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
+                    <div className="glass-panel" style={{ padding: '16px' }}>
+                        <SoccerLeagueEvents
+                            events={state.soccer_events ?? []}
+                            currentFrame={state.snapshot?.frame ?? state.frame ?? 0}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Poker Skill Benchmark (bb/100) */}
             <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
