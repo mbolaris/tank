@@ -161,19 +161,6 @@ export class SoccerTopDownRenderer implements Renderer {
                 this.drawPlayer(ctx, player, forceMicrobe);
             });
 
-            // Draw stamina bars
-            players.forEach(player => {
-                if (player.stamina !== undefined) {
-                    const barWidth = Math.max(player.radius * 2.5, 30);
-                    this.drawStaminaBar(
-                        ctx,
-                        player.x - barWidth / 2,
-                        player.y - player.radius - 12,
-                        barWidth,
-                        player.stamina
-                    );
-                }
-            });
 
             // Draw selection ring (top-most)
             if (options.selectedEntityId !== undefined && options.selectedEntityId !== null) {
@@ -466,57 +453,4 @@ export class SoccerTopDownRenderer implements Renderer {
 
 
 
-    private drawStaminaBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, stamina: number) {
-        const barHeight = 4;
-        const padding = 1;
-
-        // Background
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 1;
-        const radius = 2;
-        ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(x, y, width, barHeight, radius);
-        } else {
-            ctx.rect(x, y, width, barHeight);
-        }
-        ctx.fill();
-        ctx.stroke();
-
-        // Stamina bar (0-100)
-        const normalizedStamina = Math.max(0, Math.min(100, stamina));
-        let colorStart: string, colorEnd: string;
-
-        if (normalizedStamina < 30) {
-            colorStart = '#ff6b6b';
-            colorEnd = '#ef4444';
-        } else if (normalizedStamina < 60) {
-            colorStart = '#ffd93d';
-            colorEnd = '#fbbf24';
-        } else {
-            colorStart = '#6bffb8';
-            colorEnd = '#4ade80';
-        }
-
-        const barFillWidth = Math.max(0, (width - padding * 2) * (normalizedStamina / 100));
-
-        if (barFillWidth > 0) {
-            const gradient = ctx.createLinearGradient(x, y, x + barFillWidth, y);
-            gradient.addColorStop(0, colorStart);
-            gradient.addColorStop(1, colorEnd);
-            ctx.fillStyle = gradient;
-
-            ctx.beginPath();
-            if ((ctx as any).roundRect) {
-                (ctx as any).roundRect(x + padding, y + padding, barFillWidth, barHeight - padding * 2, radius - 1);
-            } else {
-                ctx.rect(x + padding, y + padding, barFillWidth, barHeight - padding * 2);
-            }
-            ctx.fill();
-        }
-
-        ctx.restore();
-    }
 }

@@ -175,6 +175,17 @@ class SoccerMatch:
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
 
+                    # Reward the scorer with maximum energy
+                    scorer_id = event.get("scorer_id")
+                    if scorer_id and scorer_id in self.player_map:
+                        entity = self.player_map[scorer_id]
+                        if hasattr(entity, "modify_energy") and hasattr(entity, "max_energy"):
+                            delta = entity.max_energy - entity.energy
+                            if delta > 0:
+                                entity.modify_energy(delta, source="soccer_goal")
+                        elif hasattr(entity, "energy"):
+                            entity.energy = getattr(entity, "max_energy", 1000.0)
+
             # Check for half-time
             if self.current_frame == self.duration_frames // 2:
                 self._handle_half_time()
