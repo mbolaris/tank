@@ -110,6 +110,9 @@ class SoccerMatch:
         # Initialize RCSS-Lite engine
         self._engine = RCSSLiteEngine(params=self._params, seed=seed)
 
+        # Store initial positions for resets (x, y, angle)
+        self._initial_positions: dict[str, tuple[float, float, float]] = {}
+
         # Add players to engine with formation positions
         team_size = len(self.participants) // 2
         self._setup_formations(team_size)
@@ -132,12 +135,14 @@ class SoccerMatch:
             left_id = f"left_{i + 1}"
             x = -half_length / 2 + (i % 4) * 8 - 10
             y = (i // 4 - team_size // 8) * 12
+            self._initial_positions[left_id] = (x, y, 0.0)
             self._engine.add_player(left_id, "left", RCSSVector(x, y), body_angle=0.0)
 
             # Right team - face left (pi radians)
             right_id = f"right_{i + 1}"
             x = half_length / 2 - (i % 4) * 8 + 10
             y = (i // 4 - team_size // 8) * 12
+            self._initial_positions[right_id] = (x, y, math.pi)
             self._engine.add_player(right_id, "right", RCSSVector(x, y), body_angle=math.pi)
 
     def step(self, num_steps: int = 1) -> dict[str, Any]:
@@ -167,8 +172,12 @@ class SoccerMatch:
             # Check for goals
             for event in step_result.get("events", []):
                 if event.get("type") == "goal":
-                    # Goal was scored - engine already reset ball
-                    pass
+                    # Goal was scored - engine reset ball/mode, we reset players
+                    self._reset_players()
+
+            # Check for half-time
+            if self.current_frame == self.duration_frames // 2:
+                self._handle_half_time()
 
             if self.current_frame >= self.duration_frames:
                 break
@@ -234,6 +243,47 @@ class SoccerMatch:
 
             if cmd:
                 self._engine.queue_command(player_id, cmd)
+
+    def _reset_players(self) -> None:
+        """Reset all players to their initial positions (start or after goal)."""
+        for player_id, (x, y, angle) in self._initial_positions.items():
+            player = self._engine.get_player(player_id)
+            if player:
+                player.position = RCSSVector(x, y)
+                player.velocity = RCSSVector(0.0, 0.0)
+                player.acceleration = RCSSVector(0.0, 0.0)
+                player.body_angle = angle
+                # We do not reset stamina to preserve fatigue mechanics
+
+    def _handle_half_time(self) -> None:
+        """Handle half-time side switch."""
+        logger.info("Half-time! Switching sides.")
+        self.message = "Half Time! Switching Sides"
+
+        # 1. Update engine side-swap state
+        self._engine.set_swapped_sides(True)
+
+        # 2. Update initial positions for side swap (invert all)
+        # x -> -x, y -> -y (rotate 180 degrees around center)
+        # angle -> angle + pi
+        new_positions = {}
+        for pid, (x, y, angle) in self._initial_positions.items():
+            new_angle = angle + math.pi
+            # Normalize angle
+            while new_angle > math.pi:
+                new_angle -= 2 * math.pi
+            new_positions[pid] = (-x, -y, new_angle)
+        self._initial_positions = new_positions
+
+        # 3. Reset players to new positions
+        self._reset_players()
+
+        # 4. Reset ball to center and set kick-off
+        self._engine.set_ball_position(0.0, 0.0)
+        # 2nd half kick-off usually by Right team (if Left started)
+        # But if sides swapped, Right Team is on Left Side.
+        # kick_off_right means Right Team kicks.
+        self._engine._play_mode = "kick_off_right"
 
     def _get_stable_id(self, key: str) -> int:
         """Get or assign a stable integer ID for an entity key."""

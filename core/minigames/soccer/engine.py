@@ -167,6 +167,9 @@ class RCSSLiteEngine:
         self._prev_touch_player_id: str | None = None
         self._prev_touch_cycle: int = -1
 
+        # Side swapping state (for half-time)
+        self._swapped_sides = False
+
     @property
     def cycle(self) -> int:
         """Current cycle number."""
@@ -207,6 +210,10 @@ class RCSSLiteEngine:
         self._ball.position = RCSSVector(x, y)
         self._ball.velocity = RCSSVector(0.0, 0.0)
         self._ball.acceleration = RCSSVector(0.0, 0.0)
+
+    def set_swapped_sides(self, swapped: bool) -> None:
+        """Set whether teams have swapped sides (affects goal attribution)."""
+        self._swapped_sides = swapped
 
     def queue_command(self, player_id: str, command: RCSSCommand) -> bool:
         """Queue a command for a player (applied at cycle end).
@@ -264,13 +271,15 @@ class RCSSLiteEngine:
         goal_info = self._check_goal()
         if goal_info:
             goal_team = goal_info["team"]
-            events.append({
-                "type": "goal",
-                "team": goal_team,
-                "cycle": self._cycle,
-                "scorer_id": goal_info.get("scorer_id"),
-                "assist_id": goal_info.get("assist_id"),
-            })
+            events.append(
+                {
+                    "type": "goal",
+                    "team": goal_team,
+                    "cycle": self._cycle,
+                    "scorer_id": goal_info.get("scorer_id"),
+                    "assist_id": goal_info.get("assist_id"),
+                }
+            )
             self._score[goal_team] += 1
             self._reset_for_kickoff(goal_team)
 
@@ -546,6 +555,12 @@ class RCSSLiteEngine:
         if not scoring_team:
             return None
 
+        # If sides are swapped, invert the scoring team
+        # (Geometric "right" score means ball in Left Goal.
+        # If swapped, Left Goal is defended by Right Team, so Left Team scored.)
+        if self._swapped_sides:
+            scoring_team = "left" if scoring_team == "right" else "right"
+
         # Attribute goal to last toucher
         scorer_id = self._last_touch_player_id
         assist_id: str | None = None
@@ -600,6 +615,7 @@ class RCSSLiteEngine:
         self._last_touch_cycle = -1
         self._prev_touch_player_id = None
         self._prev_touch_cycle = -1
+        self._swapped_sides = False
 
     def get_snapshot(self) -> dict[str, Any]:
         """Get current state as a snapshot dict."""
