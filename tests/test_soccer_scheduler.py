@@ -8,7 +8,7 @@ from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
     SelectionStrategy,
     SoccerMinigameOutcome,
-    create_soccer_match,
+    create_soccer_match_from_participants,
     finalize_soccer_match,
     select_soccer_participants,
 )
@@ -26,7 +26,10 @@ class DummyFish:
         self.calls: list[tuple[float, str]] = []
 
     def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
-        applied = min(amount, self.max_energy - self.energy)
+        if amount >= 0:
+            applied = min(amount, self.max_energy - self.energy)
+        else:
+            applied = max(amount, -self.energy)
         self.energy += applied
         self.calls.append((applied, source))
         return applied
@@ -65,6 +68,9 @@ def test_scheduler_deterministic_selection() -> None:
         strategy: SelectionStrategy = SelectionStrategy.TOP_ENERGY,
         cooldown_ids: frozenset[int] = frozenset(),
         selection_seed: int | None = None,
+        match_seed: int | None = None,
+        match_id: str | None = None,
+        **_: Any,
     ) -> SoccerMinigameOutcome:
         selected = select_soccer_participants(
             candidates,
@@ -76,25 +82,29 @@ def test_scheduler_deterministic_selection() -> None:
         half = len(selected) // 2
         left = [player.fish_id for player in selected[:half]]
         right = [player.fish_id for player in selected[half:]]
-        seed = None
-        if seed_base is not None:
-            seed = (int(seed_base) + int(match_counter)) & 0xFFFFFFFF
-        match_id = f"soccer_{seed}_{match_counter}"
+        seed = match_seed
+        match_id = match_id or f"soccer_{seed}_{match_counter}"
         return SoccerMinigameOutcome(
             match_id=match_id,
+            match_counter=match_counter,
             winner_team=None,
             score_left=0,
             score_right=0,
             frames=duration_frames,
             seed=seed,
+            selection_seed=selection_seed,
             message="",
             rewarded={},
+            entry_fees={},
+            energy_deltas={},
+            repro_credit_deltas={},
             teams={"left": left, "right": right},
         )
 
     config = SoccerConfig(
         enabled=True,
-        interval_frames=2,
+        match_every_frames=2,
+        matches_per_tick=1,
         min_players=2,
         num_players=4,
         duration_frames=1,
@@ -105,11 +115,13 @@ def test_scheduler_deterministic_selection() -> None:
     scheduler_a = SoccerMinigameScheduler(config, match_runner=fake_match_runner)
     scheduler_b = SoccerMinigameScheduler(config, match_runner=fake_match_runner)
 
-    outcome_a = scheduler_a.tick(engine, seed_base=123, cycle=2)
-    outcome_b = scheduler_b.tick(engine, seed_base=123, cycle=2)
+    outcomes_a = scheduler_a.tick(engine, seed_base=123, cycle=2)
+    outcomes_b = scheduler_b.tick(engine, seed_base=123, cycle=2)
 
-    assert outcome_a is not None
-    assert outcome_b is not None
+    assert outcomes_a
+    assert outcomes_b
+    outcome_a = outcomes_a[0]
+    outcome_b = outcomes_b[0]
     assert outcome_a.match_id == outcome_b.match_id
     assert outcome_a.teams == outcome_b.teams
     assert outcome_a.teams["left"] + outcome_a.teams["right"] == [2, 3, 4, 1]
@@ -117,8 +129,8 @@ def test_scheduler_deterministic_selection() -> None:
 
 def test_scheduler_applies_rewards_to_winners() -> None:
     """Scheduler outcomes use the energy ledger for winners."""
-    left = DummyFish(10, energy=25.0, max_energy=100.0)
-    right = DummyFish(20, energy=20.0, max_energy=100.0)
+    left = DummyFish(10, energy=50.0, max_energy=100.0)
+    right = DummyFish(20, energy=50.0, max_energy=100.0)
     engine = DummyEngine([left, right])
 
     def forced_win_runner(
@@ -133,6 +145,14 @@ def test_scheduler_applies_rewards_to_winners() -> None:
         strategy: SelectionStrategy = SelectionStrategy.TOP_ENERGY,
         cooldown_ids: frozenset[int] = frozenset(),
         selection_seed: int | None = None,
+        match_seed: int | None = None,
+        match_id: str | None = None,
+        entry_fee_energy: float = 0.0,
+        reward_mode: str = "pot_payout",
+        reward_multiplier: float = 1.0,
+        repro_reward_mode: str = "credits",
+        repro_credit_award: float = 0.0,
+        **_: Any,
     ) -> SoccerMinigameOutcome:
         # Select with strategy for realistic behavior
         selected = select_soccer_participants(
@@ -141,39 +161,56 @@ def test_scheduler_applies_rewards_to_winners() -> None:
             strategy=strategy,
             cooldown_ids=cooldown_ids,
             seed=selection_seed,
+            entry_fee_energy=entry_fee_energy,
         )
-        setup = create_soccer_match(
+        setup = create_soccer_match_from_participants(
             selected,
-            num_players=len(selected),
             duration_frames=duration_frames,
             code_source=code_source,
-            seed_base=seed_base,
+            seed=match_seed,
+            match_id=match_id,
             match_counter=match_counter,
+            selection_seed=selection_seed,
+            entry_fee_energy=entry_fee_energy,
         )
         match = setup.match
         match.winner_team = "left"
         match.game_over = True
-        return finalize_soccer_match(match, seed=setup.seed)
+        return finalize_soccer_match(
+            match,
+            seed=setup.seed,
+            match_counter=match_counter,
+            selection_seed=selection_seed,
+            entry_fees=setup.entry_fees,
+            reward_mode=reward_mode,
+            reward_multiplier=reward_multiplier,
+            repro_reward_mode=repro_reward_mode,
+            repro_credit_award=repro_credit_award,
+        )
 
     config = SoccerConfig(
         enabled=True,
-        interval_frames=1,
+        match_every_frames=1,
+        matches_per_tick=1,
         min_players=2,
         num_players=2,
         duration_frames=1,
         selection_strategy="top_energy",  # Predictable for assertion
         cooldown_matches=0,  # Disable cooldown for this test
+        entry_fee_energy=10.0,
+        reward_mode="pot_payout",
     )
 
     scheduler = SoccerMinigameScheduler(config, match_runner=forced_win_runner)
-    outcome = scheduler.tick(engine, seed_base=7, cycle=1)
+    outcomes = scheduler.tick(engine, seed_base=7, cycle=1)
 
-    assert outcome is not None
+    assert outcomes
+    outcome = outcomes[0]
     assert outcome.winner_team == "left"
-    assert left.energy == 100.0
-    assert right.energy == 20.0
-    assert left.calls == [(75.0, "soccer_win")]
-    assert right.calls == []
+    assert left.energy == 60.0
+    assert right.energy == 40.0
+    assert left.calls == [(-10.0, "soccer_entry_fee"), (20.0, "soccer_win")]
+    assert right.calls == [(-10.0, "soccer_entry_fee")]
 
 
 def test_selection_strategy_top_energy() -> None:
@@ -237,7 +274,7 @@ def test_cooldown_excludes_recent_players() -> None:
 
     selected = select_soccer_participants(
         fish,
-        4,
+        2,
         strategy=SelectionStrategy.TOP_ENERGY,
         cooldown_ids=cooldown_ids,
         seed=42,
@@ -256,46 +293,10 @@ def test_scheduler_cooldown_integration() -> None:
     fish = [DummyFish(i, energy=100.0 - i, max_energy=100.0) for i in range(1, 9)]
     engine = DummyEngine(fish)
 
-    match_participants: list[list[int]] = []
-
-    def tracking_runner(
-        candidates: Sequence[Any],
-        *,
-        num_players: int,
-        duration_frames: int,
-        code_source: Any | None,
-        seed_base: int | None,
-        match_counter: int,
-        step_batch: int,
-        strategy: SelectionStrategy = SelectionStrategy.TOP_ENERGY,
-        cooldown_ids: frozenset[int] = frozenset(),
-        selection_seed: int | None = None,
-    ) -> SoccerMinigameOutcome:
-        selected = select_soccer_participants(
-            candidates,
-            num_players,
-            strategy=strategy,
-            cooldown_ids=cooldown_ids,
-            seed=selection_seed,
-        )
-        participant_ids = [f.fish_id for f in selected]
-        match_participants.append(participant_ids)
-
-        return SoccerMinigameOutcome(
-            match_id=f"test_{match_counter}",
-            winner_team=None,
-            score_left=0,
-            score_right=0,
-            frames=1,
-            seed=None,
-            message="",
-            rewarded={},
-            teams={"left": participant_ids[:2], "right": participant_ids[2:]},
-        )
-
     config = SoccerConfig(
         enabled=True,
-        interval_frames=1,
+        match_every_frames=1,
+        matches_per_tick=1,
         min_players=4,
         num_players=4,
         duration_frames=1,
@@ -303,23 +304,23 @@ def test_scheduler_cooldown_integration() -> None:
         cooldown_matches=2,  # Sit out 2 matches
     )
 
-    scheduler = SoccerMinigameScheduler(config, match_runner=tracking_runner)
+    scheduler = SoccerMinigameScheduler(config)
 
     # Run 3 matches
+    outcomes = []
     for cycle in range(1, 4):
-        scheduler.tick(engine, seed_base=1, cycle=cycle)
+        outcomes.extend(scheduler.tick(engine, seed_base=1, cycle=cycle))
 
     # Match 1: fish 1,2,3,4 (highest energy)
     # Match 2: fish 5,6,7,8 (1,2,3,4 in cooldown)
     # Match 3: fish 1,2,3,4 (cooldown expired for them)
-    assert len(match_participants) == 3
+    assert len(outcomes) == 3
 
-    # First match gets top energy fish
-    first_match = set(match_participants[0])
+    first_match = set(outcomes[0].teams["left"] + outcomes[0].teams["right"])
     assert first_match == {1, 2, 3, 4}, f"First match got {first_match}"
 
     # Second match should NOT include any from first match (in cooldown)
-    second_match = set(match_participants[1])
+    second_match = set(outcomes[1].teams["left"] + outcomes[1].teams["right"])
     assert first_match.isdisjoint(
         second_match
     ), f"Second match {second_match} should not overlap with first {first_match}"

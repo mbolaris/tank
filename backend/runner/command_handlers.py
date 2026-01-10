@@ -22,7 +22,7 @@ from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.entities import Fish
 from core.genetics import Genome
 from core.human_poker_game import HumanPokerGame
-from core.minigames.soccer import create_soccer_match, finalize_soccer_match
+from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -462,6 +462,20 @@ class CommandHandlerMixin:
             code_source = getattr(self.world, "genome_code_pool", None)
             # Pass the view_mode so soccer can render correct avatar type
             view_mode = getattr(self, "view_mode", "side")  # "side" = tank, "top" = petri
+            soccer_cfg = None
+            engine = getattr(self.world, "engine", None)
+            if engine is not None:
+                soccer_cfg = getattr(engine.config, "soccer", None)
+
+            strategy = SelectionStrategy.STRATIFIED
+            if soccer_cfg is not None:
+                try:
+                    strategy = SelectionStrategy(
+                        getattr(soccer_cfg, "selection_strategy", "stratified")
+                    )
+                except ValueError:
+                    strategy = SelectionStrategy.STRATIFIED
+
             setup = create_soccer_match(
                 fish_list,
                 num_players=num_players,
@@ -471,10 +485,20 @@ class CommandHandlerMixin:
                 seed_base=seed_base,
                 match_counter=counter,
                 match_id=match_id,
+                strategy=strategy,
+                allow_repeat_within_match=bool(
+                    getattr(soccer_cfg, "allow_repeat_within_match", False)
+                ),
+                entry_fee_energy=float(getattr(soccer_cfg, "entry_fee_energy", 0.0))
+                if soccer_cfg is not None
+                else 0.0,
             )
             self.soccer_match = setup.match
             self._soccer_match_seed = setup.seed
             self._soccer_match_counter = counter + 1
+            self._soccer_match_entry_fees = setup.entry_fees
+            self._soccer_match_selection_seed = setup.selection_seed
+            self._soccer_match_counter_current = setup.match_counter
             logger.info(
                 "Started soccer match %s with %d players (view_mode=%s, seed=%s)",
                 setup.match_id,
@@ -527,8 +551,29 @@ class CommandHandlerMixin:
 
             outcome = None
             if match.game_over:
+                soccer_cfg = None
+                engine = getattr(self.world, "engine", None)
+                if engine is not None:
+                    soccer_cfg = getattr(engine.config, "soccer", None)
+
                 outcome = finalize_soccer_match(
-                    match, seed=getattr(self, "_soccer_match_seed", None)
+                    match,
+                    seed=getattr(self, "_soccer_match_seed", None),
+                    match_counter=getattr(self, "_soccer_match_counter_current", 0),
+                    selection_seed=getattr(self, "_soccer_match_selection_seed", None),
+                    entry_fees=getattr(self, "_soccer_match_entry_fees", None),
+                    reward_mode=getattr(soccer_cfg, "reward_mode", "pot_payout")
+                    if soccer_cfg is not None
+                    else "pot_payout",
+                    reward_multiplier=float(getattr(soccer_cfg, "reward_multiplier", 1.0))
+                    if soccer_cfg is not None
+                    else 1.0,
+                    repro_reward_mode=getattr(soccer_cfg, "repro_reward_mode", "credits")
+                    if soccer_cfg is not None
+                    else "credits",
+                    repro_credit_award=float(getattr(soccer_cfg, "repro_credit_award", 0.0))
+                    if soccer_cfg is not None
+                    else 0.0,
                 )
                 if outcome.rewarded:
                     logger.info(
@@ -537,6 +582,9 @@ class CommandHandlerMixin:
 
             self.soccer_match = None
             self._soccer_match_seed = None
+            self._soccer_match_entry_fees = None
+            self._soccer_match_selection_seed = None
+            self._soccer_match_counter_current = None
             logger.info("Soccer match ended")
 
             return {"success": True, "outcome": asdict(outcome) if outcome else None}

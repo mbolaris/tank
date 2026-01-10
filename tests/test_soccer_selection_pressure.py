@@ -8,36 +8,47 @@ from core.code_pool import create_default_genome_code_pool
 from core.experiments.soccer_evolution import create_population
 from core.genetics import Genome
 from core.genetics.code_policy_traits import CodePolicyMutationConfig, mutate_code_policies
-from core.minigames.soccer import apply_soccer_rewards
+from core.minigames.soccer import apply_soccer_entry_fees, apply_soccer_rewards
 
 
 class DummyEnergyEntity:
     """Test double for energy ledger validation."""
 
-    def __init__(self, energy: float, max_energy: float) -> None:
+    def __init__(self, fish_id: int, energy: float, max_energy: float) -> None:
+        self.fish_id = fish_id
         self.energy = energy
         self.max_energy = max_energy
         self.calls: list[tuple[float, str]] = []
 
     def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
-        applied = min(amount, self.max_energy - self.energy)
+        if amount >= 0:
+            applied = min(amount, self.max_energy - self.energy)
+        else:
+            applied = max(amount, -self.energy)
         self.energy += applied
         self.calls.append((applied, source))
         return applied
 
 
-def test_soccer_rewards_refill_via_ledger() -> None:
-    """Winners receive a max-energy refill through modify_energy()."""
-    left = DummyEnergyEntity(energy=20.0, max_energy=100.0)
-    right = DummyEnergyEntity(energy=80.0, max_energy=100.0)
+def test_soccer_rewards_pot_payout_via_ledger() -> None:
+    """Winners receive entry-fee payouts through modify_energy()."""
+    left = DummyEnergyEntity(fish_id=1, energy=50.0, max_energy=200.0)
+    right = DummyEnergyEntity(fish_id=2, energy=50.0, max_energy=200.0)
 
-    rewards = apply_soccer_rewards({"left_1": left, "right_1": right}, "left")
+    entry_fees = apply_soccer_entry_fees([left, right], entry_fee_energy=10.0)
+    rewards = apply_soccer_rewards(
+        {"left_1": left, "right_1": right},
+        "left",
+        reward_mode="pot_payout",
+        entry_fees=entry_fees,
+    )
 
-    assert rewards == {"left_1": 80.0}
-    assert left.energy == 100.0
-    assert right.energy == 80.0
-    assert left.calls == [(80.0, "soccer_win")]
-    assert right.calls == []
+    assert entry_fees == {1: 10.0, 2: 10.0}
+    assert rewards == {"left_1": 20.0}
+    assert left.energy == 60.0
+    assert right.energy == 40.0
+    assert left.calls == [(-10.0, "soccer_entry_fee"), (20.0, "soccer_win")]
+    assert right.calls == [(-10.0, "soccer_entry_fee")]
 
 
 def test_soccer_policy_mutation_changes_distribution() -> None:

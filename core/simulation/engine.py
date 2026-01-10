@@ -979,17 +979,24 @@ class SimulationEngine:
         event = {
             "frame": self.frame_count,
             "match_id": outcome.match_id,
+            "match_counter": outcome.match_counter,
             "winner_team": outcome.winner_team,
             "score_left": outcome.score_left,
             "score_right": outcome.score_right,
             "frames": outcome.frames,
             "seed": outcome.seed,
+            "selection_seed": outcome.selection_seed,
             "message": outcome.message,
             "rewarded": dict(outcome.rewarded),
+            "entry_fees": dict(outcome.entry_fees),
+            "energy_deltas": dict(outcome.energy_deltas),
+            "repro_credit_deltas": dict(outcome.repro_credit_deltas),
             "teams": {
                 "left": list(outcome.teams.get("left", [])),
                 "right": list(outcome.teams.get("right", [])),
             },
+            "skipped": outcome.skipped,
+            "skip_reason": outcome.skip_reason,
         }
         self._soccer_events.append(event)
 

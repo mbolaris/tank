@@ -168,9 +168,10 @@ class FishPlantPhaseHooks(PhaseHooks):
             return
 
         seed_base = getattr(engine, "seed", None)
-        outcome = scheduler.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
-        if outcome is not None and hasattr(engine, "add_soccer_event"):
-            engine.add_soccer_event(outcome)
+        outcomes = scheduler.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
+        if outcomes and hasattr(engine, "add_soccer_event"):
+            for outcome in outcomes:
+                engine.add_soccer_event(outcome)
 
     def _get_soccer_scheduler(self, engine: SimulationEngine):
         if self._soccer_scheduler is not None:

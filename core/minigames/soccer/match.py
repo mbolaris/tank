@@ -14,6 +14,7 @@ Key design decisions:
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 import random as pyrandom
@@ -89,8 +90,14 @@ class SoccerMatch:
         self._code_source = code_source
 
         # Initialize deterministic RNG from match seed
-        # Use hash of match_id if no seed provided (deterministic, no global random)
-        self._match_seed = seed if seed is not None else hash(match_id) & 0xFFFFFFFF
+        # Use a stable hash of match_id if no seed provided (deterministic, no global random)
+        if seed is not None:
+            self._match_seed = seed
+        else:
+            seed_material = match_id.encode("utf-8")
+            self._match_seed = (
+                int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little") & 0xFFFFFFFF
+            )
         self._rng = pyrandom.Random(self._match_seed)
 
         # Configure RCSS-Lite engine
@@ -174,17 +181,6 @@ class SoccerMatch:
                 if event.get("type") == "goal":
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
-
-                    # Reward the scorer with maximum energy
-                    scorer_id = event.get("scorer_id")
-                    if scorer_id and scorer_id in self.player_map:
-                        entity = self.player_map[scorer_id]
-                        if hasattr(entity, "modify_energy") and hasattr(entity, "max_energy"):
-                            delta = entity.max_energy - entity.energy
-                            if delta > 0:
-                                entity.modify_energy(delta, source="soccer_goal")
-                        elif hasattr(entity, "energy"):
-                            entity.energy = getattr(entity, "max_energy", 1000.0)
 
             # Check for half-time
             if self.current_frame == self.duration_frames // 2:

@@ -51,12 +51,36 @@ class ReproductionComponent:
     __slots__ = (
         "reproduction_cooldown",
         "overflow_energy_bank",
+        "repro_credits",
     )
 
     def __init__(self) -> None:
         """Initialize the reproduction component."""
         self.reproduction_cooldown: int = 0
         self.overflow_energy_bank: float = 0.0
+        self.repro_credits: float = 0.0
+
+    def add_repro_credits(self, amount: float) -> float:
+        """Increase reproduction credits by amount."""
+        if amount <= 0:
+            return 0.0
+        self.repro_credits += amount
+        return amount
+
+    def has_repro_credits(self, required: float) -> bool:
+        """Check whether enough reproduction credits are available."""
+        if required <= 0:
+            return True
+        return self.repro_credits >= required
+
+    def consume_repro_credits(self, required: float) -> bool:
+        """Consume reproduction credits if available."""
+        if required <= 0:
+            return True
+        if self.repro_credits < required:
+            return False
+        self.repro_credits -= required
+        return True
 
     def bank_overflow_energy(self, amount: float, max_bank: Optional[float] = None) -> float:
         """Bank overflow energy for future reproduction.

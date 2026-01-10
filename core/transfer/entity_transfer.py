@@ -351,6 +351,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
         "energy": fish.energy,
         "age": fish._lifecycle_component.age,
         "reproduction_cooldown": fish._reproduction_component.reproduction_cooldown,
+        "repro_credits": fish._reproduction_component.repro_credits,
         "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
         "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
         "genome_data": genome_data,
@@ -380,6 +381,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Ser
             "predator_last_seen": mutable_state["predator_last_seen"],
         },
         "reproduction_cooldown": mutable_state["reproduction_cooldown"],
+        "repro_credits": mutable_state["repro_credits"],
     }
 
 
@@ -546,6 +548,8 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         fish.vel.x = data.get("vel_x", 0.0)
         fish.vel.y = data.get("vel_y", 0.0)
         fish._reproduction_component.reproduction_cooldown = data.get("reproduction_cooldown", 0)
+        if "repro_credits" in data:
+            fish._reproduction_component.repro_credits = float(data.get("repro_credits", 0.0))
 
         # Restore memory (if applicable)
         if hasattr(fish, "memory") and "memory" in data:

@@ -49,6 +49,20 @@ from core.config.soccer import (
     SOCCER_EVALUATOR_MIN_PLAYERS,
     SOCCER_EVALUATOR_NUM_PLAYERS,
     SOCCER_EVENT_MAX_AGE_FRAMES,
+    SOCCER_LEAGUE_ALLOW_REPEAT_WITHIN_MATCH,
+    SOCCER_LEAGUE_COOLDOWN_MATCHES,
+    SOCCER_LEAGUE_ENTRY_FEE_ENERGY,
+    SOCCER_LEAGUE_MATCH_EVERY_FRAMES,
+    SOCCER_LEAGUE_MATCHES_PER_TICK,
+    SOCCER_LEAGUE_REPRO_CREDIT_AWARD,
+    SOCCER_LEAGUE_REPRO_CREDIT_INITIAL,
+    SOCCER_LEAGUE_REPRO_CREDIT_REQUIRED,
+    SOCCER_LEAGUE_REPRO_REWARD_MODE,
+    SOCCER_LEAGUE_REWARD_MODE,
+    SOCCER_LEAGUE_REWARD_MULTIPLIER,
+    SOCCER_LEAGUE_SEED_BASE,
+    SOCCER_LEAGUE_SELECTION_STRATEGY,
+    SOCCER_LEAGUE_TEAM_SIZE,
     SOCCER_MAX_EVENTS,
 )
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
@@ -112,13 +126,25 @@ class SoccerConfig:
 
     enabled: bool = SOCCER_EVALUATOR_ENABLED
     interval_frames: int = SOCCER_EVALUATOR_INTERVAL_FRAMES
+    match_every_frames: int = SOCCER_LEAGUE_MATCH_EVERY_FRAMES
+    matches_per_tick: int = SOCCER_LEAGUE_MATCHES_PER_TICK
     min_players: int = SOCCER_EVALUATOR_MIN_PLAYERS
     num_players: int = SOCCER_EVALUATOR_NUM_PLAYERS
+    team_size: int = SOCCER_LEAGUE_TEAM_SIZE
     duration_frames: int = SOCCER_EVALUATOR_DURATION_FRAMES
     max_events: int = SOCCER_MAX_EVENTS
     event_max_age_frames: int = SOCCER_EVENT_MAX_AGE_FRAMES
-    selection_strategy: str = "stratified"  # top_energy | weighted_energy | stratified
-    cooldown_matches: int = 3  # Matches to sit out after playing
+    selection_strategy: str = SOCCER_LEAGUE_SELECTION_STRATEGY
+    cooldown_matches: int = SOCCER_LEAGUE_COOLDOWN_MATCHES
+    allow_repeat_within_match: bool = SOCCER_LEAGUE_ALLOW_REPEAT_WITHIN_MATCH
+    seed_base: int | None = SOCCER_LEAGUE_SEED_BASE
+    reward_mode: str = SOCCER_LEAGUE_REWARD_MODE
+    reward_multiplier: float = SOCCER_LEAGUE_REWARD_MULTIPLIER
+    entry_fee_energy: float = SOCCER_LEAGUE_ENTRY_FEE_ENERGY
+    repro_reward_mode: str = SOCCER_LEAGUE_REPRO_REWARD_MODE
+    repro_credit_award: float = SOCCER_LEAGUE_REPRO_CREDIT_AWARD
+    repro_credit_required: float = SOCCER_LEAGUE_REPRO_CREDIT_REQUIRED
+    repro_credit_initial: float = SOCCER_LEAGUE_REPRO_CREDIT_INITIAL
 
 
 @dataclass
@@ -297,9 +323,23 @@ class SimulationConfig:
             "soccer_evaluator_enabled": "enabled",
             "soccer_enabled": "enabled",
             "soccer_interval_frames": "interval_frames",
+            "soccer_match_every_frames": "match_every_frames",
+            "soccer_matches_per_tick": "matches_per_tick",
             "soccer_min_players": "min_players",
             "soccer_num_players": "num_players",
+            "soccer_team_size": "team_size",
             "soccer_duration_frames": "duration_frames",
+            "soccer_selection_strategy": "selection_strategy",
+            "soccer_cooldown_matches": "cooldown_matches",
+            "soccer_allow_repeat_within_match": "allow_repeat_within_match",
+            "soccer_seed_base": "seed_base",
+            "soccer_reward_mode": "reward_mode",
+            "soccer_reward_multiplier": "reward_multiplier",
+            "soccer_entry_fee_energy": "entry_fee_energy",
+            "soccer_repro_reward_mode": "repro_reward_mode",
+            "soccer_repro_credit_award": "repro_credit_award",
+            "soccer_repro_credit_required": "repro_credit_required",
+            "soccer_repro_credit_initial": "repro_credit_initial",
         }
         for flat_key, attr in soccer_map.items():
             if flat_key in config_dict:

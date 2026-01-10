@@ -95,6 +95,12 @@ class ReproductionService:
         if winner is None or getattr(winner, "environment", None) is None:
             return None
 
+        required_credits = self._get_repro_credit_required()
+        if required_credits > 0 and not winner._reproduction_component.has_repro_credits(
+            required_credits
+        ):
+            return None
+
         max_dist_sq = POST_POKER_MATING_DISTANCE * POST_POKER_MATING_DISTANCE
         winner_cx = winner.pos.x + winner.width * 0.5
         winner_cy = winner.pos.y + winner.height * 0.5
@@ -133,6 +139,8 @@ class ReproductionService:
 
         if not self._engine.request_spawn(baby, reason="poker_reproduction"):
             return None
+        if required_credits > 0:
+            winner._reproduction_component.consume_repro_credits(required_credits)
         baby.register_birth()
         if hasattr(self._engine, "lifecycle_system"):
             self._engine.lifecycle_system.record_birth()
@@ -147,12 +155,20 @@ class ReproductionService:
         if not should_trigger_plant_poker_asexual_reproduction(winner_fish):
             return None
 
+        required_credits = self._get_repro_credit_required()
+        if required_credits > 0 and not winner_fish._reproduction_component.has_repro_credits(
+            required_credits
+        ):
+            return None
+
         baby = winner_fish._create_asexual_offspring()
         if baby is None:
             return None
 
         if self._engine.request_spawn(baby, reason="poker_reproduction"):
             baby.register_birth()
+            if required_credits > 0:
+                winner_fish._reproduction_component.consume_repro_credits(required_credits)
             self._plant_asexual_reproductions += 1
             return baby
 
@@ -185,6 +201,7 @@ class ReproductionService:
     def _handle_banked_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
+        required_credits = self._get_repro_credit_required()
 
         if ecosystem is not None and fish_count >= ecosystem.max_population:
             return spawned
@@ -192,6 +209,10 @@ class ReproductionService:
         for fish in fish_list:
             if ecosystem is not None and not ecosystem.can_reproduce(fish_count):
                 break
+            if required_credits > 0 and not fish._reproduction_component.has_repro_credits(
+                required_credits
+            ):
+                continue
 
             baby = self.maybe_create_banked_offspring(fish)
             if baby is None:
@@ -201,6 +222,8 @@ class ReproductionService:
                 baby.register_birth()
                 if hasattr(self._engine, "lifecycle_system"):
                     self._engine.lifecycle_system.record_birth()
+                if required_credits > 0:
+                    fish._reproduction_component.consume_repro_credits(required_credits)
                 self._banked_asexual_triggered += 1
                 spawned += 1
                 fish_count += 1
@@ -210,11 +233,16 @@ class ReproductionService:
     def _handle_trait_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0
         ecosystem = self._engine.ecosystem
+        required_credits = self._get_repro_credit_required()
 
         if ecosystem is not None and fish_count >= ecosystem.max_population:
             return spawned
 
         for fish in fish_list:
+            if required_credits > 0 and not fish._reproduction_component.has_repro_credits(
+                required_credits
+            ):
+                continue
             if not fish._reproduction_component.can_asexually_reproduce(
                 fish._lifecycle_component.life_stage, fish.energy, fish.max_energy
             ):
@@ -228,6 +256,8 @@ class ReproductionService:
                 if baby is not None:
                     if self._engine.request_spawn(baby, reason="asexual_reproduction"):
                         baby.register_birth()
+                        if required_credits > 0:
+                            fish._reproduction_component.consume_repro_credits(required_credits)
                         self._asexual_triggered += 1
                         spawned += 1
                         fish_count += 1
@@ -330,6 +360,16 @@ class ReproductionService:
             self._engine.lifecycle_system.record_emergency_spawn()
 
         return bool(self._engine.request_spawn(new_fish, reason="emergency_spawn"))
+
+    def _get_repro_credit_required(self) -> float:
+        config = getattr(self._engine, "config", None)
+        soccer_cfg = getattr(config, "soccer", None) if config is not None else None
+        if soccer_cfg is None or not getattr(soccer_cfg, "enabled", False):
+            return 0.0
+        if getattr(soccer_cfg, "repro_reward_mode", "") != "credits":
+            return 0.0
+        required = float(getattr(soccer_cfg, "repro_credit_required", 0.0))
+        return max(0.0, required)
 
     @staticmethod
     def maybe_create_banked_offspring(fish: Fish) -> Fish | None:

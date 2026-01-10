@@ -9,7 +9,8 @@ from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
     SelectionStrategy,
     SoccerMinigameOutcome,
-    create_soccer_match,
+    create_soccer_match_from_participants,
+    derive_soccer_seed,
     finalize_soccer_match,
     select_soccer_participants,
 )
@@ -70,57 +71,108 @@ class SoccerMinigameScheduler:
         world_state: Any,
         seed_base: int | None,
         cycle: int,
-    ) -> SoccerMinigameOutcome | None:
-        """Run a scheduled soccer match if conditions are met."""
+    ) -> list[SoccerMinigameOutcome]:
+        """Run scheduled soccer matches if conditions are met."""
         if not self.config.enabled:
-            return None
-        if self.config.interval_frames <= 0:
-            return None
-        if cycle % self.config.interval_frames != 0:
-            return None
+            return []
+
+        match_every_frames = getattr(self.config, "match_every_frames", None)
+        if match_every_frames is None:
+            match_every_frames = self.config.interval_frames
+        if match_every_frames <= 0:
+            return []
+        if cycle % match_every_frames != 0:
+            return []
+
+        matches_per_tick = max(0, int(getattr(self.config, "matches_per_tick", 1)))
+        if matches_per_tick <= 0:
+            return []
 
         candidates = self._get_candidates(world_state)
-        if len(candidates) < self.config.min_players:
-            return None
+        has_min_candidates = len(candidates) >= self.config.min_players
 
         # Parse selection strategy from config
         strategy_str = getattr(self.config, "selection_strategy", "stratified")
         strategy = _parse_selection_strategy(strategy_str)
 
-        # Compute selection seed deterministically
-        selection_seed = None
-        if seed_base is not None:
-            selection_seed = (int(seed_base) + self._match_counter * 7919) & 0xFFFFFFFF
+        # Resolve seed base deterministically
+        effective_seed_base = getattr(self.config, "seed_base", None)
+        if effective_seed_base is None:
+            effective_seed_base = seed_base
+        if effective_seed_base is None:
+            effective_seed_base = 0
 
-        # Get cooldown exclusions
-        cooldown_ids = self._get_cooldown_ids()
+        outcomes: list[SoccerMinigameOutcome] = []
 
-        try:
-            outcome = self.match_runner(
-                candidates,
-                num_players=self.config.num_players,
-                duration_frames=self.config.duration_frames,
-                code_source=getattr(world_state, "genome_code_pool", None),
-                seed_base=seed_base,
-                match_counter=self._match_counter,
-                step_batch=self.step_batch,
-                strategy=strategy,
-                cooldown_ids=cooldown_ids,
-                selection_seed=selection_seed,
+        for _ in range(matches_per_tick):
+            num_players = self._get_num_players()
+            selection_seed = derive_soccer_seed(
+                int(effective_seed_base), self._match_counter, "selection"
             )
-        except ValueError:
-            return None
+            match_seed = derive_soccer_seed(int(effective_seed_base), self._match_counter, "match")
+            match_id = f"soccer_{match_seed}_{self._match_counter}"
 
-        # Track which fish played for cooldown
-        if outcome is not None:
-            played_ids = []
-            for team in outcome.teams.values():
-                played_ids.extend(team)
-            self._add_to_cooldown(played_ids)
+            cooldown_ids = self._get_cooldown_ids()
+            if not has_min_candidates:
+                outcome = self._build_skip_outcome(
+                    match_id=match_id,
+                    match_counter=self._match_counter,
+                    match_seed=match_seed,
+                    selection_seed=selection_seed,
+                    reason="not_enough_candidates",
+                )
+            else:
+                try:
+                    outcome = self.match_runner(
+                        candidates,
+                        num_players=num_players,
+                        duration_frames=self.config.duration_frames,
+                        code_source=getattr(world_state, "genome_code_pool", None),
+                        seed_base=effective_seed_base,
+                        match_counter=self._match_counter,
+                        step_batch=self.step_batch,
+                        strategy=strategy,
+                        cooldown_ids=cooldown_ids,
+                        selection_seed=selection_seed,
+                        match_seed=match_seed,
+                        match_id=match_id,
+                        allow_repeat_within_match=getattr(
+                            self.config, "allow_repeat_within_match", False
+                        ),
+                        entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
+                        reward_mode=getattr(self.config, "reward_mode", "pot_payout"),
+                        reward_multiplier=getattr(self.config, "reward_multiplier", 1.0),
+                        repro_reward_mode=getattr(self.config, "repro_reward_mode", "credits"),
+                        repro_credit_award=getattr(self.config, "repro_credit_award", 0.0),
+                    )
+                except ValueError:
+                    outcome = self._build_skip_outcome(
+                        match_id=match_id,
+                        match_counter=self._match_counter,
+                        match_seed=match_seed,
+                        selection_seed=selection_seed,
+                        reason="selection_failed",
+                    )
 
-        self._match_counter += 1
-        self._cleanup_cooldown()
-        return outcome
+            outcomes.append(outcome)
+
+            # Track which fish played for cooldown
+            if not outcome.skipped:
+                played_ids = []
+                for team in outcome.teams.values():
+                    played_ids.extend(team)
+                self._add_to_cooldown(played_ids)
+
+            self._match_counter += 1
+            self._cleanup_cooldown()
+
+        return outcomes
+
+    def _get_num_players(self) -> int:
+        team_size = getattr(self.config, "team_size", None)
+        if team_size is not None and team_size > 0:
+            return int(team_size) * 2
+        return int(self.config.num_players)
 
     def _get_candidates(self, world_state: Any) -> list[Any]:
         fish_list = []
@@ -147,6 +199,14 @@ class SoccerMinigameScheduler:
         strategy: SelectionStrategy = SelectionStrategy.STRATIFIED,
         cooldown_ids: frozenset[int] = frozenset(),
         selection_seed: int | None = None,
+        match_seed: int | None = None,
+        match_id: str | None = None,
+        allow_repeat_within_match: bool = False,
+        entry_fee_energy: float = 0.0,
+        reward_mode: str = "pot_payout",
+        reward_multiplier: float = 1.0,
+        repro_reward_mode: str = "credits",
+        repro_credit_award: float = 0.0,
     ) -> SoccerMinigameOutcome:
         # Select participants with new strategy
         selected = select_soccer_participants(
@@ -155,21 +215,69 @@ class SoccerMinigameScheduler:
             strategy=strategy,
             cooldown_ids=cooldown_ids,
             seed=selection_seed,
+            allow_repeat_within_match=allow_repeat_within_match,
+            entry_fee_energy=entry_fee_energy,
         )
-        if len(selected) < 2:
-            raise ValueError("Not enough participants after selection")
+        if len(selected) != num_players:
+            return self._build_skip_outcome(
+                match_id=match_id,
+                match_counter=match_counter,
+                match_seed=match_seed,
+                selection_seed=selection_seed,
+                reason="not_enough_eligible",
+            )
 
-        setup = create_soccer_match(
+        setup = create_soccer_match_from_participants(
             selected,
-            num_players=len(selected),  # Use actual selected count
             duration_frames=duration_frames,
             code_source=code_source,
-            seed_base=seed_base,
+            seed=match_seed,
+            match_id=match_id,
             match_counter=match_counter,
+            selection_seed=selection_seed,
+            entry_fee_energy=entry_fee_energy,
         )
         match = setup.match
 
         while not match.game_over:
             match.step(num_steps=step_batch)
 
-        return finalize_soccer_match(match, seed=setup.seed)
+        return finalize_soccer_match(
+            match,
+            seed=setup.seed,
+            match_counter=match_counter,
+            selection_seed=selection_seed,
+            entry_fees=setup.entry_fees,
+            reward_mode=reward_mode,
+            reward_multiplier=reward_multiplier,
+            repro_reward_mode=repro_reward_mode,
+            repro_credit_award=repro_credit_award,
+        )
+
+    def _build_skip_outcome(
+        self,
+        *,
+        match_id: str,
+        match_counter: int,
+        match_seed: int | None,
+        selection_seed: int | None,
+        reason: str,
+    ) -> SoccerMinigameOutcome:
+        return SoccerMinigameOutcome(
+            match_id=match_id,
+            match_counter=match_counter,
+            winner_team=None,
+            score_left=0,
+            score_right=0,
+            frames=0,
+            seed=match_seed,
+            selection_seed=selection_seed,
+            message="match_skipped",
+            rewarded={},
+            entry_fees={},
+            energy_deltas={},
+            repro_credit_deltas={},
+            teams={"left": [], "right": []},
+            skipped=True,
+            skip_reason=reason,
+        )
