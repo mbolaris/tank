@@ -1285,16 +1285,28 @@ class SimulationRunner(CommandHandlerMixin):
     def _collect_soccer_events(self) -> List[SoccerEventPayload]:
         soccer_events: List[SoccerEventPayload] = []
 
+        max_age_frames = 60
+        soccer_cfg = None
+
+        engine = getattr(self.world, "engine", None)
+        if engine is None and hasattr(self.world, "world"):
+            engine = getattr(self.world.world, "engine", None)
+        if engine is not None:
+            soccer_cfg = getattr(engine.config, "soccer", None)
+        if soccer_cfg is None and hasattr(self.world, "simulation_config"):
+            soccer_cfg = getattr(self.world.simulation_config, "soccer", None)
+        if soccer_cfg is not None:
+            match_every = int(getattr(soccer_cfg, "match_every_frames", 0) or 0)
+            event_max_age = int(getattr(soccer_cfg, "event_max_age_frames", 0) or 0)
+            max_age_frames = max(max_age_frames, event_max_age, match_every * 10)
+
         get_recent = getattr(self.world, "get_recent_soccer_events", None)
         if callable(get_recent):
-            recent_events = get_recent(max_age_frames=60)
+            recent_events = get_recent(max_age_frames=max_age_frames)
         else:
-            engine = getattr(self.world, "engine", None)
-            if engine is None and hasattr(self.world, "world"):
-                engine = getattr(self.world.world, "engine", None)
             if engine is None or not hasattr(engine, "get_recent_soccer_events"):
                 return soccer_events
-            recent_events = engine.get_recent_soccer_events(max_age_frames=60)
+            recent_events = engine.get_recent_soccer_events(max_age_frames=max_age_frames)
 
         for event in recent_events:
             soccer_events.append(

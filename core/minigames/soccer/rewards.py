@@ -7,6 +7,12 @@ from typing import Any, Mapping, Sequence
 from core.minigames.soccer.selection import get_entity_id
 
 
+def _apply_energy_delta(entity: Any, amount: float, source: str) -> float:
+    if not hasattr(entity, "modify_energy"):
+        return 0.0
+    return float(entity.modify_energy(amount, source=source))
+
+
 def apply_soccer_entry_fees(
     participants: Sequence[Any],
     entry_fee_energy: float,
@@ -19,9 +25,7 @@ def apply_soccer_entry_fees(
 
     fees: dict[int, float] = {}
     for entity in participants:
-        if not hasattr(entity, "modify_energy"):
-            continue
-        applied = entity.modify_energy(-entry_fee_energy, source=fee_source)
+        applied = _apply_energy_delta(entity, -entry_fee_energy, fee_source)
         if applied == 0:
             continue
         fees[get_entity_id(entity)] = -applied
@@ -47,12 +51,10 @@ def apply_soccer_rewards(
         return rewards
     if winner_team == "draw":
         for participant_id, entity in player_map.items():
-            if not hasattr(entity, "modify_energy"):
-                continue
             fee = entry_fees.get(get_entity_id(entity), 0.0)
             if fee <= 0:
                 continue
-            applied = entity.modify_energy(fee, source=draw_refund_source)
+            applied = _apply_energy_delta(entity, fee, draw_refund_source)
             if applied != 0:
                 rewards[participant_id] = applied
         return rewards
@@ -61,28 +63,25 @@ def apply_soccer_rewards(
         return rewards
 
     if mode == "pot_payout":
-        pot = sum(entry_fees.values()) * reward_multiplier
+        pot = sum(fee for fee in entry_fees.values() if fee > 0)
+        pot *= reward_multiplier
         if pot <= 0:
             return rewards
         share = pot / len(winner_ids)
         for participant_id in winner_ids:
             entity = player_map[participant_id]
-            if not hasattr(entity, "modify_energy"):
-                continue
-            applied = entity.modify_energy(share, source=reward_source)
+            applied = _apply_energy_delta(entity, share, reward_source)
             if applied != 0:
                 rewards[participant_id] = applied
     elif mode == "refill_to_max":
         for participant_id in winner_ids:
             entity = player_map[participant_id]
-            if not hasattr(entity, "modify_energy"):
-                continue
             max_energy = getattr(entity, "max_energy", 1000.0)
             current_energy = getattr(entity, "energy", 0.0)
             delta = max_energy - current_energy
             if delta <= 0:
                 continue
-            applied = entity.modify_energy(delta, source=reward_source)
+            applied = _apply_energy_delta(entity, delta, reward_source)
             if applied != 0:
                 rewards[participant_id] = applied
 

@@ -72,6 +72,38 @@ def test_soccer_rewards_draw_refunds_entry_fees() -> None:
     assert right.calls == [(-10.0, "soccer_entry_fee"), (10.0, "soccer_draw_refund")]
 
 
+def test_soccer_rewards_pot_payout_splits_across_team() -> None:
+    """Pot payouts split across all winners (no per-winner pot replication)."""
+    left_1 = DummyEnergyEntity(fish_id=1, energy=50.0, max_energy=200.0)
+    left_2 = DummyEnergyEntity(fish_id=2, energy=50.0, max_energy=200.0)
+    right_1 = DummyEnergyEntity(fish_id=3, energy=50.0, max_energy=200.0)
+    right_2 = DummyEnergyEntity(fish_id=4, energy=50.0, max_energy=200.0)
+
+    entry_fees = apply_soccer_entry_fees([left_1, left_2, right_1, right_2], entry_fee_energy=10.0)
+    rewards = apply_soccer_rewards(
+        {
+            "left_1": left_1,
+            "left_2": left_2,
+            "right_1": right_1,
+            "right_2": right_2,
+        },
+        "left",
+        reward_mode="pot_payout",
+        entry_fees=entry_fees,
+    )
+
+    assert entry_fees == {1: 10.0, 2: 10.0, 3: 10.0, 4: 10.0}
+    assert rewards == {"left_1": 20.0, "left_2": 20.0}
+    assert left_1.energy == 60.0
+    assert left_2.energy == 60.0
+    assert right_1.energy == 40.0
+    assert right_2.energy == 40.0
+    assert left_1.calls == [(-10.0, "soccer_entry_fee"), (20.0, "soccer_win")]
+    assert left_2.calls == [(-10.0, "soccer_entry_fee"), (20.0, "soccer_win")]
+    assert right_1.calls == [(-10.0, "soccer_entry_fee")]
+    assert right_2.calls == [(-10.0, "soccer_entry_fee")]
+
+
 def test_soccer_policy_mutation_changes_distribution() -> None:
     """Policy mutation should change the soccer policy distribution."""
     rng = random.Random(42)
