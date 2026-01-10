@@ -169,7 +169,11 @@ class Fish(Agent):
         initial_credits = 0.0
         env_config = getattr(environment, "simulation_config", None)
         if env_config is not None and hasattr(env_config, "soccer"):
-            initial_credits = float(getattr(env_config.soccer, "repro_credit_initial", 0.0))
+            raw_credits = getattr(env_config.soccer, "repro_credit_initial", 0.0)
+            try:
+                initial_credits = float(raw_credits)
+            except (TypeError, ValueError):
+                initial_credits = 0.0
         if initial_credits > 0:
             self._reproduction_component.repro_credits = initial_credits
 
