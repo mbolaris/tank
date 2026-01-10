@@ -84,6 +84,7 @@ export function useWebSocket(worldId?: string) {
                         update.stats = update.snapshot.stats;
                         update.poker_events = update.snapshot.poker_events;
                         update.soccer_events = update.snapshot.soccer_events;
+                        update.soccer_league_live = update.snapshot.soccer_league_live;
                         update.poker_leaderboard = update.snapshot.poker_leaderboard;
                         update.auto_evaluation = update.snapshot.auto_evaluation;
                         // Preserve mode fields from server
@@ -221,8 +222,13 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         elapsed_time: nextElapsedTime,
         stats: deltaStats,
         poker_events: deltaEvents,
-        soccer_events: deltaSoccerEvents
+        soccer_events: deltaSoccerEvents,
+        soccer_league_live: deltaSoccerLeagueLive,
     } = deltaSnapshot;
+    const hasSoccerLeagueLive = Object.prototype.hasOwnProperty.call(
+        deltaSnapshot,
+        'soccer_league_live'
+    );
 
     // Current state entities (from V1 snapshot)
     const currentSnapshot = state.snapshot;
@@ -286,6 +292,9 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         stats: nextStats,
         poker_events: nextEvents,
         soccer_events: nextSoccerEvents,
+        soccer_league_live: hasSoccerLeagueLive
+            ? deltaSoccerLeagueLive
+            : currentSnapshot.soccer_league_live,
     };
 
     return {
@@ -304,6 +313,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         entities,
         poker_events: nextEvents,
         soccer_events: nextSoccerEvents,
+        soccer_league_live: nextSnapshot.soccer_league_live,
         stats: nextStats,
         poker_leaderboard: state.poker_leaderboard,
     };

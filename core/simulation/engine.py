@@ -215,6 +215,7 @@ class SimulationEngine:
         self.plant_manager: PlantManager | None = None
         self.poker_events: list[Any] = []
         self._soccer_events: deque = deque(maxlen=self.config.soccer.max_events)
+        self._soccer_league_live: dict[str, Any] | None = None
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
@@ -1021,6 +1022,14 @@ class SimulationEngine:
         return [
             event for event in self._soccer_events if self.frame_count - event["frame"] < max_age
         ]
+
+    def set_soccer_league_live_state(self, state: dict[str, Any] | None) -> None:
+        """Store the latest league match state for rendering."""
+        self._soccer_league_live = state
+
+    def get_soccer_league_live_state(self) -> dict[str, Any] | None:
+        """Return the latest league match state for rendering."""
+        return self._soccer_league_live
 
     # =========================================================================
     # Statistics

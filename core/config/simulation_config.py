@@ -51,6 +51,7 @@ from core.config.soccer import (
     SOCCER_EVENT_MAX_AGE_FRAMES,
     SOCCER_LEAGUE_ALLOW_REPEAT_WITHIN_MATCH,
     SOCCER_LEAGUE_COOLDOWN_MATCHES,
+    SOCCER_LEAGUE_CYCLES_PER_FRAME,
     SOCCER_LEAGUE_ENTRY_FEE_ENERGY,
     SOCCER_LEAGUE_MATCH_EVERY_FRAMES,
     SOCCER_LEAGUE_MATCHES_PER_TICK,
@@ -128,6 +129,7 @@ class SoccerConfig:
     interval_frames: int = SOCCER_EVALUATOR_INTERVAL_FRAMES
     match_every_frames: int = SOCCER_LEAGUE_MATCH_EVERY_FRAMES
     matches_per_tick: int = SOCCER_LEAGUE_MATCHES_PER_TICK
+    cycles_per_frame: int = SOCCER_LEAGUE_CYCLES_PER_FRAME
     min_players: int = SOCCER_EVALUATOR_MIN_PLAYERS
     num_players: int = SOCCER_EVALUATOR_NUM_PLAYERS
     team_size: int = SOCCER_LEAGUE_TEAM_SIZE
@@ -325,6 +327,7 @@ class SimulationConfig:
             "soccer_interval_frames": "interval_frames",
             "soccer_match_every_frames": "match_every_frames",
             "soccer_matches_per_tick": "matches_per_tick",
+            "soccer_cycles_per_frame": "cycles_per_frame",
             "soccer_min_players": "min_players",
             "soccer_num_players": "num_players",
             "soccer_team_size": "team_size",

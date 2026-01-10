@@ -496,6 +496,7 @@ class CommandHandlerMixin:
             "duration_frames": ("duration_frames", lambda v: clamp_int(v, 10, 2000)),
             "duration_cycles": ("duration_frames", lambda v: clamp_int(v, 10, 2000)),
             "matches_per_tick": ("matches_per_tick", lambda v: clamp_int(v, 0, 5)),
+            "cycles_per_frame": ("cycles_per_frame", lambda v: clamp_int(v, 1, 20)),
             "min_players": ("min_players", lambda v: clamp_int(v, 2, 200)),
             "num_players": ("num_players", lambda v: clamp_int(v, 2, 200)),
             "team_size": ("team_size", lambda v: clamp_int(v, 0, 100)),

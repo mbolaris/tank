@@ -8,6 +8,7 @@ import { SoccerGame } from './SoccerGame';
 import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import SoccerLeagueEvents from './SoccerLeagueEvents';
+import { SoccerLeagueLive } from './SoccerLeagueLive';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
 import { TransferDialog } from './TransferDialog';
@@ -432,6 +433,18 @@ export function TankView({ worldId }: TankViewProps) {
                     </div>
                 </CollapsibleSection>
             </div>
+
+            {state && (
+                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
+                    <div className="glass-panel" style={{ padding: '16px' }}>
+                        <SoccerLeagueLive
+                            liveState={state.soccer_league_live ?? null}
+                            isConnected={isConnected}
+                            onCommand={sendCommand}
+                        />
+                    </div>
+                </div>
+            )}
 
             {state && (
                 <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>

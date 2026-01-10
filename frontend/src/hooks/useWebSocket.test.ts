@@ -21,6 +21,7 @@ export function normalizeWorldUpdate(data: Record<string, unknown>): SimulationU
         update.stats = update.snapshot.stats;
         update.poker_events = update.snapshot.poker_events;
         update.soccer_events = update.snapshot.soccer_events;
+        update.soccer_league_live = update.snapshot.soccer_league_live;
         update.poker_leaderboard = update.snapshot.poker_leaderboard;
         update.auto_evaluation = update.snapshot.auto_evaluation;
     }
@@ -47,6 +48,7 @@ describe('WebSocket Update Normalization', () => {
                 stats: {} as any,
                 poker_events: [],
                 soccer_events: [],
+                soccer_league_live: null,
                 poker_leaderboard: [],
             },
         };
@@ -71,6 +73,7 @@ describe('WebSocket Update Normalization', () => {
                 stats: {} as any,
                 poker_events: [],
                 soccer_events: [],
+                soccer_league_live: null,
                 poker_leaderboard: [],
             },
         };
@@ -93,6 +96,7 @@ describe('WebSocket Update Normalization', () => {
                 stats: {} as any,
                 poker_events: [],
                 soccer_events: [],
+                soccer_league_live: null,
                 poker_leaderboard: [],
             },
         };
@@ -113,6 +117,7 @@ describe('WebSocket Update Normalization', () => {
                 stats: { frame: 42, population: 1 } as any,
                 poker_events: [],
                 soccer_events: [],
+                soccer_league_live: null,
                 poker_leaderboard: [],
             },
         };

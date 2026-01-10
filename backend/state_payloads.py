@@ -598,6 +598,7 @@ class FullStatePayload:
     poker_events: list[PokerEventPayload]
     soccer_events: list[SoccerEventPayload]
     poker_leaderboard: list[PokerLeaderboardEntryPayload]
+    soccer_league_live: dict[str, Any] | None = None
     auto_evaluation: AutoEvaluateStatsPayload | None = None
     type: str = "update"
     world_id: str | None = None  # World identifier for multi-world mode
@@ -614,6 +615,7 @@ class FullStatePayload:
             "stats": self.stats.to_dict(),
             "poker_events": [e.to_dict() for e in self.poker_events],
             "soccer_events": [e.to_dict() for e in self.soccer_events],
+            "soccer_league_live": self.soccer_league_live,
             "poker_leaderboard": [e.to_dict() for e in self.poker_leaderboard],
         }
         if self.auto_evaluation:
@@ -652,6 +654,7 @@ class DeltaStatePayload:
     removed: list[int]
     poker_events: list[PokerEventPayload] | None = None
     soccer_events: list[SoccerEventPayload] | None = None
+    soccer_league_live: dict[str, Any] | None = None
     stats: StatsPayload | None = None
     type: str = "delta"
     world_id: str | None = None  # World identifier for multi-world mode
@@ -672,6 +675,7 @@ class DeltaStatePayload:
             snapshot["poker_events"] = [e.to_dict() for e in self.poker_events]
         if self.soccer_events is not None:
             snapshot["soccer_events"] = [e.to_dict() for e in self.soccer_events]
+        snapshot["soccer_league_live"] = self.soccer_league_live
         if self.stats:
             snapshot["stats"] = self.stats.to_dict()
 

@@ -656,3 +656,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         if self._engine is None:
             return []
         return self._engine.get_recent_poker_events(max_age_frames)
+
+    def get_soccer_league_live_state(self) -> Dict[str, Any] | None:
+        """Get live league match state for rendering."""
+        if self._engine is None:
+            return None
+        return self._engine.get_soccer_league_live_state()
