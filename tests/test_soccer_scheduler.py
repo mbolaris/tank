@@ -216,7 +216,6 @@ def test_selection_strategy_stratified_includes_low_energy() -> None:
     # Should have representatives from each tier
     top_selected = selected_ids & {1, 2, 3}
     mid_selected = selected_ids & {4, 5, 6}
-    low_selected = selected_ids & {7, 8, 9}
 
     assert len(top_selected) >= 1, "Should select at least 1 from top tier"
     assert len(mid_selected) >= 1, "Should select at least 1 from mid tier"
