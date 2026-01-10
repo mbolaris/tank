@@ -12,7 +12,6 @@ from core.minigames.soccer.evaluator import (
     create_soccer_match,
     finalize_soccer_match,
     select_soccer_participants,
-    _get_entity_id,
 )
 
 MatchRunner = Callable[..., SoccerMinigameOutcome]
