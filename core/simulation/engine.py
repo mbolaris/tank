@@ -215,6 +215,7 @@ class SimulationEngine:
         self.plant_manager: PlantManager | None = None
         self.poker_events: list[Any] = []
         self._soccer_events: deque = deque(maxlen=self.config.soccer.max_events)
+        self._soccer_league_live: dict[str, Any] | None = None
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
@@ -990,6 +991,10 @@ class SimulationEngine:
 
     def add_soccer_event(self, outcome: SoccerMinigameOutcome) -> None:
         """Record a soccer minigame outcome for UI/event streams."""
+
+        def stringify_keys(values: dict[Any, Any]) -> dict[str, Any]:
+            return {str(key): value for key, value in values.items()}
+
         event = {
             "frame": self.frame_count,
             "match_id": outcome.match_id,
@@ -1001,10 +1006,10 @@ class SimulationEngine:
             "seed": outcome.seed,
             "selection_seed": outcome.selection_seed,
             "message": outcome.message,
-            "rewarded": dict(outcome.rewarded),
-            "entry_fees": dict(outcome.entry_fees),
-            "energy_deltas": dict(outcome.energy_deltas),
-            "repro_credit_deltas": dict(outcome.repro_credit_deltas),
+            "rewarded": stringify_keys(dict(outcome.rewarded)),
+            "entry_fees": stringify_keys(dict(outcome.entry_fees)),
+            "energy_deltas": stringify_keys(dict(outcome.energy_deltas)),
+            "repro_credit_deltas": stringify_keys(dict(outcome.repro_credit_deltas)),
             "teams": {
                 "left": list(outcome.teams.get("left", [])),
                 "right": list(outcome.teams.get("right", [])),
@@ -1021,6 +1026,14 @@ class SimulationEngine:
         return [
             event for event in self._soccer_events if self.frame_count - event["frame"] < max_age
         ]
+
+    def set_soccer_league_live_state(self, state: dict[str, Any] | None) -> None:
+        """Store the latest league match state for rendering."""
+        self._soccer_league_live = state
+
+    def get_soccer_league_live_state(self) -> dict[str, Any] | None:
+        """Return the latest league match state for rendering."""
+        return self._soccer_league_live
 
     # =========================================================================
     # Statistics

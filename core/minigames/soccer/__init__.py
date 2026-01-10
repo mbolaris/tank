@@ -25,6 +25,7 @@ from core.minigames.soccer.evaluator import (
     select_soccer_participants,
 )
 from core.minigames.soccer.fake_server import FakeRCSSServer
+from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.match_runner import AgentResult, EpisodeResult, SoccerMatchRunner
 from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
@@ -61,6 +62,7 @@ __all__ = [
     "select_soccer_participants",
     "derive_soccer_seed",
     "SoccerMinigameScheduler",
+    "SoccerLeagueRuntime",
     # Participants
     "SoccerParticipant",
     "fish_to_participant",

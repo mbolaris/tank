@@ -35,7 +35,7 @@ class FishPlantPhaseHooks(PhaseHooks):
     """
 
     def __init__(self) -> None:
-        self._soccer_scheduler = None
+        self._soccer_league_runtime = None
 
     def on_entity_spawned(
         self,
@@ -163,28 +163,32 @@ class FishPlantPhaseHooks(PhaseHooks):
             fish_list = engine.get_fish_list()
             engine.benchmark_evaluator.maybe_run(engine.frame_count, fish_list)
 
-        scheduler = self._get_soccer_scheduler(engine)
-        if scheduler is None:
+        league_runtime = self._get_soccer_league_runtime(engine)
+        if league_runtime is None:
+            if hasattr(engine, "set_soccer_league_live_state"):
+                engine.set_soccer_league_live_state(None)
             return
 
         seed_base = getattr(engine, "seed", None)
-        outcomes = scheduler.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
-        if outcomes and hasattr(engine, "add_soccer_event"):
-            for outcome in outcomes:
+        league_runtime.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
+        if hasattr(engine, "set_soccer_league_live_state"):
+            engine.set_soccer_league_live_state(league_runtime.get_live_state())
+        if hasattr(engine, "add_soccer_event"):
+            for outcome in league_runtime.drain_events():
                 engine.add_soccer_event(outcome)
 
-    def _get_soccer_scheduler(self, engine: SimulationEngine):
-        if self._soccer_scheduler is not None:
-            return self._soccer_scheduler
+    def _get_soccer_league_runtime(self, engine: SimulationEngine):
+        if self._soccer_league_runtime is not None:
+            return self._soccer_league_runtime
 
         config = getattr(getattr(engine, "config", None), "soccer", None)
         if config is None:
             return None
 
-        from core.minigames.soccer.scheduler import SoccerMinigameScheduler
+        from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 
-        self._soccer_scheduler = SoccerMinigameScheduler(config)
-        return self._soccer_scheduler
+        self._soccer_league_runtime = SoccerLeagueRuntime(config)
+        return self._soccer_league_runtime
 
 
 # Backward-compatible alias

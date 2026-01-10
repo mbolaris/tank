@@ -169,6 +169,31 @@ export interface SoccerEventData {
     skip_reason?: string;
 }
 
+export interface SoccerLeagueLiveState {
+    match_id: string;
+    game_over: boolean;
+    winner_team: 'left' | 'right' | 'draw' | null;
+    message: string;
+    frame: number;
+    score: {
+        left: number;
+        right: number;
+    };
+    last_goal?: SoccerGoalEvent | null;
+    entities: EntityData[];
+    view_mode?: string;
+    teams?: {
+        left: number[];
+        right: number[];
+    };
+    field?: {
+        length: number;
+        width: number;
+        goal_width: number;
+        goal_depth: number;
+    };
+}
+
 export interface PokerLeaderboardEntry {
     rank: number;
     fish_id: number;
@@ -441,6 +466,7 @@ export interface SimulationUpdate {
         stats: StatsData;
         poker_events: PokerEventData[];
         soccer_events: SoccerEventData[];
+        soccer_league_live?: SoccerLeagueLiveState | null;
         poker_leaderboard: PokerLeaderboardEntry[];
         auto_evaluation?: AutoEvaluateStats;
         render_hint?: Record<string, unknown>;
@@ -453,6 +479,7 @@ export interface SimulationUpdate {
     stats?: StatsData;
     poker_events?: PokerEventData[];
     soccer_events?: SoccerEventData[];
+    soccer_league_live?: SoccerLeagueLiveState | null;
     poker_leaderboard?: PokerLeaderboardEntry[];
     auto_evaluation?: AutoEvaluateStats;
 }
@@ -473,13 +500,32 @@ export interface DeltaUpdate {
         removed: number[];
         poker_events: PokerEventData[];
         soccer_events?: SoccerEventData[];
+        soccer_league_live?: SoccerLeagueLiveState | null;
         stats?: StatsData;
         render_hint?: Record<string, unknown>;
     };
 }
 
 export interface Command {
-    command: 'add_food' | 'spawn_fish' | 'pause' | 'resume' | 'reset' | 'start_poker' | 'poker_process_ai_turn' | 'poker_action' | 'poker_new_round' | 'standard_poker_series' | 'poker_autopilot_action' | 'fast_forward' | 'set_plant_energy_input';
+    command:
+    | 'add_food'
+    | 'spawn_fish'
+    | 'pause'
+    | 'resume'
+    | 'reset'
+    | 'start_poker'
+    | 'poker_process_ai_turn'
+    | 'poker_action'
+    | 'poker_new_round'
+    | 'standard_poker_series'
+    | 'poker_autopilot_action'
+    | 'fast_forward'
+    | 'set_plant_energy_input'
+    | 'set_soccer_league_enabled'
+    | 'set_soccer_league_config'
+    | 'start_soccer'
+    | 'soccer_step'
+    | 'end_soccer';
     data?: Record<string, unknown>;
 }
 

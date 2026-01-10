@@ -1033,6 +1033,7 @@ class SimulationRunner(CommandHandlerMixin):
                 # Full state update
                 self._last_full_frame = current_frame
                 self._last_entities = {e.id: e for e in entity_snapshots}
+                soccer_league_live = self._collect_soccer_league_live()
 
                 state = FullStatePayload(
                     frame=current_frame,  # Using current_frame as self.world.step_count
@@ -1041,6 +1042,7 @@ class SimulationRunner(CommandHandlerMixin):
                     stats=stats,
                     poker_events=poker_events,  # Include events in full update
                     soccer_events=soccer_events,
+                    soccer_league_live=soccer_league_live,
                     auto_evaluation=self._collect_auto_eval(),  # Re-using existing _collect_auto_eval
                     world_id=self.world_id,
                     poker_leaderboard=self._collect_poker_leaderboard(),  # Re-using existing _collect_poker_leaderboard
@@ -1074,6 +1076,7 @@ class SimulationRunner(CommandHandlerMixin):
                     stats=stats,
                     # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
                     # soccer_events=soccer_events, # REMOVED from delta to prevent leak/bloat
+                    soccer_league_live=self._collect_soccer_league_live(),
                     world_id=self.world_id,
                     mode_id=self.mode_id,
                     world_type=self.world_type,
@@ -1143,6 +1146,7 @@ class SimulationRunner(CommandHandlerMixin):
             # Provide defaults
             state_dict["poker_events"] = []
             state_dict["soccer_events"] = []
+            state_dict["soccer_league_live"] = None
             state_dict["poker_leaderboard"] = []
             state_dict["auto_evaluation"] = None
 
@@ -1285,16 +1289,28 @@ class SimulationRunner(CommandHandlerMixin):
     def _collect_soccer_events(self) -> List[SoccerEventPayload]:
         soccer_events: List[SoccerEventPayload] = []
 
+        max_age_frames = 60
+        soccer_cfg = None
+
+        engine = getattr(self.world, "engine", None)
+        if engine is None and hasattr(self.world, "world"):
+            engine = getattr(self.world.world, "engine", None)
+        if engine is not None:
+            soccer_cfg = getattr(engine.config, "soccer", None)
+        if soccer_cfg is None and hasattr(self.world, "simulation_config"):
+            soccer_cfg = getattr(self.world.simulation_config, "soccer", None)
+        if soccer_cfg is not None:
+            match_every = int(getattr(soccer_cfg, "match_every_frames", 0) or 0)
+            event_max_age = int(getattr(soccer_cfg, "event_max_age_frames", 0) or 0)
+            max_age_frames = max(max_age_frames, event_max_age, match_every * 10)
+
         get_recent = getattr(self.world, "get_recent_soccer_events", None)
         if callable(get_recent):
-            recent_events = get_recent(max_age_frames=60)
+            recent_events = get_recent(max_age_frames=max_age_frames)
         else:
-            engine = getattr(self.world, "engine", None)
-            if engine is None and hasattr(self.world, "world"):
-                engine = getattr(self.world.world, "engine", None)
             if engine is None or not hasattr(engine, "get_recent_soccer_events"):
                 return soccer_events
-            recent_events = engine.get_recent_soccer_events(max_age_frames=60)
+            recent_events = engine.get_recent_soccer_events(max_age_frames=max_age_frames)
 
         for event in recent_events:
             soccer_events.append(
@@ -1321,6 +1337,18 @@ class SimulationRunner(CommandHandlerMixin):
             )
 
         return soccer_events
+
+    def _collect_soccer_league_live(self) -> Optional[Dict[str, Any]]:
+        get_live = getattr(self.world, "get_soccer_league_live_state", None)
+        if callable(get_live):
+            return get_live()
+
+        engine = getattr(self.world, "engine", None)
+        if engine is None and hasattr(self.world, "world"):
+            engine = getattr(self.world.world, "engine", None)
+        if engine is None or not hasattr(engine, "get_soccer_league_live_state"):
+            return None
+        return engine.get_soccer_league_live_state()
 
     def _collect_poker_leaderboard(self) -> List[PokerLeaderboardEntryPayload]:
         # Guard: Only fish-based worlds have ecosystem with poker leaderboard

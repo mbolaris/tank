@@ -57,6 +57,7 @@ def test_tank_payload_has_required_v1_keys():
     assert "entities" in snapshot, "Snapshot must have 'entities'"
     assert "stats" in snapshot, "Snapshot must have 'stats'"
     assert "soccer_events" in snapshot, "Snapshot must have 'soccer_events'"
+    assert "soccer_league_live" in snapshot, "Snapshot must have 'soccer_league_live'"
 
 
 def test_petri_payload_has_required_v1_keys():
