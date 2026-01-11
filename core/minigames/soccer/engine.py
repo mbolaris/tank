@@ -215,6 +215,11 @@ class RCSSLiteEngine:
         """Set whether teams have swapped sides (affects goal attribution)."""
         self._swapped_sides = swapped
 
+    @property
+    def swapped_sides(self) -> bool:
+        """Whether sides are currently swapped (2nd half)."""
+        return self._swapped_sides
+
     def queue_command(self, player_id: str, command: RCSSCommand) -> bool:
         """Queue a command for a player (applied at cycle end).
 
@@ -378,14 +383,15 @@ class RCSSLiteEngine:
             noise = self._rng.gauss(0, self.params.kick_rand)
             dir_rad += noise
 
-        # Calculate ball velocity from kick
-        kick_speed = power * self.params.kick_power_rate
-        kick_speed = min(kick_speed, self.params.ball_speed_max)
+        # Calculate ball acceleration from kick
+        kick_accel = power * self.params.kick_power_rate
 
-        self._ball.velocity = RCSSVector(
-            math.cos(dir_rad) * kick_speed,
-            math.sin(dir_rad) * kick_speed,
+        # Add to ball acceleration (handle simultaneous kicks)
+        accel_vec = RCSSVector(
+            math.cos(dir_rad) * kick_accel,
+            math.sin(dir_rad) * kick_accel,
         )
+        self._ball.acceleration = self._ball.acceleration + accel_vec
 
         # Track touch for goal attribution
         # If different player than last touch, record assist candidate
@@ -513,6 +519,10 @@ class RCSSLiteEngine:
                     p2.position.x += nx * overlap / 2
                     p2.position.y += ny * overlap / 2
 
+                    # Apply velocity decay due to collision ( RCSS standard is ~0.1 )
+                    p1.velocity = p1.velocity * 0.1
+                    p2.velocity = p2.velocity * 0.1
+
         # Player-ball collisions
         for player in players:
             dx = self._ball.position.x - player.position.x
@@ -545,11 +555,11 @@ class RCSSLiteEngine:
         scoring_team: str | None = None
 
         # Left goal (right team scores)
-        if self._ball.position.x < -half_length - self.params.goal_depth:
+        if self._ball.position.x < -half_length - self.params.ball_size:
             scoring_team = "right"
 
         # Right goal (left team scores)
-        elif self._ball.position.x > half_length + self.params.goal_depth:
+        elif self._ball.position.x > half_length + self.params.ball_size:
             scoring_team = "left"
 
         if not scoring_team:
