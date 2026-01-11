@@ -169,7 +169,7 @@ export interface SoccerEventData {
     skip_reason?: string;
 }
 
-export interface SoccerLeagueLiveState {
+export interface SoccerMatchState {
     match_id: string;
     game_over: boolean;
     winner_team: 'left' | 'right' | 'draw' | null;
@@ -192,6 +192,36 @@ export interface SoccerLeagueLiveState {
         goal_width: number;
         goal_depth: number;
     };
+    // League metadata
+    league_round?: number;
+    home_id?: string;
+    away_id?: string;
+}
+
+export interface LeagueLeaderboardEntry {
+    team_id: string;
+    display_name: string;
+    source: 'tank' | 'bot';
+    matches_played: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    gf: number;
+    ga: number;
+    points: number;
+    rating: number;
+}
+
+export interface TeamAvailability {
+    available: boolean;
+    reason: string;
+    count: number;
+}
+
+export interface SoccerLeagueLiveState {
+    leaderboard: LeagueLeaderboardEntry[];
+    availability: Record<string, TeamAvailability>;
+    active_match: SoccerMatchState | null;
 }
 
 export interface PokerLeaderboardEntry {

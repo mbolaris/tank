@@ -1,200 +1,186 @@
-from __future__ import annotations
+"""Tests for the Strict Soccer League Runtime."""
 
-from types import SimpleNamespace
+from __future__ import annotations
 
 import pytest
 
-from core.config.simulation_config import SimulationConfig, SoccerConfig
+from core.config.simulation_config import SoccerConfig
+from core.minigames.soccer.league.types import TeamSource
 from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
-from core.minigames.soccer.rewards import apply_soccer_entry_fees
-from core.simulation.engine import SimulationEngine
 
 
 class DummyFish:
-    def __init__(self, fish_id: int, energy: float, max_energy: float) -> None:
+    def __init__(self, fish_id: int, energy: float) -> None:
         self.fish_id = fish_id
         self.energy = energy
-        self.max_energy = max_energy
+        self.max_energy = 100.0
         self.genome = None
+        self._age = 10
 
     def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
-        if amount >= 0:
-            applied = min(amount, self.max_energy - self.energy)
-        else:
-            applied = max(amount, -self.energy)
-        self.energy += applied
-        return applied
+        self.energy = max(0, self.energy + amount)
+        return amount
+
+    def is_dead(self) -> bool:
+        return False
+
+    @property
+    def age(self) -> int:
+        return self._age
 
 
 class DummyWorld:
     def __init__(self, fish: list[DummyFish]) -> None:
         self._fish = fish
         self.genome_code_pool = None
+        self.world_id = "Tank1"
 
     def get_fish_list(self) -> list[DummyFish]:
         return list(self._fish)
 
 
-def test_soccer_league_emits_rewards(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_create_match(participants, **kwargs):
-        entry_fee_energy = float(kwargs.get("entry_fee_energy", 0.0))
-        entry_fees = apply_soccer_entry_fees(participants, entry_fee_energy)
-
-        team_size = len(participants) // 2
-        left_team = participants[:team_size]
-        right_team = participants[team_size:]
-
-        player_map = {}
-        for idx, entity in enumerate(left_team, 1):
-            player_map[f"left_{idx}"] = entity
-        for idx, entity in enumerate(right_team, 1):
-            player_map[f"right_{idx}"] = entity
-
-        teams = {
-            "left": [entity.fish_id for entity in left_team],
-            "right": [entity.fish_id for entity in right_team],
-        }
-
-        match_id = kwargs.get("match_id") or "soccer_test_match"
-
-        class FakeMatch:
-            def __init__(self, match_id, player_map, teams):
-                self.match_id = match_id
-                self.player_map = player_map
-                self._teams = teams
-                self.game_over = False
-                self.current_frame = 0
-                self.winner_team = "left"
-
-            def step(self, num_steps: int = 1):
-                self.current_frame += num_steps
-                self.game_over = True
-                return self.get_state()
-
-            def get_state(self):
-                return {
-                    "winner_team": "left",
-                    "score": {"left": 1, "right": 0},
-                    "frame": self.current_frame,
-                    "message": "Left wins",
-                    "last_goal": None,
-                    "teams": self._teams,
-                }
-
-        match = FakeMatch(match_id, player_map, teams)
-
-        return SimpleNamespace(
-            match=match,
-            seed=kwargs.get("seed"),
-            match_id=match_id,
-            selected_count=len(participants),
-            match_counter=kwargs.get("match_counter", 0),
-            selection_seed=kwargs.get("selection_seed"),
-            entry_fees=entry_fees,
-        )
-
-    import core.minigames.soccer.league_runtime as league_runtime
-
-    monkeypatch.setattr(
-        league_runtime,
-        "create_soccer_match_from_participants",
-        fake_create_match,
-    )
-
-    config = SimulationConfig.headless_fast()
-    soccer = config.soccer
-    soccer.enabled = True
-    soccer.match_every_frames = 1
-    soccer.matches_per_tick = 1
-    soccer.cycles_per_frame = 5
-    soccer.duration_frames = 10
-    soccer.num_players = 6
-    soccer.min_players = 6
-    soccer.cooldown_matches = 0
-    soccer.entry_fee_energy = 1.0
-    soccer.reward_mode = "refill_to_max"
-    soccer.repro_reward_mode = "credits"
-    soccer.repro_credit_award = 1.0
-    soccer.repro_credit_required = 1.0
-    soccer.seed_base = 0
-
-    engine = SimulationEngine(config=config, seed=123)
-    engine.setup()
-
-    events = []
-    energy_rewarded = False
-    repro_rewarded = False
-
-    for _ in range(5):
-        engine.update()
-        events = engine.get_recent_soccer_events(max_age_frames=1000)
-        for event in events:
-            if event.get("skipped"):
-                continue
-            if any(delta > 0 for delta in event.get("energy_deltas", {}).values()):
-                energy_rewarded = True
-            if any(delta > 0 for delta in event.get("repro_credit_deltas", {}).values()):
-                repro_rewarded = True
-        if energy_rewarded and repro_rewarded:
-            break
-
-    assert events
-    assert energy_rewarded
-    assert repro_rewarded
-
-
-def test_league_runtime_steps_are_bounded() -> None:
-    config = SoccerConfig(
+@pytest.fixture
+def base_config():
+    return SoccerConfig(
         enabled=True,
         match_every_frames=1,
-        cycles_per_frame=2,
-        duration_frames=50,
-        min_players=2,
-        num_players=2,
-        cooldown_matches=0,
-    )
-    runtime = SoccerLeagueRuntime(config)
-    world = DummyWorld([DummyFish(1, 50.0, 100.0), DummyFish(2, 50.0, 100.0)])
-
-    runtime.tick(world, seed_base=3, cycle=1)
-    live_state = runtime.get_live_state()
-
-    assert live_state is not None
-    assert live_state["frame"] == 2
-    assert live_state["game_over"] is False
-
-
-def test_league_runtime_deterministic_outcomes() -> None:
-    config = SoccerConfig(
-        enabled=True,
-        match_every_frames=1,
-        cycles_per_frame=3,
-        duration_frames=6,
-        min_players=2,
-        num_players=2,
-        cooldown_matches=0,
+        duration_frames=10,
+        team_size=11,  # Strict Requirement
         entry_fee_energy=0.0,
-        reward_mode="pot_payout",
+        cycles_per_frame=1,
     )
 
-    def run_once() -> dict:
-        runtime = SoccerLeagueRuntime(config)
-        world = DummyWorld([DummyFish(1, 50.0, 100.0), DummyFish(2, 50.0, 100.0)])
-        for cycle in range(1, 5):
-            runtime.tick(world, seed_base=7, cycle=cycle)
-            events = runtime.drain_events()
-            if events:
-                outcome = events[0]
-                return {
-                    "winner_team": outcome.winner_team,
-                    "score_left": outcome.score_left,
-                    "score_right": outcome.score_right,
-                    "energy_deltas": outcome.energy_deltas,
-                }
-        return {}
 
-    first = run_once()
-    second = run_once()
+def test_strict_availability(base_config):
+    """Test that teams with fewer than 11 players are marked unavailable."""
+    runtime = SoccerLeagueRuntime(base_config)
 
-    assert first
-    assert first == second
+    # Only 10 fish -> Should be unavailable
+    fish = [DummyFish(i, 100.0) for i in range(10)]
+    world = DummyWorld(fish)
+
+    runtime.tick(world, seed_base=1, cycle=1)
+    state = runtime.get_live_state()
+
+    av = state["availability"]
+    # Tank1:A should exist but be unavailable
+    assert "Tank1:A" in av
+    assert av["Tank1:A"]["available"] is False
+    assert av["Tank1:A"]["count"] == 10
+
+    # Bot:Balanced should be available
+    assert "Bot:Balanced" in av
+    assert av["Bot:Balanced"]["available"] is True
+
+
+def test_team_forming(base_config):
+    """Test that if we have 22 fish, we form Tank A and Tank B."""
+    runtime = SoccerLeagueRuntime(base_config)
+
+    # 25 fish -> A (11), B (11), 3 leftover
+    fish = [DummyFish(i, 100.0) for i in range(25)]
+    world = DummyWorld(fish)
+
+    runtime.tick(world, seed_base=1, cycle=1)
+    state = runtime.get_live_state()
+    av = state["availability"]
+
+    assert av["Tank1:A"]["available"] is True
+    assert av["Tank1:A"]["count"] == 11
+
+    assert av["Tank1:B"]["available"] is True
+    assert av["Tank1:B"]["count"] == 11
+
+
+def test_scheduler_skipping(base_config):
+    """Test that matches involving unavailable teams are skipped."""
+    # Config: 2 Teams (Tank A, Bot).
+    # But Tank A is unavailable (0 fish).
+
+    runtime = SoccerLeagueRuntime(base_config)
+    world = DummyWorld([])  # No fish
+
+    # Tick should trigger schedule generation
+    # Schedule: Tank1:A vs Bot:Balanced
+    # Tank1:A is unavailable -> Skip
+
+    runtime.tick(world, seed_base=1, cycle=1)
+
+    # Check logic implicitly via state or verify active match is None or skipping happened
+    # In my implementation, it loops until it finds a playable match or ends season.
+    # Since only 2 teams and one is bad, it should end season or idle.
+
+    state = runtime.get_live_state()
+    assert state["active_match"] is None
+
+    # However, if we add a 3rd team (e.g. Bot 2), it might skip one and play the other.
+    # Currently only 1 bot.
+
+
+def test_full_match_flow(base_config):
+    """Test a full match execution between available teams."""
+    # We need 11 fish for Tank A to play against Bot.
+    fish = [DummyFish(i, 100.0) for i in range(11)]
+    world = DummyWorld(fish)
+
+    runtime = SoccerLeagueRuntime(base_config)
+
+    # 1. Start Match (Cycle 0 matches config.match_every_frames=1 if checked properly)
+    runtime.tick(world, seed_base=1, cycle=100)
+    state = runtime.get_live_state()
+
+    assert state["active_match"] is not None
+    match = state["active_match"]
+    assert match["frame"] == 1  # Initial frame (stepped once)
+    assert "Tank1:A" in [match["home_id"], match["away_id"]]
+    assert "Bot:Balanced" in [match["home_id"], match["away_id"]]
+
+    # 2. Step Match until end
+    for _ in range(20):  # Duration is 10, should finish
+        runtime.tick(world, seed_base=1, cycle=101 + _)
+
+    state = runtime.get_live_state()
+
+    # Should be game over or cleared
+    # Runtime clears active match immediately after finalization in tick()
+    # So active_match might be None now, but Leaderboard updated.
+
+    lb = state["leaderboard"]
+    tank_entry = next((e for e in lb if e["team_id"] == "Tank1:A"), None)
+    bot_entry = next((e for e in lb if e["team_id"] == "Bot:Balanced"), None)
+
+    assert tank_entry is not None
+    assert bot_entry is not None
+    assert tank_entry["matches_played"] >= 1
+    assert bot_entry["matches_played"] >= 1
+
+    # Verify strict outcome
+    assert (
+        tank_entry["wins"] + tank_entry["draws"] + tank_entry["losses"]
+        == tank_entry["matches_played"]
+    )
+
+
+def test_leaderboard_sorting(base_config):
+    """Test leaderboard is sorted by Points then GD."""
+    runtime = SoccerLeagueRuntime(base_config)
+
+    # Hack in some state for testing get_live_state sorting
+    from core.minigames.soccer.league.types import LeagueLeaderboardEntry
+
+    runtime._leaderboard = {
+        "A": LeagueLeaderboardEntry(
+            "A", "A", TeamSource.TANK, points=3, goals_for=5, goals_against=1
+        ),
+        "B": LeagueLeaderboardEntry(
+            "B", "B", TeamSource.TANK, points=3, goals_for=2, goals_against=1
+        ),  # Worse GD
+        "C": LeagueLeaderboardEntry("C", "C", TeamSource.TANK, points=0),
+    }
+
+    state = runtime.get_live_state()
+    lb = state["leaderboard"]
+
+    assert lb[0]["team_id"] == "A"
+    assert lb[1]["team_id"] == "B"
+    assert lb[2]["team_id"] == "C"

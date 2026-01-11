@@ -289,28 +289,28 @@ export function TankView({ worldId }: TankViewProps) {
                     {/* Poker Score */}
                     {(state?.stats?.poker_elo !== undefined ||
                         state?.stats?.poker_score !== undefined) && (
-                        <>
-                            <div
-                                style={{
-                                    width: '1px',
-                                    height: '16px',
-                                    background: 'rgba(255,255,255,0.1)',
-                                }}
-                            />
-                            <PokerScoreDisplay
-                                score={state.stats.poker_score}
-                                elo={state.stats.poker_elo}
-                                history={
-                                    state.stats.poker_elo &&
-                                    state.stats.poker_elo_history &&
-                                    state.stats.poker_elo_history.length > 0
-                                        ? state.stats.poker_elo_history
-                                        : state.stats.poker_score_history || []
-                                }
-                                compact={true}
-                            />
-                        </>
-                    )}
+                            <>
+                                <div
+                                    style={{
+                                        width: '1px',
+                                        height: '16px',
+                                        background: 'rgba(255,255,255,0.1)',
+                                    }}
+                                />
+                                <PokerScoreDisplay
+                                    score={state.stats.poker_score}
+                                    elo={state.stats.poker_elo}
+                                    history={
+                                        state.stats.poker_elo &&
+                                            state.stats.poker_elo_history &&
+                                            state.stats.poker_elo_history.length > 0
+                                            ? state.stats.poker_elo_history
+                                            : state.stats.poker_score_history || []
+                                    }
+                                    compact={true}
+                                />
+                            </>
+                        )}
                 </div>
             </div>
 
@@ -351,7 +351,7 @@ export function TankView({ worldId }: TankViewProps) {
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
                     {isVisible('soccer') && (
-                        <div className={styles.panel}>
+                        <CollapsiblePanel title="Soccer League" icon="⚽">
                             <TankSoccerTab
                                 liveState={state?.soccer_league_live ?? null}
                                 events={state?.soccer_events ?? []}
@@ -360,11 +360,11 @@ export function TankView({ worldId }: TankViewProps) {
                                 onCommand={sendCommand as any}
                                 sendCommandWithResponse={sendCommandWithResponse as any}
                             />
-                        </div>
+                        </CollapsiblePanel>
                     )}
 
                     {isVisible('poker') && (
-                        <div className={styles.panel}>
+                        <CollapsiblePanel title="Poker" icon="♠">
                             <TankPokerTab
                                 worldId={effectiveWorldId}
                                 isConnected={isConnected}
@@ -374,22 +374,22 @@ export function TankView({ worldId }: TankViewProps) {
                                 currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
                                 sendCommandWithResponse={sendCommandWithResponse}
                             />
-                        </div>
+                        </CollapsiblePanel>
                     )}
 
                     {isVisible('ecosystem') && (
-                        <div className={styles.panel}>
+                        <CollapsiblePanel title="Ecosystem" icon="🌿">
                             <TankEcosystemTab
                                 stats={state?.stats ?? null}
                                 autoEvaluation={state?.auto_evaluation}
                             />
-                        </div>
+                        </CollapsiblePanel>
                     )}
 
                     {isVisible('genetics') && (
-                        <div className={styles.panel}>
+                        <CollapsiblePanel title="Genetics" icon="🧬">
                             <TankGeneticsTab worldId={effectiveWorldId} />
-                        </div>
+                        </CollapsiblePanel>
                     )}
                 </div>
             )}
@@ -432,5 +432,51 @@ export function TankView({ worldId }: TankViewProps) {
                 </div>
             )}
         </>
+    );
+}
+
+function CollapsiblePanel({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+    const [isOpen, setIsOpen] = useState(true);
+
+    return (
+        <div className={styles.dashboardPanel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: 'none',
+                    borderBottom: isOpen ? '1px solid var(--card-border)' : 'none',
+                    color: 'var(--color-text-main)',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '16px' }}>{icon}</span>
+                    <span>{title}</span>
+                </div>
+                <div style={{
+                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s',
+                    opacity: 0.5
+                }}>
+                    ▼
+                </div>
+            </button>
+            {isOpen && (
+                <div style={{ padding: '16px' }}>
+                    {children}
+                </div>
+            )}
+        </div>
     );
 }
