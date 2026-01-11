@@ -156,7 +156,7 @@ def test_world_runner_get_stats() -> None:
 
 def test_unknown_world_type_raises() -> None:
     """create_world should raise ValueError for unknown world type."""
-    with pytest.raises(ValueError, match="Unknown mode"):
+    with pytest.raises(ValueError, match="Unknown world type"):
         create_world("nonexistent_world")
 
 

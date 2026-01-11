@@ -83,7 +83,7 @@ def create_world(
     mode_pack = WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         available = list(WorldRegistry.list_mode_packs().keys())
-        raise ValueError(f"Unknown mode '{mode_id}'. Available modes: {available}")
+        raise ValueError(f"Unknown world type '{mode_id}'. Available modes: {available}")
 
     combined: dict[str, Any] = {}
     if config:
