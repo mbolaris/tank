@@ -7,18 +7,13 @@ from typing import Any
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
-    SoccerMinigameOutcome,
-    create_soccer_match_from_participants,
-    finalize_soccer_match,
-)
+    SoccerMinigameOutcome, create_soccer_match_from_participants,
+    finalize_soccer_match)
 from core.minigames.soccer.league.provider import LeagueTeamProvider
 from core.minigames.soccer.league.scheduler import LeagueScheduler
-from core.minigames.soccer.league.types import (
-    LeagueLeaderboardEntry,
-    LeagueMatch,
-    TeamAvailability,
-    TeamSource,
-)
+from core.minigames.soccer.league.types import (LeagueLeaderboardEntry,
+                                                LeagueMatch, TeamAvailability,
+                                                TeamSource)
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 
@@ -171,11 +166,9 @@ class SoccerLeagueRuntime:
         home_team = teams[league_match.home_team_id]
         away_team = teams[league_match.away_team_id]
 
-        entity_map = {}
-        if hasattr(world_state, "get_fish_list"):
-            for f in world_state.get_fish_list():
-                id_val = getattr(f, "fish_id", id(f))
-                entity_map[id_val] = f
+        entity_map = self._provider.find_entities(
+            world_state, set(home_team.roster) | set(away_team.roster)
+        )
 
         participants = []
 
