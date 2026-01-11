@@ -13,7 +13,7 @@ SOCCER_EVALUATOR_NUM_PLAYERS = 20
 # Match duration (RCSS cycles at 10Hz).
 # Match duration (RCSS cycles at 10Hz).
 # 3000 cycles = 300 seconds (5 minutes) of match time.
-SOCCER_EVALUATOR_DURATION_FRAMES = 300
+SOCCER_EVALUATOR_DURATION_FRAMES = 3000
 
 # Event tracking.
 SOCCER_MAX_EVENTS = 10

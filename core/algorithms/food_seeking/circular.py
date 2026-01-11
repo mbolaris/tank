@@ -14,6 +14,7 @@ from core.config.food import (
 
 if TYPE_CHECKING:
     from core.entities import Fish
+
 from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 

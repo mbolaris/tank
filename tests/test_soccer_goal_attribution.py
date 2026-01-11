@@ -295,15 +295,18 @@ def test_touch_tracking_resets_after_goal(engine):
 
     # Score a goal
     engine.queue_command("scorer", RCSSCommand.kick(100, 0))
-    engine.step_cycle()
+    result = engine.step_cycle()
 
-    # Let ball reach goal
-    goal_scored = False
-    for _ in range(50):
-        result = engine.step_cycle()
-        if result.get("events"):
-            goal_scored = True
-            break
+    # Check for immediate goal
+    goal_scored = bool(result.get("events"))
+
+    # Let ball reach goal if not already scored
+    if not goal_scored:
+        for _ in range(50):
+            result = engine.step_cycle()
+            if result.get("events"):
+                goal_scored = True
+                break
 
     assert goal_scored
 

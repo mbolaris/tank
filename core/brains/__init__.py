@@ -5,8 +5,8 @@ The contracts here (BrainObservation, BrainAction) are distinct from genome
 policy observations which use plain dicts via ObservationRegistry.
 """
 
-from core.brains.contracts import (  # Backward-compatibility aliases
-    Action,
+from core.brains.contracts import Action  # Backward-compatibility aliases
+from core.brains.contracts import (
     ActionMap,
     BrainAction,
     BrainActionMap,

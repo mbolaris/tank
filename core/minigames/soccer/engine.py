@@ -549,11 +549,11 @@ class RCSSLiteEngine:
         scoring_team: str | None = None
 
         # Left goal (right team scores)
-        if self._ball.position.x < -half_length - self.params.goal_depth:
+        if self._ball.position.x < -half_length - self.params.ball_size:
             scoring_team = "right"
 
         # Right goal (left team scores)
-        elif self._ball.position.x > half_length + self.params.goal_depth:
+        elif self._ball.position.x > half_length + self.params.ball_size:
             scoring_team = "left"
 
         if not scoring_team:
