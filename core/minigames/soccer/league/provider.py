@@ -38,7 +38,9 @@ class LeagueTeamProvider:
             # Team B (if we have enough for A, consider B)
             # Note: We slice from AFTER Team A
             team_size = self._get_team_size()
-            self._create_source_team(teams, availability, source_id, "B", sorted_entities, team_size)
+            self._create_source_team(
+                teams, availability, source_id, "B", sorted_entities, team_size
+            )
 
         # 2. Identify Bot Teams
         self._add_bot_teams(teams, availability)

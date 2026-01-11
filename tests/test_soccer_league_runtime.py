@@ -212,4 +212,3 @@ def test_entry_fee_filtering():
 
     # Start a match and ensure it doesn't crash (should just skip)
     assert state["active_match"] is None
-
