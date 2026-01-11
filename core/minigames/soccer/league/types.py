@@ -30,7 +30,7 @@ class LeagueTeam:
     team_id: str
     display_name: str
     source: TeamSource
-    tank_id: str | None = None  # None for bots
+    source_id: str | None  # e.g. "Tank1" or "Main"
     roster: list[int] = field(default_factory=list)  # List of Entity IDs
 
 

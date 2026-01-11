@@ -23,9 +23,9 @@ class LeagueTeamProvider:
         availability: dict[str, TeamAvailability] = {}
 
         # 1. Identify Tank Teams
-        tank_groups = self._group_entities_by_tank(world_state)
+        source_groups = self._group_entities_by_source(world_state)
 
-        for tank_id, entities in tank_groups.items():
+        for source_id, entities in source_groups.items():
             # Sort by soccer rating (using energy/genome as proxy for now, ideally Elo)
             # Todo: Integrate real Elo rating here if available on entity
             sorted_entities = sorted(
@@ -33,50 +33,55 @@ class LeagueTeamProvider:
             )
 
             # Team A
-            self._create_tank_team(teams, availability, tank_id, "A", sorted_entities, 0)
+            self._create_source_team(teams, availability, source_id, "A", sorted_entities, 0)
 
             # Team B (if we have enough for A, consider B)
             # Note: We slice from AFTER Team A
             team_size = self._get_team_size()
-            self._create_tank_team(teams, availability, tank_id, "B", sorted_entities, team_size)
+            self._create_source_team(teams, availability, source_id, "B", sorted_entities, team_size)
 
         # 2. Identify Bot Teams
         self._add_bot_teams(teams, availability)
 
         return teams, availability
 
-    def _group_entities_by_tank(self, world_state: Any) -> dict[str, list[Any]]:
-        """Group eligible entities by their source tank."""
-        # For now, we assume all entities in the main world belong to the "local" tank
-        # unless we have multi-tank logic.
-        # If `world_state` has a way to distinguish tanks (e.g. from network), use it.
-        # Fallback: All entities -> "LocalTank"
+    def _group_entities_by_source(self, world_state: Any) -> dict[str, list[Any]]:
+        """Group eligible entities by their source."""
+        # For now, we assume all entities in the main world belong to the "local" source
+        # unless we have multi-world logic.
+        # If `world_state` has a way to distinguish sources (e.g. from network), use it.
+        # Fallback: All entities -> "Local"
 
         entities = []
         if hasattr(world_state, "get_fish_list"):
             entities = list(world_state.get_fish_list())
 
-        # Filter eligible (alive)
+        # Filter eligible (alive AND can pay entry fee)
+        # Note: We must check entry fee here to prevent ValueError in evaluator later
+        entry_fee = self.config.entry_fee_energy
         eligible = [
-            e for e in entities if not (callable(getattr(e, "is_dead", None)) and e.is_dead())
+            e
+            for e in entities
+            if not (callable(getattr(e, "is_dead", None)) and e.is_dead())
+            and get_entity_energy(e) > entry_fee
         ]
 
-        # In a single-instance sim, everyone is "Tank1" usually.
+        # In a single-instance sim, everyone is "Main" usually.
         # We can try to use `world_id` if available.
-        world_id = getattr(world_state, "world_id", "Tank1")
+        world_id = getattr(world_state, "world_id", "Main")
 
         return {world_id: eligible}
 
-    def _create_tank_team(
+    def _create_source_team(
         self,
         teams: dict[str, LeagueTeam],
         availability: dict[str, TeamAvailability],
-        tank_id: str,
+        source_id: str,
         suffix: str,
         sorted_entities: list[Any],
         offset: int,
     ) -> None:
-        team_id = f"{tank_id}:{suffix}"
+        team_id = f"{source_id}:{suffix}"
         team_size = self._get_team_size()
 
         candidates = sorted_entities[offset : offset + team_size]
@@ -87,9 +92,9 @@ class LeagueTeamProvider:
 
         teams[team_id] = LeagueTeam(
             team_id=team_id,
-            display_name=f"{tank_id} {suffix}",
+            display_name=f"{source_id} {suffix}",
             source=TeamSource.TANK,
-            tank_id=tank_id,
+            source_id=source_id,
             roster=roster,
         )
 
@@ -110,7 +115,7 @@ class LeagueTeamProvider:
             team_id="Bot:Balanced",
             display_name="Bot Balanced",
             source=TeamSource.BOT,
-            tank_id=None,
+            source_id=None,
             roster=[],  # Bots adhere to special logic, empty roster implies generated
         )
         availability["Bot:Balanced"] = TeamAvailability(

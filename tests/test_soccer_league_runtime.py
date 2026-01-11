@@ -184,3 +184,32 @@ def test_leaderboard_sorting(base_config):
     assert lb[0]["team_id"] == "A"
     assert lb[1]["team_id"] == "B"
     assert lb[2]["team_id"] == "C"
+
+
+def test_entry_fee_filtering():
+    """Test that fish without enough energy are filtered out, preventing crashes."""
+    config = SoccerConfig(
+        enabled=True,
+        match_every_frames=1,
+        team_size=11,
+        entry_fee_energy=50.0,  # High fee
+        cycles_per_frame=1,
+    )
+    runtime = SoccerLeagueRuntime(config)
+
+    # 20 fish with only 10 energy (cannot pay)
+    fish = [DummyFish(i, 10.0) for i in range(20)]
+    world = DummyWorld(fish)
+
+    runtime.tick(world, seed_base=1, cycle=1)
+    state = runtime.get_live_state()
+
+    # Tank1:A should be unavailable because no fish can pay
+    av = state["availability"]
+    assert "Tank1:A" in av
+    assert av["Tank1:A"]["available"] is False
+    assert av["Tank1:A"]["count"] == 0  # All filtered out
+
+    # Start a match and ensure it doesn't crash (should just skip)
+    assert state["active_match"] is None
+
