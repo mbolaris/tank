@@ -83,25 +83,7 @@
 }
 
 /* Mode/debug badges */
-.badge {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    padding: 2px 8px;
-    border-radius: 4px;
-    text-transform: uppercase;
-}
 
-.badge.purple {
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
-}
-
-.badge.blue {
-    background: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
-    font-family: var(--font-mono);
-}
 
 /* Plant energy control */
 .plantEnergyControl {
@@ -357,7 +339,8 @@
 }
 
 .panel {
-    min-width: 0; /* Prevent overflow */
+    min-width: 0;
+    /* Prevent overflow */
 }
 
 /* Responsive adjustments */

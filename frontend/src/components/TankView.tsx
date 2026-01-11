@@ -160,14 +160,7 @@ export function TankView({ worldId }: TankViewProps) {
                         </span>
                     </div>
 
-                    {/* Mode/View Debug Badge */}
-                    <div className={styles.divider} />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <span className={`${styles.badge} ${styles.purple}`}>
-                            MODE: {(state as any)?.mode_id ?? state?.world_type ?? 'tank'}
-                        </span>
-                        <span className={`${styles.badge} ${styles.blue}`}>VIEW: {effectiveViewMode}</span>
-                    </div>
+
 
                     <div
                         style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
