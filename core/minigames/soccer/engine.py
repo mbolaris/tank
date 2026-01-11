@@ -513,6 +513,10 @@ class RCSSLiteEngine:
                     p2.position.x += nx * overlap / 2
                     p2.position.y += ny * overlap / 2
 
+                    # Apply velocity decay due to collision ( RCSS standard is ~0.1 )
+                    p1.velocity = p1.velocity * 0.1
+                    p2.velocity = p2.velocity * 0.1
+
         # Player-ball collisions
         for player in players:
             dx = self._ball.position.x - player.position.x
