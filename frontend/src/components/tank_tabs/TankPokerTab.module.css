@@ -1,0 +1,133 @@
+.pokerTab {
+    max-width: 1140px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.activeBadge {
+    font-size: 11px;
+    background-color: rgba(167, 139, 250, 0.2);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.welcomeSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px;
+}
+
+.welcomeText {
+    color: #94a3b8;
+    font-size: 14px;
+    text-align: center;
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.metricCard {
+    background-color: #0f172a;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #334155;
+    text-align: center;
+}
+
+.metricLabel {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.metricValue {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.metricSub {
+    color: #64748b;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.dashboardCard {
+    background-color: #0f172a;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #334155;
+}
+
+.errorNotification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    background-color: #7f1d1d;
+    color: #fecaca;
+    border: 1px solid #ef4444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    max-width: 400px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.errorClose {
+    background: none;
+    border: none;
+    color: #fecaca;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 16px;
+}
+
+/* Responsive layout */
+@media (max-width: 900px) {
+    .metricsGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .metricsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
