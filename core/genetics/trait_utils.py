@@ -24,11 +24,13 @@ T = TypeVar("T")
 
 
 @overload
-def get_trait_value(trait: Any, default: T) -> T: ...
+def get_trait_value(trait: Any, default: T) -> T:
+    ...
 
 
 @overload
-def get_trait_value(trait: Any) -> Optional[Any]: ...
+def get_trait_value(trait: Any) -> Optional[Any]:
+    ...
 
 
 def get_trait_value(trait: Any, default: Any = None) -> Any:
