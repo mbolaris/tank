@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from core.config.simulation_config import SoccerConfig
@@ -253,7 +253,7 @@ class SoccerLeagueRuntime:
                     outcome.rewarded.clear()
                     outcome.energy_deltas.clear()
                     outcome.repro_credit_deltas.clear()
-                    outcome.message += " (Bot win - no rewards)"
+                    outcome = replace(outcome, message=outcome.message + " (Bot win - no rewards)")
 
         self._pending_events.append(outcome)
         self._match_counter += 1
