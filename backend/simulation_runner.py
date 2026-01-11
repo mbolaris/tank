@@ -140,6 +140,19 @@ class SimulationRunner(CommandHandlerMixin):
         self._migration_handler_deps = (None, None)  # (connection_manager, world_manager)
         self.migration_lock = threading.Lock()
 
+    def set_dependencies(
+        self,
+        world_manager: Optional["WorldManager"] = None,
+        connection_manager: Optional[Any] = None,
+    ) -> None:
+        """Inject dependencies and update environment migration context."""
+        if world_manager is not None:
+            self.world_manager = world_manager
+        if connection_manager is not None:
+            self.connection_manager = connection_manager
+
+        self._update_environment_migration_context()
+
         # Note: _entity_snapshot_builder is created by create_world() above
 
         # Inject migration support into environment for fish to access

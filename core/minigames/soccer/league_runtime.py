@@ -7,13 +7,18 @@ from typing import Any
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
-    SoccerMinigameOutcome, create_soccer_match_from_participants,
-    finalize_soccer_match)
+    SoccerMinigameOutcome,
+    create_soccer_match_from_participants,
+    finalize_soccer_match,
+)
 from core.minigames.soccer.league.provider import LeagueTeamProvider
 from core.minigames.soccer.league.scheduler import LeagueScheduler
-from core.minigames.soccer.league.types import (LeagueLeaderboardEntry,
-                                                LeagueMatch, TeamAvailability,
-                                                TeamSource)
+from core.minigames.soccer.league.types import (
+    LeagueLeaderboardEntry,
+    LeagueMatch,
+    TeamAvailability,
+    TeamSource,
+)
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 
@@ -138,6 +143,16 @@ class SoccerLeagueRuntime:
                 match_state["league_round"] = self._current_league_match.round_index
                 match_state["home_id"] = self._current_league_match.home_team_id
                 match_state["away_id"] = self._current_league_match.away_team_id
+
+                # Add team names for display
+                if self._current_league_match.home_team_id in self._leaderboard:
+                    match_state["home_name"] = self._leaderboard[
+                        self._current_league_match.home_team_id
+                    ].display_name
+                if self._current_league_match.away_team_id in self._leaderboard:
+                    match_state["away_name"] = self._leaderboard[
+                        self._current_league_match.away_team_id
+                    ].display_name
             state["active_match"] = match_state
 
         return state

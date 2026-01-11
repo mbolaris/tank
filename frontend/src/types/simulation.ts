@@ -196,6 +196,8 @@ export interface SoccerMatchState {
     league_round?: number;
     home_id?: string;
     away_id?: string;
+    home_name?: string;
+    away_name?: string;
 }
 
 export interface LeagueLeaderboardEntry {

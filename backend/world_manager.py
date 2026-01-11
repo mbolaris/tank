@@ -231,7 +231,10 @@ class WorldManager:
             world_type=world_type,
             config=config,
         )
-        runner.world_manager = self
+        runner.set_dependencies(
+            world_manager=self,
+            connection_manager=self.connection_manager,
+        )
 
         # Start the simulation thread
         runner.start(start_paused=start_paused)
