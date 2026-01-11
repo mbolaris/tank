@@ -221,7 +221,9 @@ def test_fitness_reflects_goals():
         for i in range(len(goal_counts) - 1):
             lower_goals = goal_counts[i]
             higher_goals = goal_counts[i + 1]
-            avg_fitness_lower = sum(fitness_by_goals[lower_goals]) / len(fitness_by_goals[lower_goals])
+            avg_fitness_lower = sum(fitness_by_goals[lower_goals]) / len(
+                fitness_by_goals[lower_goals]
+            )
             avg_fitness_higher = sum(fitness_by_goals[higher_goals]) / len(
                 fitness_by_goals[higher_goals]
             )

@@ -607,9 +607,11 @@ class CommandHandlerMixin:
                 allow_repeat_within_match=bool(
                     getattr(soccer_cfg, "allow_repeat_within_match", False)
                 ),
-                entry_fee_energy=float(getattr(soccer_cfg, "entry_fee_energy", 0.0))
-                if soccer_cfg is not None
-                else 0.0,
+                entry_fee_energy=(
+                    float(getattr(soccer_cfg, "entry_fee_energy", 0.0))
+                    if soccer_cfg is not None
+                    else 0.0
+                ),
             )
             self.soccer_match = setup.match
             self._soccer_match_seed = setup.seed
@@ -680,18 +682,26 @@ class CommandHandlerMixin:
                     match_counter=getattr(self, "_soccer_match_counter_current", 0),
                     selection_seed=getattr(self, "_soccer_match_selection_seed", None),
                     entry_fees=getattr(self, "_soccer_match_entry_fees", None),
-                    reward_mode=getattr(soccer_cfg, "reward_mode", "pot_payout")
-                    if soccer_cfg is not None
-                    else "pot_payout",
-                    reward_multiplier=float(getattr(soccer_cfg, "reward_multiplier", 1.0))
-                    if soccer_cfg is not None
-                    else 1.0,
-                    repro_reward_mode=getattr(soccer_cfg, "repro_reward_mode", "credits")
-                    if soccer_cfg is not None
-                    else "credits",
-                    repro_credit_award=float(getattr(soccer_cfg, "repro_credit_award", 0.0))
-                    if soccer_cfg is not None
-                    else 0.0,
+                    reward_mode=(
+                        getattr(soccer_cfg, "reward_mode", "pot_payout")
+                        if soccer_cfg is not None
+                        else "pot_payout"
+                    ),
+                    reward_multiplier=(
+                        float(getattr(soccer_cfg, "reward_multiplier", 1.0))
+                        if soccer_cfg is not None
+                        else 1.0
+                    ),
+                    repro_reward_mode=(
+                        getattr(soccer_cfg, "repro_reward_mode", "credits")
+                        if soccer_cfg is not None
+                        else "credits"
+                    ),
+                    repro_credit_award=(
+                        float(getattr(soccer_cfg, "repro_credit_award", 0.0))
+                        if soccer_cfg is not None
+                        else 0.0
+                    ),
                 )
                 if outcome.rewarded:
                     logger.info(
