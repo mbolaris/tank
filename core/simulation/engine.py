@@ -991,6 +991,10 @@ class SimulationEngine:
 
     def add_soccer_event(self, outcome: SoccerMinigameOutcome) -> None:
         """Record a soccer minigame outcome for UI/event streams."""
+
+        def stringify_keys(values: dict[Any, Any]) -> dict[str, Any]:
+            return {str(key): value for key, value in values.items()}
+
         event = {
             "frame": self.frame_count,
             "match_id": outcome.match_id,
@@ -1002,10 +1006,10 @@ class SimulationEngine:
             "seed": outcome.seed,
             "selection_seed": outcome.selection_seed,
             "message": outcome.message,
-            "rewarded": dict(outcome.rewarded),
-            "entry_fees": dict(outcome.entry_fees),
-            "energy_deltas": dict(outcome.energy_deltas),
-            "repro_credit_deltas": dict(outcome.repro_credit_deltas),
+            "rewarded": stringify_keys(dict(outcome.rewarded)),
+            "entry_fees": stringify_keys(dict(outcome.entry_fees)),
+            "energy_deltas": stringify_keys(dict(outcome.energy_deltas)),
+            "repro_credit_deltas": stringify_keys(dict(outcome.repro_credit_deltas)),
             "teams": {
                 "left": list(outcome.teams.get("left", [])),
                 "right": list(outcome.teams.get("right", [])),
