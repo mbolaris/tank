@@ -1338,7 +1338,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         return soccer_events
 
-    def _collect_soccer_league_live(self) -> dict[str, Any] | None:
+    def _collect_soccer_league_live(self) -> Optional[Dict[str, Any]]:
         get_live = getattr(self.world, "get_soccer_league_live_state", None)
         if callable(get_live):
             return get_live()
