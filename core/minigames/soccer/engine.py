@@ -215,6 +215,11 @@ class RCSSLiteEngine:
         """Set whether teams have swapped sides (affects goal attribution)."""
         self._swapped_sides = swapped
 
+    @property
+    def swapped_sides(self) -> bool:
+        """Whether sides are currently swapped (2nd half)."""
+        return self._swapped_sides
+
     def queue_command(self, player_id: str, command: RCSSCommand) -> bool:
         """Queue a command for a player (applied at cycle end).
 
@@ -378,14 +383,15 @@ class RCSSLiteEngine:
             noise = self._rng.gauss(0, self.params.kick_rand)
             dir_rad += noise
 
-        # Calculate ball velocity from kick
-        kick_speed = power * self.params.kick_power_rate
-        kick_speed = min(kick_speed, self.params.ball_speed_max)
-
-        self._ball.velocity = RCSSVector(
-            math.cos(dir_rad) * kick_speed,
-            math.sin(dir_rad) * kick_speed,
+        # Calculate ball acceleration from kick
+        kick_accel = power * self.params.kick_power_rate
+        
+        # Add to ball acceleration (handle simultaneous kicks)
+        accel_vec = RCSSVector(
+            math.cos(dir_rad) * kick_accel,
+            math.sin(dir_rad) * kick_accel,
         )
+        self._ball.acceleration = self._ball.acceleration + accel_vec
 
         # Track touch for goal attribution
         # If different player than last touch, record assist candidate
