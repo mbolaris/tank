@@ -1,0 +1,99 @@
+.soccerTab {
+    max-width: 1140px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.eventsHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.eventsTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+.eventsSummary {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+}
+
+.completedBadge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    font-weight: 600;
+}
+
+.skippedBadge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.filterToggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filterToggle input {
+    cursor: pointer;
+}
+
+.filterToggle:hover {
+    color: #e2e8f0;
+}
+
+.skipSummary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.skipSummaryLabel {
+    font-size: 11px;
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.skipReasonTag {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    color: #fbbf24;
+}
+
+.advancedBadge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
