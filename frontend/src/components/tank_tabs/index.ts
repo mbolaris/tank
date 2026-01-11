@@ -1,6 +1,4 @@
-export { TankTabs, useActiveTab } from './TankTabs';
-export type { TabId } from './TankTabs';
-export { TankPlayTab } from './TankPlayTab';
+// Panel components (used in grid layout)
 export { TankSoccerTab } from './TankSoccerTab';
 export { TankPokerTab } from './TankPokerTab';
 export { TankEcosystemTab } from './TankEcosystemTab';
