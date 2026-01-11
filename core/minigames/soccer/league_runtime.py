@@ -197,16 +197,42 @@ class SoccerLeagueRuntime:
         )
         match_seed = derive_soccer_seed(int(effective_seed_base), self._match_counter, "match")
 
-        setup = create_soccer_match_from_participants(
-            participants,
-            duration_frames=self.config.duration_frames,
-            code_source=getattr(world_state, "genome_code_pool", None),
-            seed=match_seed,
-            match_id=league_match.match_id,
-            match_counter=self._match_counter,
-            selection_seed=selection_seed,
-            entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
-        )
+        try:
+            setup = create_soccer_match_from_participants(
+                participants,
+                duration_frames=self.config.duration_frames,
+                code_source=getattr(world_state, "genome_code_pool", None),
+                seed=match_seed,
+                match_id=league_match.match_id,
+                match_counter=self._match_counter,
+                selection_seed=selection_seed,
+                entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
+            )
+        except Exception as e:
+            # Record a SKIPPED match so the UI has something to show and the league progresses.
+            outcome = SoccerMinigameOutcome(
+                match_id=f"S{self._match_counter}_{league_match.match_id}",
+                match_counter=self._match_counter,
+                winner_team=None,
+                score_left=0,
+                score_right=0,
+                frames=0,
+                seed=match_seed,
+                selection_seed=selection_seed,
+                message=f"SKIPPED: {e}",
+                rewarded={},
+                entry_fees={},
+                energy_deltas={},
+                repro_credit_deltas={},
+                teams={tid: t.roster for tid, t in teams.items()},
+                skipped=True,
+                skip_reason=str(e),
+            )
+            self._pending_events.append(outcome)
+            self._match_counter += 1
+            self._scheduler.advance_match()
+            self._clear_active_match()
+            return
 
         self._active_match = setup.match
         self._active_setup = setup

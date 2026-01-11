@@ -61,12 +61,22 @@ class LeagueTeamProvider:
         # Filter eligible (alive AND can pay entry fee)
         # Note: We must check entry fee here to prevent ValueError in evaluator later
         entry_fee = self.config.entry_fee_energy
-        eligible = [
-            e
-            for e in entities
-            if not (callable(getattr(e, "is_dead", None)) and e.is_dead())
-            and get_entity_energy(e) > entry_fee
-        ]
+
+        def _is_valid(e: Any) -> bool:
+            # Check dead
+            if callable(getattr(e, "is_dead", None)) and e.is_dead():
+                return False
+            # Check energy
+            energy = getattr(e, "energy", None)
+            if energy is None:
+                return False
+            try:
+                val = float(energy)
+                return val > entry_fee
+            except (ValueError, TypeError):
+                return False
+
+        eligible = [e for e in entities if _is_valid(e)]
 
         # In a single-instance sim, everyone is "Main" usually.
         # We can try to use `world_id` if available.

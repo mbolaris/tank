@@ -29,7 +29,15 @@ export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLivePro
                         background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px',
                         color: '#94a3b8', fontSize: '14px', fontWeight: 600, border: '1px solid rgba(148,163,184,0.1)'
                     }}>
-                        League Idle
+                        {(() => {
+                            if (!liveState?.availability) return 'League Idle';
+                            const teams = Object.values(liveState.availability);
+                            const unavailable = teams.filter(t => !t.available && !t.reason.includes('Bot'));
+                            if (unavailable.length > 0) {
+                                return `Waiting for Players (${unavailable.length} teams unavailable)`;
+                            }
+                            return 'League Active - Scheduling...';
+                        })()}
                     </div>
                 ) : (
                     <div style={{
