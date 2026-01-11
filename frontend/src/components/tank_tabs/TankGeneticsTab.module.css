@@ -1,0 +1,32 @@
+.geneticsTab {
+    max-width: 1140px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #4ade80;
+}
+
+.sectionIcon {
+    font-size: 18px;
+}
+
+.sectionDesc {
+    color: #94a3b8;
+    font-size: 13px;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+}
+
+.treeContainer {
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+}

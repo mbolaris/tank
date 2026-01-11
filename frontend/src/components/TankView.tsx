@@ -1,195 +1,75 @@
 import { useState, useCallback } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { ControlPanel } from './ControlPanel';
-import { PhylogeneticTree } from './PhylogeneticTree';
-import { PokerGame } from './PokerGame';
-import { SoccerGame } from './SoccerGame';
-import { PokerLeaderboard } from './PokerLeaderboard';
-import PokerEvents from './PokerEvents';
-import SoccerLeagueEvents from './SoccerLeagueEvents';
-import { SoccerLeagueLive } from './SoccerLeagueLive';
-import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
-import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
-import { TransferDialog } from './TransferDialog';
-import { EcosystemStats } from './EcosystemStats';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { initRenderers } from '../renderers/init';
-import { CollapsibleSection, Button, PlantIcon, CardsIcon, GlobeIcon } from './ui';
+import { TransferDialog } from './TransferDialog';
+import { PlantIcon } from './ui';
+import {
+    TankSoccerTab,
+    TankPokerTab,
+    TankEcosystemTab,
+    TankGeneticsTab,
+} from './tank_tabs';
 import styles from './TankView.module.css';
-
-import type { PokerGameState } from '../types/simulation';
 
 interface TankViewProps {
     worldId?: string;
 }
 
+const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
+    { id: 'soccer', label: 'Soccer', icon: '⚽' },
+    { id: 'poker', label: 'Poker', icon: '♠' },
+    { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
+    { id: 'genetics', label: 'Genetics', icon: '🧬' },
+];
+
 export function TankView({ worldId }: TankViewProps) {
-    const { state, isConnected, sendCommand, sendCommandWithResponse } = useWebSocket(worldId);
-    const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
-    const [showPokerGame, setShowPokerGame] = useState(false);
-    const [showSoccerGame, setShowSoccerGame] = useState(false);
-    const [pokerLoading, setPokerLoading] = useState(false);
-    const [showEffects, setShowEffects] = useState(true); // Toggle for energy bars and poker effects
+    const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId } =
+        useWebSocket(worldId);
+    const [showEffects, setShowEffects] = useState(true);
+    const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
 
     // Plant energy input control
-    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15); // Default from PLANT_MIN_ENERGY_GAIN
+    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
 
-    const handlePlantEnergyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const rate = parseFloat(e.target.value);
-        setPlantEnergyInput(rate);
-        sendCommand({ command: 'set_plant_energy_input', data: { rate } });
-    }, [sendCommand]);
+    const handlePlantEnergyChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const rate = parseFloat(e.target.value);
+            setPlantEnergyInput(rate);
+            sendCommand({ command: 'set_plant_energy_input', data: { rate } });
+        },
+        [sendCommand]
+    );
 
     // Entity transfer state
     const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
     const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
     const [showTransferDialog, setShowTransferDialog] = useState(false);
-    const [transferMessage, setTransferMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [transferMessage, setTransferMessage] = useState<{
+        type: 'success' | 'error';
+        text: string;
+    } | null>(null);
 
-    // Error handling state
-    const [pokerError, setPokerError] = useState<string | null>(null);
-
-    const { effectiveViewMode, setOverrideViewMode: _setOverrideViewMode, worldType, setWorldType } = useViewMode(
-        state?.view_mode as any,
-        state?.world_type,
-        worldId || state?.world_id
-    );
+    const {
+        effectiveViewMode,
+        setOverrideViewMode: _setOverrideViewMode,
+        worldType,
+        setWorldType,
+    } = useViewMode(state?.view_mode as any, state?.world_type, worldId || state?.world_id);
 
     // Effective world type for rendering - prefer server state when available
-    // Server is authoritative; worldType is used as fallback before server state arrives
     const effectiveWorldType = state?.world_type ?? worldType;
+
+    // Effective world ID - use connected ID which is available immediately
+    const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
     // Ensure renderers are initialized
     initRenderers();
-
-
-    const handlePokerError = (message: string, error?: unknown) => {
-        const errorDetail = error instanceof Error ? error.message : String(error ?? '');
-        const fullMessage = errorDetail ? `${message}: ${errorDetail}` : message;
-        setPokerError(fullMessage);
-        // Auto-clear error after 5 seconds
-        setTimeout(() => setPokerError(null), 5000);
-    };
-
-
-
-    // Process AI turns one at a time with delay for visual feedback
-    const processAiTurnsWithDelay = async () => {
-        const AI_TURN_DELAY = 1000; // ms to show each AI player's turn before they act
-
-        const processNextAiTurn = async (): Promise<void> => {
-            try {
-                // Wait BEFORE the AI makes their move so user can see who's about to act
-                await new Promise(resolve => setTimeout(resolve, AI_TURN_DELAY));
-
-                const response = await sendCommandWithResponse({
-                    command: 'poker_process_ai_turn',
-                    data: {},
-                });
-
-                if (response.state) {
-                    setPokerGameState(response.state);
-                }
-
-                // If an action was taken, process next AI turn
-                if (response.action_taken) {
-                    await processNextAiTurn();
-                }
-                // If no action taken (human_turn or game_over), we're done
-            } catch (error) {
-                handlePokerError('Failed to process AI turn', error);
-            }
-        };
-
-        // Start processing AI turns (delay happens at the beginning of processNextAiTurn)
-        await processNextAiTurn();
-    };
-
-    const handleStartPoker = async () => {
-        try {
-            setPokerLoading(true);
-            setShowPokerGame(true);
-            const response = await sendCommandWithResponse({
-                command: 'start_poker',
-                data: { energy: 500 },
-            });
-            if (response.success === false) {
-                alert(response.error || 'Failed to start poker game');
-                setShowPokerGame(false);
-            } else if (response.state) {
-                setPokerGameState(response.state);
-                // Process AI turns if it's not the human's turn first
-                if (!response.state.is_your_turn && !response.state.game_over) {
-                    processAiTurnsWithDelay();
-                }
-            }
-        } catch (error) {
-            handlePokerError('Failed to start poker game', error);
-            setShowPokerGame(false);
-        } finally {
-            setPokerLoading(false);
-        }
-    };
-
-    const handlePokerAction = async (action: string, amount?: number) => {
-        try {
-            setPokerLoading(true);
-            const response = await sendCommandWithResponse({
-                command: 'poker_action',
-                data: { action, amount: amount || 0 },
-            });
-            if (response.success === false) {
-                alert(response.error || 'Invalid action');
-            } else if (response.state) {
-                setPokerGameState(response.state);
-                // Start processing AI turns after human action
-                processAiTurnsWithDelay();
-            }
-        } catch (error) {
-            handlePokerError('Failed to send poker action', error);
-        } finally {
-            setPokerLoading(false);
-        }
-    };
-
-    const handleClosePoker = () => {
-        setShowPokerGame(false);
-        setPokerGameState(null);
-    };
-
-    const handleNewRound = async () => {
-        try {
-            setPokerLoading(true);
-            const response = await sendCommandWithResponse({
-                command: 'poker_new_round',
-                data: {},
-            });
-            if (response.success === false) {
-                alert(response.error || 'Failed to start new round');
-            } else if (response.state) {
-                setPokerGameState(response.state);
-                // Process AI turns if it's not the human's turn first
-                if (!response.state.is_your_turn && !response.state.game_over) {
-                    processAiTurnsWithDelay();
-                }
-            }
-        } catch (error) {
-            handlePokerError('Failed to start new poker round', error);
-        } finally {
-            setPokerLoading(false);
-        }
-    };
-
-    const handleGetAutopilotAction = async () => {
-        const response = await sendCommandWithResponse({
-            command: 'poker_autopilot_action',
-            data: {},
-        });
-        return response as { success: boolean; action: string; amount: number };
-    };
 
     const handleEntityClick = (entityId: number, entityType: string) => {
         setSelectedEntityId(entityId);
@@ -201,8 +81,6 @@ export function TankView({ worldId }: TankViewProps) {
         setTransferMessage({ type: success ? 'success' : 'error', text: message });
         setSelectedEntityId(null);
         setSelectedEntityType(null);
-
-        // Clear message after 5 seconds
         setTimeout(() => setTransferMessage(null), 5000);
     };
 
@@ -224,10 +102,7 @@ export function TankView({ worldId }: TankViewProps) {
                     onToggleEffects={() => setShowEffects(!showEffects)}
                 />
 
-                <WorldModeSelector
-                    worldType={worldType}
-                    onChange={setWorldType}
-                />
+                <WorldModeSelector worldType={worldType} onChange={setWorldType} />
 
                 {/* Plant Energy Input Control */}
                 <div className={`glass-panel ${styles.plantEnergyControl}`}>
@@ -244,24 +119,43 @@ export function TankView({ worldId }: TankViewProps) {
                         disabled={!isConnected}
                         className={styles.plantEnergySlider}
                     />
-                    <span className={styles.plantEnergyValue}>
-                        {plantEnergyInput.toFixed(2)}
-                    </span>
+                    <span className={styles.plantEnergyValue}>{plantEnergyInput.toFixed(2)}</span>
                 </div>
             </div>
 
-            {/* Simulation Stats Panel - Moved Above Tank */}
-            <div style={{ marginBottom: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                <div className="glass-panel" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}>
+            {/* Simulation Stats Panel */}
+            <div
+                style={{
+                    marginBottom: '20px',
+                    width: '100%',
+                    maxWidth: '1140px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                }}
+            >
+                <div
+                    className="glass-panel"
+                    style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}
+                >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={`status-dot ${isConnected ? 'online' : 'offline'}`}
+                        <span
+                            className={`status-dot ${isConnected ? 'online' : 'offline'}`}
                             style={{
-                                width: 8, height: 8, borderRadius: '50%',
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
                                 background: isConnected ? 'var(--color-success)' : 'var(--color-warning)',
-                                boxShadow: isConnected ? '0 0 8px var(--color-success)' : 'none'
+                                boxShadow: isConnected ? '0 0 8px var(--color-success)' : 'none',
                             }}
                         />
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em' }}>
+                        <span
+                            style={{
+                                color: 'var(--color-text-muted)',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                letterSpacing: '0.05em',
+                            }}
+                        >
                             {isConnected ? 'LIVE' : 'OFFLINE'}
                         </span>
                     </div>
@@ -270,62 +164,149 @@ export function TankView({ worldId }: TankViewProps) {
                     <div className={styles.divider} />
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <span className={`${styles.badge} ${styles.purple}`}>
-                            MODE: {(state as any)?.mode_id ?? state?.world_type ?? "tank"}
+                            MODE: {(state as any)?.mode_id ?? state?.world_type ?? 'tank'}
                         </span>
-                        <span className={`${styles.badge} ${styles.blue}`}>
-                            VIEW: {effectiveViewMode}
-                        </span>
+                        <span className={`${styles.badge} ${styles.blue}`}>VIEW: {effectiveViewMode}</span>
                     </div>
 
-                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                    <div
+                        style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
+                    />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FRAME</span>
-                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                        <span
+                            style={{
+                                color: 'var(--color-text-dim)',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                letterSpacing: '0.05em',
+                            }}
+                        >
+                            FRAME
+                        </span>
+                        <span
+                            style={{
+                                color: 'var(--color-text-main)',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                            }}
+                        >
                             {state?.stats?.frame ? state.stats.frame.toLocaleString() : '—'}
                         </span>
                     </div>
 
-                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                    <div
+                        style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
+                    />
 
                     {state?.stats?.fps !== undefined && (
                         <>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>FPS</span>
-                                <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                                <span
+                                    style={{
+                                        color: 'var(--color-text-dim)',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        letterSpacing: '0.05em',
+                                    }}
+                                >
+                                    FPS
+                                </span>
+                                <span
+                                    style={{
+                                        color: 'var(--color-text-main)',
+                                        fontFamily: 'var(--font-mono)',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                    }}
+                                >
                                     {state.stats.fps.toFixed(1)}
                                 </span>
                             </div>
-                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                            <div
+                                style={{
+                                    width: '1px',
+                                    height: '16px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                }}
+                            />
                         </>
                     )}
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>POPULATION</span>
-                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
+                        <span
+                            style={{
+                                color: 'var(--color-text-dim)',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                letterSpacing: '0.05em',
+                            }}
+                        >
+                            POPULATION
+                        </span>
+                        <span
+                            style={{
+                                color: 'var(--color-text-main)',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                            }}
+                        >
                             {state?.stats?.fish_count ? state.stats.fish_count.toLocaleString() : '0'}
                         </span>
                     </div>
 
-                    <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                    <div
+                        style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
+                    />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: 'var(--color-text-dim)', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em' }}>MAX GEN</span>
-                        <span style={{ color: 'var(--color-text-main)', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 500 }}>
-                            {state?.stats ? (state.stats.max_generation ?? state.stats.generation ?? 0) : '0'}
+                        <span
+                            style={{
+                                color: 'var(--color-text-dim)',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                letterSpacing: '0.05em',
+                            }}
+                        >
+                            MAX GEN
+                        </span>
+                        <span
+                            style={{
+                                color: 'var(--color-text-main)',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                            }}
+                        >
+                            {state?.stats
+                                ? (state.stats.max_generation ?? state.stats.generation ?? 0)
+                                : '0'}
                         </span>
                     </div>
 
-                    {/* Poker Score - inline display for consistency with Network Dashboard */}
-                    {(state?.stats?.poker_elo !== undefined || state?.stats?.poker_score !== undefined) && (
+                    {/* Poker Score */}
+                    {(state?.stats?.poker_elo !== undefined ||
+                        state?.stats?.poker_score !== undefined) && (
                         <>
-                            <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }} />
+                            <div
+                                style={{
+                                    width: '1px',
+                                    height: '16px',
+                                    background: 'rgba(255,255,255,0.1)',
+                                }}
+                            />
                             <PokerScoreDisplay
                                 score={state.stats.poker_score}
                                 elo={state.stats.poker_elo}
-                                history={state.stats.poker_elo && state.stats.poker_elo_history && state.stats.poker_elo_history.length > 0
-                                    ? state.stats.poker_elo_history
-                                    : (state.stats.poker_score_history || [])}
+                                history={
+                                    state.stats.poker_elo &&
+                                    state.stats.poker_elo_history &&
+                                    state.stats.poker_elo_history.length > 0
+                                        ? state.stats.poker_elo_history
+                                        : state.stats.poker_score_history || []
+                                }
                                 compact={true}
                             />
                         </>
@@ -333,7 +314,7 @@ export function TankView({ worldId }: TankViewProps) {
                 </div>
             </div>
 
-            {/* Tank simulation */}
+            {/* Always-visible Canvas */}
             <div className="top-section">
                 <div className="canvas-wrapper">
                     <Canvas
@@ -343,350 +324,113 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
-                        viewMode={effectiveViewMode}
+                        viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
                     <div className="canvas-glow" aria-hidden />
                 </div>
             </div>
 
-            {/* Poker Game - Collapsible Panel */}
-            <div className="glass-panel" style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto', padding: '16px', boxSizing: 'border-box' }}>
-                <CollapsibleSection
-                    title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                            <span style={{ fontSize: '16px', fontWeight: 600, color: '#a78bfa' }}>Poker Table</span>
-                            {showPokerGame && (
-                                <span style={{
-                                    fontSize: '11px',
-                                    backgroundColor: 'rgba(167, 139, 250, 0.2)',
-                                    color: '#a78bfa',
-                                    padding: '2px 8px',
-                                    borderRadius: '4px'
-                                }}>
-                                    Active Game
-                                </span>
-                            )}
-                        </div>
-                    }
-                    defaultExpanded={showPokerGame}
-                >
-                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center' }}>
-                        {!showPokerGame ? (
-                            <div className={styles.pokerWelcome}>
-                                <CardsIcon size={48} style={{ color: '#a78bfa' }} />
-                                <div className={styles.pokerWelcomeText}>
-                                    Ready to play a hand against the population?
-                                </div>
-                                <Button
-                                    onClick={handleStartPoker}
-                                    disabled={!isConnected || pokerLoading}
-                                    variant="poker"
-                                    style={{ padding: '12px 32px', fontSize: '16px' }}
-                                >
-                                    <CardsIcon size={16} /> {pokerLoading ? 'Loading...' : 'Sit Down & Play'}
-                                </Button>
-                            </div>
-                        ) : (
-                            <PokerGame
-                                onClose={handleClosePoker}
-                                onAction={handlePokerAction}
-                                onNewRound={handleNewRound}
-                                onGetAutopilotAction={handleGetAutopilotAction}
-                                gameState={pokerGameState}
-                                loading={pokerLoading}
-                            />
-                        )}
-                    </div>
-                </CollapsibleSection>
-            </div>
-
-            {/* Soccer Pitch - Collapsible Panel */}
-            <div className="glass-panel" style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto', padding: '16px', boxSizing: 'border-box' }}>
-                <CollapsibleSection
-                    title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                            <span style={{ fontSize: '16px', fontWeight: 600, color: '#60a5fa' }}>Soccer Pitch</span>
-                        </div>
-                    }
-                    defaultExpanded={showSoccerGame}
-                >
-                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'center', minHeight: '300px' }}>
-                        {!showSoccerGame ? (
-                            <div className={styles.pokerWelcome}>
-                                <GlobeIcon size={48} style={{ color: '#60a5fa' }} />
-                                <div className={styles.pokerWelcomeText}>
-                                    Watch an exhibition match between top fish!
-                                </div>
-                                <Button
-                                    onClick={() => setShowSoccerGame(true)}
-                                    disabled={!isConnected}
-                                    variant="secondary"
-                                    style={{ padding: '12px 32px', fontSize: '16px' }}
-                                >
-                                    <GlobeIcon size={16} /> Enter Pitch
-                                </Button>
-                            </div>
-                        ) : (
-                            <SoccerGame sendCommandWithResponse={sendCommandWithResponse} />
-                        )}
-                    </div>
-                </CollapsibleSection>
-            </div>
-
-            {state && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                    <div className="glass-panel" style={{ padding: '16px' }}>
-                        <SoccerLeagueLive
-                            liveState={state.soccer_league_live ?? null}
-                            isConnected={isConnected}
-                            onCommand={sendCommand}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {state && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                    <div className="glass-panel" style={{ padding: '16px' }}>
-                        <SoccerLeagueEvents
-                            events={state.soccer_events ?? []}
-                            currentFrame={state.snapshot?.frame ?? state.frame ?? 0}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* Poker Skill Benchmark (bb/100) */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                <EvolutionBenchmarkDisplay worldId={worldId || state?.world_id} />
-            </div>
-
-            {/* Ecosystem Stats */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                <EcosystemStats stats={state?.stats ?? null} />
-
-            </div>
-
-            {/* Evolution Progress */}
-            {
-                state?.auto_evaluation && (
-                    <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                        <AutoEvaluateDisplay stats={state.auto_evaluation} loading={false} />
-                    </div>
-                )
-            }
-
-
-            {/* Poker Dashboard - Leaderboard & Activity */}
-            {state && (
-                <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px', marginLeft: 'auto', marginRight: 'auto' }}>
-                    <div className="glass-panel" style={{ padding: '16px' }}>
-                        <CollapsibleSection
-                            title={
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                                    <span style={{ fontSize: '16px', fontWeight: 600, color: '#93c5fd' }}>Poker Dashboard</span>
-                                </div>
-                            }
-                            defaultExpanded={false}
-                        >
-                            <div style={{ marginTop: '16px' }}>
-                                {/* Key Metrics Row */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(5, 1fr)',
-                                    gap: '12px',
-                                    marginBottom: '16px'
-                                }}>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #334155',
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Total Games</div>
-                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
-                                            {state.stats?.poker_stats?.total_games?.toLocaleString() ?? 0}
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #334155',
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Economy Volume</div>
-                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
-                                            {Math.round(state.stats?.poker_stats?.total_energy_won ?? 0).toLocaleString()}⚡
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #334155',
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Avg Win Rate</div>
-                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
-                                            {state.stats?.poker_stats?.win_rate_pct ?? "0%"}
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #334155',
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}><PlantIcon size={12} /> Plant Win Rate</div>
-                                        <div style={{ color: '#4ade80', fontSize: '18px', fontWeight: 700 }}>
-                                            {state.stats?.poker_stats?.plant_win_rate_pct ?? "0.0%"}
-                                        </div>
-                                        <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>
-                                            {state.stats?.poker_stats?.plant_poker_wins ?? 0}W / {state.stats?.poker_stats?.fish_poker_wins ?? 0}L
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        border: '1px solid #334155',
-                                        textAlign: 'center'
-                                    }}>
-                                        <div style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>Plant Games</div>
-                                        <div style={{ color: '#f1f5f9', fontSize: '18px', fontWeight: 700 }}>
-                                            {state.stats?.poker_stats?.total_plant_games?.toLocaleString() ?? 0}
-                                        </div>
-                                    </div>
-                                </div>
-                                {/* Leaderboard and Activity */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr',
-                                    gap: '16px'
-                                }}>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '12px',
-                                        padding: '16px',
-                                        border: '1px solid #334155'
-                                    }}>
-                                        <PokerLeaderboard leaderboard={state.poker_leaderboard ?? []} />
-                                    </div>
-                                    <div style={{
-                                        backgroundColor: '#0f172a',
-                                        borderRadius: '12px',
-                                        padding: '16px',
-                                        border: '1px solid #334155'
-                                    }}>
-                                        <PokerEvents events={state.poker_events ?? []} currentFrame={state.snapshot?.frame ?? state.frame ?? 0} />
-                                    </div>
-                                </div>
-                            </div>
-                        </CollapsibleSection>
-                    </div>
-                </div>
-            )}
-
-            {/* Phylogenetic Tree */}
-            <div style={{ marginTop: '20px', width: '100%', maxWidth: '1140px' }}>
-                <div className="glass-panel" style={{ padding: '16px' }}>
-                    <CollapsibleSection
-                        title={
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
-                                <span style={{ fontSize: '16px', fontWeight: 600, color: '#4ade80' }}>Phylogenetic Tree</span>
-                            </div>
-                        }
-                        defaultExpanded={false}
+            {/* Panel Toggle Bar */}
+            <div className={styles.panelToggleBar}>
+                <span className={styles.panelToggleLabel}>Show panels:</span>
+                {PANEL_CONFIG.map(({ id, label, icon }) => (
+                    <button
+                        key={id}
+                        className={`${styles.panelToggle} ${isVisible(id) ? styles.active : ''}`}
+                        onClick={() => toggle(id)}
+                        aria-pressed={isVisible(id)}
                     >
-                        <div style={{ marginTop: '16px', height: '600px', display: 'flex', flexDirection: 'column' }}>
-                            <PhylogeneticTree worldId={worldId || state?.world_id} />
-                        </div>
-                    </CollapsibleSection>
-                </div>
+                        <span className={styles.panelToggleIcon}>{icon}</span>
+                        <span>{label}</span>
+                    </button>
+                ))}
             </div>
+
+            {/* Panel Grid */}
+            {visible.length > 0 && (
+                <div className={styles.panelGrid}>
+                    {isVisible('soccer') && (
+                        <div className={styles.panel}>
+                            <TankSoccerTab
+                                liveState={state?.soccer_league_live ?? null}
+                                events={state?.soccer_events ?? []}
+                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                isConnected={isConnected}
+                                onCommand={sendCommand as any}
+                                sendCommandWithResponse={sendCommandWithResponse as any}
+                            />
+                        </div>
+                    )}
+
+                    {isVisible('poker') && (
+                        <div className={styles.panel}>
+                            <TankPokerTab
+                                worldId={effectiveWorldId}
+                                isConnected={isConnected}
+                                pokerLeaderboard={state?.poker_leaderboard ?? []}
+                                pokerEvents={state?.poker_events ?? []}
+                                pokerStats={state?.stats?.poker_stats}
+                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                sendCommandWithResponse={sendCommandWithResponse}
+                            />
+                        </div>
+                    )}
+
+                    {isVisible('ecosystem') && (
+                        <div className={styles.panel}>
+                            <TankEcosystemTab
+                                stats={state?.stats ?? null}
+                                autoEvaluation={state?.auto_evaluation}
+                            />
+                        </div>
+                    )}
+
+                    {isVisible('genetics') && (
+                        <div className={styles.panel}>
+                            <TankGeneticsTab worldId={effectiveWorldId} />
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Transfer Dialog */}
-            {
-                showTransferDialog && selectedEntityId !== null && selectedEntityType !== null && state?.world_id && (
+            {showTransferDialog &&
+                selectedEntityId !== null &&
+                selectedEntityType !== null &&
+                state?.world_id && (
                     <TransferDialog
                         entityId={selectedEntityId}
                         entityType={selectedEntityType}
                         sourceWorldId={state.world_id}
-                        sourceWorldName={state.world_id} // Typically world id is the name for now
+                        sourceWorldName={state.world_id}
                         onClose={handleCloseTransferDialog}
                         onTransferComplete={handleTransferComplete}
                     />
-                )
-            }
+                )}
 
             {/* Transfer Notification */}
-            {
-                transferMessage && (
-                    <div
-                        style={{
-                            position: 'fixed',
-                            bottom: '20px',
-                            right: '20px',
-                            padding: '16px 20px',
-                            borderRadius: '8px',
-                            backgroundColor: transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
-                            color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
-                            border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                            zIndex: 1001,
-                            maxWidth: '400px',
-                            fontWeight: 500,
-                        }}
-                    >
-                        {transferMessage.text}
-                    </div>
-                )
-            }
-
-            {/* Poker Error Notification */}
-            {
-                pokerError && (
-                    <div
-                        style={{
-                            position: 'fixed',
-                            bottom: transferMessage ? '90px' : '20px',
-                            right: '20px',
-                            padding: '16px 20px',
-                            borderRadius: '8px',
-                            backgroundColor: '#7f1d1d',
-                            color: '#fecaca',
-                            border: '1px solid #ef4444',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                            zIndex: 1001,
-                            maxWidth: '400px',
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                        }}
-                    >
-                        <span>⚠️</span>
-                        <span>{pokerError}</span>
-                        <button
-                            onClick={() => setPokerError(null)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#fecaca',
-                                cursor: 'pointer',
-                                padding: '0 4px',
-                                fontSize: '16px',
-                            }}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                )
-            }
+            {transferMessage && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        padding: '16px 20px',
+                        borderRadius: '8px',
+                        backgroundColor:
+                            transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
+                        color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
+                        border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1001,
+                        maxWidth: '400px',
+                        fontWeight: 500,
+                    }}
+                >
+                    {transferMessage.text}
+                </div>
+            )}
         </>
     );
 }

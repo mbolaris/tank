@@ -13,6 +13,7 @@ const sharedTextDecoder = new TextDecoder();
 export function useWebSocket(worldId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [connectedWorldId, setConnectedWorldId] = useState<string | null>(worldId ?? null);
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const connectRef = useRef<(() => void) | null>(null);
@@ -35,6 +36,7 @@ export function useWebSocket(worldId?: string) {
         try {
             // Use worldId if provided, otherwise fetch default world ID
             let wsUrl = worldId ? config.getWsUrlForWorld(worldId) : config.wsUrl;
+            let resolvedWorldId = worldId ?? null;
 
             if (!wsUrl) {
                 // No world ID in URL/config - fetch the default world ID from API
@@ -45,11 +47,17 @@ export function useWebSocket(worldId?: string) {
                         const defaultWorldId = data.world_id;
                         if (defaultWorldId) {
                             wsUrl = config.getWsUrlForWorld(defaultWorldId);
+                            resolvedWorldId = defaultWorldId;
                         }
                     }
                 } catch (e) {
                     console.error('Failed to fetch default world ID:', e);
                 }
+            }
+
+            // Store the resolved world ID so components can use it immediately
+            if (resolvedWorldId) {
+                setConnectedWorldId(resolvedWorldId);
             }
 
             if (!wsUrl) {
@@ -197,8 +205,10 @@ export function useWebSocket(worldId?: string) {
         sendCommandWithResponse,
         /** Current server URL for display */
         serverUrl: config.serverDisplay,
-        /** Current world ID (from state) */
+        /** Current world ID (from state, may lag behind connection) */
         worldId: state?.world_id ?? null,
+        /** Connected world ID (available immediately after connection, before first update) */
+        connectedWorldId,
     };
 }
 
