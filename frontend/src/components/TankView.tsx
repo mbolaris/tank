@@ -386,11 +386,9 @@ export function TankView({ worldId }: TankViewProps) {
                         </CollapsiblePanel>
                     )}
 
-                    {isVisible('genetics') && (
-                        <CollapsiblePanel title="Genetics" icon="🧬">
-                            <TankGeneticsTab worldId={effectiveWorldId} />
-                        </CollapsiblePanel>
-                    )}
+                    <CollapsiblePanel title="Genetics" icon="🧬">
+                        <TankGeneticsTab worldId={effectiveWorldId} stats={state?.stats ?? null} />
+                    </CollapsiblePanel>
                 </div>
             )}
 

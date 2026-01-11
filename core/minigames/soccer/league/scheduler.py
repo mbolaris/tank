@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from core.minigames.soccer.league.types import LeagueMatch, TeamAvailability
 
 
@@ -28,10 +26,8 @@ class LeagueScheduler:
         if not self._season_schedule or self._current_match_index >= len(self._season_schedule):
             self._generate_season(sorted(team_ids))
 
-    def get_next_match(self, availability: dict[str, TeamAvailability]) -> Optional[LeagueMatch]:
+    def get_next_match(self, availability: dict[str, TeamAvailability]) -> LeagueMatch | None:
         """Find the next playable match, skipping unavailable ones."""
-
-        start_index = self._current_match_index
 
         # Scan forward from current index
         while self._current_match_index < len(self._season_schedule):
@@ -49,7 +45,9 @@ class LeagueScheduler:
             match.skip_reason = (
                 f"Home unavailable: {match.home_team_id}"
                 if not home_ok
-                else f"Away unavailable: {match.away_team_id}" if not away_ok else "Unknown"
+                else f"Away unavailable: {match.away_team_id}"
+                if not away_ok
+                else "Unknown"
             )
             self._current_match_index += 1
 

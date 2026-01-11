@@ -271,35 +271,65 @@ class ReproductionService:
 
         eco_cfg = self._engine.config.ecosystem
 
-        if fish_count == 0:
-            logger.info("Fish extinct! Force spawning...")
-            if self._spawn_emergency_fish():
-                self._last_emergency_spawn_frame = frame
-                self._emergency_spawns += 1
-                return 1
+        # Critical Mode: < Critical Threshold (default 10)
+        # Fast recovery to prevent extinction anxiety
+        if fish_count < eco_cfg.critical_population_threshold:
+            # Dynamic cooldown for critical state (30 frames = 0.5s)
+            critical_cooldown = max(30, int(eco_cfg.emergency_spawn_cooldown / 6))
+            frames_since_last_spawn = frame - self._last_emergency_spawn_frame
+
+            if frames_since_last_spawn >= critical_cooldown:
+                logger.info(f"Critical Population ({fish_count})! Force spawning...")
+                if self._spawn_emergency_fish():
+                    self._last_emergency_spawn_frame = frame
+                    self._emergency_spawns += 1
+                    return 1
             return 0
 
         if fish_count >= eco_cfg.max_population:
             return 0
 
+        # Recovery Mode: < Target Population / 2
+        # Faster than normal cooldown to help rebuild
+        target_pop = getattr(eco_cfg, "target_population", 80)
+        is_recovering = fish_count < (target_pop / 2)
+
+        # Dynamic cooldown logic
+        if is_recovering:
+            # 60 frames = 1s
+            effective_cooldown = max(60, int(eco_cfg.emergency_spawn_cooldown / 3))
+        else:
+            # Normal cooldown (default 180 frames = 3s)
+            effective_cooldown = eco_cfg.emergency_spawn_cooldown
+
         frames_since_last_spawn = frame - self._last_emergency_spawn_frame
-        if frames_since_last_spawn < eco_cfg.emergency_spawn_cooldown:
+        if frames_since_last_spawn < effective_cooldown:
             return 0
 
+        # Calculate Spawn Probability
+        # If recovering, be more aggressive
         if fish_count < eco_cfg.critical_population_threshold:
             spawn_probability = 1.0
         else:
+            # Quadratic falloff from Critical to Max
             population_ratio = (fish_count - eco_cfg.critical_population_threshold) / (
                 eco_cfg.max_population - eco_cfg.critical_population_threshold
             )
-            spawn_probability = (1.0 - population_ratio) ** 2 * 0.3
+            # Base multiplier: 0.8 for recovering, 0.3 for normal
+            # This makes "random spawns" much more frequent when population is low but safe
+            base_chance = 0.8 if is_recovering else 0.3
+            spawn_probability = (1.0 - population_ratio) ** 2 * base_chance
 
         if self._engine.rng.random() < spawn_probability:
             if self._spawn_emergency_fish():
                 self._last_emergency_spawn_frame = frame
                 self._emergency_spawns += 1
-                if fish_count < eco_cfg.critical_population_threshold:
-                    logger.info("Emergency fish spawned! fish_count now: %d", fish_count + 1)
+                if is_recovering:
+                    logger.info(
+                        "Recovery spawn! fish_count: %d, prob: %.2f",
+                        fish_count + 1,
+                        spawn_probability,
+                    )
                 return 1
 
         return 0
