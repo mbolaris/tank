@@ -366,7 +366,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                         from core.entities.fish import Fish
 
                         alive_fish_ids = {
-                            e.id for e in runner.world.entities_list if isinstance(e, Fish)
+                            e.fish_id for e in runner.world.entities_list if isinstance(e, Fish)
                         }
                     lineage_data = ecosystem.get_lineage_data(alive_fish_ids)
                     return JSONResponse(lineage_data)

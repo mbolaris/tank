@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { SoccerLeagueLiveState } from '../types/simulation';
+import type { LeagueLeaderboardEntry, SoccerLeagueLiveState } from '../types/simulation';
 import { SoccerPitch } from './SoccerPitch';
-import { Button } from './ui';
 
 interface SoccerLeagueLiveProps {
     liveState?: SoccerLeagueLiveState | null;
@@ -9,135 +8,166 @@ interface SoccerLeagueLiveProps {
     onCommand: (command: { command: string; data?: Record<string, unknown> }) => void;
 }
 
-export function SoccerLeagueLive({ liveState, isConnected, onCommand }: SoccerLeagueLiveProps) {
-    const [enabled, setEnabled] = useState(Boolean(liveState));
-    const [matchEveryFrames, setMatchEveryFrames] = useState(60);
-    const [cyclesPerFrame, setCyclesPerFrame] = useState(2);
-    const [entryFeeEnergy, setEntryFeeEnergy] = useState(10);
-    const [rewardMode, setRewardMode] = useState<'pot_payout' | 'refill_to_max'>('refill_to_max');
-    const [reproCreditAward, setReproCreditAward] = useState(2);
+export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLiveProps) {
+    // We only need to know if there's an active match for display purposes
+    const activeMatch = liveState?.active_match;
 
-    useEffect(() => {
-        if (liveState) {
-            setEnabled(true);
-        }
-    }, [liveState?.match_id]);
-
-    const handleToggle = () => {
-        const next = !enabled;
-        setEnabled(next);
-        onCommand({ command: 'set_soccer_league_enabled', data: { enabled: next } });
-    };
-
-    const handleApplyConfig = () => {
-        onCommand({
-            command: 'set_soccer_league_config',
-            data: {
-                match_every_frames: matchEveryFrames,
-                cycles_per_frame: cyclesPerFrame,
-                entry_fee_energy: entryFeeEnergy,
-                reward_mode: rewardMode,
-                repro_credit_award: reproCreditAward,
-            },
-        });
+    const getScoreDisplay = () => {
+        if (!activeMatch) return 'League Idle';
+        const homeName = activeMatch.home_id || 'Home';
+        const awayName = activeMatch.away_id || 'Away';
+        return `${homeName} ${activeMatch.score.left} - ${activeMatch.score.right} ${awayName}`;
     };
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)', gap: '16px' }}>
-            <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <div style={{ color: '#93c5fd', fontWeight: 700 }}>League Pitch</div>
-                    <div style={{ color: '#e2e8f0', fontSize: '12px' }}>
-                        {liveState ? `${liveState.score.left} - ${liveState.score.right}` : 'Idle'}
-                    </div>
-                </div>
-                {liveState ? (
-                    <SoccerPitch gameState={liveState} width={640} height={360} />
-                ) : (
-                    <div style={{ height: '360px', border: '1px dashed rgba(148,163,184,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                        League match idle
-                    </div>
-                )}
-                {liveState?.last_goal && (
-                    <div style={{ marginTop: '8px', color: '#cbd5f5', fontSize: '12px' }}>
-                        Last goal: {liveState.last_goal.team?.toUpperCase()} @ {liveState.last_goal.frame ?? '-'}
-                    </div>
-                )}
-            </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+            {/* Top Section: Header & Pitch */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ color: '#e2e8f0', fontWeight: 600 }}>League Controls</div>
-                    <Button
-                        onClick={handleToggle}
-                        disabled={!isConnected}
-                        variant={enabled ? 'secondary' : 'primary'}
-                        style={{ padding: '6px 12px' }}
-                    >
-                        {enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                </div>
+                {!activeMatch ? (
+                    <div style={{
+                        width: '100%', textAlign: 'center', padding: '12px',
+                        background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px',
+                        color: '#94a3b8', fontSize: '14px', fontWeight: 600, border: '1px solid rgba(148,163,184,0.1)'
+                    }}>
+                        League Idle
+                    </div>
+                ) : (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        background: 'rgba(15, 23, 42, 0.8)',
+                        padding: '12px 20px', borderRadius: '12px',
+                        border: '1px solid rgba(148, 163, 184, 0.2)',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <div style={{
+                            color: '#94a3b8', fontSize: '11px', fontWeight: 700,
+                            textTransform: 'uppercase', letterSpacing: '0.05em', width: '80px'
+                        }}>
+                            Round {activeMatch.league_round ?? '?'}
+                        </div>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
-                    Match every frames
-                    <input
-                        type="number"
-                        min={1}
-                        max={600}
-                        value={matchEveryFrames}
-                        onChange={(e) => setMatchEveryFrames(Number(e.target.value))}
-                    />
-                </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', width: '100%', justifyContent: 'center' }}>
+                                <div style={{ textAlign: 'right', flex: 1 }}>
+                                    <div style={{ color: '#facc15', fontSize: '16px', fontWeight: 700, textShadow: '0 0 10px rgba(250, 204, 21, 0.2)' }}>
+                                        {activeMatch.home_id || 'Home'}
+                                    </div>
+                                </div>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
-                    Cycles per frame
-                    <input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={cyclesPerFrame}
-                        onChange={(e) => setCyclesPerFrame(Number(e.target.value))}
-                    />
-                </label>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    background: '#0f172a', padding: '6px 16px', borderRadius: '8px',
+                                    border: '1px solid #334155'
+                                }}>
+                                    <span style={{ color: '#facc15', fontSize: '24px', fontWeight: 800, fontFamily: 'monospace', lineHeight: 1 }}>
+                                        {activeMatch.score.left}
+                                    </span>
+                                    <span style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>-</span>
+                                    <span style={{ color: '#f87171', fontSize: '24px', fontWeight: 800, fontFamily: 'monospace', lineHeight: 1 }}>
+                                        {activeMatch.score.right}
+                                    </span>
+                                </div>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
-                    Entry fee energy
-                    <input
-                        type="number"
-                        min={0}
-                        max={500}
-                        value={entryFeeEnergy}
-                        onChange={(e) => setEntryFeeEnergy(Number(e.target.value))}
-                    />
-                </label>
+                                <div style={{ textAlign: 'left', flex: 1 }}>
+                                    <div style={{ color: '#f87171', fontSize: '16px', fontWeight: 700, textShadow: '0 0 10px rgba(248, 113, 113, 0.2)' }}>
+                                        {activeMatch.away_id || 'Away'}
+                                    </div>
+                                </div>
+                            </div>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
-                    Reward mode
-                    <select
-                        value={rewardMode}
-                        onChange={(e) => setRewardMode(e.target.value as 'pot_payout' | 'refill_to_max')}
-                    >
-                        <option value="refill_to_max">Refill to max</option>
-                        <option value="pot_payout">Pot payout</option>
-                    </select>
-                </label>
+                            <div style={{
+                                color: '#e2e8f0',
+                                fontSize: '14px',
+                                fontFamily: 'monospace',
+                                fontWeight: 600,
+                                background: 'rgba(15, 23, 42, 0.5)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(148, 163, 184, 0.1)'
+                            }}>
+                                {(() => {
+                                    const seconds = Math.floor((activeMatch.frame || 0) / 10);
+                                    const mins = Math.floor(seconds / 60);
+                                    const secs = seconds % 60;
+                                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                                })()}
+                            </div>
+                        </div>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
-                    Repro credits per win
-                    <input
-                        type="number"
-                        min={0}
-                        max={10}
-                        step={0.5}
-                        value={reproCreditAward}
-                        onChange={(e) => setReproCreditAward(Number(e.target.value))}
-                    />
-                </label>
+                        <div style={{ width: '80px', textAlign: 'right' }}>
+                            {/* Empty spacer or status icon */}
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#22c55e', display: 'inline-block',
+                                boxShadow: '0 0 8px #22c55e'
+                            }} />
+                        </div>
+                    </div>
+                )}
 
-                <Button onClick={handleApplyConfig} disabled={!isConnected} variant="secondary">
-                    Apply League Settings
-                </Button>
+                {activeMatch ? (
+                    <SoccerPitch gameState={activeMatch} width={undefined} height={undefined} style={{ flex: 1, minHeight: '300px' }} />
+                ) : (
+                    <div style={{
+                        flex: 1,
+                        minHeight: '300px',
+                        border: '1px dashed rgba(148,163,184,0.4)',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#94a3b8',
+                        background: 'rgba(15, 23, 42, 0.3)'
+                    }}>
+                        Waiting for scheduled match...
+                    </div>
+                )}
             </div>
+
+            {/* Bottom Section: Leaderboard */}
+            <div style={{ background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(148,163,184,0.1)' }}>
+                <div style={{ color: '#e2e8f0', fontWeight: 600, marginBottom: '12px' }}>League Standings</div>
+                {liveState?.leaderboard ? (
+                    <LeaderboardTable entries={liveState.leaderboard} />
+                ) : (
+                    <div style={{ color: '#64748b', fontSize: '12px', padding: '8px' }}>No stats available</div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// Subcomponents
+
+function LeaderboardTable({ entries }: { entries: LeagueLeaderboardEntry[] }) {
+    return (
+        <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', color: '#cbd5e1' }}>
+                <thead>
+                    <tr style={{ borderBottom: '1px solid #334155', textAlign: 'left' }}>
+                        <th style={{ padding: '8px 12px 8px 4px' }}>Team</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>P</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>W</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>D</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>L</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>Pts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {entries.map((entry) => (
+                        <tr key={entry.team_id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)' }}>
+                            <td style={{ padding: '8px 12px 8px 4px', fontWeight: 500 }} title={entry.display_name}>
+                                {entry.display_name}
+                            </td>
+                            <td style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{entry.matches_played}</td>
+                            <td style={{ padding: '8px', textAlign: 'center', color: '#4ade80' }}>{entry.wins}</td>
+                            <td style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{entry.draws}</td>
+                            <td style={{ padding: '8px', textAlign: 'center', color: '#f87171' }}>{entry.losses}</td>
+                            <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#fbbf24' }}>{entry.points}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
