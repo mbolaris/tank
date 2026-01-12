@@ -10,6 +10,8 @@ These tests demonstrate the architectural benefits of protocols over
 isinstance checks on concrete types.
 """
 
+from typing import List
+
 import pytest
 
 from core.protocols import (
@@ -189,7 +191,7 @@ class TestProtocolPolymorphism:
     def test_lifecycle_checking_works_on_any_mortal(self, sample_fish):
         """Systems can check death status on any Mortal entity."""
 
-        def cleanup_dead_entities(entities: list[Mortal]) -> list[Mortal]:
+        def cleanup_dead_entities(entities: List[Mortal]) -> List[Mortal]:
             """Generic function that filters out dead entities.
 
             This works with any entity implementing Mortal,
@@ -297,7 +299,7 @@ class TestProtocolArchitecturalBenefits:
             def __init__(self, drain_rate: float):
                 self.drain_rate = drain_rate
 
-            def update(self, entities: list[EnergyHolder]) -> int:
+            def update(self, entities: List[EnergyHolder]) -> int:
                 """Drain energy from all entities.
 
                 Returns count of entities that survived.

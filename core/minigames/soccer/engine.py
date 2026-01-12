@@ -25,6 +25,7 @@ class CommandType(Enum):
 
     DASH = "dash"
     TURN = "turn"
+    TURN_NECK = "turn_neck"
     KICK = "kick"
     MOVE = "move"  # Before kick-off only
 
@@ -46,6 +47,11 @@ class RCSSCommand:
     def turn(moment: float) -> RCSSCommand:
         """Create a turn command (moment in degrees)."""
         return RCSSCommand(CommandType.TURN, direction=moment)
+
+    @staticmethod
+    def turn_neck(moment: float) -> RCSSCommand:
+        """Create a turn_neck command (moment in degrees)."""
+        return RCSSCommand(CommandType.TURN_NECK, direction=moment)
 
     @staticmethod
     def kick(power: float, direction: float) -> RCSSCommand:
@@ -101,7 +107,10 @@ class RCSSPlayerState:
     velocity: RCSSVector = field(default_factory=RCSSVector)
     acceleration: RCSSVector = field(default_factory=RCSSVector)
     body_angle: float = 0.0  # radians
+    neck_angle: float = 0.0  # radians (relative to body)
     stamina: float = 8000.0
+    recovery: float = 1.0
+    effort: float = 1.0
 
     def distance_to(self, other_pos: RCSSVector) -> float:
         """Calculate distance to another position."""
@@ -195,6 +204,8 @@ class RCSSLiteEngine:
             position=pos,
             body_angle=body_angle,
             stamina=self.params.stamina_max,
+            recovery=1.0,
+            effort=1.0,
         )
 
     def get_player(self, player_id: str) -> RCSSPlayerState | None:
@@ -303,6 +314,8 @@ class RCSSLiteEngine:
             self._apply_dash(player, command.power, command.direction)
         elif command.cmd_type == CommandType.TURN:
             self._apply_turn(player, command.direction)
+        elif command.cmd_type == CommandType.TURN_NECK:
+            self._apply_turn_neck(player, command.direction)
         elif command.cmd_type == CommandType.KICK:
             self._apply_kick(player, command.power, command.direction)
         elif command.cmd_type == CommandType.MOVE:
@@ -322,16 +335,25 @@ class RCSSLiteEngine:
         power = max(-100, min(100, power))
 
         # Check stamina
+        # Dash consumes stamina proportional to power
+        # Note: In RCSS, efficiency is also affected by effort, but consumption is raw power
         stamina_cost = abs(power) * self.params.dash_consume_rate
+
+        # Check stamina vs cost
         if player.stamina < stamina_cost:
-            power = power * (player.stamina / stamina_cost) if stamina_cost > 0 else 0
+            # Not enough stamina for full dash
+            if stamina_cost > 0:
+                power = power * (player.stamina / stamina_cost)
             stamina_cost = player.stamina
 
         player.stamina -= stamina_cost
 
+        # Apply effort to effective power
+        effective_power = power * player.effort
+
         # Calculate acceleration direction
         dir_rad = player.body_angle + math.radians(direction)
-        accel_mag = power * self.params.dash_power_rate
+        accel_mag = effective_power * self.params.dash_power_rate
 
         player.acceleration = RCSSVector(
             math.cos(dir_rad) * accel_mag,
@@ -359,6 +381,24 @@ class RCSSLiteEngine:
             player.body_angle -= 2 * math.pi
         while player.body_angle < -math.pi:
             player.body_angle += 2 * math.pi
+
+    def _apply_turn_neck(self, player: RCSSPlayerState, moment: float) -> None:
+        """Apply turn_neck command.
+
+        Neck angle is relative to body.
+        Range is usually constrained (e.g. [-90, 90]), but RCSS-Lite can be loose for now.
+        RCSS Standard: neck angle is limited to [min_neck_angle, max_neck_angle]
+        """
+        # Clamp moment
+        moment = max(self.params.min_moment, min(self.params.max_moment, moment))
+
+        # Apply turn (simple addition for now, no complex inertia for neck usually)
+        player.neck_angle += math.radians(moment)
+
+        # Clamp neck angle to typical RCSS limits [-90 deg, 90 deg]
+        # TODO: Add min/max_neck_angle to params
+        max_neck_rad = math.radians(90)
+        player.neck_angle = max(-max_neck_rad, min(max_neck_rad, player.neck_angle))
 
     def _apply_kick(self, player: RCSSPlayerState, power: float, direction: float) -> None:
         """Apply kick command.
@@ -428,6 +468,17 @@ class RCSSLiteEngine:
         # 1. Add acceleration to velocity
         new_velocity = player.velocity + player.acceleration
 
+        # Apply noise if enabled (RCSS: velocity noise)
+        if self.params.noise_enabled:
+            # Noise is uniform in [-player_rand * |v|, player_rand * |v|]
+            v_mag = new_velocity.magnitude()
+            if v_mag > 0.001:
+                noise_range = v_mag * self.params.player_rand
+                noise_x = self._rng.uniform(-noise_range, noise_range)
+                noise_y = self._rng.uniform(-noise_range, noise_range)
+                new_velocity.x += noise_x
+                new_velocity.y += noise_y
+
         # Clamp to max speed
         new_velocity = new_velocity.clamp_magnitude(self.params.player_speed_max)
 
@@ -447,10 +498,33 @@ class RCSSLiteEngine:
         player.acceleration = RCSSVector(0.0, 0.0)
 
         # Recover stamina
-        player.stamina = min(
-            self.params.stamina_max,
-            player.stamina + self.params.stamina_inc_max,
-        )
+        # RCSS Stamina Model:
+        # 1. If stamina <= threshold, reduce effort and recovery
+        # 2. Recover stamina based on recovery rate
+        # 3. If stamina >= thresholds, recover effort
+
+        # Constants
+        stamina_max = self.params.stamina_max
+        recover_dec_thr = stamina_max * 0.25  # 2000
+        effort_dec_thr = stamina_max * 0.25  # 2000
+        effort_inc_thr = stamina_max * 0.6  # 4800
+
+        # 1. Decay recovery/effort if low stamina
+        if player.stamina <= recover_dec_thr:
+            player.recovery = max(
+                self.params.recover_min, player.recovery - self.params.recover_dec
+            )
+
+        if player.stamina <= effort_dec_thr:
+            player.effort = max(self.params.effort_min, player.effort - self.params.effort_dec)
+
+        # 2. Recover stamina
+        stamina_inc = self.params.stamina_inc_max * player.recovery
+        player.stamina = min(stamina_max, player.stamina + stamina_inc)
+
+        # 3. Recover effort if high stamina
+        if player.stamina >= effort_inc_thr and player.effort < 1.0:
+            player.effort = min(1.0, player.effort + self.params.effort_inc)
 
     def _update_ball_physics(self) -> None:
         """Update ball physics for one cycle."""

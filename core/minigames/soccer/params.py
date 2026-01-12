@@ -40,6 +40,13 @@ class RCSSParams:
     stamina_inc_max: float = 45.0  # recovery per cycle when not dashing
     dash_consume_rate: float = 1.0  # stamina consumed per dash power
 
+    # Recovery/Effort mechanics (RCSS standard)
+    recover_dec: float = 0.002
+    recover_min: float = 0.5
+    effort_dec: float = 0.005
+    effort_min: float = 0.6
+    effort_inc: float = 0.01
+
     # =========================================================================
     # Kick mechanics
     # =========================================================================
@@ -70,6 +77,11 @@ class RCSSParams:
     ball_size: float = 0.085  # ball radius
 
     # =========================================================================
+    # Noise parameters
+    # =========================================================================
+    player_rand: float = 0.1  # movement noise factor
+
+    # =========================================================================
     # Noise (optional, disabled by default for deterministic training)
     # =========================================================================
     noise_enabled: bool = False
@@ -86,6 +98,11 @@ class RCSSParams:
             "stamina_max": self.stamina_max,
             "stamina_inc_max": self.stamina_inc_max,
             "dash_consume_rate": self.dash_consume_rate,
+            "recover_dec": self.recover_dec,
+            "recover_min": self.recover_min,
+            "effort_dec": self.effort_dec,
+            "effort_min": self.effort_min,
+            "effort_inc": self.effort_inc,
             "kick_power_rate": self.kick_power_rate,
             "kickable_margin": self.kickable_margin,
             "kick_rand": self.kick_rand,
@@ -101,6 +118,7 @@ class RCSSParams:
             "ball_size": self.ball_size,
             "noise_enabled": self.noise_enabled,
             "noise_seed": self.noise_seed,
+            "player_rand": self.player_rand,
         }
 
     @classmethod
