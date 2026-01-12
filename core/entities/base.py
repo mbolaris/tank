@@ -20,8 +20,11 @@ from typing import Any, List, Optional, Tuple
 from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
 from core.math_utils import Vector2
-from core.state_machine import LifeStage  # noqa: F401 - re-exported via core.entities.__init__
-from core.state_machine import EntityState, create_entity_state_machine
+from core.state_machine import (
+    EntityState,
+    LifeStage,  # noqa: F401 - re-exported via core.entities.__init__
+    create_entity_state_machine,
+)
 from core.world import World
 
 
