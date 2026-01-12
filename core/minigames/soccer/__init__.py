@@ -15,8 +15,6 @@ from core.minigames.soccer.evaluator import (
     SelectionStrategy,
     SoccerMatchSetup,
     SoccerMinigameOutcome,
-    apply_soccer_entry_fees,
-    apply_soccer_rewards,
     create_soccer_match,
     create_soccer_match_from_participants,
     derive_soccer_seed,
@@ -34,6 +32,7 @@ from core.minigames.soccer.participant import (
     create_participants_from_fish,
     fish_to_participant,
 )
+from core.minigames.soccer.rewards import apply_soccer_entry_fees, apply_soccer_rewards
 from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 
 __all__ = [

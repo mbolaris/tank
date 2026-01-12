@@ -154,7 +154,7 @@ def test_match_history_buffer():
 from core.minigames.soccer.types import SoccerMinigameOutcome
 
 
-def test_live_state_serialization_keys(mock_world):
+def test_live_state_serialization_keys():
     """Ensure dictionary keys in live state are strings for JSON compatibility."""
     config = SoccerConfig(enabled=True)
     league_runtime = SoccerLeagueRuntime(config)
