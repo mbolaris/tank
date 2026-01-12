@@ -385,7 +385,7 @@ class RCSSLiteEngine:
 
         # Calculate ball acceleration from kick
         kick_accel = power * self.params.kick_power_rate
-        
+
         # Add to ball acceleration (handle simultaneous kicks)
         accel_vec = RCSSVector(
             math.cos(dir_rad) * kick_accel,

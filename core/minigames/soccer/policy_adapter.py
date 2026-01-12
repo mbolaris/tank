@@ -96,7 +96,7 @@ def build_observation(
     target_side = 1.0 if player.team == "left" else -1.0
     if getattr(engine, "swapped_sides", False):
         target_side *= -1.0
-    
+
     goal_x = (config.field_length / 2.0) * target_side
     goal_y = 0.0
 

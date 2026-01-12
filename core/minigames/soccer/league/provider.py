@@ -16,9 +16,9 @@ class LeagueTeamProvider:
         self.config = config
         # Cache results to prevent flickering availability when locks fail
         # structure: world_id -> (timestamp, teams_dict, availability_dict)
-        self._cache: dict[
-            str, tuple[float, dict[str, LeagueTeam], dict[str, TeamAvailability]]
-        ] = {}
+        self._cache: dict[str, tuple[float, dict[str, LeagueTeam], dict[str, TeamAvailability]]] = (
+            {}
+        )
         self._last_all_teams: dict[str, LeagueTeam] = {}
         self._last_all_availability: dict[str, TeamAvailability] = {}
 
@@ -70,7 +70,7 @@ class LeagueTeamProvider:
 
             # Try to get world_id from state
             source_id = getattr(world_state, "world_id", "Tank")
-            
+
             # Use "Local" or configured world name
             name = getattr(world_state, "name", source_id)
             if hasattr(world_state, "config") and hasattr(world_state.config, "tank"):
