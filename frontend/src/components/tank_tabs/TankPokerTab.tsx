@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { PokerGame } from '../PokerGame';
 import { PokerLeaderboard } from '../PokerLeaderboard';
 import PokerEvents from '../PokerEvents';
 import { EvolutionBenchmarkDisplay } from '../EvolutionBenchmarkDisplay';
-import { Button, CardsIcon, PlantIcon } from '../ui';
+import { Button, CardsIcon, PlantIcon, CollapsibleSection } from '../ui';
 import type { PokerGameState, PokerLeaderboardEntry, PokerEventData, PokerStatsData } from '../../types/simulation';
 import styles from './TankPokerTab.module.css';
 
@@ -27,7 +27,7 @@ export function TankPokerTab({
     sendCommandWithResponse,
 }: TankPokerTabProps) {
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
-    const [showPokerGame, setShowPokerGame] = useState(false);
+    const [showPokerGame, setShowPokerGame] = useState(true);
     const [pokerLoading, setPokerLoading] = useState(false);
     const [pokerError, setPokerError] = useState<string | null>(null);
 
@@ -66,7 +66,9 @@ export function TankPokerTab({
         await processNextAiTurn();
     }, [sendCommandWithResponse]);
 
-    const handleStartPoker = async () => {
+
+
+    const handleStartPoker = useCallback(async () => {
         try {
             setPokerLoading(true);
             setShowPokerGame(true);
@@ -75,8 +77,14 @@ export function TankPokerTab({
                 data: { energy: 500 },
             });
             if (response.success === false) {
-                alert(response.error || 'Failed to start poker game');
-                setShowPokerGame(false);
+                // Squelch error if game is already active or just don't show alert for auto-start
+                // But for now, let's keep it simple. If it fails, maybe we just set showPokerGame to false?
+                // actually if it fails because "already started", we might want to recover state?
+                // For now, let's just log and show error if it's a real user init, but for auto init?
+                // Let's justalert for now as before.
+                // alert(response.error || 'Failed to start poker game');
+                console.warn("Failed to auto-start poker:", response.error);
+                // setShowPokerGame(false); // Keep it open to show retry button? or close?
             } else if (response.state) {
                 setPokerGameState(response.state);
                 if (!response.state.is_your_turn && !response.state.game_over) {
@@ -89,7 +97,16 @@ export function TankPokerTab({
         } finally {
             setPokerLoading(false);
         }
-    };
+    }, [sendCommandWithResponse, processAiTurnsWithDelay]);
+
+    // Effect to start game once connected
+    const hasStartedRef = useRef(false);
+    useEffect(() => {
+        if (isConnected && !hasStartedRef.current && !pokerGameState && !pokerLoading) {
+            hasStartedRef.current = true;
+            handleStartPoker();
+        }
+    }, [isConnected, pokerGameState, pokerLoading, handleStartPoker]);
 
     const handlePokerAction = async (action: string, amount?: number) => {
         try {
@@ -194,35 +211,36 @@ export function TankPokerTab({
 
             {/* Poker Dashboard - Stats, Leaderboard & Activity */}
             <div className="glass-panel" style={{ padding: '16px', marginTop: '20px' }}>
-                <h2 className={styles.sectionTitle}>Poker Dashboard</h2>
+                <CollapsibleSection title="Poker Dashboard" defaultExpanded={false}>
 
-                {/* Key Metrics Row */}
-                <div className={styles.metricsGrid}>
-                    <MetricCard label="Total Games" value={pokerStats?.total_games?.toLocaleString() ?? '0'} />
-                    <MetricCard
-                        label="Economy Volume"
-                        value={`${Math.round(pokerStats?.total_energy_won ?? 0).toLocaleString()}⚡`}
-                    />
-                    <MetricCard label="Avg Win Rate" value={pokerStats?.win_rate_pct ?? '0.0%'} />
-                    <MetricCard
-                        label="Plant Win Rate"
-                        value={pokerStats?.plant_win_rate_pct ?? '0.0%'}
-                        valueColor="#4ade80"
-                        icon={<PlantIcon size={12} />}
-                        subValue={`${pokerStats?.plant_poker_wins ?? 0}W / ${pokerStats?.fish_poker_wins ?? 0}L`}
-                    />
-                    <MetricCard label="Plant Games" value={pokerStats?.total_plant_games?.toLocaleString() ?? '0'} />
-                </div>
+                    {/* Key Metrics Row */}
+                    <div className={styles.metricsGrid}>
+                        <MetricCard label="Total Games" value={pokerStats?.total_games?.toLocaleString() ?? '0'} />
+                        <MetricCard
+                            label="Economy Volume"
+                            value={`${Math.round(pokerStats?.total_energy_won ?? 0).toLocaleString()}⚡`}
+                        />
+                        <MetricCard label="Avg Win Rate" value={pokerStats?.win_rate_pct ?? '0.0%'} />
+                        <MetricCard
+                            label="Plant Win Rate"
+                            value={pokerStats?.plant_win_rate_pct ?? '0.0%'}
+                            valueColor="#4ade80"
+                            icon={<PlantIcon size={12} />}
+                            subValue={`${pokerStats?.plant_poker_wins ?? 0}W / ${pokerStats?.fish_poker_wins ?? 0}L`}
+                        />
+                        <MetricCard label="Plant Games" value={pokerStats?.total_plant_games?.toLocaleString() ?? '0'} />
+                    </div>
 
-                {/* Leaderboard and Activity Grid */}
-                <div className={styles.dashboardGrid}>
-                    <div className={styles.dashboardCard}>
-                        <PokerLeaderboard leaderboard={pokerLeaderboard} />
+                    {/* Leaderboard and Activity Grid */}
+                    <div className={styles.dashboardGrid}>
+                        <div className={styles.dashboardCard}>
+                            <PokerLeaderboard leaderboard={pokerLeaderboard} />
+                        </div>
+                        <div className={styles.dashboardCard}>
+                            <PokerEvents events={pokerEvents} currentFrame={currentFrame} />
+                        </div>
                     </div>
-                    <div className={styles.dashboardCard}>
-                        <PokerEvents events={pokerEvents} currentFrame={currentFrame} />
-                    </div>
-                </div>
+                </CollapsibleSection>
             </div>
 
             {/* Poker Error Notification */}

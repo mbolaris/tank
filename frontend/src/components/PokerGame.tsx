@@ -23,7 +23,7 @@ const AUTOPILOT_NEW_ROUND_DELAY = 1500; // ms before starting new hand
 const AUTOPILOT_ACTION_DELAY = 1000; // ms before executing automatic action
 
 export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading }: PokerGameProps) {
-    const [autopilot, setAutopilot] = useState(false);
+    const [autopilot, setAutopilot] = useState(true);
     const isProcessingRef = useRef(false);
     const lastActionTimeRef = useRef(0);
     const { errors, addError, clearError } = useErrorNotification();
@@ -213,6 +213,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                             folded={humanPlayer.folded}
                             isActive={!gameState.game_over && !humanPlayer.folded && humanPlayer.energy > 0 && gameState.current_player === "You"}
                             isHuman={true}
+                            isAutopilot={autopilot}
                             cards={gameState.your_cards}
                         />
 
