@@ -68,8 +68,11 @@ class LeagueTeamProvider:
             if hasattr(world_state, "get_fish_list"):
                 entities = list(world_state.get_fish_list())
 
+            # Try to get world_id from state
+            source_id = getattr(world_state, "world_id", "Tank")
+            
             # Use "Local" or configured world name
-            name = "Tank"
+            name = getattr(world_state, "name", source_id)
             if hasattr(world_state, "config") and hasattr(world_state.config, "tank"):
                 # Try to find a name? Default to "Tank"
                 pass
@@ -77,7 +80,7 @@ class LeagueTeamProvider:
             # Process single source (legacy/test path)
             eligible = self._filter_eligible(entities)
             self._process_source_group(
-                combined_teams, combined_availability, "Tank", name, eligible
+                combined_teams, combined_availability, source_id, name, eligible
             )
 
         # 2. Identify Bot Teams
@@ -209,7 +212,7 @@ class LeagueTeamProvider:
         self._create_team(
             teams,
             availability,
-            team_id=f"{source_id}_A",
+            team_id=f"{source_id}:A",
             display_name=f"{display_name} A Team",
             source_id=source_id,
             entities=sorted_entities,
@@ -221,7 +224,7 @@ class LeagueTeamProvider:
         self._create_team(
             teams,
             availability,
-            team_id=f"{source_id}_B",
+            team_id=f"{source_id}:B",
             display_name=f"{display_name} B Team",
             source_id=source_id,
             entities=sorted_entities,

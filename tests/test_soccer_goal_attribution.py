@@ -77,9 +77,11 @@ def test_assist_credited_same_team_only(engine):
     # Setup: two players from different teams touch ball before goal
     # Right team player positioned to score in left goal (negative x)
     # Place right_1 close enough to left goal to score (need < -7 to reach -52)
-    engine.add_player("left_1", "left", RCSSVector(-8, 0))
-    engine.add_player("right_1", "right", RCSSVector(-8, 2))
-    engine.set_ball_position(-8, 0)
+    # Right team attacking left goal (-50, 0)
+    # Move closer to ensure goal
+    engine.add_player("left_1", "left", RCSSVector(-40, 0))
+    engine.add_player("right_1", "right", RCSSVector(-40, 2))
+    engine.set_ball_position(-40, 0)
 
     # Left player touches first with gentle kick
     engine.queue_command("left_1", RCSSCommand.kick(10, 0))
