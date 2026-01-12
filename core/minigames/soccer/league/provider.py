@@ -177,7 +177,9 @@ class LeagueTeamProvider:
                 return False
             try:
                 val = float(energy)
-                return val > entry_fee
+                if entry_fee <= 0:
+                    return True
+                return val >= entry_fee
             except (ValueError, TypeError):
                 return False
 

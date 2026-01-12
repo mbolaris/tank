@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -52,10 +53,15 @@ class SoccerLeagueRuntime:
     _current_league_match: LeagueMatch | None = None  # Metadata for active match
 
     # Recent history
-    _recent_results: list[LeagueMatch] = field(default_factory=list)
+    _recent_results: deque[SoccerMinigameOutcome] = field(default_factory=lambda: deque(maxlen=20))
     _team_availability: dict[str, TeamAvailability] = field(default_factory=dict)
 
     _pending_events: list[SoccerMinigameOutcome] = field(default_factory=list)
+
+    # Throttling
+    _last_live_state: dict[str, Any] | None = None
+    _last_live_state_frame: int = -1
+    _force_update: bool = False
 
     def __post_init__(self) -> None:
         self._provider = LeagueTeamProvider(self.config)
@@ -108,6 +114,78 @@ class SoccerLeagueRuntime:
     def get_live_state(self) -> dict[str, Any] | None:
         """Return live match state for rendering."""
 
+        if self._active_match:
+            match_state = self._active_match.get_state()
+
+            # Check if we should throttle
+            current_frame = getattr(self._active_match, "current_frame", 0)
+            # Use self._match_counter to help detecting new matches
+
+            # Throttling logic:
+            # Update if:
+            # 1. No last state
+            # 2. Forced update (match start/end)
+            # 3. Time elapsed > threshold (e.g. 8 frames ~ 3.75Hz at 30fps)
+            # 4. Critical event (goal) - detecting via score change?
+            #    We can check if score_left/score_right changed vs last state.
+
+            # Simple throttle: every 8 calls (assuming 1 call/frame).
+            # But we get 'cycle' in tick(), we don't store it globally.
+            # We can use _active_match.current_frame if available.
+
+            # For robust throttling, we need to know the current 'global' frame or just count calls.
+            # get_live_state provided no frame argument.
+            # We'll use an internal counter or just a simple skip.
+            # BUT, we need to return the *cached* state if we skip.
+
+            pass
+        else:
+            match_state = None
+
+        # Determine if we need fresh state
+        # Detect critical changes:
+        # - Active match changed (or became None/Not None)
+        # - Score or game_over in active match
+        # - Match counter changed
+        critical_change = self._force_update
+        self._force_update = False
+
+        if self._active_match:
+            # Check for score change or significant event
+            # This requires peeking match state.
+            pass
+
+        # To implement safe throttling without missing events, we always compute match state (cheap-ish)
+        # but reuse the heavy leaderboard/list structure?
+        # Actually, the user said "soccer_league_live is included... basically always".
+        # The leaderboard is static-ish.
+        # The match state updates every frame.
+
+        # New approach: always return cached object unless it's time to update or critical event.
+
+        # We need a frame/time reference. Since we don't have it easily here, we'll increment a local counter.
+        self._last_live_state_frame += 1
+
+        should_update = (
+            critical_change
+            or (self._last_live_state is None)
+            or (self._last_live_state_frame >= 8)
+            or (self._active_match and self._active_match.game_over)
+        )
+
+        if self._active_match and not should_update:
+            # Check if score changed
+            ms = self._active_match.get_state()
+            last_ms = self._last_live_state.get("active_match") if self._last_live_state else None
+            if last_ms and (
+                ms.get("score") != last_ms.get("score")
+                or ms.get("message") != last_ms.get("message")
+            ):
+                should_update = True
+
+        if not should_update and self._last_live_state is not None:
+            return self._last_live_state
+
         state = {
             "leaderboard": [
                 {
@@ -129,6 +207,22 @@ class SoccerLeagueRuntime:
                     reverse=True,
                 )
             ],
+            "recent_results": [
+                {
+                    "match_id": r.match_id,
+                    "winner_team": r.winner_team,
+                    "score_left": r.score_left,
+                    "score_right": r.score_right,
+                    "teams": r.teams,
+                    "skipped": r.skipped,
+                    "skip_reason": r.skip_reason,
+                    "energy_deltas": {str(k): v for k, v in r.energy_deltas.items()},
+                    "repro_credit_deltas": {str(k): v for k, v in r.repro_credit_deltas.items()},
+                    "frame": r.frames,  # Approximate timestamp
+                    "last_goal": r.last_goal,
+                }
+                for r in reversed(self._recent_results)
+            ],
             "availability": {
                 tid: {"available": a.is_available, "reason": a.reason, "count": a.eligible_count}
                 for tid, a in self._team_availability.items()
@@ -137,7 +231,9 @@ class SoccerLeagueRuntime:
         }
 
         if self._active_match:
+            # (Re-fetch match state to be sure)
             match_state = self._active_match.get_state()
+            # Enrich with league metadata
             # Enrich with league metadata
             if self._current_league_match:
                 match_state["league_round"] = self._current_league_match.round_index
@@ -155,6 +251,8 @@ class SoccerLeagueRuntime:
                     ].display_name
             state["active_match"] = match_state
 
+        self._last_live_state = state
+        self._last_live_state_frame = 0
         return state
 
     def drain_events(self) -> list[SoccerMinigameOutcome]:
@@ -237,6 +335,8 @@ class SoccerLeagueRuntime:
                 skip_reason=str(e),
             )
             self._pending_events.append(outcome)
+            self._recent_results.append(outcome)
+            self._force_update = True
             self._match_counter += 1
             self._scheduler.advance_match()
             self._clear_active_match()
@@ -245,6 +345,7 @@ class SoccerLeagueRuntime:
         self._active_match = setup.match
         self._active_setup = setup
         self._current_league_match = league_match
+        self._force_update = True
 
     def _finalize_active_match(self, teams: dict[str, Any]) -> None:
         if self._active_match is None or self._active_setup is None:
@@ -290,6 +391,8 @@ class SoccerLeagueRuntime:
                     outcome = replace(outcome, message=outcome.message + " (Bot win - no rewards)")
 
         self._pending_events.append(outcome)
+        self._recent_results.append(outcome)
+        self._force_update = True
         self._match_counter += 1
         self._clear_active_match()
 

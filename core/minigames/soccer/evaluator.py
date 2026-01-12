@@ -6,15 +6,10 @@ import uuid
 from typing import Any, Mapping, Sequence
 
 from core.minigames.soccer.match import SoccerMatch
-from core.minigames.soccer.rewards import (
-    apply_soccer_entry_fees,
-    apply_soccer_repro_rewards,
-    apply_soccer_rewards,
-)
+from core.minigames.soccer.rewards import apply_soccer_repro_rewards, apply_soccer_rewards
 from core.minigames.soccer.seeds import derive_soccer_seed, stable_seed_from_parts
 from core.minigames.soccer.selection import (
     SelectionStrategy,
-    get_entity_energy,
     get_entity_id,
     select_soccer_participants,
 )
@@ -41,11 +36,15 @@ def create_soccer_match_from_participants(
         raise ValueError("Soccer participants must be an even count")
 
     if entry_fee_energy > 0:
+        # Validate eligibility before creating match object
+        # Note: We don't charge here anymore, we charge via apply_soccer_entry_fees
+        # But we need to ensure candidates are valid if they are expected to pay.
+        # Actually, apply_soccer_entry_fees does the charging.
+        # But the original code raised if they COULD NOT pay.
+        # The new request is: "charge entry fees only to energy-backed entities... bots pay 0"
+        # So we should valid that IF they are energy participants, they have enough.
         for entity in participants:
-            if not hasattr(entity, "modify_energy"):
-                raise ValueError("Participant cannot pay entry fee")
-            if get_entity_energy(entity) <= entry_fee_energy:
-                raise ValueError("Participant cannot pay entry fee")
+            _try_charge_entry_fee_dry_run(entity, entry_fee_energy)
 
     effective_seed = seed
     if effective_seed is None and match_id is not None:
@@ -57,7 +56,15 @@ def create_soccer_match_from_participants(
         else:
             match_id = str(uuid.uuid4())
 
-    entry_fees = apply_soccer_entry_fees(participants, entry_fee_energy)
+    # Calculate fees (safe for bots)
+    entry_fees = {}
+    if entry_fee_energy > 0:
+        for idx, p in enumerate(participants):
+            fee = _try_charge_entry_fee(p, entry_fee_energy)
+            if fee > 0:
+                # Map fish_id to fee. Use safe ID extraction.
+                fid = get_entity_id(p)
+                entry_fees[fid] = fee
 
     match = SoccerMatch(
         match_id=match_id,
@@ -216,3 +223,39 @@ def run_soccer_minigame(
     while not match.game_over:
         match.step(num_steps=5)
     return finalize_soccer_match(match, seed=setup.seed)
+
+
+def _try_charge_entry_fee(participant: Any, entry_fee_energy: float) -> float:
+    """Returns fee charged (0 if not applicable). Never raises for non-energy participants."""
+    if entry_fee_energy <= 0:
+        return 0.0
+
+    energy = getattr(participant, "energy", None)
+    modify_energy = getattr(participant, "modify_energy", None)
+
+    # Bots/algorithmic players: no energy ledger => free entry.
+    if energy is None or not callable(modify_energy):
+        return 0.0
+
+    if float(energy) <= entry_fee_energy:
+        # Not eligible (caller should skip / replace participant)
+        raise ValueError("Participant cannot pay entry fee")
+
+    modify_energy(-entry_fee_energy, source="soccer_entry_fee")
+    return float(entry_fee_energy)
+
+
+def _try_charge_entry_fee_dry_run(participant: Any, entry_fee_energy: float) -> None:
+    """Raises ValueError if participant is eligible to pay but cannot."""
+    if entry_fee_energy <= 0:
+        return
+
+    energy = getattr(participant, "energy", None)
+    modify_energy = getattr(participant, "modify_energy", None)
+
+    # Bots/algorithmic players: no energy ledger => free entry.
+    if energy is None or not callable(modify_energy):
+        return
+
+    if float(energy) <= entry_fee_energy:
+        raise ValueError("Participant cannot pay entry fee")

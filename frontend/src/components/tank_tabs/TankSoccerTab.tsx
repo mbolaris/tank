@@ -24,19 +24,26 @@ export function TankSoccerTab({
 }: TankSoccerTabProps) {
     const [showSkipped, setShowSkipped] = useState(false);
 
+    // Prefer recent_results from liveState (persistent history), fall back to transient events
+    // Note: transient events might still be useful for notifications, but for the list we want the history.
+    // The liveState.recent_results is a list of SoccerMinigameOutcome (or similar shape).
+    // effectively SoccerEventData matches the shape of SoccerMinigameOutcome.
+    const historicalEvents = (liveState as any)?.recent_results as SoccerEventData[] | undefined;
+    const sourceEvents = historicalEvents && historicalEvents.length > 0 ? historicalEvents : events;
+
     // Filter events based on showSkipped toggle
     const filteredEvents = showSkipped
-        ? events
-        : events.filter(e => !e.skipped);
+        ? sourceEvents
+        : sourceEvents.filter(e => !e.skipped);
 
     // Calculate summary stats
-    const totalEvents = events.length;
-    const skippedCount = events.filter(e => e.skipped).length;
+    const totalEvents = sourceEvents.length;
+    const skippedCount = sourceEvents.filter(e => e.skipped).length;
     const completedCount = totalEvents - skippedCount;
 
     // Group skip reasons
     const skipReasons: Record<string, number> = {};
-    events.filter(e => e.skipped).forEach(e => {
+    sourceEvents.filter(e => e.skipped).forEach(e => {
         const reason = e.skip_reason || 'unknown';
         skipReasons[reason] = (skipReasons[reason] || 0) + 1;
     });
@@ -93,6 +100,7 @@ export function TankSoccerTab({
                 <SoccerLeagueEventsFiltered
                     events={filteredEvents}
                     currentFrame={currentFrame}
+                    totalEventsCount={sourceEvents.length}
                 />
             </div>
 
@@ -105,9 +113,11 @@ export function TankSoccerTab({
 function SoccerLeagueEventsFiltered({
     events,
     currentFrame,
+    totalEventsCount,
 }: {
     events: SoccerEventData[];
     currentFrame: number;
+    totalEventsCount: number;
 }) {
     const items = events.slice().reverse().slice(0, 10);
 
@@ -123,7 +133,7 @@ function SoccerLeagueEventsFiltered({
                 fontSize: '13px',
                 textAlign: 'center',
             }}>
-                No matches to display. {events.length === 0 ? 'No matches recorded yet.' : 'Enable "Show skipped" to see all matches.'}
+                No matches to display. {totalEventsCount === 0 ? 'No matches recorded yet.' : 'Enable "Show skipped" to see all matches.'}
             </div>
         );
     }
