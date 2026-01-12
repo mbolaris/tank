@@ -17,7 +17,6 @@ Usage:
             print(f"Winner: {poker.result.winner_id}")
 """
 
-from typing import Optional
 
 # Re-export the unified poker classes
 # Also export utility types
@@ -186,7 +185,7 @@ def should_offer_post_poker_reproduction(
     opponent,
     is_winner: bool,
     energy_gained: float = 0.0,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> bool:
     """Check if fish should reproduce after poker (legacy signature).
 
