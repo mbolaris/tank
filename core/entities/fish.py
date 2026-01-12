@@ -49,6 +49,15 @@ from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 class Fish(Agent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
+    Protocol Implementations:
+        - EnergyHolder: Has energy that can be gained/lost
+        - Mortal: Can die from starvation, predation, or old age
+        - Reproducible: Can reproduce through poker games or asexually
+        - Movable: Moves with AI-driven behaviors
+        - SkillGamePlayer: Can play poker with evolved strategies
+        - Identifiable: Has stable fish_id for tracking and lineage
+        - LifecycleAware: Transitions through baby -> adult -> elder stages
+
     Attributes:
         genome: Genetic traits
         energy: Current energy level (EnergyHolder protocol)
@@ -256,6 +265,17 @@ class Fish(Agent):
         if self._typed_id is None or self._typed_id.value != self.fish_id:
             self._typed_id = FishId(self.fish_id)
         return self._typed_id
+
+    def get_entity_id(self) -> Optional[int]:
+        """Get the unique identifier for this fish (Identifiable protocol).
+
+        This method satisfies the Identifiable protocol, allowing generic
+        systems to get stable IDs for tracking, lineage, and analytics.
+
+        Returns:
+            Unique fish ID, or 0 if not assigned (0 indicates untracked fish)
+        """
+        return self.fish_id if self.fish_id is not None else None
 
     def get_energy_state(self) -> EnergyState:
         """Get immutable snapshot of current energy state."""

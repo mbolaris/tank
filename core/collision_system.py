@@ -17,6 +17,24 @@ This system handles PHYSICAL collision logic only:
 
 Fish-Fish poker proximity is handled by PokerProximitySystem in the INTERACTION phase.
 Plant sprouting logic is included here for simplicity (triggered when nectar is consumed).
+
+Protocol-Based Architecture:
+----------------------------
+This system uses isinstance(entity, ConcreteType) for collision routing,
+which is appropriate since different entity types need different handlers.
+
+However, within collision handlers, we could use protocols for capability checking:
+    # Current approach (type-based routing):
+    if isinstance(food, PlantNectar):
+        handle_nectar_consumption(food)
+
+    # Protocol-based alternative (capability checking):
+    if isinstance(food, Consumable):
+        food.consume()
+
+The type-based routing pattern is fine here since we're dispatching to
+type-specific handlers. Protocols are more valuable for checking capabilities
+within handlers (see core/protocols.py for examples).
 """
 
 import logging

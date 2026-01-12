@@ -456,7 +456,65 @@ Fish behavior is modular:
 - Fish use `SkillfulAgent` Protocol for uniform game interaction
 
 ### Protocol-Based Architecture
-The simulation uses **Protocols** (PEP 544) for defining interfaces:
+
+The simulation uses **Protocols** (PEP 544) for defining interfaces. This enables structural subtyping where classes satisfy interfaces based on their structure, not explicit inheritance.
+
+#### Core Entity Protocols (`core/protocols.py`)
+
+The simulation now includes a comprehensive set of protocols for entity capabilities:
+
+| Protocol | Purpose | Example Implementers |
+|----------|---------|---------------------|
+| `EnergyHolder` | Has energy that can be gained/lost | Fish, Plant, Crab |
+| `Mortal` | Can die and has lifecycle state | Fish, Plant, Food |
+| `Reproducible` | Can reproduce | Fish, Plant |
+| `Movable` | Can move with velocity | Fish, Food, Crab |
+| `Consumable` | Can be consumed | Food, PlantNectar |
+| `Predator` | Can hunt other entities | Crab |
+| `SkillGamePlayer` | Can play poker/skill games | Fish, Plant |
+| `Identifiable` | Has unique ID for tracking | Fish, Plant |
+| `LifecycleAware` | Has life stages (baby, adult, elder) | Fish |
+
+**Usage Example:**
+```python
+# ❌ Bad - couples to concrete type
+if isinstance(entity, Fish):
+    entity.energy -= 10
+
+# ✅ Good - works with any energy holder
+if isinstance(entity, EnergyHolder):
+    entity.modify_energy(-10)
+```
+
+**Benefits for Architecture:**
+- **Loose Coupling**: Systems depend on capabilities, not types
+- **Easy Extension**: New entity types work with existing systems automatically
+- **Better Testing**: Lightweight mocks instead of full entity objects
+- **Clear Contracts**: Protocol definitions document expected behavior
+
+**Example: Adding New Entity Type**
+```python
+class AlienFish:
+    """New entity that wasn't in original design."""
+    def __init__(self):
+        self._energy = 100.0
+        self.max_energy = 200.0
+
+    @property
+    def energy(self) -> float:
+        return self._energy
+
+    def modify_energy(self, amount: float) -> None:
+        self._energy += amount
+
+# Automatically works with any system expecting EnergyHolder!
+alien = AlienFish()
+assert isinstance(alien, EnergyHolder)  # True
+```
+
+See `tests/test_protocols.py` for comprehensive examples and `core/protocols.py` for full documentation.
+
+#### Environment Protocols
 
 **World Protocol** (`core/world.py`):
 - Defines what any simulation environment must provide
@@ -489,6 +547,7 @@ The simulation uses **Protocols** (PEP 544) for defining interfaces:
 
 ## Change Log
 
+- **2026-01-12**: Added comprehensive entity protocol system (9 protocols in `core/protocols.py`). Documented protocol-based architecture pattern, benefits, and usage examples. Added `Fish.get_entity_id()` for Identifiable protocol. Created `tests/test_protocols.py` with protocol conformance tests and architectural examples.
 - **2026-01-01**: Added World Backends, Mode System, Agent Components sections. Updated project structure.
 - **2025-12-25**: Pruned stale documentation, archived historical analysis docs.
 - **2025-12-23**: Aligned architecture doc with current module layout (algorithm registry counts, system registry order, poker systems) and linked to README structure section for ongoing authority.
