@@ -349,7 +349,7 @@
 /* Panel Grid */
 .panelGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+    grid-template-columns: 1fr;
     gap: 20px;
     max-width: 1140px;
     width: 100%;

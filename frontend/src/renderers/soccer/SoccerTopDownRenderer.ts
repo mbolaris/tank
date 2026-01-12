@@ -370,17 +370,17 @@ export class SoccerTopDownRenderer implements Renderer {
             const avatarRadius = Math.max(player.radius, 15);
 
             if (genomeData) {
-                // Use unified avatar renderer with proper size
-                // Pass forceMicrobe for Petri dish mode
-                drawAvatar(ctx, player.id, avatarRadius, player.vel_x, player.vel_y, genomeData, forceMicrobe);
-
-                // Draw team indicator ring
-                const teamColor = player.team === 'left' ? '#ffff00' : '#ff0000';
-                ctx.strokeStyle = teamColor;
+                // Draw team indicator ring (behind avatar)
+                const ringColor = player.team === 'left' ? 'rgba(255, 255, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)';
+                ctx.strokeStyle = ringColor;
                 ctx.lineWidth = 3;
                 ctx.beginPath();
                 ctx.arc(0, 0, avatarRadius + 5, 0, Math.PI * 2);
                 ctx.stroke();
+
+                // Use unified avatar renderer with proper size
+                // Pass forceMicrobe for Petri dish mode
+                drawAvatar(ctx, player.id, avatarRadius, player.vel_x, player.vel_y, genomeData, forceMicrobe);
 
             } else {
                 // Fallback to simple circle rendering

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
-import { SoccerGame } from '../SoccerGame';
+
 import { CollapsibleSection } from '../ui';
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
@@ -96,27 +96,7 @@ export function TankSoccerTab({
                 />
             </div>
 
-            {/* Exhibition Match - Advanced Section */}
-            <div className="glass-panel" style={{ padding: '16px', marginTop: '20px' }}>
-                <CollapsibleSection
-                    title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '16px', fontWeight: 600, color: '#94a3b8' }}>
-                                Exhibition Match
-                            </span>
-                            <span className={styles.advancedBadge}>Advanced</span>
-                        </div>
-                    }
-                    defaultExpanded={false}
-                >
-                    <div style={{ marginTop: '16px' }}>
-                        <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>
-                            Start a one-off exhibition match. This is separate from the automated league.
-                        </p>
-                        <SoccerGame sendCommandWithResponse={sendCommandWithResponse} />
-                    </div>
-                </CollapsibleSection>
-            </div>
+
         </div>
     );
 }
