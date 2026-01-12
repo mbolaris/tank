@@ -17,15 +17,21 @@ Usage:
             print(f"Winner: {poker.result.winner_id}")
 """
 
-from typing import Optional
+from __future__ import annotations
 
-# Re-export the unified poker classes
-# Also export utility types
-from core.mixed_poker import MixedPokerInteraction, Player
+import random
+
+from core.config.fish import (
+    POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+    POST_POKER_REPRODUCTION_LOSER_PROB,
+    POST_POKER_REPRODUCTION_WINNER_PROB,
+)
+from core.mixed_poker import MixedPokerInteraction
 from core.mixed_poker import MixedPokerResult as PokerResult
 from core.mixed_poker import MultiplayerBettingRound as BettingRound
 from core.mixed_poker import MultiplayerGameState as GameState
 from core.mixed_poker import MultiplayerPlayerContext as PlayerContext
+from core.mixed_poker import Player
 
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
@@ -76,13 +82,6 @@ def get_ready_players(players: list, min_energy: float = MIN_ENERGY_TO_PLAY) -> 
 PokerInteraction = MixedPokerInteraction
 
 # Reproduction helpers
-import random
-
-from core.config.fish import (
-    POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
-    POST_POKER_REPRODUCTION_LOSER_PROB,
-    POST_POKER_REPRODUCTION_WINNER_PROB,
-)
 
 
 def _get_reproduction_cooldown(player: Player) -> int:
@@ -183,7 +182,7 @@ def should_offer_post_poker_reproduction(
     opponent,
     is_winner: bool,
     energy_gained: float = 0.0,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> bool:
     """Check if fish should reproduce after poker (legacy signature).
 
