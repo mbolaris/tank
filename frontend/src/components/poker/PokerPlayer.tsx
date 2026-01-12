@@ -19,6 +19,7 @@ interface PokerPlayerProps {
     folded: boolean;
     isActive: boolean;
     isHuman: boolean;
+    isAutopilot?: boolean;
     fishId?: number;
     generation?: number;
     genomeData?: FishGenomeData;
@@ -106,10 +107,30 @@ function renderPattern(
 function FishAvatar({
     fishId,
     genomeData,
+    isHuman,
+    isAutopilot,
+    size = 'small'
 }: {
     fishId?: number;
     genomeData?: FishGenomeData;
+    isHuman?: boolean;
+    isAutopilot?: boolean;
+    size?: 'small' | 'medium';
 }) {
+    // 1. Human/Robot Override
+    if (isHuman) {
+        const iconSize = size === 'medium' ? 48 : 32;
+        const icon = isAutopilot ? '🤖' : '👤'; // Robot for autopilot, Person for manual
+        const label = isAutopilot ? 'Auto Player' : 'You';
+
+        return (
+            <div className={`${styles.avatarCircle} ${size === 'medium' ? styles.avatarMedium : ''}`} title={label}>
+                <span style={{ fontSize: `${iconSize}px`, lineHeight: 1 }}>{icon}</span>
+            </div>
+        );
+    }
+
+    // 2. Fish Avatar
     const fishParams = buildFishParams(genomeData);
     const label = fishId ? `Fish #${fishId}` : 'AI Fish';
 
@@ -165,6 +186,7 @@ export function PokerPlayer({
     folded,
     isActive,
     isHuman,
+    isAutopilot,
     fishId,
     genomeData,
     cards = [],
@@ -236,7 +258,10 @@ export function PokerPlayer({
         const humanClass = `${styles.humanPlayer} ${isActive ? styles.humanActive : ''}`;
         return (
             <div className={humanClass}>
-                {/* Cards on the left */}
+                {/* Avatar on the left */}
+                <FishAvatar isHuman={true} isAutopilot={isAutopilot} />
+
+                {/* Cards next to Avatar */}
                 <div className={styles.yourCards}>
                     <div className={styles.cardsContainer}>
                         {cards.map((card, idx) => (

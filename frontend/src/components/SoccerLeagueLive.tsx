@@ -150,28 +150,28 @@ export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLivePro
 function LeaderboardTable({ entries }: { entries: LeagueLeaderboardEntry[] }) {
     return (
         <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', color: '#cbd5e1' }}>
+            <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', color: '#cbd5e1' }}>
                 <thead>
                     <tr style={{ borderBottom: '1px solid #334155', textAlign: 'left' }}>
-                        <th style={{ padding: '8px 12px 8px 4px' }}>Team</th>
-                        <th style={{ padding: '8px', textAlign: 'center' }}>P</th>
-                        <th style={{ padding: '8px', textAlign: 'center' }}>W</th>
-                        <th style={{ padding: '8px', textAlign: 'center' }}>D</th>
-                        <th style={{ padding: '8px', textAlign: 'center' }}>L</th>
-                        <th style={{ padding: '8px', textAlign: 'center' }}>Pts</th>
+                        <th style={{ padding: '6px 8px 6px 4px' }}>Team</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>P</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>W</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>D</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>L</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>Pts</th>
                     </tr>
                 </thead>
                 <tbody>
                     {entries.map((entry) => (
                         <tr key={entry.team_id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)' }}>
-                            <td style={{ padding: '8px 12px 8px 4px', fontWeight: 500 }} title={entry.display_name}>
+                            <td style={{ padding: '4px 8px 4px 4px', fontWeight: 500 }} title={entry.display_name}>
                                 {entry.display_name}
                             </td>
-                            <td style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{entry.matches_played}</td>
-                            <td style={{ padding: '8px', textAlign: 'center', color: '#4ade80' }}>{entry.wins}</td>
-                            <td style={{ padding: '8px', textAlign: 'center', color: '#94a3b8' }}>{entry.draws}</td>
-                            <td style={{ padding: '8px', textAlign: 'center', color: '#f87171' }}>{entry.losses}</td>
-                            <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#fbbf24' }}>{entry.points}</td>
+                            <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.matches_played}</td>
+                            <td style={{ padding: '4px', textAlign: 'center', color: '#4ade80' }}>{entry.wins}</td>
+                            <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.draws}</td>
+                            <td style={{ padding: '4px', textAlign: 'center', color: '#f87171' }}>{entry.losses}</td>
+                            <td style={{ padding: '4px', textAlign: 'center', fontWeight: 'bold', color: '#fbbf24' }}>{entry.points}</td>
                         </tr>
                     ))}
                 </tbody>

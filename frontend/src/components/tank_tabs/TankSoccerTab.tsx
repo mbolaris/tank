@@ -61,47 +61,55 @@ export function TankSoccerTab({
 
             {/* League Events Section with Filter */}
             <div className="glass-panel" style={{ padding: '16px', marginTop: '20px' }}>
-                <div className={styles.eventsHeader}>
-                    <h2 className={styles.eventsTitle}>League Results</h2>
-                    <div className={styles.eventsSummary}>
-                        {completedCount > 0 && (
-                            <span className={styles.completedBadge}>
-                                {completedCount} completed
-                            </span>
-                        )}
-                        {skippedCount > 0 && (
-                            <span className={styles.skippedBadge}>
-                                {skippedCount} skipped
-                            </span>
-                        )}
+                <CollapsibleSection
+                    title={
+                        <div className={styles.eventsHeader}>
+                            <span className={styles.eventsTitle}>League Results</span>
+                            <div className={styles.eventsSummary}>
+                                {completedCount > 0 && (
+                                    <span className={styles.completedBadge}>
+                                        {completedCount} completed
+                                    </span>
+                                )}
+                                {skippedCount > 0 && (
+                                    <span className={styles.skippedBadge}>
+                                        {skippedCount} skipped
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    }
+                    defaultExpanded={false}
+                >
+                    <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <label className={styles.filterToggle}>
+                            <input
+                                type="checkbox"
+                                checked={showSkipped}
+                                onChange={(e) => setShowSkipped(e.target.checked)}
+                            />
+                            <span>Show skipped</span>
+                        </label>
                     </div>
-                    <label className={styles.filterToggle}>
-                        <input
-                            type="checkbox"
-                            checked={showSkipped}
-                            onChange={(e) => setShowSkipped(e.target.checked)}
-                        />
-                        <span>Show skipped</span>
-                    </label>
-                </div>
 
-                {/* Skip reason summary when there are skips but they're hidden */}
-                {!showSkipped && skippedCount > 0 && (
-                    <div className={styles.skipSummary}>
-                        <span className={styles.skipSummaryLabel}>Skip reasons:</span>
-                        {Object.entries(skipReasons).map(([reason, count]) => (
-                            <span key={reason} className={styles.skipReasonTag}>
-                                {reason}: {count}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                    {/* Skip reason summary when there are skips but they're hidden */}
+                    {!showSkipped && skippedCount > 0 && (
+                        <div className={styles.skipSummary}>
+                            <span className={styles.skipSummaryLabel}>Skip reasons:</span>
+                            {Object.entries(skipReasons).map(([reason, count]) => (
+                                <span key={reason} className={styles.skipReasonTag}>
+                                    {reason}: {count}
+                                </span>
+                            ))}
+                        </div>
+                    )}
 
-                <SoccerLeagueEventsFiltered
-                    events={filteredEvents}
-                    currentFrame={currentFrame}
-                    totalEventsCount={sourceEvents.length}
-                />
+                    <SoccerLeagueEventsFiltered
+                        events={filteredEvents}
+                        currentFrame={currentFrame}
+                        totalEventsCount={sourceEvents.length}
+                    />
+                </CollapsibleSection>
             </div>
 
 
