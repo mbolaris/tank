@@ -252,7 +252,7 @@ class LeagueTeamProvider:
             team_id=team_id,
             display_name=display_name,
             source=TeamSource.TANK,
-            source_id=source_id,
+            tank_id=source_id,
             roster=roster,
         )
 
@@ -272,7 +272,7 @@ class LeagueTeamProvider:
             team_id="Bot:Balanced",
             display_name="Bot Balanced",
             source=TeamSource.BOT,
-            source_id=None,
+            tank_id=None,
             roster=[],  # Bots adhere to special logic, empty roster implies generated
         )
         availability["Bot:Balanced"] = TeamAvailability(
