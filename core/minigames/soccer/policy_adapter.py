@@ -57,7 +57,10 @@ def build_observation(
         "self_vel_x": player.velocity.x,
         "self_vel_y": player.velocity.y,
         "self_angle": player.body_angle,  # Radians [-pi, pi]
+        "neck_angle": player.neck_angle,  # Radians relative to body
         "stamina": player.stamina,
+        "recovery": player.recovery,
+        "effort": player.effort,
         "team": player.team,
     }
 
@@ -374,6 +377,12 @@ def action_to_command(
         if len(args) >= 1:
             moment = _clamp(args[0], config.min_moment, config.max_moment)
             return RCSSCommand.turn(moment)
+
+    if "turn_neck" in action:
+        args = action["turn_neck"]
+        if len(args) >= 1:
+            moment = _clamp(args[0], config.min_moment, config.max_moment)
+            return RCSSCommand.turn_neck(moment)
 
     if "dash" in action:
         args = action["dash"]
