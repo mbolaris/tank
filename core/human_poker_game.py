@@ -780,6 +780,25 @@ class HumanPokerGame:
         if not self.game_over:
             self._next_player()
 
+    def get_last_hand_result(self) -> Optional[Dict[str, Any]]:
+        """
+        Returns a summary of the last hand result for reward processing.
+        Should be called immediately after a hand concludes (game_over=True)
+        but before a new round starts.
+        """
+        if not self.game_over or self.winner_index is None:
+            return None
+
+        winner = self.players[self.winner_index]
+        return {
+            "winner_index": self.winner_index,
+            "is_human": winner.is_human,
+            "fish_id": winner.fish_id,
+            "pot": self.pot,
+            "message": self.message,
+            "winning_hand_description": self.message,
+        }
+
     def get_state(self) -> Dict[str, Any]:
         """Get current game state for frontend.
 

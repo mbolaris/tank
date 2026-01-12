@@ -194,6 +194,84 @@ class CommandHandlerMixin:
             logger.error(f"Error starting poker game: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start poker game: {str(e)}")
 
+    def _apply_poker_rewards(self: "SimulationRunner", result: Dict[str, Any]) -> None:
+        """Apply energy and reproduction rewards to the winner of a poker hand."""
+        if not result or not result.get("fish_id"):
+            return
+
+        winner_id = result["fish_id"]
+        pot = result["pot"]
+        is_human = result["is_human"]
+
+        # 1. Apply Energy Reward
+        # Find the winning fish entity
+        entities_list = getattr(self.world, "get_entities_for_snapshot", lambda: [])()
+        if not entities_list:
+            # Fallback if get_entities_for_snapshot is not available (e.g. some tests)
+            engine = getattr(self.world, "engine", None)
+            if engine:
+                entities_list = engine.get_all_entities()
+
+        winner_entity = next(
+            (e for e in entities_list if getattr(e, "fish_id", None) == winner_id), None
+        )
+
+        if winner_entity:
+            # Add energy
+            winner_entity.energy += pot
+            logger.info(f"Poker Reward: Fish #{winner_id} won {pot:.1f} energy")
+
+            # 2. Trigger Reproduction (if AI won)
+            # We use the existing ReproductionService to handle genetics, cooldowns, etc.
+            if not is_human:
+                engine = getattr(self.world, "engine", None)
+                reproduction_service = getattr(engine, "reproduction_service", None)
+
+                if reproduction_service:
+                    # Construct participating fish list for mate selection
+                    game = self.human_poker_game
+                    participating_fish = []
+                    for p in game.players:
+                        if not p.is_human and p.fish_id is not None:
+                            fish = next(
+                                (
+                                    e
+                                    for e in entities_list
+                                    if getattr(e, "fish_id", None) == p.fish_id
+                                ),
+                                None,
+                            )
+                            if fish:
+                                participating_fish.append(fish)
+
+                    # Mock the PokerInteraction object expected by reproduction service
+                    class MockPokerResult:
+                        def __init__(self, w_id, count):
+                            self.winner_id = w_id
+                            self.fish_count = count
+                            self.is_tie = False
+                            self.winner_type = "fish"
+
+                    class MockPokerInteraction:
+                        def __init__(self, w_id, players):
+                            self.result = MockPokerResult(w_id, len(players))
+                            self.fish_players = players
+
+                        def _get_player_id(self, player):
+                            return player.fish_id
+
+                    mock_poker = MockPokerInteraction(winner_id, participating_fish)
+
+                    # Attempt reproduction
+                    try:
+                        baby = reproduction_service.handle_post_poker_reproduction(mock_poker)
+                        if baby:
+                            logger.info(
+                                f"Poker Reward: Fish #{winner_id} reproduced after winning!"
+                            )
+                    except Exception as e:
+                        logger.error(f"Error triggering poker reproduction: {e}")
+
     def _cmd_poker_action(
         self: "SimulationRunner", data: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
@@ -210,7 +288,15 @@ class CommandHandlerMixin:
 
         logger.info(f"Processing poker action: {action}, amount: {amount}")
 
-        return self.human_poker_game.handle_action("human", action, amount)
+        result = self.human_poker_game.handle_action("human", action, amount)
+
+        # Check for game completion and apply rewards
+        if result.get("success") and self.human_poker_game.game_over:
+            hand_result = self.human_poker_game.get_last_hand_result()
+            if hand_result:
+                self._apply_poker_rewards(hand_result)
+
+        return result
 
     def _cmd_poker_process_ai_turn(
         self: "SimulationRunner", data: Dict[str, Any]
@@ -220,7 +306,15 @@ class CommandHandlerMixin:
             logger.warning("AI turn processing requested but no game active")
             return self._create_error_response("No poker game active")
 
-        return self.human_poker_game.process_single_ai_turn()
+        result = self.human_poker_game.process_single_ai_turn()
+
+        # Check for game completion and apply rewards
+        if result.get("success") and self.human_poker_game.game_over:
+            hand_result = self.human_poker_game.get_last_hand_result()
+            if hand_result:
+                self._apply_poker_rewards(hand_result)
+
+        return result
 
     def _cmd_poker_new_round(
         self: "SimulationRunner", data: Dict[str, Any]
