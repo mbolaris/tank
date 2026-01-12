@@ -19,6 +19,7 @@ Usage:
 
 from __future__ import annotations
 
+import random
 
 # Re-export the unified poker classes
 # Also export utility types
@@ -29,6 +30,12 @@ from core.mixed_poker import (
     MultiplayerGameState as GameState,
     MultiplayerPlayerContext as PlayerContext,
     Player,
+)
+
+from core.config.fish import (
+    POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
+    POST_POKER_REPRODUCTION_LOSER_PROB,
+    POST_POKER_REPRODUCTION_WINNER_PROB,
 )
 
 # Constants for poker games
@@ -80,13 +87,6 @@ def get_ready_players(players: list, min_energy: float = MIN_ENERGY_TO_PLAY) -> 
 PokerInteraction = MixedPokerInteraction
 
 # Reproduction helpers
-import random
-
-from core.config.fish import (
-    POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
-    POST_POKER_REPRODUCTION_LOSER_PROB,
-    POST_POKER_REPRODUCTION_WINNER_PROB,
-)
 
 
 def _get_reproduction_cooldown(player: Player) -> int:
