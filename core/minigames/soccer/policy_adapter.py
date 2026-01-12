@@ -90,9 +90,14 @@ def build_observation(
     )
 
     # 3. Goal Relative State (Opponent's goal)
-    # Left team attacks Right Goal (+length/2, 0)
-    # Right team attacks Left Goal (-length/2, 0)
-    goal_x = config.field_length / 2.0 if player.team == "left" else -config.field_length / 2.0
+    # Left team attacks Right Goal (+length/2, 0) normally
+    # Right team attacks Left Goal (-length/2, 0) normally
+    # If swapped (2nd half), targets invert
+    target_side = 1.0 if player.team == "left" else -1.0
+    if getattr(engine, "swapped_sides", False):
+        target_side *= -1.0
+
+    goal_x = (config.field_length / 2.0) * target_side
     goal_y = 0.0
 
     gdx = goal_x - player.position.x

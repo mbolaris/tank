@@ -10,76 +10,239 @@ from core.minigames.soccer.selection import get_entity_energy, get_entity_id
 
 
 class LeagueTeamProvider:
-    """Provides league teams from the current world state."""
+    """Provides league teams from all active worlds."""
 
     def __init__(self, config: SoccerConfig) -> None:
         self.config = config
+        # Cache results to prevent flickering availability when locks fail
+        # structure: world_id -> (timestamp, teams_dict, availability_dict)
+        self._cache: dict[str, tuple[float, dict[str, LeagueTeam], dict[str, TeamAvailability]]] = (
+            {}
+        )
+        self._last_all_teams: dict[str, LeagueTeam] = {}
+        self._last_all_availability: dict[str, TeamAvailability] = {}
 
     def get_teams(
         self, world_state: Any
     ) -> tuple[dict[str, LeagueTeam], dict[str, TeamAvailability]]:
-        """Identify all possible teams and their availability."""
-        teams: dict[str, LeagueTeam] = {}
-        availability: dict[str, TeamAvailability] = {}
+        """Identify all possible teams and their availability from all worlds."""
+        import time
+
+        combined_teams: dict[str, LeagueTeam] = {}
+        combined_availability: dict[str, TeamAvailability] = {}
 
         # 1. Identify Tank Teams
-        tank_groups = self._group_entities_by_tank(world_state)
+        # Try to find WorldManager
+        world_manager = None
+        if hasattr(world_state, "environment") and hasattr(
+            world_state.environment, "world_manager"
+        ):
+            world_manager = world_state.environment.world_manager
 
-        for tank_id, entities in tank_groups.items():
-            # Sort by soccer rating (using energy/genome as proxy for now, ideally Elo)
-            # Todo: Integrate real Elo rating here if available on entity
-            sorted_entities = sorted(
-                entities, key=lambda e: (get_entity_energy(e), get_entity_id(e)), reverse=True
+        # Identify current world ID to skip locking
+        current_world_id = None
+        if hasattr(world_state, "environment") and hasattr(world_state.environment, "world_id"):
+            current_world_id = world_state.environment.world_id
+
+        # If we have a manager, iterate all worlds
+        if world_manager:
+            for world_id, instance in world_manager.get_all_worlds().items():
+                # For each world, try to get fresh data
+                teams, avail = self._get_world_teams(instance, world_id == current_world_id)
+                if teams is not None and avail is not None:
+                    # Update cache
+                    self._cache[world_id] = (time.time(), teams, avail)
+                else:
+                    # Use cache if available
+                    if world_id in self._cache:
+                        _, teams, avail = self._cache[world_id]
+                    else:
+                        teams, avail = {}, {}
+
+                combined_teams.update(teams)
+                combined_availability.update(avail)
+        else:
+            # Fallback for tests or single-instance without manager
+            # Treat world_state as the only source
+            entities = []
+            if hasattr(world_state, "get_fish_list"):
+                entities = list(world_state.get_fish_list())
+
+            # Try to get world_id from state
+            source_id = getattr(world_state, "world_id", "Tank")
+
+            # Use "Local" or configured world name
+            name = getattr(world_state, "name", source_id)
+            if hasattr(world_state, "config") and hasattr(world_state.config, "tank"):
+                # Try to find a name? Default to "Tank"
+                pass
+
+            # Process single source (legacy/test path)
+            eligible = self._filter_eligible(entities)
+            self._process_source_group(
+                combined_teams, combined_availability, source_id, name, eligible
             )
 
-            # Team A
-            self._create_tank_team(teams, availability, tank_id, "A", sorted_entities, 0)
-
-            # Team B (if we have enough for A, consider B)
-            # Note: We slice from AFTER Team A
-            team_size = self._get_team_size()
-            self._create_tank_team(teams, availability, tank_id, "B", sorted_entities, team_size)
-
         # 2. Identify Bot Teams
-        self._add_bot_teams(teams, availability)
+        # Add global bot teams (only once)
+        self._add_bot_teams(combined_teams, combined_availability)
 
-        return teams, availability
+        # Store last full result
+        self._last_all_teams = combined_teams
+        self._last_all_availability = combined_availability
 
-    def _group_entities_by_tank(self, world_state: Any) -> dict[str, list[Any]]:
-        """Group eligible entities by their source tank."""
-        # For now, we assume all entities in the main world belong to the "local" tank
-        # unless we have multi-tank logic.
-        # If `world_state` has a way to distinguish tanks (e.g. from network), use it.
-        # Fallback: All entities -> "LocalTank"
+        return combined_teams, combined_availability
 
-        entities = []
-        if hasattr(world_state, "get_fish_list"):
-            entities = list(world_state.get_fish_list())
+    def find_entities(self, world_state: Any, entity_ids: set[Any]) -> dict[Any, Any]:
+        """Find specific entities across all active worlds."""
+        found: dict[Any, Any] = {}
 
-        # Filter eligible (alive)
-        eligible = [
-            e for e in entities if not (callable(getattr(e, "is_dead", None)) and e.is_dead())
-        ]
+        # Try to find WorldManager
+        world_manager = None
+        if hasattr(world_state, "environment") and hasattr(
+            world_state.environment, "world_manager"
+        ):
+            world_manager = world_state.environment.world_manager
 
-        # In a single-instance sim, everyone is "Tank1" usually.
-        # We can try to use `world_id` if available.
-        world_id = getattr(world_state, "world_id", "Tank1")
+        current_world_id = None
+        if hasattr(world_state, "environment") and hasattr(world_state.environment, "world_id"):
+            current_world_id = world_state.environment.world_id
 
-        return {world_id: eligible}
+        if world_manager:
+            for world_id, instance in world_manager.get_all_worlds().items():
+                # Optimization: stop if we found everyone
+                if len(found) == len(entity_ids):
+                    break
 
-    def _create_tank_team(
+                entities = self._get_world_entities_safe(instance, world_id == current_world_id)
+                if entities:
+                    for e in entities:
+                        eid = get_entity_id(e)
+                        if eid in entity_ids:
+                            found[eid] = e
+        else:
+            # Fallback local
+            if hasattr(world_state, "get_fish_list"):
+                for e in world_state.get_fish_list():
+                    eid = get_entity_id(e)
+                    if eid in entity_ids:
+                        found[eid] = e
+
+        return found
+
+    def _get_world_entities_safe(self, instance: Any, is_current_world: bool) -> list[Any] | None:
+        runner = instance.runner
+        if not hasattr(runner, "engine") or not hasattr(runner.engine, "get_fish_list"):
+            return None
+
+        if is_current_world:
+            return list(runner.engine.get_fish_list())
+
+        if hasattr(runner, "lock"):
+            if runner.lock.acquire(blocking=False):
+                try:
+                    return list(runner.engine.get_fish_list())
+                finally:
+                    runner.lock.release()
+        return None
+
+    def _get_world_teams(
+        self, instance: Any, is_current_world: bool
+    ) -> tuple[dict[str, LeagueTeam] | None, dict[str, TeamAvailability] | None]:
+        """Get teams for a specific world instance, safely handling locks."""
+        entities = self._get_world_entities_safe(instance, is_current_world)
+
+        if entities is None:
+            return None, None
+
+        teams: dict[str, LeagueTeam] = {}
+        avail: dict[str, TeamAvailability] = {}
+
+        eligible = self._filter_eligible(entities)
+
+        # Use world name or ID for display
+        source_name = instance.name or instance.world_id[:8]
+
+        # We use world_id as source_id to be unique
+        self._process_source_group(teams, avail, instance.world_id, source_name, eligible)
+
+        return teams, avail
+
+    def _filter_eligible(self, entities: list[Any]) -> list[Any]:
+        """Filter entities that can pay the entry fee."""
+        entry_fee = self.config.entry_fee_energy
+
+        def _is_valid(e: Any) -> bool:
+            if callable(getattr(e, "is_dead", None)) and e.is_dead():
+                return False
+            energy = getattr(e, "energy", None)
+            if energy is None:
+                return False
+            try:
+                val = float(energy)
+                if entry_fee <= 0:
+                    return True
+                return val >= entry_fee
+            except (ValueError, TypeError):
+                return False
+
+        return [e for e in entities if _is_valid(e)]
+
+    def _process_source_group(
         self,
         teams: dict[str, LeagueTeam],
         availability: dict[str, TeamAvailability],
-        tank_id: str,
-        suffix: str,
-        sorted_entities: list[Any],
+        source_id: str,
+        display_name: str,
+        eligible_entities: list[Any],
+    ) -> None:
+        """Create A and B teams for a source."""
+        # Sort by energy/id
+        sorted_entities = sorted(
+            eligible_entities, key=lambda e: (get_entity_energy(e), get_entity_id(e)), reverse=True
+        )
+
+        # Team A
+        # Use simple IDs that are stable-ish: "{source_id}_A"
+        # But user wants display name "[TankName] A"
+
+        # We need unique team IDs globally. source_id is unique (world_id).
+        # Display name is for UI.
+
+        self._create_team(
+            teams,
+            availability,
+            team_id=f"{source_id}:A",
+            display_name=f"{display_name} A Team",
+            source_id=source_id,
+            entities=sorted_entities,
+            offset=0,
+        )
+
+        # Team B
+        team_size = self._get_team_size()
+        self._create_team(
+            teams,
+            availability,
+            team_id=f"{source_id}:B",
+            display_name=f"{display_name} B Team",
+            source_id=source_id,
+            entities=sorted_entities,
+            offset=team_size,
+        )
+
+    def _create_team(
+        self,
+        teams: dict[str, LeagueTeam],
+        availability: dict[str, TeamAvailability],
+        team_id: str,
+        display_name: str,
+        source_id: str,
+        entities: list[Any],
         offset: int,
     ) -> None:
-        team_id = f"{tank_id}:{suffix}"
         team_size = self._get_team_size()
-
-        candidates = sorted_entities[offset : offset + team_size]
+        candidates = entities[offset : offset + team_size]
         count = len(candidates)
         is_available = count >= team_size
 
@@ -87,9 +250,9 @@ class LeagueTeamProvider:
 
         teams[team_id] = LeagueTeam(
             team_id=team_id,
-            display_name=f"{tank_id} {suffix}",
+            display_name=display_name,
             source=TeamSource.TANK,
-            tank_id=tank_id,
+            source_id=source_id,
             roster=roster,
         )
 
@@ -105,20 +268,16 @@ class LeagueTeamProvider:
         self, teams: dict[str, LeagueTeam], availability: dict[str, TeamAvailability]
     ) -> None:
         """Add static bot teams."""
-        # Bot:Balanced
         teams["Bot:Balanced"] = LeagueTeam(
             team_id="Bot:Balanced",
             display_name="Bot Balanced",
             source=TeamSource.BOT,
-            tank_id=None,
+            source_id=None,
             roster=[],  # Bots adhere to special logic, empty roster implies generated
         )
         availability["Bot:Balanced"] = TeamAvailability(
             is_available=True, eligible_count=11, reason="Always available"
         )
-
-        # We can add more bots if configured
-        # e.g. if self.config.bot_count > 1...
 
     def _get_team_size(self) -> int:
         return self.config.team_size if self.config.team_size > 0 else 11
