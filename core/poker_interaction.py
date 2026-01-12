@@ -17,6 +17,8 @@ Usage:
             print(f"Winner: {poker.result.winner_id}")
 """
 
+from __future__ import annotations
+
 
 # Re-export the unified poker classes
 # Also export utility types
