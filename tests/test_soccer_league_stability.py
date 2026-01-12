@@ -68,7 +68,7 @@ def test_bot_entry_fee_safety():
     bots = [BotEntity(f"Bot{i}") for i in range(2)]
 
     # effectively mocked match creation to avoid heavy import/logic in test
-    with patch("core.minigames.soccer.evaluator.SoccerMatch") as MockMatch:
+    with patch("core.minigames.soccer.evaluator.SoccerMatch"):
         # Should not raise
         setup = create_soccer_match_from_participants(
             bots, entry_fee_energy=10.0, match_id="test_match"
@@ -82,7 +82,7 @@ def test_mixed_entry_fee_safety():
     fish = FishEntity("Fish1", 100.0)
     participants = [bot, fish]
 
-    with patch("core.minigames.soccer.evaluator.SoccerMatch") as MockMatch:
+    with patch("core.minigames.soccer.evaluator.SoccerMatch"):
         setup = create_soccer_match_from_participants(
             participants, entry_fee_energy=10.0, match_id="test_match"
         )
@@ -132,7 +132,6 @@ def test_league_runtime_crash_handling():
 
 def test_match_history_buffer():
     """Verify runtime keeps recent results."""
-    config = SoccerConfig(enabled=True)
     # runtime = SoccerLeagueRuntime(config)
 
     # Inject some mock results

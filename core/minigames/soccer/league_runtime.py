@@ -118,7 +118,6 @@ class SoccerLeagueRuntime:
             match_state = self._active_match.get_state()
 
             # Check if we should throttle
-            current_frame = getattr(self._active_match, "current_frame", 0)
             # Use self._match_counter to help detecting new matches
 
             # Throttling logic:
