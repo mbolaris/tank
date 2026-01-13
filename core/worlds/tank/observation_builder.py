@@ -73,6 +73,21 @@ def build_tank_observations(
         nearby_fish = _build_fish_observations(entity, env, perception_radius)
         nearby_threats = _build_threat_observations(entity, env, perception_radius)
 
+        # Build observation with standard and soccer fields
+        obs_extra = {
+            "species": entity.species,
+            "generation": entity.generation,
+            "size": getattr(entity, "size", 1.0),
+        }
+
+        # Add soccer observations if available
+        ball = getattr(env, "ball", None)
+        goal_manager = getattr(env, "goal_manager", None)
+        if ball or goal_manager:
+            from core.worlds.tank.soccer_observations import add_soccer_extras
+
+            add_soccer_extras(obs_extra, entity, ball, list(goal_manager.zones.values()) if goal_manager else [])
+
         observations[fish_id] = Observation(
             entity_id=fish_id,
             position=(entity.pos.x, entity.pos.y),
@@ -84,11 +99,7 @@ def build_tank_observations(
             nearby_fish=nearby_fish,
             nearby_threats=nearby_threats,
             frame=frame,
-            extra={
-                "species": entity.species,
-                "generation": entity.generation,
-                "size": getattr(entity, "size", 1.0),
-            },
+            extra=obs_extra,
         )
 
     return observations
