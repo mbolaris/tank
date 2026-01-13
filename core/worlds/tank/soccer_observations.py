@@ -6,8 +6,8 @@ enabling agents to perceive and interact with soccer gameplay elements.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional, Dict
 import math
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 
 
 def add_ball_observations(
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     fish: Fish,
-    ball: Optional[Ball],
+    ball: Ball | None,
 ) -> None:
     """Add ball information to a fish's observation.
 
@@ -59,9 +59,9 @@ def add_ball_observations(
 
 
 def add_goal_observations(
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     fish: Fish,
-    goal_zones: Optional[list[GoalZone]],
+    goal_zones: list[GoalZone] | None,
 ) -> None:
     """Add goal information to a fish's observation.
 
@@ -99,7 +99,7 @@ def add_goal_observations(
 
 
 def add_team_info(
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     fish: Fish,
 ) -> None:
     """Add team information to a fish's observation.
@@ -113,10 +113,10 @@ def add_team_info(
 
 
 def add_soccer_extras(
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     fish: Fish,
-    ball: Optional[Ball],
-    goal_zones: Optional[list[GoalZone]],
+    ball: Ball | None,
+    goal_zones: list[GoalZone] | None,
 ) -> None:
     """Add all soccer-specific extras to observation.
 
@@ -154,7 +154,7 @@ def add_soccer_extras(
 def build_soccer_ball_observation(
     ball: Ball,
     frame_count: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build observation for the ball itself (for monitoring/analytics).
 
     Args:
@@ -182,7 +182,7 @@ def get_nearby_teammates(
     fish: Fish,
     all_fish: list[Fish],
     radius: float = 200.0,
-) -> list[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Get observations of nearby teammates.
 
     Args:
@@ -227,7 +227,7 @@ def get_nearby_opponents(
     fish: Fish,
     all_fish: list[Fish],
     radius: float = 200.0,
-) -> list[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Get observations of nearby opponents.
 
     Args:

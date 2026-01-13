@@ -12,7 +12,8 @@ This enables more realistic and constrained movement for strategic gameplay.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -80,7 +81,7 @@ class RCSSLitePhysicsEngine:
     turn inertia, and acceleration-based movement.
     """
 
-    def __init__(self, params: Optional[RCSSLitePhysicsParams] = None):
+    def __init__(self, params: RCSSLitePhysicsParams | None = None):
         """Initialize the RCSS-Lite physics engine.
 
         Args:

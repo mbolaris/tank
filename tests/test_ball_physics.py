@@ -8,12 +8,12 @@ Tests RCSS-Lite style ball physics including:
 - Position reset
 """
 
-import pytest
-import math
 from unittest.mock import Mock
 
+import pytest
+
 from core.entities.ball import Ball
-from core.entities.goal_zone import GoalZone, GoalEvent
+from core.entities.goal_zone import GoalZone
 from core.math_utils import Vector2
 
 

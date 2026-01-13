@@ -7,7 +7,6 @@ extending the basic movement actions with kick commands.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
 from enum import Enum
 
 
@@ -49,18 +48,18 @@ class SoccerAction:
 
     entity_id: str
     movement_mode: MovementMode = MovementMode.NORMAL
-    target_velocity: Tuple[float, float] = (0.0, 0.0)  # For normal mode
-    dash_command: Optional[Tuple[float, float]] = None  # (power, direction) for RCSS-Lite
-    turn_command: Optional[float] = None  # Moment (degrees) for RCSS-Lite
-    kick_command: Optional[KickCommand] = None  # Ball kick
+    target_velocity: tuple[float, float] = (0.0, 0.0)  # For normal mode
+    dash_command: tuple[float, float] | None = None  # (power, direction) for RCSS-Lite
+    turn_command: float | None = None  # Moment (degrees) for RCSS-Lite
+    kick_command: KickCommand | None = None  # Ball kick
     extra: dict = field(default_factory=dict)
 
 
 def create_soccer_action(
     entity_id: str,
-    target_velocity: Tuple[float, float] = (0.0, 0.0),
-    kick_power: Optional[float] = None,
-    kick_direction: Optional[float] = None,
+    target_velocity: tuple[float, float] = (0.0, 0.0),
+    kick_power: float | None = None,
+    kick_direction: float | None = None,
     movement_mode: MovementMode = MovementMode.NORMAL,
 ) -> SoccerAction:
     """Factory function to create a soccer action.
