@@ -3,6 +3,8 @@
 Goals are fixed zones that detect when the ball enters and reward the scoring team.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Optional
 from dataclasses import dataclass
 from core.entities.base import Entity
