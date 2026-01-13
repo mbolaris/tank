@@ -115,9 +115,7 @@ class SoccerActionTranslator:
                     kick_power = clamp_value(float(kick[0]), 0.0, self.max_kick_power)
                     kick_direction = float(kick[1])
                 elif isinstance(kick, dict):
-                    kick_power = clamp_value(
-                        float(kick.get("power", 0)), 0.0, self.max_kick_power
-                    )
+                    kick_power = clamp_value(float(kick.get("power", 0)), 0.0, self.max_kick_power)
                     kick_direction = float(kick.get("direction", 0))
 
             # Movement mode

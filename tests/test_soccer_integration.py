@@ -27,9 +27,11 @@ class TestSoccerIntegration:
             pack = TankPack(config)
 
             # Check soccer is not explicitly disabled
-            assert not hasattr(config, "tank") or not hasattr(
-                config.tank, "soccer_enabled"
-            ) or getattr(config.tank, "soccer_enabled", True)
+            assert (
+                not hasattr(config, "tank")
+                or not hasattr(config.tank, "soccer_enabled")
+                or getattr(config.tank, "soccer_enabled", True)
+            )
         except ImportError:
             pytest.skip("TankPack not available")
 

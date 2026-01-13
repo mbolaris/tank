@@ -86,7 +86,9 @@ def build_tank_observations(
         if ball or goal_manager:
             from core.worlds.tank.soccer_observations import add_soccer_extras
 
-            add_soccer_extras(obs_extra, entity, ball, list(goal_manager.zones.values()) if goal_manager else [])
+            add_soccer_extras(
+                obs_extra, entity, ball, list(goal_manager.zones.values()) if goal_manager else []
+            )
 
         observations[fish_id] = Observation(
             entity_id=fish_id,
