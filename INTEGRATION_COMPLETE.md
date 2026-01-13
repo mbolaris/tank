@@ -123,10 +123,12 @@ Each frame, observations include:
 
 ### Enable/Disable Soccer
 ```python
-# Default: soccer is ENABLED
-# To disable, set in config:
-config.tank.soccer_enabled = False
+# Default: soccer is DISABLED for backward compatibility
+# To enable soccer, set in config:
+config.tank.soccer_enabled = True
 ```
+
+**Note:** Soccer is disabled by default to maintain backward compatibility with existing tank simulations and benchmarks. Explicitly enable it if you want ball and goal gameplay.
 
 ### Customize Soccer
 Modify in `TankPack._initialize_soccer()`:
