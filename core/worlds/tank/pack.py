@@ -103,7 +103,7 @@ class TankPack(TankLikePackBase):
             if not engine.environment:
                 return
 
-            # Check if soccer is enabled (default: False for backward compatibility)
+            # Check if soccer is enabled (default: False to preserve existing behavior)
             soccer_enabled = False
             if hasattr(self.config, "tank") and hasattr(self.config.tank, "soccer_enabled"):
                 soccer_enabled = self.config.tank.soccer_enabled
