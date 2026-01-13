@@ -6,7 +6,7 @@ Manages ball physics updates and goal detection/scoring in the simulation.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase
@@ -38,8 +38,8 @@ class SoccerSystem(BaseSystem):
             engine: The simulation engine
         """
         super().__init__(engine, name="soccer")
-        self.ball: Optional[Ball] = None
-        self.goal_manager: Optional[GoalZoneManager] = None
+        self.ball: Ball | None = None
+        self.goal_manager: GoalZoneManager | None = None
         self.enabled: bool = False
 
     @property

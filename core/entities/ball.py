@@ -11,6 +11,7 @@ This enables realistic ball mechanics while being deterministic and predictable.
 """
 
 from typing import TYPE_CHECKING, Optional
+
 from core.entities.base import Agent
 from core.math_utils import Vector2
 

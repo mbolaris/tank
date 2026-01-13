@@ -5,14 +5,15 @@ Goals are fixed zones that detect when the ball enters and reward the scoring te
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 from core.entities.base import Entity
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
-    from core.world import World
     from core.entities.ball import Ball
+    from core.world import World
 
 
 @dataclass
@@ -21,8 +22,8 @@ class GoalEvent:
 
     goal_id: str  # Unique ID for this goal zone
     team: str  # Team that scored ('A' or 'B')
-    scorer_id: Optional[int]  # Fish ID of the scorer (if tracked)
-    assister_id: Optional[int]  # Fish ID of the assister (if tracked)
+    scorer_id: int | None  # Fish ID of the scorer (if tracked)
+    assister_id: int | None  # Fish ID of the assister (if tracked)
     position: Vector2  # Position where ball entered goal
     timestamp: int  # Frame number when goal occurred
     base_energy_reward: float  # Base energy given to scoring team
@@ -45,7 +46,7 @@ class GoalZone(Entity):
 
     def __init__(
         self,
-        environment: "World",
+        environment: World,
         x: float,
         y: float,
         team: str,
@@ -79,7 +80,7 @@ class GoalZone(Entity):
         pixel_radius = int(radius * 2)  # Rough conversion to pixels
         self.set_size(pixel_radius * 2, pixel_radius * 2)
 
-    def check_goal(self, ball: "Ball", frame_count: int) -> Optional[GoalEvent]:
+    def check_goal(self, ball: Ball, frame_count: int) -> GoalEvent | None:
         """Check if the ball has entered the goal zone.
 
         Args:
@@ -118,7 +119,7 @@ class GoalZone(Entity):
 
         return None
 
-    def is_ball_in_goal(self, ball: "Ball") -> bool:
+    def is_ball_in_goal(self, ball: Ball) -> bool:
         """Quick check if ball is in goal zone (without event creation).
 
         Args:
@@ -130,7 +131,7 @@ class GoalZone(Entity):
         distance = (self.pos - ball.pos).length()
         return distance <= self.radius + ball.size
 
-    def get_distance_to_ball(self, ball: "Ball") -> float:
+    def get_distance_to_ball(self, ball: Ball) -> float:
         """Get distance from goal center to ball.
 
         Args:
@@ -166,7 +167,7 @@ class GoalZoneManager:
         """
         self.zones[zone.goal_id] = zone
 
-    def check_all_goals(self, ball: "Ball", frame_count: int) -> Optional[GoalEvent]:
+    def check_all_goals(self, ball: Ball, frame_count: int) -> GoalEvent | None:
         """Check all goal zones for scoring.
 
         Args:

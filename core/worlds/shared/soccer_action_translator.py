@@ -6,17 +6,16 @@ movement, kicking, and optional RCSS-Lite physics near the ball.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
 import math
+from typing import Any
 
-from core.actions.soccer_action import (
-    SoccerAction,
-    KickCommand,
-    MovementMode,
-    create_soccer_action,
-    clamp_value,
-)
 from core.actions.action_registry import ActionSpace
+from core.actions.soccer_action import (
+    MovementMode,
+    SoccerAction,
+    clamp_value,
+    create_soccer_action,
+)
 
 
 class SoccerActionTranslator:
@@ -94,9 +93,9 @@ class SoccerActionTranslator:
             return raw_action
 
         # Default values
-        target_velocity: Tuple[float, float] = (0.0, 0.0)
-        kick_power: Optional[float] = None
-        kick_direction: Optional[float] = None
+        target_velocity: tuple[float, float] = (0.0, 0.0)
+        kick_power: float | None = None
+        kick_direction: float | None = None
         movement_mode = MovementMode.NORMAL
 
         # Extract from dict
@@ -149,7 +148,7 @@ class SoccerActionTranslator:
         self,
         agent_id: str,
         requested_mode: MovementMode,
-        distance_to_ball: Optional[float] = None,
+        distance_to_ball: float | None = None,
     ) -> MovementMode:
         """Determine the actual movement mode based on context.
 

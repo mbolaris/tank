@@ -4,12 +4,13 @@ Tests that ball, goals, and soccer mechanics are properly integrated
 into the tank world simulation.
 """
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
 
 from core.entities.ball import Ball
-from core.entities.goal_zone import GoalZone, GoalZoneManager
 from core.entities.fish import Fish
+from core.entities.goal_zone import GoalZone, GoalZoneManager
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement
 
@@ -20,11 +21,11 @@ class TestSoccerIntegration:
     def test_ball_initialization_in_pack(self):
         """Test that ball is initialized properly."""
         try:
-            from core.worlds.tank.pack import TankPack
             from core.config.simulation_config import SimulationConfig
+            from core.worlds.tank.pack import TankPack
 
             config = SimulationConfig.production(headless=True)
-            pack = TankPack(config)
+            TankPack(config)
 
             # Check soccer is not explicitly disabled
             assert (
@@ -128,8 +129,9 @@ class TestSoccerIntegration:
     def test_soccer_system_setup(self):
         """Test that soccer system can be set up."""
         try:
-            from core.systems.soccer_system import SoccerSystem
             from unittest.mock import MagicMock
+
+            from core.systems.soccer_system import SoccerSystem
 
             mock_engine = MagicMock()
             soccer_system = SoccerSystem(mock_engine)
