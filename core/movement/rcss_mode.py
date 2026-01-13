@@ -126,15 +126,11 @@ class RCSSLitePhysicsEngine:
         # Cap speed
         speed = agent_state.velocity.length()
         if speed > self.params.player_speed_max:
-            agent_state.velocity = (
-                agent_state.velocity / speed * self.params.player_speed_max
-            )
+            agent_state.velocity = agent_state.velocity / speed * self.params.player_speed_max
 
         agent_state.last_dash_power = power
 
-    def apply_turn_command(
-        self, agent_state: RCSSLiteAgentState, moment: float
-    ) -> None:
+    def apply_turn_command(self, agent_state: RCSSLiteAgentState, moment: float) -> None:
         """Apply a turn command to an agent.
 
         Args:
