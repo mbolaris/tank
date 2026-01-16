@@ -104,12 +104,10 @@ class PokerSystem(BaseSystem):
             and getattr(poker.result, "offspring", None) is not None
         ):
             if self._request_spawn(poker.result.offspring, reason="poker_reproduction"):
-                register_birth = getattr(poker.result.offspring, "register_birth", None)
-                if register_birth is not None:
-                    register_birth()
-                lifecycle_system = getattr(self._engine, "lifecycle_system", None)
-                if lifecycle_system is not None:
-                    lifecycle_system.record_birth()
+                if hasattr(poker.result.offspring, "register_birth"):
+                    poker.result.offspring.register_birth()
+                if hasattr(self._engine, "lifecycle_system"):
+                    self._engine.lifecycle_system.record_birth()
 
     def _add_poker_event_to_history(
         self,
@@ -154,23 +152,26 @@ class PokerSystem(BaseSystem):
 
         result = poker.result
         # Get player count from poker.players (MixedPokerInteraction stores players list)
-        players = getattr(poker, "players", None)
-        num_players = len(players) if players is not None else 2
+        num_players = len(poker.players) if hasattr(poker, "players") else 2
 
         if result.winner_id == -1 or result.is_tie:
             # Tie - use winner_hand or first loser_hand for description
             hand_desc = result.winner_hand.description if result.winner_hand else "Unknown"
-            if num_players == 2 and players is not None:
-                get_id_0 = getattr(players[0], "get_poker_id", None)
-                get_id_1 = getattr(players[1], "get_poker_id", None)
-                p1_id = get_id_0() if get_id_0 is not None else 0
-                p2_id = get_id_1() if get_id_1 is not None else 0
+            if num_players == 2:
+                p1_id = (
+                    poker.players[0].get_poker_id()
+                    if hasattr(poker.players[0], "get_poker_id")
+                    else 0
+                )
+                p2_id = (
+                    poker.players[1].get_poker_id()
+                    if hasattr(poker.players[1], "get_poker_id")
+                    else 0
+                )
                 message = f"Fish #{p1_id} vs Fish #{p2_id} - TIE! ({hand_desc})"
-            elif players is not None:
-                player_list = ", ".join(f"#{p.get_poker_id()}" for p in players)
-                message = f"Fish {player_list} - TIE! ({hand_desc})"
             else:
-                message = f"TIE! ({hand_desc})"
+                player_list = ", ".join(f"#{p.get_poker_id()}" for p in poker.players)
+                message = f"Fish {player_list} - TIE! ({hand_desc})"
             self._ties += 1
         else:
             # Use winner_hand from result
@@ -413,8 +414,7 @@ class PokerSystem(BaseSystem):
         result = poker.result
 
         # Add poker event for display
-        add_plant_poker_event = getattr(self._engine, "add_plant_poker_event", None)
-        if add_plant_poker_event is not None and result.plant_count > 0:
+        if hasattr(self._engine, "add_plant_poker_event") and result.plant_count > 0:
             from core.entities import Fish
             from core.entities.plant import Plant
 
@@ -459,7 +459,7 @@ class PokerSystem(BaseSystem):
                     ):
                         fish_display_id = player.fish_id
 
-            add_plant_poker_event(
+            self._engine.add_plant_poker_event(
                 fish_id=fish_display_id,
                 plant_id=plant_display_id,
                 fish_won=winner_is_fish,

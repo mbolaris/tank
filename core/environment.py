@@ -116,11 +116,10 @@ class SpatialGrid:
 
     def add_agent(self, agent: Agent):
         """Add an agent to the spatial grid."""
-        pos = getattr(agent, "pos", None)
-        if pos is None:
+        if not hasattr(agent, "pos"):
             return
 
-        cell = self._get_cell(pos.x, pos.y)
+        cell = self._get_cell(agent.pos.x, agent.pos.y)
         # Use type(agent) for exact type matching which is faster than isinstance checks later
         # But we need to be careful about inheritance if we query by base class
         # For now, we'll store by exact type
@@ -173,11 +172,10 @@ class SpatialGrid:
 
     def update_agent(self, agent: Agent):
         """Update an agent's position in the grid (call when agent moves)."""
-        pos = getattr(agent, "pos", None)
-        if pos is None:
+        if not hasattr(agent, "pos"):
             return
 
-        new_cell = self._get_cell(pos.x, pos.y)
+        new_cell = self._get_cell(agent.pos.x, agent.pos.y)
         old_cell = self.agent_cells.get(agent)
 
         # Only update if the agent changed cells
@@ -811,38 +809,35 @@ class Environment:
         if self.dish is None:
             return False
 
-        vel = getattr(agent, "vel", None)
-        if vel is None:
+        if not hasattr(agent, "vel"):
             return False
 
         # Calculate agent center and radius
         # Use max(width, height) / 2 for proper circular approximation
-        height = getattr(agent, "height", agent.width)
-        agent_r = max(agent.width, height) / 2
+        agent_r = max(agent.width, getattr(agent, "height", agent.width)) / 2
         agent_cx = agent.pos.x + agent.width / 2
-        agent_cy = agent.pos.y + height / 2
+        agent_cy = agent.pos.y + getattr(agent, "height", agent.width) / 2
 
         # Use dish to clamp and reflect
         new_cx, new_cy, new_vx, new_vy, collided = self.dish.clamp_and_reflect(
             agent_cx,
             agent_cy,
-            vel.x,
-            vel.y,
+            agent.vel.x,
+            agent.vel.y,
             agent_r,
         )
 
         if collided:
             # Update agent position (convert center back to top-left)
             agent.pos.x = new_cx - agent.width / 2
-            agent.pos.y = new_cy - height / 2
-            rect = getattr(agent, "rect", None)
-            if rect is not None:
-                rect.x = agent.pos.x
-                rect.y = agent.pos.y
+            agent.pos.y = new_cy - getattr(agent, "height", agent.width) / 2
+            if hasattr(agent, "rect"):
+                agent.rect.x = agent.pos.x
+                agent.rect.y = agent.pos.y
 
             # Update velocity
-            vel.x = new_vx
-            vel.y = new_vy
+            agent.vel.x = new_vx
+            agent.vel.y = new_vy
 
         return True  # Always handled when dish is set (circular boundary is authoritative)
 

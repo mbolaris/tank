@@ -152,15 +152,13 @@ class Plant(Agent):
         if self.root_spot is None:
             # Stationary fallback if root spot is lost
             self.rect.topleft = self.pos
+        elif hasattr(self.root_spot, "get_anchor_topleft"):
+            self.pos.x, self.pos.y = self.root_spot.get_anchor_topleft(self.width, self.height)
+            self.rect.topleft = self.pos
         else:
-            anchor_fn = getattr(self.root_spot, "get_anchor_topleft", None)
-            if anchor_fn is not None:
-                self.pos.x, self.pos.y = anchor_fn(self.width, self.height)
-                self.rect.topleft = self.pos
-            else:
-                # Fallback for legacy/mock root spots
-                self.pos.y = self.root_spot.y - self.height
-                self.rect.y = self.pos.y
+            # Fallback for legacy/mock root spots
+            self.pos.y = self.root_spot.y - self.height
+            self.rect.y = self.pos.y
 
     @property
     def typed_id(self) -> PlantId:
@@ -473,9 +471,8 @@ class Plant(Agent):
 
         # Record the delta via the engine recorder (single source of truth)
         # Energy events are no longer emitted to avoid double-counting
-        recorder = getattr(self.environment, "record_energy_delta", None)
-        if recorder is not None:
-            recorder(self, delta, source)
+        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
+            self.environment.record_energy_delta(self, delta, source)
 
         return delta
 
@@ -722,8 +719,9 @@ class Plant(Agent):
 
         # Determine if this plant is in an edge position
         # Edge positions are the first 2 or last 2 spots out of 25
-        manager = getattr(self.root_spot, "manager", None)
-        total_spots = len(manager.spots) if manager is not None else 25
+        total_spots = (
+            len(self.root_spot.manager.spots) if hasattr(self.root_spot, "manager") else 25
+        )
         edge_threshold = 2  # Consider first 2 and last 2 spots as "edge"
 
         spot_id = self.root_spot.spot_id

@@ -559,9 +559,9 @@ class EcosystemManager:
         adult_size_median = 0.0
         adult_size_range = "0.0-0.0"
         if fish_list:
-            # Fish always have genomes - no hasattr check needed
             adult_sizes = [
-                FISH_ADULT_SIZE * f.genome.physical.size_modifier.value
+                FISH_ADULT_SIZE
+                * (f.genome.physical.size_modifier.value if hasattr(f, "genome") else 1.0)
                 for f in fish_list
             ]
             adult_size_min = min(adult_sizes)
@@ -907,8 +907,7 @@ class EcosystemManager:
         strategy_params: Dict[str, List[Dict[str, float]]] = defaultdict(list)
 
         for fish in fish_list:
-            # Fish always have genomes, but check for None just in case
-            if fish.genome is None:
+            if not hasattr(fish, "genome") or fish.genome is None:
                 continue
 
             trait = fish.genome.behavioral.poker_strategy
@@ -919,9 +918,10 @@ class EcosystemManager:
             strategy_counts[strat.strategy_id] += 1
             strategy_params[strat.strategy_id].append(strat.parameters.copy())
 
-            poker_stats = getattr(fish, "poker_stats", None)
-            if poker_stats is not None and poker_stats.total_games > 0:
-                strategy_win_rates[strat.strategy_id].append(poker_stats.get_win_rate())
+            if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
+                ps = fish.poker_stats
+                if ps.total_games > 0:
+                    strategy_win_rates[strat.strategy_id].append(ps.get_win_rate())
 
         result = {
             "total_fish": len(fish_list),

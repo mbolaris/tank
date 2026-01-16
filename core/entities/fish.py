@@ -181,18 +181,16 @@ class Fish(Agent):
         # Reproduction - managed by ReproductionComponent for better code organization
 
         self._reproduction_component = ReproductionComponent()
-
-        # Initialize repro credits from soccer config if available
+        initial_credits = 0.0
         env_config = getattr(environment, "simulation_config", None)
-        soccer_config = getattr(env_config, "soccer", None) if env_config else None
-        if soccer_config is not None:
-            raw_credits = getattr(soccer_config, "repro_credit_initial", 0.0)
+        if env_config is not None and hasattr(env_config, "soccer"):
+            raw_credits = getattr(env_config.soccer, "repro_credit_initial", 0.0)
             try:
                 initial_credits = float(raw_credits)
-                if initial_credits > 0:
-                    self._reproduction_component.repro_credits = initial_credits
             except (TypeError, ValueError):
-                pass  # Ignore invalid config values
+                initial_credits = 0.0
+        if initial_credits > 0:
+            self._reproduction_component.repro_credits = initial_credits
 
         # NEW: Enhanced memory system
 
@@ -334,8 +332,9 @@ class Fish(Agent):
         Returns:
             Aggression value for poker decisions (0.0-1.0)
         """
-        aggression_trait = getattr(self.genome.behavioral, "aggression", None)
-        return aggression_trait.value if aggression_trait is not None else 0.5
+        if hasattr(self.genome.behavioral, "aggression"):
+            return self.genome.behavioral.aggression.value
+        return 0.5
 
     def get_poker_strategy(self):
         """Get poker strategy for this fish (implements PokerPlayer protocol).
@@ -514,11 +513,9 @@ class Fish(Agent):
             elif self.state.state == EntityState.ACTIVE:
                 self._cached_is_dead = False
 
-        # Record energy delta if environment supports it
-        recorder = getattr(self.environment, "record_energy_delta", None)
-        if recorder is not None:
+        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
             delta = self._energy_component.energy - old_energy
-            recorder(self, delta, source)
+            self.environment.record_energy_delta(self, delta, source)
 
         return self._energy_component.energy - old_energy
 

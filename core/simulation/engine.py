@@ -304,33 +304,29 @@ class SimulationEngine:
 
         # 3. Let the pack register systems
         pack.register_systems(self)
-        register_contracts = getattr(pack, "register_contracts", None)
-        if register_contracts is not None:
-            register_contracts(self)
+        if hasattr(pack, "register_contracts"):
+            pack.register_contracts(self)
         self._validate_system_phase_declarations()
         self._assert_required_systems()
 
         # 4. Wire up the pipeline (pack can override or use default)
         from core.simulation.pipeline import default_pipeline
 
-        get_pipeline = getattr(pack, "get_pipeline", None)
-        custom_pipeline = get_pipeline() if get_pipeline is not None else None
+        custom_pipeline = pack.get_pipeline() if hasattr(pack, "get_pipeline") else None
         self.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
 
         # 5. Let the pack seed entities
         pack.seed_entities(self)
 
         # 6. Store identity provider from pack
-        get_identity_provider = getattr(pack, "get_identity_provider", None)
-        if get_identity_provider is not None:
-            self._identity_provider = get_identity_provider()
+        if hasattr(pack, "get_identity_provider"):
+            self._identity_provider = pack.get_identity_provider()
 
         # 7. Store phase hooks from pack
         from core.simulation.phase_hooks import NoOpPhaseHooks
 
-        get_phase_hooks = getattr(pack, "get_phase_hooks", None)
-        if get_phase_hooks is not None:
-            hooks = get_phase_hooks()
+        if hasattr(pack, "get_phase_hooks"):
+            hooks = pack.get_phase_hooks()
             self._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
         else:
             self._phase_hooks = NoOpPhaseHooks()
@@ -489,9 +485,8 @@ class SimulationEngine:
         queued mutations from _apply_entity_mutations(). External code
         should use request_spawn() to queue spawns for safe processing.
         """
-        add_internal = getattr(entity, "add_internal", None)
-        if add_internal is not None:
-            add_internal(self.agents)
+        if hasattr(entity, "add_internal"):
+            entity.add_internal(self.agents)
         self._entity_manager.add(entity)
 
     def _remove_entity(self, entity: entities.Agent) -> None:
@@ -910,10 +905,8 @@ class SimulationEngine:
         if self._identity_provider is None:
             return entity.__class__.__name__.lower(), str(id(entity))
         provider = self._identity_provider
-        type_name_fn = getattr(provider, "type_name", None)
-        stable_id_fn = getattr(provider, "stable_id", None)
-        if type_name_fn is not None and stable_id_fn is not None:
-            return type_name_fn(entity), stable_id_fn(entity)
+        if hasattr(provider, "type_name") and hasattr(provider, "stable_id"):
+            return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
 
     def _phase_reproduction(self) -> None:
@@ -939,11 +932,11 @@ class SimulationEngine:
 
         # Prune stale identity mappings to prevent memory leaks and id() reuse
         # corruption. This removes entries for entities that no longer exist.
-        if self._identity_provider is not None:
-            prune_stale_ids = getattr(self._identity_provider, "prune_stale_ids", None)
-            if prune_stale_ids is not None:
-                current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
-                prune_stale_ids(current_entity_ids)
+        if self._identity_provider is not None and hasattr(
+            self._identity_provider, "prune_stale_ids"
+        ):
+            current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
+            self._identity_provider.prune_stale_ids(current_entity_ids)
 
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
