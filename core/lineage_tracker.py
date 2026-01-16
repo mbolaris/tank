@@ -28,9 +28,9 @@ class LineageTracker:
         """Initialize the lineage tracker."""
         self.lineage_log: list[dict[str, Any]] = []
         self._alive_fish_ids: set[int] = set()
-        self._fixed_orphans: set[
-            str
-        ] = set()  # Track already-fixed orphans to avoid repeat warnings
+        self._fixed_orphans: set[str] = (
+            set()
+        )  # Track already-fixed orphans to avoid repeat warnings
 
     def update_alive_fish(self, alive_fish_ids: set[int]) -> None:
         """Update the set of alive fish IDs and trigger smart pruning.

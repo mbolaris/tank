@@ -79,9 +79,9 @@ class PokerStrategyAlgorithm:
         strategy_map = {s("").strategy_id: s for s in get_all_poker_strategies()}
 
         # Add baseline/random just in case
-        strategy_map[
-            "always_fold"
-        ] = lambda r=None: None  # Handled dynamically below if not in list
+        strategy_map["always_fold"] = (
+            lambda r=None: None
+        )  # Handled dynamically below if not in list
 
         # We need to access the class but we only have instances in get_all_poker_strategies usually?
         # Actually strategy_map above constructs instances to check ID. Not ideal.
