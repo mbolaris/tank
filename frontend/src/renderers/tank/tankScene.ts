@@ -18,6 +18,7 @@ export interface TankEntity {
     radius: number;
     headingRad?: number; // Not always available in snapshot, but maybe inferred from velocity?
     kind: string; // 'fish', 'food', etc.
+    team?: string; // For soccer goal zones
     energy?: number;
     food_type?: string;
     plant_type?: number;
@@ -70,6 +71,7 @@ export function buildTankScene(snapshot: any): TankScene {
                 radius: getRadius(e.width, e.height),
                 headingRad,
                 kind: e.type,
+                team: (e as any).team,
                 energy: e.energy,
                 food_type: e.food_type,
                 plant_type: e.plant_type,

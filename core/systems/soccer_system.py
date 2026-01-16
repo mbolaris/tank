@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.math_utils import Vector2
 from core.systems.base import BaseSystem
@@ -21,7 +21,7 @@ class SoccerSystem(BaseSystem):
     def __init__(self, engine: SimulationEngine, name: str = "soccer"):
         super().__init__(engine, name)
         self.ball: Optional[Ball] = None
-        self.goals: List[GoalZone] = []
+        self.goals: list[GoalZone] = []
         self.enabled = True
 
     def register_ball(self, ball: Ball) -> None:

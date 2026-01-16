@@ -64,7 +64,7 @@ class EntityManager:
             get_ecosystem: Callable returning the EcosystemManager (deferred access)
             get_root_spot_manager: Callable returning the RootSpotManager (deferred access)
         """
-        self._entities: List[entities.Agent] = []
+        self._entities: List[entities.Entity] = []
         self._cache_manager = CacheManager(lambda: self._entities)
         self._food_pool = FoodPool(rng=rng)
 
@@ -92,7 +92,7 @@ class EntityManager:
         """Check if caches need rebuilding."""
         return self._cache_manager.is_dirty
 
-    def add(self, entity: entities.Agent) -> bool:
+    def add(self, entity: entities.Entity) -> bool:
         """Add an entity to the simulation.
 
         For Fish entities, this respects population limits (max_population).
