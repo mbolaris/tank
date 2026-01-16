@@ -111,7 +111,7 @@ class ReproductionService:
                 continue
             if fish.species != winner.species:
                 continue
-            if hasattr(fish, "is_dead") and fish.is_dead():
+            if fish.is_dead():
                 continue
             dx = (fish.pos.x + fish.width * 0.5) - winner_cx
             dy = (fish.pos.y + fish.height * 0.5) - winner_cy
@@ -142,8 +142,9 @@ class ReproductionService:
         if required_credits > 0:
             winner._reproduction_component.consume_repro_credits(required_credits)
         baby.register_birth()
-        if hasattr(self._engine, "lifecycle_system"):
-            self._engine.lifecycle_system.record_birth()
+        lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+        if lifecycle_system is not None:
+            lifecycle_system.record_birth()
 
         self._poker_reproductions += 1
         return baby
@@ -187,8 +188,9 @@ class ReproductionService:
         }
 
     def _get_fish_list(self) -> list[Fish]:
-        if hasattr(self._engine, "get_fish_list"):
-            return self._engine.get_fish_list()
+        get_fish_list = getattr(self._engine, "get_fish_list", None)
+        if get_fish_list is not None:
+            return get_fish_list()
 
         from core.entities import Fish
 
@@ -220,8 +222,9 @@ class ReproductionService:
 
             if self._engine.request_spawn(baby, reason="banked_asexual_reproduction"):
                 baby.register_birth()
-                if hasattr(self._engine, "lifecycle_system"):
-                    self._engine.lifecycle_system.record_birth()
+                lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                if lifecycle_system is not None:
+                    lifecycle_system.record_birth()
                 if required_credits > 0:
                     fish._reproduction_component.consume_repro_credits(required_credits)
                 self._banked_asexual_triggered += 1
@@ -356,8 +359,9 @@ class ReproductionService:
         )
         new_fish.register_birth()
 
-        if hasattr(self._engine, "lifecycle_system"):
-            self._engine.lifecycle_system.record_emergency_spawn()
+        lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+        if lifecycle_system is not None:
+            lifecycle_system.record_emergency_spawn()
 
         return bool(self._engine.request_spawn(new_fish, reason="emergency_spawn"))
 
