@@ -20,6 +20,7 @@ CANONICAL_TANK_STEP_ORDER = [
     "lifecycle",
     "spawn",
     "collision",
+    "soccer",
     "interaction",
     "reproduction",
     "frame_end",
