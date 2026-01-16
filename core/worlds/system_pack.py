@@ -23,9 +23,11 @@ class EnvironmentLike(Protocol):
     implementations as long as they satisfy the basic interface needed by the engine.
     """
 
-    def update_agent_position(self, agent: Any) -> None: ...
+    def update_agent_position(self, agent: Any) -> None:
+        ...
 
-    def update_detection_modifier(self) -> None: ...
+    def update_detection_modifier(self) -> None:
+        ...
 
 
 class SystemPack(Protocol):

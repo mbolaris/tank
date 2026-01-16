@@ -25,9 +25,7 @@ FOOD_SINK_ACCELERATION = 0.01  # Pixels/frame². Slow sink gives fish time to in
 #
 # Trade-off: Faster spawning = easier survival but weaker selection pressure.
 #            Slower spawning = stronger selection but risk of extinction.
-AUTO_FOOD_SPAWN_RATE = (
-    18  # Faster spawns (~1.7 food/sec) to reduce starvation and keep poker active
-)
+AUTO_FOOD_SPAWN_RATE = 36  # Slower spawns (~0.85 food/sec) to reduce clutter
 AUTO_FOOD_ENABLED = True
 
 # Dynamic Spawn Scaling

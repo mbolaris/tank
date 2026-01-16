@@ -28,6 +28,58 @@ logger = logging.getLogger(__name__)
 DATA_DIR = Path("data/worlds")
 
 
+def _respawn_soccer_elements(engine: Any) -> None:
+    """Respawn soccer elements (Ball/GoalZone) after world restoration.
+
+    Soccer entities are not persisted (transient) so they need to be respawned
+    based on current config settings after restoration.
+    """
+    try:
+        config = getattr(engine, "config", None)
+        soccer_cfg = getattr(config, "soccer", None) if config else None
+
+        if not soccer_cfg or not soccer_cfg.tank_practice_enabled:
+            return  # Soccer disabled
+
+        if not engine.environment:
+            return
+
+        # Import soccer entities
+        from core.entities.ball import Ball
+        from core.entities.goal_zone import GoalZone
+
+        env = engine.environment
+        width = env.width
+        height = env.height
+
+        # Get or create soccer system
+        soccer_system = getattr(engine, "soccer_system", None)
+        if not soccer_system:
+            logger.warning("No soccer_system on engine, skipping soccer respawn")
+            return
+
+        # Respawn Ball if configured
+        if soccer_cfg.tank_ball_visible:
+            ball = Ball(env, width / 2, height / 2)
+            engine.add_entity(ball)
+            soccer_system.register_ball(ball)
+            logger.info("SOCCER: Respawned Ball after restoration")
+
+        # Respawn Goals if configured
+        if soccer_cfg.tank_goals_visible:
+            goal_a = GoalZone(env, 50.0, height / 2, "A")
+            engine.add_entity(goal_a)
+            soccer_system.add_goal(goal_a)
+
+            goal_b = GoalZone(env, width - 50.0, height / 2, "B")
+            engine.add_entity(goal_b)
+            soccer_system.add_goal(goal_b)
+            logger.info("SOCCER: Respawned Goals after restoration")
+
+    except Exception as e:
+        logger.warning(f"Failed to respawn soccer elements: {e}")
+
+
 def ensure_world_directory(world_id: str) -> Path:
     """Ensure the data directory for a world exists.
 
@@ -300,6 +352,10 @@ def restore_world_from_snapshot(
             f"Restored world {world_id_label[:8]} to frame {snapshot.get('frame', 0)} "
             f"({restored_count} entities)"
         )
+
+        # Respawn soccer elements after restoration (they are not persisted)
+        _respawn_soccer_elements(engine)
+
         return True
 
     except Exception as e:

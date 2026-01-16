@@ -59,9 +59,7 @@ class PlantGenome:
     strategy_type: Optional[str] = None
 
     # Floral/nectar fractal traits - determines how nectar looks
-    floral_type: str = (
-        "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
-    )
+    floral_type: str = "spiral"  # spiral, julia, vortex, starburst, hypno, rose, mandelbrot, dahlia, sunflower, chrysanthemum
     floral_petals: int = 5  # Number of petals/lobes (3-12)
     floral_layers: int = 3  # Depth/layers of the flower (1-5)
     floral_spin: float = 0.3  # Rotation/spiral factor (0-1)

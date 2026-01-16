@@ -58,6 +58,14 @@ def build_tank_observations(
     # Import Fish type for isinstance checks
     from core.entities import Fish, Food
 
+    # Import Soccer types
+    try:
+        from core.entities.ball import Ball
+        from core.entities.goal_zone import GoalZone
+    except ImportError:
+        Ball = None
+        GoalZone = None
+
     # Build observation for each fish
     for entity in world.entities_list:
         if not isinstance(entity, Fish):
@@ -71,7 +79,14 @@ def build_tank_observations(
         # Query nearby entities using spatial grid
         nearby_food = _build_food_observations(entity, env, perception_radius, Food)
         nearby_fish = _build_fish_observations(entity, env, perception_radius)
+        nearby_food = _build_food_observations(entity, env, perception_radius, Food)
+        nearby_fish = _build_fish_observations(entity, env, perception_radius)
         nearby_threats = _build_threat_observations(entity, env, perception_radius)
+
+        # Soccer observations
+        soccer_obs = {}
+        if Ball:
+            soccer_obs = _build_soccer_observations(entity, env, Ball, GoalZone)
 
         observations[fish_id] = Observation(
             entity_id=fish_id,
@@ -88,6 +103,8 @@ def build_tank_observations(
                 "species": entity.species,
                 "generation": entity.generation,
                 "size": getattr(entity, "size", 1.0),
+                "team": getattr(entity, "team", None),
+                "soccer": soccer_obs,
             },
         )
 
@@ -221,3 +238,46 @@ def _is_threat(fish: Fish, other: Fish) -> bool:
 
     # Threat if significantly larger (same threshold as existing logic)
     return other_size > fish_size * 1.2
+
+
+def _build_soccer_observations(
+    fish: Fish,
+    env: Any,
+    BallType: type,
+    GoalZoneType: type,
+) -> dict[str, Any]:
+    """Build observations for soccer elements."""
+    obs = {
+        "ball": None,
+        "goals": [],
+    }
+
+    # Find ball (global search, assuming only one)
+    # TODO: Optimize with spatial grid if ball becomes common
+    for entity in env.entities:
+        if isinstance(entity, BallType):
+            dx = entity.pos.x - fish.pos.x
+            dy = entity.pos.y - fish.pos.y
+            dist = (dx * dx + dy * dy) ** 0.5
+            obs["ball"] = {
+                "x": entity.pos.x,
+                "y": entity.pos.y,
+                "vx": entity.vel.x,
+                "vy": entity.vel.y,
+                "dist": dist,
+                "angle": 0.0,  # TODO: calculate relative angle
+            }
+        elif isinstance(entity, GoalZoneType):
+            dx = entity.pos.x - fish.pos.x
+            dy = entity.pos.y - fish.pos.y
+            dist = (dx * dx + dy * dy) ** 0.5
+            obs["goals"].append(
+                {
+                    "team": entity.team_id,
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "dist": dist,
+                }
+            )
+
+    return obs

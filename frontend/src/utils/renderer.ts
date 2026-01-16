@@ -486,7 +486,80 @@ export class Renderer {
             case 'plant_nectar':
                 this.renderPlantNectar(entity, elapsedTime);
                 break;
+            case 'ball':
+                this.renderBall(entity);
+                break;
+            case 'goalzone':
+                this.renderGoalZone(entity);
+                break;
         }
+    }
+
+    private renderBall(entity: EntityData) {
+        const { ctx } = this;
+        const radius = entity.radius || (entity.width ? entity.width / 2 : 10);
+
+        ctx.save();
+        ctx.translate(entity.x + radius, entity.y + radius); // Center
+
+        // Ball shadow
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 10;
+
+        // Ball body
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pattern (soccer ball-ish)
+        ctx.fillStyle = "#333333";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rotation (if velocity available)
+        // For now just static pattern
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 * i) / 5;
+            const px = Math.cos(angle) * (radius * 0.7);
+            const py = Math.sin(angle) * (radius * 0.7);
+            ctx.beginPath();
+            ctx.arc(px, py, radius * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    private renderGoalZone(entity: EntityData) {
+        const { ctx } = this;
+        const radius = entity.radius || 30;
+        const color = (entity as any).team === 'A' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
+        const borderColor = (entity as any).team === 'A' ? '#ff4444' : '#4444ff';
+
+        ctx.save();
+        ctx.translate(entity.x, entity.y); // Center (assuming backend sends center coords)
+
+        // Goal area
+        ctx.fillStyle = color;
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("GOAL", 0, 0);
+
+        ctx.restore();
     }
 
     private getStableFacingLeft(entityId: number, velX?: number): boolean {

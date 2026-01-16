@@ -250,6 +250,8 @@ export class TankTopDownRenderer implements Renderer {
             ctx.save();
             ctx.translate(entity.x, entity.y);
             this.drawMicrobe(ctx, entity);
+            // Draw soccer effect if present (energy gain indicator)
+            this.drawSoccerEffect(ctx, entity);
             ctx.restore();
         } else if (entity.kind === 'plant') {
             this.drawFractalPlant(ctx, entity);
@@ -269,6 +271,16 @@ export class TankTopDownRenderer implements Renderer {
             if (!this.drawFoodAvatar(ctx, entity)) {
                 this.drawCircleFallback(ctx, entity);
             }
+            ctx.restore();
+        } else if (entity.kind === 'ball') {
+            ctx.save();
+            ctx.translate(entity.x, entity.y);
+            this.drawBall(ctx, entity);
+            ctx.restore();
+        } else if (entity.kind === 'goalzone') {
+            ctx.save();
+            ctx.translate(entity.x, entity.y);
+            this.drawGoalZone(ctx, entity);
             ctx.restore();
         } else {
             ctx.save();
@@ -791,6 +803,115 @@ export class TankTopDownRenderer implements Renderer {
         const magSq = vx * vx + vy * vy;
         if (magSq > 0.04) return Math.atan2(vy, vx);
         return (rand() * Math.PI * 2) - Math.PI;
+    }
+
+    private drawBall(ctx: CanvasRenderingContext2D, entity: TankEntity) {
+        const radius = entity.radius || 10;
+
+        // Ball shadow
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 10;
+
+        // Ball body
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pattern (soccer ball-ish)
+        ctx.fillStyle = "#333333";
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hexagon/Pentagon hints
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 * i) / 5;
+            const px = Math.cos(angle) * (radius * 0.65);
+            const py = Math.sin(angle) * (radius * 0.65);
+            ctx.beginPath();
+            ctx.arc(px, py, radius * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    private drawGoalZone(ctx: CanvasRenderingContext2D, entity: TankEntity) {
+        // Safe cast since we know backend sends team
+        const team = (entity as any).team; // entity is TankEntity, cast to any to access dynamic props
+
+        const radius = entity.radius || 30;
+        const color = team === 'A' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
+        const borderColor = team === 'A' ? '#ff4444' : '#4444ff';
+
+        // Goal area
+        ctx.fillStyle = color;
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("GOAL", 0, 0);
+    }
+
+    private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: TankEntity) {
+        const soccerState = (entity as any).soccer_effect_state;
+        if (!soccerState) return;
+
+        const { type, amount, timer } = soccerState;
+
+        // Calculate fade based on timer (60 frames max)
+        // Keep opaque longer (until last 15 frames)
+        const opacity = Math.min(1, timer / 15);
+        const radius = entity.radius || 16;
+        const yOffset = -radius - 15 - (60 - timer) * 0.8; // Float upward faster
+
+        ctx.save();
+
+        // Color based on type
+        let color = '#00ff00'; // Green for kicks
+        let fontSize = 16;
+
+        if (type === 'goal') {
+            color = '#ffdd00'; // Gold for goals
+            fontSize = 24; // Much larger for goals
+        } else if (type === 'progress') {
+            color = '#88ff88'; // Light green for progress
+        }
+
+        ctx.globalAlpha = opacity;
+
+        // Draw separate stroke and fill with better contrast settings
+        ctx.font = `900 ${fontSize}px "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Use shadow for better visibility against any background
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+
+        const text = `+${Math.round(amount)}`;
+
+        ctx.fillStyle = color;
+        ctx.fillText(text, 0, yOffset);
+
+        // Remove shadow for stroke to keep it crisp
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1.5; // Thinner distinct stroke
+        ctx.strokeText(text, 0, yOffset);
+
+        ctx.restore();
     }
 
     private drawMicrobe(ctx: CanvasRenderingContext2D, entity: TankEntity) {

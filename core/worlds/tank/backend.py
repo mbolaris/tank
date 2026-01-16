@@ -411,9 +411,23 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         from core.entities.predators import Crab
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
+        # Import soccer types
+        try:
+            from core.entities.ball import Ball
+            from core.entities.goal_zone import GoalZone
+        except ImportError:
+            Ball = None
+            GoalZone = None
+
         entities_snapshot = []
 
         for entity in self._engine.entities_list:
+            # Skip transient soccer entities - they are respawned by SoccerSystem on restore
+            if Ball and isinstance(entity, Ball):
+                continue
+            if GoalZone and isinstance(entity, GoalZone):
+                continue
+
             entity_dict = None
 
             # Use transfer codecs for Fish and Plant (full serialization)
@@ -458,6 +472,30 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "y": entity.pos.y,
                     "width": entity.width,
                     "height": entity.height,
+                }
+            elif Ball and isinstance(entity, Ball):
+                entity_dict = {
+                    "type": "ball",
+                    "id": entity.id,
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "radius": entity.radius,
+                    "vx": entity.vel.x,
+                    "vy": entity.vel.y,
+                    # Width/height for frontend compat
+                    "width": entity.radius * 2,
+                    "height": entity.radius * 2,
+                }
+            elif GoalZone and isinstance(entity, GoalZone):
+                entity_dict = {
+                    "type": "goalzone",
+                    "id": entity.id,
+                    "x": entity.pos.x,
+                    "y": entity.pos.y,
+                    "radius": entity.radius,
+                    "team": entity.team_id,
+                    "width": entity.radius * 2,
+                    "height": entity.radius * 2,
                 }
             else:
                 # Fallback for unknown entity types

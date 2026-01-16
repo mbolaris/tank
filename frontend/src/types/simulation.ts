@@ -57,7 +57,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goalzone';
     x: number;
     y: number;
     width: number;
@@ -82,6 +82,11 @@ export interface EntityData {
     birth_effect_timer?: number;  // Frames remaining for birth visual effect
     death_effect_state?: {
         cause: 'starvation' | 'old_age' | 'predation' | 'migration' | 'unknown';
+    };
+    soccer_effect_state?: {
+        type: 'kick' | 'progress' | 'goal';
+        amount: number;
+        timer: number;
     };
 
     // Food-specific

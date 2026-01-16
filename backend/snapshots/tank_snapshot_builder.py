@@ -8,7 +8,9 @@ from typing import Any, Iterable
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY
 from core.entities import Fish, Food, Plant
+from core.entities.ball import Ball
 from core.entities.base import Castle
+from core.entities.goal_zone import GoalZone
 from core.entities.plant import PlantNectar
 from core.entities.predators import Crab
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
@@ -59,6 +61,14 @@ class TankSnapshotBuilder:
         # or minimal metadata. The robust path for now is to use the world's
         # entities list if available.
         entities_list = getattr(world, "entities_list", [])
+
+        # DEBUG: Count entity types
+        counts = {}
+        for e in entities_list:
+            t = type(e).__name__
+            counts[t] = counts.get(t, 0) + 1
+        logger.info(f"SNAPSHOT DEBUG: Found entities: {counts}")
+
         return self.collect(entities_list)
 
     def to_snapshot(self, entity: Any) -> EntitySnapshot | None:
@@ -104,8 +114,32 @@ class TankSnapshotBuilder:
         elif isinstance(entity, Castle):
             # Castle is simple, just needs type (already set)
             pass
+        elif isinstance(entity, Ball):
+            self._enrich_ball(snapshot, entity)
+            # logger.info(f"SNAPSHOT: Serializing Ball {entity.id} r={entity.radius}")
+        elif isinstance(entity, GoalZone):
+            self._enrich_goal_zone(snapshot, entity)
+            # logger.info(f"SNAPSHOT: Serializing GoalZone {entity.id} team={entity.team_id}")
 
         return snapshot
+
+    def _enrich_ball(self, snapshot: EntitySnapshot, ball: Ball) -> None:
+        snapshot.radius = ball.radius
+        snapshot.render_hint = {
+            "style": "soccer_ball",
+            "color": "#FFFFFF",
+            "radius": ball.radius,
+        }
+
+    def _enrich_goal_zone(self, snapshot: EntitySnapshot, goal: GoalZone) -> None:
+        snapshot.radius = goal.radius
+        snapshot.team = goal.team_id
+        snapshot.render_hint = {
+            "style": "goal_zone",
+            "team": goal.team_id,
+            "radius": goal.radius,
+            "color": goal.color,
+        }
 
     def _enrich_fish(self, snapshot: EntitySnapshot, fish: Fish) -> None:
         snapshot.energy = fish.energy
@@ -149,6 +183,14 @@ class TankSnapshotBuilder:
             snapshot.birth_effect_timer = vs.birth_effect_timer
             if vs.death_effect_state:
                 snapshot.death_effect_state = vs.death_effect_state
+
+        # Soccer effect state (set directly on entity by SoccerSystem)
+        if hasattr(fish, "soccer_effect_state") and fish.soccer_effect_state:
+            snapshot.soccer_effect_state = fish.soccer_effect_state
+            # Decrement timer and clear when expired
+            fish.soccer_effect_state["timer"] -= 1
+            if fish.soccer_effect_state["timer"] <= 0:
+                fish.soccer_effect_state = None
 
     def _enrich_plant(self, snapshot: EntitySnapshot, plant: Plant) -> None:
         snapshot.energy = plant.energy

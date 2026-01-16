@@ -115,11 +115,18 @@ class AlgorithmicMovement(MovementStrategy):
         else:
             desired_velocity = None
 
-        # Priority 2: Check for code policy in genome (if no override or override failed)
+        # Priority 2: Check for soccer ball pursuit (HIGHEST after threat!)
+        # This runs BEFORE genome policies so fish actively chase the ball
+        if desired_velocity is None:
+            ball_velocity = self._get_ball_pursuit_velocity(sprite_entity)
+            if ball_velocity is not None:
+                desired_velocity = ball_velocity
+
+        # Priority 3: Check for code policy in genome (if no ball pursuit)
         if desired_velocity is None:
             desired_velocity = self._execute_policy_if_present(sprite_entity)
 
-        # Priority 3: Check for standard behavior in genome
+        # Priority 4: Use composable behavior from genome
         if desired_velocity is None:
             composable_behavior = (
                 genome.behavioral.behavior.value if genome.behavioral.behavior else None
@@ -239,3 +246,58 @@ class AlgorithmicMovement(MovementStrategy):
             rng=fish.environment.rng,
             fish_id=getattr(fish, "fish_id", None),
         )
+
+    def _get_ball_pursuit_velocity(self, fish: Fish) -> VelocityComponents | None:
+        """Check if fish should pursue the soccer ball.
+
+        All fish have some interest in the ball, with hungrier fish
+        being more motivated to score goals for energy.
+
+        Returns:
+            Velocity toward ball if pursuing, None otherwise
+        """
+        import math
+
+        from core.entities.ball import Ball
+
+        # Find the ball in environment.agents
+        ball = None
+        agents = getattr(fish.environment, "agents", None)
+        if agents:
+            for entity in agents:
+                if isinstance(entity, Ball):
+                    ball = entity
+                    break
+
+        if ball is None:
+            return None  # No ball = no soccer
+
+        # Calculate pursuit probability based on energy
+        # Base: 35% chance for all fish (makes soccer very active!)
+        # Bonus: Hungrier fish chase more aggressively (up to +45%)
+        max_energy = getattr(fish, "max_energy", 100.0)
+        current_energy = getattr(fish, "energy", max_energy)
+        energy_ratio = current_energy / max_energy if max_energy > 0 else 1.0
+
+        base_prob = 0.35  # High base interest - soccer is fun!
+        hunger_bonus = max(0, (0.7 - energy_ratio)) * 0.65  # Up to +45% when very hungry
+        pursuit_prob = min(base_prob + hunger_bonus, 0.80)  # Cap at 80%
+
+        rng = fish.environment.rng
+        if rng.random() > pursuit_prob:
+            return None
+
+        # Calculate direction to ball
+        dx = ball.pos.x - fish.pos.x
+        dy = ball.pos.y - fish.pos.y
+        dist = math.sqrt(dx * dx + dy * dy)
+
+        if dist < 10:  # Already at ball
+            return None
+
+        # Normalize and scale to fish's max speed
+        max_speed = getattr(fish, "max_speed", 2.0)
+        vx = (dx / dist) * max_speed
+        vy = (dy / dist) * max_speed
+
+        return (vx, vy)
