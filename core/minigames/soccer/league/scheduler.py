@@ -45,7 +45,9 @@ class LeagueScheduler:
             match.skip_reason = (
                 f"Home unavailable: {match.home_team_id}"
                 if not home_ok
-                else f"Away unavailable: {match.away_team_id}" if not away_ok else "Unknown"
+                else f"Away unavailable: {match.away_team_id}"
+                if not away_ok
+                else "Unknown"
             )
             self._current_match_index += 1
 
