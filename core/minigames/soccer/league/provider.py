@@ -16,9 +16,9 @@ class LeagueTeamProvider:
         self.config = config
         # Cache results to prevent flickering availability when locks fail
         # structure: world_id -> (timestamp, teams_dict, availability_dict)
-        self._cache: dict[
-            str, tuple[float, dict[str, LeagueTeam], dict[str, TeamAvailability]]
-        ] = {}
+        self._cache: dict[str, tuple[float, dict[str, LeagueTeam], dict[str, TeamAvailability]]] = (
+            {}
+        )
         self._last_all_teams: dict[str, LeagueTeam] = {}
         self._last_all_availability: dict[str, TeamAvailability] = {}
 
@@ -252,7 +252,6 @@ class LeagueTeamProvider:
             team_id=team_id,
             display_name=display_name,
             source=TeamSource.TANK,
-            tank_id=source_id,
             roster=roster,
         )
 
@@ -272,7 +271,6 @@ class LeagueTeamProvider:
             team_id="Bot:Balanced",
             display_name="Bot Balanced",
             source=TeamSource.BOT,
-            tank_id=None,
             roster=[],  # Bots adhere to special logic, empty roster implies generated
         )
         availability["Bot:Balanced"] = TeamAvailability(

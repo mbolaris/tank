@@ -98,6 +98,9 @@ class Fish(Agent):
             fish_id: Unique ID (assigned by ecosystem if None)
             ecosystem: Ecosystem manager for tracking
             initial_energy: Override initial energy (for reproduction energy transfer)
+            parent_id: Parent fish ID for lineage tracking
+            skip_birth_recording: Skip birth event recording
+            team: Team affiliation ('A' or 'B' for soccer mode, None for non-competitive modes)
         """
         from core.util.rng import require_rng
 
@@ -125,6 +128,7 @@ class Fish(Agent):
 
         self.generation: int = generation
         self.species: str = species
+        self.team: Optional[str] = team  # Team affiliation ('A' or 'B' for soccer mode)
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places

@@ -9,9 +9,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
-from core.entities.ball import Ball
-from core.entities.goal_zone import GoalZone
-from core.systems.soccer_system import SoccerSystem
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
 from core.worlds.tank.movement_observations import register_tank_movement_observation_builder
@@ -27,6 +24,8 @@ class TankPack(TankLikePackBase):
 
     Inherits shared Tank-like wiring from TankLikePackBase and provides
     Tank-specific mode_id, metadata, and identity provider.
+
+    Also initializes soccer components (ball, goals) if configured.
     """
 
     def __init__(self, config: SimulationConfig):
@@ -43,60 +42,25 @@ class TankPack(TankLikePackBase):
         register_tank_movement_observation_builder("tank")
 
     def register_systems(self, engine: SimulationEngine) -> None:
-        """Register Tank systems including soccer."""
+        """Register Tank systems including soccer system.
+
+        Extends parent implementation to add soccer system.
+        """
+        # Call parent to register all standard systems
         super().register_systems(engine)
 
-        # Register Soccer System
-        soccer = SoccerSystem(engine)
-        engine.soccer_system = soccer  # Accessible reference
-        engine._system_registry.register(soccer)
+        # Add soccer system (optional, for ball and goal management)
+        try:
+            from core.systems.soccer_system import SoccerSystem
 
-    def seed_entities(self, engine: SimulationEngine) -> None:
-        """Seed initial entities including ball/goals."""
-        super().seed_entities(engine)
+            soccer_system = SoccerSystem(engine)
+            engine.soccer_system = soccer_system
+            engine._system_registry.register(soccer_system)
+        except Exception as e:
+            import logging
 
-        # Initialize Soccer Elements
-        self._initialize_soccer(engine)
-
-    def _initialize_soccer(self, engine: SimulationEngine) -> None:
-        """Spawn ball and goals based on config settings."""
-        # Check if tank practice mode is enabled
-        soccer_cfg = self.config.soccer
-        if not soccer_cfg.tank_practice_enabled:
-            return  # Skip soccer initialization
-
-        if not hasattr(engine, "soccer_system"):
-            print("WARNING: No soccer system found in engine")
-            return
-
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.info("SOCCER: Initializing soccer elements on fresh tank")
-
-        env = engine.environment
-        width = env.width
-        height = env.height
-
-        # 1. Spawn Ball (if visible)
-        if soccer_cfg.tank_ball_visible:
-            ball = Ball(env, width / 2, height / 2)
-            engine.add_entity(ball)
-            engine.soccer_system.register_ball(ball)
-            logger.info(f"SOCCER: Ball spawned at ({width / 2}, {height / 2})")
-
-        # 2. Spawn Goals (if visible)
-        if soccer_cfg.tank_goals_visible:
-            # Goal A (Left side)
-            goal_a = GoalZone(env, 50.0, height / 2, "A")
-            engine.add_entity(goal_a)
-            engine.soccer_system.add_goal(goal_a)
-
-            # Goal B (Right side)
-            goal_b = GoalZone(env, width - 50.0, height / 2, "B")
-            engine.add_entity(goal_b)
-            engine.soccer_system.add_goal(goal_b)
-            logger.info("SOCCER: Goals spawned (A and B)")
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to register soccer system: {e}")
 
     def get_identity_provider(self) -> EntityIdentityProvider:
         """Return the Tank identity provider."""
@@ -109,3 +73,102 @@ class TankPack(TankLikePackBase):
             "width": self.config.display.screen_width,
             "height": self.config.display.screen_height,
         }
+
+    def seed_entities(self, engine: SimulationEngine) -> None:
+        """Create initial entities including ball and goals.
+
+        Extends parent implementation to initialize soccer components.
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Call parent to create fish and plants
+        super().seed_entities(engine)
+
+        # Initialize soccer components (ball and goals)
+        self._initialize_soccer(engine, logger)
+
+    def _initialize_soccer(self, engine: SimulationEngine, logger) -> None:
+        """Initialize ball and goal zones if enabled in config.
+
+        Args:
+            engine: The simulation engine
+            logger: Logger instance
+        """
+        try:
+            from core.entities.ball import Ball
+            from core.entities.goal_zone import GoalZone, GoalZoneManager
+
+            if not engine.environment:
+                return
+
+            # Check if soccer is enabled (default: False to preserve existing behavior)
+            soccer_enabled = False
+            if hasattr(self.config, "tank") and hasattr(self.config.tank, "soccer_enabled"):
+                soccer_enabled = self.config.tank.soccer_enabled
+
+            if not soccer_enabled:
+                logger.info("Soccer components disabled in config")
+                return
+
+            # Get field dimensions
+            width = engine.environment.width
+            height = engine.environment.height
+            mid_y = height / 2
+
+            # Create ball at center
+            ball = Ball(
+                environment=engine.environment,
+                x=width / 2,
+                y=mid_y,
+                decay_rate=0.94,
+                max_speed=3.0,
+                size=0.085,
+                kickable_margin=0.7,
+                kick_power_rate=0.027,
+            )
+            engine.request_spawn(ball)
+
+            # Create goal manager
+            goal_manager = GoalZoneManager()
+
+            # Create goals (one for each team)
+            goal_left = GoalZone(
+                environment=engine.environment,
+                x=50,
+                y=mid_y,
+                team="A",
+                goal_id="goal_left",
+                radius=15.0,
+                base_energy_reward=100.0,
+            )
+            engine.request_spawn(goal_left)
+            goal_manager.register_zone(goal_left)
+
+            goal_right = GoalZone(
+                environment=engine.environment,
+                x=width - 50,
+                y=mid_y,
+                team="B",
+                goal_id="goal_right",
+                radius=15.0,
+                base_energy_reward=100.0,
+            )
+            engine.request_spawn(goal_right)
+            goal_manager.register_zone(goal_right)
+
+            # Store references on environment
+            engine.environment.ball = ball
+            engine.environment.goal_manager = goal_manager
+
+            # Setup soccer system to use them
+            if hasattr(engine, "soccer_system") and engine.soccer_system:
+                engine.soccer_system.set_ball(ball)
+                engine.soccer_system.set_goal_manager(goal_manager)
+
+            logger.info("Soccer components initialized: ball and goal zones")
+
+        except Exception as e:
+            # Log error but don't crash - soccer is optional
+            logger.warning(f"Failed to initialize soccer components: {e}")

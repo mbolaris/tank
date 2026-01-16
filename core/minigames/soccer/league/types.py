@@ -30,10 +30,6 @@ class LeagueTeam:
     team_id: str
     display_name: str
     source: TeamSource
-    tank_id: str | None = None  # None for bots
-    # Legacy alias: older code passed `source_id` into LeagueTeam(...)
-    # Keep as optional to remain backwards-compatible.
-    source_id: str | None = None
     roster: list[int] = field(default_factory=list)  # List of Entity IDs
 
 
