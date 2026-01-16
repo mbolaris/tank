@@ -38,6 +38,7 @@ from core.energy.energy_component import EnergyComponent
 from core.fish.energy_state import EnergyState
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
+from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish_memory import FishMemorySystem, MemoryType
 from core.genetics import Genome
@@ -216,7 +217,9 @@ class Fish(Agent):
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
-        self.movement_strategy: MovementStrategy = movement_strategy
+
+        # Behavior execution - coordinates movement, turn costs, and cooldowns
+        self._behavior_executor = BehaviorExecutor(movement_strategy)
 
         # Apply genetic modifiers to speed
         modified_speed = speed * self.genome.speed_modifier
@@ -234,13 +237,11 @@ class Fish(Agent):
 
         self.team = team
 
-        self.last_direction: Optional[Vector2] = (
-            self.vel.normalize() if self.vel.length_squared() > 0 else None
-        )
+        # Initialize direction tracking in behavior executor
+        self._behavior_executor.initialize_direction(self.vel)
 
         # Rendering-only state is stored separately to keep domain logic lean.
         self.visual_state = FishVisualState()
-        self.poker_cooldown: int = 0  # Cooldown between poker games
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
         self._movement_policy: Optional[Any] = None
@@ -258,6 +259,36 @@ class Fish(Agent):
         Set to None to return to default genome behavior.
         """
         self._movement_policy = policy
+
+    @property
+    def movement_strategy(self) -> "MovementStrategy":
+        """Get the movement strategy (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.movement_strategy
+
+    @movement_strategy.setter
+    def movement_strategy(self, strategy: "MovementStrategy") -> None:
+        """Set the movement strategy."""
+        self._behavior_executor.movement_strategy = strategy
+
+    @property
+    def last_direction(self) -> Optional[Vector2]:
+        """Get the last movement direction (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.last_direction
+
+    @last_direction.setter
+    def last_direction(self, direction: Optional[Vector2]) -> None:
+        """Set the last movement direction."""
+        self._behavior_executor.last_direction = direction
+
+    @property
+    def poker_cooldown(self) -> int:
+        """Get remaining poker cooldown frames (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.poker_cooldown
+
+    @poker_cooldown.setter
+    def poker_cooldown(self, value: int) -> None:
+        """Set poker cooldown frames."""
+        self._behavior_executor.poker_cooldown = value
 
     @property
     def typed_id(self) -> FishId:
@@ -1157,16 +1188,9 @@ class Fish(Agent):
             # Keeping strictly to refactoring return type for now.
             return EntityUpdateResult()
 
-        previous_direction = self.last_direction
-
-        # Movement (algorithms handle critical energy internally)
-        self.movement_strategy.move(self)
-
-        self._apply_turn_energy_cost(previous_direction)
-
-        # Update poker cooldown
-        if self.poker_cooldown > 0:
-            self.poker_cooldown -= 1
+        # Execute behavior (movement, turn costs, poker cooldown)
+        # Delegates to BehaviorExecutor for cleaner separation
+        self._behavior_executor.execute(self)
 
         result = EntityUpdateResult()
         return result
@@ -1233,34 +1257,3 @@ class Fish(Agent):
         else:
             self._emit_event(FoodEatenEvent("falling_food", algorithm_id, actual_energy))
 
-    def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
-        """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
-
-        The energy cost increases with:
-        - Sharper turns (more angle change)
-        - Larger fish size (bigger fish use more energy to turn)
-        """
-        if self.vel.length_squared() == 0:
-            self.last_direction = None
-            return
-
-        new_direction = self.vel.normalize()
-
-        if previous_direction is not None:
-            # Calculate dot product (-1 = 180° turn, 0 = 90° turn, 1 = no turn)
-            dot_product = previous_direction.dot(new_direction)
-
-            # Convert to turn intensity (0 = no turn, 1 = slight turn, 2 = 180° turn)
-            # Formula: (1 - dot_product) gives us 0 to 2 range
-            turn_intensity = 1 - dot_product
-
-            # Only apply cost if there's a noticeable direction change
-            if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
-                # Base energy cost scaled by turn intensity and fish size
-                # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
-                size_factor = self._lifecycle_component.size**DIRECTION_CHANGE_SIZE_MULTIPLIER
-                energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
-
-                self.energy = max(0, self.energy - energy_cost)
-
-        self.last_direction = new_direction
