@@ -107,3 +107,4 @@ improved_results.json
 solutions/*.json
 solutions/*report*.txt
 !solutions/README.md
+verify_*.json

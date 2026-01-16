@@ -38,7 +38,9 @@ from core.energy.energy_component import EnergyComponent
 from core.fish.energy_state import EnergyState
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
+from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.skill_game_component import SkillGameComponent
+from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.fish_memory import FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
@@ -141,9 +143,8 @@ class Fish(Agent):
 
         # Calculate max_age using size_modifier and lifespan_modifier.
         # This decouples size from age, allowing small but long-lived fish.
-        lifespan_mult = 1.0
-        if hasattr(self.genome.physical, "lifespan_modifier"):
-            lifespan_mult = self.genome.physical.lifespan_modifier.value
+        lifespan_trait = getattr(self.genome.physical, "lifespan_modifier", None)
+        lifespan_mult = lifespan_trait.value if lifespan_trait is not None else 1.0
 
         size_modifier = self.genome.physical.size_modifier.value
         max_age = int(LIFE_STAGE_MATURE_MAX * size_modifier * lifespan_mult)
@@ -216,7 +217,9 @@ class Fish(Agent):
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
-        self.movement_strategy: MovementStrategy = movement_strategy
+
+        # Behavior execution - coordinates movement, turn costs, and cooldowns
+        self._behavior_executor = BehaviorExecutor(movement_strategy)
 
         # Apply genetic modifiers to speed
         modified_speed = speed * self.genome.speed_modifier
@@ -234,13 +237,11 @@ class Fish(Agent):
 
         self.team = team
 
-        self.last_direction: Optional[Vector2] = (
-            self.vel.normalize() if self.vel.length_squared() > 0 else None
-        )
+        # Initialize direction tracking in behavior executor
+        self._behavior_executor.initialize_direction(self.vel)
 
         # Rendering-only state is stored separately to keep domain logic lean.
         self.visual_state = FishVisualState()
-        self.poker_cooldown: int = 0  # Cooldown between poker games
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
         self._movement_policy: Optional[Any] = None
@@ -258,6 +259,36 @@ class Fish(Agent):
         Set to None to return to default genome behavior.
         """
         self._movement_policy = policy
+
+    @property
+    def movement_strategy(self) -> "MovementStrategy":
+        """Get the movement strategy (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.movement_strategy
+
+    @movement_strategy.setter
+    def movement_strategy(self, strategy: "MovementStrategy") -> None:
+        """Set the movement strategy."""
+        self._behavior_executor.movement_strategy = strategy
+
+    @property
+    def last_direction(self) -> Optional[Vector2]:
+        """Get the last movement direction (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.last_direction
+
+    @last_direction.setter
+    def last_direction(self, direction: Optional[Vector2]) -> None:
+        """Set the last movement direction."""
+        self._behavior_executor.last_direction = direction
+
+    @property
+    def poker_cooldown(self) -> int:
+        """Get remaining poker cooldown frames (delegates to BehaviorExecutor)."""
+        return self._behavior_executor.poker_cooldown
+
+    @poker_cooldown.setter
+    def poker_cooldown(self, value: int) -> None:
+        """Set poker cooldown frames."""
+        self._behavior_executor.poker_cooldown = value
 
     @property
     def typed_id(self) -> FishId:
@@ -407,6 +438,21 @@ class Fish(Agent):
         Bite size scales with fish size.
         """
         return 20.0 * self._lifecycle_component.size
+
+    @property
+    def size(self) -> float:
+        """Current size multiplier combining age and genetics.
+
+        Size affects:
+        - Visual rendering scale
+        - Max energy capacity
+        - Bite size
+        - Turn energy cost
+
+        Returns:
+            Size multiplier (typically 0.35-1.0+ depending on life stage and genetics)
+        """
+        return self._lifecycle_component.size
 
     def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food.
@@ -966,90 +1012,13 @@ class Fish(Agent):
     def _get_visual_bounds_offsets(self) -> Tuple[float, float, float, float]:
         """Return visual bounds offsets from self.pos for edge clamping.
 
+        Delegates to visual_geometry module for the actual calculation.
         Accounts for lifecycle scaling and parametric template geometry so the
         rendered fish stays inside the tank bounds.
         """
         base_size = max(self.width, self.height)
-        lifecycle = getattr(self, "_lifecycle_component", None)
-        size = lifecycle.size if lifecycle is not None and hasattr(lifecycle, "size") else 1.0
-        scaled_base = base_size * size
-
-        genome = getattr(self, "genome", None)
-        physical = getattr(genome, "physical", None) if genome is not None else None
-        if physical is None:
-            return (0.0, scaled_base, 0.0, scaled_base)
-
-        fin_trait = getattr(physical, "fin_size", None)
-        tail_trait = getattr(physical, "tail_size", None)
-        body_trait = getattr(physical, "body_aspect", None)
-        template_trait = getattr(physical, "template_id", None)
-
-        fin_size = fin_trait.value if fin_trait is not None and fin_trait.value is not None else 1.0
-        tail_size = (
-            tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
-        )
-        body_aspect = (
-            body_trait.value if body_trait is not None and body_trait.value is not None else 1.0
-        )
-        template_id = (
-            int(template_trait.value)
-            if template_trait is not None and template_trait.value is not None
-            else 0
-        )
-        template_id = max(0, min(5, template_id))
-
-        width_scale = body_aspect
-        height_scale = 1.0
-
-        if template_id == 5:
-            width_scale = body_aspect * 1.3
-            height_scale = 0.7
-            min_x_ratio = min(0.05, 0.3 - 0.08 * fin_size, 0.1 - 0.15 * tail_size)
-            max_x_ratio = 0.98
-            min_y_ratio = min(0.25, 0.35 - 0.12 * fin_size)
-            max_y_ratio = 0.75
-        elif template_id == 4:
-            min_x_ratio = min(0.2, 0.4 - 0.2 * fin_size, 0.25 - 0.18 * tail_size)
-            max_x_ratio = 0.92
-            min_y_ratio = 0.15 - 0.15 * fin_size
-            max_y_ratio = 0.85
-        elif template_id == 3:
-            min_x_ratio = 0.3 - 0.25 * tail_size
-            max_x_ratio = 0.9
-            min_y_ratio = min(0.2, 0.22 - 0.3 * fin_size)
-            max_y_ratio = 0.78 + 0.3 * fin_size
-        elif template_id == 2:
-            min_x_ratio = min(0.2, 0.25 - 0.3 * tail_size)
-            max_x_ratio = 0.95
-            min_y_ratio = 0.2 - 0.25 * fin_size
-            max_y_ratio = 0.8 + 0.25 * fin_size
-        elif template_id == 1:
-            min_x_ratio = min(0.1, 0.4 - 0.1 * fin_size, 0.15 - 0.2 * tail_size)
-            max_x_ratio = 0.95
-            min_y_ratio = min(0.2, 0.3 - 0.15 * fin_size)
-            max_y_ratio = 0.8
-        else:
-            min_x_ratio = min(0.1, 0.35 - 0.15 * fin_size, 0.2 - 0.25 * tail_size)
-            max_x_ratio = 0.95
-            min_y_ratio = min(0.1, 0.15 - 0.2 * fin_size)
-            max_y_ratio = 0.9
-
-        width = scaled_base * width_scale
-        height = scaled_base * height_scale
-        min_x = min_x_ratio * width
-        max_x = max_x_ratio * width
-        min_y = min_y_ratio * height
-        max_y = max_y_ratio * height
-
-        flipped_min_x = scaled_base - max_x
-        flipped_max_x = scaled_base - min_x
-
-        effective_min_x = min(0.0, min_x, flipped_min_x)
-        effective_max_x = max(scaled_base, max_x, flipped_max_x)
-        effective_min_y = min(0.0, min_y)
-        effective_max_y = max(scaled_base, max_y)
-
-        return (effective_min_x, effective_max_x, effective_min_y, effective_max_y)
+        traits = extract_traits_from_genome(self.genome)
+        return calculate_visual_bounds(base_size, self.size, traits)
 
     def constrain_to_screen(self) -> None:
         """Override to use cached bounds."""
@@ -1157,16 +1126,9 @@ class Fish(Agent):
             # Keeping strictly to refactoring return type for now.
             return EntityUpdateResult()
 
-        previous_direction = self.last_direction
-
-        # Movement (algorithms handle critical energy internally)
-        self.movement_strategy.move(self)
-
-        self._apply_turn_energy_cost(previous_direction)
-
-        # Update poker cooldown
-        if self.poker_cooldown > 0:
-            self.poker_cooldown -= 1
+        # Execute behavior (movement, turn costs, poker cooldown)
+        # Delegates to BehaviorExecutor for cleaner separation
+        self._behavior_executor.execute(self)
 
         result = EntityUpdateResult()
         return result
@@ -1233,34 +1195,3 @@ class Fish(Agent):
         else:
             self._emit_event(FoodEatenEvent("falling_food", algorithm_id, actual_energy))
 
-    def _apply_turn_energy_cost(self, previous_direction: Optional[Vector2]) -> None:
-        """Apply an energy penalty for direction changes, scaled by turn angle and fish size.
-
-        The energy cost increases with:
-        - Sharper turns (more angle change)
-        - Larger fish size (bigger fish use more energy to turn)
-        """
-        if self.vel.length_squared() == 0:
-            self.last_direction = None
-            return
-
-        new_direction = self.vel.normalize()
-
-        if previous_direction is not None:
-            # Calculate dot product (-1 = 180° turn, 0 = 90° turn, 1 = no turn)
-            dot_product = previous_direction.dot(new_direction)
-
-            # Convert to turn intensity (0 = no turn, 1 = slight turn, 2 = 180° turn)
-            # Formula: (1 - dot_product) gives us 0 to 2 range
-            turn_intensity = 1 - dot_product
-
-            # Only apply cost if there's a noticeable direction change
-            if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
-                # Base energy cost scaled by turn intensity and fish size
-                # Larger fish (size > 1.0) pay more, smaller fish (size < 1.0) pay less
-                size_factor = self._lifecycle_component.size**DIRECTION_CHANGE_SIZE_MULTIPLIER
-                energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
-
-                self.energy = max(0, self.energy - energy_cost)
-
-        self.last_direction = new_direction
