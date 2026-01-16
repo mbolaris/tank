@@ -40,6 +40,8 @@ class EntitySnapshot:
     height: float
     vel_x: float = 0.0
     vel_y: float = 0.0
+    radius: float | None = None
+    team: str | None = None
     energy: float | None = None
     generation: int | None = None
     age: int | None = None
@@ -70,6 +72,8 @@ class EntitySnapshot:
     birth_effect_timer: int | None = None
     # Death effects
     death_effect_state: dict[str, Any] | None = None
+    # Soccer effects (energy gain from kicks/goals)
+    soccer_effect_state: dict[str, Any] | None = None
     # Crab hunt state
     can_hunt: bool | None = None
     # Rendering metadata hints
@@ -88,6 +92,11 @@ class EntitySnapshot:
             "vel_x": self.vel_x,
             "vel_y": self.vel_y,
         }
+
+        if self.radius is not None:
+            data["radius"] = self.radius
+        if self.team is not None:
+            data["team"] = self.team
 
         if self.energy is not None:
             data["energy"] = self.energy
@@ -141,6 +150,8 @@ class EntitySnapshot:
             data["can_hunt"] = self.can_hunt
         if self.render_hint is not None:
             data["render_hint"] = self.render_hint
+        if self.soccer_effect_state is not None:
+            data["soccer_effect_state"] = self.soccer_effect_state
 
         return data
 
@@ -156,6 +167,7 @@ class EntitySnapshot:
             "poker_effect_state": self.poker_effect_state,
             "birth_effect_timer": self.birth_effect_timer,
             "death_effect_state": self.death_effect_state,
+            "soccer_effect_state": self.soccer_effect_state,
         }
 
 

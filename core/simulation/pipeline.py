@@ -131,6 +131,13 @@ def _step_reproduction(engine: SimulationEngine, ctx: FrameContext) -> None:
     engine._phase_reproduction()
 
 
+def _step_soccer(engine: SimulationEngine, ctx: FrameContext) -> None:
+    """SOCCER: Update ball physics and agent-ball interactions."""
+    soccer_system = getattr(engine, "soccer_system", None)
+    if soccer_system and soccer_system.enabled:
+        soccer_system.update(engine.frame_count)
+
+
 def _step_frame_end(engine: SimulationEngine, ctx: FrameContext) -> None:
     """FRAME_END: Update stats, rebuild caches."""
     engine._phase_frame_end()
@@ -167,6 +174,7 @@ def default_pipeline() -> EnginePipeline:
             PipelineStep("lifecycle", _step_lifecycle),
             PipelineStep("spawn", _step_spawn),
             PipelineStep("collision", _step_collision),
+            PipelineStep("soccer", _step_soccer),
             PipelineStep("interaction", _step_interaction),
             PipelineStep("reproduction", _step_reproduction),
             PipelineStep("frame_end", _step_frame_end),

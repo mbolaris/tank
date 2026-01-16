@@ -148,6 +148,11 @@ class SoccerConfig:
     repro_credit_required: float = SOCCER_LEAGUE_REPRO_CREDIT_REQUIRED
     repro_credit_initial: float = SOCCER_LEAGUE_REPRO_CREDIT_INITIAL
 
+    # Tank Practice Mode: Ball/Goals visible in main tank for agent training
+    tank_practice_enabled: bool = True  # Enable ball/goals in tank
+    tank_ball_visible: bool = True  # Show ball entity
+    tank_goals_visible: bool = True  # Show goal zone entities
+
 
 @dataclass
 class FoodConfig:
@@ -343,6 +348,13 @@ class SimulationConfig:
             "soccer_repro_credit_award": "repro_credit_award",
             "soccer_repro_credit_required": "repro_credit_required",
             "soccer_repro_credit_initial": "repro_credit_initial",
+            # Tank practice mode
+            "soccer_tank_practice_enabled": "tank_practice_enabled",
+            "tank_practice_enabled": "tank_practice_enabled",
+            "soccer_tank_ball_visible": "tank_ball_visible",
+            "tank_ball_visible": "tank_ball_visible",
+            "soccer_tank_goals_visible": "tank_goals_visible",
+            "tank_goals_visible": "tank_goals_visible",
         }
         for flat_key, attr in soccer_map.items():
             if flat_key in config_dict:

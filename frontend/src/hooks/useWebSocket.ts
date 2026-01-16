@@ -84,7 +84,13 @@ export function useWebSocket(worldId?: string) {
                     const data = JSON.parse(jsonString);
 
                     if (data.type === 'update') {
+                        console.log('FULL UPDATE RECEIVED!');  // DEBUG
                         const update = data as SimulationUpdate;
+                        // DEBUG: Check if any entities have soccer_effect_state
+                        const fishWithSoccer = update.snapshot?.entities?.filter((e: any) => e.soccer_effect_state);
+                        if (fishWithSoccer && fishWithSoccer.length > 0) {
+                            console.log('FULL UPDATE - Fish with soccer_effect_state:', fishWithSoccer.map((e: any) => ({ id: e.id, state: e.soccer_effect_state })));
+                        }
                         // V1 schema: Populate convenience fields from snapshot for component access
                         update.frame = update.snapshot.frame;
                         update.elapsed_time = update.snapshot.elapsed_time;
@@ -269,6 +275,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
                     vel_x: update.vel_x,
                     vel_y: update.vel_y,
                     ...(update.poker_effect_state !== undefined && { poker_effect_state: update.poker_effect_state }),
+                    ...(update.soccer_effect_state !== undefined && { soccer_effect_state: update.soccer_effect_state }),
                 };
             }
             // No update - reuse the same object reference

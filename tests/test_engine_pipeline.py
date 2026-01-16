@@ -20,6 +20,7 @@ def test_default_pipeline_step_names() -> None:
         "lifecycle",
         "spawn",
         "collision",
+        "soccer",
         "interaction",
         "reproduction",
         "frame_end",

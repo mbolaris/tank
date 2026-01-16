@@ -150,13 +150,26 @@ class CommandHandlerMixin:
             if not ecosystem:
                 return self._create_error_response("Ecosystem not available for poker")
 
+            # Get top 12 fish to provide variety
             leaderboard = ecosystem.get_poker_leaderboard(
-                fish_list=fish_list, limit=3, sort_by="net_energy"
+                fish_list=fish_list, limit=12, sort_by="net_energy"
             )
 
-            # Create AI fish data from top 3
+            # Shuffle and pick 3
+            rng = self.world.rng
+            selected_entries = list(leaderboard)
+            if rng:
+                rng.shuffle(selected_entries)
+            else:
+                import random
+
+                random.shuffle(selected_entries)
+
+            selected_entries = selected_entries[:3]
+
+            # Create AI fish data from selected entries
             ai_fish = []
-            for entry in leaderboard[:3]:
+            for entry in selected_entries:
                 # Find the actual fish object
                 fish = next((f for f in fish_list if f.fish_id == entry["fish_id"]), None)
                 if fish:
@@ -167,8 +180,10 @@ class CommandHandlerMixin:
                 for fish in fish_list:
                     if len(ai_fish) >= 3:
                         break
-                    if fish.fish_id not in [f["fish_id"] for f in ai_fish]:
-                        ai_fish.append(self._create_fish_player_data(fish, include_aggression=True))
+                    # Avoid duplicates
+                    if any(f["fish_id"] == fish.fish_id for f in ai_fish):
+                        continue
+                    ai_fish.append(self._create_fish_player_data(fish, include_aggression=True))
 
             # Create poker game
             game_id = str(uuid.uuid4())

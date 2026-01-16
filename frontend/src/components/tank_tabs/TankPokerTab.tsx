@@ -30,6 +30,7 @@ export function TankPokerTab({
     const [showPokerGame, setShowPokerGame] = useState(true);
     const [pokerLoading, setPokerLoading] = useState(false);
     const [pokerError, setPokerError] = useState<string | null>(null);
+    const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
 
     const handlePokerError = (message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
@@ -66,8 +67,6 @@ export function TankPokerTab({
         await processNextAiTurn();
     }, [sendCommandWithResponse]);
 
-
-
     const handleStartPoker = useCallback(async () => {
         try {
             setPokerLoading(true);
@@ -77,14 +76,8 @@ export function TankPokerTab({
                 data: { energy: 500 },
             });
             if (response.success === false) {
-                // Squelch error if game is already active or just don't show alert for auto-start
-                // But for now, let's keep it simple. If it fails, maybe we just set showPokerGame to false?
-                // actually if it fails because "already started", we might want to recover state?
-                // For now, let's just log and show error if it's a real user init, but for auto init?
-                // Let's justalert for now as before.
-                // alert(response.error || 'Failed to start poker game');
                 console.warn("Failed to auto-start poker:", response.error);
-                // setShowPokerGame(false); // Keep it open to show retry button? or close?
+                handlePokerError('Failed to start poker game', response.error);
             } else if (response.state) {
                 setPokerGameState(response.state);
                 if (!response.state.is_your_turn && !response.state.game_over) {
@@ -98,6 +91,35 @@ export function TankPokerTab({
             setPokerLoading(false);
         }
     }, [sendCommandWithResponse, processAiTurnsWithDelay]);
+
+    // Auto-restart game when session ends
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        let countdownInterval: NodeJS.Timeout;
+
+        if (showPokerGame && pokerGameState?.session_over) {
+            setRestartCountdown(3);
+
+            // Countdown visual update
+            countdownInterval = setInterval(() => {
+                setRestartCountdown(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
+            }, 1000);
+
+            timer = setTimeout(() => {
+                // Call the start logic
+                handleStartPoker().then(() => {
+                    setRestartCountdown(null);
+                });
+            }, 3000); // 3 seconds delay
+        } else {
+            setRestartCountdown(null);
+        }
+
+        return () => {
+            clearTimeout(timer);
+            clearInterval(countdownInterval);
+        };
+    }, [showPokerGame, pokerGameState?.session_over, handleStartPoker]);
 
     // Effect to start game once connected
     const hasStartedRef = useRef(false);
@@ -192,14 +214,37 @@ export function TankPokerTab({
                             </Button>
                         </div>
                     ) : (
-                        <PokerGame
-                            onClose={handleClosePoker}
-                            onAction={handlePokerAction}
-                            onNewRound={handleNewRound}
-                            onGetAutopilotAction={handleGetAutopilotAction}
-                            gameState={pokerGameState}
-                            loading={pokerLoading}
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <PokerGame
+                                onClose={handleClosePoker}
+                                onAction={handlePokerAction}
+                                onNewRound={handleNewRound}
+                                onGetAutopilotAction={handleGetAutopilotAction}
+                                gameState={pokerGameState}
+                                loading={pokerLoading}
+                            />
+                            {restartCountdown !== null && (
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '80px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    color: '#fff',
+                                    padding: '8px 16px',
+                                    borderRadius: '20px',
+                                    zIndex: 10,
+                                    border: '1px solid #a78bfa',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                                }}>
+                                    <span style={{ fontSize: '18px' }}>🔄</span>
+                                    <span>Starting new game in {restartCountdown}...</span>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

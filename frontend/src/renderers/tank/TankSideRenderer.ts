@@ -79,10 +79,65 @@ export class TankSideRenderer implements Renderer {
             // Render entities
             entities.forEach((entity: EntityData) => {
                 r.renderEntity(entity, elapsedTime, entities, showEffects);
+                this.drawSoccerEffect(ctx, entity);
             });
 
         } finally {
             ctx.restore();
         }
+    }
+
+    private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: EntityData) {
+        const soccerState = (entity as any).soccer_effect_state;
+        if (!soccerState) return;
+
+        const { type, amount, timer } = soccerState;
+
+        // Calculate fade based on timer (60 frames max)
+        // Keep opaque longer (until last 15 frames)
+        const opacity = Math.min(1, timer / 15);
+        const radius = entity.radius || 16;
+        const yOffset = -(entity.height || radius * 2) / 2 - 20 - (60 - timer) * 0.8;
+
+        ctx.save();
+        // Translate to entity position (handled by outer scale)
+        ctx.translate(entity.x + (entity.width || 0) / 2, entity.y + (entity.height || 0) / 2);
+
+        // Color based on type
+        let color = '#00ff00'; // Green for kicks
+        let fontSize = 16;
+
+        if (type === 'goal') {
+            color = '#ffdd00'; // Gold for goals
+            fontSize = 24; // Much larger for goals
+        } else if (type === 'progress') {
+            color = '#88ff88'; // Light green for progress
+        }
+
+        ctx.globalAlpha = opacity;
+
+        // Draw separate stroke and fill with better contrast settings
+        ctx.font = `900 ${fontSize}px "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Use shadow for better visibility against any background
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+
+        const text = `+${Math.round(amount)}`;
+
+        ctx.fillStyle = color;
+        ctx.fillText(text, 0, yOffset);
+
+        // Remove shadow for stroke to keep it crisp
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1.5; // Thinner distinct stroke
+        ctx.strokeText(text, 0, yOffset);
+
+        ctx.restore();
     }
 }

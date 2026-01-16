@@ -232,6 +232,8 @@ class Fish(Agent):
         # Store parent ID for delayed registration
         self.parent_id = parent_id
 
+        self.team = team
+
         self.last_direction: Optional[Vector2] = (
             self.vel.normalize() if self.vel.length_squared() > 0 else None
         )

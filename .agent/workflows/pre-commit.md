@@ -19,7 +19,7 @@ Then verify formatting:
 .venv\Scripts\python.exe -m black --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
 ```
 
-Note: Black is pinned to 23.12.1 in `pyproject.toml` and pre-commit to avoid drift.
+Note: Black is configured via `pyproject.toml` (>=24.0.0) and uses 2024+ style.
 
 ## 2. Lint Check (Ruff)
 
