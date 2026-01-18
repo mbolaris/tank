@@ -26,12 +26,11 @@ from core.config.fish import (
     POST_POKER_REPRODUCTION_LOSER_PROB,
     POST_POKER_REPRODUCTION_WINNER_PROB,
 )
-from core.mixed_poker import MixedPokerInteraction
+from core.mixed_poker import MixedPokerInteraction, Player
 from core.mixed_poker import MixedPokerResult as PokerResult
 from core.mixed_poker import MultiplayerBettingRound as BettingRound
 from core.mixed_poker import MultiplayerGameState as GameState
 from core.mixed_poker import MultiplayerPlayerContext as PlayerContext
-from core.mixed_poker import Player
 
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
