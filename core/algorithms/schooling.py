@@ -404,6 +404,19 @@ class MirrorMover(BehaviorAlgorithm):
         # This eliminates the double O(N²) problem: get_all + distance_filter
         allies = _get_nearby_fish(fish, int(self.parameters["mirror_distance"]))
 
+        # IMPROVEMENT: Check energy level and seek food when hungry
+        energy_ratio = fish.energy / fish.max_energy if fish.max_energy > 0 else 0
+
+        # If hungry (below 60% energy), prioritize food seeking
+        if energy_ratio < 0.6:
+            nearest_food = self._find_nearest_food(fish)
+            if nearest_food:
+                food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+                # Seek food more aggressively when hungrier
+                hunger_urgency = 1.0 - energy_ratio
+                seek_strength = self.parameters["mirror_strength"] * (1.0 + hunger_urgency)
+                return food_dir.x * seek_strength, food_dir.y * seek_strength
+
         if allies:
             nearest = min(allies, key=lambda f: (f.pos - fish.pos).length())
             # Copy their velocity
@@ -413,6 +426,16 @@ class MirrorMover(BehaviorAlgorithm):
                     direction.x * self.parameters["mirror_strength"],
                     direction.y * self.parameters["mirror_strength"],
                 )
+
+        # IMPROVEMENT: If alone, seek food instead of doing nothing
+        nearest_food = self._find_nearest_food(fish)
+        if nearest_food:
+            food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
+            return (
+                food_dir.x * self.parameters["mirror_strength"],
+                food_dir.y * self.parameters["mirror_strength"],
+            )
+
         return 0, 0
 
 

@@ -386,38 +386,35 @@ python scripts/verify_plants_no_metabolic_cost.py  # Prints energy every 10 fram
 
 ### AI Code Evolution Workflow
 
-**Automatically improve fish behaviors using AI!** The simulation now includes an **AI Code Evolution Agent** that analyzes simulation data and generates algorithm improvements.
+**Automatically improve fish behaviors using AI!** AI agents (like Claude, GPT, or similar) can analyze simulation data and directly improve algorithms.
 
 ```bash
 # Step 1: Run simulation and export stats
-python main.py --headless --max-frames 10000 --export-stats results.json
+python main.py --headless --max-frames 10000 --export-stats results.json --seed 42
 
-# Step 2: Set up your API key (Claude or GPT-4)
-export ANTHROPIC_API_KEY="sk-ant-..."
-# OR
-export OPENAI_API_KEY="sk-..."
+# Step 2: AI analyzes results and identifies underperformers
+# (The AI agent reads results.json and source code directly)
 
-# Step 3: Run the AI agent to improve worst performer
-python scripts/ai_code_evolution_agent.py results.json --provider anthropic
+# Step 3: AI improves the worst-performing algorithm
+# (Direct code edits to core/algorithms/)
 
-# Step 4: Review changes
-git diff HEAD~1
+# Step 4: Validate improvements
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # Step 5: Push and create PR
 git push -u origin <branch-name>
 ```
 
 **What the AI agent does:**
-- ✅ Identifies the worst performing algorithm (lowest reproduction rate)
-- ✅ Analyzes why it's failing (starvation, predation, etc.)
-- ✅ Reads the source code from the algorithm registry
-- ✅ Generates improved code using Claude/GPT-4
+- ✅ Identifies the worst performing algorithm (highest starvation rate)
+- ✅ Analyzes why it's failing (e.g., no food-seeking fallback)
+- ✅ Reads the source code and implements improvements
+- ✅ Validates with tests and benchmarks
 - ✅ Creates a git branch with descriptive commit message
-- ✅ Ready for human review and testing before merge
 
-**Example result**: FreezeResponse improved from 0% → 100% reproduction rate!
+**Example result**: MirrorMover improved with food-seeking behavior to reduce starvation!
 
-See `docs/AI_CODE_EVOLUTION_WORKFLOW.md` for complete guide and `docs/PROOF_OF_AI_IMPROVEMENT.md` for real-world example.
+See `AGENTS.md` for complete AI agent guide.
 
 ## Project Structure
 

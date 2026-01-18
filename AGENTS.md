@@ -98,14 +98,6 @@ pip install pre-commit
 pre-commit install
 ```
 
-### Configure LLM API Keys (if using AI code evolution)
-
-```bash
-export ANTHROPIC_API_KEY="sk-ant-..."  # For Claude
-# OR
-export OPENAI_API_KEY="sk-..."         # For GPT-4
-```
-
 ---
 
 ## Step 2: Run Simulations
