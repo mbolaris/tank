@@ -46,7 +46,7 @@ jobs:
 
     - name: Check code formatting with black
       run: |
-        black --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
+        black --config pyproject.toml --check core/ tests/ tools/ backend/ --exclude="frontend|node_modules|.venv|venv"
 
     - name: Lint with ruff
       run: |
