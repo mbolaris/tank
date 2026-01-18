@@ -222,3 +222,81 @@ def test_phase_tracking_during_full_update(simulation_engine):
     )
     engine.add_entity(fish)  # Should not raise
     engine.remove_entity(fish)  # Should not raise
+
+
+# =============================================================================
+# End-of-Frame Invariant Tests
+# =============================================================================
+
+
+def test_late_spawn_raises_with_invariant_enforcement(simulation_engine):
+    """Verify the mutation invariant check catches late spawns.
+
+    This test intentionally queues a spawn without processing it,
+    then verifies that the end-of-frame invariant check raises.
+    """
+    engine = simulation_engine
+    engine._phase_debug_enabled = True
+
+    # Run a normal frame first to establish baseline
+    engine.update()
+
+    # Now queue a spawn but don't run another frame
+    food = Food(engine.environment, 100, 100, food_type="energy")
+    engine.request_spawn(food, reason="test_late_spawn")
+
+    assert engine._entity_mutations.pending_spawn_count() == 1
+
+    # Manually trigger just the frame_end phase which checks invariants
+    with pytest.raises(RuntimeError, match="pending entity mutations remain"):
+        engine._phase_frame_end()
+
+
+def test_late_removal_raises_with_invariant_enforcement(simulation_engine):
+    """Verify the mutation invariant check catches late removals."""
+    engine = simulation_engine
+    engine._phase_debug_enabled = True
+
+    # Run a frame to have some entities
+    engine.update()
+
+    # Get a fish to queue for removal
+    fish_list = engine.get_fish_list()
+    if not fish_list:
+        pytest.skip("No fish in simulation to test removal")
+
+    fish = fish_list[0]
+    engine.request_remove(fish, reason="test_late_removal")
+
+    assert engine._entity_mutations.pending_removal_count() == 1
+
+    with pytest.raises(RuntimeError, match="pending entity mutations remain"):
+        engine._phase_frame_end()
+
+
+def test_invariant_check_passes_when_mutations_are_applied(simulation_engine):
+    """Verify that normal frame processing doesn't trigger invariant error."""
+    engine = simulation_engine
+    engine._phase_debug_enabled = True
+
+    # Run several frames - should not raise
+    for _ in range(10):
+        engine.update()
+
+    # Verify we ran successfully
+    # Verify we ran successfully - fixture starts at frame 1, then 10 more
+    assert engine.frame_count >= 10
+
+
+def test_env_var_enables_invariant_checking(monkeypatch):
+    """Verify TANK_ENFORCE_MUTATION_INVARIANTS env var enables checking."""
+    from core.simulation.engine import SimulationEngine
+
+    monkeypatch.setenv("TANK_ENFORCE_MUTATION_INVARIANTS", "1")
+
+    # Create engine after setting env var
+    engine = SimulationEngine(headless=True, seed=42)
+    engine.setup()
+
+    # Should have phase debug enabled due to env var
+    assert engine._phase_debug_enabled is True

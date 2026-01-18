@@ -78,3 +78,28 @@ def simulation_engine():
     engine.setup()
 
     return engine
+
+
+@pytest.fixture
+def simulation_engine_strict():
+    """SimulationEngine with mutation invariants enforced at end of frame."""
+    from core.simulation.engine import SimulationEngine
+
+    engine = SimulationEngine(headless=True, seed=42)
+    engine.setup()
+    engine._phase_debug_enabled = True  # Enable directly
+    return engine
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _force_mutation_invariants_in_tests():
+    """Force mutation invariant checking for all engine tests.
+
+    This helps catch regression where mutation queue is ignored or bypassed.
+    """
+    import os
+
+    # We use env var so it propagates to SimulationEngine.__init__ logic
+    os.environ["TANK_ENFORCE_MUTATION_INVARIANTS"] = "1"
+    yield
+    os.environ.pop("TANK_ENFORCE_MUTATION_INVARIANTS", None)

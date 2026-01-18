@@ -216,7 +216,11 @@ class SimulationEngine:
 
         # Phase tracking for debugging
         self._current_phase: UpdatePhase | None = None
-        self._phase_debug_enabled: bool = self.config.enable_phase_debug
+        # Enable via config OR env var (for tests to force invariant checking)
+        self._phase_debug_enabled: bool = (
+            self.config.enable_phase_debug
+            or os.environ.get("TANK_ENFORCE_MUTATION_INVARIANTS", "0") == "1"
+        )
 
         # Delta log (reset every frame)
 

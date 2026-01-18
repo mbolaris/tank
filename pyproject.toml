@@ -76,6 +76,7 @@ markers = [
     "slow: long-running tests (excluded by default in quick runs with -m 'not slow')",
     "integration: tests requiring external resources or multiple components",
     "manual: verification scripts with verbose output (run manually, not in CI)",
+    "core: critical correctness tests (determinism, energy, ball physics, mutation queue)",
     "asyncio: mark test as async",
 ]
 
