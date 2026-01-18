@@ -122,11 +122,12 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         food_vx, food_vy = self._execute_food_approach(fish)
         if food_vx != 0 or food_vy != 0:
             # Food found - commit to the chase!
-            # Critical/low energy fish get a small boost (desperation)
+            # Critical/low energy fish get a desperation boost
+            # Increased from 1.3/1.1 to 1.5/1.25 to help starving fish catch food
             if is_critical:
-                return food_vx * 1.3, food_vy * 1.3
+                return food_vx * 1.5, food_vy * 1.5
             elif is_low:
-                return food_vx * 1.1, food_vy * 1.1
+                return food_vx * 1.25, food_vy * 1.25
             return food_vx, food_vy
 
         # 3. POKER ENGAGEMENT - Only when no food detected

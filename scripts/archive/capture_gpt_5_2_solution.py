@@ -20,10 +20,9 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.tank_world import TankWorld, TankWorldConfig
-
 from core.entities import Fish
 from core.solutions import SolutionRecord, SolutionTracker
+from core.tank_world import TankWorld, TankWorldConfig
 
 AUTHOR = "GPT-5.2-Codex-Max"
 DEFAULT_NAME = "GPT-5.2-Codex-Max Tournament Hunter"
