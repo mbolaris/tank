@@ -35,13 +35,17 @@ class Ball(Agent):
 
     # Physics parameters (RCSS-compatible)
     DEFAULT_DECAY_RATE = 0.94  # 94% velocity retention per cycle
-    DEFAULT_MAX_SPEED = 3.0  # Maximum velocity per cycle
+    DEFAULT_MAX_SPEED = 3.0  # Maximum velocity per cycle (RCSS units)
     DEFAULT_SIZE = 0.085  # Ball radius in world units (meters)
     DEFAULT_KICKABLE_MARGIN = 0.7  # How close to kick the ball
-    DEFAULT_KICK_POWER_RATE = 0.027  # Acceleration per power unit [0-100]
+    DEFAULT_KICK_POWER_RATE = 0.027  # RCSS default: acceleration per power unit
 
     # Ball size for rendering/collision (in pixels, roughly)
-    DEFAULT_PIXEL_RADIUS = 5
+    DEFAULT_PIXEL_RADIUS = 10
+
+    # Coordinate scale: Tank pixels to RCSS meters (Tank ~1088px, RCSS ~105m)
+    # This scales velocities so RCSS physics produce visible movement in pixels
+    PIXEL_SCALE = 5.0  # ~5 pixels per RCSS meter (reduced for slower ball)
 
     def __init__(
         self,
@@ -104,6 +108,8 @@ class Ball(Agent):
     ):
         """Update ball physics (RCSS-Lite: accel→vel→pos→decay).
 
+        Physics operates in RCSS units, then scales to pixels for position.
+
         Args:
             frame_count: Current frame number
             time_modifier: Time scaling factor
@@ -111,19 +117,20 @@ class Ball(Agent):
         """
         from core.entities.base import EntityUpdateResult
 
-        # 1. Acceleration → Velocity
+        # 1. Acceleration → Velocity (in RCSS units)
         self.vel += self.acceleration
 
-        # 2. Velocity → Position
-        self.pos += self.vel
-
-        # 3. Apply velocity decay (friction/air resistance)
-        self.vel *= self.decay_rate
-
-        # 4. Cap maximum speed
+        # 2. Cap maximum speed (RCSS units)
         speed = self.vel.length()
         if speed > self.max_speed:
             self.vel = self.vel.normalize() * self.max_speed
+
+        # 3. Velocity → Position (scale to pixels)
+        # RCSS velocity is in meters/cycle, scale to pixels/cycle
+        self.pos += self.vel * self.PIXEL_SCALE
+
+        # 4. Apply velocity decay (friction/air resistance)
+        self.vel *= self.decay_rate
 
         # 5. Handle boundary collisions (bouncing)
         self._handle_boundary_collision()

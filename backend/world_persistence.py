@@ -46,7 +46,7 @@ def _respawn_soccer_elements(engine: Any) -> None:
 
         # Import soccer entities
         from core.entities.ball import Ball
-        from core.entities.goal_zone import GoalZone
+        from core.entities.goal_zone import GoalZone, GoalZoneManager
 
         env = engine.environment
         width = env.width
@@ -58,23 +58,43 @@ def _respawn_soccer_elements(engine: Any) -> None:
             logger.warning("No soccer_system on engine, skipping soccer respawn")
             return
 
-        # Respawn Ball if configured
+        # Respawn Ball if configured and not already present
         if soccer_cfg.tank_ball_visible:
-            ball = Ball(env, width / 2, height / 2)
-            engine.add_entity(ball)
-            soccer_system.register_ball(ball)
-            logger.info("SOCCER: Respawned Ball after restoration")
+            if hasattr(env, "ball") and env.ball is not None:
+                # Ball already exists, just register with soccer system
+                soccer_system.set_ball(env.ball)
+                logger.info("SOCCER: Ball already exists, using existing")
+            else:
+                ball = Ball(env, width / 2, height / 2)
+                engine.add_entity(ball)
+                soccer_system.set_ball(ball)
+                # Store reference to prevent duplication
+                env.ball = ball
+                logger.info("SOCCER: Respawned Ball after restoration")
 
-        # Respawn Goals if configured
+        # Respawn Goals if configured and not already present
         if soccer_cfg.tank_goals_visible:
-            goal_a = GoalZone(env, 50.0, height / 2, "A")
-            engine.add_entity(goal_a)
-            soccer_system.add_goal(goal_a)
+            if hasattr(env, "goal_manager") and env.goal_manager is not None:
+                # Goals already exist, just register with soccer system
+                soccer_system.set_goal_manager(env.goal_manager)
+                logger.info("SOCCER: Goals already exist, using existing")
+            else:
+                goal_a = GoalZone(env, 50.0, height / 2, "A", goal_id="goal_left", radius=40.0)
+                engine.add_entity(goal_a)
 
-            goal_b = GoalZone(env, width - 50.0, height / 2, "B")
-            engine.add_entity(goal_b)
-            soccer_system.add_goal(goal_b)
-            logger.info("SOCCER: Respawned Goals after restoration")
+                goal_b = GoalZone(
+                    env, width - 50.0, height / 2, "B", goal_id="goal_right", radius=40.0
+                )
+                engine.add_entity(goal_b)
+
+                # Create and set goal manager
+                goal_manager = GoalZoneManager()
+                goal_manager.register_zone(goal_a)
+                goal_manager.register_zone(goal_b)
+                soccer_system.set_goal_manager(goal_manager)
+                # Store reference to prevent duplication
+                env.goal_manager = goal_manager
+                logger.info("SOCCER: Respawned Goals after restoration")
 
     except Exception as e:
         logger.warning(f"Failed to respawn soccer elements: {e}")

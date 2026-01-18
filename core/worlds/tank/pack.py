@@ -103,10 +103,12 @@ class TankPack(TankLikePackBase):
             if not engine.environment:
                 return
 
-            # Check if soccer is enabled (default: False to preserve existing behavior)
+            # Check if soccer tank practice is enabled
             soccer_enabled = False
-            if hasattr(self.config, "tank") and hasattr(self.config.tank, "soccer_enabled"):
-                soccer_enabled = self.config.tank.soccer_enabled
+            if hasattr(self.config, "soccer") and hasattr(
+                self.config.soccer, "tank_practice_enabled"
+            ):
+                soccer_enabled = self.config.soccer.tank_practice_enabled
 
             if not soccer_enabled:
                 logger.info("Soccer components disabled in config")
@@ -116,6 +118,21 @@ class TankPack(TankLikePackBase):
             width = engine.environment.width
             height = engine.environment.height
             mid_y = height / 2
+
+            # Fix legacy snapshots: ensure correct sizes and positions
+            if hasattr(engine.environment, "ball") and engine.environment.ball is not None:
+                ball = engine.environment.ball
+                ball.set_size(20, 20)  # 10px radius
+
+                if hasattr(engine.environment, "goal_manager") and engine.environment.goal_manager:
+                    for zone in engine.environment.goal_manager.zones:
+                        zone.set_size(80, 80)  # 40px radius
+                        zone.radius = 40.0
+                        if zone.goal_id == "goal_left":
+                            zone.pos.x, zone.pos.y = 50.0, mid_y
+                        elif zone.goal_id == "goal_right":
+                            zone.pos.x, zone.pos.y = width - 50.0, mid_y
+                return
 
             # Create ball at center
             ball = Ball(
@@ -133,14 +150,14 @@ class TankPack(TankLikePackBase):
             # Create goal manager
             goal_manager = GoalZoneManager()
 
-            # Create goals (one for each team)
+            # Create goals (one for each team) - use larger radius for visibility
             goal_left = GoalZone(
                 environment=engine.environment,
                 x=50,
                 y=mid_y,
                 team="A",
                 goal_id="goal_left",
-                radius=15.0,
+                radius=40.0,
                 base_energy_reward=100.0,
             )
             engine.request_spawn(goal_left)
@@ -152,7 +169,7 @@ class TankPack(TankLikePackBase):
                 y=mid_y,
                 team="B",
                 goal_id="goal_right",
-                radius=15.0,
+                radius=40.0,
                 base_energy_reward=100.0,
             )
             engine.request_spawn(goal_right)

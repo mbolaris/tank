@@ -58,27 +58,120 @@ class SoccerSystem(BaseSystem):
         if self.engine.environment and hasattr(self.engine.environment, "goal_manager"):
             self.goal_manager = self.engine.environment.goal_manager
 
-        if self.ball:
-            logger.info(f"SoccerSystem initialized with ball at {self.ball.pos}")
-
     def _do_update(self, frame: int) -> None:
         """Update ball physics and check for goals.
 
         Args:
             frame: Current frame number
         """
+        # Lazy initialization: find ball/goals if not set
+        if not self.ball and self.engine.environment:
+            if hasattr(self.engine.environment, "ball"):
+                self.ball = self.engine.environment.ball
+                self.enabled = self.ball is not None
+
+        if not self.goal_manager and self.engine.environment:
+            if hasattr(self.engine.environment, "goal_manager"):
+                self.goal_manager = self.engine.environment.goal_manager
+
         if not self.enabled or not self.ball:
             return
 
         # 1. Update ball physics (RCSS-Lite)
         self.ball.update(frame)
 
-        # 2. Check for goals
+        # 2. Auto-kick: Fish near ball automatically kick it
+        self._process_auto_kicks(frame)
+
+        # 3. Check for goals
         if self.goal_manager:
             goal_event = self.goal_manager.check_all_goals(self.ball, frame)
 
             if goal_event:
                 self._handle_goal_scored(goal_event)
+
+    def _process_auto_kicks(self, frame: int) -> None:
+        """Auto-kick: Fish near the ball will automatically kick it.
+
+        This provides a simple interaction without requiring trained policies.
+        Fish kick the ball toward the opponent's goal.
+
+        Args:
+            frame: Current frame number
+        """
+        import math
+
+        from core.entities import Fish
+        from core.math_utils import Vector2
+
+        if not self.engine.environment or not self.ball:
+            return
+
+        ball_x = self.ball.pos.x
+        ball_y = self.ball.pos.y
+        # RCSS kickable_margin + player_size = ~1.0m, scaled = 10px
+        # Keep slightly larger (30px) since fish are visually bigger than RCSS players
+        kickable_distance = 30.0
+
+        for entity in self.engine.entities_list:
+            if not isinstance(entity, Fish) or entity.is_dead():
+                continue
+
+            # Calculate distance to ball
+            dx = ball_x - entity.pos.x
+            dy = ball_y - entity.pos.y
+            dist = math.sqrt(dx * dx + dy * dy)
+
+            if dist <= kickable_distance:
+                # Fish can kick!
+                if dist > 0:
+                    # Determine team from fish_id (even = team A, odd = team B)
+                    fish_id = getattr(entity, "fish_id", 0)
+                    is_team_a = (fish_id % 2) == 0
+
+                    # Primary kick direction: fish's facing/movement direction
+                    if hasattr(entity, "vel") and entity.vel.length() > 0.1:
+                        # Kick in direction fish is moving
+                        kick_dx = entity.vel.x
+                        kick_dy = entity.vel.y
+                    else:
+                        # Stationary fish: kick toward opponent goal
+                        if is_team_a:
+                            kick_dx = self.engine.environment.width - 50 - ball_x
+                        else:
+                            kick_dx = 50 - ball_x
+                        kick_dy = (self.engine.environment.height / 2) - ball_y
+
+                    # Add slight goal-seeking bias without overwhelming direction
+                    if is_team_a:
+                        goal_bias_x = (self.engine.environment.width - 50 - ball_x) * 0.2
+                    else:
+                        goal_bias_x = (50 - ball_x) * 0.2
+                    kick_dx += goal_bias_x
+
+                    kick_dist = math.sqrt(kick_dx * kick_dx + kick_dy * kick_dy)
+
+                    if kick_dist > 0:
+                        direction = Vector2(kick_dx / kick_dist, kick_dy / kick_dist)
+                        # Kick power: base + fish speed bonus
+                        fish_speed = entity.vel.length() if hasattr(entity, "vel") else 0
+                        power = 40.0 + min(fish_speed * 20.0, 40.0)  # Power range: 40-80
+                        self.ball.kick(power, direction, kicker=entity)
+
+                        # Award small energy reward for kicking
+                        if hasattr(entity, "energy"):
+                            entity.energy += 2.0
+                            entity.energy = min(entity.energy, getattr(entity, "max_energy", 100))
+
+                        # Set visual effect for HUD display
+                        entity.soccer_effect_state = {
+                            "type": "kick",
+                            "amount": 2.0,
+                            "timer": 10,  # ~1 second at broadcast rate
+                        }
+
+                        # Only one fish kicks per frame
+                        break
 
     def _handle_goal_scored(self, goal_event) -> None:
         """Handle a goal being scored and award energy.
@@ -91,34 +184,49 @@ class SoccerSystem(BaseSystem):
         if not self.engine.environment:
             return
 
-        # Find all fish on the scoring team
-        for fish in self.engine.environment.entities_list:
+        # Find the scorer and award energy
+        scorer_found = False
+        for fish in self.engine.entities_list:
             if not isinstance(fish, Fish) or fish.is_dead():
                 continue
 
-            if fish.team != goal_event.team:
-                continue  # Only reward scoring team
-
-            # Award energy
-            base_reward = goal_event.base_energy_reward
-
-            # Bonus for actual scorer
+            # Check if this fish is the scorer
             if fish.fish_id == goal_event.scorer_id:
-                reward = base_reward * 0.5  # 50% bonus for scorer
-            else:
-                reward = base_reward * 0.2  # 20% bonus for teammates
+                # Award big energy reward for scoring
+                reward = 50.0
+                fish.energy += reward
+                fish.energy = min(fish.energy, fish.max_energy)
 
-            # Apply reward
-            fish.energy += reward
-            fish.energy = min(fish.energy, fish.max_energy)
+                # Set visual effect for HUD display
+                fish.soccer_effect_state = {
+                    "type": "goal",
+                    "amount": reward,
+                    "timer": 30,  # ~3 seconds at broadcast rate
+                }
+                scorer_found = True
+                logger.info(f"Fish {fish.fish_id} scored a goal! Awarded {reward:.1f} energy")
+                break
 
-            logger.debug(f"Fish {fish.fish_id} awarded {reward:.1f} energy for goal")
+        if not scorer_found:
+            logger.debug("No scorer found to reward (ball may not have been kicked)")
 
         # Log goal event
         logger.info(
             f"Goal scored by team {goal_event.team} "
             f"in zone {goal_event.goal_id} at frame {goal_event.timestamp}"
         )
+
+        # Reset ball to center after goal
+        if self.ball and self.engine.environment:
+            from core.math_utils import Vector2
+
+            cx = self.engine.environment.width / 2
+            cy = self.engine.environment.height / 2
+            self.ball.pos = Vector2(cx, cy)
+            self.ball.vel = Vector2(0.0, 0.0)
+            self.ball.acceleration = Vector2(0.0, 0.0)
+            self.ball.last_kicker = None
+            logger.info(f"Ball reset to center ({cx}, {cy})")
 
         # Emit event for tracking
         if hasattr(self.engine, "event_bus") and self.engine.event_bus:

@@ -62,13 +62,6 @@ class TankSnapshotBuilder:
         # entities list if available.
         entities_list = getattr(world, "entities_list", [])
 
-        # DEBUG: Count entity types
-        counts = {}
-        for e in entities_list:
-            t = type(e).__name__
-            counts[t] = counts.get(t, 0) + 1
-        logger.info(f"SNAPSHOT DEBUG: Found entities: {counts}")
-
         return self.collect(entities_list)
 
     def to_snapshot(self, entity: Any) -> EntitySnapshot | None:
@@ -124,21 +117,23 @@ class TankSnapshotBuilder:
         return snapshot
 
     def _enrich_ball(self, snapshot: EntitySnapshot, ball: Ball) -> None:
-        snapshot.radius = ball.radius
+        # Use width/2 for pixel radius (ball.size is RCSS physics units, not pixels)
+        pixel_radius = ball.width / 2
+        snapshot.radius = pixel_radius
         snapshot.render_hint = {
             "style": "soccer_ball",
             "color": "#FFFFFF",
-            "radius": ball.radius,
+            "radius": pixel_radius,
         }
 
     def _enrich_goal_zone(self, snapshot: EntitySnapshot, goal: GoalZone) -> None:
         snapshot.radius = goal.radius
-        snapshot.team = goal.team_id
+        snapshot.team = goal.team
         snapshot.render_hint = {
             "style": "goal_zone",
-            "team": goal.team_id,
+            "team": goal.team,
+            "goal_id": goal.goal_id,
             "radius": goal.radius,
-            "color": goal.color,
         }
 
     def _enrich_fish(self, snapshot: EntitySnapshot, fish: Fish) -> None:
