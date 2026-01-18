@@ -152,9 +152,9 @@ class StatePublisher:
         # Default extras if missing
         poker_events = extras.get("poker_events", [])
         soccer_events = extras.get("soccer_events", [])
-        soccer_league_live = extras.get("soccer_league_live", None)
+        soccer_league_live = extras.get("soccer_league_live")
         poker_leaderboard = extras.get("poker_leaderboard", [])
-        auto_eval = extras.get("auto_evaluation", None)
+        auto_eval = extras.get("auto_evaluation")
 
         return FullStatePayload(
             frame=frame,
@@ -213,7 +213,7 @@ class StatePublisher:
         except Exception:
             extras = {}
 
-        soccer_league_live = extras.get("soccer_league_live", None)
+        soccer_league_live = extras.get("soccer_league_live")
 
         return DeltaStatePayload(
             frame=frame,
