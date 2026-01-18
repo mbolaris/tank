@@ -2,14 +2,15 @@
     "benchmark_id": "tank/survival_5k",
     "version": 1,
     "champion": {
-        "score": 789.4243865075638,
+        "score": 887.7972712001744,
         "seed": 42,
-        "timestamp": 1768201513.4272387,
+        "timestamp": 1768751368.243948,
         "metadata": {
             "frames": 5000,
-            "avg_energy": 2162.587317196788,
-            "avg_pop": 365.037,
-            "extinct": false
+            "avg_energy": 2389.7870105879206,
+            "avg_pop": 371.4964,
+            "extinct": false,
+            "samples": 5000
         }
     },
     "history": []

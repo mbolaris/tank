@@ -57,9 +57,7 @@ def extract_traits_from_genome(genome) -> FishTraits:
     template_trait = getattr(physical, "template_id", None)
 
     fin_size = fin_trait.value if fin_trait is not None and fin_trait.value is not None else 1.0
-    tail_size = (
-        tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
-    )
+    tail_size = tail_trait.value if tail_trait is not None and tail_trait.value is not None else 1.0
     body_aspect = (
         body_trait.value if body_trait is not None and body_trait.value is not None else 1.0
     )

@@ -25,10 +25,7 @@ Example:
 
 from typing import TYPE_CHECKING, Optional
 
-from core.config.fish import (
-    DIRECTION_CHANGE_ENERGY_BASE,
-    DIRECTION_CHANGE_SIZE_MULTIPLIER,
-)
+from core.config.fish import DIRECTION_CHANGE_ENERGY_BASE, DIRECTION_CHANGE_SIZE_MULTIPLIER
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -116,9 +113,7 @@ class BehaviorExecutor:
         if self._poker_cooldown > 0:
             self._poker_cooldown -= 1
 
-    def _apply_turn_energy_cost(
-        self, fish: "Fish", previous_direction: Optional[Vector2]
-    ) -> None:
+    def _apply_turn_energy_cost(self, fish: "Fish", previous_direction: Optional[Vector2]) -> None:
         """Apply energy penalty for direction changes.
 
         The energy cost increases with:
@@ -145,7 +140,7 @@ class BehaviorExecutor:
             # Only apply cost if there's a noticeable direction change
             if turn_intensity > 0.1:  # Threshold to ignore tiny wobbles
                 # Base energy cost scaled by turn intensity and fish size
-                size_factor = fish.size ** DIRECTION_CHANGE_SIZE_MULTIPLIER
+                size_factor = fish.size**DIRECTION_CHANGE_SIZE_MULTIPLIER
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
                 fish.energy = max(0, fish.energy - energy_cost)

@@ -2,8 +2,6 @@ import logging
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 from core.config.fish import (
-    DIRECTION_CHANGE_ENERGY_BASE,
-    DIRECTION_CHANGE_SIZE_MULTIPLIER,
     ENERGY_MAX_DEFAULT,
     ENERGY_MODERATE_MULTIPLIER,
     FISH_BASE_HEIGHT,
@@ -35,10 +33,10 @@ if TYPE_CHECKING:
 
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.energy.energy_component import EnergyComponent
+from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.energy_state import EnergyState
 from core.fish.lifecycle_component import LifecycleComponent
 from core.fish.reproduction_component import ReproductionComponent
-from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.fish_memory import FishMemorySystem, MemoryType
@@ -1194,4 +1192,3 @@ class Fish(Agent):
             )
         else:
             self._emit_event(FoodEatenEvent("falling_food", algorithm_id, actual_energy))
-
