@@ -82,7 +82,6 @@ def run_movement_policy(
     )
 
     if not result.success:
-        print(f"DEBUG: Policy validation failed: {result.error_message}")
         _log_error(fish_id, component_id, f"Execution failed: {result.error_message}")
         return None
 

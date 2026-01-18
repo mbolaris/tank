@@ -76,9 +76,8 @@ class GoalZone(Entity):
         self.last_goal_time: int = -1000  # Frame number of last goal
         self.goal_counter: int = 0  # Total goals scored in this zone
 
-        # Visualization size
-        pixel_radius = int(radius * 2)  # Rough conversion to pixels
-        self.set_size(pixel_radius * 2, pixel_radius * 2)
+        # Visualization size (diameter = 2 * radius)
+        self.set_size(radius * 2, radius * 2)
 
     def check_goal(self, ball: Ball, frame_count: int) -> GoalEvent | None:
         """Check if the ball has entered the goal zone.
@@ -90,11 +89,16 @@ class GoalZone(Entity):
         Returns:
             GoalEvent if goal detected, None otherwise
         """
+        # Cooldown: don't detect goals too frequently (60 frames = ~2 seconds)
+        if frame_count - self.last_goal_time < 60:
+            return None
+
         # Calculate distance from goal center to ball center
         distance = (self.pos - ball.pos).length()
 
-        # Goal detected if ball is within radius
-        if distance <= self.radius + ball.size:
+        # Goal detected if ball is within radius (use ball width/2 for pixel radius)
+        ball_radius = ball.width / 2 if hasattr(ball, "width") else ball.size
+        if distance <= self.radius + ball_radius:
             # Determine scorer and assister from ball kick history
             scorer_id = None
             if ball.last_kicker is not None:
@@ -129,7 +133,8 @@ class GoalZone(Entity):
             True if ball is in goal zone
         """
         distance = (self.pos - ball.pos).length()
-        return distance <= self.radius + ball.size
+        ball_radius = ball.width / 2 if hasattr(ball, "width") else ball.size
+        return distance <= self.radius + ball_radius
 
     def get_distance_to_ball(self, ball: Ball) -> float:
         """Get distance from goal center to ball.
