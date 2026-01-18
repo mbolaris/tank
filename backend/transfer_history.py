@@ -40,6 +40,7 @@ class TransferRecord:
     success: bool
     error: Optional[str] = None
     generation: Optional[int] = None  # Fish generation (for tracking migration stats)
+    selection_seed: Optional[int] = None
 
 
 def log_transfer(
@@ -53,6 +54,7 @@ def log_transfer(
     success: bool,
     error: Optional[str] = None,
     generation: Optional[int] = None,
+    selection_seed: Optional[int] = None,
 ) -> TransferRecord:
     """Log a transfer event.
 
@@ -66,6 +68,7 @@ def log_transfer(
         destination_world_name: Destination world display name
         success: Whether transfer succeeded
         error: Error message if failed
+        selection_seed: Deterministic seed used for destination selection
 
     Returns:
         The created TransferRecord
@@ -83,6 +86,7 @@ def log_transfer(
         success=success,
         error=error,
         generation=generation,
+        selection_seed=selection_seed,
     )
 
     # Add to in-memory history
@@ -100,9 +104,10 @@ def log_transfer(
 
     # Log at DEBUG level to reduce noise (summary appears in Simulation Status)
     status = "success" if success else f"failed: {error}"
+    seed_suffix = f", selection_seed={selection_seed}" if selection_seed is not None else ""
     logger.debug(
         f"Transfer {entity_type} #{entity_old_id} "
-        f"{source_world_name} → {destination_world_name} ({status})"
+        f"{source_world_name} → {destination_world_name} ({status}){seed_suffix}"
     )
 
     return record
