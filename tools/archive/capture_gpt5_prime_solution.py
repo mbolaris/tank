@@ -9,10 +9,9 @@ from typing import Dict, List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from core.tank_world import TankWorld, TankWorldConfig
-
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
+from core.tank_world import TankWorld, TankWorldConfig
 
 AUTHOR = "GPT-5.2-Codex-Prime"
 FINAL_NAME = "GPT-5.2-Codex-Prime Poker Overlord"

@@ -140,9 +140,9 @@ URGENCY_BOOST_LOW = 0.15  # 15% speed boost when hungry
 # Night hunting is harder, rewarding memory-based foraging and schooling.
 BASE_FOOD_DETECTION_RANGE = 450.0  # Daytime: full visibility (pixels)
 # Actual range = BASE * time_modifier:
-#   Night (25%):     100px - forces close-range hunting, rewards memory
-#   Dawn/Dusk (75%): 300px - transitional
-#   Day (100%):      400px - full range, rewards speed and pursuit
+#   Night (40%):     180px - forces close-range hunting, rewards memory
+#   Dawn/Dusk (75%): 337px - transitional
+#   Day (100%):      450px - full range, rewards speed and pursuit
 
 # =============================================================================
 # PREDATOR AVOIDANCE vs FOOD PURSUIT
