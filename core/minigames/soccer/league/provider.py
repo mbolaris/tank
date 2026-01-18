@@ -26,7 +26,10 @@ class LeagueTeamProvider:
         self, world_state: Any
     ) -> tuple[dict[str, LeagueTeam], dict[str, TeamAvailability]]:
         """Identify all possible teams and their availability from all worlds."""
+        import logging
         import time
+
+        logger = logging.getLogger(__name__)
 
         combined_teams: dict[str, LeagueTeam] = {}
         combined_availability: dict[str, TeamAvailability] = {}
@@ -38,6 +41,12 @@ class LeagueTeamProvider:
             world_state.environment, "world_manager"
         ):
             world_manager = world_state.environment.world_manager
+            logger.debug(f"LeagueTeamProvider: world_manager = {world_manager}")
+        else:
+            logger.debug(
+                f"LeagueTeamProvider: No world_manager found. "
+                f"has environment={hasattr(world_state, 'environment')}"
+            )
 
         # Identify current world ID to skip locking
         current_world_id = None
@@ -46,12 +55,19 @@ class LeagueTeamProvider:
 
         # If we have a manager, iterate all worlds
         if world_manager:
-            for world_id, instance in world_manager.get_all_worlds().items():
+            all_worlds = world_manager.get_all_worlds()
+            logger.debug(
+                f"LeagueTeamProvider: Found {len(all_worlds)} world(s): {list(all_worlds.keys())}"
+            )
+            for world_id, instance in all_worlds.items():
                 # For each world, try to get fresh data
                 teams, avail = self._get_world_teams(instance, world_id == current_world_id)
                 if teams is not None and avail is not None:
                     # Update cache
                     self._cache[world_id] = (time.time(), teams, avail)
+                    logger.debug(
+                        f"LeagueTeamProvider: World {world_id[:8]} -> teams: {list(teams.keys())}"
+                    )
                 else:
                     # Use cache if available
                     if world_id in self._cache:

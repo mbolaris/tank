@@ -14,8 +14,8 @@ export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLivePro
 
     const getScoreDisplay = () => {
         if (!activeMatch) return 'League Idle';
-        const homeName = activeMatch.home_id || 'Home';
-        const awayName = activeMatch.away_id || 'Away';
+        const homeName = activeMatch.home_name || activeMatch.home_id || 'Home';
+        const awayName = activeMatch.away_name || activeMatch.away_id || 'Away';
         return `${homeName} ${activeMatch.score.left} - ${activeMatch.score.right} ${awayName}`;
     };
 
@@ -50,7 +50,7 @@ export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLivePro
                             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', width: '100%', justifyContent: 'center' }}>
                                 <div style={{ textAlign: 'right', flex: 1 }}>
                                     <div style={{ color: '#facc15', fontSize: '16px', fontWeight: 700, textShadow: '0 0 10px rgba(250, 204, 21, 0.2)' }}>
-                                        {activeMatch.home_id || 'Home'}
+                                        {activeMatch.home_name || activeMatch.home_id || 'Home'}
                                     </div>
                                 </div>
 
@@ -70,7 +70,7 @@ export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLivePro
 
                                 <div style={{ textAlign: 'left', flex: 1 }}>
                                     <div style={{ color: '#f87171', fontSize: '16px', fontWeight: 700, textShadow: '0 0 10px rgba(248, 113, 113, 0.2)' }}>
-                                        {activeMatch.away_id || 'Away'}
+                                        {activeMatch.away_name || activeMatch.away_id || 'Away'}
                                     </div>
                                 </div>
                             </div>

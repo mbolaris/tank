@@ -232,6 +232,9 @@ class WorldManager:
             config=config,
         )
         runner.world_manager = self
+        runner.connection_manager = self.connection_manager
+        # Re-inject world_manager into environment now that it's set
+        runner._update_environment_migration_context()
 
         # Start the simulation thread
         runner.start(start_paused=start_paused)

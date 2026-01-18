@@ -140,9 +140,16 @@ class SoccerLeagueRuntime:
             match_state = self._active_match.get_state()
             # Enrich with league metadata
             if self._current_league_match:
+                home_id = self._current_league_match.home_team_id
+                away_id = self._current_league_match.away_team_id
                 match_state["league_round"] = self._current_league_match.round_index
-                match_state["home_id"] = self._current_league_match.home_team_id
-                match_state["away_id"] = self._current_league_match.away_team_id
+                match_state["home_id"] = home_id
+                match_state["away_id"] = away_id
+                # Look up display names from leaderboard
+                home_entry = self._leaderboard.get(home_id)
+                away_entry = self._leaderboard.get(away_id)
+                match_state["home_name"] = home_entry.display_name if home_entry else home_id
+                match_state["away_name"] = away_entry.display_name if away_entry else away_id
             state["active_match"] = match_state
 
         return state
@@ -171,11 +178,14 @@ class SoccerLeagueRuntime:
         home_team = teams[league_match.home_team_id]
         away_team = teams[league_match.away_team_id]
 
-        entity_map = {}
-        if hasattr(world_state, "get_fish_list"):
-            for f in world_state.get_fish_list():
-                id_val = getattr(f, "fish_id", id(f))
-                entity_map[id_val] = f
+        # Collect all entity IDs needed for both teams
+        needed_ids: set[int] = set()
+        for team in [home_team, away_team]:
+            if team.source == TeamSource.TANK:
+                needed_ids.update(team.roster)
+
+        # Use provider to find entities across ALL connected worlds
+        entity_map = self._provider.find_entities(world_state, needed_ids)
 
         participants = []
 
