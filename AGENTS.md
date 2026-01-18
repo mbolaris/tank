@@ -1,86 +1,220 @@
-# TankWorld Agent Guide
+# AI Agent Guide: Instant Contribution to Tank World Evolution
 
-This guide helps AI agents (like Claude) perform evolutionary experiments and code improvements on TankWorld.
+**START HERE.** This file is your operating manual. If you are an AI agent (Claude, GPT, Grok, or similar) that has just pulled this repository, your mission is to accelerate the multi-tier evolution loop. Read this document and begin contributing **immediately**.
 
-## Overview: Two-Layer Evolution System
+---
 
-TankWorld implements a two-layer evolution mechanism:
+## TL;DR - Immediate Actions
 
-1. **Layer 1: Population Evolution** (inside simulation)
-   - Fish inherit algorithms and traits from parents
-   - Natural selection via environmental pressure (starvation, predation)
-   - 58 behavior algorithms + ComposableBehavior system
-
-2. **Layer 2: Algorithmic Evolution** (outside simulation)
-   - AI agents analyze simulation data
-   - Identify underperforming algorithms
-   - Improve code and parameters
-   - Create PRs for human review
-
-## Quick Start: Running an Experiment
-
-### Step 1: Run Headless Simulation
+If you want to start contributing RIGHT NOW, run these commands:
 
 ```bash
-# Short test (5k frames, ~20 seconds)
+# 1. Setup (if not already done)
+pip install -e .[dev]
+pre-commit install
+
+# 2. Run a baseline simulation
+python main.py --headless --max-frames 30000 --stats-interval 10000 --export-stats results.json --seed 42
+
+# 3. Evaluate current state
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+
+# 4. Run the AI tournament to see current standings
+python scripts/run_ai_tournament.py --write-back
+
+# 5. Identify what needs improvement, make changes, test, and commit
+```
+
+---
+
+## Overview: What is Tank World?
+
+Tank World is a **self-evolving artificial life research framework** where:
+
+1. **Fish (entities) evolve** behaviors through genetic algorithms inside simulations
+2. **AI agents evolve** the algorithms, benchmarks, and code outside simulations
+3. **The framework evolves** its own tools, workflows, and infrastructure
+
+**The key innovation**: Git is the heredity mechanism. PRs are mutations, CI is selection, merged changes are offspring that future agents inherit.
+
+### The Three-Layer Evolution System
+
+| Layer | What Evolves | How | Your Role |
+|-------|--------------|-----|-----------|
+| **Layer 0** | In-world fish behaviors | Natural selection in simulation | Run simulations, capture champions |
+| **Layer 1** | Algorithms & code | AI proposes improvements, CI validates | Analyze data, generate improvements, submit PRs |
+| **Layer 2** | Tooling & workflows | Meta-evolution of how we evolve | Improve benchmarks, instructions, CI gates |
+
+---
+
+## Immediate Mission: Enter the Evolution Loop
+
+Upon pulling this repo, execute the following loop **continuously**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    THE EVOLUTION LOOP                            │
+│                                                                  │
+│   1. RUN SIMULATION ──► 2. EVALUATE ──► 3. IDENTIFY GAPS        │
+│          │                                      │                │
+│          ▼                                      ▼                │
+│   6. COMMIT & PR ◄──── 5. VALIDATE ◄──── 4. IMPROVE CODE        │
+│          │                                                       │
+│          └───────────────► REPEAT ─────────────────────────►    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Step 1: Environment Setup
+
+### Quick Setup (Linux/Mac)
+
+```bash
+# Clone if needed
+git clone https://github.com/mbolaris/tank.git
+cd tank
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -e .[dev]
+
+# Install pre-commit hooks (CRITICAL - prevents CI failures)
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+### Quick Setup (Windows PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .[dev]
+pip install pre-commit
+pre-commit install
+```
+
+### Configure LLM API Keys (if using AI code evolution)
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."  # For Claude
+# OR
+export OPENAI_API_KEY="sk-..."         # For GPT-4
+```
+
+---
+
+## Step 2: Run Simulations
+
+### Headless Mode (Fastest - Use This)
+
+```bash
+# Quick test (5k frames, ~20 seconds)
 python main.py --headless --max-frames 5000 --stats-interval 2500 --seed 42
 
 # Standard experiment (30k frames, ~2 minutes)
 python main.py --headless --max-frames 30000 --stats-interval 10000 --export-stats results.json --seed 42
 
-# Long experiment (100k frames, ~6 minutes)
+# Long evolution run (100k frames, ~6 minutes)
 python main.py --headless --max-frames 100000 --stats-interval 10000 --export-stats results.json --seed 42
 ```
 
-**Key CLI Flags:**
-- `--headless`: No UI, ~250+ FPS
-- `--max-frames`: Simulation length (30fps → frames/30 = seconds)
-- `--stats-interval`: Print stats every N frames
-- `--export-stats FILE`: Export JSON for analysis
-- `--seed N`: Reproducible random seed
+### Key CLI Flags
 
-### Step 2: Analyze Results
+| Flag | Description |
+|------|-------------|
+| `--headless` | No UI, 10-300x faster |
+| `--max-frames N` | Simulation length (30 FPS, so 30000 = ~17 minutes sim time) |
+| `--stats-interval N` | Print stats every N frames |
+| `--export-stats FILE` | Export JSON for analysis |
+| `--seed N` | **CRITICAL**: Reproducible random seed |
 
-The simulation outputs key metrics to watch:
+### Run Benchmarks
 
-1. **Death Causes** - Most critical metric
-   - `starvation`: Fish couldn't find food fast enough
-   - `predation`: Killed by crabs
-   - `old_age`: Natural death (desired!)
+```bash
+# Run the survival benchmark
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-   **If starvation > 90%**: Food-seeking algorithms need improvement
+# Validate against current champion
+python tools/validate_improvement.py results.json champions/tank/survival_5k.json
+```
 
-2. **Reproduction Stats**
-   - `success_rate`: >100% means multiple offspring per attempt
-   - `total_births/deaths`: Population health indicator
+### Soccer Mode (Alternative Evolution Target)
 
-3. **Generation Advancement**
-   - `max_generation / frames * 10000`: Generations per 10k frames
-   - Higher = faster evolution
+```bash
+# Run soccer simulation
+python main.py --headless --mode soccer --max-frames 30000 --seed 42
+```
 
-4. **Algorithm Performance** (in console output)
-   - Top performers by reproduction rate
-   - Survival rates per algorithm
-   - Average lifespan
+---
 
-**Artifacts to review after long runs:**
-- `results.json` (exported stats; includes death_causes, max_generation, frame_count)
-- `logs/algorithm_performance_report.txt` (per-algorithm reproduction and starvation rates)
+## Step 3: Evaluate Performance
 
-### Step 3: Identify Improvements
+### Key Metrics to Monitor
 
-Common patterns to look for:
+After running simulations, analyze these metrics from `results.json`:
+
+#### Death Causes (Most Critical)
+- `starvation`: Fish couldn't find food - **>90% = food-seeking needs improvement**
+- `predation`: Killed by crabs
+- `old_age`: Natural death - **This is desired!**
+
+#### Population Health
+- `total_births / total_deaths`: Should be >1 for growth
+- `reproduction_success_rate`: >100% means multiple offspring per attempt
+- `max_generation`: Higher = faster evolution
+
+#### Algorithm Performance
+Check `logs/algorithm_performance_report.txt` for:
+- Per-algorithm reproduction rates
+- Survival rates
+- Average lifespan
+
+### Healthy Ecosystem Indicators
+
+| Metric | Healthy Range | Warning |
+|--------|--------------|---------|
+| Starvation deaths | <80% | >95% = urgent fix needed |
+| Population | >20 fish stable | Frequent emergency spawns = unstable |
+| Generation rate | >5 per 10k frames | <3 = evolution too slow |
+| Reproduction success | >120% | <100% = population declining |
+| Diversity score | >15% | <10% = genetic bottleneck |
+
+### Pattern Analysis
 
 | Pattern | Root Cause | Fix Location |
 |---------|------------|--------------|
-| >90% starvation | Food detection/pursuit too slow | `core/algorithms/composable/` |
-| Frequent emergency spawns | Population crashes repeatedly | `core/reproduction_service.py` |
+| >90% starvation | Food detection too slow | `core/algorithms/composable/` |
+| Frequent emergency spawns | Population crashes | `core/reproduction_service.py` |
 | Low diversity | Genetic drift | `core/algorithms/registry.py` |
 | Short lifespans | Energy costs too high | `core/config/fish.py` |
 
-### Step 4: Implement Improvements
+---
 
-Key files for evolution tuning:
+## Step 4: Identify and Implement Improvements
+
+### Priority Areas for Improvement
+
+1. **Level 0 (In-World)**: Evolve better fish traits and behaviors
+   - Run longer simulations with different seeds
+   - Capture champion genomes when fish perform well
+   - Test different environmental parameters
+
+2. **Level 1 (Algorithms)**: Improve the 58 behavior algorithms
+   - Analyze `results.json` for underperformers
+   - Modify algorithms in `core/algorithms/`
+   - Tune parameters in `core/config/`
+
+3. **Level 2 (Meta)**: Improve the evolution framework
+   - Better benchmarks in `benchmarks/`
+   - Improved CI workflows in `.github/workflows/`
+   - Enhanced documentation and instructions
+
+### Key Files for Improvements
 
 ```
 core/config/fish.py              # Energy costs, thresholds
@@ -90,285 +224,357 @@ core/algorithms/composable/
   ├── behavior.py                # Main execute logic
   └── actions.py                 # Sub-behavior implementations
 core/reproduction_service.py     # Emergency spawn logic
-core/time_system.py              # Night detection penalty
+core/time_system.py              # Day/night detection penalty
 ```
 
-**Example: Boost food pursuit speed**
-```python
-# In core/algorithms/composable/definitions.py
-# Change pursuit_speed bounds from (0.8, 1.2) to (0.9, 1.4)
-"pursuit_speed": (0.9, 1.4),  # Increased for faster food catching
+### Using the AI Code Evolution Agent
+
+```bash
+# Run simulation and export stats
+python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+
+# Let AI identify and improve worst performer
+python scripts/ai_code_evolution_agent.py results.json --provider anthropic
+
+# With validation (runs test simulation before committing)
+python scripts/ai_code_evolution_agent.py results.json --provider anthropic --validate
+
+# Dry run (see what would change without committing)
+python scripts/ai_code_evolution_agent.py results.json --provider anthropic --dry-run
 ```
 
-### Step 5: Validate Changes
+---
+
+## Step 5: Validate Changes
+
+### Run Tests
+
+```bash
+# Quick gate (fast, portable)
+pytest -m "not slow and not integration"
+
+# Full test suite
+pytest
+
+# Specific test files
+pytest tests/test_simulation.py
+pytest tests/test_determinism.py
+```
+
+### Run Formatters (Pre-commit handles this)
+
+```bash
+# Format code
+black core/ tests/ tools/
+
+# Fix linting errors
+ruff check --fix --unsafe-fixes core/ tests/ tools/
+
+# Or just run pre-commit
+pre-commit run --all-files
+```
+
+### Validate Benchmark Improvement
+
+```bash
+# Run your benchmark
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+
+# Compare against current champion
+python tools/validate_improvement.py results.json champions/tank/survival_5k.json
+```
+
+### Test Simulation Behavior
 
 ```bash
 # Quick validation run
 python main.py --headless --max-frames 10000 --stats-interval 5000 --seed 42
 
-# Compare metrics with baseline
+# Compare key metrics
 python3 -c "
 import json
 with open('results.json') as f: data = json.load(f)
-print(f'Starvation rate: {data[\"death_causes\"][\"starvation\"] / data[\"total_deaths\"] * 100:.1f}%')
-print(f'Generation rate: {data[\"max_generation\"] * 10000 / data[\"frame_count\"]:.2f} per 10k frames')
+deaths = data.get('death_causes', {})
+total = sum(deaths.values()) or 1
+print(f'Starvation: {deaths.get(\"starvation\", 0) / total * 100:.1f}%')
+print(f'Max generation: {data.get(\"max_generation\", 0)}')
 "
 ```
 
-## Key Metrics Reference
+---
 
-### Healthy Ecosystem Indicators
-- Starvation deaths: <80% of total deaths
-- Population stability: >20 fish most of the time
-- Generation advancement: >5 generations per 10k frames
-- Reproduction success: >120%
+## Step 6: Commit and Submit
 
-### Warning Signs
-- Starvation >95%: Fish can't find food
-- Frequent emergency spawns: Population unstable
-- Generation rate <3 per 10k: Evolution too slow
-- Diversity score <15%: Genetic bottleneck
+### Create Branch
 
-## File Structure Quick Reference
-
-```
-core/
-├── algorithms/           # 58 behavior algorithms
-│   ├── composable/      # Meta-behavior system (dominant)
-│   ├── food_seeking/    # 14 food algorithms
-│   ├── predator_avoidance.py  # 10 flee algorithms
-│   └── registry.py      # Algorithm registration
-├── config/              # Tunable parameters
-│   ├── fish.py         # Energy costs, thresholds
-│   └── food.py         # Detection ranges, spawning
-├── genetics/            # Genome, traits, inheritance
-├── reproduction_service.py  # Birth logic, emergency spawns
-└── time_system.py       # Day/night cycle, detection modifiers
-```
-
-## Recent Improvements (Dec 2024)
-
-Based on 100k frame experiment showing 98.9% starvation:
-
-1. **Reduced EXISTENCE_ENERGY_COST** (0.06 → 0.05)
-   - File: `core/config/fish.py`
-   - Effect: Better baseline survival
-
-2. **Boosted pursuit_speed range** ((0.8,1.2) → (0.9,1.4))
-   - File: `core/algorithms/composable/definitions.py`
-   - Effect: Faster food catching
-
-3. **Increased night detection** (25% → 40%)
-   - File: `core/time_system.py`
-   - Effect: Less punishing night hunting
-
-4. **Improved emergency spawn** (random → clone best fish)
-   - File: `core/reproduction_service.py`
-   - Effect: Preserves successful genetics
-
-Results: Generation advancement rate nearly doubled (4.4 → 8.7 per 10k frames)
-
-## Solution Tracking & Comparison
-
-TankWorld includes a solution tracking system for preserving, evaluating, and comparing the best skill game strategies produced by simulations. This enables agents to compete and share their best evolved solutions.
-
-### Submitting Your Best Solution
-
-**Option 1: Use the Capture Script**
 ```bash
-# Run simulation and capture best solution automatically
+# For algorithm improvements (Layer 1)
+git checkout -b improve/[algorithm-name]-[brief-description]
+
+# For meta improvements (Layer 2)
+git checkout -b meta/[improvement-type]-[brief-description]
+
+# For new solutions/champions
+git checkout -b solution/[author]-[strategy-name]
+```
+
+### Commit Changes
+
+```bash
+# Stage changes
+git add [modified files]
+
+# Commit with descriptive message
+git commit -m "$(cat <<'EOF'
+Improve [benchmark]: [Algorithm] optimization
+
+New score: [X] (previous: [Y], +[Z]%)
+Algorithm: [Name] with [change description]
+Seed: 42
+Reproduction: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+
+- [Change 1]
+- [Change 2]
+- [Impact description]
+EOF
+)"
+```
+
+### Push and Create PR
+
+```bash
+git push -u origin [branch-name]
+```
+
+Then open a PR on GitHub with:
+- Benchmark results showing improvement
+- Reproduction command
+- Explanation of changes
+- Evidence of no regressions
+
+---
+
+## Solution Tracking System
+
+### Submit Your Best Evolved Solution
+
+```bash
+# Option 1: Use capture script (runs sim and captures best fish)
 python scripts/capture_first_solution.py
-```
 
-**Option 2: Use the CLI Tool**
-```bash
-# List existing solutions
-python scripts/submit_solution.py list
+# Option 2: CLI tool
+python scripts/submit_solution.py list           # See existing solutions
+python scripts/submit_solution.py evaluate <id>  # Evaluate a solution
+python scripts/submit_solution.py compare        # Compare all solutions
 
-# Evaluate a specific solution
-python scripts/submit_solution.py evaluate <solution_id>
-
-# Compare all solutions
-python scripts/submit_solution.py compare
-
-# Generate benchmark report
-python scripts/submit_solution.py report --print
-```
-
-**Option 3: Capture from Running Simulation (API)**
-```bash
-# Capture best fish from a running tank
+# Option 3: Capture from running simulation (requires server)
 curl -X POST http://localhost:8000/api/solutions/capture/{tank_id} \
   -H "Content-Type: application/json" \
   -d '{"name": "My Strategy", "author": "Agent-Name", "evaluate": true}'
 ```
 
-### Solution Evaluation
-
-Solutions are benchmarked against 8 standard opponents:
-
-| Opponent | Elo | Description |
-|----------|-----|-------------|
-| always_fold | 800 | Folds every hand |
-| random | 900 | Random actions |
-| loose_passive | 1100 | Calling station |
-| tight_passive | 1150 | Rock player |
-| tight_aggressive | 1400 | TAG style |
-| loose_aggressive | 1350 | LAG style |
-| maniac | 1450 | Hyper-aggressive |
-| balanced | 1600 | GTO-inspired |
-
-### Skill Tiers
-
-| Tier | Elo Range | Description |
-|------|-----------|-------------|
-| failing | <900 | Worse than random |
-| novice | 900-1100 | Basic play |
-| beginner | 1100-1300 | Competent |
-| intermediate | 1300-1450 | Solid |
-| advanced | 1450-1550 | Strong |
-| expert | 1550-1700 | Very strong |
-| master | >1700 | Elite |
-
-### Committing Your Solution to Git
-
-After capturing a solution, commit it to share with other agents:
+### Run AI Tournament
 
 ```bash
-# Stage and commit your solution
-git add solutions/*.json
-git commit -m "Submit solution: <your-solution-name>
-
-Author: <Agent-Name>
-Elo: <rating>
-Skill Tier: <tier>
-"
-git push
-```
-
-### Solution Files
-
-Solutions are stored in `solutions/` directory as JSON files containing:
-- **metadata**: Author, timestamp, fish ID, generation
-- **behavior_algorithm**: The evolved behavioral strategy
-- **poker_strategy**: The evolved poker betting strategy (serialized)
-- **capture_stats**: Performance metrics when captured
-- **benchmark_result**: Evaluation against standard opponents
-
-### Current Leaderboard
-
-Run `python scripts/submit_solution.py list` to see current rankings.
-
-First solution submitted: **Opus-4.5 Poker Champion** (Elo 1230, beginner tier)
-
-## Tips for Agents
-
-1. **Always run baseline first** - Get metrics before making changes
-2. **Make targeted changes** - One improvement area at a time
-3. **Use seed for reproducibility** - `--seed 42` for comparisons
-4. **Document your changes** - Add comments explaining rationale
-5. **Test with quick runs** - 10k frames validates basic functionality
-6. **Long runs for evolution** - 100k+ frames shows evolutionary trends
-7. **Submit your best solution** - Use `scripts/capture_first_solution.py` to capture and submit your best evolved strategy
-
-## CI Compatibility Notes
-
-- CI still runs Python 3.8 for tests. Use `from __future__ import annotations` or `typing.Tuple`/`typing.Dict` instead of builtin generics in new test modules to avoid `TypeError: 'type' object is not subscriptable`.
-
-## Pre-commit Hooks: Prevent Errors Before Committing
-
-**IMPORTANT:** Always set up pre-commit hooks to catch formatting, linting, and type errors locally before committing.
-
-### Initial Setup (One Time)
-
-```bash
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files  # Validate on existing code
-```
-
-### What Hooks Check
-
-Pre-commit hooks automatically run on every commit:
-- **black**: Code formatting (100-char line length)
-- **ruff**: Linting (unused variables, imports, type issues)
-- **trailing-whitespace**: Removes trailing spaces
-- **end-of-file-fixer**: Ensures files end with newlines
-
-### Common Fixes
-
-When hooks fail, they often auto-fix issues. Just re-stage and commit:
-
-```bash
-git add .
-git commit -m "Your message"  # Will succeed on second attempt
-```
-
-### Manual Fixes
-
-If auto-fix doesn't work, run formatters manually:
-
-```bash
-black core/ tests/ tools/          # Auto-format Python
-ruff check --fix --unsafe-fixes core/ tests/ tools/  # Fix linting errors
-```
-
-**Why This Matters:** Agents that skip pre-commit setup consistently introduce formatting and type errors that fail CI. Using hooks prevents 95% of these issues.
-
-## AI Tournament (Best Per Author)
-
-TankWorld includes a tournament runner that selects the best solution per author and runs a head-to-head round robin.
-
-```bash
-# Run tournament (does NOT modify solution JSON files)
+# Basic tournament
 python scripts/run_ai_tournament.py
 
-# Include the best fish from your currently-running local tank (requires server running on localhost:8000)
+# Tournament with live tank capture
 python scripts/run_ai_tournament.py --include-live-tank --write-back
 
-# Stronger live-tank capture: select the fish most likely to win the tournament field
-python scripts/run_ai_tournament.py --include-live-tank --live-selection tournament --live-candidate-pool 20 --live-hands-per-matchup 800 --write-back
-
-# Run tournament and write results back into solution files + regenerate solutions/benchmark_report.txt
-python scripts/run_ai_tournament.py --write-back
-
-# More stable (slower) run
+# More stable evaluation (slower but more accurate)
 python scripts/run_ai_tournament.py --benchmark-hands 800 --benchmark-duplicates 25 --matchup-hands 5000 --write-back
 ```
 
-Outputs:
-- `solutions/ai_tournament_report.txt` (human-readable standings + head-to-head matrix)
-- `results/ai_tournament_results.json` (optional; pass `--json-output results/ai_tournament_results.json`)
+### Commit Your Solution
 
-Re-running the tournament on the same git commit should produce the same head-to-head matrix (deterministic seeding is based on solution IDs).
+```bash
+git add solutions/*.json
+git commit -m "$(cat <<'EOF'
+Submit solution: [Your Solution Name]
 
-## Prompt Template: Submit Your Next Attempt
+Author: [Your Agent Name]
+Elo: [rating]
+Skill Tier: [tier]
+bb/100: [value]
+EOF
+)"
+git push
+```
 
-Copy/paste the following prompt into your agent session (edit placeholders):
+---
+
+## Continuous Evolution Loop Template
+
+Use this workflow template for continuous improvement:
+
+```python
+# Pseudocode for continuous evolution
+while True:
+    # 1. Run baseline
+    baseline = run_benchmark(seed=42)
+
+    # 2. Analyze results
+    gaps = identify_underperformers(baseline)
+
+    # 3. Generate improvement
+    for gap in gaps:
+        improvement = propose_improvement(gap)
+
+        # 4. Validate
+        test_result = run_benchmark(seed=42, with_improvement=True)
+
+        if test_result.score > baseline.score:
+            # 5. Submit
+            create_branch()
+            commit_changes()
+            push_and_pr()
+
+    # 6. Pull latest changes from others
+    git_pull()
+```
+
+---
+
+## CI Compatibility Notes
+
+### Python Version
+CI runs Python 3.8. Use compatible type hints:
+```python
+# Good (3.8 compatible)
+from __future__ import annotations
+from typing import Dict, List, Tuple
+
+# Bad (3.9+ only)
+def foo() -> dict[str, list[int]]:  # Will fail in CI
+```
+
+### Pre-commit Hooks
+Always install and run pre-commit:
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files  # Run before committing
+```
+
+### Common CI Failures and Fixes
+| Error | Fix |
+|-------|-----|
+| `black` formatting | Run `black core/ tests/ tools/` |
+| `ruff` linting | Run `ruff check --fix core/ tests/` |
+| Type errors | Use `from __future__ import annotations` |
+| Test failures | Run `pytest -x` locally first |
+
+---
+
+## Resource Reference
+
+### Documentation
+| File | Purpose |
+|------|---------|
+| `AGENTS.md` | This file - AI agent guide |
+| `README.md` | Project overview |
+| `SETUP.md` | Environment setup |
+| `docs/VISION.md` | Long-term goals |
+| `docs/ARCHITECTURE.md` | Technical architecture |
+| `docs/EVO_CONTRIBUTING.md` | Evolutionary PR protocol |
+| `MULTILEVEL_EVOLUTION_STRATEGY.md` | Soccer evolution strategy |
+| `BEHAVIOR_DEVELOPMENT_GUIDE.md` | Creating new behaviors |
+
+### Key Directories
+| Directory | Contents |
+|-----------|----------|
+| `core/` | Simulation engine and algorithms |
+| `core/algorithms/` | 58 behavior algorithms |
+| `core/config/` | Tunable parameters |
+| `benchmarks/` | Evaluation harnesses |
+| `champions/` | Best-known solutions |
+| `solutions/` | Submitted poker solutions |
+| `scripts/` | Automation scripts |
+| `tools/` | Development utilities |
+| `tests/` | Test suite |
+
+### Essential Scripts
+| Script | Purpose |
+|--------|---------|
+| `main.py` | Run simulation (web or headless) |
+| `tools/run_bench.py` | Run benchmarks |
+| `tools/validate_improvement.py` | Compare against champions |
+| `scripts/ai_code_evolution_agent.py` | AI-powered code improvement |
+| `scripts/run_ai_tournament.py` | Run solution tournaments |
+| `scripts/submit_solution.py` | Manage solutions |
+
+---
+
+## Tips for AI Agents
+
+1. **Always run baseline first** - Get metrics before making changes
+2. **Use deterministic seeds** - `--seed 42` for reproducibility
+3. **Make targeted changes** - One improvement area at a time
+4. **Validate before committing** - Run tests and benchmarks locally
+5. **Document your changes** - Clear commit messages with metrics
+6. **Check for regressions** - Ensure you don't break other benchmarks
+7. **Submit your best solutions** - Use the solution tracking system
+8. **Pull frequently** - Get improvements from other agents
+9. **Focus on high-impact areas** - Starvation rate, generation speed
+10. **Iterate rapidly** - Small improvements compound over time
+
+---
+
+## Prompt for New Agent Sessions
+
+Copy this to start a new evolution session:
 
 ```
-You are an AI agent working in the TankWorld repo. Your goal is to submit a new poker solution that improves your author’s best standing in the AI tournament.
+You are an AI agent working in the TankWorld repo (https://github.com/mbolaris/tank).
+Your mission is to improve the evolutionary ALife framework.
 
-Rules:
-- Use your model name as `author` and include it in the solution `name`.
-- Do not modify unrelated files.
-- Prefer reproducible runs: always record the seed(s) used.
+Current task: [CHOOSE ONE]
+- Run simulation and capture best evolved strategy
+- Improve worst-performing algorithm
+- Add new benchmark for [specific metric]
+- Fix issue with [component]
 
 Workflow:
-1) Baseline: run `python scripts/run_ai_tournament.py` and note current standings.
-2) Evolve: run a longer headless simulation (50k–150k frames) and try multiple seeds.
-   - Example: `python main.py --headless --max-frames 100000 --seed 4242`
-3) Capture: capture the best poker fish into a solution JSON (create a capture script if needed).
-4) Evaluate: run a stronger benchmark evaluation:
-   - `python scripts/submit_solution.py evaluate <solution_id> --hands 800 --duplicates 25`
-5) Save: ensure the solution JSON exists under `solutions/` and has `metadata.author` and `metadata.name` set correctly.
-6) Verify: rerun the tournament including your new solution:
-   - `python scripts/run_ai_tournament.py --write-back`
-7) Submit: commit only the new/updated solution JSON and any intentional supporting changes.
-   - `git add solutions/<solution_id>.json`
-   - `git commit -m "Submit solution: <solution_name>\n\nAuthor: <author>\nElo: <elo>\nSkill Tier: <tier>\nbb/100: <bb_per_100>\n"`
-   - `git push`
+1. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+2. Analyze: Review results.json for underperformers
+3. Improve: Modify relevant code in core/
+4. Validate: pytest && python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+5. Commit: Clear message with metrics
+6. Push: git push -u origin [branch]
 
-Deliverable:
-- The new `solution_id`, Elo, tier, bb/100, and your position in the tournament standings.
+Rules:
+- Always use deterministic seeds
+- Run pre-commit before committing
+- Include benchmark results in PR
+- One focused improvement per PR
 ```
+
+---
+
+## Emergency Commands
+
+If something breaks:
+
+```bash
+# Reset to clean state
+git checkout main
+git pull origin main
+
+# Clear Python cache
+find . -type d -name __pycache__ -exec rm -rf {} +
+find . -type f -name "*.pyc" -delete
+
+# Reinstall dependencies
+pip install -e .[dev] --force-reinstall
+
+# Clear tank data
+rm -rf data/tanks/*
+
+# Run full test suite
+pytest -x
+```
+
+---
+
+**Remember**: Every improvement you make gets committed to the evolutionary lineage. Your changes become the baseline for future agents. Small, validated improvements compound into significant advances. Start contributing now!
