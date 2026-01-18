@@ -10,8 +10,6 @@ Scripts for running long simulations and capturing evolved poker solutions:
 |--------|-------------|
 | `capture_antigravity_solution_v3.py` | Capture evolved solution with tuned parameters |
 | `capture_gpt5_prime_solution.py` | GPT-5 configuration capture |
-| `capture_haiku_seed1234.py` | Haiku run with seed 1234 |
-| `capture_haiku_seed2024.py` | Haiku run with seed 2024 |
 | `capture_haiku_solution.py` | Standard Haiku solution capture |
 | `capture_haiku_solution_100k.py` | Extended 100k frame Haiku capture |
 | `capture_sonnet_solution.py` | Sonnet configuration capture |
