@@ -95,17 +95,23 @@ class PackableEngine(Protocol):
     poker_system: PokerSystem
     poker_proximity_system: PokerProximitySystem
 
-    def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_spawn(self, entity: Any, **kwargs: Any) -> bool:
+        ...
 
-    def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
+    def request_remove(self, entity: Any, **kwargs: Any) -> bool:
+        ...
 
-    def _apply_entity_mutations(self, stage: str) -> None: ...
+    def _apply_entity_mutations(self, stage: str) -> None:
+        ...
 
-    def create_initial_entities(self) -> None: ...
+    def create_initial_entities(self) -> None:
+        ...
 
-    def _block_root_spots_with_obstacles(self) -> None: ...
+    def _block_root_spots_with_obstacles(self) -> None:
+        ...
 
-    def _build_spawn_rate_config(self) -> SpawnRateConfig: ...
+    def _build_spawn_rate_config(self) -> SpawnRateConfig:
+        ...
 
 
 class SimulationEngine:
@@ -331,6 +337,11 @@ class SimulationEngine:
         else:
             self._phase_hooks = NoOpPhaseHooks()
 
+        # 8. Finalize setup: apply any queued mutations from seeding (without recording frame outputs)
+        self._apply_entity_mutations("setup_finalize", record_outputs=False)
+        if self._entity_manager.is_dirty:
+            self._rebuild_caches()
+
     def _assert_required_systems(self) -> None:
         """Fail fast if core systems were not wired by the SystemPack."""
         required = {
@@ -554,40 +565,47 @@ class SimulationEngine:
         """Check if an entity is queued for removal."""
         return self._entity_mutations.is_pending_removal(entity)
 
-    def _apply_entity_mutations(self, stage: str) -> None:
-        """Apply queued spawns/removals at a safe point in the frame."""
+    def _apply_entity_mutations(self, stage: str, *, record_outputs: bool = True) -> None:
+        """Apply queued spawns/removals at a safe point in the frame.
+
+        Args:
+            stage: Debug label for where the mutations are applied.
+            record_outputs: When True, record SpawnRequest/RemovalRequest entries in the
+                per-frame delta buffers. When False, apply mutations without touching
+                frame outputs (used during setup/seeding).
+        """
         from core.worlds.contracts import RemovalRequest, SpawnRequest
 
         removals = self._entity_mutations.drain_removals()
         for mutation in removals:
             entity = mutation.entity
-            # Use identity provider for stable IDs, fall back to class name + id()
-            entity_type, entity_id = self._get_entity_identity(entity)
-
-            self._frame_removals.append(
-                RemovalRequest(
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    reason=mutation.reason,
-                    metadata=mutation.metadata,
+            if record_outputs:
+                # Use identity provider for stable IDs, fall back to class name + id()
+                entity_type, entity_id = self._get_entity_identity(entity)
+                self._frame_removals.append(
+                    RemovalRequest(
+                        entity_type=entity_type,
+                        entity_id=entity_id,
+                        reason=mutation.reason,
+                        metadata=mutation.metadata,
+                    )
                 )
-            )
             self._remove_entity(entity)
 
         spawns = self._entity_mutations.drain_spawns()
         for mutation in spawns:
             entity = mutation.entity
-            # Use identity provider for stable IDs, fall back to class name + id()
-            entity_type, entity_id = self._get_entity_identity(entity)
-
-            self._frame_spawns.append(
-                SpawnRequest(
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    reason=mutation.reason,
-                    metadata=mutation.metadata,
+            if record_outputs:
+                # Use identity provider for stable IDs, fall back to class name + id()
+                entity_type, entity_id = self._get_entity_identity(entity)
+                self._frame_spawns.append(
+                    SpawnRequest(
+                        entity_type=entity_type,
+                        entity_id=entity_id,
+                        reason=mutation.reason,
+                        metadata=mutation.metadata,
+                    )
                 )
-            )
             self._add_entity(entity)
 
     def get_fish_list(self) -> list[entities.Fish]:
@@ -940,6 +958,15 @@ class SimulationEngine:
 
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
+
+        if self._phase_debug_enabled:
+            pending_spawns = self._entity_mutations.pending_spawn_count()
+            pending_removals = self._entity_mutations.pending_removal_count()
+            if pending_spawns or pending_removals:
+                raise RuntimeError(
+                    "End-of-frame invariant violated: pending entity mutations remain "
+                    f"(spawns={pending_spawns}, removals={pending_removals})"
+                )
 
         self._current_phase = None
 

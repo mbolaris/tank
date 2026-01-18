@@ -43,9 +43,9 @@ class Ball(Agent):
     # Ball size for rendering/collision (in pixels, roughly)
     DEFAULT_PIXEL_RADIUS = 10
 
-    # Coordinate scale: Tank pixels to RCSS meters (Tank ~1088px, RCSS ~105m)
-    # This scales velocities so RCSS physics produce visible movement in pixels
-    PIXEL_SCALE = 5.0  # ~5 pixels per RCSS meter (reduced for slower ball)
+    # Tank uses pixel-space coordinates; ball velocity/acceleration are expressed in pixels/cycle.
+    # Keep the scale at 1.0 so physics integration matches tests and world units.
+    PIXEL_SCALE = 1.0
 
     def __init__(
         self,

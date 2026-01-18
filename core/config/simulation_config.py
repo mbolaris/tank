@@ -89,6 +89,19 @@ class EcosystemConfig:
     total_algorithm_count: int = TOTAL_ALGORITHM_COUNT
     total_species_count: int = TOTAL_SPECIES_COUNT
 
+    @property
+    def initial_fish_count(self) -> int:
+        """Backwards-compatible alias for initial population size.
+
+        Several tests and tools historically used ``initial_fish_count`` to mean the
+        same thing as ``num_schooling_fish`` (how many fish to seed at setup).
+        """
+        return self.num_schooling_fish
+
+    @initial_fish_count.setter
+    def initial_fish_count(self, value: int) -> None:
+        self.num_schooling_fish = int(value)
+
 
 @dataclass
 class DisplayConfig:

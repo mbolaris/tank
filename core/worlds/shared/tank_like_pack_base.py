@@ -198,7 +198,7 @@ class TankLikePackBase(ABC):
         if engine.plant_manager is not None:
             engine._block_root_spots_with_obstacles()
             engine.plant_manager.create_initial_plants(engine._entity_manager.entities_list)
-            engine._apply_entity_mutations("setup_plants")
+            engine._apply_entity_mutations("setup_plants", record_outputs=False)
 
     def get_pipeline(self) -> EnginePipeline | None:
         """Return None to use the default pipeline.
