@@ -7,16 +7,13 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldManager
-    from core.root_spots import RootSpotManager
-    from core.worlds.petri.dish import PetriDish
-
-import orjson
 
 from backend.runner import CommandHandlerMixin
+from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import (
     build_base_stats,
     build_energy_stats,
@@ -24,18 +21,9 @@ from backend.runner.state_builders import (
     build_physical_stats,
     collect_poker_stats_payload,
 )
+from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
-from backend.state_payloads import (
-    AutoEvaluateStatsPayload,
-    DeltaStatePayload,
-    EntitySnapshot,
-    FullStatePayload,
-    PokerEventPayload,
-    PokerLeaderboardEntryPayload,
-    PokerStatsPayload,
-    SoccerEventPayload,
-    StatsPayload,
-)
+from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
@@ -90,12 +78,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Performance instrumentation
         self._enable_perf_logging = True
-        self._perf_stats = {
-            "update": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
-            "snapshot": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
-            "stats": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
-            "serialize": {"count": 0, "total_ms": 0.0, "max_ms": 0.0},
-        }
+        self.perf_tracker = PerfTracker(enable_logging=self._enable_perf_logging)
 
         # World identity (used for persistence, migration context, and UI attribution)
         self.world_id = world_id or str(uuid.uuid4())
@@ -111,15 +94,6 @@ class SimulationRunner(CommandHandlerMixin):
         self.fps_frame_count = 0
         self.current_actual_fps = 0.0
 
-        # Performance: Throttle WebSocket updates to reduce serialization overhead
-        # Cache state and only rebuild every N frames (reduces from 30 FPS to 15 FPS)
-        self.websocket_update_interval = 2  # Send every 2 frames
-        self.frames_since_websocket_update = 0
-        self._cached_state: Optional[Union[FullStatePayload, DeltaStatePayload]] = None
-        self._cached_state_frame: Optional[int] = None
-        self.delta_sync_interval = 90  # Full sync every 3 seconds (was 1 second)
-        self._last_full_frame: Optional[int] = None
-        self._last_entities: Dict[int, EntitySnapshot] = {}
         self._cached_gene_distributions: Dict[str, Any] = {}
         self._last_distribution_time = 0.0
         raw_distribution_interval = os.getenv("BROADCAST_DISTRIBUTIONS_INTERVAL_SECONDS", "10")
@@ -129,6 +103,11 @@ class SimulationRunner(CommandHandlerMixin):
             self._distribution_interval_seconds = 10.0
         if self._distribution_interval_seconds < 0:
             self._distribution_interval_seconds = 0.0
+
+        # State publishing
+        self.state_publisher = StatePublisher(
+            perf_tracker=self.perf_tracker, websocket_update_interval=2, delta_sync_interval=90
+        )
 
         # Initialize world-specific hooks and features
         self.world_hooks.warmup(self)
@@ -283,13 +262,27 @@ class SimulationRunner(CommandHandlerMixin):
             self._entity_snapshot_builder = builder_factory()
 
         # Clear cached state to force full rebuild on next get_state()
-        self._invalidate_state_cache()
+        self.state_publisher.invalidate_cache()
 
-        # Apply or remove circular dish physics
-        if new_world_type == "petri":
-            self._apply_petri_physics()
-        else:
-            self._remove_petri_physics()
+        # Apply or remove world-specific physics via hooks
+        # Clean up old world's physics
+        # (Actually we should have called this before switching, but for Petri/Tank
+        # the cleanup is "remove dish" which is fine to call even if we are already in new mode
+        # IF the engines are shared. But logically: old_hooks.cleanup -> new_hooks.apply)
+        # Note: self.world_hooks is still the OLD hooks here?
+        # No, we haven't updated self.world_hooks yet!
+
+        # 1. Cleanup using OLD hooks
+        self.world_hooks.cleanup_physics(self)
+
+        # 2. Update hooks
+        self.world_hooks = get_hooks_for_world(new_world_type)
+
+        # 3. Apply new physics
+        self.world_hooks.apply_physics_constraints(self)
+
+        # 4. Notify hooks of switch
+        self.world_hooks.on_world_type_switch(self, self.world_type, new_world_type)
 
         logger.info(
             "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
@@ -298,164 +291,8 @@ class SimulationRunner(CommandHandlerMixin):
             self.view_mode,
         )
 
-    def _apply_petri_physics(self) -> None:
-        """Apply circular dish physics and clamp all entities inside.
-
-        Called when switching to Petri mode. Creates dish geometry, injects
-        it into the environment, and repositions any entities outside the dish.
-        """
-        from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
-        from core.worlds.petri.dish import PetriDish
-
-        # Create dish geometry matching PetriPack defaults
-        rim_margin = 2.0
-        radius = (min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2) - rim_margin
-        dish = PetriDish(
-            cx=SCREEN_WIDTH / 2,
-            cy=SCREEN_HEIGHT / 2,
-            r=radius,
-        )
-
-        # Inject dish into environment for circular physics
-        env = self.engine.environment
-        if env is not None:
-            env.dish = dish
-            logger.info(
-                "Petri physics applied: dish(cx=%.0f, cy=%.0f, r=%.0f)",
-                dish.cx,
-                dish.cy,
-                dish.r,
-            )
-
-        # Clamp all entities inside the dish
-        self._clamp_entities_to_dish(dish)
-
-        # Swap RootSpotManager to CircularRootSpotManager
-        if self.engine.plant_manager:
-            from core.worlds.petri.root_spots import CircularRootSpotManager
-
-            # Create new manager
-            new_manager = CircularRootSpotManager(dish, rng=self.engine.rng)
-            self.engine.plant_manager.root_spot_manager = new_manager
-            logger.info("Swapped to CircularRootSpotManager")
-
-            # Relocate existing plants to new perimeter spots
-            self._relocate_plants_to_spots(new_manager)
-
-    def _remove_petri_physics(self) -> None:
-        """Remove circular dish physics when switching back to tank mode."""
-        env = self.engine.environment
-        if env is not None:
-            env.dish = None
-            logger.info("Petri physics removed: rectangular bounds restored")
-
-        # Swap RootSpotManager back to standard (rectangular)
-        if self.engine.plant_manager:
-            from core.root_spots import RootSpotManager
-
-            # Create new manager
-            # Use screen dimensions from environment or defaults
-            width = 800
-            height = 600
-            if self.engine.environment:
-                width = self.engine.environment.width
-                height = self.engine.environment.height
-
-            new_manager = RootSpotManager(
-                width,
-                height,
-                rng=self.engine.rng,
-            )
-            self.engine.plant_manager.root_spot_manager = new_manager
-            logger.info("Swapped to standard RootSpotManager")
-
-            # Relocate existing plants to new grid spots
-            self._relocate_plants_to_spots(new_manager)
-
-    def _relocate_plants_to_spots(self, manager: "RootSpotManager") -> None:
-        """Relocate all existing plants to valid spots in the new manager.
-
-        Args:
-            manager: The new RootSpotManager instance
-        """
-        from core.entities import Plant
-        from core.math_utils import Vector2
-
-        # Get all plants
-        if self.engine.environment and self.engine.environment.agents:
-            plants = [e for e in self.engine.environment.agents if isinstance(e, Plant)]
-        else:
-            plants = []
-        if not plants:
-            return
-
-        # Clear old spots
-        for plant in plants:
-            if plant.root_spot:
-                # Clear occupant reference on the old spot to be safe,
-                # though the old manager is being discarded.
-                plant.root_spot.occupant = None
-                plant.root_spot = None
-
-        # Assign new spots
-        count = 0
-        for plant in plants:
-            spot = manager.get_random_empty_spot()
-            if spot:
-                plant.root_spot = spot
-                spot.claim(plant)
-                # Physically move plant to the spot
-                plant.pos = Vector2(spot.x, spot.y)
-                plant.rect.x = spot.x
-                plant.rect.y = spot.y
-                count += 1
-            else:
-                # No spots left (e.g. shrinking population cap)
-                # Leave unrooted - reconcile_plants will likely cull it
-                pass
-
-        logger.info("Relocated %d/%d plants to new root spots", count, len(plants))
-
-    def _clamp_entities_to_dish(self, dish: "PetriDish") -> None:
-        """Reposition all agents to be inside the circular dish.
-
-        Called after switching to Petri mode to ensure no entities are
-        positioned outside the circular boundary.
-
-        Args:
-            dish: The PetriDish geometry to clamp entities within
-        """
-        clamped_count = 0
-        for entity in self.engine.entities_list:
-            if not hasattr(entity, "pos") or not hasattr(entity, "vel"):
-                continue
-
-            # Calculate agent center and radius
-            agent_r = max(entity.width, getattr(entity, "height", entity.width)) / 2
-            agent_cx = entity.pos.x + entity.width / 2
-            agent_cy = entity.pos.y + getattr(entity, "height", entity.width) / 2
-
-            # Clamp inside dish
-            new_cx, new_cy, new_vx, new_vy, collided = dish.clamp_and_reflect(
-                agent_cx,
-                agent_cy,
-                entity.vel.x,
-                entity.vel.y,
-                agent_r,
-            )
-
-            if collided:
-                entity.pos.x = new_cx - entity.width / 2
-                entity.pos.y = new_cy - getattr(entity, "height", entity.width) / 2
-                entity.vel.x = new_vx
-                entity.vel.y = new_vy
-                if hasattr(entity, "rect"):
-                    entity.rect.x = entity.pos.x
-                    entity.rect.y = entity.pos.y
-                clamped_count += 1
-
-        if clamped_count > 0:
-            logger.info("Clamped %d entities inside petri dish boundary", clamped_count)
+    # Removed: _apply_petri_physics, _remove_petri_physics, _relocate_plants_to_spots, _clamp_entities_to_dish
+    # These are now handled by WorldHooks (PetriWorldHooks).
 
     def _update_environment_migration_context(self) -> None:
         """Update the environment with current migration context."""
@@ -510,15 +347,10 @@ class SimulationRunner(CommandHandlerMixin):
         return {"success": False, "error": error_msg}
 
     def _invalidate_state_cache(self) -> None:
-        """Clear cached state so the next request rebuilds fresh data."""
+        """Clear cached state (wrapper for legacy command handlers)."""
+        self.state_publisher.invalidate_cache()
 
-        self._cached_state = None
-        self._cached_state_frame = None
-        self.frames_since_websocket_update = 0
-        self._last_full_frame = None
-        self._last_entities.clear()
-        self._cached_gene_distributions = {}
-        self._last_distribution_time = 0.0
+    # Removed: _invalidate_state_cache (delegate directly to publisher or use wrapper)
 
     def invalidate_state_cache(self) -> None:
         """Public wrapper to invalidate cached websocket state.
@@ -527,7 +359,7 @@ class SimulationRunner(CommandHandlerMixin):
         reaching into private cache implementation details.
         """
 
-        self._invalidate_state_cache()
+        self.state_publisher.invalidate_cache()
 
     @property
     def engine(self):
@@ -664,7 +496,7 @@ class SimulationRunner(CommandHandlerMixin):
 
             self._start_auto_evaluation_if_needed()
             self.fps_frame_count += 1
-            self._invalidate_state_cache()
+            self.state_publisher.invalidate_cache()
 
     def reset(
         self,
@@ -689,7 +521,7 @@ class SimulationRunner(CommandHandlerMixin):
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
-            self._invalidate_state_cache()
+            self.state_publisher.invalidate_cache()
 
     def _run_loop(self):
         """Main simulation loop."""
@@ -709,18 +541,12 @@ class SimulationRunner(CommandHandlerMixin):
 
                     with self.lock:
                         try:
-                            start_time = time.perf_counter()
+                            self.perf_tracker.start("update")
                             if getattr(self.world, "supports_fast_step", False):
                                 self.world.step({FAST_STEP_ACTION: True})
                             else:
                                 self.world.step()
-                            duration_ms = (time.perf_counter() - start_time) * 1000
-                            if self._enable_perf_logging:
-                                mst = self._perf_stats["update"]
-                                mst["count"] += 1
-                                mst["total_ms"] += duration_ms
-                                if duration_ms > mst["max_ms"]:
-                                    mst["max_ms"] = duration_ms
+                            self.perf_tracker.stop("update")
                         except Exception as e:
                             logger.error(
                                 f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
@@ -747,19 +573,7 @@ class SimulationRunner(CommandHandlerMixin):
                         stats = self.world.get_stats(include_distributions=False)
 
                         # Format perf stats if enabled
-                        perf_log = ""
-                        if self._enable_perf_logging:
-                            parts = []
-                            for key, mst in self._perf_stats.items():
-                                if mst["count"] > 0:
-                                    avg_ms = mst["total_ms"] / mst["count"]
-                                    parts.append(f"{key}={avg_ms:.1f}ms(max {mst['max_ms']:.1f})")
-                                    # Reset
-                                    mst["count"] = 0
-                                    mst["total_ms"] = 0.0
-                                    mst["max_ms"] = 0.0
-                            if parts:
-                                perf_log = " | " + " ".join(parts)
+                        perf_log = self.perf_tracker.get_summary_and_reset()
 
                         world_label = self.world_name or self.world_id or "Unknown World"
 
@@ -924,171 +738,12 @@ class SimulationRunner(CommandHandlerMixin):
     def get_state(self, force_full: bool = False, allow_delta: bool = True):
         """Get current simulation state for WebSocket broadcast.
 
-        This method now supports delta compression to avoid sending the entire
-        world on every frame. A full state is sent every ``delta_sync_interval``
-        frames (or when ``force_full`` is True); intermediate frames only carry
-        position/velocity updates plus any added/removed entities.
+        Delegates to StatePublisher for caching and state construction.
         """
-
-        current_frame = self.world.frame_count
-        # Try to get precise elapsed time, falling back to frame count approximation
-        elapsed_time = self.world.frame_count * 33
-
-        # Check if we can access the engine's elapsed_time directly or via adapter
-        engine = getattr(self.world, "engine", None)
-        if engine is not None and hasattr(engine, "elapsed_time"):
-            elapsed_time = engine.elapsed_time
-        elif (
-            hasattr(self.world, "world")
-            and hasattr(self.world.world, "engine")
-            and self.world.world.engine is not None
-            and hasattr(self.world.world.engine, "elapsed_time")
-        ):
-            # Handle TankWorldBackendAdapter
-            elapsed_time = self.world.world.engine.elapsed_time
-
-        # Fast path: identical frame reuse
-        if self._cached_state is not None and current_frame == self._cached_state_frame:
-            return self._cached_state
-
-        self.frames_since_websocket_update += 1
-        should_rebuild = self.frames_since_websocket_update >= self.websocket_update_interval
-        if not self.running:
-            should_rebuild = True
-
-        if not should_rebuild and self._cached_state is not None:
-            return self._cached_state
-
-        self.frames_since_websocket_update = 0
-
-        # PERF: Use non-blocking lock acquisition to avoid waiting for simulation.
-        # If we have cached state, return it immediately if lock is busy.
-        # This eliminates the lock contention that was causing 100-1000ms delays.
-        if self._cached_state is not None:
-            lock_acquired = self.lock.acquire(blocking=False)
-        else:
-            # First frame: must wait to get initial state
-            lock_acquired = self.lock.acquire(timeout=5.0)
-
-        if not lock_acquired:
-            # Lock is busy (simulation running), return cached state immediately
-            if self._cached_state is not None:
-                return self._cached_state
-            # No cached state, create minimal emergency state
-            return DeltaStatePayload(
-                frame=current_frame,
-                elapsed_time=elapsed_time,
-                updates=[],
-                added=[],
-                removed=[],
-                poker_events=[],
-                soccer_events=[],
-                stats=None,
+        with self.lock:
+            return self.state_publisher.get_state(
+                runner=self, force_full=force_full, allow_delta=allow_delta
             )
-
-        try:
-            # Helper to get recent poker events
-            poker_events = self._collect_poker_events()
-            soccer_events = self._collect_soccer_events()
-
-            # Calculate derived stats properly
-            # Calculate derived stats properly
-            # For delta frames, skip expensive genetic distribution calculations
-            include_distributions = send_full = (
-                force_full
-                or not allow_delta
-                or self._last_full_frame is None
-                or (current_frame - self._last_full_frame) >= self.delta_sync_interval
-            )
-
-            start_stats = time.perf_counter()
-            stats = self._collect_stats(current_frame, include_distributions=include_distributions)
-            if self._enable_perf_logging:
-                duration_ms = (time.perf_counter() - start_stats) * 1000
-                mst = self._perf_stats["stats"]
-                mst["count"] += 1
-                mst["total_ms"] += duration_ms
-                if duration_ms > mst["max_ms"]:
-                    mst["max_ms"] = duration_ms
-
-            # Collect entities once
-            start_snap = time.perf_counter()
-            entity_snapshots = self._collect_entities()
-            if self._enable_perf_logging:
-                duration_ms = (time.perf_counter() - start_snap) * 1000
-                mst = self._perf_stats["snapshot"]
-                mst["count"] += 1
-                mst["total_ms"] += duration_ms
-                if duration_ms > mst["max_ms"]:
-                    mst["max_ms"] = duration_ms
-
-            send_full = (
-                force_full
-                or not allow_delta
-                or self._last_full_frame is None
-                or (current_frame - self._last_full_frame) >= self.delta_sync_interval
-            )
-
-            if send_full:
-                # Full state update
-                self._last_full_frame = current_frame
-                self._last_entities = {e.id: e for e in entity_snapshots}
-                soccer_league_live = self._collect_soccer_league_live()
-
-                state = FullStatePayload(
-                    frame=current_frame,  # Using current_frame as self.world.step_count
-                    elapsed_time=elapsed_time,  # Using elapsed_time as self.world.time
-                    entities=entity_snapshots,
-                    stats=stats,
-                    poker_events=poker_events,  # Include events in full update
-                    soccer_events=soccer_events,
-                    soccer_league_live=soccer_league_live,
-                    auto_evaluation=self._collect_auto_eval(),  # Re-using existing _collect_auto_eval
-                    world_id=self.world_id,
-                    poker_leaderboard=self._collect_poker_leaderboard(),  # Re-using existing _collect_poker_leaderboard
-                    mode_id=self.mode_id,
-                    world_type=self.world_type,
-                    view_mode=self.view_mode,
-                )
-            else:
-                # Delta update
-                # optimization: only send poker events if changed?
-                # For now, we only send them on full updates (every 30 frames ~ 1 sec)
-                # AND if explicitly requested or if we detect a change (TODO).
-                # Current decision: Exclude from delta to save massive bandwidth/memory.
-                # Frontend will persist the last known list.
-
-                current_entities = {entity.id: entity for entity in entity_snapshots}
-                added = [
-                    entity.to_full_dict()
-                    for eid, entity in current_entities.items()
-                    if eid not in self._last_entities
-                ]
-                removed = [eid for eid in self._last_entities if eid not in current_entities]
-                updates = [entity.to_delta_dict() for entity in entity_snapshots]
-
-                state = DeltaStatePayload(
-                    frame=current_frame,  # Using current_frame as self.world.step_count
-                    elapsed_time=elapsed_time,  # Using elapsed_time as self.world.time
-                    updates=updates,
-                    added=added,
-                    removed=removed,
-                    stats=stats,
-                    # poker_events=poker_events, # REMOVED from delta to prevent leak/bloat
-                    # soccer_events=soccer_events, # REMOVED from delta to prevent leak/bloat
-                    soccer_league_live=self._collect_soccer_league_live(),
-                    world_id=self.world_id,
-                    mode_id=self.mode_id,
-                    world_type=self.world_type,
-                    view_mode=self.view_mode,
-                )
-                self._last_entities = current_entities
-
-            self._cached_state = state
-            self._cached_state_frame = current_frame
-            return state
-        finally:
-            self.lock.release()
 
     async def get_state_async(self, force_full: bool = False, allow_delta: bool = True):
         """Async wrapper to fetch simulation state without blocking the event loop."""
@@ -1096,61 +751,13 @@ class SimulationRunner(CommandHandlerMixin):
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.get_state, force_full, allow_delta)
 
-    def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
+    def serialize_state(self, state: Any) -> bytes:
         """Serialize a state payload with fast JSON and log slow frames."""
+        return self.state_publisher.serialize_state(state)
 
-        start = time.perf_counter()
-        payload = state.to_dict() if hasattr(state, "to_dict") else state
-        serialized = orjson.dumps(payload)
-        duration_ms = (time.perf_counter() - start) * 1000
-
-        if self._enable_perf_logging:
-            mst = self._perf_stats["serialize"]
-            mst["count"] += 1
-            mst["total_ms"] += duration_ms
-            if duration_ms > mst["max_ms"]:
-                mst["max_ms"] = duration_ms
-
-        # Only log if serialization itself is slow (> 50ms), not just large payloads
-        if duration_ms > 50:
-            logger.warning(
-                "serialize_state: Frame %s slow serialization: %.2f ms, Size: %d bytes",
-                getattr(state, "frame", "unknown"),
-                duration_ms,
-                len(serialized),
-            )
-
-        return serialized
-
-    def _build_full_state(self, frame: int, elapsed_time: int) -> FullStatePayload:
-        entities = self._collect_entities()
-        stats = self._collect_stats(frame)
-
-        # Build universal state
-        state_dict = {
-            "frame": frame,
-            "elapsed_time": elapsed_time,
-            "entities": entities,
-            "stats": stats,
-            "mode_id": self.mode_id,
-            "world_type": self.world_type,
-            "view_mode": self.view_mode,
-        }
-
-        # Add world-specific extras (poker, leaderboard, etc.) from hooks
-        try:
-            extras = self.world_hooks.build_world_extras(self)
-            state_dict.update(extras)
-        except Exception as e:
-            logger.warning(f"Error building world extras from hooks: {e}")
-            # Provide defaults
-            state_dict["poker_events"] = []
-            state_dict["soccer_events"] = []
-            state_dict["soccer_league_live"] = None
-            state_dict["poker_leaderboard"] = []
-            state_dict["auto_evaluation"] = None
-
-        return FullStatePayload(**state_dict)
+    # Removed: _build_full_state
+    # This logic is now likely in StatePublisher, or not needed.
+    # Note: StatePublisher has its own _build_full_state.
 
     def _collect_entities(self) -> List[EntitySnapshot]:
         # Optimization: Use fast path if available (e.g. from C++ backend or optimized step result)
@@ -1260,111 +867,15 @@ class SimulationRunner(CommandHandlerMixin):
             meta_stats=meta_stats,
         )
 
-    def _collect_poker_events(self) -> List[PokerEventPayload]:
-        poker_events: List[PokerEventPayload] = []
-
-        # Use world-agnostic API instead of reaching into engine
-        recent_events = self.world.get_recent_poker_events(max_age_frames=60)
-
-        for event in recent_events:
-            if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
-                continue
-
-            poker_events.append(
-                PokerEventPayload(
-                    frame=event["frame"],
-                    winner_id=event["winner_id"],
-                    loser_id=event["loser_id"],
-                    winner_hand=event["winner_hand"],
-                    loser_hand=event["loser_hand"],
-                    energy_transferred=event["energy_transferred"],
-                    message=event["message"],
-                    is_plant=event.get("is_plant", False),
-                    plant_id=event.get("plant_id", None),
-                )
-            )
-
-        return poker_events
-
-    def _collect_soccer_events(self) -> List[SoccerEventPayload]:
-        soccer_events: List[SoccerEventPayload] = []
-
-        max_age_frames = 60
-        soccer_cfg = None
-
-        engine = getattr(self.world, "engine", None)
-        if engine is None and hasattr(self.world, "world"):
-            engine = getattr(self.world.world, "engine", None)
-        if engine is not None:
-            soccer_cfg = getattr(engine.config, "soccer", None)
-        if soccer_cfg is None and hasattr(self.world, "simulation_config"):
-            soccer_cfg = getattr(self.world.simulation_config, "soccer", None)
-        if soccer_cfg is not None:
-            match_every = int(getattr(soccer_cfg, "match_every_frames", 0) or 0)
-            event_max_age = int(getattr(soccer_cfg, "event_max_age_frames", 0) or 0)
-            max_age_frames = max(max_age_frames, event_max_age, match_every * 10)
-
-        get_recent = getattr(self.world, "get_recent_soccer_events", None)
-        if callable(get_recent):
-            recent_events = get_recent(max_age_frames=max_age_frames)
-        else:
-            if engine is None or not hasattr(engine, "get_recent_soccer_events"):
-                return soccer_events
-            recent_events = engine.get_recent_soccer_events(max_age_frames=max_age_frames)
-
-        for event in recent_events:
-            soccer_events.append(
-                SoccerEventPayload(
-                    frame=event["frame"],
-                    match_id=event["match_id"],
-                    match_counter=event.get("match_counter", 0),
-                    winner_team=event.get("winner_team"),
-                    score_left=event.get("score_left", 0),
-                    score_right=event.get("score_right", 0),
-                    frames=event.get("frames", 0),
-                    seed=event.get("seed"),
-                    selection_seed=event.get("selection_seed"),
-                    message=event.get("message"),
-                    rewarded=event.get("rewarded", {}),
-                    entry_fees=event.get("entry_fees", {}),
-                    energy_deltas=event.get("energy_deltas", {}),
-                    repro_credit_deltas=event.get("repro_credit_deltas", {}),
-                    teams=event.get("teams", {}),
-                    last_goal=event.get("last_goal"),
-                    skipped=event.get("skipped", False),
-                    skip_reason=event.get("skip_reason"),
-                )
-            )
-
-        return soccer_events
-
-    def _collect_soccer_league_live(self) -> Optional[Dict[str, Any]]:
-        get_live = getattr(self.world, "get_soccer_league_live_state", None)
-        if callable(get_live):
-            return get_live()
-
-        engine = getattr(self.world, "engine", None)
-        if engine is None and hasattr(self.world, "world"):
-            engine = getattr(self.world.world, "engine", None)
-        if engine is None or not hasattr(engine, "get_soccer_league_live_state"):
-            return None
-        return engine.get_soccer_league_live_state()
-
-    def _collect_poker_leaderboard(self) -> List[PokerLeaderboardEntryPayload]:
-        # Guard: Only fish-based worlds have ecosystem with poker leaderboard
-        if not hasattr(self.world, "ecosystem") or not hasattr(
-            self.world.ecosystem, "get_poker_leaderboard"
-        ):
-            return []
-
-        fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
-        leaderboard_data = self.world.ecosystem.get_poker_leaderboard(
-            fish_list=fish_list, limit=10, sort_by="net_energy"
-        )
-        return [PokerLeaderboardEntryPayload(**entry) for entry in leaderboard_data]
+    # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
+    # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)
 
     def get_full_evaluation_history(self) -> List[Dict[str, Any]]:
         """Return the full auto-evaluation history."""
+        # Delegates to world hooks or manager if available
+        tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
+        if tracker:
+            return tracker.history
         return []
 
     def get_evolution_benchmark_data(self) -> Dict[str, Any]:
@@ -1374,14 +885,23 @@ class SimulationRunner(CommandHandlerMixin):
             Dictionary with benchmark history, improvement metrics, and latest snapshot.
             Returns empty dict with status if tracker not available.
         """
-        tracker = getattr(self, "evolution_benchmark_tracker", None)
-        if tracker is None:
-            return {"status": "not_available", "history": [], "improvement": {}, "latest": None}
+        tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
+        if tracker is not None:
+            return tracker.get_api_data()
 
-        return tracker.get_api_data()
+        status = "disabled"
+        # Check if it was meant to be enabled
+        import os
 
-    def _collect_auto_eval(self) -> Optional[AutoEvaluateStatsPayload]:
-        return None
+        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        ):
+            status = "initializing_or_failed"
+
+        return {"status": status}
 
     def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
         """Convert an entity to a lightweight snapshot for serialization.

@@ -76,6 +76,32 @@ class WorldHooks(Protocol):
         """
         ...
 
+    def apply_physics_constraints(self, runner: Any) -> None:
+        """Apply world-specific physics constraints (e.g. dish boundaries).
+
+        Args:
+            runner: The SimulationRunner instance
+        """
+        ...
+
+    def cleanup_physics(self, runner: Any) -> None:
+        """Clean up world-specific physics constraints.
+
+        Args:
+            runner: The SimulationRunner instance
+        """
+        ...
+
+    def on_world_type_switch(self, runner: Any, old_type: str, new_type: str) -> None:
+        """Called when world type switches.
+
+        Args:
+            runner: The SimulationRunner instance
+            old_type: The previous world type
+            new_type: The new world type
+        """
+        ...
+
 
 class NoOpWorldHooks:
     """Default no-op hooks for worlds that don't need special features."""
@@ -98,6 +124,18 @@ class NoOpWorldHooks:
 
     def cleanup(self, runner: Any) -> None:
         """No cleanup needed."""
+        pass
+
+    def apply_physics_constraints(self, runner: Any) -> None:
+        """No constraints."""
+        pass
+
+    def cleanup_physics(self, runner: Any) -> None:
+        """No cleanup."""
+        pass
+
+    def on_world_type_switch(self, runner: Any, old_type: str, new_type: str) -> None:
+        """No action."""
         pass
 
 
@@ -170,6 +208,11 @@ class TankWorldHooks:
         if auto_eval is not None:
             extras["auto_evaluation"] = auto_eval
 
+        # Collect soccer league live state
+        soccer_league_live = self._collect_soccer_league_live(runner)
+        if soccer_league_live is not None:
+            extras["soccer_league_live"] = soccer_league_live
+
         return extras
 
     def warmup(self, runner: Any) -> None:
@@ -237,6 +280,86 @@ class TankWorldHooks:
                 Path("data") / "benchmarks" / f"poker_evolution_{runner.world_id[:8]}.json"
             )
             self.evolution_benchmark_tracker.export_path = export_path
+
+    def apply_physics_constraints(self, runner: Any) -> None:
+        """Tank world uses standard rectangular bounds (handled by engine)."""
+        pass
+
+    def cleanup_physics(self, runner: Any) -> None:
+        """Nothing to clean up for tank physics."""
+        pass
+
+    def on_world_type_switch(self, runner: Any, old_type: str, new_type: str) -> None:
+        """Handle transition into Tank mode."""
+        if new_type == "tank":
+            self._restore_tank_manager(runner)
+
+    def _restore_tank_manager(self, runner: Any) -> None:
+        """Restore standard RootSpotManager."""
+        import logging
+
+        from core.root_spots import RootSpotManager
+
+        logger = logging.getLogger(__name__)
+
+        if not hasattr(runner.engine, "plant_manager") or not runner.engine.plant_manager:
+            return
+
+        # Create new manager
+        width = 800
+        height = 600
+        if runner.engine.environment:
+            width = runner.engine.environment.width
+            height = runner.engine.environment.height
+
+        new_manager = RootSpotManager(
+            width,
+            height,
+            rng=runner.engine.rng,
+        )
+        runner.engine.plant_manager.root_spot_manager = new_manager
+        logger.info("Swapped to standard RootSpotManager")
+
+        # Relocate existing plants to new grid spots
+        self._relocate_plants_to_spots(runner, new_manager)
+
+    def _relocate_plants_to_spots(self, runner: Any, manager: Any) -> None:
+        """Relocate all existing plants to valid spots in the new manager."""
+        import logging
+
+        from core.entities import Plant
+        from core.math_utils import Vector2
+
+        logger = logging.getLogger(__name__)
+
+        # Get all plants
+        if runner.engine.environment and runner.engine.environment.agents:
+            plants = [e for e in runner.engine.environment.agents if isinstance(e, Plant)]
+        else:
+            plants = []
+        if not plants:
+            return
+
+        # Clear old spots
+        for plant in plants:
+            if plant.root_spot:
+                plant.root_spot.occupant = None
+                plant.root_spot = None
+
+        # Assign new spots
+        count = 0
+        for plant in plants:
+            spot = manager.get_random_empty_spot()
+            if spot:
+                plant.root_spot = spot
+                spot.claim(plant)
+                # Physically move plant to the spot
+                plant.pos = Vector2(spot.x, spot.y)
+                plant.rect.x = spot.x
+                plant.rect.y = spot.y
+                count += 1
+
+        logger.info("Relocated %d/%d plants to new root spots", count, len(plants))
 
     # =========================================================================
     # Private methods
@@ -324,6 +447,24 @@ class TankWorldHooks:
         except Exception:
             return []
 
+    def _collect_soccer_league_live(self, runner: Any) -> Optional[dict]:
+        """Collect soccer league live state."""
+        # Try direct method on world (e.g. TankWorldBackendAdapter)
+        get_live = getattr(runner.world, "get_soccer_league_live_state", None)
+        if callable(get_live):
+            return get_live()
+
+        # Try via engine
+        engine = getattr(runner.world, "engine", None)
+        if engine is None and hasattr(runner.world, "world"):
+            # Handle adapter wrapper
+            engine = getattr(runner.world.world, "engine", None)
+
+        if engine is None or not hasattr(engine, "get_soccer_league_live_state"):
+            return None
+
+        return engine.get_soccer_league_live_state()
+
     def _collect_auto_eval(self, runner: Any) -> Optional[AutoEvaluateStatsPayload]:
         """Collect auto-evaluation stats (placeholder for now)."""
         return None
@@ -345,6 +486,111 @@ class TankWorldHooks:
         return {"success": True, "message": "Cancel not yet implemented"}
 
 
+class PetriWorldHooks(TankWorldHooks):
+    """Hooks for Petri world mode.
+
+    Inherits from TankWorldHooks because Petri is just a physics mod for Tank world,
+    so it still needs all the fish/poker features.
+    """
+
+    def apply_physics_constraints(self, runner: Any) -> None:
+        """Apply circular dish physics and clamp all entities inside."""
+        import logging
+
+        from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
+        from core.worlds.petri.dish import PetriDish
+        from core.worlds.petri.root_spots import CircularRootSpotManager
+
+        logger = logging.getLogger(__name__)
+
+        # Create dish geometry matching PetriPack defaults
+        rim_margin = 2.0
+        radius = (min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2) - rim_margin
+        dish = PetriDish(
+            cx=SCREEN_WIDTH / 2,
+            cy=SCREEN_HEIGHT / 2,
+            r=radius,
+        )
+
+        # Inject dish into environment for circular physics
+        env = runner.engine.environment
+        if env is not None:
+            env.dish = dish
+            logger.info(
+                "Petri physics applied: dish(cx=%.0f, cy=%.0f, r=%.0f)",
+                dish.cx,
+                dish.cy,
+                dish.r,
+            )
+
+        # Clamp all entities inside the dish
+        self._clamp_entities_to_dish(runner, dish)
+
+        # Swap RootSpotManager to CircularRootSpotManager
+        if runner.engine.plant_manager:
+            # Create new manager
+            new_manager = CircularRootSpotManager(dish, rng=runner.engine.rng)
+            runner.engine.plant_manager.root_spot_manager = new_manager
+            logger.info("Swapped to CircularRootSpotManager")
+
+            # Relocate existing plants to new perimeter spots
+            self._relocate_plants_to_spots(runner, new_manager)
+
+    def cleanup_physics(self, runner: Any) -> None:
+        """Remove circular dish physics."""
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        env = runner.engine.environment
+        if env is not None:
+            env.dish = None
+            logger.info("Petri physics removed: rectangular bounds restored")
+
+    def on_world_type_switch(self, runner: Any, old_type: str, new_type: str) -> None:
+        """Handle transition into Petri mode."""
+        if new_type == "petri":
+            self.apply_physics_constraints(runner)
+
+    def _clamp_entities_to_dish(self, runner: Any, dish: Any) -> None:
+        """Reposition all agents to be inside the circular dish."""
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        clamped_count = 0
+        for entity in runner.engine.entities_list:
+            if not hasattr(entity, "pos") or not hasattr(entity, "vel"):
+                continue
+
+            # Calculate agent center and radius
+            agent_r = max(entity.width, getattr(entity, "height", entity.width)) / 2
+            agent_cx = entity.pos.x + entity.width / 2
+            agent_cy = entity.pos.y + getattr(entity, "height", entity.width) / 2
+
+            # Clamp inside dish
+            new_cx, new_cy, new_vx, new_vy, collided = dish.clamp_and_reflect(
+                agent_cx,
+                agent_cy,
+                entity.vel.x,
+                entity.vel.y,
+                agent_r,
+            )
+
+            if collided:
+                entity.pos.x = new_cx - entity.width / 2
+                entity.pos.y = new_cy - getattr(entity, "height", entity.width) / 2
+                entity.vel.x = new_vx
+                entity.vel.y = new_vy
+                if hasattr(entity, "rect"):
+                    entity.rect.x = entity.pos.x
+                    entity.rect.y = entity.pos.y
+                clamped_count += 1
+
+        if clamped_count > 0:
+            logger.info("Clamped %d entities inside petri dish boundary", clamped_count)
+
+
 def get_hooks_for_world(world_type: str) -> WorldHooks:
     """Factory function to get the appropriate hooks for a world type.
 
@@ -354,9 +600,9 @@ def get_hooks_for_world(world_type: str) -> WorldHooks:
     Returns:
         WorldHooks instance for the world type
     """
-    # Use TankWorldHooks for any world that has fish (tank, petri)
-    # These worlds share the fish/poker/benchmark features
-    if world_type in ("tank", "petri"):
+    if world_type == "petri":
+        return PetriWorldHooks()
+    elif world_type == "tank":
         return TankWorldHooks()
     else:
         # All other worlds use no-op hooks
