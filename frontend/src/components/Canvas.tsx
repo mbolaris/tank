@@ -4,7 +4,7 @@
 
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
-import type { Renderer } from '../rendering/types';
+import type { Renderer, ViewMode } from '../rendering/types';
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { clearAllPlantCaches } from '../utils/plant';
@@ -18,7 +18,7 @@ interface CanvasProps {
     selectedEntityId?: number | null;
     showEffects?: boolean;
     style?: CSSProperties;
-    viewMode?: "side" | "topdown";
+    viewMode?: ViewMode;
     worldType?: string;  // Optional override for renderer selection (e.g., 'petri' for circular dish)
 }
 
@@ -193,7 +193,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 rendererRef.current = null;
             }
         };
-    }, [width, height, setErrorOnce, error]); // Stable dependencies only
+    }, [width, height, setErrorOnce, error, viewMode]); // Stable dependencies only
 
 
     // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
@@ -208,9 +208,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 clearAllPlantCaches();
 
                 // Clear the renderer's path cache
-                if (rendererRef.current && (rendererRef.current as any).clearPathCache) {
-                    (rendererRef.current as any).clearPathCache();
-                }
+                rendererRef.current?.clearPathCache?.();
 
                 if (import.meta.env.DEV) {
                     console.debug('[Memory Cleanup] Cleared plant caches and path cache');

@@ -1,6 +1,9 @@
 
+import type { SimulationUpdate, SoccerMatchState } from '../types/simulation';
+
 export type WorldType = string;
 export type ViewMode = "side" | "topdown";
+export type RenderSnapshot = SimulationUpdate | SoccerMatchState;
 
 export interface RenderContext {
     canvas: HTMLCanvasElement;
@@ -12,14 +15,13 @@ export interface RenderContext {
 export interface RenderOptions {
     showEffects?: boolean;
     selectedEntityId?: number | null;
+    viewMode?: ViewMode;
 }
 
 export interface RenderFrame {
     worldType: WorldType;
     viewMode: ViewMode;
-    // Using any for snapshot to avoid circular dependency or tight coupling for now.
-    // In strict mode this might be SimulationUpdate.
-    snapshot: any;
+    snapshot: RenderSnapshot;
     options?: RenderOptions;
 }
 
@@ -34,4 +36,9 @@ export interface Renderer {
      * Draw a single frame
      */
     render(frame: RenderFrame, rc: RenderContext): void;
+
+    /**
+     * Optional cache eviction hook for long-running sessions.
+     */
+    clearPathCache?: () => void;
 }

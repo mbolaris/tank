@@ -55,12 +55,16 @@ export function TankView({ worldId }: TankViewProps) {
         text: string;
     } | null>(null);
 
+    const serverViewMode =
+        state?.view_mode === 'side' || state?.view_mode === 'topdown'
+            ? state.view_mode
+            : undefined;
+
     const {
         effectiveViewMode,
-        setOverrideViewMode: _setOverrideViewMode,
         worldType,
         setWorldType,
-    } = useViewMode(state?.view_mode as any, state?.world_type, worldId || state?.world_id);
+    } = useViewMode(serverViewMode, state?.world_type, worldId || state?.world_id);
 
     // Effective world type for rendering - prefer server state when available
     const effectiveWorldType = state?.world_type ?? worldType;
@@ -354,9 +358,6 @@ export function TankView({ worldId }: TankViewProps) {
                                 liveState={state?.soccer_league_live ?? null}
                                 events={state?.soccer_events ?? []}
                                 currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                                isConnected={isConnected}
-                                onCommand={sendCommand as any}
-                                sendCommandWithResponse={sendCommandWithResponse as any}
                             />
                         </CollapsiblePanel>
                     )}

@@ -1,5 +1,6 @@
 
 import { getFishPath, getEyePosition, getPatternOpacity, type FishParams } from '../utils/fishTemplates';
+import type { FishGenomeData } from '../types/simulation';
 
 // --- Shared Utilities ---
 
@@ -18,7 +19,7 @@ function seededRand(seed: number): () => number {
     };
 }
 
-function genomeHueDegrees(genomeData: any, entityId: number): number {
+function genomeHueDegrees(genomeData: FishGenomeData | null | undefined, entityId: number): number {
     const hue = genomeData?.color_hue;
     if (typeof hue === 'number' && Number.isFinite(hue)) {
         return ((hue % 1) + 1) % 1 * 360;
@@ -166,7 +167,7 @@ export function drawSVGFish(
     _entityId: number,
     radius: number,
     velX: number | undefined,
-    genomeData: any
+    genomeData: FishGenomeData | null | undefined
 ) {
     if (!genomeData) return;
 
@@ -304,7 +305,7 @@ export function drawMicrobe(
     radius: number,
     velX: number | undefined,
     velY: number | undefined,
-    genomeData: any
+    genomeData: FishGenomeData | null | undefined
 ) {
     if (!genomeData) return;
 
@@ -489,7 +490,7 @@ export function drawAvatar(
     radius: number,
     velX: number | undefined,
     velY: number | undefined,
-    genomeData: any,
+    genomeData: FishGenomeData | null | undefined,
     forceMicrobe: boolean = false
 ) {
     if (!genomeData) return;

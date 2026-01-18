@@ -4,7 +4,14 @@ import { PokerLeaderboard } from '../PokerLeaderboard';
 import PokerEvents from '../PokerEvents';
 import { EvolutionBenchmarkDisplay } from '../EvolutionBenchmarkDisplay';
 import { Button, CardsIcon, PlantIcon, CollapsibleSection } from '../ui';
-import type { PokerGameState, PokerLeaderboardEntry, PokerEventData, PokerStatsData } from '../../types/simulation';
+import type {
+    Command,
+    CommandResponse,
+    PokerGameState,
+    PokerLeaderboardEntry,
+    PokerEventData,
+    PokerStatsData,
+} from '../../types/simulation';
 import styles from './TankPokerTab.module.css';
 
 interface TankPokerTabProps {
@@ -14,8 +21,13 @@ interface TankPokerTabProps {
     pokerEvents: PokerEventData[];
     pokerStats: PokerStatsData | undefined;
     currentFrame: number;
-    sendCommandWithResponse: (command: any) => Promise<any>;
+    sendCommandWithResponse: (command: Command) => Promise<PokerCommandResponse>;
 }
+
+type PokerCommandResponse = CommandResponse & {
+    action?: string;
+    amount?: number;
+};
 
 export function TankPokerTab({
     worldId,
@@ -182,7 +194,7 @@ export function TankPokerTab({
             command: 'poker_autopilot_action',
             data: {},
         });
-        return response as { success: boolean; action: string; amount: number };
+        return response as { success: boolean; action?: string; amount?: number };
     };
 
     return (

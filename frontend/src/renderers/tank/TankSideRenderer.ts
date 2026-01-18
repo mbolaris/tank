@@ -1,7 +1,7 @@
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import { Renderer as TankRenderer } from '../../utils/renderer';
-import type { EntityData } from '../../types/simulation';
+import type { EntityData, SimulationUpdate } from '../../types/simulation';
 
 export class TankSideRenderer implements Renderer {
     id = "tank-side";
@@ -22,7 +22,7 @@ export class TankSideRenderer implements Renderer {
 
     render(frame: RenderFrame, rc: RenderContext) {
         const { ctx, canvas } = rc;
-        const state = frame.snapshot;
+        const state = frame.snapshot as SimulationUpdate;
 
         // V1 Schema: Extract data from the required snapshot structure
         const snapshot = state?.snapshot;
@@ -88,7 +88,7 @@ export class TankSideRenderer implements Renderer {
     }
 
     private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: EntityData) {
-        const soccerState = (entity as any).soccer_effect_state;
+        const soccerState = entity.soccer_effect_state;
         if (!soccerState) return;
 
         const { type, amount, timer } = soccerState;

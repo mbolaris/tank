@@ -1,8 +1,5 @@
 
 import { describe, it, expect } from 'vitest';
-// @ts-ignore - internal buildPetriScene is not exported, we test via rendering or we can export it if needed.
-// For now, let's assume we want to test the scene building logic which is internal.
-// I will create a test that verifies the scaling logic.
 
 describe('PetriTopDownRenderer scaling', () => {
     it('should scale plant radius correctly', () => {

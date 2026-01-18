@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { SimulationUpdate, DeltaUpdate } from '../types/simulation';
+import type { SimulationUpdate, StatsData } from '../types/simulation';
 
 /**
  * Pure function to normalize a WorldUpdatePayload into SimulationUpdate format.
@@ -35,6 +35,7 @@ export function normalizeWorldUpdate(data: Record<string, unknown>): SimulationU
 
 describe('WebSocket Update Normalization', () => {
     it('should preserve mode_id and view_mode from server update', () => {
+        const emptyStats = {} as StatsData;
         const serverPayload = {
             type: 'update' as const,
             schema_version: 1,
@@ -46,7 +47,7 @@ describe('WebSocket Update Normalization', () => {
                 frame: 100,
                 elapsed_time: 10.5,
                 entities: [],
-                stats: {} as any,
+                stats: emptyStats,
                 poker_events: [],
                 soccer_events: [],
                 soccer_league_live: null,
@@ -62,6 +63,7 @@ describe('WebSocket Update Normalization', () => {
     });
 
     it('should default view_mode to "side" when missing', () => {
+        const emptyStats = {} as StatsData;
         const serverPayload = {
             type: 'update' as const,
             schema_version: 1,
@@ -72,7 +74,7 @@ describe('WebSocket Update Normalization', () => {
                 frame: 1,
                 elapsed_time: 0,
                 entities: [],
-                stats: {} as any,
+                stats: emptyStats,
                 poker_events: [],
                 soccer_events: [],
                 soccer_league_live: null,
@@ -86,6 +88,7 @@ describe('WebSocket Update Normalization', () => {
     });
 
     it('should default mode_id to "tank" when missing', () => {
+        const emptyStats = {} as StatsData;
         const serverPayload = {
             type: 'update' as const,
             schema_version: 1,
@@ -96,7 +99,7 @@ describe('WebSocket Update Normalization', () => {
                 frame: 1,
                 elapsed_time: 0,
                 entities: [],
-                stats: {} as any,
+                stats: emptyStats,
                 poker_events: [],
                 soccer_events: [],
                 soccer_league_live: null,
@@ -118,7 +121,7 @@ describe('WebSocket Update Normalization', () => {
                 frame: 42,
                 elapsed_time: 3.14,
                 entities: [{ id: 1, type: 'fish', x: 10, y: 20, width: 5, height: 5 }],
-                stats: { frame: 42, population: 1 } as any,
+                stats: { frame: 42, population: 1 } as StatsData,
                 poker_events: [],
                 soccer_events: [],
                 soccer_league_live: null,

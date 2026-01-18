@@ -10,11 +10,16 @@ import { config, type WorldStatus, type ServerWithWorlds } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
 import { TankNetworkMap } from '../components/TankNetworkMap';
-import type { SimulationUpdate, PokerPerformanceSnapshot } from '../types/simulation';
+import type {
+    AutoEvaluatePlayerStats,
+    PokerPerformanceSnapshot,
+    SimulationUpdate,
+} from '../types/simulation';
 import { PokerScoreDisplay } from '../components/PokerScoreDisplay';
 
 /** Player data from poker performance snapshots */
 type SnapshotPlayer = PokerPerformanceSnapshot['players'][number];
+type AutoEvalPlayer = AutoEvaluatePlayerStats | SnapshotPlayer;
 
 interface ServersResponse {
     servers: ServerWithWorlds[];
@@ -683,7 +688,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
     const [fullState, setFullState] = useState<SimulationUpdate | null>(null);
 
     // Derived stats from fullState - stats are nested inside snapshot
-    const stats = fullState?.snapshot?.stats || (fullState as any)?.stats;
+    const stats = fullState?.snapshot?.stats ?? fullState?.stats;
     const fps = stats?.fps ?? 0;
     const fast_forward = stats?.fast_forward ?? false;
     const frame = fullState?.snapshot?.frame ?? fullState?.frame ?? frame_count;
@@ -886,22 +891,26 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 />
 
                 {/* Auto-Evaluation Summary */}
-                {(fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) && ((fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) as any).players && ((fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) as any).players.length > 0 && (() => {
-                    const autoEval = (fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation)!;
-                    const history = (autoEval as any).performance_history || [];
-                    const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
-                    const players = latestSnapshot?.players || (autoEval as any).players;
+                {(fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation) &&
+                    (() => {
+                        const autoEval = fullState?.snapshot?.auto_evaluation ?? fullState?.auto_evaluation;
+                        if (!autoEval || autoEval.players.length === 0) {
+                            return null;
+                        }
 
+                        const history = autoEval.performance_history ?? [];
+                        const latestSnapshot = history.length > 0 ? history[history.length - 1] : null;
+                        const players = (latestSnapshot?.players ?? autoEval.players) as AutoEvalPlayer[];
 
-                    const fishPlayers = players.filter((p: any) => !p.is_standard && p.species !== 'plant');
-                    const plantPlayers = players.filter((p: any) => !p.is_standard && p.species === 'plant');
-                    const standardPlayer = players.find((p: any) => p.is_standard);
+                        const fishPlayers = players.filter((p) => !p.is_standard && p.species !== 'plant');
+                        const plantPlayers = players.filter((p) => !p.is_standard && p.species === 'plant');
+                        const standardPlayer = players.find((p) => p.is_standard);
 
                     if (!fishPlayers.length || !standardPlayer) return null;
 
-                    const fishAvg = fishPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / fishPlayers.length;
+                    const fishAvg = fishPlayers.reduce((sum, p) => sum + p.net_energy, 0) / fishPlayers.length;
                     const plantAvg = plantPlayers.length > 0
-                        ? plantPlayers.reduce((sum: number, p: any) => sum + p.net_energy, 0) / plantPlayers.length
+                        ? plantPlayers.reduce((sum, p) => sum + p.net_energy, 0) / plantPlayers.length
                         : null;
                     const baseline = standardPlayer.net_energy;
                     const hasPlants = plantAvg !== null;

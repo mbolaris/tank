@@ -4,8 +4,7 @@
  */
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
-import type { EntityData } from '../../types/simulation';
-import type { FishGenomeData } from '../../types/simulation';
+import type { EntityData, FishGenomeData } from '../../types/simulation';
 import { ImageLoader } from '../../utils/ImageLoader';
 import { renderPlant } from '../../utils/plant';
 import type { PlantGenomeData } from '../../utils/plant';
@@ -84,11 +83,20 @@ function idToHue(id: number): number {
 }
 
 /** Build Petri scene from snapshot */
-function buildPetriScene(snapshot: any): PetriScene {
+type PetriSceneSnapshot = {
+    snapshot?: {
+        entities?: EntityData[];
+        render_hint?: PetriRenderHint;
+    };
+    entities?: EntityData[];
+    render_hint?: PetriRenderHint;
+};
+
+function buildPetriScene(snapshot: PetriSceneSnapshot): PetriScene {
     const entities: PetriEntity[] = [];
 
     const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
-    const dish = snapshot.render_hint?.dish as PetriDishGeometry | undefined;
+    const dish = snapshot.snapshot?.render_hint?.dish ?? snapshot.render_hint?.dish;
 
     // Dish geometry for position remapping (fallback constants)
     const worldWidth = 1088;
@@ -111,7 +119,7 @@ function buildPetriScene(snapshot: any): PetriScene {
                 castle: 'inert',
             };
             const sprite = hint?.sprite ?? defaultSpriteMap[e.type] ?? 'unknown';
-            let radius = Math.max(e.width, e.height) / 2 * (e.type === 'plant' ? 0.35 : 0.5); // Scale down for Petri view
+            const radius = Math.max(e.width, e.height) / 2 * (e.type === 'plant' ? 0.35 : 0.5); // Scale down for Petri view
 
             let x = e.x + e.width / 2;
             let y = e.y + e.height / 2;
@@ -148,11 +156,11 @@ function buildPetriScene(snapshot: any): PetriScene {
                 energy: e.energy,
                 food_type: e.food_type,
                 genome_data: e.genome_data,
-                plant_genome_data: e.type === 'plant' ? (e as any).genome as PlantGenomeData | undefined : undefined,
+                plant_genome_data: e.type === 'plant' ? e.genome : undefined,
                 size_multiplier: e.size_multiplier,
                 iterations: e.iterations,
                 perimeter_angle: perimeterAngle,
-                death_effect_state: (e as any).death_effect_state as { cause: string } | undefined,
+                death_effect_state: e.death_effect_state,
                 poker_effect_state: e.poker_effect_state,
                 birth_effect_timer: e.birth_effect_timer,
             });
@@ -414,11 +422,7 @@ export class PetriTopDownRenderer implements Renderer {
             ctx.textBaseline = 'middle';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.beginPath();
-            if ((ctx as any).roundRect) {
-                (ctx as any).roundRect(entity.x - 25, entity.y - entity.radius - 25, 50, 20, 10);
-            } else {
-                ctx.rect(entity.x - 25, entity.y - entity.radius - 25, 50, 20);
-            }
+            this.roundRect(ctx, entity.x - 25, entity.y - entity.radius - 25, 50, 20, 10);
             ctx.fill();
             ctx.fillStyle = '#fbbf24';
             ctx.font = 'bold 12px Arial';
@@ -464,11 +468,7 @@ export class PetriTopDownRenderer implements Renderer {
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(-labelWidth / 2, -labelHeight / 2, labelWidth, labelHeight, 2);
-        } else {
-            ctx.rect(-labelWidth / 2, -labelHeight / 2, labelWidth, labelHeight);
-        }
+        this.roundRect(ctx, -labelWidth / 2, -labelHeight / 2, labelWidth, labelHeight, 2);
         ctx.fill();
 
         // Draw text
@@ -999,11 +999,7 @@ export class PetriTopDownRenderer implements Renderer {
         tailGrad.addColorStop(1, `hsla(${(headHue + 40) % 360}, 55%, 28%, 0.95)`);
         ctx.fillStyle = tailGrad;
         ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(-headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW, tailW / 2);
-        } else {
-            ctx.rect(-headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW);
-        }
+        this.roundRect(ctx, -headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW, tailW / 2);
         ctx.fill();
 
         // Tail fibers
@@ -1188,6 +1184,24 @@ export class PetriTopDownRenderer implements Renderer {
         ctx.stroke();
     }
 
+    private roundRect(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        radius: number
+    ) {
+        const ctxWithRoundRect = ctx as CanvasRenderingContext2D & {
+            roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
+        };
+        if (ctxWithRoundRect.roundRect) {
+            ctxWithRoundRect.roundRect(x, y, width, height, radius);
+        } else {
+            ctx.rect(x, y, width, height);
+        }
+    }
+
     private drawEnhancedEnergyBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, energy: number) {
         const barHeight = 4;
         const barWidth = width;
@@ -1200,11 +1214,7 @@ export class PetriTopDownRenderer implements Renderer {
         ctx.lineWidth = 1;
         const radius = 2;
         ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(x, y, barWidth, barHeight, radius);
-        } else {
-            ctx.rect(x, y, barWidth, barHeight);
-        }
+        this.roundRect(ctx, x, y, barWidth, barHeight, radius);
         ctx.fill();
         ctx.stroke();
 
@@ -1238,11 +1248,7 @@ export class PetriTopDownRenderer implements Renderer {
             ctx.fillStyle = gradient;
 
             ctx.beginPath();
-            if ((ctx as any).roundRect) {
-                (ctx as any).roundRect(x + padding, y + padding, barFillWidth, barHeight - padding * 2, radius - 1);
-            } else {
-                ctx.rect(x + padding, y + padding, barFillWidth, barHeight - padding * 2);
-            }
+            this.roundRect(ctx, x + padding, y + padding, barFillWidth, barHeight - padding * 2, radius - 1);
             ctx.fill();
 
             // Highlight on top

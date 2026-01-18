@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
 
-import { CollapsibleSection } from '../ui';
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
 
@@ -9,18 +8,12 @@ interface TankSoccerTabProps {
     liveState: SoccerLeagueLiveState | null;
     events: SoccerEventData[];
     currentFrame: number;
-    isConnected: boolean;
-    onCommand: (command: { command: string; data?: Record<string, unknown> }) => void;
-    sendCommandWithResponse: (command: any) => Promise<any>;
 }
 
 export function TankSoccerTab({
     liveState,
     events,
     currentFrame,
-    isConnected,
-    onCommand,
-    sendCommandWithResponse,
 }: TankSoccerTabProps) {
     const [showSkipped, setShowSkipped] = useState(false);
 
@@ -45,11 +38,7 @@ export function TankSoccerTab({
         <div className={styles.soccerTab}>
             {/* League Live Section */}
             <div className="glass-panel" style={{ padding: '16px' }}>
-                <SoccerLeagueLive
-                    liveState={liveState}
-                    isConnected={isConnected}
-                    onCommand={onCommand}
-                />
+                <SoccerLeagueLive liveState={liveState} />
             </div>
 
             {/* League Events Section with Filter */}

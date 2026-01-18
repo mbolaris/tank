@@ -15,12 +15,10 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { effectiveViewMode } = useViewMode(
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        state?.world_type || (state as any)?.snapshot?.world_type,
-        tankId
-    );
+    const legacyWorldType = (state as { snapshot?: { world_type?: string } } | null)?.snapshot?.world_type;
+    const worldType = state?.world_type ?? legacyWorldType;
+
+    const { effectiveViewMode } = useViewMode(undefined, worldType, tankId);
 
     const badge = useMemo(() => {
         if (status === 'stopped') {
@@ -113,8 +111,7 @@ export function TankThumbnail({ tankId, status }: TankThumbnailProps) {
                         height={180}
                         showEffects={false}
                         viewMode={effectiveViewMode}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        worldType={state?.world_type || (state as any)?.snapshot?.world_type}
+                        worldType={worldType}
                         style={{ width: '100%', height: '100%', display: 'block' }}
                     />
                 ) : (

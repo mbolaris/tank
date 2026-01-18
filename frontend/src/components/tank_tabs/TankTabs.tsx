@@ -1,40 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { TAB_IDS, type TabId } from './useActiveTab';
 import styles from './TankTabs.module.css';
-
-export type TabId = 'play' | 'soccer' | 'poker' | 'ecosystem' | 'genetics';
 
 interface Tab {
     id: TabId;
     label: string;
-    icon: React.ReactNode;
+    icon: ReactNode;
 }
 
-const TABS: Tab[] = [
-    { id: 'play', label: 'Play', icon: <span className={styles.tabIcon}>▶</span> },
-    { id: 'soccer', label: 'Soccer', icon: <span className={styles.tabIcon}>⚽</span> },
-    { id: 'poker', label: 'Poker', icon: <span className={styles.tabIcon}>♠</span> },
-    { id: 'ecosystem', label: 'Ecosystem', icon: <span className={styles.tabIcon}>🌿</span> },
-    { id: 'genetics', label: 'Genetics', icon: <span className={styles.tabIcon}>🧬</span> },
-];
+const TAB_LABELS: Record<TabId, string> = {
+    play: 'Play',
+    soccer: 'Soccer',
+    poker: 'Poker',
+    ecosystem: 'Ecosystem',
+    genetics: 'Genetics',
+};
 
-const STORAGE_KEY = 'tankview-active-tab';
+const TAB_ICONS: Record<TabId, ReactNode> = {
+    play: <span className={styles.tabIcon}>▶</span>,
+    soccer: <span className={styles.tabIcon}>⚽</span>,
+    poker: <span className={styles.tabIcon}>♠</span>,
+    ecosystem: <span className={styles.tabIcon}>🌿</span>,
+    genetics: <span className={styles.tabIcon}>🧬</span>,
+};
 
-function getInitialTab(): TabId {
-    // Check URL params first
-    const params = new URLSearchParams(window.location.search);
-    const urlTab = params.get('tab') as TabId | null;
-    if (urlTab && TABS.some(t => t.id === urlTab)) {
-        return urlTab;
-    }
-
-    // Fall back to localStorage
-    const stored = localStorage.getItem(STORAGE_KEY) as TabId | null;
-    if (stored && TABS.some(t => t.id === stored)) {
-        return stored;
-    }
-
-    return 'play';
-}
+const TABS: Tab[] = TAB_IDS.map((id) => ({
+    id,
+    label: TAB_LABELS[id],
+    icon: TAB_ICONS[id],
+}));
 
 interface TankTabsProps {
     activeTab: TabId;
@@ -44,7 +38,7 @@ interface TankTabsProps {
 export function TankTabs({ activeTab, onTabChange }: TankTabsProps) {
     return (
         <div className={styles.tabBar}>
-            {TABS.map(tab => (
+            {TABS.map((tab) => (
                 <button
                     key={tab.id}
                     className={`${styles.tab} ${activeTab === tab.id ? styles.active : ''}`}
@@ -58,34 +52,4 @@ export function TankTabs({ activeTab, onTabChange }: TankTabsProps) {
             ))}
         </div>
     );
-}
-
-export function useActiveTab(): [TabId, (tab: TabId) => void] {
-    const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
-
-    const handleTabChange = useCallback((tab: TabId) => {
-        setActiveTab(tab);
-        localStorage.setItem(STORAGE_KEY, tab);
-
-        // Update URL without page reload
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', tab);
-        window.history.replaceState({}, '', url.toString());
-    }, []);
-
-    // Listen for popstate (browser back/forward)
-    useEffect(() => {
-        const handlePopState = () => {
-            const params = new URLSearchParams(window.location.search);
-            const urlTab = params.get('tab') as TabId | null;
-            if (urlTab && TABS.some(t => t.id === urlTab)) {
-                setActiveTab(urlTab);
-            }
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, []);
-
-    return [activeTab, handleTabChange];
 }

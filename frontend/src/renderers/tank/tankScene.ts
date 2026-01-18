@@ -1,6 +1,5 @@
 
-import type { EntityData } from '../../types/simulation';
-import type { FishGenomeData } from '../../types/simulation';
+import type { EntityData, FishGenomeData, StatsData } from '../../types/simulation';
 
 export interface PokerEffectState {
     status: string;
@@ -23,22 +22,23 @@ export interface TankEntity {
     food_type?: string;
     plant_type?: number;
     genome_data?: FishGenomeData;
-    plant_genome?: Record<string, unknown>;
+    plant_genome?: EntityData['genome'];
     size_multiplier?: number;
     iterations?: number;
     nectar_ready?: boolean;
     vel_x?: number;
     vel_y?: number;
-    death_effect_state?: { cause: string };
+    death_effect_state?: EntityData['death_effect_state'];
     poker_effect_state?: PokerEffectState;
     birth_effect_timer?: number;
+    soccer_effect_state?: EntityData['soccer_effect_state'];
 }
 
 export interface TankScene {
     width: number;
     height: number;
     entities: TankEntity[];
-    time: number;
+    time: string;
 }
 
 // Helper to infer radius from width/height (approximate for circle)
@@ -46,11 +46,16 @@ function getRadius(width: number, height: number): number {
     return Math.max(width, height) / 2;
 }
 
-export function buildTankScene(snapshot: any): TankScene {
-    // Snapshot is expected to be SimulationUpdate
-    // But we use 'any' to decouple for now, or we can type it if available.
-    // Ideally we assume it matches the structure used in TankSideRenderer.
+type TankSceneSnapshot = {
+    snapshot?: {
+        entities?: EntityData[];
+        stats?: StatsData;
+    };
+    entities?: EntityData[];
+    stats?: StatsData;
+};
 
+export function buildTankScene(snapshot: TankSceneSnapshot): TankScene {
     const entities: TankEntity[] = [];
 
     const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
@@ -77,20 +82,21 @@ export function buildTankScene(snapshot: any): TankScene {
                 radius: getRadius(e.width, e.height),
                 headingRad,
                 kind: e.type,
-                team: (e as any).team,
+                team: e.team,
                 energy: e.energy,
                 food_type: e.food_type,
                 plant_type: e.plant_type,
                 genome_data: e.genome_data,
-                plant_genome: (e as any).genome as Record<string, unknown> | undefined,
-                size_multiplier: (e as any).size_multiplier as number | undefined,
-                iterations: (e as any).iterations as number | undefined,
-                nectar_ready: (e as any).nectar_ready as boolean | undefined,
+                plant_genome: e.genome,
+                size_multiplier: e.size_multiplier,
+                iterations: e.iterations,
+                nectar_ready: e.nectar_ready,
                 vel_x: e.vel_x,
                 vel_y: e.vel_y,
-                death_effect_state: (e as any).death_effect_state as { cause: string } | undefined,
+                death_effect_state: e.death_effect_state,
                 poker_effect_state: e.poker_effect_state,
                 birth_effect_timer: e.birth_effect_timer,
+                soccer_effect_state: e.soccer_effect_state,
             });
         });
     }
@@ -101,6 +107,6 @@ export function buildTankScene(snapshot: any): TankScene {
         width: 1088, // Constant for now, or read from snapshot if available
         height: 612,
         entities,
-        time: stats?.time || 0
+        time: stats?.time ?? ''
     };
 }

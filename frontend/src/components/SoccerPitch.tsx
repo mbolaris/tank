@@ -1,13 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, type CSSProperties } from 'react';
 import { SoccerTopDownRenderer } from '../renderers/soccer/SoccerTopDownRenderer';
+import type { SoccerMatchState } from '../types/simulation';
+import type { RenderContext, RenderFrame } from '../rendering/types';
 
 export interface SoccerPitchProps {
-    gameState: any;
+    gameState: SoccerMatchState | null;
     width?: number;
     height?: number;
+    style?: CSSProperties;
 }
 
-export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800, height = 450 }) => {
+export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800, height = 450, style }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<SoccerTopDownRenderer | null>(null);
 
@@ -22,26 +25,28 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
-        // Mock frame for renderer
-        const frame = {
-            frame_count: gameState.frame || 0,
-            snapshot: {
-                entities: gameState.entities || []
-            },
+        const viewMode =
+            gameState.view_mode === 'side' || gameState.view_mode === 'topdown'
+                ? gameState.view_mode
+                : 'topdown';
+
+        const frame: RenderFrame = {
+            worldType: 'soccer',
+            viewMode: 'topdown',
+            snapshot: gameState,
             options: {
-                view_mode: gameState.view_mode || 'side'  // "side" = fish, "top" = microbe
+                viewMode,
             }
         };
 
-        const rc = {
+        const rc: RenderContext = {
             ctx,
             canvas: canvasRef.current,
-            width: canvasRef.current.width,
-            height: canvasRef.current.height,
-            deltaTime: 16,
+            dpr: window.devicePixelRatio || 1,
+            nowMs: performance.now(),
         };
 
-        rendererRef.current.render(frame as any, rc as any);
+        rendererRef.current.render(frame, rc);
 
     }, [gameState]);
 
@@ -57,7 +62,8 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
                 maxWidth: `${width}px`,
                 height: 'auto',
                 display: 'block',
-                margin: '0 auto'
+                margin: '0 auto',
+                ...style,
             }}
         />
     );

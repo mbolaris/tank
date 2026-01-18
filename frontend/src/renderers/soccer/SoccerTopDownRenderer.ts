@@ -3,8 +3,8 @@
  * Renders a soccer field with players and ball.
  */
 
-import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
-import type { EntityData } from '../../types/simulation';
+import type { RenderContext, RenderFrame, RenderSnapshot, Renderer } from '../../rendering/types';
+import type { EntityData, SoccerMatchState, SimulationUpdate } from '../../types/simulation';
 import { drawAvatar } from '../avatar_renderer';
 
 
@@ -35,7 +35,7 @@ interface SoccerEntity {
     stamina?: number;
     facing?: number;
     has_ball?: boolean;
-    genome_data?: any;
+    genome_data?: EntityData['genome_data'];
 }
 
 /** Scene data for Soccer rendering */
@@ -46,14 +46,24 @@ interface SoccerScene {
 }
 
 /** Build Soccer scene from snapshot */
-function buildSoccerScene(snapshot: any): SoccerScene {
+type SoccerField = SoccerMatchState['field'];
+
+function isSimulationUpdate(snapshot: RenderSnapshot): snapshot is SimulationUpdate {
+    return (snapshot as SimulationUpdate).snapshot !== undefined;
+}
+
+function buildSoccerScene(snapshot: RenderSnapshot): SoccerScene {
     const entities: SoccerEntity[] = [];
 
-    const rawEntities = snapshot.snapshot?.entities ?? snapshot.entities;
+    const rawEntities = isSimulationUpdate(snapshot)
+        ? snapshot.snapshot?.entities ?? snapshot.entities
+        : snapshot.entities;
 
     // Read field dimensions from snapshot (meters) - with fallback
     // New backend provides field.length and field.width in meters, centered at origin
-    const fieldData = snapshot.snapshot?.field ?? snapshot.field;
+    const fieldData = isSimulationUpdate(snapshot)
+        ? (snapshot.snapshot as { field?: SoccerField } | undefined)?.field ?? (snapshot as { field?: SoccerField }).field
+        : snapshot.field;
     const fieldLength = fieldData?.length ?? 100.0; // meters (x-axis)
     const fieldWidth = fieldData?.width ?? 60.0;    // meters (y-axis)
 
@@ -154,7 +164,7 @@ export class SoccerTopDownRenderer implements Renderer {
 
             // Determine avatar mode based on view_mode
             // "top" or "topdown" = petri/microbe mode, otherwise = fish mode
-            const forceMicrobe = (options as any).view_mode === 'top' || (options as any).view_mode === 'topdown';
+            const forceMicrobe = options.viewMode === 'topdown';
 
             // Draw players
             players.forEach(player => {
@@ -363,7 +373,7 @@ export class SoccerTopDownRenderer implements Renderer {
             ctx.translate(player.x, player.y);
 
             // Check if we have genome data for avatar rendering
-            const genomeData = (player as any).genome_data;
+            const genomeData = player.genome_data;
 
             // Use a sensible avatar size (the raw radius from physics might be too small)
             // Minimum player radius for visible avatars

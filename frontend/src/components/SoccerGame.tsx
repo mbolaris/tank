@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { SoccerPitch } from './SoccerPitch';
 import { Button } from './ui';
+import type { Command, SoccerMatchState } from '../types/simulation';
 
 interface SoccerGameProps {
-    sendCommandWithResponse: (command: any) => Promise<any>;
+    sendCommandWithResponse: (command: Command) => Promise<SoccerCommandResponse>;
+}
+
+interface SoccerCommandResponse {
+    success: boolean;
+    state?: SoccerMatchState;
+    error?: string;
 }
 
 export const SoccerGame: React.FC<SoccerGameProps> = ({ sendCommandWithResponse }) => {
-    const [gameState, setGameState] = useState<any>(null);
+    const [gameState, setGameState] = useState<SoccerMatchState | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -65,7 +72,7 @@ export const SoccerGame: React.FC<SoccerGameProps> = ({ sendCommandWithResponse 
             active = false;
             clearInterval(timer);
         };
-    }, [isPlaying, gameState?.game_over, sendCommandWithResponse]);
+    }, [isPlaying, gameState, sendCommandWithResponse]);
 
     if (!isPlaying) {
         return (

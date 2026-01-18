@@ -1,23 +1,13 @@
-import { useEffect, useState } from 'react';
 import type { LeagueLeaderboardEntry, SoccerLeagueLiveState } from '../types/simulation';
 import { SoccerPitch } from './SoccerPitch';
 
 interface SoccerLeagueLiveProps {
     liveState?: SoccerLeagueLiveState | null;
-    isConnected: boolean;
-    onCommand: (command: { command: string; data?: Record<string, unknown> }) => void;
 }
 
-export function SoccerLeagueLive({ liveState, isConnected }: SoccerLeagueLiveProps) {
+export function SoccerLeagueLive({ liveState }: SoccerLeagueLiveProps) {
     // We only need to know if there's an active match for display purposes
     const activeMatch = liveState?.active_match;
-
-    const getScoreDisplay = () => {
-        if (!activeMatch) return 'League Idle';
-        const homeName = activeMatch.home_name || activeMatch.home_id || 'Home';
-        const awayName = activeMatch.away_name || activeMatch.away_id || 'Away';
-        return `${homeName} ${activeMatch.score.left} - ${activeMatch.score.right} ${awayName}`;
-    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>

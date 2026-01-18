@@ -5,6 +5,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { config } from '../config';
 
+interface TransferWorldStats {
+    entity_count?: number;
+}
+
+interface TransferWorld {
+    id?: string;
+    world_id?: string;
+    name: string;
+    description?: string;
+    allow_transfers?: boolean;
+    world_type?: string;
+    running?: boolean;
+    paused?: boolean;
+    stats?: TransferWorldStats;
+}
+
 interface TransferDialogProps {
     entityId: number;
     entityType: string;
@@ -22,7 +38,7 @@ export function TransferDialog({
     onClose,
     onTransferComplete,
 }: TransferDialogProps) {
-    const [worlds, setWorlds] = useState<any[]>([]);
+    const [worlds, setWorlds] = useState<TransferWorld[]>([]);
     const [loading, setLoading] = useState(true);
     const [transferring, setTransferring] = useState(false);
     const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
@@ -37,10 +53,10 @@ export function TransferDialog({
             }
             const data = await response.json();
             // Filter out source tank and tanks that don't allow transfers
-            const eligibleWorlds = data.worlds.filter(
-                (world: any) =>
-                    world.id !== sourceWorldId && world.allow_transfers
-            );
+            const eligibleWorlds = data.worlds.filter((world: TransferWorld) => {
+                const worldId = world.id ?? world.world_id;
+                return Boolean(worldId) && worldId !== sourceWorldId && world.allow_transfers;
+            });
             setWorlds(eligibleWorlds);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load worlds';
@@ -165,15 +181,18 @@ export function TransferDialog({
                                 borderRadius: '8px',
                             }}
                         >
-                            {worlds.map((world) => (
+                            {worlds.map((world) => {
+                                const worldId = world.id ?? world.world_id;
+                                if (!worldId) return null;
+                                return (
                                 <div
-                                    key={world.id}
-                                    onClick={() => setSelectedWorldId(world.id)}
+                                    key={worldId}
+                                    onClick={() => setSelectedWorldId(worldId)}
                                     style={{
                                         padding: '12px 16px',
                                         cursor: 'pointer',
                                         backgroundColor:
-                                            selectedWorldId === world.id
+                                            selectedWorldId === worldId
                                                 ? '#3b82f6'
                                                 : '#0f172a',
                                         borderBottom: '1px solid #334155',
@@ -191,12 +210,13 @@ export function TransferDialog({
                                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                                         {world.stats?.entity_count || 0} entities
                                         {' • '}
-                                        {world.world_type}
+                                        {world.world_type ?? 'unknown'}
                                         {' • '}
                                         {world.running ? (world.paused ? 'Paused' : 'Running') : 'Stopped'}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

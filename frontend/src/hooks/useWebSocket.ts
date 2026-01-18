@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
+import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate, EntityData } from '../types/simulation';
 import { config, EXPECTED_SCHEMA_VERSION } from '../config';
 
 // Reuse a single TextDecoder to avoid GC pressure from allocating one per frame.
@@ -39,7 +39,7 @@ export function useWebSocket(worldId?: string) {
             wsRef.current.close();
             wsRef.current = null;
         }
-    }, [EXPECTED_SCHEMA_VERSION]);
+    }, []);
 
     const connect = useCallback(async () => {
         // Don't connect if component is unmounted
@@ -115,9 +115,17 @@ export function useWebSocket(worldId?: string) {
                         console.log('FULL UPDATE RECEIVED!');  // DEBUG
                         const update = data as SimulationUpdate;
                         // DEBUG: Check if any entities have soccer_effect_state
-                        const fishWithSoccer = update.snapshot?.entities?.filter((e: any) => e.soccer_effect_state);
+                        const fishWithSoccer = update.snapshot?.entities?.filter(
+                            (e: EntityData) => e.soccer_effect_state
+                        );
                         if (fishWithSoccer && fishWithSoccer.length > 0) {
-                            console.log('FULL UPDATE - Fish with soccer_effect_state:', fishWithSoccer.map((e: any) => ({ id: e.id, state: e.soccer_effect_state })));
+                            console.log(
+                                'FULL UPDATE - Fish with soccer_effect_state:',
+                                fishWithSoccer.map((e: EntityData) => ({
+                                    id: e.id,
+                                    state: e.soccer_effect_state
+                                }))
+                            );
                         }
                         // V1 schema: Populate convenience fields from snapshot for component access
                         update.frame = update.snapshot.frame;
@@ -169,7 +177,7 @@ export function useWebSocket(worldId?: string) {
             console.error('WebSocket connection error:', error);
             setIsConnected(false);
         }
-    }, [worldId]);
+    }, [worldId, handleSchemaMismatch]);
 
     // Store connect function in ref without mutating during render
     useEffect(() => {

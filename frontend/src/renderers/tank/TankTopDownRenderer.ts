@@ -1,5 +1,6 @@
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
+import type { SimulationUpdate } from '../../types/simulation';
 import { buildTankScene, type TankEntity } from './tankScene';
 import { ImageLoader } from '../../utils/ImageLoader';
 import { renderPlant, type PlantGenomeData } from '../../utils/plant';
@@ -16,7 +17,8 @@ export class TankTopDownRenderer implements Renderer {
     render(frame: RenderFrame, rc: RenderContext) {
         const { ctx, canvas } = rc;
         this.lastNowMs = rc.nowMs;
-        this.elapsedTime = ((frame.snapshot as any)?.snapshot?.elapsed_time ?? (frame.snapshot as any)?.elapsed_time ?? rc.nowMs) as number;
+        const state = frame.snapshot as SimulationUpdate;
+        this.elapsedTime = state.snapshot?.elapsed_time ?? state.elapsed_time ?? rc.nowMs;
         const scene = buildTankScene(frame.snapshot);
         const options = frame.options ?? {};
         const showEffects = options.showEffects ?? true;
@@ -197,11 +199,7 @@ export class TankTopDownRenderer implements Renderer {
             ctx.textBaseline = 'middle';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.beginPath();
-            if ((ctx as any).roundRect) {
-                (ctx as any).roundRect(entity.x - 25, entity.y - entity.radius - 25, 50, 20, 10);
-            } else {
-                ctx.rect(entity.x - 25, entity.y - entity.radius - 25, 50, 20);
-            }
+            this.roundRect(ctx, entity.x - 25, entity.y - entity.radius - 25, 50, 20, 10);
             ctx.fill();
             ctx.fillStyle = '#fbbf24';
             ctx.font = 'bold 12px Arial';
@@ -525,11 +523,7 @@ export class TankTopDownRenderer implements Renderer {
         tailGrad.addColorStop(1, `hsla(${(headHue + 40) % 360}, 55%, 28%, 0.95)`);
         ctx.fillStyle = tailGrad;
         ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(-headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW, tailW / 2);
-        } else {
-            ctx.rect(-headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW);
-        }
+        this.roundRect(ctx, -headR * 0.95 - tailLen, -tailW / 2, tailLen, tailW, tailW / 2);
         ctx.fill();
 
         // Tail rings (animated "pumping")
@@ -837,7 +831,7 @@ export class TankTopDownRenderer implements Renderer {
 
     private drawGoalZone(ctx: CanvasRenderingContext2D, entity: TankEntity) {
         // Safe cast since we know backend sends team
-        const team = (entity as any).team; // entity is TankEntity, cast to any to access dynamic props
+        const team = entity.team;
 
         const radius = entity.radius || 30;
         const color = team === 'A' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
@@ -863,7 +857,7 @@ export class TankTopDownRenderer implements Renderer {
     }
 
     private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: TankEntity) {
-        const soccerState = (entity as any).soccer_effect_state;
+        const soccerState = entity.soccer_effect_state;
         if (!soccerState) return;
 
         const { type, amount, timer } = soccerState;
@@ -1094,6 +1088,24 @@ export class TankTopDownRenderer implements Renderer {
         return "#" + "00000".substring(0, 6 - c.length) + c;
     }
 
+    private roundRect(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        radius: number
+    ) {
+        const ctxWithRoundRect = ctx as CanvasRenderingContext2D & {
+            roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
+        };
+        if (ctxWithRoundRect.roundRect) {
+            ctxWithRoundRect.roundRect(x, y, width, height, radius);
+        } else {
+            ctx.rect(x, y, width, height);
+        }
+    }
+
     private drawEnhancedEnergyBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, energy: number) {
         const barHeight = 4;
         const barWidth = width;
@@ -1106,11 +1118,7 @@ export class TankTopDownRenderer implements Renderer {
         ctx.lineWidth = 1;
         const radius = 2;
         ctx.beginPath();
-        if ((ctx as any).roundRect) {
-            (ctx as any).roundRect(x, y, barWidth, barHeight, radius);
-        } else {
-            ctx.rect(x, y, barWidth, barHeight);
-        }
+        this.roundRect(ctx, x, y, barWidth, barHeight, radius);
         ctx.fill();
         ctx.stroke();
 
@@ -1144,11 +1152,7 @@ export class TankTopDownRenderer implements Renderer {
             ctx.fillStyle = gradient;
 
             ctx.beginPath();
-            if ((ctx as any).roundRect) {
-                (ctx as any).roundRect(x + padding, y + padding, barFillWidth, barHeight - padding * 2, radius - 1);
-            } else {
-                ctx.rect(x + padding, y + padding, barFillWidth, barHeight - padding * 2);
-            }
+            this.roundRect(ctx, x + padding, y + padding, barFillWidth, barHeight - padding * 2, radius - 1);
             ctx.fill();
 
             // Highlight on top
