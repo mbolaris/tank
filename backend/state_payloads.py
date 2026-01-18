@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 try:  # Prefer faster serializer when available
     import orjson
 except ImportError:
     orjson = None
+
+
+STATE_SCHEMA_VERSION = 1
 
 
 def _compact_dict(data: dict[str, Any]) -> dict[str, Any]:
@@ -612,6 +615,7 @@ class FullStatePayload:
     poker_leaderboard: list[PokerLeaderboardEntryPayload]
     soccer_league_live: dict[str, Any] | None = None
     auto_evaluation: AutoEvaluateStatsPayload | None = None
+    schema_version: int = STATE_SCHEMA_VERSION
     type: str = "update"
     world_id: str | None = None  # World identifier for multi-world mode
     mode_id: str | None = "tank"
@@ -636,6 +640,7 @@ class FullStatePayload:
         # Top-level payload with metadata and nested snapshot
         data: dict[str, Any] = {
             "type": self.type,
+            "schema_version": self.schema_version,
             "snapshot": snapshot,
         }
         if self.world_id is not None:
@@ -651,7 +656,7 @@ class FullStatePayload:
     def to_json(self) -> str:
         data = self.to_dict()
         if orjson:
-            return orjson.dumps(data).decode("utf-8")
+            return cast(str, orjson.dumps(data).decode("utf-8"))
         return json.dumps(data, separators=(",", ":"))
 
 
@@ -668,6 +673,7 @@ class DeltaStatePayload:
     soccer_events: list[SoccerEventPayload] | None = None
     soccer_league_live: dict[str, Any] | None = None
     stats: StatsPayload | None = None
+    schema_version: int = STATE_SCHEMA_VERSION
     type: str = "delta"
     world_id: str | None = None  # World identifier for multi-world mode
     mode_id: str | None = "tank"
@@ -694,6 +700,7 @@ class DeltaStatePayload:
         # Top-level payload with metadata and nested snapshot
         data: dict[str, Any] = {
             "type": self.type,
+            "schema_version": self.schema_version,
             "snapshot": snapshot,
         }
         if self.world_id is not None:
@@ -709,5 +716,5 @@ class DeltaStatePayload:
     def to_json(self) -> str:
         data = self.to_dict()
         if orjson:
-            return orjson.dumps(data).decode("utf-8")
+            return cast(str, orjson.dumps(data).decode("utf-8"))
         return json.dumps(data, separators=(",", ":"))

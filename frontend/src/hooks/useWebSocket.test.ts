@@ -37,6 +37,7 @@ describe('WebSocket Update Normalization', () => {
     it('should preserve mode_id and view_mode from server update', () => {
         const serverPayload = {
             type: 'update' as const,
+            schema_version: 1,
             world_id: 'test-world',
             world_type: 'petri',
             view_mode: 'topdown',
@@ -63,6 +64,7 @@ describe('WebSocket Update Normalization', () => {
     it('should default view_mode to "side" when missing', () => {
         const serverPayload = {
             type: 'update' as const,
+            schema_version: 1,
             world_id: 'test-world',
             // view_mode is missing
             mode_id: 'tank',
@@ -86,6 +88,7 @@ describe('WebSocket Update Normalization', () => {
     it('should default mode_id to "tank" when missing', () => {
         const serverPayload = {
             type: 'update' as const,
+            schema_version: 1,
             world_id: 'test-world',
             view_mode: 'side',
             // mode_id is missing
@@ -109,6 +112,7 @@ describe('WebSocket Update Normalization', () => {
     it('should normalize nested snapshot fields to top level', () => {
         const serverPayload = {
             type: 'update' as const,
+            schema_version: 1,
             world_id: 'test-world',
             snapshot: {
                 frame: 42,

@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
-import { config } from '../config';
+import { config, EXPECTED_SCHEMA_VERSION } from '../config';
 
 // Reuse a single TextDecoder to avoid GC pressure from allocating one per frame.
 // At 30fps over long sessions, this prevents 100k+ short-lived allocations per hour.
@@ -13,16 +13,37 @@ const sharedTextDecoder = new TextDecoder();
 export function useWebSocket(worldId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [schemaError, setSchemaError] = useState<string | null>(null);
     const [connectedWorldId, setConnectedWorldId] = useState<string | null>(worldId ?? null);
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const connectRef = useRef<(() => void) | null>(null);
+    const schemaMismatchRef = useRef(false);
     const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
     const unmountedRef = useRef(false);  // Track if component is unmounted
 
+    const handleSchemaMismatch = useCallback((receivedVersion: unknown) => {
+        if (schemaMismatchRef.current) return;
+        schemaMismatchRef.current = true;
+        const isNumber = typeof receivedVersion === 'number';
+        const message = isNumber
+            ? `State schema version mismatch. Expected ${EXPECTED_SCHEMA_VERSION}, got ${receivedVersion}.`
+            : `State schema version missing. Expected ${EXPECTED_SCHEMA_VERSION}.`;
+        setSchemaError(`${message} Please update the frontend or backend to matching versions.`);
+        setIsConnected(false);
+
+        if (wsRef.current) {
+            wsRef.current.onclose = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onmessage = null;
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+    }, [EXPECTED_SCHEMA_VERSION]);
+
     const connect = useCallback(async () => {
         // Don't connect if component is unmounted
-        if (unmountedRef.current) return;
+        if (unmountedRef.current || schemaMismatchRef.current) return;
 
         // Close any existing connection before creating a new one
         if (wsRef.current) {
@@ -83,6 +104,13 @@ export function useWebSocket(worldId?: string) {
                     }
                     const data = JSON.parse(jsonString);
 
+                    if (data.type === 'update' || data.type === 'delta') {
+                        if (data.schema_version !== EXPECTED_SCHEMA_VERSION) {
+                            handleSchemaMismatch(data.schema_version);
+                            return;
+                        }
+                    }
+
                     if (data.type === 'update') {
                         console.log('FULL UPDATE RECEIVED!');  // DEBUG
                         const update = data as SimulationUpdate;
@@ -127,7 +155,7 @@ export function useWebSocket(worldId?: string) {
                 wsRef.current = null;
 
                 // Only attempt to reconnect if component is still mounted
-                if (!unmountedRef.current) {
+                if (!unmountedRef.current && !schemaMismatchRef.current) {
                     reconnectTimeoutRef.current = window.setTimeout(() => {
                         if (connectRef.current && !unmountedRef.current) {
                             connectRef.current();
@@ -207,6 +235,7 @@ export function useWebSocket(worldId?: string) {
     return {
         state,
         isConnected,
+        schemaError,
         sendCommand,
         sendCommandWithResponse,
         /** Current server URL for display */

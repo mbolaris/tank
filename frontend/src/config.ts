@@ -102,6 +102,8 @@ function getApiBaseUrl(): string {
     return 'http://localhost:8000';
 }
 
+export const EXPECTED_SCHEMA_VERSION = 1;
+
 export const config = {
     /** WebSocket URL for real-time simulation updates */
     wsUrl: getWebSocketUrl(),

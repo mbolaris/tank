@@ -29,7 +29,7 @@ const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
 ];
 
 export function TankView({ worldId }: TankViewProps) {
-    const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId } =
+    const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
     const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
@@ -92,6 +92,11 @@ export function TankView({ worldId }: TankViewProps) {
 
     return (
         <>
+            {schemaError && (
+                <div className={styles.schemaError} role="alert">
+                    {schemaError}
+                </div>
+            )}
             {/* Single row of compact controls */}
             <div className={styles.controlBar}>
                 <ControlPanel

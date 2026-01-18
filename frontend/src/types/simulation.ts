@@ -487,6 +487,7 @@ export interface StatsData {
 
 export interface SimulationUpdate {
     type: 'update';
+    schema_version: number;
     world_id?: string;  // World identifier for multi-world mode
     world_type?: string;
     view_mode?: string;
@@ -521,6 +522,7 @@ export interface SimulationUpdate {
 
 export interface DeltaUpdate {
     type: 'delta';
+    schema_version: number;
     world_id?: string;  // World identifier for multi-world mode
     world_type?: string;
     view_mode?: string;
