@@ -18,12 +18,14 @@ export interface PlantGenomeData {
     type?:
     | 'lsystem'
     | 'cosmic_fern'
+    | 'mandelbrot'
     | 'claude'
     | 'antigravity'
     | 'gpt'
     | 'gpt_codex'
     | 'gemini'
-    | 'sonnet';
+    | 'sonnet'
+    | 'baseline';
     production_rules: Array<{
         input: string;
         output: string;

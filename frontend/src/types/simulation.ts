@@ -532,7 +532,18 @@ export interface DeltaUpdate {
     snapshot: {
         frame: number;
         elapsed_time: number;
-        updates: Pick<EntityData, 'id' | 'x' | 'y' | 'vel_x' | 'vel_y' | 'poker_effect_state'>[];
+        updates: Pick<
+            EntityData,
+            'id'
+            | 'x'
+            | 'y'
+            | 'vel_x'
+            | 'vel_y'
+            | 'poker_effect_state'
+            | 'birth_effect_timer'
+            | 'death_effect_state'
+            | 'soccer_effect_state'
+        >[];
         added: EntityData[];
         removed: number[];
         poker_events: PokerEventData[];

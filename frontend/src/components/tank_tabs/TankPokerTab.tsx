@@ -106,8 +106,8 @@ export function TankPokerTab({
 
     // Auto-restart game when session ends
     useEffect(() => {
-        let timer: NodeJS.Timeout;
-        let countdownInterval: NodeJS.Timeout;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let countdownInterval: ReturnType<typeof setInterval> | undefined;
 
         if (showPokerGame && pokerGameState?.session_over) {
             setRestartCountdown(3);
@@ -128,8 +128,12 @@ export function TankPokerTab({
         }
 
         return () => {
-            clearTimeout(timer);
-            clearInterval(countdownInterval);
+            if (timer) {
+                clearTimeout(timer);
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
         };
     }, [showPokerGame, pokerGameState?.session_over, handleStartPoker]);
 
@@ -194,7 +198,11 @@ export function TankPokerTab({
             command: 'poker_autopilot_action',
             data: {},
         });
-        return response as { success: boolean; action?: string; amount?: number };
+        return {
+            success: response.success,
+            action: response.action ?? 'wait',
+            amount: response.amount ?? 0,
+        };
     };
 
     return (

@@ -28,8 +28,11 @@ export const SoccerGame: React.FC<SoccerGameProps> = ({ sendCommandWithResponse 
                 data: { num_players: numPlayers }
             });
             if (response.success) {
-                setGameState(response.state);
-                setIsPlaying(true);
+                setGameState(response.state ?? null);
+                setIsPlaying(Boolean(response.state));
+                if (!response.state) {
+                    setError('Missing match state');
+                }
             } else {
                 setError(response.error || "Failed to start match");
             }
@@ -59,7 +62,7 @@ export const SoccerGame: React.FC<SoccerGameProps> = ({ sendCommandWithResponse 
             try {
                 const response = await sendCommandWithResponse({ command: 'soccer_step', data: {} });
                 if (response.success && active) {
-                    setGameState(response.state);
+                    setGameState(response.state ?? null);
                 }
             } catch (e) {
                 console.error("Step error", e);

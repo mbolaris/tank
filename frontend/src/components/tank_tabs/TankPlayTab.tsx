@@ -21,6 +21,7 @@ export function TankPlayTab({
 }: TankPlayTabProps) {
     // Summary stats for compact display
     const soccerLeague = state?.soccer_league_live;
+    const activeMatch = soccerLeague?.active_match;
     const pokerStats = state?.stats?.poker_stats;
     const population = state?.stats?.fish_count ?? 0;
     const generation = state?.stats?.max_generation ?? state?.stats?.generation ?? 0;
@@ -61,10 +62,10 @@ export function TankPlayTab({
                     <div className={styles.cardIcon}>⚽</div>
                     <div className={styles.cardContent}>
                         <div className={styles.cardLabel}>Soccer League</div>
-                        {soccerLeague && !soccerLeague.game_over ? (
+                        {activeMatch && !activeMatch.game_over ? (
                             <>
                                 <div className={styles.cardValue}>
-                                    {soccerLeague.score.left} - {soccerLeague.score.right}
+                                    {activeMatch.score.left} - {activeMatch.score.right}
                                 </div>
                                 <div className={styles.cardSub}>Match in progress</div>
                             </>

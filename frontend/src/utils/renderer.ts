@@ -536,8 +536,9 @@ export class Renderer {
         const { ctx } = this;
         const radius = entity.radius || 30;
         const team = entity.team;
-        const color = team === 'A' ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
-        const borderColor = team === 'A' ? '#ff4444' : '#4444ff';
+        const isLeft = team === 'left';
+        const color = isLeft ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
+        const borderColor = isLeft ? '#ff4444' : '#4444ff';
 
         ctx.save();
         ctx.translate(entity.x, entity.y); // Center (assuming backend sends center coords)
