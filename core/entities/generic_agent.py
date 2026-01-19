@@ -52,7 +52,6 @@ See Also:
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -602,15 +601,14 @@ class GenericAgent(Agent):
         if self._components.perception is not None:
             self._components.perception.record_food_discovery(food.pos)
 
-    @abstractmethod
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> EntityUpdateResult:
         """Update the agent state for one frame.
 
-        This method orchestrates the sense-think-act loop and updates
-        all lifecycle components. Subclasses must implement this to
-        define their specific update behavior.
+        Base implementation calls Agent.update() to maintain position updates.
+        Subclasses should override this to add their specific behavior, calling
+        super().update() to preserve the base functionality.
 
         Args:
             frame_count: Current frame number
@@ -620,7 +618,8 @@ class GenericAgent(Agent):
         Returns:
             EntityUpdateResult with any spawned entities or events
         """
-        ...
+        # Call Agent.update() to handle position updates
+        return super().update(frame_count, time_modifier, time_of_day)
 
     def _update_common(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
