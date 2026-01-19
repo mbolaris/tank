@@ -14,7 +14,7 @@ Betting logic is separated from the main interaction class because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, cast
 
 from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction
@@ -73,7 +73,7 @@ def decide_player_action(
 
     # Use evolved poker strategy if available
     if ctx.strategy is not None:
-        return ctx.strategy.decide_action(
+        decision = ctx.strategy.decide_action(
             hand_strength=hand_strength,
             current_bet=ctx.current_bet,
             opponent_bet=max_bet,
@@ -82,6 +82,7 @@ def decide_player_action(
             position_on_button=position_on_button,
             rng=rng,
         )
+        return cast(Tuple[BettingAction, float], decision)
 
     # Fallback: Simple aggression-based decision
     # Use provided RNG, or fallback to player environment RNG

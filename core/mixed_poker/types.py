@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
     from core.entities.plant import Plant
     from core.poker.betting.actions import BettingAction
-    from core.poker_interaction import PokerHand
+    from core.poker.core.hand import PokerHand
 
 Player = Union["Fish", "Plant"]
 
@@ -48,3 +48,17 @@ class MixedPokerResult:
     total_rounds: int = 4
     players_folded: List[bool] = field(default_factory=list)
     betting_history: List[Tuple[int, "BettingAction", float]] = field(default_factory=list)
+    # Dealer/button position (0-indexed) from the game state.
+    button_position: int = 0
+
+    @property
+    def final_pot(self) -> float:
+        return self.total_pot
+
+    @property
+    def player1_folded(self) -> bool:
+        return bool(self.players_folded[0]) if len(self.players_folded) > 0 else False
+
+    @property
+    def player2_folded(self) -> bool:
+        return bool(self.players_folded[1]) if len(self.players_folded) > 1 else False

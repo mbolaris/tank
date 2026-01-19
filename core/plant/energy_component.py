@@ -144,10 +144,13 @@ class PlantEnergyComponent:
             Reduction factor (0.5-1.0).
         """
         root_spot = self._get_root_spot()
-        if root_spot is None or getattr(root_spot, "manager", None) is None:
+        if root_spot is None:
             return 1.0
 
-        manager = root_spot.manager
+        manager = getattr(root_spot, "manager", None)
+        if manager is None:
+            return 1.0
+
         left_spot = manager.get_spot_by_id(root_spot.spot_id - 1)
         right_spot = manager.get_spot_by_id(root_spot.spot_id + 1)
 

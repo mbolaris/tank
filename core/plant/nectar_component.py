@@ -101,14 +101,14 @@ class PlantNectarComponent:
 
         return True
 
-    def try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
+    def try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["_NectarCreationData"]:
         """Try to produce nectar if conditions are met.
 
         Args:
             time_of_day: Normalized time of day.
 
         Returns:
-            PlantNectar if produced, None otherwise.
+            Internal nectar creation data if produced, None otherwise.
         """
         if not self.can_produce_nectar():
             return None

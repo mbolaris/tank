@@ -515,6 +515,7 @@ class MixedPokerInteraction:
                 total_rounds=total_rounds,
                 players_folded=[ctx.folded for ctx in contexts],
                 betting_history=game_state.betting_history,
+                button_position=game_state.button_position,
             )
         else:
             # Tie - split pot among tied players
@@ -583,6 +584,7 @@ class MixedPokerInteraction:
                 total_rounds=total_rounds,
                 players_folded=[ctx.folded for ctx in contexts],
                 betting_history=game_state.betting_history,
+                button_position=game_state.button_position,
             )
 
         # Settle energy deltas once (prevents mid-hand death that can't be undone)

@@ -67,7 +67,7 @@ class PeriodicBenchmarkEvaluator:
             self.history.append(
                 {
                     "frame": frame,
-                    "fish_id": fish.id,
+                    "fish_id": getattr(fish, "fish_id", id(fish)),
                     "algorithm_id": getattr(algo, "strategy_id", "unknown"),
                     "weighted_bb_per_100": result.weighted_bb_per_100,
                     "weighted_bb_ci_95": result.weighted_bb_per_100_ci_95,

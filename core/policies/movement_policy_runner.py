@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 from core.math_utils import Vector2
 from core.policies.interfaces import MovementAction
@@ -33,8 +33,8 @@ def run_movement_policy(
     code_pool: GenomeCodePool,
     observation: dict[str, Any],
     rng: pyrandom.Random,
-    fish_id: int | None = None,
-) -> VelocityComponents | None:
+    fish_id: Optional[int] = None,
+) -> Optional[VelocityComponents]:
     """Execute the genome's movement policy and validate output.
 
     Args:
@@ -53,15 +53,15 @@ def run_movement_policy(
     movement_params_trait = getattr(genome.behavioral, "movement_policy_params", None)
 
     # Unwrap values if they are traits
-    component_id = (
-        movement_id_trait.value if hasattr(movement_id_trait, "value") else movement_id_trait
-    )
+    if movement_id_trait is not None and hasattr(movement_id_trait, "value"):
+        component_id = movement_id_trait.value
+    else:
+        component_id = movement_id_trait
 
-    params = (
-        movement_params_trait.value
-        if hasattr(movement_params_trait, "value")
-        else movement_params_trait
-    )
+    if movement_params_trait is not None and hasattr(movement_params_trait, "value"):
+        params = movement_params_trait.value
+    else:
+        params = movement_params_trait
 
     # Identify if we have a valid policy to run
     if not component_id:

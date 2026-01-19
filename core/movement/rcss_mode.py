@@ -11,8 +11,8 @@ This enables more realistic and constrained movement for strategic gameplay.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Optional
 
 from core.math_utils import Vector2
 
@@ -64,14 +64,9 @@ class RCSSLiteAgentState:
     effort: float = 1.0
     recovery: float = 1.0
     body_angle: float = 0.0  # Radians
-    velocity: Vector2 = None  # Will be initialized as Vector2(0, 0)
+    velocity: Vector2 = field(default_factory=lambda: Vector2(0.0, 0.0))
     last_dash_power: float = 0.0
     last_turn_moment: float = 0.0
-
-    def __post_init__(self):
-        """Initialize velocity if not provided."""
-        if self.velocity is None:
-            self.velocity = Vector2(0.0, 0.0)
 
 
 class RCSSLitePhysicsEngine:
@@ -81,7 +76,7 @@ class RCSSLitePhysicsEngine:
     turn inertia, and acceleration-based movement.
     """
 
-    def __init__(self, params: RCSSLitePhysicsParams | None = None):
+    def __init__(self, params: Optional[RCSSLitePhysicsParams] = None):
         """Initialize the RCSS-Lite physics engine.
 
         Args:

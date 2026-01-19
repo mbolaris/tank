@@ -4,6 +4,7 @@ This module manages the 100 fixed positions along the tank bottom
 where fractal plants can sprout and grow.
 """
 
+import math
 import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, List, Optional, Tuple
@@ -403,7 +404,7 @@ class RootSpotManager:
             def score_spot(spot: RootSpot) -> float:
                 dx = spot.x - parent_x
                 dy = spot.y - parent_y
-                dist = (dx * dx + dy * dy) ** 0.5
+                dist = math.hypot(dx, dy)
                 # Score higher for medium distances
                 if dist < min_preferred_distance:
                     return dist  # Too close, lower score

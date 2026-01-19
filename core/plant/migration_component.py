@@ -90,7 +90,8 @@ class PlantMigrationComponent:
 
         # Determine if this plant is in an edge position
         # Edge positions are the first 2 or last 2 spots out of 25
-        total_spots = len(root_spot.manager.spots) if hasattr(root_spot, "manager") else 25
+        manager = getattr(root_spot, "manager", None)
+        total_spots = len(manager.spots) if manager is not None else 25
         edge_threshold = 2  # Consider first 2 and last 2 spots as "edge"
 
         spot_id = root_spot.spot_id
@@ -162,7 +163,7 @@ class PlantMigrationComponent:
             return False
 
         try:
-            success = migration_handler.attempt_entity_migration(plant, direction, world_id)
+            success = bool(migration_handler.attempt_entity_migration(plant, direction, world_id))
 
             if success:
                 # Mark this plant for removal from source tank

@@ -16,7 +16,7 @@ Table Formation:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Set, Union
+from typing import TYPE_CHECKING, List, Optional, Set, Union, cast
 
 from core.config.server import POKER_ACTIVITY_ENABLED
 
@@ -204,7 +204,7 @@ class MixedPokerTablePlanner:
         """Check if plant can participate in poker."""
         can_play = getattr(plant, "can_play_poker", None)
         if callable(can_play):
-            return can_play()
+            return bool(can_play())
         if getattr(plant, "poker_cooldown", 0) > 0:
             return False
         if hasattr(plant, "is_dead") and plant.is_dead():
@@ -221,7 +221,7 @@ class MixedPokerTablePlanner:
         if self.environment is None:
             return []
 
-        search_radius = self.max_distance + max(fish.width, fish.height) * 0.5
+        search_radius = int(self.max_distance + max(fish.width, fish.height) * 0.5)
 
         # Use specialized query if available
         if hasattr(self.environment, "nearby_poker_entities"):
@@ -232,7 +232,11 @@ class MixedPokerTablePlanner:
             return []
 
         # Filter to eligible and not-assigned
-        return [e for e in nearby if e in all_eligible and e not in assigned and e is not fish]
+        return [
+            cast(PokerPlayer, e)
+            for e in nearby
+            if e in all_eligible and e not in assigned and e is not fish
+        ]
 
     def _is_mutually_proximate(
         self,

@@ -449,7 +449,7 @@ class PokerStatsManager:
         if result is None:
             return
 
-        stats._total_pot_size += result.final_pot
+        stats._total_pot_size += result.total_pot
         stats.avg_pot_size = stats._total_pot_size / stats.total_games
 
         if result.won_by_fold:
@@ -458,8 +458,8 @@ class PokerStatsManager:
             stats.won_at_showdown += 1
             stats.showdown_count += 1
 
-        winner_on_button = (winner_algo_id == player1_algo_id and result.button_position == 1) or (
-            winner_algo_id == player2_algo_id and result.button_position == 2
+        winner_on_button = (winner_algo_id == player1_algo_id and result.button_position == 0) or (
+            winner_algo_id == player2_algo_id and result.button_position == 1
         )
 
         if winner_on_button:
@@ -470,8 +470,8 @@ class PokerStatsManager:
             stats.non_button_wins += 1
 
         for player, action, _ in result.betting_history:
-            if (player == 1 and winner_algo_id == player1_algo_id) or (
-                player == 2 and winner_algo_id == player2_algo_id
+            if (player == 0 and winner_algo_id == player1_algo_id) or (
+                player == 1 and winner_algo_id == player2_algo_id
             ):
                 if action == BettingAction.RAISE:
                     stats.total_raises += 1
@@ -506,7 +506,7 @@ class PokerStatsManager:
         if result is None:
             return
 
-        stats._total_pot_size += result.final_pot
+        stats._total_pot_size += result.total_pot
         stats.avg_pot_size = stats._total_pot_size / stats.total_games
 
         loser_folded = (loser_algo_id == player1_algo_id and result.player1_folded) or (
@@ -522,8 +522,8 @@ class PokerStatsManager:
         else:
             stats.showdown_count += 1
 
-        loser_on_button = (loser_algo_id == player1_algo_id and result.button_position == 1) or (
-            loser_algo_id == player2_algo_id and result.button_position == 2
+        loser_on_button = (loser_algo_id == player1_algo_id and result.button_position == 0) or (
+            loser_algo_id == player2_algo_id and result.button_position == 1
         )
 
         if loser_on_button:
@@ -532,8 +532,8 @@ class PokerStatsManager:
             stats.non_button_games += 1
 
         for player, action, _ in result.betting_history:
-            if (player == 1 and loser_algo_id == player1_algo_id) or (
-                player == 2 and loser_algo_id == player2_algo_id
+            if (player == 0 and loser_algo_id == player1_algo_id) or (
+                player == 1 and loser_algo_id == player2_algo_id
             ):
                 if action == BettingAction.RAISE:
                     stats.total_raises += 1
