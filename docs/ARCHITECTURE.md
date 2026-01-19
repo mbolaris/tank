@@ -406,6 +406,79 @@ Fish behavior is modular:
 - Lifecycle system (LifecycleComponent)
 - Movement system
 
+### GenericAgent Abstraction
+
+The `GenericAgent` class (`core/entities/generic_agent.py`) provides a composable base for building different agent types (Fish, Microbe, future robots) from shared components. It formalizes the sense-think-act lifecycle:
+
+```
+GenericAgent
+├── perceive() → Percept: Collects sensory inputs
+├── decide(percept) → Action: Dispatches to policy/brain
+├── act(action): Applies actions via actuators
+└── update(dt): Orchestrates the loop + lifecycle
+```
+
+**Component Composition:**
+```python
+agent = GenericAgent(
+    environment=world,
+    components=AgentComponents(
+        energy=EnergyComponent(...),
+        lifecycle=LifecycleComponent(...),
+        perception=PerceptionComponent(...),
+        locomotion=LocomotionComponent(...),
+        feeding=FeedingComponent(...),
+        reproduction=ReproductionComponent(...),  # optional
+    )
+)
+```
+
+**Protocol Compliance via Components:**
+| Component Present | Protocols Satisfied |
+|-------------------|---------------------|
+| EnergyComponent | EnergyHolder |
+| LifecycleComponent | LifecycleAware, Mortal |
+| ReproductionComponent | Reproducible |
+| (inherited from Agent) | Movable |
+
+**Entity Hierarchy:**
+```
+Entity (base - position, state, rect)
+└── Agent (adds velocity, movement)
+    └── GenericAgent (adds components, sense-think-act)
+        ├── Fish (genetics, poker, reproduction, visual state)
+        └── PetriMicrobeAgent (simple microbe for Petri mode)
+```
+
+**Design Philosophy:**
+- Structural subtyping (protocols) for capabilities, not inheritance
+- Components are optional - agents satisfy protocols based on what they have
+- Species-specific classes (Fish, Microbe) are thin wrappers supplying components
+- Decision policies are decoupled from agent structure (injectable)
+
+**Example: Creating a New Agent Type**
+```python
+class Robot(GenericAgent):
+    def __init__(self, environment, x, y, speed):
+        components = AgentComponents(
+            energy=EnergyComponent(max_energy=200, base_metabolism=0.02),
+            locomotion=LocomotionComponent(),
+            # No lifecycle = doesn't age
+            # No reproduction = doesn't breed
+        )
+        super().__init__(environment, x, y, speed, components=components)
+
+    def update(self, frame_count, time_modifier=1.0, time_of_day=None):
+        if self.is_dead():
+            return EntityUpdateResult()
+        percept = self.perceive(time_of_day)
+        action = self.decide(percept)
+        self.act(action)
+        return self._update_common(frame_count, time_modifier, time_of_day)
+```
+
+See `core/entities/generic_agent.py` for full documentation and `core/agents/petri_agent.py` for a reference implementation.
+
 ## Separation of Concerns
 
 ### Mostly Separated
@@ -547,6 +620,7 @@ See `tests/test_protocols.py` for comprehensive examples and `core/protocols.py`
 
 ## Change Log
 
+- **2026-01-19**: Introduced `GenericAgent` abstraction (`core/entities/generic_agent.py`) for composable alife agents. Added `Percept` and `Action` types for sense-think-act loop. Refactored `Fish` and `PetriMicrobeAgent` to extend `GenericAgent`. Added `AgentComponents` dataclass for component composition. Updated entity hierarchy: Entity → Agent → GenericAgent → Fish/Microbe.
 - **2026-01-12**: Added comprehensive entity protocol system (9 protocols in `core/protocols.py`). Documented protocol-based architecture pattern, benefits, and usage examples. Added `Fish.get_entity_id()` for Identifiable protocol. Created `tests/test_protocols.py` with protocol conformance tests and architectural examples.
 - **2026-01-01**: Added World Backends, Mode System, Agent Components sections. Updated project structure.
 - **2025-12-25**: Pruned stale documentation, archived historical analysis docs.

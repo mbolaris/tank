@@ -19,7 +19,8 @@ from core.config.fish import (
     PREDATOR_ENCOUNTER_WINDOW,
 )
 from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_REASON_STARVATION
-from core.entities.base import Agent, EntityState, LifeStage
+from core.entities.base import EntityState, LifeStage
+from core.entities.generic_agent import AgentComponents, GenericAgent
 from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
@@ -49,17 +50,29 @@ from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 
-class Fish(Agent):
+class Fish(GenericAgent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
-    Protocol Implementations:
-        - EnergyHolder: Has energy that can be gained/lost
+    Fish extends GenericAgent with full alife capabilities including genetics,
+    reproduction, skill games (poker), and complex lifecycle management.
+
+    Protocol Implementations (via GenericAgent + Fish-specific):
+        - EnergyHolder: Has energy with overflow routing to reproduction
         - Mortal: Can die from starvation, predation, or old age
         - Reproducible: Can reproduce through poker games or asexually
         - Movable: Moves with AI-driven behaviors
         - SkillGamePlayer: Can play poker with evolved strategies
         - Identifiable: Has stable fish_id for tracking and lineage
         - LifecycleAware: Transitions through baby -> adult -> elder stages
+
+    GenericAgent Integration:
+        Fish supplies components via _create_components() for:
+        - Energy (EnergyComponent with metabolism)
+        - Lifecycle (LifecycleComponent with aging)
+        - Reproduction (ReproductionComponent)
+
+        Fish overrides several GenericAgent methods for species-specific behavior
+        (energy overflow routing, complex metabolism, poker cooldowns).
 
     Attributes:
         genome: Genetic traits
@@ -232,7 +245,24 @@ class Fish(Agent):
         if modified_speed > max_allowed_speed:
             modified_speed = max_allowed_speed
 
-        super().__init__(environment, x, y, modified_speed)
+        # Package components for GenericAgent
+        # Fish manages its own components but passes them through for protocol compliance
+        components = AgentComponents(
+            energy=self._energy_component,
+            lifecycle=self._lifecycle_component,
+            reproduction=self._reproduction_component,
+            # Fish doesn't use GenericAgent's perception/locomotion/feeding
+            # as it has its own memory_system, behavior_executor, and eat() method
+        )
+
+        super().__init__(
+            environment=environment,
+            x=x,
+            y=y,
+            speed=modified_speed,
+            components=components,
+            agent_id=self.fish_id,
+        )
 
         # Store parent ID for delayed registration
         self.parent_id = parent_id
