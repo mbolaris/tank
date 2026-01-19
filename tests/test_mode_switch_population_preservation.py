@@ -77,8 +77,12 @@ class TestModeSwitchPopulationPreservation:
             if fish_id in fish_states_before:
                 before = fish_states_before[fish_id]
                 assert fish.energy == before["energy"], f"Energy changed for fish {fish.fish_id}"
-                assert fish.generation == before["generation"], f"Generation changed for fish {fish.fish_id}"
-                assert fish._lifecycle_component.age == before["age"], f"Age changed for fish {fish.fish_id}"
+                assert (
+                    fish.generation == before["generation"]
+                ), f"Generation changed for fish {fish.fish_id}"
+                assert (
+                    fish._lifecycle_component.age == before["age"]
+                ), f"Age changed for fish {fish.fish_id}"
 
     def test_round_trip_preserves_population(self):
         """After tank→petri→tank, entities should still be the same instances."""
@@ -98,9 +102,9 @@ class TestModeSwitchPopulationPreservation:
         entity_ids_final = {id(e) for e in entities_final}
 
         # Should be identical (excluding any natural births/deaths)
-        assert entity_ids_original == entity_ids_final, (
-            "Entity instances changed after round-trip switch"
-        )
+        assert (
+            entity_ids_original == entity_ids_final
+        ), "Entity instances changed after round-trip switch"
 
 
 class TestModeSwitchPhysics:
@@ -117,9 +121,9 @@ class TestModeSwitchPhysics:
 
         # The environment should have the dish and boundary resolver
         env = runner.engine.environment
-        assert hasattr(env, "dish") and env.dish is not None, (
-            "Petri dish should be set on environment after switch"
-        )
+        assert (
+            hasattr(env, "dish") and env.dish is not None
+        ), "Petri dish should be set on environment after switch"
         assert hasattr(env, "resolve_boundary_collision") and callable(
             getattr(env, "resolve_boundary_collision", None)
         ), "resolve_boundary_collision should be installed on environment after switch"
@@ -140,9 +144,9 @@ class TestModeSwitchPhysics:
 
         # resolve_boundary_collision should be None or not present
         resolver = getattr(env, "resolve_boundary_collision", None)
-        assert resolver is None, (
-            "resolve_boundary_collision should be removed after switching to tank"
-        )
+        assert (
+            resolver is None
+        ), "resolve_boundary_collision should be removed after switching to tank"
 
     def test_entities_respect_dish_boundary_after_switch(self):
         """After switch to petri, mobile entities should be clamped to dish boundary."""
@@ -177,9 +181,9 @@ class TestModeSwitchPhysics:
 
             # Entity center should be within dish (with some margin for entity radius)
             entity_r = max(entity.width, getattr(entity, "height", entity.width)) / 2
-            assert dist <= dish.r + entity_r, (
-                f"Entity {type(entity).__name__} at ({cx}, {cy}) is outside dish boundary (dist={dist}, r={dish.r})"
-            )
+            assert (
+                dist <= dish.r + entity_r
+            ), f"Entity {type(entity).__name__} at ({cx}, {cy}) is outside dish boundary (dist={dist}, r={dish.r})"
 
 
 class TestModeSwitchRendering:
@@ -203,9 +207,9 @@ class TestModeSwitchRendering:
             for snapshot in fish_snapshots:
                 hint = snapshot.render_hint
                 assert hint is not None, "Fish should have render hint"
-                assert hint.get("style") == "petri", (
-                    f"Fish render hint should be 'petri' style, got {hint.get('style')}"
-                )
+                assert (
+                    hint.get("style") == "petri"
+                ), f"Fish render hint should be 'petri' style, got {hint.get('style')}"
 
     def test_tank_snapshot_builder_after_switch_back(self):
         """After petri→tank switch, snapshot builder should produce tank hints."""
@@ -226,9 +230,9 @@ class TestModeSwitchRendering:
                 hint = snapshot.render_hint
                 assert hint is not None, "Fish should have render hint"
                 # Tank uses "pixel" style
-                assert hint.get("style") == "pixel", (
-                    f"Fish render hint should be 'pixel' style, got {hint.get('style')}"
-                )
+                assert (
+                    hint.get("style") == "pixel"
+                ), f"Fish render hint should be 'pixel' style, got {hint.get('style')}"
 
 
 class TestModeSwitchHookSequencing:
