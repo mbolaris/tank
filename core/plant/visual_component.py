@@ -101,9 +101,7 @@ class PlantVisualComponent:
         # Apply hysteresis
         if target_iterations > self._cached_iterations:
             # Upgrade requires being past the threshold to prevent rapid switching
-            if (target_iterations == 2 and size > 0.65) or (
-                target_iterations == 3 and size > 1.05
-            ):
+            if (target_iterations == 2 and size > 0.65) or (target_iterations == 3 and size > 1.05):
                 self._cached_iterations = target_iterations
         elif target_iterations < self._cached_iterations:
             # Downgrade is immediate to reflect energy loss
@@ -122,9 +120,7 @@ class PlantVisualComponent:
         nectar_cooldown = self._get_nectar_cooldown()
 
         return (
-            nectar_cooldown == 0
-            and energy >= PLANT_NECTAR_ENERGY
-            and energy / max_energy >= 0.90
+            nectar_cooldown == 0 and energy >= PLANT_NECTAR_ENERGY and energy / max_energy >= 0.90
         )
 
     def to_state_dict(
