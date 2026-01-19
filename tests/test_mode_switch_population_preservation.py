@@ -7,8 +7,6 @@ These tests verify that:
 4. Rendering switches between tank and petri styles appropriately
 """
 
-import pytest
-
 from backend.simulation_runner import SimulationRunner
 from core.entities import Fish, Plant
 
