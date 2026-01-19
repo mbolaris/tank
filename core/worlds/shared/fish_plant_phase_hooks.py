@@ -55,7 +55,7 @@ class FishPlantPhaseHooks(PhaseHooks):
             if ecosystem is None:
                 return SpawnDecision(should_add=False, entity=spawned_entity, reason="no_ecosystem")
 
-            fish_count = len(engine.get_fish_list())
+            fish_count = len(engine._entity_manager.get_fish())
             if not ecosystem.can_reproduce(fish_count):
                 return SpawnDecision(
                     should_add=False, entity=spawned_entity, reason="population_limit"
@@ -89,7 +89,8 @@ class FishPlantPhaseHooks(PhaseHooks):
         if isinstance(entity, Fish):
             # Fish death is recorded but entity is not immediately removed
             # (death animation plays first, cleanup happens in lifecycle phase)
-            engine.record_fish_death(entity)
+            if engine.lifecycle_system:
+                engine.lifecycle_system.record_fish_death(entity)
             return False  # Don't add to removal list yet
 
         elif isinstance(entity, Plant):
@@ -121,7 +122,8 @@ class FishPlantPhaseHooks(PhaseHooks):
                 engine.lifecycle_system.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation
-        engine.cleanup_dying_fish()
+        if engine.lifecycle_system:
+            engine.lifecycle_system.cleanup_dying_fish()
 
     def on_reproduction_complete(
         self,
@@ -135,7 +137,7 @@ class FishPlantPhaseHooks(PhaseHooks):
         if ecosystem is None:
             return
 
-        fish_list = engine.get_fish_list()
+        fish_list = engine._entity_manager.get_fish()
 
         # Delegate stats recording to EcosystemManager
         ecosystem.update_population_stats(fish_list)
@@ -160,7 +162,7 @@ class FishPlantPhaseHooks(PhaseHooks):
         Called at end of frame to optionally run benchmark evaluation.
         """
         if engine.benchmark_evaluator is not None:
-            fish_list = engine.get_fish_list()
+            fish_list = engine._entity_manager.get_fish()
             engine.benchmark_evaluator.maybe_run(engine.frame_count, fish_list)
 
         league_runtime = self._get_soccer_league_runtime(engine)

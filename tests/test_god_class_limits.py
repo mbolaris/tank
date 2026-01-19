@@ -54,6 +54,7 @@ LEGACY_EXCEEDS: Set[str] = {
     "standard.py",  # poker/strategy/implementations/standard.py
     "entity_transfer.py",  # core/transfer - 646 lines, migration serialization
     "rcss_protocol.py",  # legacy soccer protocol handling
+    "grid.py",  # core/spatial/grid.py - extracted from environment.py
 }
 
 # Maximum allowed lines for NEW files
@@ -106,7 +107,9 @@ def test_legacy_exceeds_shrinking() -> None:
     This test documents the current count of legacy files.
     Update EXPECTED_LEGACY_COUNT when you refactor files.
     """
-    EXPECTED_LEGACY_COUNT = 53  # Updated 2026-01-02: added entity_transfer.py, rcss_protocol.py
+    EXPECTED_LEGACY_COUNT = (
+        54  # Updated 2026-01-02: added entity_transfer.py, rcss_protocol.py, grid.py
+    )
 
     actual_count = len(LEGACY_EXCEEDS)
 

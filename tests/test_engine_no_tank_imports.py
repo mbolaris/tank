@@ -58,7 +58,12 @@ def test_apply_entity_mutations_does_not_import_tank_types():
 
 
 def test_delta_tracking_uses_identity_provider():
-    """Verify _apply_entity_mutations uses identity_provider for entity identity."""
+    """Verify _apply_entity_mutations passes identity_provider to MutationTransaction.
+
+    The engine now delegates identity resolution to MutationTransaction.commit(),
+    which receives the identity_provider as a parameter. This maintains mode-agnostic
+    architecture while allowing the identity provider to handle entity IDs.
+    """
     engine_path = Path(__file__).parent.parent / "core" / "simulation" / "engine.py"
     source = engine_path.read_text(encoding="utf-8")
     lines = source.split("\n")
@@ -87,10 +92,11 @@ def test_delta_tracking_uses_identity_provider():
     end_line = apply_mutations_func.end_lineno  # 1-indexed, exclusive
     function_body = "\n".join(lines[start_line:end_line])
 
-    # Check that the identity helper is used
+    # Check that the identity provider is passed to mutations.commit()
+    # The new architecture delegates to MutationTransaction which uses identity_provider
     assert (
-        "_get_entity_identity" in function_body
-    ), "_apply_entity_mutations should use _get_entity_identity() for stable identity"
+        "_identity_provider" in function_body or "identity_provider" in function_body
+    ), "_apply_entity_mutations should pass identity_provider to mutations.commit()"
 
 
 def test_energy_recorder_does_not_use_fish_only_patterns():

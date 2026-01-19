@@ -15,20 +15,8 @@ Design Decisions:
 3. The update() method runs phases in order, delegating to systems.
    Phase order is explicit and documented in UpdatePhase.
 
-
-
-Why not use PhaseRunner yet?
-----------------------------
-The PhaseRunner in update_phases.py is designed for systems that declare
-their own phase via @runs_in_phase. Currently, most of our update logic
-is still inline in update() rather than in phase-aware systems.
-
-A future refactoring could:
-1. Move all inline phase logic into proper System classes
-2. Have each System declare its phase
-3. Use PhaseRunner to execute them automatically
-
-For now, we keep the explicit phase logic in update() for clarity.
+4. Executive logic (Systems wiring and mutation handling) is delegated to
+   SystemCoordinator and MutationTransaction.
 """
 
 from __future__ import annotations
@@ -44,8 +32,9 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
+from core.simulation.coordinator import SystemCoordinator
 from core.simulation.entity_manager import EntityManager
-from core.simulation.entity_mutation_queue import EntityMutationQueue
+from core.simulation.mutation import MutationTransaction
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.time_system import TimeSystem
@@ -65,6 +54,7 @@ if TYPE_CHECKING:
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
     from core.systems.poker_proximity import PokerProximitySystem
+    from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
     from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
@@ -111,29 +101,7 @@ class PackableEngine(Protocol):
 class SimulationEngine:
     """A headless simulation engine for the fish tank ecosystem.
 
-    This class orchestrates the simulation by coordinating managers and systems.
-    It does NOT contain business logic - that lives in the systems.
-
-    Architecture:
-        SimulationEngine (coordinator)
-        ├── EntityManager (entity CRUD)
-        ├── SystemRegistry (system lifecycle)
-        ├── Systems (CollisionSystem, PokerSystem, etc.)
-        ├── Managers (PlantManager, EcosystemManager)
-        └── Services (StatsCalculator, StatsExporter)
-
-    Mutation Ownership:
-        Systems never mutate entity collections directly. They request
-        spawns/removals via the engine's mutation queue, and the engine
-        applies those mutations between phases.
-
-    Attributes:
-        config: Simulation configuration
-        entities_list: All entities (via EntityManager)
-        ecosystem: Population and stats tracking
-        time_system: Day/night cycle
-        frame_count: Total frames elapsed
-        paused: Whether simulation is paused
+    Refactored to delegate logic to SystemCoordinator and MutationTransaction.
     """
 
     def __init__(
@@ -184,7 +152,10 @@ class SimulationEngine:
 
         self.agents = AgentsWrapper(self)
         self._system_registry = SystemRegistry()
-        self._entity_mutations = EntityMutationQueue()
+
+        # New modular components
+        self.coordinator = SystemCoordinator()
+        self.mutations = MutationTransaction()
 
         # Core state
         self.environment: environment.Environment | None = None
@@ -199,6 +170,7 @@ class SimulationEngine:
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
         # but we keep them as Optional attributes for type safety.
+        # Note: They are also registered with self.coordinator in setup()
         self.collision_system: CollisionSystem | None = None
         self.reproduction_service: ReproductionService | None = None
         self.reproduction_system: ReproductionSystem | None = None
@@ -242,12 +214,10 @@ class SimulationEngine:
         from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
 
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
+        self.coordinator.set_phase_hooks(self._phase_hooks)
 
     def drain_frame_outputs(self) -> FrameOutputs:
-        """Return this frame's outputs and clear internal buffers.
-
-        This is the only supported way for backends to read per-frame spawns/removals/energy deltas.
-        """
+        """Return this frame's outputs and clear internal buffers."""
         outputs = FrameOutputs(
             spawns=list(self._frame_spawns),
             removals=list(self._frame_removals),
@@ -279,19 +249,35 @@ class SimulationEngine:
             return None
         return self.plant_manager.root_spot_manager
 
+    def get_fish_list(self) -> list[entities.Fish]:
+        """Get list of all fish (compatibility method)."""
+        return self._entity_manager.get_fish()
+
+    def get_food_list(self) -> list[entities.Food]:
+        """Get list of all food (compatibility method)."""
+        return self._entity_manager.get_food()
+
+    def cleanup_dying_fish(self) -> None:
+        """Remove dying fish (compatibility method)."""
+        if self.lifecycle_system:
+            self.lifecycle_system.cleanup_dying_fish()
+
+    def record_fish_death(self, fish: entities.Fish, cause: str | None = None) -> None:
+        """Record fish death (compatibility method)."""
+        if self.lifecycle_system:
+            self.lifecycle_system.record_fish_death(fish, cause)
+
+    # Expose mutation queue for tests that access private member
+    @property
+    def _entity_mutations(self):
+        return self.mutations._queue
+
     # =========================================================================
     # Setup
     # =========================================================================
 
     def setup(self, pack: SystemPack | None = None) -> None:
-        """Setup the simulation using the provided SystemPack.
-
-        If no pack is provided, it tries to use the default Tank logic
-        (via TankPack).
-        """
-        # NOTE: Poker cooldowns are now tracked on entities directly (Fish.poker_cooldown)
-        # rather than in a global manager, so no per-engine cleanup is needed here.
-
+        """Setup the simulation using the provided SystemPack."""
         # Fallback to TankPack if no pack provided
         if pack is None:
             from core.worlds.tank.pack import TankPack
@@ -303,8 +289,22 @@ class SimulationEngine:
         for attr, system in systems.items():
             setattr(self, attr, system)
 
+        # Wire systems into coordinator
+        self.coordinator.collision_system = self.collision_system
+        self.coordinator.reproduction_service = self.reproduction_service
+        self.coordinator.reproduction_system = self.reproduction_system
+        self.coordinator.poker_system = self.poker_system
+        self.coordinator.lifecycle_system = self.lifecycle_system
+        self.coordinator.poker_proximity_system = self.poker_proximity_system
+        self.coordinator.food_spawning_system = self.food_spawning_system
+        self.coordinator.plant_manager = self.plant_manager
+
         # 2. Let the pack build the environment
         self.environment = pack.build_environment(self)
+
+        # Wire up energy delta recorder for immediate tracking
+        if self.environment and hasattr(self.environment, "set_energy_delta_recorder"):
+            self.environment.set_energy_delta_recorder(self._create_energy_recorder())
 
         # 3. Let the pack register systems
         pack.register_systems(self)
@@ -335,7 +335,10 @@ class SimulationEngine:
         else:
             self._phase_hooks = NoOpPhaseHooks()
 
-        # 8. Finalize setup: apply any queued mutations from seeding (without recording frame outputs)
+        # Update coordinator hooks
+        self.coordinator.set_phase_hooks(self._phase_hooks)
+
+        # 8. Finalize setup: apply any queued mutations
         self._apply_entity_mutations("setup_finalize", record_outputs=False)
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
@@ -416,7 +419,6 @@ class SimulationEngine:
         """Get all registered systems in execution order."""
         return self._system_registry.get_all()
 
-    # Also expose via private attribute
     @property
     def _systems(self) -> list[BaseSystem]:
         """Access to systems list."""
@@ -488,34 +490,17 @@ class SimulationEngine:
         return self._entity_manager.entities_list
 
     def _add_entity(self, entity: entities.Agent) -> None:
-        """Add an entity to the simulation (INTERNAL USE ONLY).
-
-        This method should only be called by the engine when applying
-        queued mutations from _apply_entity_mutations(). External code
-        should use request_spawn() to queue spawns for safe processing.
-        """
+        """Add an entity to the simulation (INTERNAL USE ONLY)."""
         if hasattr(entity, "add_internal"):
             entity.add_internal(self.agents)
         self._entity_manager.add(entity)
 
     def _remove_entity(self, entity: entities.Agent) -> None:
-        """Remove an entity from the simulation (INTERNAL USE ONLY).
-
-        This method should only be called by the engine when applying
-        queued mutations from _apply_entity_mutations(). External code
-        should use request_remove() to queue removals for safe processing.
-        """
+        """Remove an entity from the simulation (INTERNAL USE ONLY)."""
         self._entity_manager.remove(entity)
 
     def add_entity(self, entity: entities.Agent) -> None:
-        """Add an entity to the simulation (PRIVILEGED API).
-
-        WARNING: This bypasses the mutation queue. Only use from privileged
-        infrastructure code like tank persistence, migration handlers, etc.
-
-        Game systems should use request_spawn() to queue spawns for safe
-        processing between phases. Calling this mid-frame can cause subtle bugs.
-        """
+        """Add an entity to the simulation (PRIVILEGED API)."""
         if self._current_phase is not None:
             raise RuntimeError(
                 f"Unsafe call to add_entity during phase {self._current_phase}. "
@@ -524,14 +509,7 @@ class SimulationEngine:
         self._add_entity(entity)
 
     def remove_entity(self, entity: entities.Agent) -> None:
-        """Remove an entity from the simulation (PRIVILEGED API).
-
-        WARNING: This bypasses the mutation queue. Only use from privileged
-        infrastructure code like tank persistence, migration handlers, etc.
-
-        Game systems should use request_remove() to queue removals for safe
-        processing between phases. Calling this mid-frame can cause subtle bugs.
-        """
+        """Remove an entity from the simulation (PRIVILEGED API)."""
         if self._current_phase is not None:
             raise RuntimeError(
                 f"Unsafe call to remove_entity during phase {self._current_phase}. "
@@ -547,7 +525,7 @@ class SimulationEngine:
         metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a spawn request to be applied by the engine."""
-        return self._entity_mutations.request_spawn(entity, reason=reason, metadata=metadata)
+        return self.mutations.request_spawn(entity, reason=reason, metadata=metadata)
 
     def request_remove(
         self,
@@ -557,282 +535,102 @@ class SimulationEngine:
         metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a removal request to be applied by the engine."""
-        return self._entity_mutations.request_remove(entity, reason=reason, metadata=metadata)
+        return self.mutations.request_remove(entity, reason=reason, metadata=metadata)
 
     def is_pending_removal(self, entity: entities.Agent) -> bool:
         """Check if an entity is queued for removal."""
-        return self._entity_mutations.is_pending_removal(entity)
+        return self.mutations.is_pending_removal(entity)
 
     def _apply_entity_mutations(self, stage: str, *, record_outputs: bool = True) -> None:
-        """Apply queued spawns/removals at a safe point in the frame.
-
-        Args:
-            stage: Debug label for where the mutations are applied.
-            record_outputs: When True, record SpawnRequest/RemovalRequest entries in the
-                per-frame delta buffers. When False, apply mutations without touching
-                frame outputs (used during setup/seeding).
-        """
-        from core.worlds.contracts import RemovalRequest, SpawnRequest
-
-        removals = self._entity_mutations.drain_removals()
-        for mutation in removals:
-            entity = mutation.entity
-            if record_outputs:
-                # Use identity provider for stable IDs, fall back to class name + id()
-                entity_type, entity_id = self._get_entity_identity(entity)
-                self._frame_removals.append(
-                    RemovalRequest(
-                        entity_type=entity_type,
-                        entity_id=entity_id,
-                        reason=mutation.reason,
-                        metadata=mutation.metadata,
-                    )
-                )
-            self._remove_entity(entity)
-
-        spawns = self._entity_mutations.drain_spawns()
-        for mutation in spawns:
-            entity = mutation.entity
-            if record_outputs:
-                # Use identity provider for stable IDs, fall back to class name + id()
-                entity_type, entity_id = self._get_entity_identity(entity)
-                self._frame_spawns.append(
-                    SpawnRequest(
-                        entity_type=entity_type,
-                        entity_id=entity_id,
-                        reason=mutation.reason,
-                        metadata=mutation.metadata,
-                    )
-                )
-            self._add_entity(entity)
-
-    def get_fish_list(self) -> list[entities.Fish]:
-        """Get cached list of all fish in the simulation."""
-        return self._entity_manager.get_fish()
-
-    def get_food_list(self) -> list[entities.Food]:
-        """Get cached list of all food in the simulation."""
-        return self._entity_manager.get_food()
-
-    def get_fish_count(self) -> int:
-        """Get the count of fish in the simulation."""
-        return len(self.get_fish_list())
+        """Apply queued spawns/removals at a safe point in the frame."""
+        # Use MutationTransaction to commit changes
+        self.mutations.commit(
+            self._entity_manager,
+            self._frame_spawns if record_outputs else None,
+            self._frame_removals if record_outputs else None,
+            self._identity_provider,
+            pre_add_callback=lambda e: (
+                e.add_internal(self.agents) if hasattr(e, "add_internal") else None
+            ),
+        )
 
     def _rebuild_caches(self) -> None:
-        """Rebuild all cached entity lists if needed."""
+        """Trigger cache rebuilds on environment and entity manager."""
+        if self.environment:
+            self.environment.rebuild_spatial_grid()
         self._entity_manager.rebuild_caches_if_needed()
 
     # =========================================================================
-    # Lifecycle Delegation
-    # =========================================================================
-
-    def record_fish_death(self, fish: entities.Agent, cause: str | None = None) -> None:
-        """Delegate fish death recording to the lifecycle system."""
-        self.lifecycle_system.record_fish_death(fish, cause)
-
-    def cleanup_dying_fish(self) -> None:
-        """Delegate dying fish cleanup to the lifecycle system."""
-        self.lifecycle_system.cleanup_dying_fish()
-
-    # =========================================================================
-    # Collision/Reproduction/Poker Delegation
-    # =========================================================================
-
-    def check_collision(self, e1: entities.Agent, e2: entities.Agent) -> bool:
-        """Delegate collision detection to the collision system."""
-        return self.collision_system.check_collision(e1, e2)
-
-    def handle_fish_food_collision(self, fish: entities.Agent, food: entities.Agent) -> None:
-        """Delegate fish-food collision handling to the collision system."""
-        self.collision_system.handle_fish_food_collision(fish, food)
-
-    def handle_reproduction(self) -> None:
-        """Delegate reproduction handling to the reproduction system."""
-        self.reproduction_system.update(self.frame_count)
-
-    def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Delegate poker result processing to the poker system."""
-        self.poker_system.handle_poker_result(poker)
-
-    def handle_mixed_poker_games(self) -> None:
-        """Delegate mixed poker games to the poker system."""
-        self.poker_system.handle_mixed_poker_games()
-
-    # =========================================================================
-    # Plant Management
-    # =========================================================================
-
-    def sprout_new_plant(
-        self, parent_genome: PlantGenome, parent_x: float, parent_y: float
-    ) -> bool:
-        """Sprout a new fractal plant from a parent genome."""
-        if self.plant_manager is None:
-            return False
-        result = self.plant_manager.sprout_new_plant(
-            parent_genome, parent_x, parent_y, self._entity_manager.entities_list
-        )
-        return result.is_ok()
-
-    # =========================================================================
-    # Core Update Loop
+    # Update Loop (Coordinated via SystemCoordinator)
     # =========================================================================
 
     def update(self) -> None:
         """Update the state of the simulation.
 
-        The update loop executes via the configured pipeline, which defines
-        the sequence of phases. Different modes can provide custom pipelines
-        to modify the update behavior.
-
-        The default pipeline (used by Tank mode) executes phases in this order:
-            1. FRAME_START: Reset counters, increment frame
-            2. TIME_UPDATE: Advance day/night cycle
-            3. ENVIRONMENT: Update ecosystem and detection modifiers
-            4. ENTITY_ACT: Update all entities, collect spawns/deaths
-            5. LIFECYCLE: Process deaths, add/remove entities
-            6. SPAWN: Auto-spawn food
-            7. COLLISION: Handle collisions
-            8. INTERACTION: Handle social interactions (poker)
-            9. REPRODUCTION: Handle mating and emergency spawns
-            10. FRAME_END: Update stats, rebuild caches
+        This method coordinates the phases of the simulation update loop
+        using the configured Pipeline and SystemCoordinator.
         """
-        if self.paused:
-            return
+        if self.pipeline is None:
+            return  # Should not happen if setup() was called
 
-        # Reset frame deltas
-        self._frame_spawns.clear()
-        self._frame_removals.clear()
-        self._frame_energy_deltas.clear()
-
-        # Inject energy delta recorder for this frame
-        if self.environment is not None:
-            self.environment.set_energy_delta_recorder(self._create_energy_recorder())
-
-        try:
-            if self.pipeline is not None:
-                self.pipeline.run(self)
-            else:
-                # Fallback for edge cases where setup() wasn't called
-                # (defensive - should not happen in normal use)
-                self._phase_frame_start()
-                time_modifier, time_of_day = self._phase_time_update()
-                self._phase_environment()
-                new_entities, entities_to_remove = self._phase_entity_act(
-                    time_modifier, time_of_day
-                )
-                self._phase_lifecycle(new_entities, entities_to_remove)
-                self._phase_spawn()
-                self._phase_collision()
-                self._phase_interaction()
-                self._phase_reproduction()
-                self._phase_frame_end()
-        finally:
-            # Clear recorder to prevent state leakage across frames
-            if self.environment is not None:
-                self.environment.set_energy_delta_recorder(None)
-
-    def _create_energy_recorder(self):
-        """Create a recorder callback for the current frame.
-
-        Returns a function that records energy deltas by creating
-        EnergyDeltaRecord entries with stable entity IDs.
-        """
-        from core.worlds.contracts import EnergyDeltaRecord
-
-        def record(entity, delta: float, source: str, meta: dict) -> None:
-            # Get stable ID for the entity
-            entity_type, stable_id = self._get_entity_identity(entity)
-            self._frame_energy_deltas.append(
-                EnergyDeltaRecord(
-                    entity_id=stable_id,
-                    stable_id=stable_id,
-                    entity_type=entity_type,
-                    delta=delta,
-                    source=source,
-                    metadata=meta,
-                )
-            )
-
-        return record
+        # Delegate execution to the pipeline
+        self.pipeline.run(self)
 
     # -------------------------------------------------------------------------
-    # Phase Implementations
+    # Phase Implementations (Called by Pipeline, Delegated to Coordinator)
     # -------------------------------------------------------------------------
 
     def _phase_frame_start(self) -> None:
         """FRAME_START: Reset counters, increment frame."""
         self._current_phase = UpdatePhase.FRAME_START
         self.frame_count += 1
-        self.lifecycle_system.update(self.frame_count)
 
-        # Enforce the invariant: at most one Plant per RootSpot
-        if self.plant_manager is not None:
-            self.plant_manager.reconcile_plants(
-                self._entity_manager.entities_list, self.frame_count
-            )
-            self.plant_manager.respawn_if_low(self._entity_manager.entities_list, self.frame_count)
+        # Clear frame output buffers from previous frame
+        self._frame_spawns.clear()
+        self._frame_removals.clear()
+        self._frame_energy_deltas.clear()
+
+        self.coordinator.run_frame_start(
+            self.frame_count, self.lifecycle_system, self.plant_manager, self._entity_manager
+        )
         self._apply_entity_mutations("frame_start")
 
-    def _phase_time_update(self) -> tuple:
-        """TIME_UPDATE: Advance day/night cycle.
-
-        Returns:
-            Tuple of (time_modifier, time_of_day) for use by entity updates
-        """
+    def _phase_time_update(self) -> tuple[float, float]:
+        """TIME_UPDATE: Advance day/night cycle and store time values."""
         self._current_phase = UpdatePhase.TIME_UPDATE
-        self.time_system.update(self.frame_count)
-        return (
-            self.time_system.get_activity_modifier(),
-            self.time_system.get_time_of_day(),
-        )
+
+        time_modifier = 1.0
+        time_of_day = 0.5
+        if self.time_system:
+            self.time_system.update(self.frame_count)
+            time_modifier = self.time_system.get_activity_modifier()
+            time_of_day = self.time_system.get_time_of_day()
+
+        self._apply_entity_mutations("time_update")
+        return time_modifier, time_of_day
 
     def _phase_environment(self) -> None:
         """ENVIRONMENT: Update ecosystem and detection modifiers."""
         self._current_phase = UpdatePhase.ENVIRONMENT
-        if self.ecosystem is not None:
-            self.ecosystem.update(self.frame_count)
+        self.coordinator.run_environment(self.ecosystem, self.environment, self.frame_count)
+        self._apply_entity_mutations("environment")
 
-        if self.environment is not None:
-            self.environment.update_detection_modifier()
-
-    def _phase_entity_act(self, time_modifier: float, time_of_day: float) -> tuple:
-        """ENTITY_ACT: Update all entities, collect spawns/deaths.
-
-        Args:
-            time_modifier: Activity modifier from day/night cycle
-            time_of_day: Current time of day (0-1)
-
-        Returns:
-            Tuple of (new_entities, entities_to_remove)
-        """
+    def _phase_entity_act(
+        self,
+        time_modifier: float,
+        time_of_day: float,
+    ) -> tuple[list[entities.Agent], list[entities.Agent]]:
+        """ENTITY_ACT: Update all entities, collect spawns/deaths."""
         self._current_phase = UpdatePhase.ENTITY_ACT
-        new_entities: list[entities.Agent] = []
-        entities_to_remove: list[entities.Agent] = []
 
-        hooks = self._phase_hooks
-
-        for entity in list(self._entity_manager.entities_list):
-            result = entity.update(self.frame_count, time_modifier, time_of_day)
-
-            # Handle spawned entities via phase hooks
-            if result.spawned_entities:
-                for spawned in result.spawned_entities:
-                    decision = hooks.on_entity_spawned(self, spawned, entity)
-                    if decision.should_add:
-                        new_entities.append(decision.entity)
-
-            # Handle entity death via phase hooks
-            if entity.is_dead():
-                should_remove = hooks.on_entity_died(self, entity)
-                if should_remove:
-                    entities_to_remove.append(entity)
-
-            # Note: Food removal (expiry, off-screen) is handled by phase hooks
-            # in _phase_lifecycle via on_lifecycle_cleanup()
-
-            # Enforce screen boundaries as a final safety check
-            entity.constrain_to_screen()
-
+        new_entities, entities_to_remove = self.coordinator.run_entity_act(
+            self._entity_manager,
+            self.frame_count,
+            time_modifier,
+            time_of_day,
+            self._phase_hooks,
+            self,
+        )
         return new_entities, entities_to_remove
 
     def _phase_lifecycle(
@@ -840,36 +638,17 @@ class SimulationEngine:
         new_entities: list[entities.Agent],
         entities_to_remove: list[entities.Agent],
     ) -> None:
-        """LIFECYCLE: Process deaths, add/remove entities.
-
-        This phase is the SINGLE OWNER of entity removal decisions:
-        - Entities marked for removal in entity_act phase
-        - Mode-specific cleanup (Food expiry, death animations, etc.)
-
-        Removals/spawns are queued and applied between phases by the engine.
-        """
+        """LIFECYCLE: Process deaths, add/remove entities."""
         self._current_phase = UpdatePhase.LIFECYCLE
 
-        # Remove entities collected during entity_act phase
-        for entity in entities_to_remove:
-            self.request_remove(entity, reason="entity_act")
-
-        # Mode-specific lifecycle cleanup (Food removal, death animations, etc.)
-        self._phase_hooks.on_lifecycle_cleanup(self)
-
-        # Add new entities spawned during entity_act
-        for new_entity in new_entities:
-            self.request_spawn(new_entity, reason="entity_act")
+        self.coordinator.run_lifecycle(self, new_entities, entities_to_remove, self._phase_hooks)
 
         self._apply_entity_mutations("lifecycle")
 
     def _phase_spawn(self) -> None:
         """SPAWN: Auto-spawn food and update spatial positions."""
         self._current_phase = UpdatePhase.SPAWN
-
-        if self.food_spawning_system:
-            self.food_spawning_system.update(self.frame_count)
-
+        self.coordinator.run_spawn(self.food_spawning_system, self.frame_count)
         self._apply_entity_mutations("spawn")
 
         # Update spatial grid for moved entities
@@ -879,38 +658,69 @@ class SimulationEngine:
                 update_position(entity)
 
     def _phase_collision(self) -> None:
-        """COLLISION: Handle physical collisions between entities.
-
-        CollisionSystem handles physical collision logic:
-        - Fish-Food collisions (eating)
-        - Fish-Crab collisions (predation)
-        - Food-Crab collisions
-
-        Note: Fish-Fish poker proximity is handled by PokerProximitySystem
-        in _phase_interaction().
-        """
+        """COLLISION: Handle physical collisions between entities."""
         self._current_phase = UpdatePhase.COLLISION
-        # CollisionSystem._do_update() handles physical collision iteration
-        self.collision_system.update(self.frame_count)
+        self.coordinator.run_collision(self.collision_system, self.frame_count)
         self._apply_entity_mutations("collision")
 
     def _phase_interaction(self) -> None:
-        """INTERACTION: Handle social interactions between entities.
-
-        Systems in this phase:
-        - PokerProximitySystem: Detects fish groups and triggers poker games
-        - PokerSystem: Processes game outcomes, updates Elo, handles mixed poker
-        """
+        """INTERACTION: Handle social interactions between entities."""
         self._current_phase = UpdatePhase.INTERACTION
-        # Fish-fish poker proximity detection
-        self.poker_proximity_system.update(self.frame_count)
-
-        # PokerSystem processes game outcomes
-        self.poker_system.update(self.frame_count)
-        # Mixed poker (fish-plant, plant-plant)
-        self.handle_mixed_poker_games()
-
+        self.coordinator.run_interaction(
+            self.poker_proximity_system, self.poker_system, self.frame_count, self
+        )
         self._apply_entity_mutations("interaction")
+
+    def handle_mixed_poker_games(self) -> None:
+        """Called by coordinator via simple delegation from poker system usually,
+        but kept here for API compatibility if needed."""
+        if self.poker_system:
+            self.poker_system.handle_mixed_poker_games()
+
+    def _phase_reproduction(self) -> None:
+        """REPRODUCTION: Handle mating and emergency spawns."""
+        self._current_phase = UpdatePhase.REPRODUCTION
+
+        # ReproductionSystem now handles both mating and emergency spawns
+        self.handle_reproduction()
+        self._apply_entity_mutations("reproduction")
+
+        if self._phase_hooks:
+            self._phase_hooks.on_reproduction_complete(self)
+
+    def handle_reproduction(self) -> None:
+        """Orchestrate reproduction logic."""
+        # Delegated to coordinator's reproduction system logic essentially
+        if self.reproduction_system:
+            self.reproduction_system.update(self.frame_count)
+
+    def _phase_frame_end(self) -> None:
+        """FRAME_END: Update stats, rebuild caches."""
+        self._current_phase = UpdatePhase.FRAME_END
+
+        if self._phase_hooks:
+            self._phase_hooks.on_frame_end(self)
+
+        # Prune stale identity mappings
+        if self._identity_provider is not None and hasattr(
+            self._identity_provider, "prune_stale_ids"
+        ):
+            current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
+            self._identity_provider.prune_stale_ids(current_entity_ids)
+
+        if self._entity_manager.is_dirty:
+            self._rebuild_caches()
+
+        if self._phase_debug_enabled:
+            pending_spawns = self.mutations.pending_spawn_count()
+            pending_removals = self.mutations.pending_removal_count()
+            if pending_spawns or pending_removals:
+                raise RuntimeError(
+                    "End-of-frame invariant violated: pending entity mutations remain "
+                    f"(spawns={pending_spawns}, removals={pending_removals})"
+                )
+
+        self._current_phase = None
 
     # =========================================================================
     # Identity Provider Helpers
@@ -925,52 +735,27 @@ class SimulationEngine:
             return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
 
-    def _phase_reproduction(self) -> None:
-        """REPRODUCTION: Handle mating and emergency spawns.
+    def _create_energy_recorder(self):
+        """Create a recorder callback for energy delta tracking.
 
-        Orchestration Note: The engine decides WHEN reproduction runs.
-        The business logic and stats recording are handled by phase hooks.
+        Returns a function that can be passed to environment.set_energy_delta_recorder().
+        The recorder forwards energy deltas to _frame_energy_deltas using the identity provider.
         """
-        self._current_phase = UpdatePhase.REPRODUCTION
-        # ReproductionSystem now handles both mating and emergency spawns
-        self.handle_reproduction()
-        self._apply_entity_mutations("reproduction")
+        from core.worlds.contracts import EnergyDeltaRecord
 
-        # Mode-specific reproduction stats (fish population, energy, etc.)
-        self._phase_hooks.on_reproduction_complete(self)
+        def recorder(entity: Any, delta: float, source: str, meta: dict[str, Any]) -> None:
+            entity_type, stable_id = self._get_entity_identity(entity)
+            record = EnergyDeltaRecord(
+                entity_id=stable_id,
+                stable_id=stable_id,
+                entity_type=entity_type,
+                delta=delta,
+                source=source,
+                metadata=meta or {},
+            )
+            self._frame_energy_deltas.append(record)
 
-    def _phase_frame_end(self) -> None:
-        """FRAME_END: Update stats, rebuild caches."""
-        self._current_phase = UpdatePhase.FRAME_END
-
-        # Mode-specific frame-end processing (benchmarks, etc.)
-        self._phase_hooks.on_frame_end(self)
-
-        # Prune stale identity mappings to prevent memory leaks and id() reuse
-        # corruption. This removes entries for entities that no longer exist.
-        if self._identity_provider is not None and hasattr(
-            self._identity_provider, "prune_stale_ids"
-        ):
-            current_entity_ids = {id(e) for e in self._entity_manager.entities_list}
-            self._identity_provider.prune_stale_ids(current_entity_ids)
-
-        if self._entity_manager.is_dirty:
-            self._rebuild_caches()
-
-        if self._phase_debug_enabled:
-            pending_spawns = self._entity_mutations.pending_spawn_count()
-            pending_removals = self._entity_mutations.pending_removal_count()
-            if pending_spawns or pending_removals:
-                raise RuntimeError(
-                    "End-of-frame invariant violated: pending entity mutations remain "
-                    f"(spawns={pending_spawns}, removals={pending_removals})"
-                )
-
-        self._current_phase = None
-
-    # =========================================================================
-    # Emergency Spawning
-    # =========================================================================
+        return recorder
 
     # =========================================================================
     # Poker Events
@@ -978,10 +763,26 @@ class SimulationEngine:
 
     def add_poker_event(self, poker: PokerInteraction) -> None:
         """Delegate event creation to the poker system."""
-        self.poker_system.add_poker_event(poker)
+        if self.poker_system:
+            self.poker_system.add_poker_event(poker)
+
+    def handle_poker_result(self, poker: PokerInteraction) -> None:
+        """Handle poker result (compatibility method)."""
+        if self.poker_system:
+            self.poker_system.handle_poker_result(poker)
+
+    def sprout_new_plant(self, parent_genome: Any, parent_x: float, parent_y: float) -> Any:
+        """Delegate plant sprouting to plant manager."""
+        if not self.plant_manager:
+            return None
+        return self.plant_manager.sprout_new_plant(
+            parent_genome, parent_x, parent_y, self._entity_manager.entities_list
+        )
 
     def get_recent_poker_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
         """Get recent poker events (within max_age_frames)."""
+        if not self.poker_system:
+            return []
         max_age = max_age_frames or self.config.poker.poker_event_max_age_frames
         return self.poker_system.get_recent_poker_events(max_age)
 
@@ -995,14 +796,15 @@ class SimulationEngine:
         energy_transferred: float,
     ) -> None:
         """Delegate plant poker events to the poker system."""
-        self.poker_system.add_plant_poker_event(
-            fish_id,
-            plant_id,
-            fish_won,
-            fish_hand,
-            plant_hand,
-            energy_transferred,
-        )
+        if self.poker_system:
+            self.poker_system.add_plant_poker_event(
+                fish_id,
+                plant_id,
+                fish_won,
+                fish_hand,
+                plant_hand,
+                energy_transferred,
+            )
 
     # =========================================================================
     # Soccer Events
@@ -1138,19 +940,10 @@ class SimulationEngine:
 
 
 class HeadlessSimulator(SimulationEngine):
-    """Wrapper class for CI/testing with simplified interface.
-
-    This class provides a simpler interface for headless testing,
-    accepting max_frames in the constructor and providing a simple run() method.
-    """
+    """Wrapper class for CI/testing with simplified interface."""
 
     def __init__(self, max_frames: int = 100, stats_interval: int = 0) -> None:
-        """Initialize the headless simulator.
-
-        Args:
-            max_frames: Maximum number of frames to simulate
-            stats_interval: Print stats every N frames (0 = no stats during run)
-        """
+        """Initialize the headless simulator."""
         super().__init__(config=SimulationConfig.headless_fast())
         self.max_frames = max_frames
         self.stats_interval = stats_interval if stats_interval > 0 else max_frames + 1
