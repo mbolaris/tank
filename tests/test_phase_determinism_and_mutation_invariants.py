@@ -29,6 +29,8 @@ CANONICAL_TANK_STEP_ORDER = [
 # Stages where entity mutations are committed in the canonical Tank engine today.
 CANONICAL_COMMIT_STAGES = [
     "frame_start",
+    "time_update",
+    "environment",
     "lifecycle",
     "spawn",
     "collision",
