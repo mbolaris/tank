@@ -573,7 +573,8 @@ export interface Command {
     | 'set_soccer_league_config'
     | 'start_soccer'
     | 'soccer_step'
-    | 'end_soccer';
+    | 'end_soccer'
+    | 'set_tank_soccer_enabled';
     data?: Record<string, unknown>;
 }
 
