@@ -113,9 +113,6 @@ class PlantNectarComponent:
         if not self.can_produce_nectar():
             return None
 
-        # Import here to avoid circular imports
-        from core.entities.plant import PlantNectar
-
         # Produce nectar
         self.nectar_cooldown = PLANT_NECTAR_COOLDOWN
         self.nectar_produced += 1
