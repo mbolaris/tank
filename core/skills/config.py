@@ -152,7 +152,7 @@ def get_active_skill_game(rng: Optional["Random"] = None) -> Optional[SkillGame]
                 history_length=game_config.get("history_length", 5),
                 pattern_change_frequency=game_config.get("pattern_change_frequency", 50),
                 rng=rng,
-            )
+            ),
         )
 
     elif game_type == SkillGameType.POKER:
@@ -164,7 +164,7 @@ def get_active_skill_game(rng: Optional["Random"] = None) -> Optional[SkillGame]
                 small_blind=game_config.get("small_blind", 5.0) * config.stake_multiplier,
                 big_blind=game_config.get("big_blind", 10.0) * config.stake_multiplier,
                 rng=rng,
-            )
+            ),
         )
 
     else:
