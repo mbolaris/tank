@@ -8,11 +8,11 @@ import logging
 from typing import TYPE_CHECKING, Callable, Optional
 
 from core.config.plants import (
-    PLANT_DAY_MODIFIER,
     PLANT_DAWN_DUSK_MODIFIER,
-    PLANT_NIGHT_MODIFIER,
+    PLANT_DAY_MODIFIER,
     PLANT_ENERGY_GAIN_MULTIPLIER,
     PLANT_MIN_ENERGY_GAIN,
+    PLANT_NIGHT_MODIFIER,
 )
 
 if TYPE_CHECKING:
@@ -198,10 +198,8 @@ class PlantEnergyComponent:
         if amount > 0:
             target = before + amount
             if target > self.max_energy:
-                overflow = target - self.max_energy
                 self.energy = self.max_energy
                 # Note: Overflow routing handled by caller (Plant class)
-                # This component just tracks energy
             else:
                 self.energy = target
         else:

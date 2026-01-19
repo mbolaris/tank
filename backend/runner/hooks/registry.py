@@ -11,7 +11,6 @@ from backend.runner.hooks.petri_hooks import PetriWorldHooks
 from backend.runner.hooks.protocol import WorldHooks
 from backend.runner.hooks.tank_hooks import TankWorldHooks
 
-
 # Registry mapping world types to their hooks factory functions
 _HOOKS_REGISTRY: Dict[str, Callable[[], WorldHooks]] = {
     "tank": TankWorldHooks,
