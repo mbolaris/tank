@@ -1,244 +1,21 @@
-"""Generic agent abstraction for alife entities.
-
-This module defines the GenericAgent class - a composable base for building
-different agent types (Fish, Microbe, future robots) from shared components.
-
-Design Philosophy:
------------------
-GenericAgent uses structural subtyping (protocols) rather than inheritance
-for capabilities. An agent automatically satisfies a protocol if it has
-the required component. This enables:
-
-- Loose coupling between systems and agent types
-- Easy addition of new agent types from existing components
-- Clear contracts via protocol definitions
-- Better testability with lightweight mocks
-
-Sense-Think-Act Loop:
---------------------
-GenericAgent formalizes the agent lifecycle:
-
-1. perceive() -> Percept: Collects sensory inputs via PerceptionComponent
-2. decide(percept) -> Action: Dispatches to a brain/policy component
-3. act(action): Applies the action via species-specific actuators
-4. update(dt): Orchestrates the loop, updates lifecycle components
-
-Component Composition:
----------------------
-Rather than deep inheritance, GenericAgent aggregates components:
-
-    agent = GenericAgent(
-        environment=world,
-        components={
-            "energy": EnergyComponent(...),
-            "lifecycle": LifecycleComponent(...),
-            "perception": PerceptionComponent(...),
-            "locomotion": LocomotionComponent(...),
-            "feeding": FeedingComponent(...),
-            "reproduction": ReproductionComponent(...),  # optional
-        }
-    )
-
-Protocol compliance is derived from component presence:
-- Has EnergyComponent -> implements EnergyHolder
-- Has LifecycleComponent -> implements LifecycleAware, Mortal
-- Has ReproductionComponent -> implements Reproducible
-
-See Also:
-    - core/protocols.py: Protocol definitions
-    - core/agents/components/: Reusable component implementations
-    - docs/ARCHITECTURE.md: Full architecture documentation
-"""
+"""Composable base class for ALife entities."""
 
 from __future__ import annotations
 
 from abc import abstractmethod
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any
 
 from core.entities.base import Agent, EntityState, EntityUpdateResult
+from core.entities.generic_agent_types import Action, AgentComponents, DecisionPolicy, Percept
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
-    from core.energy.energy_component import EnergyComponent
-    from core.fish.lifecycle_component import LifecycleComponent
-    from core.fish.reproduction_component import ReproductionComponent
     from core.world import World
 
 
-# =============================================================================
-# Percept and Action Types
-# =============================================================================
-
-
-@dataclass
-class Percept:
-    """Sensory data collected during the perceive phase.
-
-    This dataclass encapsulates all sensory information an agent has access to
-    at a given moment. It's designed to be:
-    - Immutable snapshot of the world state
-    - Species-agnostic (works for Fish, Microbe, etc.)
-    - Extensible via optional fields
-
-    Attributes:
-        position: Agent's current position
-        velocity: Agent's current velocity
-        energy: Current energy level (if agent has energy)
-        max_energy: Maximum energy capacity
-        age: Agent's age in frames
-        size: Agent's size multiplier
-        nearby_food: Positions of visible food sources
-        nearby_danger: Positions of known dangers (predators, etc.)
-        nearby_agents: Other agents within perception range
-        time_of_day: Normalized time of day (0.0-1.0) if available
-        custom: Extension point for species-specific perception data
-    """
-
-    position: Vector2
-    velocity: Vector2
-    energy: float = 0.0
-    max_energy: float = 100.0
-    age: int = 0
-    size: float = 1.0
-    nearby_food: list[Vector2] = field(default_factory=list)
-    nearby_danger: list[Vector2] = field(default_factory=list)
-    nearby_agents: list[Any] = field(default_factory=list)
-    time_of_day: float | None = None
-    custom: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class Action:
-    """Action to be executed during the act phase.
-
-    This dataclass encapsulates the agent's intended action. It's designed to be:
-    - Species-agnostic (works for Fish, Microbe, etc.)
-    - Composable (multiple sub-actions can be combined)
-    - Extensible via the custom field
-
-    Attributes:
-        movement: Desired velocity change or target direction
-        eat_target: Food entity to consume (if any)
-        reproduce: Whether to attempt reproduction
-        interact_target: Entity to interact with (poker, minigame, etc.)
-        custom: Extension point for species-specific actions
-    """
-
-    movement: Vector2 | None = None
-    eat_target: Any | None = None
-    reproduce: bool = False
-    interact_target: Any | None = None
-    custom: dict[str, Any] = field(default_factory=dict)
-
-
-# =============================================================================
-# Decision Policy Protocol
-# =============================================================================
-
-
-@runtime_checkable
-class DecisionPolicy(Protocol):
-    """Protocol for decision-making policies (brains).
-
-    A DecisionPolicy takes a Percept and returns an Action. This abstraction
-    allows different decision-making approaches:
-    - Scripted behaviors (behavior algorithms)
-    - Machine learning policies
-    - Evolutionary strategies
-    - Hybrid approaches
-
-    The policy is decoupled from the agent, enabling:
-    - Easy swapping of decision strategies
-    - Testing with mock policies
-    - Evolution of policies independent of agent structure
-    """
-
-    def decide(self, percept: Percept, agent: GenericAgent) -> Action:
-        """Generate an action from sensory perception.
-
-        Args:
-            percept: Current sensory data
-            agent: The agent making the decision (for context)
-
-        Returns:
-            Action to execute
-        """
-        ...
-
-
-# =============================================================================
-# Component Configuration
-# =============================================================================
-
-
-@dataclass
-class AgentComponents:
-    """Configuration of components for a GenericAgent.
-
-    This dataclass specifies which components an agent has. Components
-    that are None are not present, and the agent won't satisfy the
-    corresponding protocols.
-
-    Attributes:
-        energy: EnergyComponent for metabolism (-> EnergyHolder protocol)
-        lifecycle: LifecycleComponent for aging (-> LifecycleAware, Mortal)
-        perception: PerceptionComponent for sensing (-> memory queries)
-        locomotion: LocomotionComponent for movement (-> turn costs)
-        feeding: FeedingComponent for eating (-> bite calculations)
-        reproduction: ReproductionComponent (-> Reproducible protocol)
-    """
-
-    energy: EnergyComponent | None = None
-    lifecycle: LifecycleComponent | None = None
-    perception: PerceptionComponent | None = None
-    locomotion: LocomotionComponent | None = None
-    feeding: FeedingComponent | None = None
-    reproduction: ReproductionComponent | None = None
-
-
-# =============================================================================
-# GenericAgent Base Class
-# =============================================================================
-
-
 class GenericAgent(Agent):
-    """Base class for component-based alife agents.
-
-    GenericAgent provides the infrastructure for building agents from
-    composable components. It handles:
-
-    1. Component aggregation and lifecycle
-    2. Protocol compliance based on components
-    3. The sense-think-act loop via perceive/decide/act/update
-    4. Common operations (energy, aging, death)
-
-    Subclasses (Fish, Microbe, etc.) should:
-    1. Supply appropriate components via _create_components()
-    2. Optionally override perceive/decide/act for species-specific behavior
-    3. Implement any species-specific protocols directly
-
-    Protocol Compliance:
-    -------------------
-    GenericAgent provides properties and methods that satisfy protocols
-    based on which components are present:
-
-    - EnergyHolder: Requires energy component
-    - Mortal: Always satisfied (via is_dead, state)
-    - LifecycleAware: Requires lifecycle component
-    - Movable: Always satisfied (inherited from Agent)
-
-    Example:
-        class Microbe(GenericAgent):
-            def _create_components(self) -> AgentComponents:
-                return AgentComponents(
-                    energy=EnergyComponent(100, 0.05),
-                    perception=PerceptionComponent(memory_system),
-                    locomotion=LocomotionComponent(),
-                    feeding=FeedingComponent(bite_size_multiplier=10.0),
-                )
-    """
+    """Base class for agents composed from reusable components."""
 
     def __init__(
         self,
@@ -290,10 +67,6 @@ class GenericAgent(Agent):
         """
         return AgentComponents()
 
-    # =========================================================================
-    # Protocol Implementation: Identifiable
-    # =========================================================================
-
     def get_entity_id(self) -> int | None:
         """Get the unique identifier for this agent.
 
@@ -301,10 +74,6 @@ class GenericAgent(Agent):
             Agent ID, or None if not assigned
         """
         return self._agent_id if self._agent_id != 0 else None
-
-    # =========================================================================
-    # Protocol Implementation: EnergyHolder
-    # =========================================================================
 
     @property
     def energy(self) -> float:
@@ -365,10 +134,6 @@ class GenericAgent(Agent):
 
         return new_energy - old_energy
 
-    # =========================================================================
-    # Protocol Implementation: LifecycleAware
-    # =========================================================================
-
     @property
     def life_stage(self):
         """Current life stage.
@@ -400,10 +165,6 @@ class GenericAgent(Agent):
             return self._components.lifecycle.size
         return 1.0
 
-    # =========================================================================
-    # Protocol Implementation: Mortal
-    # =========================================================================
-
     def is_dead(self) -> bool:
         """Check if this agent is dead.
 
@@ -433,10 +194,6 @@ class GenericAgent(Agent):
 
         return False
 
-    # =========================================================================
-    # Protocol Implementation: Reproducible
-    # =========================================================================
-
     @property
     def reproduction_component(self):
         """Access to reproduction mechanics.
@@ -461,10 +218,6 @@ class GenericAgent(Agent):
             self.max_energy,
         )
 
-    # =========================================================================
-    # Component Access
-    # =========================================================================
-
     @property
     def components(self) -> AgentComponents:
         """Access to all components."""
@@ -485,10 +238,6 @@ class GenericAgent(Agent):
         """Access to feeding component."""
         return self._components.feeding
 
-    # =========================================================================
-    # Decision Policy
-    # =========================================================================
-
     @property
     def decision_policy(self) -> DecisionPolicy | None:
         """Get the current decision policy."""
@@ -498,10 +247,6 @@ class GenericAgent(Agent):
     def decision_policy(self, policy: DecisionPolicy | None) -> None:
         """Set the decision policy."""
         self._decision_policy = policy
-
-    # =========================================================================
-    # Sense-Think-Act Loop
-    # =========================================================================
 
     def perceive(self, time_of_day: float | None = None) -> Percept:
         """Collect sensory inputs into a Percept.
@@ -684,10 +429,6 @@ class GenericAgent(Agent):
         base_burn = self._components.energy.base_metabolism
         return base_burn * time_modifier
 
-    # =========================================================================
-    # Eating (Public API)
-    # =========================================================================
-
     def eat(self, food: Any) -> None:
         """Consume food and gain energy.
 
@@ -697,10 +438,6 @@ class GenericAgent(Agent):
             food: The food entity to consume
         """
         self._execute_eat(food)
-
-    # =========================================================================
-    # Memory Access (for compatibility)
-    # =========================================================================
 
     def get_remembered_food_locations(self) -> list[Vector2]:
         """Get list of remembered food locations.

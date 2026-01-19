@@ -1126,7 +1126,9 @@ class Fish(GenericAgent):
         """
         from core.entities.base import EntityUpdateResult
 
-        self._update_common(frame_count, time_modifier, time_of_day)
+        # Fish manages its own lifecycle/energy/memory updates. The only shared
+        # behavior we need from the base Agent is position integration.
+        self.update_position()
 
         # Performance: Cache bounds once per frame
         self._cached_bounds = self.environment.get_bounds()
