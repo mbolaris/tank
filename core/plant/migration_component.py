@@ -90,9 +90,7 @@ class PlantMigrationComponent:
 
         # Determine if this plant is in an edge position
         # Edge positions are the first 2 or last 2 spots out of 25
-        total_spots = (
-            len(root_spot.manager.spots) if hasattr(root_spot, "manager") else 25
-        )
+        total_spots = len(root_spot.manager.spots) if hasattr(root_spot, "manager") else 25
         edge_threshold = 2  # Consider first 2 and last 2 spots as "edge"
 
         spot_id = root_spot.spot_id

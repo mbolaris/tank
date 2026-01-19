@@ -64,12 +64,8 @@ class BenchmarkMixin:
 
             initial_delay = 60.0
             interval = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
-            self._evolution_benchmark_last_completed_time = (
-                time.time() - interval + initial_delay
-            )
-            logger.info(
-                f"Evolution benchmark tracker initialized for world {runner.world_id[:8]}"
-            )
+            self._evolution_benchmark_last_completed_time = time.time() - interval + initial_delay
+            logger.info(f"Evolution benchmark tracker initialized for world {runner.world_id[:8]}")
         except Exception as e:
             logger.warning(f"Failed to initialize evolution benchmark tracker: {e}")
             self.evolution_benchmark_tracker = None
