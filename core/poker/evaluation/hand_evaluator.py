@@ -173,8 +173,8 @@ def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
     """Evaluate exactly 5 Card objects and return the poker hand."""
     # Sort cards by rank descending
     sorted_cards = sorted(cards, key=lambda c: c.rank, reverse=True)
-    ranks = [c.rank for c in sorted_cards]
-    suits = [c.suit for c in sorted_cards]
+    ranks = [int(c.rank) for c in sorted_cards]
+    suits = [int(c.suit) for c in sorted_cards]
 
     hand_type, rank_value, description, primary_ranks, kickers = _evaluate_five_cards_core(
         ranks, suits
@@ -327,4 +327,5 @@ def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ..
         hand = _evaluate_five_cards_cached(key)
         if best_hand is None or hand.beats(best_hand):
             best_hand = hand
+    assert best_hand is not None
     return best_hand

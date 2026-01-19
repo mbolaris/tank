@@ -12,7 +12,7 @@ Configuration can be changed to:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, cast
 
 if TYPE_CHECKING:
     from random import Random
@@ -78,11 +78,12 @@ class SkillGameConfig:
 # Global configuration instance
 _global_config: Optional[SkillGameConfig] = None
 
-# Game registry - maps game types to their implementation classes
-_game_registry: Dict[SkillGameType, Type[SkillGame]] = {}
+# Game registry - maps game types to their implementation classes.
+# Note: concrete games have different __init__ signatures, so this is intentionally loose.
+_game_registry: Dict[SkillGameType, Type[Any]] = {}
 
 
-def register_skill_game(game_type: SkillGameType, game_class: Type[SkillGame]) -> None:
+def register_skill_game(game_type: SkillGameType, game_class: Type[Any]) -> None:
     """Register a skill game implementation.
 
     Args:
@@ -139,30 +140,36 @@ def get_active_skill_game(rng: Optional["Random"] = None) -> Optional[SkillGame]
     if game_type == SkillGameType.ROCK_PAPER_SCISSORS:
         game_config = config.rps_config
         stake = game_config.get("stake", 10.0) * config.stake_multiplier
-        return game_class(stake=stake, rng=rng)
+        return cast(SkillGame, game_class(stake=stake, rng=rng))
 
     elif game_type == SkillGameType.NUMBER_GUESSING:
         game_config = config.number_prediction_config
-        return game_class(
-            stake=game_config.get("stake", 10.0) * config.stake_multiplier,
-            max_error_for_reward=game_config.get("max_error_for_reward", 20.0),
-            history_length=game_config.get("history_length", 5),
-            pattern_change_frequency=game_config.get("pattern_change_frequency", 50),
-            rng=rng,
+        return cast(
+            SkillGame,
+            game_class(
+                stake=game_config.get("stake", 10.0) * config.stake_multiplier,
+                max_error_for_reward=game_config.get("max_error_for_reward", 20.0),
+                history_length=game_config.get("history_length", 5),
+                pattern_change_frequency=game_config.get("pattern_change_frequency", 50),
+                rng=rng,
+            )
         )
 
     elif game_type == SkillGameType.POKER:
         # Use PokerSkillGame adapter
         game_config = config.poker_config
-        return game_class(
-            small_blind=game_config.get("small_blind", 5.0) * config.stake_multiplier,
-            big_blind=game_config.get("big_blind", 10.0) * config.stake_multiplier,
-            rng=rng,
+        return cast(
+            SkillGame,
+            game_class(
+                small_blind=game_config.get("small_blind", 5.0) * config.stake_multiplier,
+                big_blind=game_config.get("big_blind", 10.0) * config.stake_multiplier,
+                rng=rng,
+            )
         )
 
     else:
         # Generic instantiation
-        return game_class()
+        return cast(SkillGame, game_class())
 
 
 def _auto_register_games() -> None:

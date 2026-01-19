@@ -214,26 +214,27 @@ class PokerStatsManager:
         if fish_list is None:
             return []
 
-        poker_fish: List[Fish] = []
-        for fish in fish_list:
-            if not hasattr(fish, "poker_stats") or fish.poker_stats is None:
-                from core.fish.poker_stats_component import FishPokerStats
+        from core.fish.poker_stats_component import FishPokerStats
 
+        poker_fish: List[tuple[Fish, FishPokerStats]] = []
+        for fish in fish_list:
+            if fish.poker_stats is None:
                 fish.poker_stats = FishPokerStats()
 
-            if fish.poker_stats.total_games > 0:
-                poker_fish.append(fish)
+            stats = fish.poker_stats
+            if stats.total_games > 0:
+                poker_fish.append((fish, stats))
 
         if sort_by == "net_energy":
-            poker_fish.sort(key=lambda f: f.poker_stats.get_net_energy(), reverse=True)
+            poker_fish.sort(key=lambda item: item[1].get_net_energy(), reverse=True)
         elif sort_by == "wins":
-            poker_fish.sort(key=lambda f: f.poker_stats.wins, reverse=True)
+            poker_fish.sort(key=lambda item: item[1].wins, reverse=True)
         elif sort_by == "win_rate":
-            poker_fish.sort(key=lambda f: f.poker_stats.get_win_rate(), reverse=True)
+            poker_fish.sort(key=lambda item: item[1].get_win_rate(), reverse=True)
         elif sort_by == "roi":
-            poker_fish.sort(key=lambda f: f.poker_stats.get_roi(), reverse=True)
+            poker_fish.sort(key=lambda item: item[1].get_roi(), reverse=True)
         else:
-            poker_fish.sort(key=lambda f: f.poker_stats.get_net_energy(), reverse=True)
+            poker_fish.sort(key=lambda item: item[1].get_net_energy(), reverse=True)
 
         hand_rank_names = [
             "High Card",
@@ -249,8 +250,7 @@ class PokerStatsManager:
         ]
 
         leaderboard = []
-        for rank, fish in enumerate(poker_fish[:limit], start=1):
-            stats = fish.poker_stats
+        for rank, (fish, stats) in enumerate(poker_fish[:limit], start=1):
             best_hand_name = (
                 hand_rank_names[stats.best_hand_rank]
                 if 0 <= stats.best_hand_rank < len(hand_rank_names)

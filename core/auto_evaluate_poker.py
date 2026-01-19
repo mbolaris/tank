@@ -108,10 +108,10 @@ class AutoEvaluatePokerGame:
         max_hands: int = 2000,
         small_blind: float = 5.0,
         big_blind: float = 10.0,
-        rng_seed: int = None,
+        rng_seed: Optional[int] = None,
         include_standard_player: bool = True,
         position_rotation: bool = True,
-    ):
+    ) -> None:
         """Initialize a new auto-evaluation poker game.
 
         Args:
@@ -496,7 +496,7 @@ class AutoEvaluatePokerGame:
         small_blind: float = 50.0,
         big_blind: float = 100.0,
         starting_stack: float = 10_000.0,
-        rng_seed: int = None,
+        rng_seed: Optional[int] = None,
     ) -> "AutoEvaluateStats":
         """Run a heads-up match between two algorithms.
 

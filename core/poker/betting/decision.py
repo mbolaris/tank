@@ -139,7 +139,7 @@ def decide_action(
     hole_cards: Optional[List[Card]] = None,
     community_cards: Optional[List[Card]] = None,
     position_on_button: bool = False,
-    rng: random.Random = None,  # type: ignore[assignment]  # Required at runtime
+    rng: Optional[random.Random] = None,
 ) -> Tuple[BettingAction, float]:
     """
     Decide what action to take based on hand strength and game state.

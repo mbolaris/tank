@@ -88,9 +88,9 @@ POKER_EVOLUTION_CONFIG = {
 def crossover_poker_strategies(
     parent1: Optional["PokerStrategyAlgorithm"],
     parent2: Optional["PokerStrategyAlgorithm"],
-    mutation_rate: float = None,
-    mutation_strength: float = None,
-    winner_weight: float = None,
+    mutation_rate: Optional[float] = None,
+    mutation_strength: Optional[float] = None,
+    winner_weight: Optional[float] = None,
     rng: Optional[random.Random] = None,
 ) -> "PokerStrategyAlgorithm":
     """Crossover two poker strategies with winner-biased inheritance.
@@ -177,12 +177,15 @@ def crossover_poker_strategies(
     if parent1 is None and parent2 is None:
         return get_random_poker_strategy(rng=crossover_rng)
     elif parent1 is None:
+        assert parent2 is not None
         offspring = parent2.__class__(rng=crossover_rng)
         offspring.parameters = parent2.parameters.copy()
     elif parent2 is None:
+        assert parent1 is not None
         offspring = parent1.__class__(rng=crossover_rng)
         offspring.parameters = parent1.parameters.copy()
     else:
+        assert parent1 is not None and parent2 is not None
         same_type = type(parent1) is type(parent2)
         if same_type:
             # Same strategy type: blend parameters with winner-biased weighting
@@ -210,5 +213,7 @@ def crossover_poker_strategies(
                 offspring = parent2.__class__(rng=crossover_rng)
                 offspring.parameters = parent2.parameters.copy()
 
+    assert mutation_rate is not None
+    assert mutation_strength is not None
     offspring.mutate_parameters(mutation_rate, mutation_strength, rng=crossover_rng)
     return offspring

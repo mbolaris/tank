@@ -1,5 +1,7 @@
 """Base class for evolving poker betting strategies."""
 
+from __future__ import annotations
+
 import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Tuple
@@ -87,19 +89,19 @@ class PokerStrategyAlgorithm:
                     continue
 
         strategy_map: Dict[str, type[PokerStrategyAlgorithm]] = {}
-        for strategy_cls in [*get_all_poker_strategies(), *BASELINE_STRATEGIES]:
+        for candidate_cls in [*get_all_poker_strategies(), *BASELINE_STRATEGIES]:
             try:
-                instance = strategy_cls(rng=random.Random(0))
+                instance = candidate_cls(rng=random.Random(0))
             except Exception:
                 continue
             if instance.strategy_id:
-                strategy_map[instance.strategy_id] = strategy_cls
+                strategy_map[instance.strategy_id] = candidate_cls
 
-        strategy_cls = strategy_map.get(strategy_id)
-        if strategy_cls is None:
+        strategy_class = strategy_map.get(strategy_id)
+        if strategy_class is None:
             return get_random_poker_strategy(rng=random.Random(0))
 
-        instance = strategy_cls(rng=random.Random(0))
+        instance = strategy_class(rng=random.Random(0))
         instance.parameters = parameters
         return instance
 

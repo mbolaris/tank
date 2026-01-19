@@ -382,7 +382,7 @@ def _play_single_betting_round(
     current_player = start_pos
     actions_this_round = 0
     last_raiser: Optional[int] = None
-    players_acted_since_raise = set()
+    players_acted_since_raise: set[int] = set()
 
     if round_num == 0:
         _, big_blind_pos = _blind_positions(num_players, button)
@@ -431,7 +431,7 @@ def _play_single_betting_round(
 def _is_round_complete(
     game_state: MultiplayerGameState,
     last_raiser: Optional[int],
-    players_acted_since_raise: set,
+    players_acted_since_raise: set[int],
     round_num: int,
 ) -> bool:
     """Check if the betting round is complete."""

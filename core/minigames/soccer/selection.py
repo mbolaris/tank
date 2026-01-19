@@ -81,7 +81,7 @@ def _select_top_energy(
     """Original selection: highest energy first (deterministic)."""
     sorted_candidates = sorted(candidates, key=_sort_key)
     if allow_repeat and sorted_candidates:
-        selected = []
+        selected: list[Any] = []
         while len(selected) < num_players:
             for candidate in sorted_candidates:
                 selected.append(candidate)

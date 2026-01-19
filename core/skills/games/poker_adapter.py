@@ -16,6 +16,7 @@ Benefits:
 - Fish can use same SkillfulAgent interface for poker
 """
 
+import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -125,15 +126,17 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
             if key in self._strategy.parameters:
                 self._strategy.parameters[key] = value
 
-    def mutate(self, mutation_rate: float = 0.1) -> None:
+    def mutate(self, mutation_rate: float = 0.1, rng: Optional[random.Random] = None) -> None:
         """Mutate the strategy.
 
         Args:
             mutation_rate: Mutation magnitude
+            rng: Optional RNG for deterministic mutations
         """
         self._strategy.mutate_parameters(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_rate * 2,
+            rng=rng,
         )
 
     @property
@@ -352,12 +355,7 @@ class PokerSkillGame(SkillGame):
                 player_strength < 0.3
                 and player_action == BettingAction.FOLD
                 or player_strength > 0.7
-                and player_action
-                in (
-                    BettingAction.BET,
-                    BettingAction.RAISE,
-                    BettingAction.ALL_IN,
-                )
+                and player_action == BettingAction.RAISE
             ):
                 was_optimal = True
             else:

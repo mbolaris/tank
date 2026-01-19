@@ -5,9 +5,12 @@ This module provides realistic poker AI enhancements including starting hand eva
 position-aware play, and improved decision making based on actual poker theory.
 """
 
-from typing import List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 from core.poker.core.cards import Card, Rank
+
+if TYPE_CHECKING:
+    from core.poker.core.hand import PokerHand
 
 
 def evaluate_starting_hand_strength(hole_cards: List[Card], position_on_button: bool) -> float:

@@ -231,8 +231,8 @@ def evaluate_vs_single_benchmark_duplicate(
             rng_seed=seed,
         )
 
-        net_bb_a = stats_a.net_bb_for_candidate
-        net_bb_b = stats_b.net_bb_for_candidate
+        net_bb_a = stats_a.net_bb_for_candidate or 0.0
+        net_bb_b = stats_b.net_bb_for_candidate or 0.0
 
         hands_a = stats_a.hands_played
         hands_b = stats_b.hands_played

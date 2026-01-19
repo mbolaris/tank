@@ -6,10 +6,9 @@ and energy costs associated with locomotion.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
-if TYPE_CHECKING:
-    from core.math_utils import Vector2
+from core.math_utils import Vector2
 
 
 class LocomotionComponent:
@@ -97,7 +96,7 @@ class LocomotionComponent:
 
         # Base energy cost scaled by turn intensity and agent size
         size_factor = size**size_multiplier
-        return base_cost * turn_intensity * size_factor
+        return float(base_cost * turn_intensity * size_factor)
 
     def handle_boundaries(
         self,
