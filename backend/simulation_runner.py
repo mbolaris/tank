@@ -197,7 +197,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         This method hot-swaps between tank and petri modes without resetting
         the simulation. Both modes share the same underlying engine, so we
-        just need to swap the adapter and update metadata.
+        wrap/unwrap the adapter and update metadata - never reset.
 
         Args:
             new_world_type: Target world type ("tank" or "petri")
@@ -215,13 +215,16 @@ class SimulationRunner(CommandHandlerMixin):
                 f"Only tank <-> petri switching is supported."
             )
 
+        # Capture old world type BEFORE any mutation for correct hook sequencing
+        old_world_type = self.world_type
+
         logger.info(
             "Hot-swapping world type from %s to %s (preserving entities)",
-            self.world_type,
+            old_world_type,
             new_world_type,
         )
 
-        # Get the underlying TankWorldBackendAdapter
+        # Get the underlying TankWorldBackendAdapter (the "base" backend)
         if hasattr(self.world, "_tank_backend"):
             # Currently petri - extract the tank backend
             tank_backend = self.world._tank_backend
@@ -229,18 +232,19 @@ class SimulationRunner(CommandHandlerMixin):
             # Currently tank
             tank_backend = self.world
 
+        # 1. Cleanup OLD physics using current hooks BEFORE switching
+        self.world_hooks.cleanup_physics(self)
+
         if new_world_type == "petri":
             from core.worlds.petri.backend import PetriWorldBackendAdapter
 
-            # Set up the new adapter
-            new_world = PetriWorldBackendAdapter(
-                seed=self._seed,
-                config=self.world.config if hasattr(self.world, "config") else None,
-            )
+            # Create a wrapper around the EXISTING tank backend - NO RESET
+            # This preserves all entities and state
+            new_world = PetriWorldBackendAdapter.__new__(PetriWorldBackendAdapter)
+            new_world._tank_backend = tank_backend
             new_world.supports_fast_step = True
             new_world._last_step_result = None
-            # Initialize the new world (required before step())
-            new_world.reset()
+            # Do NOT call reset() - we want to preserve entities
         else:
             # Switching to tank - just use the tank backend directly
             new_world = tank_backend
@@ -264,25 +268,14 @@ class SimulationRunner(CommandHandlerMixin):
         # Clear cached state to force full rebuild on next get_state()
         self.state_publisher.invalidate_cache()
 
-        # Apply or remove world-specific physics via hooks
-        # Clean up old world's physics
-        # (Actually we should have called this before switching, but for Petri/Tank
-        # the cleanup is "remove dish" which is fine to call even if we are already in new mode
-        # IF the engines are shared. But logically: old_hooks.cleanup -> new_hooks.apply)
-        # Note: self.world_hooks is still the OLD hooks here?
-        # No, we haven't updated self.world_hooks yet!
-
-        # 1. Cleanup using OLD hooks
-        self.world_hooks.cleanup_physics(self)
-
-        # 2. Update hooks
+        # 2. Update hooks to new world type
         self.world_hooks = get_hooks_for_world(new_world_type)
 
-        # 3. Apply new physics
+        # 3. Apply NEW physics constraints
         self.world_hooks.apply_physics_constraints(self)
 
-        # 4. Notify hooks of switch
-        self.world_hooks.on_world_type_switch(self, self.world_type, new_world_type)
+        # 4. Notify hooks of switch with CORRECT old/new values
+        self.world_hooks.on_world_type_switch(self, old_world_type, new_world_type)
 
         logger.info(
             "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
