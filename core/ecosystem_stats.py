@@ -183,7 +183,7 @@ class PokerStats:
         Positive values indicate better performance on the button (as expected).
         Larger positive values suggest good exploitation of position.
         """
-        return self.get_button_win_rate() - self.get_off_button_win_rate()
+        return self.get_button_win_rate() - self.get_non_button_win_rate()
 
     def get_showdown_percentage(self) -> float:
         """Calculate percentage of games that went to showdown."""

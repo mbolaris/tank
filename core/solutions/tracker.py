@@ -560,9 +560,9 @@ class SolutionTracker:
         if solutions is None:
             solutions = self.load_all_solutions()
 
-        leaderboard = []
+        leaderboard: list[dict[str, Any]] = []
         for solution in solutions:
-            entry = {
+            entry: dict[str, Any] = {
                 "rank": 0,  # Will be set below
                 "solution_id": solution.metadata.solution_id,
                 "name": solution.metadata.name,

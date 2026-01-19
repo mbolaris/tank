@@ -211,7 +211,7 @@ def parse_and_validate(
     max_source_length: int | None = None,
     max_ast_nodes: int | None = None,
     max_function_depth: int | None = None,
-) -> ast.AST:
+) -> ast.Module:
     """Parse and validate Python source for the restricted sandbox.
 
     Args:

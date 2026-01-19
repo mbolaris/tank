@@ -314,36 +314,36 @@ class SafeExecutor:
         was_clamped = False
 
         if isinstance(output, (tuple, list)):
-            clamped = []
+            clamped_values: list[Any] = []
             for val in output:
                 if isinstance(val, (int, float)):
                     if not math.isfinite(val):
-                        clamped.append(0.0)
+                        clamped_values.append(0.0)
                         was_clamped = True
                     elif val < min_val or val > max_val:
-                        clamped.append(max(min_val, min(max_val, val)))
+                        clamped_values.append(max(min_val, min(max_val, val)))
                         was_clamped = True
                     else:
-                        clamped.append(val)
+                        clamped_values.append(val)
                 else:
-                    clamped.append(val)
-            return type(output)(clamped), was_clamped
+                    clamped_values.append(val)
+            return type(output)(clamped_values), was_clamped
 
         if isinstance(output, dict):
-            clamped = {}
+            clamped_map: dict[Any, Any] = {}
             for key, val in output.items():
                 if isinstance(val, (int, float)):
                     if not math.isfinite(val):
-                        clamped[key] = 0.0
+                        clamped_map[key] = 0.0
                         was_clamped = True
                     elif val < min_val or val > max_val:
-                        clamped[key] = max(min_val, min(max_val, val))
+                        clamped_map[key] = max(min_val, min(max_val, val))
                         was_clamped = True
                     else:
-                        clamped[key] = val
+                        clamped_map[key] = val
                 else:
-                    clamped[key] = val
-            return clamped, was_clamped
+                    clamped_map[key] = val
+            return clamped_map, was_clamped
 
         return output, False
 

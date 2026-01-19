@@ -62,7 +62,7 @@ operations more explicit and debuggable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar, Union
+from typing import Callable, Generic, NoReturn, TypeVar, Union
 
 # Type variables for Result
 T = TypeVar("T")  # Success value type
@@ -163,7 +163,7 @@ class Err(Generic[E]):
         """Always returns True for Err."""
         return True
 
-    def unwrap(self) -> T:
+    def unwrap(self) -> NoReturn:
         """Raises ValueError since Err has no success value.
 
         Don't call this without checking is_ok() first!
@@ -212,7 +212,7 @@ Result = Union[Ok[T], Err[E]]
 # ============================================================================
 
 
-def try_result(f: Callable[[], T], error_type: type = Exception) -> Result[T, str]:
+def try_result(f: Callable[[], T], error_type: type[BaseException] = Exception) -> Result[T, str]:
     """Convert a potentially-raising function to a Result.
 
     This is useful for wrapping legacy code that uses exceptions.

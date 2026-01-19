@@ -26,7 +26,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
                 ),  # Minimum defense frequency adherence
                 "polarization_factor": _rng.uniform(0.8, 1.2),  # Tendency to polarize ranges
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod

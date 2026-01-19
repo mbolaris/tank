@@ -132,11 +132,10 @@ class RPSStrategy(SkillStrategy[RPSAction]):
         Args:
             result: The game result
         """
-        if result.details.get("opponent_action") is None:
-            return
-
-        opponent_action = result.details["opponent_action"]
+        opponent_action = result.details.get("opponent_action")
         my_action = result.actual_action
+        if not isinstance(opponent_action, RPSAction) or not isinstance(my_action, RPSAction):
+            return
 
         # Track opponent history
         self.opponent_history.append(opponent_action)
@@ -269,11 +268,13 @@ class ExploitingRPSStrategy(RPSStrategy):
     the counter to their most common action.
     """
 
-    def choose_action(self, game_state: Dict[str, Any]) -> RPSAction:
+    def choose_action(
+        self, game_state: Dict[str, Any], rng: Optional[random.Random] = None
+    ) -> RPSAction:
         """Choose the counter to opponent's most frequent action."""
         if len(self.opponent_history) < 5:
             # Not enough data, play randomly
-            return super().choose_action(game_state)
+            return super().choose_action(game_state, rng=rng)
 
         # Count opponent actions in recent history
         counts = {RPSAction.ROCK: 0, RPSAction.PAPER: 0, RPSAction.SCISSORS: 0}
@@ -281,7 +282,7 @@ class ExploitingRPSStrategy(RPSStrategy):
             counts[action] += 1
 
         # Find most common and play counter
-        most_common = max(counts, key=counts.get)
+        most_common = max(counts, key=counts.__getitem__)
         action = self._get_counter(most_common)
 
         self.own_history.append(action)

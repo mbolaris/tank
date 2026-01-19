@@ -8,7 +8,7 @@ needed for poker games.
 import random
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 class Suit(IntEnum):
@@ -70,7 +70,9 @@ class Card:
 
 # Pre-create all 52 cards once at module load - shared card cache
 # Maps (rank_int, suit_int) -> Card to avoid repeated Enum/Card construction
-_CARD_CACHE: dict = {(r, s): Card(Rank(r), Suit(s)) for r in range(2, 15) for s in range(4)}
+_CARD_CACHE: Dict[Tuple[int, int], Card] = {
+    (r, s): Card(Rank(r), Suit(s)) for r in range(2, 15) for s in range(4)
+}
 
 
 def get_card(rank: int, suit: int) -> Card:
@@ -90,7 +92,7 @@ class Deck:
     # Pre-create all 52 cards once at module load to avoid repeated Enum construction
     _TEMPLATE_DECK: List[Card] = list(_CARD_CACHE.values())
 
-    def __init__(self, seed: int = None, rng: Optional[random.Random] = None):
+    def __init__(self, seed: Optional[int] = None, rng: Optional[random.Random] = None) -> None:
         """Initialize and shuffle a standard 52-card deck.
 
         Args:
@@ -98,10 +100,10 @@ class Deck:
             rng: Optional RNG instance to use for shuffling (overrides seed)
         """
         self.cards: List[Card] = []
-        self.rng = rng if rng is not None else random.Random(seed)
+        self.rng: random.Random = rng if rng is not None else random.Random(seed)
         self.reset()
 
-    def reset(self, seed: int = None):
+    def reset(self, seed: Optional[int] = None) -> None:
         """Reset and shuffle the deck.
 
         Args:

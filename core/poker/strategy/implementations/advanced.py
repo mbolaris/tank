@@ -26,7 +26,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
                 "fold_threshold_loose": _rng.uniform(0.15, 0.30),
                 "position_bonus": _rng.uniform(0.08, 0.18),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -93,7 +93,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
                 "steal_frequency": _rng.uniform(0.35, 0.55),
                 "value_sizing": _rng.uniform(0.6, 1.2),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -162,7 +162,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
                 "weak_fold_threshold": _rng.uniform(0.30, 0.45),
                 "check_raise_frequency": _rng.uniform(0.25, 0.45),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -232,7 +232,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
                 "bet_sizing_pot_fraction": _rng.uniform(0.5, 0.8),
                 "fold_equity_threshold": _rng.uniform(0.25, 0.40),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod

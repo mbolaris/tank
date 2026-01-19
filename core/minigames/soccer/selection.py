@@ -125,7 +125,7 @@ def _select_stratified(
     mid_slots = max(1, int(num_players * 0.3))
     low_slots = max(0, num_players - top_slots - mid_slots)
 
-    selected = []
+    selected: list[Any] = []
     selected.extend(_weighted_sample(top_tier, top_slots, rng, allow_repeat=allow_repeat))
     selected.extend(_weighted_sample(mid_tier, mid_slots, rng, allow_repeat=allow_repeat))
     selected.extend(_weighted_sample(low_tier, low_slots, rng, allow_repeat=allow_repeat))

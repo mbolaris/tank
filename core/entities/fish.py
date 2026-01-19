@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
+    from core.fish.poker_stats_component import FishPokerStats
     from core.movement_strategy import MovementStrategy
     from core.world import World
 
@@ -129,6 +130,7 @@ class Fish(Agent):
         self.generation: int = generation
         self.species: str = species
         self.team: Optional[str] = team  # Team affiliation ('A' or 'B' for soccer mode)
+        self.poker_stats: Optional["FishPokerStats"] = None
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places

@@ -434,12 +434,18 @@ class SolutionBenchmark:
                 + stats3.hands_played
                 + stats4.hands_played
             )
-            net_bb_sol1_candidate = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
-            net_bb_sol2_candidate = stats3.net_bb_for_candidate + stats4.net_bb_for_candidate
+            net_bb_sol1_candidate = (stats1.net_bb_for_candidate or 0.0) + (
+                stats2.net_bb_for_candidate or 0.0
+            )
+            net_bb_sol2_candidate = (stats3.net_bb_for_candidate or 0.0) + (
+                stats4.net_bb_for_candidate or 0.0
+            )
             total_net_bb_sol1 = net_bb_sol1_candidate - net_bb_sol2_candidate
         else:
             total_hands = stats1.hands_played + stats2.hands_played
-            total_net_bb_sol1 = stats1.net_bb_for_candidate + stats2.net_bb_for_candidate
+            total_net_bb_sol1 = (stats1.net_bb_for_candidate or 0.0) + (
+                stats2.net_bb_for_candidate or 0.0
+            )
 
         if total_hands == 0:
             return (0.5, 0.5)

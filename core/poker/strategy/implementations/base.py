@@ -11,9 +11,9 @@ from core.poker.betting.actions import BettingAction
 class PokerStrategyAlgorithm:
     """Base class for evolving poker betting strategies."""
 
-    strategy_id: str
+    strategy_id: str = ""
     parameters: Dict[str, float] = field(default_factory=dict)
-    _rng: random.Random = field(default_factory=random.Random, repr=False)
+    rng: random.Random = field(default_factory=random.Random, repr=False)
 
     def decide_action(
         self,
@@ -41,7 +41,7 @@ class PokerStrategyAlgorithm:
             mutation_strength: Standard deviation of Gaussian mutation
             rng: Random number generator (uses self._rng if not provided)
         """
-        rng = rng if rng is not None else self._rng
+        rng = rng if rng is not None else self.rng
         for param_key in self.parameters:
             if rng.random() < mutation_rate:
                 mutation = rng.gauss(0, mutation_strength)
@@ -55,7 +55,7 @@ class PokerStrategyAlgorithm:
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None) -> "PokerStrategyAlgorithm":
         """Create random instance using optional RNG for determinism."""
-        return cls(rng=rng)
+        raise NotImplementedError("PokerStrategyAlgorithm.random_instance must be implemented")
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize strategy to dictionary."""
@@ -68,34 +68,45 @@ class PokerStrategyAlgorithm:
     def from_dict(cls, data: Dict[str, Any]) -> "PokerStrategyAlgorithm":
         """Deserialize strategy from dictionary."""
         from core.poker.strategy.implementations.factory import (
+            BASELINE_STRATEGIES,
             get_all_poker_strategies,
             get_random_poker_strategy,
         )
 
         strategy_id = data.get("strategy_id")
-        parameters = data.get("parameters", {})
+        if not isinstance(strategy_id, str) or not strategy_id:
+            return get_random_poker_strategy(rng=random.Random(0))
 
-        # Map IDs to classes
-        strategy_map = {s("").strategy_id: s for s in get_all_poker_strategies()}
+        parameters: Dict[str, float] = {}
+        parameters_data = data.get("parameters", {})
+        if isinstance(parameters_data, dict):
+            for key, value in parameters_data.items():
+                try:
+                    parameters[str(key)] = float(value)
+                except (TypeError, ValueError):
+                    continue
 
-        # Add baseline/random just in case
-        strategy_map["always_fold"] = (
-            lambda r=None: None
-        )  # Handled dynamically below if not in list
-
-        # We need to access the class but we only have instances in get_all_poker_strategies usually?
-        # Actually strategy_map above constructs instances to check ID. Not ideal.
-        # But get_all_poker_strategies returns classes.
-
-        strategy_map = {
-            cls(rng=random.Random(0)).strategy_id: cls for cls in get_all_poker_strategies()
-        }
+        strategy_map: Dict[str, type[PokerStrategyAlgorithm]] = {}
+        for strategy_cls in [*get_all_poker_strategies(), *BASELINE_STRATEGIES]:
+            try:
+                instance = strategy_cls(rng=random.Random(0))
+            except Exception:
+                continue
+            if instance.strategy_id:
+                strategy_map[instance.strategy_id] = strategy_cls
 
         strategy_cls = strategy_map.get(strategy_id)
-        if strategy_cls:
-            instance = strategy_cls()
-            instance.parameters = parameters
-            return instance
+        if strategy_cls is None:
+            return get_random_poker_strategy(rng=random.Random(0))
 
-        # Fallback to random if unknown
-        return get_random_poker_strategy()
+        instance = strategy_cls(rng=random.Random(0))
+        instance.parameters = parameters
+        return instance
+
+    @property
+    def _rng(self) -> random.Random:
+        return self.rng
+
+    @_rng.setter
+    def _rng(self, value: random.Random) -> None:
+        self.rng = value

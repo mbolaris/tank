@@ -180,7 +180,8 @@ def create_next_generation(
         mutate_code_policies(child.behavioral, genome_code_pool, rng)
 
         # Ensure child has a soccer policy
-        if child.behavioral.soccer_policy_id.value is None:
+        soccer_policy_id = child.behavioral.soccer_policy_id
+        if soccer_policy_id is None or soccer_policy_id.value is None:
             assign_random_policy(child.behavioral, genome_code_pool, "soccer_policy", rng)
 
         next_gen.append(child)

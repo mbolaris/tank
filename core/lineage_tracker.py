@@ -157,14 +157,22 @@ class LineageTracker:
         Returns:
             Number of orphans fixed
         """
-        valid_ids = {rec.get("id") for rec in self.lineage_log}
-        valid_ids.add("root")
+        valid_ids: set[str] = {"root"}
+        for record in self.lineage_log:
+            rec_id = record.get("id")
+            if rec_id is not None:
+                valid_ids.add(str(rec_id))
 
         orphan_count = 0
 
         for record in self.lineage_log:
-            rec_id = record.get("id")
-            parent_id = record.get("parent_id", "root")
+            rec_id_raw = record.get("id")
+            if rec_id_raw is None:
+                continue
+            rec_id = str(rec_id_raw)
+
+            parent_id_raw = record.get("parent_id", "root")
+            parent_id = str(parent_id_raw) if parent_id_raw is not None else "root"
 
             # If parent_id references a missing id and we haven't fixed this before
             if parent_id not in valid_ids:

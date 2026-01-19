@@ -93,7 +93,7 @@ class PokerParticipantManager:
 
     def __init__(self) -> None:
         """Initialize the participant manager."""
-        self._participants: Dict[tuple[int | None, int], PokerParticipant] = {}
+        self._participants: Dict[Tuple[Optional[int], int], PokerParticipant] = {}
 
     @staticmethod
     def _participant_key(fish: "Fish") -> Tuple[Optional[int], int]:

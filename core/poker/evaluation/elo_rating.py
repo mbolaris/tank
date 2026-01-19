@@ -108,7 +108,7 @@ def expected_score(player_rating: float, opponent_rating: float) -> float:
     Returns:
         Expected score (0.0 to 1.0)
     """
-    return 1.0 / (1.0 + 10.0 ** ((opponent_rating - player_rating) / 400.0))
+    return 1.0 / (1.0 + math.pow(10.0, (opponent_rating - player_rating) / 400.0))
 
 
 def bb_per_100_to_score(bb_per_100: float) -> float:

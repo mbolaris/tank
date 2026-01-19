@@ -16,7 +16,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
         if rng is None:
             raise RuntimeError("AlwaysFoldStrategy: RNG is None")
         _rng = rng
-        super().__init__(strategy_id="always_fold", parameters={}, _rng=_rng)
+        super().__init__(strategy_id="always_fold", parameters={}, rng=_rng)
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None) -> "AlwaysFoldStrategy":
@@ -53,7 +53,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
             "min_raise_fraction": 0.3,
             "max_raise_fraction": 1.0,
         }
-        super().__init__(strategy_id="random", parameters=parameters, _rng=_rng)
+        super().__init__(strategy_id="random", parameters=parameters, rng=_rng)
 
     def decide_action(
         self,

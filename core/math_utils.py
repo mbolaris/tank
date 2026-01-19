@@ -35,6 +35,9 @@ class Vector2:
     def __truediv__(self, scalar: float) -> Vector2:
         return Vector2(self.x / scalar, self.y / scalar)
 
+    def __neg__(self) -> Vector2:
+        return Vector2(-self.x, -self.y)
+
     def __iadd__(self, other: Vector2) -> Vector2:
         self.x += other.x
         self.y += other.y

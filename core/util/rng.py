@@ -48,7 +48,7 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
         offspring_x = rng.uniform(-10, 10)
     """
     if environment is not None:
-        rng = getattr(environment, "rng", None)
+        rng: Optional[random.Random] = getattr(environment, "rng", None)
         if rng is not None:
             return rng
 
@@ -123,7 +123,7 @@ def get_rng_or_default(
         MissingRNGError: If environment has no RNG and no fallback was provided
     """
     if environment is not None:
-        rng = getattr(environment, "rng", None)
+        rng: Optional[random.Random] = getattr(environment, "rng", None)
         if rng is not None:
             return rng
 

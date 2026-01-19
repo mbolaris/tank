@@ -30,7 +30,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
                 "bluff_frequency": _rng.uniform(0.05, 0.15),
                 "position_bonus": _rng.uniform(0.05, 0.15),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -89,7 +89,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
                 "bluff_frequency": _rng.uniform(0.25, 0.45),
                 "position_aggression": _rng.uniform(0.1, 0.25),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -158,7 +158,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
                 "raise_multiplier": _rng.uniform(0.3, 0.6),
                 "bluff_frequency": _rng.uniform(0.01, 0.05),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -217,7 +217,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
                 "position_bonus": _rng.uniform(0.08, 0.18),
                 "pot_odds_factor": _rng.uniform(1.2, 1.8),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -302,7 +302,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
                 "bluff_frequency": _rng.uniform(0.40, 0.65),
                 "all_in_threshold": _rng.uniform(0.75, 0.95),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
@@ -361,7 +361,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
                 "raise_multiplier": _rng.uniform(0.25, 0.50),
                 "pot_odds_sensitivity": _rng.uniform(0.5, 1.5),
             },
-            _rng=_rng,
+            rng=_rng,
         )
 
     @classmethod
