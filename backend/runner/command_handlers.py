@@ -23,7 +23,7 @@ class CommandHandlerMixin(
     """Mixin class composing all command handler methods for SimulationRunner.
 
     This class aggregates domain-specific command handlers to keep SimulationRunner
-    clean while maintaining backward compatibility with the flattening mixin pattern.
+    clean while preserving the flattening mixin pattern interface.
     """
 
     pass
