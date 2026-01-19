@@ -1126,7 +1126,7 @@ class Fish(GenericAgent):
         """
         from core.entities.base import EntityUpdateResult
 
-        super().update(frame_count, time_modifier, time_of_day)
+        self._update_common(frame_count, time_modifier, time_of_day)
 
         # Performance: Cache bounds once per frame
         self._cached_bounds = self.environment.get_bounds()
