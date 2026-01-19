@@ -301,3 +301,128 @@ class SoccerCommands:
         except Exception as e:
             logger.error(f"Error ending soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to end soccer match: {str(e)}")
+
+    def _cmd_set_tank_soccer_enabled(self: Any, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Handle 'set_tank_soccer_enabled' command.
+
+        Dynamically adds/removes physical soccer ball and goals from the tank world.
+        """
+        if not data or "enabled" not in data:
+            return self._create_error_response("Missing 'enabled' parameter")
+
+        enabled = bool(data["enabled"])
+        engine = getattr(self.world, "engine", None)
+
+        if engine is None:
+            return self._create_error_response("World engine not available")
+
+        # Try to update tank practice config if it exists (for persistence)
+        if hasattr(engine, "config") and hasattr(engine.config, "soccer"):
+            engine.config.soccer.tank_practice_enabled = enabled
+
+        try:
+            if enabled:
+                self._spawn_tank_soccer(engine)
+                logger.info("Tank soccer elements ENABLED")
+            else:
+                self._remove_tank_soccer(engine)
+                logger.info("Tank soccer elements DISABLED")
+        except Exception as e:
+            logger.error(f"Failed to toggle tank soccer: {e}", exc_info=True)
+            return self._create_error_response(f"Failed to toggle tank soccer: {str(e)}")
+
+        self._invalidate_state_cache()
+        return {"success": True, "enabled": enabled}
+
+    def _spawn_tank_soccer(self, engine: Any) -> None:
+        """Spawn soccer elements into the engine."""
+        from core.entities.ball import Ball
+        from core.entities.goal_zone import GoalZone, GoalZoneManager
+
+        if not engine.environment:
+            return
+
+        # Cleanup existing first to avoid duplicates
+        self._remove_tank_soccer(engine)
+
+        width = engine.environment.width
+        height = engine.environment.height
+        mid_y = height / 2
+
+        # Create ball at center
+        ball = Ball(
+            environment=engine.environment,
+            x=width / 2,
+            y=mid_y,
+            decay_rate=0.94,
+            max_speed=3.0,
+            size=0.085,
+            kickable_margin=0.7,
+            kick_power_rate=0.027,
+        )
+        engine.request_spawn(ball)
+
+        # Create goal manager
+        goal_manager = GoalZoneManager()
+
+        # Create goals
+        goal_left = GoalZone(
+            environment=engine.environment,
+            x=50,
+            y=mid_y,
+            team="A",
+            goal_id="goal_left",
+            radius=40.0,
+            base_energy_reward=100.0,
+        )
+        engine.request_spawn(goal_left)
+        goal_manager.register_zone(goal_left)
+
+        goal_right = GoalZone(
+            environment=engine.environment,
+            x=width - 50,
+            y=mid_y,
+            team="B",
+            goal_id="goal_right",
+            radius=40.0,
+            base_energy_reward=100.0,
+        )
+        engine.request_spawn(goal_right)
+        goal_manager.register_zone(goal_right)
+
+        # Update environment refs
+        engine.environment.ball = ball
+        engine.environment.goal_manager = goal_manager
+
+        # Update system
+        if hasattr(engine, "soccer_system") and engine.soccer_system:
+            engine.soccer_system.set_ball(ball)
+            engine.soccer_system.set_goal_manager(goal_manager)
+            engine.soccer_system.enabled = True
+
+    def _remove_tank_soccer(self, engine: Any) -> None:
+        """Remove soccer elements from the engine."""
+        from core.entities.ball import Ball
+        from core.entities.goal_zone import GoalZone
+
+        # Gather entities to remove
+        to_remove = []
+        for entity in engine.entities_list:
+            if isinstance(entity, (Ball, GoalZone)):
+                to_remove.append(entity)
+
+        for entity in to_remove:
+            engine.request_remove(entity)
+
+        # Clear environment refs
+        if engine.environment:
+            if hasattr(engine.environment, "ball"):
+                engine.environment.ball = None
+            if hasattr(engine.environment, "goal_manager"):
+                engine.environment.goal_manager = None
+
+        # Disable system
+        if hasattr(engine, "soccer_system") and engine.soccer_system:
+            engine.soccer_system.set_ball(None)
+            engine.soccer_system.set_goal_manager(None)
+            engine.soccer_system.enabled = False

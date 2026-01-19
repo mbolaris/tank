@@ -12,9 +12,11 @@ interface ControlPanelProps {
     fastForwardEnabled?: boolean;
     showEffects?: boolean;
     onToggleEffects?: () => void;
+    showSoccer?: boolean;
+    onToggleSoccer?: () => void;
 }
 
-export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects }: ControlPanelProps) {
+export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, ...props }: ControlPanelProps & { showSoccer?: boolean, onToggleSoccer?: () => void }) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
 
@@ -84,6 +86,12 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
                 {onToggleEffects && (
                     <Button onClick={onToggleEffects} variant={showEffects ? 'primary' : 'secondary'}>
                         {showEffects ? <><EyeOffIcon size={14} /> Hide HUD</> : <><EyeIcon size={14} /> Show HUD</>}
+                    </Button>
+                )}
+
+                {props.onToggleSoccer && (
+                    <Button onClick={props.onToggleSoccer} variant={props.showSoccer ? 'primary' : 'secondary'} title={props.showSoccer ? "Hide Ball/Goals" : "Show Ball/Goals"}>
+                        <span style={{ fontSize: '14px' }}>⚽</span>
                     </Button>
                 )}
             </div>

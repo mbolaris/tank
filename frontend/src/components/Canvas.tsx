@@ -17,6 +17,7 @@ interface CanvasProps {
     onEntityClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
     showEffects?: boolean;
+    showSoccer?: boolean;
     style?: CSSProperties;
     viewMode?: ViewMode;
     worldType?: string;  // Optional override for renderer selection (e.g., 'petri' for circular dish)
@@ -26,7 +27,7 @@ interface CanvasProps {
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -88,6 +89,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
     const showEffectsRef = useRef(showEffects);
+    const showSoccerRef = useRef(showSoccer);
     const viewModeRef = useRef(viewMode);
     const worldTypePropRef = useRef(worldTypeProp);
 
@@ -96,9 +98,10 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
         showEffectsRef.current = showEffects;
+        showSoccerRef.current = showSoccer;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, showEffects, viewMode, worldTypeProp]);
+    }, [state, imagesLoaded, selectedEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -165,6 +168,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         snapshot: currentState,
                         options: {
                             showEffects: showEffectsRef.current,
+                            showSoccer: showSoccerRef.current,
                             selectedEntityId: selectedEntityIdRef.current,
                         },
                     }, {

@@ -128,6 +128,7 @@ export class SoccerTopDownRenderer implements Renderer {
         const { ctx, canvas } = rc;
         const scene = buildSoccerScene(frame.snapshot);
         const options = frame.options ?? {};
+        const showSoccer = options.showSoccer ?? true;
 
         // Grass green background
         ctx.fillStyle = "#2d5016";
@@ -151,16 +152,24 @@ export class SoccerTopDownRenderer implements Renderer {
             ctx.scale(scale, scale);
 
             // Draw field markings
-            this.drawField(ctx, scene.width, scene.height);
+            if (showSoccer) {
+                this.drawField(ctx, scene.width, scene.height);
+            } else {
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(0, 0, scene.width, scene.height);
+            }
 
             // Draw entities
             const balls = scene.entities.filter(e => e.type === 'ball');
             const players = scene.entities.filter(e => e.type === 'player');
 
             // Draw ball first (underneath players)
-            balls.forEach(ball => {
-                this.drawBall(ctx, ball);
-            });
+            if (showSoccer) {
+                balls.forEach(ball => {
+                    this.drawBall(ctx, ball);
+                });
+            }
 
             // Determine avatar mode based on view_mode
             // "top" or "topdown" = petri/microbe mode, otherwise = fish mode

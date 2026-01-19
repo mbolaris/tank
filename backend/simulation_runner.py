@@ -960,6 +960,7 @@ class SimulationRunner(CommandHandlerMixin):
                 "start_soccer": self._cmd_start_soccer,
                 "soccer_step": self._cmd_soccer_step,
                 "end_soccer": self._cmd_end_soccer,
+                "set_tank_soccer_enabled": self._cmd_set_tank_soccer_enabled,
             }
 
             # Try universal handlers first

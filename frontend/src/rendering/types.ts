@@ -14,6 +14,7 @@ export interface RenderContext {
 
 export interface RenderOptions {
     showEffects?: boolean;
+    showSoccer?: boolean;
     selectedEntityId?: number | null;
     viewMode?: ViewMode;
 }

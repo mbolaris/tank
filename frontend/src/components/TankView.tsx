@@ -32,6 +32,7 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
+    const [showSoccer, setShowSoccer] = useState(true);
     const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
 
     // Plant energy input control
@@ -109,6 +110,15 @@ export function TankView({ worldId }: TankViewProps) {
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
+                    showSoccer={showSoccer}
+                    onToggleSoccer={() => {
+                        const newValue = !showSoccer;
+                        setShowSoccer(newValue);
+                        sendCommand({
+                            command: 'set_tank_soccer_enabled',
+                            data: { enabled: newValue },
+                        });
+                    }}
                 />
 
                 <WorldModeSelector worldType={worldType} onChange={setWorldType} />
@@ -326,6 +336,7 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
+                        showSoccer={showSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
