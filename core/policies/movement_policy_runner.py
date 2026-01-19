@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.math_utils import Vector2
 from core.policies.interfaces import MovementAction
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Output type alias
-VelocityComponents = Tuple[float, float]
+VelocityComponents = tuple[float, float]
 
 # Rate limiting for error logs to avoid spamming console
 _ERROR_LOG_INTERVAL = 60
@@ -33,8 +33,8 @@ def run_movement_policy(
     code_pool: GenomeCodePool,
     observation: dict[str, Any],
     rng: pyrandom.Random,
-    fish_id: Optional[int] = None,
-) -> Optional[VelocityComponents]:
+    fish_id: int | None = None,
+) -> VelocityComponents | None:
     """Execute the genome's movement policy and validate output.
 
     Args:

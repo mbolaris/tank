@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from core.poker.betting.actions import BettingAction
 
@@ -14,7 +14,7 @@ class PokerStrategyAlgorithm:
     """Base class for evolving poker betting strategies."""
 
     strategy_id: str = ""
-    parameters: Dict[str, float] = field(default_factory=dict)
+    parameters: dict[str, float] = field(default_factory=dict)
     rng: random.Random = field(default_factory=random.Random, repr=False)
 
     def decide_action(
@@ -25,8 +25,8 @@ class PokerStrategyAlgorithm:
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+        rng: random.Random | None = None,
+    ) -> tuple[BettingAction, float]:
         """Make betting decision based on evolved parameters."""
         raise NotImplementedError
 
@@ -34,7 +34,7 @@ class PokerStrategyAlgorithm:
         self,
         mutation_rate: float = 0.15,
         mutation_strength: float = 0.2,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Mutate parameters for evolution.
 
@@ -55,11 +55,11 @@ class PokerStrategyAlgorithm:
                     self.parameters[param_key] = max(0.1, min(3.0, self.parameters[param_key]))
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None) -> "PokerStrategyAlgorithm":
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         """Create random instance using optional RNG for determinism."""
         raise NotImplementedError("PokerStrategyAlgorithm.random_instance must be implemented")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize strategy to dictionary."""
         return {
             "strategy_id": self.strategy_id,
@@ -67,7 +67,7 @@ class PokerStrategyAlgorithm:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PokerStrategyAlgorithm":
+    def from_dict(cls, data: dict[str, Any]) -> PokerStrategyAlgorithm:
         """Deserialize strategy from dictionary."""
         from core.poker.strategy.implementations.factory import (
             BASELINE_STRATEGIES,
@@ -79,7 +79,7 @@ class PokerStrategyAlgorithm:
         if not isinstance(strategy_id, str) or not strategy_id:
             return get_random_poker_strategy(rng=random.Random(0))
 
-        parameters: Dict[str, float] = {}
+        parameters: dict[str, float] = {}
         parameters_data = data.get("parameters", {})
         if isinstance(parameters_data, dict):
             for key, value in parameters_data.items():
@@ -88,7 +88,7 @@ class PokerStrategyAlgorithm:
                 except (TypeError, ValueError):
                     continue
 
-        strategy_map: Dict[str, type[PokerStrategyAlgorithm]] = {}
+        strategy_map: dict[str, type[PokerStrategyAlgorithm]] = {}
         for candidate_cls in [*get_all_poker_strategies(), *BASELINE_STRATEGIES]:
             try:
                 instance = candidate_cls(rng=random.Random(0))
