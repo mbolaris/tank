@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -70,20 +72,20 @@ class Fish(Agent):
 
     def __init__(
         self,
-        environment: "World",
-        movement_strategy: "MovementStrategy",
+        environment: World,
+        movement_strategy: MovementStrategy,
         species: str,
         x: float,
         y: float,
         speed: float,
-        genome: Optional["Genome"] = None,
+        genome: Genome | None = None,
         generation: int = 0,
-        fish_id: Optional[int] = None,
-        ecosystem: Optional["EcosystemManager"] = None,
-        initial_energy: Optional[float] = None,
-        parent_id: Optional[int] = None,
+        fish_id: int | None = None,
+        ecosystem: EcosystemManager | None = None,
+        initial_energy: float | None = None,
+        parent_id: int | None = None,
         skip_birth_recording: bool = False,
-        team: Optional[str] = None,
+        team: str | None = None,
     ) -> None:
         """Initialize a fish with genetics and life systems.
 
@@ -129,15 +131,15 @@ class Fish(Agent):
 
         self.generation: int = generation
         self.species: str = species
-        self.team: Optional[str] = team  # Team affiliation ('A' or 'B' for soccer mode)
-        self.poker_stats: Optional["FishPokerStats"] = None
+        self.team: str | None = team  # Team affiliation ('A' or 'B' for soccer mode)
+        self.poker_stats: FishPokerStats | None = None
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
         # This is checked ~11x per fish per frame in various places
         self._cached_is_dead: bool = False
 
         # OPTIMIZATION: Cache bounds to avoid fetching from environment every frame
-        self._cached_bounds: Optional[Tuple[Tuple[float, float], Tuple[float, float]]] = None
+        self._cached_bounds: tuple[tuple[float, float], tuple[float, float]] | None = None
 
         # Life cycle - managed by LifecycleComponent for better code organization
 
@@ -163,7 +165,7 @@ class Fish(Agent):
         base_metabolism = ENERGY_MODERATE_MULTIPLIER * self.genome.metabolism_rate
         # Use custom initial energy if provided (for reproduction), otherwise use default ratio
         # Store the original unclamped value for accurate energy tracking
-        self._initial_energy_transferred: Optional[float] = initial_energy
+        self._initial_energy_transferred: float | None = initial_energy
         if initial_energy is not None:
             self._energy_component = EnergyComponent(
                 max_energy, base_metabolism, initial_energy_ratio=0.0
@@ -204,14 +206,14 @@ class Fish(Agent):
         self._skill_game_component = SkillGameComponent()
 
         # ID tracking
-        self.ecosystem: Optional[EcosystemManager] = ecosystem
+        self.ecosystem: EcosystemManager | None = ecosystem
         if fish_id is None and ecosystem is not None:
             self.fish_id: int = ecosystem.generate_new_fish_id()
         else:
             self.fish_id: int = fish_id if fish_id is not None else 0
 
         # Type-safe ID wrapper (cached to avoid repeated object creation)
-        self._typed_id: Optional[FishId] = None
+        self._typed_id: FishId | None = None
 
         # Visual attributes (for rendering, but stored in entity)
         # Size is now managed by lifecycle component, but keep reference for rendering
@@ -244,15 +246,15 @@ class Fish(Agent):
         self.visual_state = FishVisualState()
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
-        self._movement_policy: Optional[Any] = None
+        self._movement_policy: Any | None = None
 
     @property
-    def movement_policy(self) -> Optional[Any]:
+    def movement_policy(self) -> Any | None:
         """Get the override movement policy, if any."""
         return self._movement_policy
 
     @movement_policy.setter
-    def movement_policy(self, policy: Optional[Any]) -> None:
+    def movement_policy(self, policy: Any | None) -> None:
         """Set an override movement policy.
 
         If set, this policy will be used instead of the genome-based behavior.
@@ -261,22 +263,22 @@ class Fish(Agent):
         self._movement_policy = policy
 
     @property
-    def movement_strategy(self) -> "MovementStrategy":
+    def movement_strategy(self) -> MovementStrategy:
         """Get the movement strategy (delegates to BehaviorExecutor)."""
         return self._behavior_executor.movement_strategy
 
     @movement_strategy.setter
-    def movement_strategy(self, strategy: "MovementStrategy") -> None:
+    def movement_strategy(self, strategy: MovementStrategy) -> None:
         """Set the movement strategy."""
         self._behavior_executor.movement_strategy = strategy
 
     @property
-    def last_direction(self) -> Optional[Vector2]:
+    def last_direction(self) -> Vector2 | None:
         """Get the last movement direction (delegates to BehaviorExecutor)."""
         return self._behavior_executor.last_direction
 
     @last_direction.setter
-    def last_direction(self, direction: Optional[Vector2]) -> None:
+    def last_direction(self, direction: Vector2 | None) -> None:
         """Set the last movement direction."""
         self._behavior_executor.last_direction = direction
 
@@ -304,7 +306,7 @@ class Fish(Agent):
             self._typed_id = FishId(self.fish_id)
         return self._typed_id
 
-    def get_entity_id(self) -> Optional[int]:
+    def get_entity_id(self) -> int | None:
         """Get the unique identifier for this fish (Identifiable protocol).
 
         This method satisfies the Identifiable protocol, allowing generic
@@ -357,7 +359,7 @@ class Fish(Agent):
     # SkillfulAgent Protocol Implementation
     # =========================================================================
 
-    def get_strategy(self, game_type: SkillGameType) -> Optional[SkillStrategy]:
+    def get_strategy(self, game_type: SkillGameType) -> SkillStrategy | None:
         """Get the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
 
         Args:
@@ -691,8 +693,8 @@ class Fish(Agent):
         status: str,
         amount: float = 0.0,
         duration: int = 15,
-        target_id: Optional[int] = None,
-        target_type: Optional[str] = None,
+        target_id: int | None = None,
+        target_type: str | None = None,
     ) -> None:
         """Set a visual effect for poker status.
 
@@ -760,7 +762,7 @@ class Fish(Agent):
             logger.error(f"Migration failed: {e}", exc_info=True)
             return False
 
-    def get_remembered_food_locations(self) -> List[Vector2]:
+    def get_remembered_food_locations(self) -> list[Vector2]:
         """Get list of remembered food locations (excluding expired memories).
 
         Returns:
@@ -890,7 +892,7 @@ class Fish(Agent):
             self.max_energy,
         )
 
-    def try_mate(self, other: "Fish") -> bool:
+    def try_mate(self, other: Fish) -> bool:
         """Attempt to mate with another fish.
 
         Delegates to ReproductionComponent for cleaner code organization.
@@ -904,7 +906,7 @@ class Fish(Agent):
         # Standard mating is disabled; fish only reproduce sexually after poker games.
         return False
 
-    def update_reproduction(self) -> Optional["Fish"]:
+    def update_reproduction(self) -> Fish | None:
         """Update reproduction state and potentially create offspring.
 
         Updates cooldown timer and checks if conditions are met for instant
@@ -918,7 +920,7 @@ class Fish(Agent):
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(self)
 
-    def _create_asexual_offspring(self) -> Optional["Fish"]:
+    def _create_asexual_offspring(self) -> Fish | None:
         """Create an offspring through asexual reproduction.
 
         This is called when conditions are met for instant asexual reproduction.
@@ -1009,7 +1011,7 @@ class Fish(Agent):
 
         return baby
 
-    def _get_visual_bounds_offsets(self) -> Tuple[float, float, float, float]:
+    def _get_visual_bounds_offsets(self) -> tuple[float, float, float, float]:
         """Return visual bounds offsets from self.pos for edge clamping.
 
         Delegates to visual_geometry module for the actual calculation.
@@ -1080,8 +1082,8 @@ class Fish(Agent):
             self.vel.y = -abs(self.vel.y)  # Bounce up
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
-    ) -> "EntityUpdateResult":
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
+    ) -> EntityUpdateResult:
         """Update the fish state.
 
         Args:
@@ -1133,7 +1135,7 @@ class Fish(Agent):
         result = EntityUpdateResult()
         return result
 
-    def eat(self, food: "Food") -> None:
+    def eat(self, food: Food) -> None:
         """Eat food and gain energy.
 
         Delegates energy gain to EnergyComponent for cleaner code organization.
