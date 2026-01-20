@@ -119,6 +119,50 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
         """Handle transition into Tank mode."""
         if new_type == "tank":
             self._restore_tank_manager(runner)
+            self._restore_soccer_positions(runner)
+
+    def _restore_soccer_positions(self, runner: Any) -> None:
+        """Restore soccer goals and ball to their standard tank positions."""
+        env = getattr(runner.engine, "environment", None)
+        if not env:
+            return
+
+        # Restore Goal Positions
+        if hasattr(env, "goal_manager") and env.goal_manager:
+            width = env.width
+            height = env.height
+            mid_y = height / 2
+
+            for zone in env.goal_manager.zones.values():
+                if zone.goal_id == "goal_left":
+                    zone.pos.x = 50.0
+                    zone.pos.y = mid_y
+                elif zone.goal_id == "goal_right":
+                    zone.pos.x = width - 50.0
+                    zone.pos.y = mid_y
+                
+                # Reset physics state (velocity/acceleration) to ensure it stays fixed
+                if hasattr(zone, "vel"):
+                    zone.vel.x = 0.0
+                    zone.vel.y = 0.0
+                if hasattr(zone, "acceleration"):
+                    zone.acceleration.x = 0.0
+                    zone.acceleration.y = 0.0
+
+                # Reset stats too
+                zone.reset_stats()
+
+        # Restore Ball Position (center)
+        if hasattr(env, "ball") and env.ball:
+            cx = env.width / 2
+            cy = env.height / 2
+            env.ball.pos.x = cx
+            env.ball.pos.y = cy
+            env.ball.vel.x = 0
+            env.ball.vel.y = 0
+            env.ball.acceleration.x = 0
+            env.ball.acceleration.y = 0
+            env.ball.last_kicker = None
 
     def _restore_tank_manager(self, runner: Any) -> None:
         """Restore standard RootSpotManager."""
