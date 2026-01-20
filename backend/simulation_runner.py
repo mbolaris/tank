@@ -205,84 +205,99 @@ class SimulationRunner(CommandHandlerMixin):
         Raises:
             ValueError: If switching between incompatible world types
         """
-        if new_world_type == self.world_type:
-            return
+        with self.lock:
+            if new_world_type == self.world_type:
+                return
 
-        # Only tank <-> petri switching is supported (they share the same engine)
-        if {self.world_type, new_world_type} != {"tank", "petri"}:
-            raise ValueError(
-                f"Cannot hot-swap between {self.world_type} and {new_world_type}. "
-                f"Only tank <-> petri switching is supported."
+            # Only tank <-> petri switching is supported (they share the same engine)
+            if {self.world_type, new_world_type} != {"tank", "petri"}:
+                raise ValueError(
+                    f"Cannot hot-swap between {self.world_type} and {new_world_type}. "
+                    f"Only tank <-> petri switching is supported."
+                )
+
+            was_paused = self.world.is_paused
+
+            # Capture old world type BEFORE any mutation for correct hook sequencing
+            old_world_type = self.world_type
+            old_hooks = self.world_hooks
+
+            logger.info(
+                "Hot-swapping world type from %s to %s (preserving entities)",
+                old_world_type,
+                new_world_type,
             )
 
-        # Capture old world type BEFORE any mutation for correct hook sequencing
-        old_world_type = self.world_type
+            # Get the underlying TankWorldBackendAdapter (the "base" backend)
+            if hasattr(self.world, "_tank_backend"):
+                # Currently petri - extract the tank backend
+                tank_backend = self.world._tank_backend
+            else:
+                # Currently tank
+                tank_backend = self.world
 
-        logger.info(
-            "Hot-swapping world type from %s to %s (preserving entities)",
-            old_world_type,
-            new_world_type,
-        )
+            # 1) Cleanup OLD physics/resources using current hooks BEFORE switching
+            cleanup_physics = getattr(old_hooks, "cleanup_physics", None)
+            if callable(cleanup_physics):
+                cleanup_physics(self)
 
-        # Get the underlying TankWorldBackendAdapter (the "base" backend)
-        if hasattr(self.world, "_tank_backend"):
-            # Currently petri - extract the tank backend
-            tank_backend = self.world._tank_backend
-        else:
-            # Currently tank
-            tank_backend = self.world
+            cleanup = getattr(old_hooks, "cleanup", None)
+            if callable(cleanup):
+                cleanup(self)
 
-        # 1. Cleanup OLD physics using current hooks BEFORE switching
-        self.world_hooks.cleanup_physics(self)
+            # 2) Swap the world backend (preserve underlying engine/entities)
+            if new_world_type == "petri":
+                from core.worlds.petri.backend import PetriWorldBackendAdapter
 
-        if new_world_type == "petri":
-            from core.worlds.petri.backend import PetriWorldBackendAdapter
+                new_world = PetriWorldBackendAdapter(tank_backend=tank_backend)
+            else:
+                # Switching to tank - just use the tank backend directly
+                new_world = tank_backend
 
-            # Create a wrapper around the EXISTING tank backend - NO RESET
-            # This preserves all entities and state
-            new_world = PetriWorldBackendAdapter.__new__(PetriWorldBackendAdapter)
-            new_world._tank_backend = tank_backend
-            new_world.supports_fast_step = True
-            new_world._last_step_result = None
-            # Do NOT call reset() - we want to preserve entities
-        else:
-            # Switching to tank - just use the tank backend directly
-            new_world = tank_backend
+            self.world = new_world
+            self.world_type = new_world_type
 
-        # Update runner state
-        self.world = new_world
-        self.world_type = new_world_type
+            # Update metadata from registry
+            metadata = get_world_metadata(new_world_type)
+            self.mode_id = metadata.mode_id if metadata else new_world_type
+            self.view_mode = metadata.view_mode if metadata else "side"
 
-        # Update metadata from registry
-        metadata = get_world_metadata(new_world_type)
-        self.mode_id = metadata.mode_id if metadata else new_world_type
-        self.view_mode = metadata.view_mode if metadata else "side"
+            # Update snapshot builder for the new world type
+            from backend.world_registry import _SNAPSHOT_BUILDERS
 
-        # Update snapshot builder for the new world type
-        from backend.world_registry import _SNAPSHOT_BUILDERS
+            builder_factory = _SNAPSHOT_BUILDERS.get(new_world_type)
+            if builder_factory:
+                self._entity_snapshot_builder = builder_factory()
 
-        builder_factory = _SNAPSHOT_BUILDERS.get(new_world_type)
-        if builder_factory:
-            self._entity_snapshot_builder = builder_factory()
+            # Clear cached state to force full rebuild on next get_state()
+            self.state_publisher.invalidate_cache()
 
-        # Clear cached state to force full rebuild on next get_state()
-        self.state_publisher.invalidate_cache()
+            # 3) Install NEW hooks and apply NEW constraints/lifecycle
+            self.world_hooks = get_hooks_for_world(new_world_type)
 
-        # 2. Update hooks to new world type
-        self.world_hooks = get_hooks_for_world(new_world_type)
+            warmup = getattr(self.world_hooks, "warmup", None)
+            if callable(warmup):
+                warmup(self)
 
-        # 3. Apply NEW physics constraints
-        self.world_hooks.apply_physics_constraints(self)
+            apply_constraints = getattr(self.world_hooks, "apply_physics_constraints", None)
+            if callable(apply_constraints):
+                apply_constraints(self)
 
-        # 4. Notify hooks of switch with CORRECT old/new values
-        self.world_hooks.on_world_type_switch(self, old_world_type, new_world_type)
+            on_switch = getattr(self.world_hooks, "on_world_type_switch", None)
+            if callable(on_switch):
+                on_switch(self, old_world_type, new_world_type)
 
-        logger.info(
-            "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
-            new_world_type,
-            self.mode_id,
-            self.view_mode,
-        )
+            # Restore paused state to what it was at entry
+            self.world.set_paused(was_paused)
+            if hasattr(self.world, "paused"):
+                self.world.paused = was_paused
+
+            logger.info(
+                "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
+                new_world_type,
+                self.mode_id,
+                self.view_mode,
+            )
 
     # Removed: _apply_petri_physics, _remove_petri_physics, _relocate_plants_to_spots, _clamp_entities_to_dish
     # These are now handled by WorldHooks (PetriWorldHooks).
