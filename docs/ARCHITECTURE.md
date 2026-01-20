@@ -26,7 +26,6 @@ tank/
 |-- core/                          # Pure Python simulation (no UI dependencies)
 |   |-- agents/                    # Reusable agent components
 |   |   |-- components/            # PerceptionComponent, LocomotionComponent, FeedingComponent
-|   |   `-- petri_agent.py         # PetriMicrobeAgent stub
 |   |-- modes/                     # Mode pack definitions and rulesets
 |   |   |-- interfaces.py          # ModePack, ModePackDefinition protocols
 |   |   |-- rulesets.py            # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
@@ -127,7 +126,8 @@ Reusable components for building different agent types:
 - **LocomotionComponent**: Movement, turn cost calculation, boundary handling
 - **FeedingComponent**: Bite size, food consumption, nutrition tracking
 
-Example usage: `PetriMicrobeAgent` composes these components to create a simple microbe agent.
+Example usage: see `tests/test_agent_components.py` for a minimal composed `GenericAgent` used for
+component integration testing.
 
 ### Behavior Algorithms & Registry
 
@@ -447,7 +447,6 @@ Entity (base - position, state, rect)
 └── Agent (adds velocity, movement)
     └── GenericAgent (adds components, sense-think-act)
         ├── Fish (genetics, poker, reproduction, visual state)
-        └── PetriMicrobeAgent (simple microbe for Petri mode)
 ```
 
 **Design Philosophy:**
@@ -477,7 +476,8 @@ class Robot(GenericAgent):
         return self._update_common(frame_count, time_modifier, time_of_day)
 ```
 
-See `core/entities/generic_agent.py` for full documentation and `core/agents/petri_agent.py` for a reference implementation.
+See `core/entities/generic_agent.py` for the core API and `tests/test_agent_components.py` for a
+lightweight reference composition used in tests.
 
 ## Separation of Concerns
 
@@ -620,7 +620,7 @@ See `tests/test_protocols.py` for comprehensive examples and `core/protocols.py`
 
 ## Change Log
 
-- **2026-01-19**: Introduced `GenericAgent` abstraction (`core/entities/generic_agent.py`) for composable alife agents. Added `Percept` and `Action` types for sense-think-act loop. Refactored `Fish` and `PetriMicrobeAgent` to extend `GenericAgent`. Added `AgentComponents` dataclass for component composition. Updated entity hierarchy: Entity → Agent → GenericAgent → Fish/Microbe.
+- **2026-01-19**: Introduced `GenericAgent` abstraction (`core/entities/generic_agent.py`) for composable alife agents. Added `Percept` and `Action` types for sense-think-act loop. Added `AgentComponents` dataclass for component composition. Updated entity hierarchy: Entity → Agent → GenericAgent → Fish.
 - **2026-01-12**: Added comprehensive entity protocol system (9 protocols in `core/protocols.py`). Documented protocol-based architecture pattern, benefits, and usage examples. Added `Fish.get_entity_id()` for Identifiable protocol. Created `tests/test_protocols.py` with protocol conformance tests and architectural examples.
 - **2026-01-01**: Added World Backends, Mode System, Agent Components sections. Updated project structure.
 - **2025-12-25**: Pruned stale documentation, archived historical analysis docs.
