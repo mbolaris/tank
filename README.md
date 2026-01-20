@@ -432,7 +432,6 @@ tank/
 |   |-- world.py             # Abstract World interface for simulation
 |   |-- agents/              # Reusable agent components
 |   |   |-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
-|   |   `-- petri_agent.py   # PetriMicrobeAgent stub (component composition example)
 |   |-- modes/               # Mode pack definitions and rulesets
 |   |   |-- interfaces.py    # ModePack, ModePackDefinition protocols
 |   |   |-- rulesets.py      # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet

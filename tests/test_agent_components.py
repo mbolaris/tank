@@ -6,6 +6,8 @@ in isolation and with basic integration scenarios.
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
 from core.fish_memory import FishMemorySystem
 from core.math_utils import Vector2
@@ -203,39 +205,90 @@ class TestFeedingComponent:
 
 
 class TestPetriMicrobeAgent:
-    """Tests for PetriMicrobeAgent composition."""
+    """Tests for GenericAgent component composition.
+
+    Historically this used PetriMicrobeAgent (a reference stub). We now keep the
+    same coverage by defining a minimal GenericAgent subclass inside the test.
+    """
 
     def test_agent_initializes_with_components(self):
         """Agent should initialize with all required components."""
-        from unittest.mock import MagicMock
+        from core.agents.components import (
+            FeedingComponent,
+            LocomotionComponent,
+            PerceptionComponent,
+        )
+        from core.energy.energy_component import EnergyComponent
+        from core.entities.generic_agent import AgentComponents, GenericAgent
 
-        from core.agents.petri_agent import PetriMicrobeAgent
+        class TestMicrobe(GenericAgent):
+            def __init__(self, environment, x, y, speed):
+                memory = FishMemorySystem(
+                    max_memories_per_type=50, decay_rate=0.02, learning_rate=0.2
+                )
+                components = AgentComponents(
+                    energy=EnergyComponent(
+                        max_energy=100.0,
+                        base_metabolism=0.05,
+                        initial_energy_ratio=0.5,
+                    ),
+                    perception=PerceptionComponent(memory),
+                    locomotion=LocomotionComponent(),
+                    feeding=FeedingComponent(bite_size_multiplier=10.0),
+                )
+                super().__init__(
+                    environment=environment, x=x, y=y, speed=speed, components=components
+                )
 
         mock_world = MagicMock()
         mock_world.get_bounds.return_value = ((0, 0), (1000, 600))
 
-        agent = PetriMicrobeAgent(mock_world, x=100, y=100, speed=2.0)
+        agent = TestMicrobe(mock_world, x=100, y=100, speed=2.0)
 
-        assert agent._perception is not None
-        assert agent._locomotion is not None
-        assert agent._feeding is not None
+        assert agent.perception is not None
+        assert agent.locomotion is not None
+        assert agent.feeding is not None
         assert agent.energy == 50.0
 
     def test_agent_uses_perception_for_food_locations(self):
         """Agent should delegate food memory to perception component."""
-        from unittest.mock import MagicMock
+        from core.agents.components import (
+            FeedingComponent,
+            LocomotionComponent,
+            PerceptionComponent,
+        )
+        from core.energy.energy_component import EnergyComponent
+        from core.entities.generic_agent import AgentComponents, GenericAgent
 
-        from core.agents.petri_agent import PetriMicrobeAgent
+        class TestMicrobe(GenericAgent):
+            def __init__(self, environment, x, y, speed):
+                memory = FishMemorySystem(
+                    max_memories_per_type=50, decay_rate=0.02, learning_rate=0.2
+                )
+                components = AgentComponents(
+                    energy=EnergyComponent(
+                        max_energy=100.0,
+                        base_metabolism=0.05,
+                        initial_energy_ratio=0.5,
+                    ),
+                    perception=PerceptionComponent(memory),
+                    locomotion=LocomotionComponent(),
+                    feeding=FeedingComponent(bite_size_multiplier=10.0),
+                )
+                super().__init__(
+                    environment=environment, x=x, y=y, speed=speed, components=components
+                )
 
         mock_world = MagicMock()
         mock_world.get_bounds.return_value = ((0, 0), (1000, 600))
 
-        agent = PetriMicrobeAgent(mock_world, x=100, y=100, speed=2.0)
+        agent = TestMicrobe(mock_world, x=100, y=100, speed=2.0)
 
         # Initially empty
-        assert agent.get_remembered_food_locations() == []
+        assert agent.perception is not None
+        assert agent.perception.get_food_locations() == []
 
         # Record via perception
-        agent._perception.record_food_discovery(Vector2(50, 50))
-        locations = agent.get_remembered_food_locations()
+        agent.perception.record_food_discovery(Vector2(50, 50))
+        locations = agent.perception.get_food_locations()
         assert len(locations) == 1
