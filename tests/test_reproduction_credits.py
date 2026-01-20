@@ -6,7 +6,7 @@ import random
 
 from core.config.simulation_config import SimulationConfig
 from core.entities import LifeStage
-from core.fish.reproduction_component import ReproductionComponent
+from core.agents.components.reproduction_component import ReproductionComponent
 from core.reproduction_service import ReproductionService
 
 

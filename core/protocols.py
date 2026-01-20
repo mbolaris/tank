@@ -44,8 +44,8 @@ See Also:
 from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from core.agents.components.reproduction_component import ReproductionComponent
     from core.entities.base import EntityState, LifeStage
-    from core.fish.reproduction_component import ReproductionComponent
     from core.fish.skill_game_component import SkillGameComponent
     from core.math_utils import Vector2
 

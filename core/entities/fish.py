@@ -39,8 +39,8 @@ from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.energy_state import EnergyState
-from core.fish.lifecycle_component import LifecycleComponent
-from core.fish.reproduction_component import ReproductionComponent
+from core.agents.components.lifecycle_component import LifecycleComponent
+from core.agents.components.reproduction_component import ReproductionComponent
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.fish_memory import FishMemorySystem, MemoryType

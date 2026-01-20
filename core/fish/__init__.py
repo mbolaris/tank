@@ -7,6 +7,5 @@ organized for better code clarity and testability.
 # EnergyComponent moved to core.energy for cross-world sharing
 # Re-export from core.energy (use core.energy directly for new code)
 from core.energy.energy_component import EnergyComponent
-from core.fish.reproduction_component import ReproductionComponent
 
-__all__ = ["EnergyComponent", "ReproductionComponent"]
+__all__ = ["EnergyComponent"]

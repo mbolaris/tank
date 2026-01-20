@@ -3,10 +3,18 @@
 Contains shared agent implementations and the components they compose.
 """
 
-from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
+from core.agents.components import (
+    FeedingComponent,
+    LifecycleComponent,
+    LocomotionComponent,
+    PerceptionComponent,
+    ReproductionComponent,
+)
 
 __all__ = [
     "FeedingComponent",
+    "LifecycleComponent",
     "LocomotionComponent",
     "PerceptionComponent",
+    "ReproductionComponent",
 ]
