@@ -140,7 +140,7 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
                 elif zone.goal_id == "goal_right":
                     zone.pos.x = width - 50.0
                     zone.pos.y = mid_y
-                
+
                 # Reset physics state (velocity/acceleration) to ensure it stays fixed
                 if hasattr(zone, "vel"):
                     zone.vel.x = 0.0
