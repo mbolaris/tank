@@ -1,6 +1,5 @@
 """Tests verifying world_type is first-class throughout the stack."""
 
-from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
 from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 from backend.world_manager import WorldManager
 from backend.world_registry import create_world
@@ -51,4 +50,12 @@ class TestWorldTypeFirstClass:
         assert isinstance(tank_builder, TankSnapshotBuilder)
 
         petri_world, petri_builder = create_world("petri")
-        assert isinstance(petri_builder, PetriSnapshotBuilder)
+        assert isinstance(petri_builder, TankSnapshotBuilder)
+
+        result = petri_world.step()
+        snapshots = petri_builder.build(result, petri_world)
+        if snapshots:
+            assert any(
+                getattr(snapshot, "render_hint", {}).get("style") == "petri"
+                for snapshot in snapshots
+            )

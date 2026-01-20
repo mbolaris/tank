@@ -197,7 +197,7 @@ class TestModeSwitchRendering:
         runner.switch_world_type("petri")
 
         # Get snapshots
-        snapshots = runner._entity_snapshot_builder.collect(runner.world.entities_list)
+        snapshots = runner.get_entities_snapshot()
 
         # Fish should have petri-style render hints
         fish_snapshots = [s for s in snapshots if s.type == "fish"]
@@ -219,7 +219,7 @@ class TestModeSwitchRendering:
         runner.switch_world_type("tank")
 
         # Get snapshots
-        snapshots = runner._entity_snapshot_builder.collect(runner.world.entities_list)
+        snapshots = runner.get_entities_snapshot()
 
         # Fish should have tank-style (pixel) render hints
         fish_snapshots = [s for s in snapshots if s.type == "fish"]

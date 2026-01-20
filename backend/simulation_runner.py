@@ -772,15 +772,11 @@ class SimulationRunner(CommandHandlerMixin):
         get_step_result = getattr(self.world, "get_last_step_result", None)
         if callable(get_step_result):
             step_result = get_step_result()
-            if step_result is not None:
-                return self._entity_snapshot_builder.build(step_result, self.world)
+            return self._entity_snapshot_builder.build(step_result, self.world)
 
-        if hasattr(self.world, "get_entities_for_snapshot"):
-            live_entities = self.world.get_entities_for_snapshot()
-        else:
-            live_entities = getattr(self.world, "entities_list", [])
-
-        snapshots = self._entity_snapshot_builder.collect(live_entities)
+        # Prefer the builder's world-aware build() path so it can use the engine's
+        # identity provider (canonical source for stable IDs).
+        snapshots = self._entity_snapshot_builder.build(None, self.world)
 
         # OPTIMIZATION: Post-process snapshots to strip heavy fields not needed for WebSocket visualization
         # This bypasses potential hot-reload issues with the snapshot builder itself
