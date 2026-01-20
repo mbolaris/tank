@@ -29,18 +29,19 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
+    from core.entities.resources import Food
     from core.fish.poker_stats_component import FishPokerStats
     from core.movement_strategy import MovementStrategy
     from core.world import World
 
 # Runtime imports (moved from local scopes)
 
+from core.agents.components.lifecycle_component import LifecycleComponent
+from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.energy_state import EnergyState
-from core.fish.lifecycle_component import LifecycleComponent
-from core.fish.reproduction_component import ReproductionComponent
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.fish_memory import FishMemorySystem, MemoryType

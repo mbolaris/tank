@@ -14,10 +14,10 @@ from core.math_utils import Vector2
 
 if TYPE_CHECKING:
     from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
+    from core.agents.components.lifecycle_component import LifecycleComponent
+    from core.agents.components.reproduction_component import ReproductionComponent
     from core.energy.energy_component import EnergyComponent
     from core.entities.generic_agent import GenericAgent
-    from core.fish.lifecycle_component import LifecycleComponent
-    from core.fish.reproduction_component import ReproductionComponent
 
 
 @dataclass
