@@ -17,12 +17,41 @@ from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 
 logger = logging.getLogger(__name__)
 
+_TOPDOWN_PETRI_HINTS = {
+    "fish": {"style": "petri", "sprite": "microbe"},
+    "food": {"style": "petri", "sprite": "nutrient"},
+    "plant": {"style": "petri", "sprite": "colony"},
+    "plant_nectar": {"style": "petri", "sprite": "nutrient"},
+    "crab": {"style": "petri", "sprite": "predator"},
+    "castle": {"style": "petri", "sprite": "inert"},
+}
+
 
 class TankSnapshotBuilder:
     """Snapshot builder that converts tank entities to EntitySnapshot DTOs."""
 
-    def __init__(self) -> None:
-        self._identity_provider = TankLikeEntityIdentityProvider()
+    def __init__(
+        self,
+        identity_provider: TankLikeEntityIdentityProvider | None = None,
+        *,
+        view_mode: str = "side",
+    ) -> None:
+        self._identity_provider = identity_provider or TankLikeEntityIdentityProvider()
+        self._view_mode = view_mode
+
+    @property
+    def identity_provider(self) -> TankLikeEntityIdentityProvider:
+        return self._identity_provider
+
+    def set_identity_provider(self, identity_provider: TankLikeEntityIdentityProvider) -> None:
+        self._identity_provider = identity_provider
+
+    @property
+    def view_mode(self) -> str:
+        return self._view_mode
+
+    def set_view_mode(self, view_mode: str) -> None:
+        self._view_mode = view_mode
 
     def collect(self, live_entities: Iterable[Any]) -> list[EntitySnapshot]:
         """Collect snapshots for all live entities.
@@ -114,7 +143,18 @@ class TankSnapshotBuilder:
             self._enrich_goal_zone(snapshot, entity)
             # logger.info(f"SNAPSHOT: Serializing GoalZone {entity.id} team={entity.team_id}")
 
+        self._apply_render_hint_overlay(snapshot)
         return snapshot
+
+    def _apply_render_hint_overlay(self, snapshot: EntitySnapshot) -> None:
+        """Apply mode-aware render hints without changing entity types/IDs."""
+        if self._view_mode != "topdown":
+            return
+
+        petri_hint = _TOPDOWN_PETRI_HINTS.get(snapshot.type)
+
+        if petri_hint is not None:
+            snapshot.render_hint = dict(petri_hint)
 
     def _enrich_ball(self, snapshot: EntitySnapshot, ball: Ball) -> None:
         # Use width/2 for pixel radius (ball.size is RCSS physics units, not pixels)

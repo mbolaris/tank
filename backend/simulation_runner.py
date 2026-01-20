@@ -29,6 +29,7 @@ from core import entities
 from core.config.display import FRAME_RATE
 from core.entities import Fish
 from core.worlds.interfaces import FAST_STEP_ACTION
+from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,11 @@ class SimulationRunner(CommandHandlerMixin):
         self.mode_id = metadata.mode_id if metadata else world_type
         self.world_type = metadata.world_type if metadata else world_type
         self.view_mode = metadata.view_mode if metadata else "side"
+
+        # Keep a single Tank-like identity provider across tank<->petri switches so
+        # EntitySnapshot.id values remain stable for the same live entity instances.
+        self._tank_like_identity_provider: Optional[TankLikeEntityIdentityProvider] = None
+        self._configure_snapshot_builder_for_world()
 
         # Create world-specific hooks for feature extensions
         self.world_hooks = get_hooks_for_world(world_type)
@@ -123,6 +129,26 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
+
+    def _configure_snapshot_builder_for_world(self) -> None:
+        """Configure snapshot builder/identity provider for the current mode."""
+        if self.world_type not in ("tank", "petri"):
+            return
+
+        if self._tank_like_identity_provider is None:
+            self._tank_like_identity_provider = TankLikeEntityIdentityProvider()
+
+        from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
+
+        if isinstance(self._entity_snapshot_builder, TankSnapshotBuilder):
+            self._entity_snapshot_builder.set_identity_provider(self._tank_like_identity_provider)
+            self._entity_snapshot_builder.set_view_mode(self.view_mode)
+            return
+
+        self._entity_snapshot_builder = TankSnapshotBuilder(
+            identity_provider=self._tank_like_identity_provider,
+            view_mode=self.view_mode,
+        )
 
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
@@ -262,12 +288,8 @@ class SimulationRunner(CommandHandlerMixin):
             self.mode_id = metadata.mode_id if metadata else new_world_type
             self.view_mode = metadata.view_mode if metadata else "side"
 
-            # Update snapshot builder for the new world type
-            from backend.world_registry import _SNAPSHOT_BUILDERS
-
-            builder_factory = _SNAPSHOT_BUILDERS.get(new_world_type)
-            if builder_factory:
-                self._entity_snapshot_builder = builder_factory()
+            # Update snapshot builder for the new mode, but keep stable entity identity.
+            self._configure_snapshot_builder_for_world()
 
             # Clear cached state to force full rebuild on next get_state()
             self.state_publisher.invalidate_cache()
@@ -526,6 +548,9 @@ class SimulationRunner(CommandHandlerMixin):
             self.world, self._entity_snapshot_builder = create_world(
                 self.world_type, seed=self.seed, config=self._config
             )
+            # Reset identity provider on full reset to avoid python id() reuse collisions.
+            self._tank_like_identity_provider = None
+            self._configure_snapshot_builder_for_world()
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
