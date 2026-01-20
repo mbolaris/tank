@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import random
 
+from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.simulation_config import SimulationConfig
 from core.entities import LifeStage
-from core.agents.components.reproduction_component import ReproductionComponent
 from core.reproduction_service import ReproductionService
 
 
