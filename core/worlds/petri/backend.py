@@ -19,9 +19,15 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: int | None = None,
         config: Any | None = None,
+        tank_backend: TankWorldBackendAdapter | None = None,
         **config_overrides: Any,
     ) -> None:
-        self._tank_backend = TankWorldBackendAdapter(seed=seed, config=config, **config_overrides)
+        if tank_backend is not None:
+            self._tank_backend = tank_backend
+        else:
+            self._tank_backend = TankWorldBackendAdapter(
+                seed=seed, config=config, **config_overrides
+            )
         self.supports_fast_step = True
         self._last_step_result: StepResult | None = None
 
