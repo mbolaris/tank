@@ -5,6 +5,7 @@ from core.config.entities import FOOD_ID_OFFSET, NECTAR_ID_OFFSET
 from core.entities.plant import PlantNectar
 from core.entities.resources import Food
 from core.math_utils import Vector2
+from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 
 
 def _make_minimal_food(x: float = 10, y: float = 20) -> Food:
@@ -29,7 +30,7 @@ def _make_minimal_nectar(x: float = 30, y: float = 40) -> PlantNectar:
 
 
 def test_food_stable_id_is_consistent_for_same_object() -> None:
-    builder = TankSnapshotBuilder()
+    builder = TankSnapshotBuilder(identity_provider=TankLikeEntityIdentityProvider())
     food = _make_minimal_food()
 
     snap1 = builder.to_snapshot(food)
@@ -43,7 +44,7 @@ def test_food_stable_id_is_consistent_for_same_object() -> None:
 
 
 def test_food_stable_id_increments_for_new_objects() -> None:
-    builder = TankSnapshotBuilder()
+    builder = TankSnapshotBuilder(identity_provider=TankLikeEntityIdentityProvider())
     food1 = _make_minimal_food()
     food2 = _make_minimal_food()
 
@@ -57,7 +58,7 @@ def test_food_stable_id_increments_for_new_objects() -> None:
 
 
 def test_nectar_stable_id_uses_nectar_offset() -> None:
-    builder = TankSnapshotBuilder()
+    builder = TankSnapshotBuilder(identity_provider=TankLikeEntityIdentityProvider())
     nectar = _make_minimal_nectar()
 
     snap = builder.to_snapshot(nectar)
@@ -68,7 +69,7 @@ def test_nectar_stable_id_uses_nectar_offset() -> None:
 
 
 def test_collect_prunes_stale_ids() -> None:
-    builder = TankSnapshotBuilder()
+    builder = TankSnapshotBuilder(identity_provider=TankLikeEntityIdentityProvider())
     food = _make_minimal_food()
 
     snap1 = builder.collect([food])[0]

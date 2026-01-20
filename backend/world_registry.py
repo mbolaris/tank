@@ -150,16 +150,16 @@ def get_registered_world_types() -> list[str]:
 def _register_tank_mode() -> None:
     from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 
-    register_snapshot_builder("tank", TankSnapshotBuilder)
+    register_snapshot_builder("tank", lambda: TankSnapshotBuilder(view_mode="side"))
 
 
 _register_tank_mode()
 
 
 def _register_petri_mode() -> None:
-    from backend.snapshots.petri_snapshot_builder import PetriSnapshotBuilder
+    from backend.snapshots.tank_snapshot_builder import TankSnapshotBuilder
 
-    register_snapshot_builder("petri", PetriSnapshotBuilder)
+    register_snapshot_builder("petri", lambda: TankSnapshotBuilder(view_mode="topdown"))
 
 
 _register_petri_mode()

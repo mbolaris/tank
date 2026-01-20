@@ -13,16 +13,44 @@ from core.entities.base import Castle
 from core.entities.goal_zone import GoalZone
 from core.entities.plant import PlantNectar
 from core.entities.predators import Crab
-from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 
 logger = logging.getLogger(__name__)
+
+_TOPDOWN_PETRI_HINTS = {
+    "fish": {"style": "petri", "sprite": "microbe"},
+    "food": {"style": "petri", "sprite": "nutrient"},
+    "plant": {"style": "petri", "sprite": "colony"},
+    "plant_nectar": {"style": "petri", "sprite": "nutrient"},
+    "crab": {"style": "petri", "sprite": "predator"},
+    "castle": {"style": "petri", "sprite": "inert"},
+}
 
 
 class TankSnapshotBuilder:
     """Snapshot builder that converts tank entities to EntitySnapshot DTOs."""
 
-    def __init__(self) -> None:
-        self._identity_provider = TankLikeEntityIdentityProvider()
+    def __init__(
+        self,
+        identity_provider: Any = None,
+        *,
+        view_mode: str = "side",
+    ) -> None:
+        self._identity_provider = identity_provider
+        self._view_mode = view_mode
+
+    def set_identity_provider(self, identity_provider: Any) -> None:
+        self._identity_provider = identity_provider
+
+    def set_view_mode(self, view_mode: str) -> None:
+        self._view_mode = view_mode
+
+    def _require_identity_provider(self) -> Any:
+        if self._identity_provider is None:
+            raise RuntimeError(
+                "TankSnapshotBuilder requires an identity provider. "
+                "Call build(step_result, world) or set_identity_provider(provider)."
+            )
+        return self._identity_provider
 
     def collect(self, live_entities: Iterable[Any]) -> list[EntitySnapshot]:
         """Collect snapshots for all live entities.
@@ -33,14 +61,18 @@ class TankSnapshotBuilder:
         Returns:
             List of EntitySnapshot DTOs sorted by z-order
         """
+        provider = self._require_identity_provider()
+
         # Ensure identity provider is in sync
         # Note: In a real hot loop, we might optimize this, but for now
         # safe correctness is prioritized.
         if isinstance(live_entities, list):
             # Prune IDs for entities that are no longer present to prevent
             # memory leaks and Python id() reuse collisions
-            self._identity_provider.prune_stale_ids({id(e) for e in live_entities})
-            self._identity_provider.sync_entities(live_entities)
+            if hasattr(provider, "prune_stale_ids"):
+                provider.prune_stale_ids({id(e) for e in live_entities})
+            if hasattr(provider, "sync_entities"):
+                provider.sync_entities(live_entities)
 
         snapshots = []
         for entity in live_entities:
@@ -55,6 +87,12 @@ class TankSnapshotBuilder:
 
     def build(self, step_result: Any, world: Any) -> list[EntitySnapshot]:
         """Build entity snapshots from a StepResult (protocol method)."""
+        engine = getattr(world, "engine", None)
+        provider = getattr(engine, "_identity_provider", None) if engine is not None else None
+        if provider is None:
+            raise RuntimeError("World engine has no _identity_provider; cannot build snapshots.")
+        self._identity_provider = provider
+
         # For Tank/Petri, we typically rely on live entity collection
         # via collect(), but if step_result has entities, we could use that.
         # However, MultiAgentWorldBackend's snapshots are currently raw dicts
@@ -70,7 +108,8 @@ class TankSnapshotBuilder:
             return None
 
         # Get stable ID and type
-        entity_type, stable_id = self._identity_provider.get_identity(entity)
+        provider = self._require_identity_provider()
+        entity_type, stable_id = provider.get_identity(entity)
 
         # Base fields
         x = float(entity.pos.x)
@@ -114,7 +153,16 @@ class TankSnapshotBuilder:
             self._enrich_goal_zone(snapshot, entity)
             # logger.info(f"SNAPSHOT: Serializing GoalZone {entity.id} team={entity.team_id}")
 
+        self._apply_render_hint_overlay(snapshot)
         return snapshot
+
+    def _apply_render_hint_overlay(self, snapshot: EntitySnapshot) -> None:
+        if self._view_mode != "topdown":
+            return
+
+        hint = _TOPDOWN_PETRI_HINTS.get(snapshot.type)
+        if hint is not None:
+            snapshot.render_hint = dict(hint)
 
     def _enrich_ball(self, snapshot: EntitySnapshot, ball: Ball) -> None:
         # Use width/2 for pixel radius (ball.size is RCSS physics units, not pixels)
@@ -225,7 +273,8 @@ class TankSnapshotBuilder:
     def _enrich_nectar(self, snapshot: EntitySnapshot, nectar: PlantNectar) -> None:
         snapshot.energy = nectar.energy
         if nectar.source_plant:
-            _, source_id = self._identity_provider.get_identity(nectar.source_plant)
+            provider = self._require_identity_provider()
+            _, source_id = provider.get_identity(nectar.source_plant)
             snapshot.source_plant_id = int(source_id)
 
     def _enrich_food(self, snapshot: EntitySnapshot, food: Food) -> None:
