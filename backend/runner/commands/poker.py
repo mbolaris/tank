@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
@@ -232,7 +233,11 @@ class PokerCommands:
     ) -> Optional[Dict[str, Any]]:
         """Handle 'poker_autopilot_action' command."""
         if not self.human_poker_game:
-            logger.warning("Autopilot action requested but no game active")
+            now = time.monotonic()
+            last = getattr(self, "_last_poker_autopilot_no_game_warning", 0.0)
+            if now - last >= 5.0:
+                logger.warning("Autopilot action requested but no game active")
+                self._last_poker_autopilot_no_game_warning = now
             return self._create_error_response("No poker game active")
 
         game = self.human_poker_game

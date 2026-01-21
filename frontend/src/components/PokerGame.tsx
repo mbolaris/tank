@@ -50,6 +50,9 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 const result = await onGetAutopilotAction();
 
                 if (!result.success) {
+                    lastActionTimeRef.current = Date.now();
+                    addError(new Error('Poker game is not active on the server'), 'Autopilot disabled');
+                    setAutopilot(false);
                     isProcessingRef.current = false;
                     return;
                 }
