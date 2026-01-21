@@ -348,6 +348,15 @@ class Fish(GenericAgent):
         """
         return self.fish_id if self.fish_id is not None else None
 
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization.
+
+        Used by identity providers to determine type-specific ID offsets
+        without requiring isinstance checks.
+        """
+        return "fish"
+
     def get_energy_state(self) -> EnergyState:
         """Get immutable snapshot of current energy state."""
         return EnergyState(

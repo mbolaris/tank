@@ -315,6 +315,23 @@ class Plant(Agent):
             self._typed_id = PlantId(self.plant_id)
         return self._typed_id
 
+    def get_entity_id(self) -> int | None:
+        """Get the unique identifier for this plant (Identifiable protocol).
+
+        Returns:
+            Unique plant ID
+        """
+        return self.plant_id
+
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization.
+
+        Used by identity providers to determine type-specific ID offsets
+        without requiring isinstance checks.
+        """
+        return "plant"
+
     def update_position(self) -> None:
         """Plants are stationary - don't update position."""
         pass
@@ -755,6 +772,15 @@ class PlantNectar(Food):
         self.max_energy = self.NECTAR_ENERGY
 
         self.set_size(self.NECTAR_SIZE, self.NECTAR_SIZE)
+
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization.
+
+        Used by identity providers to determine type-specific ID offsets
+        without requiring isinstance checks.
+        """
+        return "plant_nectar"
 
     def update_position(self) -> None:
         """Nectar stays attached to its source plant in the upper portion."""
