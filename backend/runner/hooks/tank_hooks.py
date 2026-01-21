@@ -120,6 +120,22 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
         if new_type == "tank":
             self._restore_tank_manager(runner)
             self._restore_soccer_positions(runner)
+            self._restore_castle_position(runner)
+
+    def _restore_castle_position(self, runner: Any) -> None:
+        """Restore castle to its default tank position."""
+        from core.entities.base import Castle
+
+        for entity in runner.engine.entities_list:
+            if isinstance(entity, Castle):
+                # Default tank castle position (from Castle.__init__)
+                entity.pos.x = 375.0
+                entity.pos.y = 475.0
+                if hasattr(entity, "rect"):
+                    entity.rect.x = entity.pos.x
+                    entity.rect.y = entity.pos.y
+                logger.info("Restored castle to default tank position (375, 475)")
+                break  # Only one castle expected
 
     def _restore_soccer_positions(self, runner: Any) -> None:
         """Restore soccer goals and ball to their standard tank positions."""

@@ -3,6 +3,7 @@
  * Draws entities based on render_hint.sprite from the backend.
  */
 
+import { drawSoccerBall } from '../../utils/drawSoccerBall';
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import type { EntityData, FishGenomeData } from '../../types/simulation';
 import { ImageLoader } from '../../utils/ImageLoader';
@@ -32,7 +33,7 @@ interface PetriDishGeometry {
 /** Petri-specific render hint structure */
 interface PetriRenderHint {
     style?: string;
-    sprite?: 'microbe' | 'nutrient' | 'colony' | 'predator' | 'inert' | string;
+    sprite?: 'microbe' | 'nutrient' | 'colony' | 'predator' | 'inert' | 'ball' | string;
     dish?: PetriDishGeometry;
 }
 
@@ -117,6 +118,7 @@ function buildPetriScene(snapshot: PetriSceneSnapshot): PetriScene {
                 plant_nectar: 'nutrient',
                 crab: 'predator',
                 castle: 'inert',
+                ball: 'ball',
             };
             const sprite = hint?.sprite ?? defaultSpriteMap[e.type] ?? 'unknown';
             const radius = Math.max(e.width, e.height) / 2 * (e.type === 'plant' ? 0.35 : 0.5); // Scale down for Petri view
@@ -141,6 +143,10 @@ function buildPetriScene(snapshot: PetriSceneSnapshot): PetriScene {
                     y = dishCy + Math.sin(angle) * (dishR - 20);
                     perimeterAngle = angle;
                 }
+            }
+
+            if (e.type === 'ball') {
+                // Debug ball sprite issue
             }
 
             entities.push({
@@ -530,11 +536,28 @@ export class PetriTopDownRenderer implements Renderer {
             case 'inert':
                 this.drawInert(ctx, entity);
                 break;
+            case 'ball':
+                this.drawBall(ctx, entity);
+                break;
             default:
                 this.drawFallback(ctx, entity);
         }
 
         ctx.restore();
+    }
+
+    private drawBall(ctx: CanvasRenderingContext2D, entity: PetriEntity) {
+        // Use shared soccer ball renderer
+        // Ensure minimum perceptible size
+        const radius = Math.max(entity.radius, 8);
+
+        // Use rotation from velocity if available, or just spin slowly
+        let rotation = 0;
+        if (entity.vel_x || entity.vel_y) {
+            rotation = (this.lastNowMs * 0.005) % (Math.PI * 2);
+        }
+
+        drawSoccerBall(ctx, 0, 0, radius, rotation);
     }
 
     private clamp(value: number, min: number, max: number): number {

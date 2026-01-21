@@ -12,6 +12,7 @@ import {
     renderPlantNectar as renderPlantNectarUtil,
     type PlantGenomeData,
 } from './plant';
+import { drawSoccerBall } from './drawSoccerBall';
 
 // Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
@@ -497,39 +498,20 @@ export class Renderer {
 
     private renderBall(entity: EntityData) {
         const { ctx } = this;
+        // In side view, entity.x/y are top-left coordinates.
+        // entity.width is diameter.
+        // We need to calculate radius and center.
         const radius = entity.radius || (entity.width ? entity.width / 2 : 10);
+        const cx = entity.x + radius;
+        const cy = entity.y + radius;
 
-        ctx.save();
-        ctx.translate(entity.x + radius, entity.y + radius); // Center
-
-        // Ball shadow
-        ctx.shadowColor = "rgba(0,0,0,0.5)";
-        ctx.shadowBlur = 10;
-
-        // Ball body
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Pattern (soccer ball-ish)
-        ctx.fillStyle = "#333333";
-        ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Rotation (if velocity available)
-        // For now just static pattern
-        for (let i = 0; i < 5; i++) {
-            const angle = (Math.PI * 2 * i) / 5;
-            const px = Math.cos(angle) * (radius * 0.7);
-            const py = Math.sin(angle) * (radius * 0.7);
-            ctx.beginPath();
-            ctx.arc(px, py, radius * 0.25, 0, Math.PI * 2);
-            ctx.fill();
+        // Use velocity for simple rotation
+        let rotation = 0;
+        if (entity.vel_x || entity.vel_y) {
+            rotation = (entity.x / radius);
         }
 
-        ctx.restore();
+        drawSoccerBall(ctx, cx, cy, radius, rotation);
     }
 
     private renderGoalZone(entity: EntityData) {

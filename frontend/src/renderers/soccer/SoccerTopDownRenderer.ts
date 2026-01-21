@@ -4,6 +4,7 @@
  */
 
 import type { RenderContext, RenderFrame, RenderSnapshot, Renderer } from '../../rendering/types';
+import { drawSoccerBall } from '../../utils/drawSoccerBall';
 import type { EntityData, SoccerMatchState, SimulationUpdate } from '../../types/simulation';
 import { drawAvatar } from '../avatar_renderer';
 
@@ -317,61 +318,18 @@ export class SoccerTopDownRenderer implements Renderer {
     }
 
     private drawBall(ctx: CanvasRenderingContext2D, ball: SoccerEntity) {
-        ctx.save();
-
         // Use a larger visible radius (minimum 10 pixels)
         const visibleRadius = Math.max(ball.radius, 10);
 
-        // Glow effect for visibility
-        ctx.shadowColor = "#ffcc00";
-        ctx.shadowBlur = 15;
-
-        // Shadow on ground
-        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-        ctx.beginPath();
-        ctx.ellipse(ball.x + 2, ball.y + 4, visibleRadius * 0.9, visibleRadius * 0.4, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
-
-        // Ball body - bright orange/yellow for visibility
-        const gradient = ctx.createRadialGradient(
-            ball.x - visibleRadius * 0.3,
-            ball.y - visibleRadius * 0.3,
-            visibleRadius * 0.1,
-            ball.x,
-            ball.y,
-            visibleRadius
-        );
-        gradient.addColorStop(0, "#ffff44");
-        gradient.addColorStop(0.5, "#ffaa00");
-        gradient.addColorStop(1, "#cc6600");
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, visibleRadius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Ball outline - white for contrast
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Inner pattern (pentagon style like soccer ball)
-        ctx.strokeStyle = "#663300";
-        ctx.lineWidth = 1.5;
-        const sides = 5;
-        ctx.beginPath();
-        for (let i = 0; i <= sides; i++) {
-            const angle = (i / sides) * Math.PI * 2 - Math.PI / 2;
-            const x = ball.x + Math.cos(angle) * visibleRadius * 0.5;
-            const y = ball.y + Math.sin(angle) * visibleRadius * 0.5;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+        // Calculate rotation based on velocity or simple time-based spin
+        let rotation = 0;
+        if (ball.vel_x || ball.vel_y) {
+            const speed = Math.sqrt((ball.vel_x || 0) ** 2 + (ball.vel_y || 0) ** 2);
+            // Spin proportional to speed
+            rotation = (Date.now() * 0.005 * speed) % (Math.PI * 2);
         }
-        ctx.closePath();
-        ctx.stroke();
 
-        ctx.restore();
+        drawSoccerBall(ctx, ball.x, ball.y, visibleRadius, rotation);
     }
 
 
