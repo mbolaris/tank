@@ -262,6 +262,10 @@ class SimulationRunner(CommandHandlerMixin):
             self.mode_id = metadata.mode_id if metadata else new_world_type
             self.view_mode = metadata.view_mode if metadata else "side"
 
+            # Propagate view mode to engine (for soccer avatars/rendering hints)
+            if hasattr(self.world, "engine"):
+                self.world.engine.view_mode = self.view_mode
+
             # Update snapshot builder for the new world type
             from backend.world_registry import _SNAPSHOT_BUILDERS
 

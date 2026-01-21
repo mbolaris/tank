@@ -98,7 +98,13 @@ class SoccerLeagueRuntime:
         if self._active_match is None:
             return
 
-        # 3. Step Active Match
+        # 3. Dynamic View Mode Update
+        # Allow hot-swapping avatars even if match started in a different mode
+        current_view_mode = getattr(world_state, "view_mode", "side")
+        if hasattr(self._active_match, "view_mode") and self._active_match.view_mode != current_view_mode:
+            self._active_match.view_mode = current_view_mode
+
+        # 4. Step Active Match
         cycles_per_frame = max(1, int(getattr(self.config, "cycles_per_frame", 1)))
         self._active_match.step(num_steps=cycles_per_frame)
 
@@ -187,25 +193,40 @@ class SoccerLeagueRuntime:
         # Use provider to find entities across ALL connected worlds
         entity_map = self._provider.find_entities(world_state, needed_ids)
 
-        participants = []
+        # Validate and balance participants
+        home_participants = []
+        away_participants = []
 
-        def add_team_participants(team, prefix):
+        def collect_team_participants(team, prefix, target_list):
             if team.source == TeamSource.BOT:
                 for i in range(1, 12):  # 11 bots
-                    participants.append(BotEntity(f"{prefix}_bot_{i}", team.team_id))
+                    target_list.append(BotEntity(f"{prefix}_bot_{i}", team.team_id))
             else:
                 for eid in team.roster:
                     if eid in entity_map:
-                        participants.append(entity_map[eid])
+                        target_list.append(entity_map[eid])
 
-        add_team_participants(home_team, "home")
-        add_team_participants(away_team, "away")
+        collect_team_participants(home_team, "home", home_participants)
+        collect_team_participants(away_team, "away", away_participants)
+
+        # Balance teams to ensure equal numbers (and thus even total for evaluator)
+        common_count = min(len(home_participants), len(away_participants))
+        if common_count < 1:
+            # Cannot start match with empty team
+            # We skip this tick; scheduler will keep retrying until players are available
+            # or availability check catches it next frame
+            return
+
+        participants = home_participants[:common_count] + away_participants[:common_count]
 
         effective_seed_base = seed_base if seed_base is not None else 0
         selection_seed = derive_soccer_seed(
             int(effective_seed_base), self._match_counter, "selection"
         )
         match_seed = derive_soccer_seed(int(effective_seed_base), self._match_counter, "match")
+
+        # Determine view mode from world state (default to side/tank)
+        view_mode = getattr(world_state, "view_mode", "side")
 
         setup = create_soccer_match_from_participants(
             participants,
@@ -216,6 +237,7 @@ class SoccerLeagueRuntime:
             match_counter=self._match_counter,
             selection_seed=selection_seed,
             entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
+            view_mode=view_mode,
         )
 
         self._active_match = setup.match

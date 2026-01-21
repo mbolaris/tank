@@ -140,6 +140,9 @@ class SimulationEngine:
         self.run_id: str = str(uuid.uuid4())
         logger.info(f"SimulationEngine initialized with run_id={self.run_id}")
 
+        # Visualization hint
+        self.view_mode: str = "side"
+
         # Components (delegated to managers)
         self._entity_manager = EntityManager(
             rng=self.rng,
