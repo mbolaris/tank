@@ -101,7 +101,10 @@ class SoccerLeagueRuntime:
         # 3. Dynamic View Mode Update
         # Allow hot-swapping avatars even if match started in a different mode
         current_view_mode = getattr(world_state, "view_mode", "side")
-        if hasattr(self._active_match, "view_mode") and self._active_match.view_mode != current_view_mode:
+        if (
+            hasattr(self._active_match, "view_mode")
+            and self._active_match.view_mode != current_view_mode
+        ):
             self._active_match.view_mode = current_view_mode
 
         # 4. Step Active Match
