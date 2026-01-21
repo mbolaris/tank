@@ -29,6 +29,25 @@ class Food(Agent):
         """Check if food is dead (it's not)."""
         return False
 
+    def get_entity_id(self) -> int | None:
+        """Get the unique identifier for this food (Identifiable protocol).
+
+        Food has no intrinsic ID - identity provider will use python id mapping.
+
+        Returns:
+            None (food uses stable counter-based IDs from identity provider)
+        """
+        return None
+
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization.
+
+        Used by identity providers to determine type-specific ID offsets
+        without requiring isinstance checks.
+        """
+        return "food"
+
     def __init__(
         self,
         environment: "World",

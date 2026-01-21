@@ -76,6 +76,15 @@ class GenericAgent(Agent):
         return self._agent_id if self._agent_id != 0 else None
 
     @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization.
+
+        Default implementation uses lowercase class name.
+        Subclasses can override for custom type strings.
+        """
+        return self.__class__.__name__.lower()
+
+    @property
     def energy(self) -> float:
         """Current energy level.
 
