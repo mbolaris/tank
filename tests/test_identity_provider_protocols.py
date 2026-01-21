@@ -5,7 +5,6 @@ capability-based resolution (snapshot_type and get_entity_id) without
 importing concrete entity classes like Fish, Plant, etc.
 """
 
-
 from core.config.entities import FISH_ID_OFFSET, FOOD_ID_OFFSET, PLANT_ID_OFFSET
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 

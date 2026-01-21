@@ -3,18 +3,30 @@
 import asyncio
 import logging
 import random
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from backend.connection_manager import ConnectionManager
 from backend.world_manager import WorldManager
-from core.entities import Fish
-from core.entities.plant import Plant
 
 if TYPE_CHECKING:
     from backend.discovery_service import DiscoveryService
     from backend.server_client import ServerClient
 
 logger = logging.getLogger(__name__)
+
+# Entity types eligible for migration (checked via snapshot_type property)
+_MIGRATABLE_TYPES = frozenset({"fish", "plant"})
+
+
+def _is_migratable(entity: Any) -> bool:
+    """Check if an entity is eligible for migration via snapshot_type protocol."""
+    snapshot_type = getattr(entity, "snapshot_type", None)
+    return snapshot_type in _MIGRATABLE_TYPES
+
+
+def _get_entity_type(entity: Any) -> str:
+    """Get entity type string via snapshot_type protocol."""
+    return getattr(entity, "snapshot_type", type(entity).__name__.lower())
 
 
 class MigrationScheduler:
@@ -167,12 +179,9 @@ class MigrationScheduler:
         if not source_world or not dest_world:
             return
 
-        # Get eligible entities (fish and plants)
+        # Get eligible entities (fish and plants via snapshot_type protocol)
         entities_list = getattr(source_world, "entities_list", [])
-        eligible_entities = []
-        for entity in entities_list:
-            if isinstance(entity, (Fish, Plant)):
-                eligible_entities.append(entity)
+        eligible_entities = [e for e in entities_list if _is_migratable(e)]
 
         if not eligible_entities:
             return  # No entities to migrate
@@ -180,7 +189,7 @@ class MigrationScheduler:
         # Select random entity
         entity = random.choice(eligible_entities)
         entity_id = id(entity)
-        entity_type = "fish" if isinstance(entity, Fish) else "plant"
+        entity_type = _get_entity_type(entity)
 
         # Perform the migration
         try:
@@ -198,7 +207,7 @@ class MigrationScheduler:
 
             # Track energy leaving the tank (for fish only)
             if (
-                isinstance(entity, Fish)
+                entity_type == "fish"
                 and hasattr(entity, "ecosystem")
                 and entity.ecosystem is not None
             ):
@@ -237,7 +246,7 @@ class MigrationScheduler:
 
             # Track energy entering the destination tank (for fish only)
             if (
-                isinstance(new_entity, Fish)
+                _get_entity_type(new_entity) == "fish"
                 and hasattr(new_entity, "ecosystem")
                 and new_entity.ecosystem is not None
             ):
@@ -302,12 +311,9 @@ class MigrationScheduler:
         if getattr(source_runner, "paused", False):
             return
 
-        # Get eligible entities
+        # Get eligible entities via snapshot_type protocol
         entities_list = getattr(source_world, "entities_list", [])
-        eligible_entities = []
-        for entity in entities_list:
-            if isinstance(entity, (Fish, Plant)):
-                eligible_entities.append(entity)
+        eligible_entities = [e for e in entities_list if _is_migratable(e)]
 
         if not eligible_entities:
             return  # No entities to migrate
@@ -315,7 +321,7 @@ class MigrationScheduler:
         # Select random entity
         entity = random.choice(eligible_entities)
         entity_id = id(entity)
-        entity_type = "fish" if isinstance(entity, Fish) else "plant"
+        entity_type = _get_entity_type(entity)
 
         try:
             from backend.transfer_history import log_transfer
@@ -340,7 +346,7 @@ class MigrationScheduler:
 
             # Track energy leaving the tank (for fish only)
             if (
-                isinstance(entity, Fish)
+                entity_type == "fish"
                 and hasattr(entity, "ecosystem")
                 and entity.ecosystem is not None
             ):

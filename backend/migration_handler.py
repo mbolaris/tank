@@ -193,17 +193,16 @@ class MigrationHandler:
         original_root_spot = None
         try:
             # Track energy leaving the source world (for fish only)
-            from core.entities.fish import Fish
-            from core.entities.plant import Plant
+            entity_type = getattr(entity, "snapshot_type", type(entity).__name__.lower())
 
             if (
-                isinstance(entity, Fish)
+                entity_type == "fish"
                 and hasattr(entity, "ecosystem")
                 and entity.ecosystem is not None
             ):
                 entity.ecosystem.record_energy_burn("migration", entity.energy)
 
-            if isinstance(entity, Plant):
+            if entity_type == "plant":
                 # If destination has no available root spots, fail fast to avoid churn.
                 dest_root_spot_manager = getattr(dest_world.engine, "root_spot_manager", None)
                 if dest_root_spot_manager is None or dest_root_spot_manager.get_empty_count() <= 0:
@@ -272,8 +271,9 @@ class MigrationHandler:
             added_to_destination = True
 
             # Track energy entering the destination world (for fish only)
+            new_entity_type = getattr(new_entity, "snapshot_type", type(new_entity).__name__.lower())
             if (
-                isinstance(new_entity, Fish)
+                new_entity_type == "fish"
                 and hasattr(new_entity, "ecosystem")
                 and new_entity.ecosystem is not None
             ):
