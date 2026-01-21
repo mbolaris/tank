@@ -271,7 +271,9 @@ class MigrationHandler:
             added_to_destination = True
 
             # Track energy entering the destination world (for fish only)
-            new_entity_type = getattr(new_entity, "snapshot_type", type(new_entity).__name__.lower())
+            new_entity_type = getattr(
+                new_entity, "snapshot_type", type(new_entity).__name__.lower()
+            )
             if (
                 new_entity_type == "fish"
                 and hasattr(new_entity, "ecosystem")
