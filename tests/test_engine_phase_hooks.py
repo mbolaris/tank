@@ -12,7 +12,7 @@ import pytest
 def test_engine_uses_phase_hooks_from_pack():
     """Verify engine initializes and uses pack's phase hooks."""
     from core.simulation.engine import SimulationEngine
-    from core.worlds.tank.tank_phase_hooks import TankPhaseHooks
+    from core.worlds.shared import TankPhaseHooks
 
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
@@ -30,7 +30,7 @@ def test_petri_mode_uses_tank_like_hooks():
     """Verify Petri mode uses TankPhaseHooks (shared Tank-like behavior)."""
     from core.simulation.engine import SimulationEngine
     from core.worlds.petri.pack import PetriPack
-    from core.worlds.tank.tank_phase_hooks import TankPhaseHooks
+    from core.worlds.shared import TankPhaseHooks
 
     engine = SimulationEngine(headless=True, seed=42)
     pack = PetriPack(engine.config)
@@ -101,7 +101,7 @@ def test_tank_phase_hooks_spawn_decision_respects_population():
     Non-Fish spawns should always be accepted.
     """
     from core.simulation.engine import SimulationEngine
-    from core.worlds.tank.tank_phase_hooks import TankPhaseHooks
+    from core.worlds.shared import TankPhaseHooks
 
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
@@ -127,7 +127,7 @@ def test_tank_phase_hooks_spawn_decision_respects_population():
 def test_tank_phase_hooks_death_handling():
     """Verify TankPhaseHooks handles death correctly for different entity types."""
     from core.simulation.engine import SimulationEngine
-    from core.worlds.tank.tank_phase_hooks import TankPhaseHooks
+    from core.worlds.shared import TankPhaseHooks
 
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()

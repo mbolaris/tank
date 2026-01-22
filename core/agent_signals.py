@@ -1,6 +1,6 @@
-"""Fish communication system.
+"""Agent signal/communication system.
 
-This module enables fish to signal information to nearby fish, including:
+This module enables agents to signal information to nearby agents, including:
 - Danger warnings
 - Food discovery
 - Mating signals
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class SignalType(Enum):
-    """Types of signals fish can send."""
+    """Types of signals agents can send."""
 
     DANGER_WARNING = "danger_warning"  # Predator nearby
     FOOD_FOUND = "food_found"  # Found food source
@@ -30,11 +30,11 @@ class SignalType(Enum):
 
 @dataclass
 class Signal:
-    """A signal broadcast by a fish.
+    """A signal broadcast by an agent.
 
     Attributes:
         signal_type: Type of signal
-        sender_pos: Position of fish sending signal
+        sender_pos: Position of agent sending signal
         target_location: Optional location being signaled (e.g., food location)
         strength: Signal strength (0.0-1.0), affects range
         urgency: How urgent the signal is (0.0-1.0)
@@ -68,8 +68,8 @@ class Signal:
         return self.strength <= 0.0
 
 
-class FishCommunicationSystem:
-    """Manages communication between fish.
+class AgentSignalSystem:
+    """Manages communication between agents.
 
     Attributes:
         active_signals: List of currently active signals

@@ -65,7 +65,7 @@ class CooperativeForager(BehaviorAlgorithm):
             if pred_dist < PREDATOR_PROXIMITY_THRESHOLD:
                 # NEW: Broadcast danger signal
                 if hasattr(fish.environment, "communication_system"):
-                    from core.fish_communication import SignalType
+                    from core.agent_signals import SignalType
 
                     fish.environment.communication_system.broadcast_signal(
                         SignalType.DANGER_WARNING,
@@ -104,7 +104,7 @@ class CooperativeForager(BehaviorAlgorithm):
                     hasattr(fish.environment, "communication_system")
                     and fish.genome.behavioral.social_tendency.value > 0.5
                 ):
-                    from core.fish_communication import SignalType
+                    from core.agent_signals import SignalType
 
                     fish.environment.communication_system.broadcast_signal(
                         SignalType.FOOD_FOUND,
@@ -127,7 +127,7 @@ class CooperativeForager(BehaviorAlgorithm):
         # NEW: Listen for food signals from communication system
         best_signal_target = None
         if hasattr(fish.environment, "communication_system"):
-            from core.fish_communication import SignalType
+            from core.agent_signals import SignalType
 
             food_signals = fish.environment.communication_system.get_nearby_signals(
                 fish.pos, signal_type=SignalType.FOOD_FOUND

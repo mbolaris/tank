@@ -44,7 +44,7 @@ from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.energy_state import EnergyState
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
-from core.fish_memory import FishMemorySystem, MemoryType
+from core.agent_memory import AgentMemorySystem as FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
@@ -1206,7 +1206,7 @@ class Fish(GenericAgent):
         actual_energy = self.modify_energy(potential_energy)
 
         # Record food location in memory
-        from core.fish_memory import MemoryType
+        from core.agent_memory import MemoryType
 
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 

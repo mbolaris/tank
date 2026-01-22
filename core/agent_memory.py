@@ -1,4 +1,4 @@
-"""Enhanced memory system for fish.
+"""Enhanced memory system for agents.
 
 This module provides advanced memory capabilities including:
 - Spatial memory (locations of food, danger, etc.)
@@ -15,7 +15,7 @@ from core.math_utils import Vector2
 
 
 class MemoryType(Enum):
-    """Types of memories a fish can have."""
+    """Types of memories an agent can have."""
 
     FOOD_LOCATION = "food_location"
     DANGER_ZONE = "danger_zone"
@@ -56,14 +56,14 @@ class Memory:
 
 
 @dataclass
-class FishMemorySystem:
-    """Advanced memory system for fish behavior.
+class AgentMemorySystem:
+    """Advanced memory system for agent behavior.
 
     Attributes:
         memories: Dictionary of memories by type
         max_memories_per_type: Maximum memories to keep per type
         decay_rate: How fast memories decay
-        learning_rate: How fast fish learn from experience
+        learning_rate: How fast agents learn from experience
     """
 
     memories: Dict[MemoryType, List[Memory]] = field(default_factory=dict)

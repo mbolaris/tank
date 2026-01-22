@@ -96,7 +96,7 @@ class Environment:
         self._type_cache: Dict[Type[Agent], List[Agent]] = {}
 
         # NEW: Initialize communication system for fish
-        from core.fish_communication import FishCommunicationSystem
+        from core.agent_signals import AgentSignalSystem as FishCommunicationSystem
 
         self.communication_system = FishCommunicationSystem(max_signals=50, decay_rate=0.05)
 

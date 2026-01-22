@@ -146,7 +146,6 @@ class TestBackendBoundaries:
             allowed_exceptions=[
                 # world_registry.py is allowed to import tank to register it
                 # This is checked via file path below
-                "core.worlds.tank.schema",
             ],
         )
 

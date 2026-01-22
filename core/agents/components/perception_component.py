@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from core.fish_memory import FishMemorySystem
+    from core.agent_memory import AgentMemorySystem as FishMemorySystem
     from core.math_utils import Vector2
 
 
@@ -47,7 +47,7 @@ class PerceptionComponent:
         Returns:
             List of Vector2 positions where food was previously found
         """
-        from core.fish_memory import MemoryType
+        from core.agent_memory import MemoryType
 
         memories = self._memory_system.get_all_memories(
             MemoryType.FOOD_LOCATION, min_strength=min_strength
@@ -60,7 +60,7 @@ class PerceptionComponent:
         Args:
             location: Position where food was found
         """
-        from core.fish_memory import MemoryType
+        from core.agent_memory import MemoryType
 
         self._memory_system.add_memory(MemoryType.FOOD_LOCATION, location)
 
@@ -73,7 +73,7 @@ class PerceptionComponent:
         Returns:
             List of Vector2 positions marked as dangerous
         """
-        from core.fish_memory import MemoryType
+        from core.agent_memory import MemoryType
 
         memories = self._memory_system.get_all_memories(
             MemoryType.DANGER_ZONE, min_strength=min_strength
@@ -86,7 +86,7 @@ class PerceptionComponent:
         Args:
             location: Position where danger was encountered
         """
-        from core.fish_memory import MemoryType
+        from core.agent_memory import MemoryType
 
         self._memory_system.add_memory(MemoryType.DANGER_ZONE, location)
 

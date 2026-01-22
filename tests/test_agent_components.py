@@ -9,7 +9,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
-from core.fish_memory import FishMemorySystem
+from core.agent_memory import AgentMemorySystem as FishMemorySystem
 from core.math_utils import Vector2
 
 

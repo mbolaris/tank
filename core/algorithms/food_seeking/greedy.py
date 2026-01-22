@@ -144,7 +144,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
                 # Remember successful food locations
                 if hasattr(fish, "memory_system") and distance < FOOD_MEMORY_RECORD_DISTANCE:
-                    from core.fish_memory import MemoryType
+                    from core.agent_memory import MemoryType
 
                     fish.memory_system.add_memory(
                         MemoryType.FOOD_LOCATION, nearest_food.pos, strength=0.8
@@ -154,7 +154,7 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
         # Use enhanced memory system if no food found
         if (is_critical or is_low) and hasattr(fish, "memory_system"):
-            from core.fish_memory import MemoryType
+            from core.agent_memory import MemoryType
 
             best_food_memory = fish.memory_system.get_best_memory(MemoryType.FOOD_LOCATION)
             if best_food_memory:
