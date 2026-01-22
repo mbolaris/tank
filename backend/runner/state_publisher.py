@@ -156,6 +156,9 @@ class StatePublisher:
         poker_leaderboard = extras.get("poker_leaderboard", [])
         auto_eval = extras.get("auto_evaluation")
 
+        # Get tank soccer enabled state from config
+        tank_soccer_enabled = self._get_tank_soccer_enabled(runner)
+
         return FullStatePayload(
             frame=frame,
             elapsed_time=elapsed_time,
@@ -170,6 +173,7 @@ class StatePublisher:
             mode_id=runner.mode_id,
             world_type=runner.world_type,
             view_mode=runner.view_mode,
+            tank_soccer_enabled=tank_soccer_enabled,
         )
 
     def _build_delta_state(
@@ -215,6 +219,9 @@ class StatePublisher:
 
         soccer_league_live = extras.get("soccer_league_live")
 
+        # Get tank soccer enabled state from config
+        tank_soccer_enabled = self._get_tank_soccer_enabled(runner)
+
         return DeltaStatePayload(
             frame=frame,
             elapsed_time=elapsed_time,
@@ -228,4 +235,21 @@ class StatePublisher:
             mode_id=runner.mode_id,
             world_type=runner.world_type,
             view_mode=runner.view_mode,
+            tank_soccer_enabled=tank_soccer_enabled,
         )
+
+    def _get_tank_soccer_enabled(self, runner: Any) -> Optional[bool]:
+        """Get the tank_practice_enabled state from the soccer config."""
+        try:
+            engine = getattr(runner.world, "engine", None)
+            if engine is None:
+                return None
+            config = getattr(engine, "config", None)
+            if config is None:
+                return None
+            soccer_cfg = getattr(config, "soccer", None)
+            if soccer_cfg is None:
+                return None
+            return getattr(soccer_cfg, "tank_practice_enabled", None)
+        except Exception:
+            return None

@@ -100,6 +100,41 @@ def _respawn_soccer_elements(engine: Any) -> None:
         logger.warning(f"Failed to respawn soccer elements: {e}")
 
 
+def _respawn_essential_entities(engine: Any) -> None:
+    """Respawn essential entities (Castle/Crab) if missing after world restoration.
+
+    These entities may have been lost due to schema migrations or bugs in older
+    snapshots. We ensure they exist for proper tank simulation functionality.
+    """
+    try:
+        if not engine.environment:
+            return
+
+        from core.entities.base import Castle
+        from core.entities.predators import Crab
+
+        env = engine.environment
+
+        # Check if castle exists
+        has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
+        if not has_castle:
+            # Default castle position (from DisplayConfig.init_pos["castle"])
+            castle = Castle(environment=env, x=100.0, y=420.0)
+            engine.add_entity(castle)
+            logger.info("ESSENTIAL: Respawned Castle after restoration (was missing from snapshot)")
+
+        # Check if crab exists
+        has_crab = any(isinstance(e, Crab) for e in engine.entities_list)
+        if not has_crab:
+            # Default crab position (from DisplayConfig.init_pos["crab"])
+            crab = Crab(env, None, 920.0, 510.0)
+            engine.add_entity(crab)
+            logger.info("ESSENTIAL: Respawned Crab after restoration (was missing from snapshot)")
+
+    except Exception as e:
+        logger.warning(f"Failed to respawn essential entities: {e}")
+
+
 def ensure_world_directory(world_id: str) -> Path:
     """Ensure the data directory for a world exists.
 
@@ -375,6 +410,9 @@ def restore_world_from_snapshot(
 
         # Respawn soccer elements after restoration (they are not persisted)
         _respawn_soccer_elements(engine)
+
+        # Respawn essential entities (castle/crab) if missing from old snapshots
+        _respawn_essential_entities(engine)
 
         return True
 

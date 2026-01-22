@@ -621,6 +621,7 @@ class FullStatePayload:
     mode_id: str | None = "tank"
     world_type: str | None = "tank"
     view_mode: str | None = "side"
+    tank_soccer_enabled: bool | None = None  # Whether tank practice soccer (ball/goals) is enabled
 
     def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing all simulation state
@@ -651,6 +652,8 @@ class FullStatePayload:
             data["world_type"] = self.world_type
         if self.view_mode is not None:
             data["view_mode"] = self.view_mode
+        if self.tank_soccer_enabled is not None:
+            data["tank_soccer_enabled"] = self.tank_soccer_enabled
         return data
 
     def to_json(self) -> str:
@@ -679,6 +682,7 @@ class DeltaStatePayload:
     mode_id: str | None = "tank"
     world_type: str | None = "tank"
     view_mode: str | None = "side"
+    tank_soccer_enabled: bool | None = None  # Whether tank practice soccer (ball/goals) is enabled
 
     def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing delta simulation state
@@ -711,6 +715,8 @@ class DeltaStatePayload:
             data["world_type"] = self.world_type
         if self.view_mode is not None:
             data["view_mode"] = self.view_mode
+        if self.tank_soccer_enabled is not None:
+            data["tank_soccer_enabled"] = self.tank_soccer_enabled
         return data
 
     def to_json(self) -> str:

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
@@ -32,8 +32,16 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
-    const [showSoccer, setShowSoccer] = useState(true);
+    const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
+    const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
+
+    // Sync showSoccer state from server on initial load
+    useEffect(() => {
+        if (state?.tank_soccer_enabled !== undefined && !userToggledSoccer.current) {
+            setShowSoccer(state.tank_soccer_enabled);
+        }
+    }, [state?.tank_soccer_enabled]);
 
     // Plant energy input control
     const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
@@ -110,9 +118,10 @@ export function TankView({ worldId }: TankViewProps) {
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
-                    showSoccer={showSoccer}
+                    showSoccer={showSoccer ?? true}
                     onToggleSoccer={() => {
-                        const newValue = !showSoccer;
+                        userToggledSoccer.current = true;  // Mark as user-initiated
+                        const newValue = !(showSoccer ?? true);
                         setShowSoccer(newValue);
                         sendCommand({
                             command: 'set_tank_soccer_enabled',
@@ -336,7 +345,7 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
-                        showSoccer={showSoccer}
+                        showSoccer={showSoccer ?? true}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />

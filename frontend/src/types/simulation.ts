@@ -494,6 +494,7 @@ export interface SimulationUpdate {
     world_type?: string;
     view_mode?: string;
     mode_id?: string;
+    tank_soccer_enabled?: boolean;  // Whether tank practice soccer (ball/goals) is enabled
     render_hint?: Record<string, unknown>;
 
     // V1 schema: All data flows through nested snapshot
@@ -529,6 +530,7 @@ export interface DeltaUpdate {
     world_type?: string;
     view_mode?: string;
     mode_id?: string;
+    tank_soccer_enabled?: boolean;  // Whether tank practice soccer (ball/goals) is enabled
 
     // V1 schema: All data flows through nested snapshot
     snapshot: {
