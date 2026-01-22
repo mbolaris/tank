@@ -7,8 +7,6 @@ from typing import Any, Iterable
 
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY
-from backend.state_payloads import EntitySnapshot
-from core.config.plants import PLANT_NECTAR_ENERGY
 
 logger = logging.getLogger(__name__)
 

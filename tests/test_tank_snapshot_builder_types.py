@@ -43,7 +43,6 @@ def test_snapshot_builder_regression_all_types():
     """Verify snapshot builder correctly identifies and enriches all entity types."""
     provider = TankLikeEntityIdentityProvider()
     builder = TankSnapshotBuilder(identity_provider=provider)
-    world = MockWorld()
 
     # Create dummy entities
     # Fish
