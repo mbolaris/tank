@@ -36,6 +36,8 @@ if TYPE_CHECKING:
 
 # Runtime imports (moved from local scopes)
 
+from core.agent_memory import AgentMemorySystem as FishMemorySystem
+from core.agent_memory import MemoryType
 from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
@@ -44,7 +46,6 @@ from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.energy_state import EnergyState
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
-from core.agent_memory import AgentMemorySystem as FishMemorySystem, MemoryType
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy

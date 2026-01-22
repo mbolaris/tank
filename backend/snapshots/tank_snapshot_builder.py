@@ -7,12 +7,8 @@ from typing import Any, Iterable
 
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY
-from core.entities import Fish, Food, Plant
-from core.entities.ball import Ball
-from core.entities.base import Castle
-from core.entities.goal_zone import GoalZone
-from core.entities.plant import PlantNectar
-from core.entities.predators import Crab
+from backend.state_payloads import EntitySnapshot
+from core.config.plants import PLANT_NECTAR_ENERGY
 
 logger = logging.getLogger(__name__)
 
@@ -133,25 +129,23 @@ class TankSnapshotBuilder:
         )
 
         # Enrich based on entity type
-        if isinstance(entity, Fish):
+        if entity_type == "fish":
             self._enrich_fish(snapshot, entity)
-        elif isinstance(entity, Plant):
+        elif entity_type == "plant":
             self._enrich_plant(snapshot, entity)
-        elif isinstance(entity, PlantNectar):
+        elif entity_type == "plant_nectar":
             self._enrich_nectar(snapshot, entity)
-        elif isinstance(entity, Food):
+        elif entity_type == "food":
             self._enrich_food(snapshot, entity)
-        elif isinstance(entity, Crab):
+        elif entity_type == "crab":
             self._enrich_crab(snapshot, entity)
-        elif isinstance(entity, Castle):
+        elif entity_type == "castle":
             # Castle is simple, just needs type (already set)
             pass
-        elif isinstance(entity, Ball):
+        elif entity_type == "ball":
             self._enrich_ball(snapshot, entity)
-            # logger.info(f"SNAPSHOT: Serializing Ball {entity.id} r={entity.radius}")
-        elif isinstance(entity, GoalZone):
+        elif entity_type == "goalzone" or entity_type == "goal_zone":
             self._enrich_goal_zone(snapshot, entity)
-            # logger.info(f"SNAPSHOT: Serializing GoalZone {entity.id} team={entity.team_id}")
 
         self._apply_render_hint_overlay(snapshot)
         return snapshot
@@ -164,7 +158,7 @@ class TankSnapshotBuilder:
         if hint is not None:
             snapshot.render_hint = dict(hint)
 
-    def _enrich_ball(self, snapshot: EntitySnapshot, ball: Ball) -> None:
+    def _enrich_ball(self, snapshot: EntitySnapshot, ball: Any) -> None:
         # Use width/2 for pixel radius (ball.size is RCSS physics units, not pixels)
         pixel_radius = ball.width / 2
         snapshot.radius = pixel_radius
@@ -174,7 +168,7 @@ class TankSnapshotBuilder:
             "radius": pixel_radius,
         }
 
-    def _enrich_goal_zone(self, snapshot: EntitySnapshot, goal: GoalZone) -> None:
+    def _enrich_goal_zone(self, snapshot: EntitySnapshot, goal: Any) -> None:
         snapshot.radius = goal.radius
         snapshot.team = goal.team
         snapshot.render_hint = {
@@ -184,7 +178,7 @@ class TankSnapshotBuilder:
             "radius": goal.radius,
         }
 
-    def _enrich_fish(self, snapshot: EntitySnapshot, fish: Fish) -> None:
+    def _enrich_fish(self, snapshot: EntitySnapshot, fish: Any) -> None:
         snapshot.energy = fish.energy
         snapshot.generation = fish.generation
         # Access age via lifecycle component
@@ -235,7 +229,7 @@ class TankSnapshotBuilder:
             if fish.soccer_effect_state["timer"] <= 0:
                 fish.soccer_effect_state = None
 
-    def _enrich_plant(self, snapshot: EntitySnapshot, plant: Plant) -> None:
+    def _enrich_plant(self, snapshot: EntitySnapshot, plant: Any) -> None:
         snapshot.energy = plant.energy
         snapshot.max_energy = plant.max_energy
         snapshot.size_multiplier = getattr(plant, "size_multiplier", 1.0)
@@ -270,14 +264,14 @@ class TankSnapshotBuilder:
                 and plant.energy / plant.max_energy >= 0.90
             )
 
-    def _enrich_nectar(self, snapshot: EntitySnapshot, nectar: PlantNectar) -> None:
+    def _enrich_nectar(self, snapshot: EntitySnapshot, nectar: Any) -> None:
         snapshot.energy = nectar.energy
         if nectar.source_plant:
             provider = self._require_identity_provider()
             _, source_id = provider.get_identity(nectar.source_plant)
             snapshot.source_plant_id = int(source_id)
 
-    def _enrich_food(self, snapshot: EntitySnapshot, food: Food) -> None:
+    def _enrich_food(self, snapshot: EntitySnapshot, food: Any) -> None:
         # Defensive property access for robust snapshotting
         energy = getattr(food, "energy", None)
         if energy is None and hasattr(food, "get_energy_value"):
@@ -289,7 +283,7 @@ class TankSnapshotBuilder:
         snapshot.energy = energy
         snapshot.food_type = getattr(food, "food_type", "regular")
 
-    def _enrich_crab(self, snapshot: EntitySnapshot, crab: Crab) -> None:
+    def _enrich_crab(self, snapshot: EntitySnapshot, crab: Any) -> None:
         snapshot.energy = crab.energy
         can_hunt = getattr(crab, "can_hunt", True)
         if callable(can_hunt):

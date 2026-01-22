@@ -1,4 +1,5 @@
-from core.agent_memory import AgentMemorySystem as FishMemorySystem, MemoryType
+from core.agent_memory import AgentMemorySystem as FishMemorySystem
+from core.agent_memory import MemoryType
 from core.math_utils import Vector2
 
 
