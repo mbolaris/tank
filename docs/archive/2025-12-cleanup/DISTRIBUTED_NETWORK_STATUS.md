@@ -22,8 +22,8 @@
 - **Transfer History**: Logging of all cross-server transfers
 
 ### Testing & Validation
-- **Automated Test Suite**: `test_cross_server_migration.sh` - comprehensive 2-server test
-- **Manual Testing Tools**: `test_discovery.sh`, `test_distributed_servers.py`
+- **Automated Test Suite**: `scripts/test_cross_server_migration.sh` - comprehensive 2-server test
+- **Manual Testing Tools**: `scripts/test_discovery.sh`, `test_distributed_servers.py`
 - **Documentation**: Complete testing guide in `TESTING_DISTRIBUTED_SERVERS.md`
 
 ## 🎯 Test Results (Latest Run)
@@ -218,9 +218,9 @@ MAX_RETRIES = 3
 - `backend/requirements.txt` - Added `httpx==0.26.0`
 
 ### Testing & Documentation
-- `test_cross_server_migration.sh` (308 lines) - Comprehensive automated test
+- `scripts/test_cross_server_migration.sh` (308 lines) - Comprehensive automated test
 - `TESTING_DISTRIBUTED_SERVERS.md` - Complete testing guide
-- `test_discovery.sh` - Server discovery test
+- `scripts/test_discovery.sh` - Server discovery test
 - `test_distributed_servers.py` - Manual server launcher
 
 ## 🎉 Success Metrics

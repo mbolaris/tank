@@ -1,3 +1,6 @@
+# Local settings (machine-specific)
+.claude/settings.local.json
+
 /CASTLE.DAT
 /convert_image.py
 /CRAB1.DAT

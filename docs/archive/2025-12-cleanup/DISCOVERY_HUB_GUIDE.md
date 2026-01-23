@@ -209,7 +209,7 @@ Wait 30-60 seconds for heartbeats to update the status. Servers are marked offli
 A test script is provided to verify the discovery hub pattern:
 
 ```bash
-./test_discovery_hub.sh
+./scripts/test_discovery_hub.sh
 ```
 
 This will:

@@ -474,10 +474,8 @@ tank/
 |   `-- time_system.py       # Day/night cycle management
 |-- scripts/                 # Automation scripts (AI code evolution, demos)
 |-- tests/                   # Test suite (determinism, integration)
-|-- docs/                    # Architecture + feature documentation
-|-- BEHAVIOR_DEVELOPMENT_GUIDE.md # Guide for creating behaviors
-|-- EVOLUTION_EXAMPLE.md     # Example evolution scenarios
-|-- QUICK_REFERENCE.md       # Quick command reference
+|-- docs/                    # Architecture + feature documentation (see docs/INDEX.md)
+|-- SETUP.md                 # Development environment setup
 `-- README.md                # This file
 ```
 
@@ -668,7 +666,7 @@ The simulation uses a clean architecture with separation of concerns:
   - `PerceptionComponent` - memory queries, food/danger tracking
   - `LocomotionComponent` - movement, turn costs, boundary handling
   - `FeedingComponent` - bite size, food consumption
-  - Enables composition of new agent types (Fish, PetriMicrobe, SoccerPlayer)
+  - Same agents work across different world rules and render profiles (fish-style side view, microbe-style top-down view)
 
 - **TankWorldBackendAdapter** (`core/worlds/tank/backend.py`): Tank simulation wrapper
   - Clean interface for configuration management
@@ -714,10 +712,12 @@ Built with:
 
 ## Documentation
 
+**See [docs/INDEX.md](docs/INDEX.md) for a complete documentation index.**
+
 **Canonical docs** (these are maintained and up-to-date):
 - **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the two-layer evolution paradigm
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Technical architecture and module layout
-- **[BEHAVIOR_DEVELOPMENT_GUIDE.md](BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
+- **[docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
 - **[SETUP.md](SETUP.md)**: Development environment setup
 - **[docs/adr/](docs/adr/)**: Architecture Decision Records
 
