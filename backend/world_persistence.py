@@ -223,8 +223,8 @@ def restore_world_from_snapshot(
     """
     try:
         from core.contracts import VersionMismatchError
-        from core.entities import Food, PlantNectar
-        from core.entities.plant import Plant
+        from core.entities import Food
+        from core.entities.plant import PlantNectar
         from core.transfer.entity_transfer import deserialize_entity
 
         # Validate snapshot version (strict: no legacy compatibility)
@@ -279,7 +279,7 @@ def restore_world_from_snapshot(
                 spot.release()
 
         # Track restored plants for nectar association
-        plants_by_id: Dict[int, Plant] = {}
+        plants_by_id: Dict[int, Any] = {}
         nectar_data_list = []
         restored_count = 0
 
@@ -302,7 +302,8 @@ def restore_world_from_snapshot(
                 if entity:
                     engine.add_entity(entity)
                     restored_count += 1
-                    if isinstance(entity, Plant):
+                    # Use snapshot_type for generic entity classification
+                    if getattr(entity, 'snapshot_type', None) == "plant":
                         plants_by_id[entity.plant_id] = entity
 
             elif entity_type == "food":

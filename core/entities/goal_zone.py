@@ -79,6 +79,11 @@ class GoalZone(Entity):
         # Visualization size (diameter = 2 * radius)
         self.set_size(radius * 2, radius * 2)
 
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization."""
+        return "goal_zone"
+
     def check_goal(self, ball: Ball, frame_count: int) -> GoalEvent | None:
         """Check if the ball has entered the goal zone.
 

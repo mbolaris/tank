@@ -48,9 +48,10 @@ class TankLikePhaseHooks(PhaseHooks):
         For Fish entities, checks ecosystem population limits before allowing spawn.
         Non-Fish entities are always accepted.
         """
-        from core.entities import Fish
+        # Use snapshot_type for generic entity classification
+        entity_type = getattr(spawned_entity, 'snapshot_type', None)
 
-        if isinstance(spawned_entity, Fish):
+        if entity_type == "fish":
             ecosystem = engine.ecosystem
             if ecosystem is None:
                 return SpawnDecision(should_add=False, entity=spawned_entity, reason="no_ecosystem")
@@ -83,22 +84,22 @@ class TankLikePhaseHooks(PhaseHooks):
 
         Returns True if entity should be added to removal list.
         """
-        from core.entities import Fish
-        from core.entities.plant import Plant, PlantNectar
+        # Use snapshot_type for generic entity classification
+        entity_type = getattr(entity, 'snapshot_type', None)
 
-        if isinstance(entity, Fish):
+        if entity_type == "fish":
             # Fish death is recorded but entity is not immediately removed
             # (death animation plays first, cleanup happens in lifecycle phase)
             if engine.lifecycle_system:
                 engine.lifecycle_system.record_fish_death(entity)
             return False  # Don't add to removal list yet
 
-        elif isinstance(entity, Plant):
+        elif entity_type == "plant":
             entity.die()
             logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
             return True  # Add to removal list
 
-        elif isinstance(entity, PlantNectar):
+        elif entity_type == "plant_nectar":
             return True  # Add to removal list
 
         # Unknown entity types: default to no removal
@@ -113,12 +114,11 @@ class TankLikePhaseHooks(PhaseHooks):
         - Checks Food entities for expiry/off-screen and queues removal
         - Cleans up fish that finished their death animation
         """
-        from core.entities import Food
-
         screen_height = engine.config.display.screen_height
 
         for entity in list(engine._entity_manager.entities_list):
-            if isinstance(entity, Food):
+            # Use snapshot_type for generic entity classification
+            if getattr(entity, 'snapshot_type', None) == "food":
                 engine.lifecycle_system.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation

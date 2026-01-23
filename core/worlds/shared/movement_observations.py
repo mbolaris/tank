@@ -123,9 +123,12 @@ def _nearest_vector(
                 return {"x": dx, "y": dy}
             return {"x": 0.0, "y": 0.0}
 
+        # Optimization: use specialized fish search if available
+        # This name check is intentional for the optimization path; the generic
+        # fallback at line 143+ handles all cases if this doesn't match.
         if (
             not use_resources
-            and agent_type.__name__ == "Fish"
+            and getattr(agent_type, '__name__', None) == "Fish"
             and hasattr(environment, "closest_fish")
         ):
             agent = environment.closest_fish(fish, radius)

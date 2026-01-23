@@ -65,15 +65,17 @@ class PokerMixin:
         Returns:
             List of leaderboard entry payloads, or None if not available
         """
-        from core.entities import Fish
-
         if not hasattr(runner.world, "ecosystem"):
             return None
 
         if not hasattr(runner.world.ecosystem, "get_poker_leaderboard"):
             return None
 
-        fish_list = [e for e in runner.world.entities_list if isinstance(e, Fish)]
+        # Intentional: poker leaderboard only applies to fish agents in TankWorld v1
+        fish_list = [
+            e for e in runner.world.entities_list
+            if getattr(e, 'snapshot_type', None) == "fish"
+        ]
         try:
             leaderboard_data = runner.world.ecosystem.get_poker_leaderboard(
                 fish_list=fish_list, limit=10, sort_by="net_energy"

@@ -3,7 +3,6 @@ import uuid
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
-from core.entities import Fish
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -19,8 +18,12 @@ class BenchmarkCommands:
         logger.info("Starting standard poker benchmark series...")
         try:
             # Get top fish from leaderboard
+            # Intentional: poker benchmark only applies to fish agents in TankWorld v1
             entities_list = self.world.get_entities_for_snapshot()
-            fish_list = [e for e in entities_list if isinstance(e, Fish)]
+            fish_list = [
+                e for e in entities_list
+                if getattr(e, 'snapshot_type', None) == "fish"
+            ]
 
             if len(fish_list) < 1:
                 logger.warning("No fish available for benchmark series")

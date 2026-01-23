@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldManager
+    from core.entities import Fish
 
 from backend.runner import CommandHandlerMixin
 from backend.runner.perf_tracker import PerfTracker
@@ -27,7 +28,6 @@ from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPaylo
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
-from core.entities import Fish
 from core.worlds.interfaces import FAST_STEP_ACTION
 
 logger = logging.getLogger(__name__)
@@ -445,7 +445,7 @@ class SimulationRunner(CommandHandlerMixin):
         }
 
     def _create_fish_player_data(
-        self, fish: Fish, include_aggression: bool = False
+        self, fish: "Fish", include_aggression: bool = False
     ) -> Dict[str, Any]:
         """Create fish player data dictionary.
 
@@ -708,9 +708,13 @@ class SimulationRunner(CommandHandlerMixin):
             def run_benchmark():
                 try:
                     with self.lock:
-                        fish_list = [e for e in self.world.entities_list if isinstance(e, Fish)]
+                        # Use snapshot_type for generic entity classification
+                        fish_list = [
+                            e for e in self.world.entities_list
+                            if getattr(e, 'snapshot_type', None) == "fish"
+                        ]
 
-                    def apply_reward(fish: "Fish", amount: float) -> None:
+                    def apply_reward(fish, amount: float) -> None:
                         with self.lock:
                             # Ensure fish is still valid/alive in the simulation
                             if fish in self.world.entities_list:
