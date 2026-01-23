@@ -275,7 +275,7 @@ export class TankTopDownRenderer implements Renderer {
             ctx.translate(entity.x, entity.y);
             this.drawBall(ctx, entity);
             ctx.restore();
-        } else if (entity.kind === 'goalzone') {
+        } else if (entity.kind === 'goal_zone') {
             ctx.save();
             ctx.translate(entity.x, entity.y);
             this.drawGoalZone(ctx, entity);

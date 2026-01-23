@@ -69,7 +69,7 @@ export function buildTankScene(snapshot: TankSceneSnapshot): TankScene {
 
             // Some entities (goalzone, ball) use center coords already;
             // others use top-left corner coords and need offset
-            const useCenterCoords = e.type === 'goalzone' || e.type === 'ball';
+            const useCenterCoords = e.type === 'goal_zone' || e.type === 'ball';
             const entityX = useCenterCoords ? e.x : e.x + e.width / 2;
             const entityY = useCenterCoords ? e.y : e.y + e.height / 2;
 

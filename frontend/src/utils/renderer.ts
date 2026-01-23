@@ -490,7 +490,7 @@ export class Renderer {
             case 'ball':
                 this.renderBall(entity);
                 break;
-            case 'goalzone':
+            case 'goal_zone':
                 this.renderGoalZone(entity);
                 break;
         }

@@ -119,67 +119,71 @@ class TankPack(TankLikePackBase):
             height = engine.environment.height
             mid_y = height / 2
 
-            # Fix legacy snapshots: ensure correct sizes and positions
+            # 1. Handle Ball
+            ball = None
             if hasattr(engine.environment, "ball") and engine.environment.ball is not None:
+                # Existing ball: update size for consistency
                 ball = engine.environment.ball
                 ball.set_size(20, 20)  # 10px radius
+            else:
+                # Create ball at center
+                ball = Ball(
+                    environment=engine.environment,
+                    x=width / 2,
+                    y=mid_y,
+                    decay_rate=0.94,
+                    max_speed=3.0,
+                    size=0.085,
+                    kickable_margin=0.7,
+                    kick_power_rate=0.027,
+                )
+                engine.request_spawn(ball)
+                engine.environment.ball = ball
 
-                if hasattr(engine.environment, "goal_manager") and engine.environment.goal_manager:
-                    for zone in engine.environment.goal_manager.zones:
-                        zone.set_size(80, 80)  # 40px radius
-                        zone.radius = 40.0
-                        if zone.goal_id == "goal_left":
-                            zone.pos.x, zone.pos.y = 50.0, mid_y
-                        elif zone.goal_id == "goal_right":
-                            zone.pos.x, zone.pos.y = width - 50.0, mid_y
-                return
+            # 2. Handle Goals
+            goal_manager = None
+            if hasattr(engine.environment, "goal_manager") and engine.environment.goal_manager:
+                # Existing goals: ensure correct sizes/positions
+                goal_manager = engine.environment.goal_manager
+                for zone in goal_manager.zones:
+                    zone.set_size(80, 80)  # 40px radius
+                    zone.radius = 40.0
+                    if zone.goal_id == "goal_left":
+                        zone.pos.x, zone.pos.y = 50.0, mid_y
+                    elif zone.goal_id == "goal_right":
+                        zone.pos.x, zone.pos.y = width - 50.0, mid_y
+            else:
+                # Create goal manager
+                goal_manager = GoalZoneManager()
 
-            # Create ball at center
-            ball = Ball(
-                environment=engine.environment,
-                x=width / 2,
-                y=mid_y,
-                decay_rate=0.94,
-                max_speed=3.0,
-                size=0.085,
-                kickable_margin=0.7,
-                kick_power_rate=0.027,
-            )
-            engine.request_spawn(ball)
+                # Create goals (one for each team)
+                goal_left = GoalZone(
+                    environment=engine.environment,
+                    x=50,
+                    y=mid_y,
+                    team="A",
+                    goal_id="goal_left",
+                    radius=40.0,
+                    base_energy_reward=100.0,
+                )
+                engine.request_spawn(goal_left)
+                goal_manager.register_zone(goal_left)
 
-            # Create goal manager
-            goal_manager = GoalZoneManager()
+                goal_right = GoalZone(
+                    environment=engine.environment,
+                    x=width - 50,
+                    y=mid_y,
+                    team="B",
+                    goal_id="goal_right",
+                    radius=40.0,
+                    base_energy_reward=100.0,
+                )
+                engine.request_spawn(goal_right)
+                goal_manager.register_zone(goal_right)
 
-            # Create goals (one for each team) - use larger radius for visibility
-            goal_left = GoalZone(
-                environment=engine.environment,
-                x=50,
-                y=mid_y,
-                team="A",
-                goal_id="goal_left",
-                radius=40.0,
-                base_energy_reward=100.0,
-            )
-            engine.request_spawn(goal_left)
-            goal_manager.register_zone(goal_left)
+                engine.environment.goal_manager = goal_manager
 
-            goal_right = GoalZone(
-                environment=engine.environment,
-                x=width - 50,
-                y=mid_y,
-                team="B",
-                goal_id="goal_right",
-                radius=40.0,
-                base_energy_reward=100.0,
-            )
-            engine.request_spawn(goal_right)
-            goal_manager.register_zone(goal_right)
-
-            # Store references on environment
-            engine.environment.ball = ball
-            engine.environment.goal_manager = goal_manager
-
-            # Setup soccer system to use them
+            # 3. Register with system
             if hasattr(engine, "soccer_system") and engine.soccer_system:
                 engine.soccer_system.set_ball(ball)
                 engine.soccer_system.set_goal_manager(goal_manager)

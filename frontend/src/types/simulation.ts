@@ -57,7 +57,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goalzone';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
     x: number;
     y: number;
     width: number;
