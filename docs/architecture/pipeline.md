@@ -144,7 +144,7 @@ def _step_entity_act(engine):
 
 ## Related Files
 
-- [`core/simulation/pipeline.py`](file:///Users/mike.bolaris/tank/core/simulation/pipeline.py) - Pipeline implementation
-- [`core/simulation/engine.py`](file:///Users/mike.bolaris/tank/core/simulation/engine.py) - Engine integration
-- [`core/modes/interfaces.py`](file:///Users/mike.bolaris/tank/core/modes/interfaces.py) - ModePack protocol
-- [`core/worlds/system_pack.py`](file:///Users/mike.bolaris/tank/core/worlds/system_pack.py) - SystemPack protocol
+- `core/simulation/pipeline.py` - Pipeline implementation
+- `core/simulation/engine.py` - Engine integration
+- `core/modes/interfaces.py` - ModePack protocol
+- `core/worlds/system_pack.py` - SystemPack protocol

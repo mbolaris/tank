@@ -111,3 +111,6 @@ solutions/*.json
 solutions/*report*.txt
 !solutions/README.md
 verify_*.json
+
+# Generated tournament/experiment results
+results/

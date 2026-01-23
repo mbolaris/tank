@@ -26,3 +26,7 @@ To generate a benchmark report:
 ```bash
 python scripts/submit_solution.py report --print
 ```
+
+## Files
+
+- **ai_tournament_results.json**: Sample AI poker tournament results from Dec 2025. Shows tournament structure with Elo ratings, skill tiers, and head-to-head matchup data between different AI models.

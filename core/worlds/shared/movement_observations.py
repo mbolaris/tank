@@ -170,23 +170,3 @@ def _nearest_vector(
         return {"x": 0.0, "y": 0.0}
 
     return {"x": nearest_dx, "y": nearest_dy}
-
-
-# =============================================================================
-# Factory function for common configurations
-# =============================================================================
-
-
-def create_tank_observation_builder() -> TankLikeMovementObservationBuilder:
-    """Create observation builder configured for Tank/Petri worlds.
-
-    This factory imports Tank-specific entity types and creates a properly
-    configured builder instance.
-    """
-    from core.entities import Crab, Food
-
-    return TankLikeMovementObservationBuilder(
-        food_type=Food,
-        threat_type=Crab,
-        threat_detection_range=200.0,
-    )
