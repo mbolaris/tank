@@ -101,10 +101,10 @@ class TankLikeEntityIdentityProvider:
 
         python_id = id(entity)
 
-        # Determine entity type via protocol
-        if hasattr(entity, "snapshot_type"):
-            entity_type = entity.snapshot_type
-        else:
+        # Determine entity type via protocol.
+        # Guard against non-string snapshot_type (e.g., mocks or misconfigured entities).
+        entity_type = getattr(entity, "snapshot_type", None)
+        if not isinstance(entity_type, str) or not entity_type:
             entity_type = entity.__class__.__name__.lower()
 
         # Try to get intrinsic ID via Identifiable protocol

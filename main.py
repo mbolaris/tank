@@ -119,6 +119,12 @@ Examples:
 
   # Long simulation with seed for reproducibility
   python main.py --headless --max-frames 100000 --seed 42 --export-stats evolution_run.json
+
+  # Record deterministic fingerprints (JSONL)
+  python main.py --headless --max-frames 500 --seed 42 --record out.replay.jsonl
+
+  # Replay a recording (verifies fingerprints match)
+  python main.py --headless --replay out.replay.jsonl
         """,
     )
 
@@ -160,7 +166,43 @@ Examples:
         help="Dump debug traces to JSON for offline analysis",
     )
 
+    parser.add_argument(
+        "--record",
+        type=str,
+        default=None,
+        metavar="REPLAYFILE",
+        help="Record a replay file with per-step fingerprints (JSONL)",
+    )
+
+    parser.add_argument(
+        "--switch",
+        action="append",
+        default=None,
+        metavar="FRAME:MODE",
+        help="During --record, schedule a mode switch at a frame (e.g., 200:petri). May repeat.",
+    )
+
+    parser.add_argument(
+        "--record-every",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Record a fingerprint every N steps when using --record (default: 1)",
+    )
+
+    parser.add_argument(
+        "--replay",
+        type=str,
+        default=None,
+        metavar="REPLAYFILE",
+        help="Replay a recorded file and verify fingerprints match",
+    )
+
     args = parser.parse_args()
+
+    if args.record and args.replay:
+        logger.error("Cannot use --record and --replay together")
+        sys.exit(2)
 
     if args.headless:
         logger.info("Starting headless simulation...")
@@ -172,6 +214,45 @@ Examples:
         if args.trace_json:
             logger.info("Trace output will be saved to: %s", args.trace_json)
         logger.info("")
+
+        if args.replay:
+            from backend.replay import replay_file
+
+            replay_file(args.replay)
+            logger.info("Replay verified: %s", args.replay)
+            return
+
+        if args.record:
+            from backend.replay import ReplayPlan, record_file
+
+            if args.seed is None:
+                logger.error("--record requires --seed for deterministic replay")
+                sys.exit(2)
+
+            switch_at = {}
+            for item in args.switch or []:
+                try:
+                    frame_s, mode_id = item.split(":", 1)
+                    frame_i = int(frame_s)
+                except Exception:
+                    logger.error("Invalid --switch value: %r (expected FRAME:MODE)", item)
+                    sys.exit(2)
+                if frame_i < 0:
+                    logger.error("Invalid --switch frame: %s (must be >= 0)", frame_i)
+                    sys.exit(2)
+                switch_at[frame_i] = mode_id
+
+            record_file(
+                args.record,
+                seed=args.seed,
+                initial_mode="tank",
+                steps=args.max_frames,
+                record_every=args.record_every,
+                plan=ReplayPlan(switch_at),
+            )
+            logger.info("Replay recorded: %s", args.record)
+            return
+
         run_headless(
             args.max_frames,
             args.stats_interval,
@@ -180,6 +261,9 @@ Examples:
             trace_output=args.trace_json,
         )
     else:
+        if args.record or args.replay:
+            logger.error("--record/--replay require --headless")
+            sys.exit(2)
         run_web_server()
 
 

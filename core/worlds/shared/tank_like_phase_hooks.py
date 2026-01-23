@@ -194,3 +194,4 @@ class TankLikePhaseHooks(PhaseHooks):
 
 
 # Backward-compatible alias
+TankPhaseHooks = TankLikePhaseHooks

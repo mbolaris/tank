@@ -354,6 +354,18 @@ python main.py --headless --max-frames 1000 --seed 42
 
 # Export comprehensive stats for LLM analysis
 python main.py --headless --max-frames 10000 --export-stats results.json
+
+# Record a deterministic replay (JSONL) with per-step snapshot fingerprints
+python main.py --headless --seed 42 --max-frames 500 --record run.replay.jsonl
+
+# Record less frequently (fingerprint every 10 frames)
+python main.py --headless --seed 42 --max-frames 2000 --record run.replay.jsonl --record-every 10
+
+# Record mode switches at specific frames (tank↔petri)
+python main.py --headless --seed 42 --max-frames 500 --record run.replay.jsonl --switch 200:petri --switch 400:tank
+
+# Replay and verify fingerprints match (fails fast on first mismatch)
+python main.py --headless --replay run.replay.jsonl
 ```
 
 **Benefits of headless mode:**
@@ -362,6 +374,8 @@ python main.py --headless --max-frames 10000 --export-stats results.json
 - No display required
 - Identical simulation behavior to web UI
 - **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
+
+See `docs/REPLAY.md` for the replay format and workflow.
 
 ## Code Quality & Testing
 

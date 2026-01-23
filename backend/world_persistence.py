@@ -378,6 +378,9 @@ def restore_world_from_snapshot(
         # These are never persisted and must be re-created on restore
         _bootstrap_transient_elements(engine)
 
+        # Ensure required static elements exist (older snapshots/tests may omit them).
+        _bootstrap_static_elements(engine)
+
         if not _validate_restored_world(engine):
             logger.error("Restored world failed validation")
             return False
@@ -408,6 +411,27 @@ def _validate_restored_world(engine: Any) -> bool:
         return False
 
     return True
+
+
+def _bootstrap_static_elements(engine: Any) -> None:
+    """Ensure required static entities exist after restore.
+
+    Some snapshots (tests, old versions, partial exports) omit static entities
+    that are expected to always exist in Tank mode. We recreate them here.
+    """
+    env = getattr(engine, "environment", None)
+    world_type = getattr(env, "world_type", None)
+    if world_type not in (None, "tank"):
+        return
+
+    from core.entities.base import Castle
+
+    if any(isinstance(e, Castle) for e in engine.entities_list):
+        return
+
+    # Default tank castle position (matches TankWorldHooks restore behavior)
+    castle = Castle(environment=env, x=375, y=475)
+    engine.add_entity(castle)
 
 
 def list_world_snapshots(world_id: str) -> List[Dict[str, Any]]:
