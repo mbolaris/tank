@@ -73,8 +73,7 @@ class PokerMixin:
 
         # Intentional: poker leaderboard only applies to fish agents in TankWorld v1
         fish_list = [
-            e for e in runner.world.entities_list
-            if getattr(e, 'snapshot_type', None) == "fish"
+            e for e in runner.world.entities_list if getattr(e, "snapshot_type", None) == "fish"
         ]
         try:
             leaderboard_data = runner.world.ecosystem.get_poker_leaderboard(

@@ -160,10 +160,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
 
             entities_list = getattr(world, "entities_list", [])
             # Use snapshot_type for generic entity classification
-            fish_list = [
-                e for e in entities_list
-                if getattr(e, 'snapshot_type', None) == "fish"
-            ]
+            fish_list = [e for e in entities_list if getattr(e, "snapshot_type", None) == "fish"]
 
             if not fish_list:
                 raise HTTPException(status_code=400, detail="No fish in world")

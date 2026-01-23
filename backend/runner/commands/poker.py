@@ -21,10 +21,7 @@ class PokerCommands:
             # Get top 3 fish from leaderboard
             # Intentional: poker only applies to fish agents in TankWorld v1
             entities_list = self.world.get_entities_for_snapshot()
-            fish_list = [
-                e for e in entities_list
-                if getattr(e, 'snapshot_type', None) == "fish"
-            ]
+            fish_list = [e for e in entities_list if getattr(e, "snapshot_type", None) == "fish"]
 
             if len(fish_list) < 3:
                 logger.warning(

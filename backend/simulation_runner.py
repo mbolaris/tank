@@ -710,8 +710,9 @@ class SimulationRunner(CommandHandlerMixin):
                     with self.lock:
                         # Use snapshot_type for generic entity classification
                         fish_list = [
-                            e for e in self.world.entities_list
-                            if getattr(e, 'snapshot_type', None) == "fish"
+                            e
+                            for e in self.world.entities_list
+                            if getattr(e, "snapshot_type", None) == "fish"
                         ]
 
                     def apply_reward(fish, amount: float) -> None:
