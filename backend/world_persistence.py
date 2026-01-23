@@ -303,7 +303,7 @@ def restore_world_from_snapshot(
                     engine.add_entity(entity)
                     restored_count += 1
                     # Use snapshot_type for generic entity classification
-                    if getattr(entity, 'snapshot_type', None) == "plant":
+                    if getattr(entity, "snapshot_type", None) == "plant":
                         plants_by_id[entity.plant_id] = entity
 
             elif entity_type == "food":

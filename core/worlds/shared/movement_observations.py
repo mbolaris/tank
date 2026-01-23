@@ -128,7 +128,7 @@ def _nearest_vector(
         # fallback at line 143+ handles all cases if this doesn't match.
         if (
             not use_resources
-            and getattr(agent_type, '__name__', None) == "Fish"
+            and getattr(agent_type, "__name__", None) == "Fish"
             and hasattr(environment, "closest_fish")
         ):
             agent = environment.closest_fish(fish, radius)

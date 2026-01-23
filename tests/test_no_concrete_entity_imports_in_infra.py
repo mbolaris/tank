@@ -59,18 +59,18 @@ def is_inside_type_checking_block(content: str, match_pos: int) -> bool:
     This is a heuristic check that looks for 'if TYPE_CHECKING:' before the match
     and checks if the indentation suggests we're inside that block.
     """
-    lines_before = content[:match_pos].split('\n')
+    lines_before = content[:match_pos].split("\n")
 
     # Look backwards for TYPE_CHECKING block
     in_type_checking = False
     for line in reversed(lines_before):
         stripped = line.strip()
-        if stripped.startswith('if TYPE_CHECKING:'):
+        if stripped.startswith("if TYPE_CHECKING:"):
             in_type_checking = True
             break
         # If we hit a non-indented line (class, def, etc.), we're outside any block
-        if stripped and not line.startswith(' ') and not line.startswith('\t'):
-            if not stripped.startswith('#'):
+        if stripped and not line.startswith(" ") and not line.startswith("\t"):
+            if not stripped.startswith("#"):
                 break
 
     return in_type_checking
@@ -85,13 +85,13 @@ def test_no_disallowed_imports(file_path: str) -> None:
         pytest.skip(f"File not found: {file_path}")
 
     content = full_path.read_text()
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     violations = []
 
     for line_num, line in enumerate(lines, 1):
         # Skip TYPE_CHECKING blocks
-        if 'TYPE_CHECKING' in line:
+        if "TYPE_CHECKING" in line:
             continue
 
         for pattern in DISALLOWED_PATTERNS:
@@ -118,7 +118,7 @@ def test_no_isinstance_with_concrete_types(file_path: str) -> None:
         pytest.skip(f"File not found: {file_path}")
 
     content = full_path.read_text()
-    lines = content.split('\n')
+    lines = content.split("\n")
 
     violations = []
 
@@ -156,11 +156,13 @@ def test_snapshot_type_exists_on_all_entity_classes() -> None:
 
     for entity_class, expected_type in expected_types.items():
         # Check that snapshot_type is a property
-        assert hasattr(entity_class, 'snapshot_type'), \
-            f"{entity_class.__name__} missing snapshot_type property"
+        assert hasattr(
+            entity_class, "snapshot_type"
+        ), f"{entity_class.__name__} missing snapshot_type property"
 
         # For classes with @property, we can't easily check the return value
         # without instantiating. The property descriptor check is sufficient.
-        prop = getattr(entity_class, 'snapshot_type', None)
-        assert isinstance(prop, property), \
-            f"{entity_class.__name__}.snapshot_type should be a @property"
+        prop = getattr(entity_class, "snapshot_type", None)
+        assert isinstance(
+            prop, property
+        ), f"{entity_class.__name__}.snapshot_type should be a @property"

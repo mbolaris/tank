@@ -49,7 +49,7 @@ class TankLikePhaseHooks(PhaseHooks):
         Non-Fish entities are always accepted.
         """
         # Use snapshot_type for generic entity classification
-        entity_type = getattr(spawned_entity, 'snapshot_type', None)
+        entity_type = getattr(spawned_entity, "snapshot_type", None)
 
         if entity_type == "fish":
             ecosystem = engine.ecosystem
@@ -85,7 +85,7 @@ class TankLikePhaseHooks(PhaseHooks):
         Returns True if entity should be added to removal list.
         """
         # Use snapshot_type for generic entity classification
-        entity_type = getattr(entity, 'snapshot_type', None)
+        entity_type = getattr(entity, "snapshot_type", None)
 
         if entity_type == "fish":
             # Fish death is recorded but entity is not immediately removed
@@ -118,7 +118,7 @@ class TankLikePhaseHooks(PhaseHooks):
 
         for entity in list(engine._entity_manager.entities_list):
             # Use snapshot_type for generic entity classification
-            if getattr(entity, 'snapshot_type', None) == "food":
+            if getattr(entity, "snapshot_type", None) == "food":
                 engine.lifecycle_system.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation

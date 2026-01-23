@@ -142,10 +142,7 @@ class SoccerCommands:
             # Get fish-type entities for soccer match
             # Intentional: soccer currently designed for fish agents in TankWorld v1
             entities_list = self.world.get_entities_for_snapshot()
-            fish_list = [
-                e for e in entities_list
-                if getattr(e, 'snapshot_type', None) == "fish"
-            ]
+            fish_list = [e for e in entities_list if getattr(e, "snapshot_type", None) == "fish"]
 
             if len(fish_list) < 2:
                 return self._create_error_response("Not enough fish for soccer!")
@@ -408,7 +405,7 @@ class SoccerCommands:
         # Gather entities to remove using snapshot_type for generic classification
         to_remove = []
         for entity in engine.entities_list:
-            entity_type = getattr(entity, 'snapshot_type', None)
+            entity_type = getattr(entity, "snapshot_type", None)
             if entity_type in ("ball", "goal_zone"):
                 to_remove.append(entity)
 
