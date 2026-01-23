@@ -204,11 +204,12 @@ class TestFeedingComponent:
         assert effective == 20.0
 
 
-class TestAgentCompositionInPetriView:
-    """Tests for GenericAgent component composition.
+class TestAgentCompositionInPetriMode:
+    """Tests for GenericAgent component composition in Petri mode.
 
-    Historically this used PetriMicrobeAgent (a reference stub). We now keep the
-    test to ensure components work correctly in a "Petri dish" style composition.
+    Generic agents work across different world rules and render profiles.
+    This test ensures components work correctly in a top-down "Petri dish"
+    style view mode (as opposed to the fish-style side view).
     """
 
     def test_agent_initializes_with_components(self):

@@ -65,7 +65,7 @@ Run the automated test script:
 
 ```bash
 cd /home/user/tank
-./test_discovery.sh
+./scripts/test_discovery.sh
 ```
 
 This will:
