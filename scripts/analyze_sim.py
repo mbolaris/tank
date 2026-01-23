@@ -10,6 +10,7 @@ import json
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Counter as CounterType
 from urllib.request import urlopen
 
 BASE = "http://localhost:8000"
@@ -35,7 +36,7 @@ def top_leaderboard(history, top_n=5):
 
 def poker_clade_stats(lineage):
     # Count entries per algorithm and find algorithms with 'Poker' or 'poker' in name
-    alg_counter = Counter()
+    alg_counter: CounterType[str] = Counter()
     poker_members = []
     for rec in lineage:
         alg = rec.get("algorithm", "unknown")

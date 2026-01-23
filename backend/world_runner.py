@@ -84,7 +84,8 @@ class WorldRunner:
     def frame_count(self) -> int:
         """Current frame count from the last StepResult."""
         if self._last_step_result is not None:
-            return self._last_step_result.info.get("frame", 0)
+            frame = self._last_step_result.info.get("frame")
+            return int(frame) if isinstance(frame, (int, float)) else 0
         return 0
 
     @property

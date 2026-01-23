@@ -1,5 +1,5 @@
 import math
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
 from core.config.food import FOOD_SINK_ACCELERATION
 from core.math_utils import Vector2
@@ -25,6 +25,28 @@ class BehaviorActionsMixin:
     - _patrol_angle: float
     - BehaviorHelpersMixin methods (_find_nearest, _safe_normalize, etc.)
     """
+
+    # Required attributes (provided by ComposableBehavior dataclass)
+    parameters: Dict[str, float]
+    threat_response: ThreatResponse
+    food_approach: FoodApproach
+    social_mode: SocialMode
+    poker_engagement: PokerEngagement
+    _circle_angle: float
+    _zigzag_phase: float
+    _patrol_angle: float
+
+    # Required helpers (provided by BehaviorHelpersMixin)
+    def _find_nearest(
+        self, fish: "Fish", agent_type: Type[Any], max_distance: Optional[float] = None
+    ) -> Optional[Any]:
+        raise NotImplementedError
+
+    def _safe_normalize(self, vector: Vector2) -> Vector2:
+        raise NotImplementedError
+
+    def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
+        raise NotImplementedError
 
     def _execute_threat_response(self, fish: "Fish") -> Tuple[float, float, bool]:
         """Execute the selected threat response sub-behavior.
@@ -384,7 +406,8 @@ class BehaviorActionsMixin:
         else:
             nearby = env.nearby_agents_by_type(fish, int(radius), FishClass)
 
-        return sorted([f for f in nearby if f.fish_id != fish_id], key=lambda f: f.fish_id)
+        nearby_fish = [f for f in nearby if isinstance(f, FishClass) and f.fish_id != fish_id]
+        return sorted(nearby_fish, key=lambda f: f.fish_id)
 
     def _boids_behavior(
         self,

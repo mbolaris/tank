@@ -6,6 +6,7 @@ organized poker package structure.
 """
 
 from pathlib import Path
+from typing import List
 
 # Mapping of old imports to new imports
 IMPORT_MAPPINGS = {
@@ -62,7 +63,7 @@ def update_file_imports(file_path: Path) -> bool:
 def main():
     """Main function to update all poker imports."""
     repo_root = Path(__file__).parent
-    python_files = []
+    python_files: List[Path] = []
 
     # Find all Python files (excluding the new poker package)
     for pattern in ["core/**/*.py", "tests/**/*.py", "*.py"]:

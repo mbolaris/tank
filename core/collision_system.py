@@ -38,7 +38,7 @@ within handlers (see core/protocols.py for examples).
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple, cast
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -49,6 +49,7 @@ from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities import Agent, Crab, Fish
+    from core.entities.resources import Food
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -111,8 +112,8 @@ class CircleCollisionDetector(CollisionDetector):
             True if distance between centers is less than threshold
         """
         # Calculate centers
-        x1, y1, w1, h1 = agent1.get_rect()
-        x2, y2, w2, h2 = agent2.get_rect()
+        x1, y1, w1, h1 = cast(Tuple[float, float, float, float], agent1.get_rect())
+        x2, y2, w2, h2 = cast(Tuple[float, float, float, float], agent2.get_rect())
 
         center1_x = x1 + w1 / 2
         center1_y = y1 + h1 / 2
@@ -125,10 +126,9 @@ class CircleCollisionDetector(CollisionDetector):
         distance = (dx**2 + dy**2) ** 0.5
 
         # Default threshold is average of widths
-        if threshold is None:
-            threshold = (w1 + w2) / 2
+        threshold_value = (w1 + w2) / 2 if threshold is None else float(threshold)
 
-        return distance < threshold
+        return distance < threshold_value
 
 
 # Default collision detector
@@ -281,7 +281,7 @@ class CollisionSystem(BaseSystem):
             if e_type is Fish_type:
                 type_rank = 0
                 # Fish have stable IDs
-                secondary = entity.fish_id
+                secondary = cast(Any, entity).fish_id
             elif e_type is Food_type:
                 type_rank = 1
                 # Food doesn't have ID, use X pos
@@ -321,7 +321,7 @@ class CollisionSystem(BaseSystem):
                     )
                     nearby_entities.extend(
                         environment.nearby_agents_by_type(
-                            fish, radius=COLLISION_QUERY_RADIUS, agent_class=Crab
+                            fish, radius=COLLISION_QUERY_RADIUS, agent_type=Crab
                         )
                     )
                 else:
@@ -344,10 +344,7 @@ class CollisionSystem(BaseSystem):
                 if other not in all_entities_set:
                     continue
 
-                # Performance: Use type() for exact match first
-                other_type = type(other)
-
-                if other_type is Crab or isinstance(other, Crab):
+                if isinstance(other, Crab):
                     # For crabs: use actual collision check
                     if check_collision(fish, other):
                         if self._handle_fish_crab_collision(fish, other):
@@ -355,7 +352,7 @@ class CollisionSystem(BaseSystem):
                             all_entities_set.discard(fish)
                             break  # Fish died, stop checking collisions for it
 
-                elif other_type is Food or isinstance(other, Food):
+                elif isinstance(other, Food):
                     if self._engine.is_pending_removal(other):
                         continue
                     # For food: use actual collision check
@@ -433,11 +430,12 @@ class CollisionSystem(BaseSystem):
 
             # Find nearby food only
             if environment:
-                nearby_food = environment.nearby_agents_by_type(
-                    crab, radius=COLLISION_QUERY_RADIUS, agent_class=Food
+                nearby_food_agents = environment.nearby_agents_by_type(
+                    crab, radius=COLLISION_QUERY_RADIUS, agent_type=Food
                 )
+                nearby_food = [f for f in nearby_food_agents if isinstance(f, Food)]
             else:
-                nearby_food = [e for e in all_entities if isinstance(e, Food) and e is not crab]
+                nearby_food = [e for e in all_entities if isinstance(e, Food)]
 
             if not nearby_food:
                 continue
@@ -456,7 +454,7 @@ class CollisionSystem(BaseSystem):
                     self._engine.request_remove(food, reason="crab_food_collision")
                     self._frame_entities_removed += 1
 
-    def handle_fish_food_collision(self, fish: "Agent", food: "Agent") -> None:
+    def handle_fish_food_collision(self, fish: "Fish", food: "Food") -> None:
         """Handle collision between a fish and food, including plant nectar.
 
         Args:

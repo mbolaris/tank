@@ -99,8 +99,12 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_current_metrics(self) -> Dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> Dict[str, Any]:
         """Get current world metrics/statistics without stepping.
+
+        Args:
+            include_distributions: Whether to include distribution/histogram metrics
+                (backends may ignore this).
 
         Returns:
             Current aggregate metrics

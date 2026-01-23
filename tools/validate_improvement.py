@@ -8,26 +8,29 @@ import argparse
 import json
 import sys
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 def is_improvement(
-    new_result: Dict[str, Any], champion_data: Dict[str, Any], tolerance: float = 1e-9
+    new_result: Dict[str, Any], champion_data: Optional[Dict[str, Any]], tolerance: float = 1e-9
 ) -> bool:
     """Check if new result is strictly better than champion."""
     if not champion_data:
         # If no champion exists, any valid result is an "improvement" (or rather, the new champion)
         return True
 
-    new_score = new_result["score"]
-    old_score = champion_data["champion"]["score"]
+    try:
+        new_score = float(new_result["score"])
+        old_score = float(champion_data["champion"]["score"])
+    except (KeyError, TypeError, ValueError):
+        return False
 
     # Check for strictly better score
     return new_score - old_score > tolerance
 
 
 def update_champion_data(
-    champion_data: Dict[str, Any], new_result: Dict[str, Any]
+    champion_data: Optional[Dict[str, Any]], new_result: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Create updated champion data structure."""
     version = 1
@@ -74,7 +77,7 @@ def main():
             result = json.load(f)
 
         # Check if champion exists
-        champion = None
+        champion: Optional[Dict[str, Any]] = None
         try:
             with open(args.champion_path) as f:
                 champion = json.load(f)
@@ -83,11 +86,11 @@ def main():
                 f"No existing champion found at {args.champion_path}. Treating result as new champion."
             )
 
-        new_score = result["score"]
+        new_score = float(result["score"])
 
         if champion:
             old_score = champion["champion"]["score"]
-            diff = new_score - old_score
+            diff = new_score - float(old_score)
 
             print(f"New Score: {new_score:.6f}")
             print(f"Old Score: {old_score:.6f}")

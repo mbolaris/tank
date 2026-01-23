@@ -24,6 +24,7 @@ from core.poker.strategy.composable.definitions import (
     ShowdownTendency,
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
+from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 
 
@@ -70,7 +71,7 @@ def _blend_regret_tables(
 
 
 @dataclass
-class ComposablePokerStrategy:
+class ComposablePokerStrategy(PokerStrategyAlgorithm):
     """A poker strategy composed of multiple sub-behavior selections plus parameters.
 
     This replaces monolithic strategies (TAG, LAG, etc.) with a composable structure
@@ -135,7 +136,7 @@ class ComposablePokerStrategy:
 
     # Alias for consistency with other strategy classes
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None) -> "ComposablePokerStrategy":
+    def random_instance(cls, rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
         """Create a random instance (alias for create_random)."""
         return cls.create_random(rng)
 
@@ -151,8 +152,9 @@ class ComposablePokerStrategy:
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        opponent_id: Optional[str] = None,
         rng: Optional[random.Random] = None,
+        *,
+        opponent_id: Optional[str] = None,
     ) -> Tuple[BettingAction, float]:
         """Make betting decision based on composed sub-behaviors.
 
@@ -435,9 +437,10 @@ class ComposablePokerStrategy:
         self,
         mutation_rate: float = 0.12,
         mutation_strength: float = 0.15,
+        rng: Optional[random.Random] = None,
     ) -> None:
         """Mutate parameters for evolution (compatibility with existing interface)."""
-        self.mutate(mutation_rate, mutation_strength)
+        self.mutate(mutation_rate, mutation_strength, rng=rng)
 
     def mutate(
         self,

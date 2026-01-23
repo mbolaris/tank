@@ -98,6 +98,7 @@ class StatePublisher:
         entity_snapshots = runner._collect_entities()
         self.perf_tracker.stop("snapshot")
 
+        state: Union[FullStatePayload, DeltaStatePayload]
         if is_full_update:
             state = self._build_full_state(
                 runner, current_frame, elapsed_time, stats, entity_snapshots
@@ -250,6 +251,7 @@ class StatePublisher:
             soccer_cfg = getattr(config, "soccer", None)
             if soccer_cfg is None:
                 return None
-            return getattr(soccer_cfg, "tank_practice_enabled", None)
+            value = getattr(soccer_cfg, "tank_practice_enabled", None)
+            return value if isinstance(value, bool) else None
         except Exception:
             return None

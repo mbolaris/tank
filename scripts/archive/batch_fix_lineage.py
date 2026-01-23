@@ -13,26 +13,35 @@ import importlib.util
 import json
 import logging
 from pathlib import Path
+from typing import Any, Dict, Iterator, List, Protocol, Tuple, cast
 
 
-def load_scan_function() -> callable:
+class ScanAndFixFn(Protocol):
+    def __call__(self, lineage_log: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]: ...
+
+
+def load_scan_function() -> ScanAndFixFn:
     """Dynamically load `scan_and_fix_lineage` from scripts/fix_lineage.py."""
     fix_path = Path(__file__).parent / "fix_lineage.py"
     spec = importlib.util.spec_from_file_location("fix_lineage", str(fix_path))
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load module spec for: {fix_path}")
+
     module = importlib.util.module_from_spec(spec)
-    loader = spec.loader
-    assert loader is not None
-    loader.exec_module(module)
-    return module.scan_and_fix_lineage
+    spec.loader.exec_module(module)
+    func = getattr(module, "scan_and_fix_lineage", None)
+    if not callable(func):
+        raise RuntimeError("scan_and_fix_lineage not found or not callable")
+    return cast(ScanAndFixFn, func)
 
 
-scan_and_fix_lineage = load_scan_function()
+scan_and_fix_lineage: ScanAndFixFn = load_scan_function()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def find_snapshots(base: Path):
+def find_snapshots(base: Path) -> Iterator[Path]:
     for tank_dir in base.iterdir():
         if not tank_dir.is_dir():
             continue
@@ -42,17 +51,17 @@ def find_snapshots(base: Path):
         yield from snap_dir.glob("snapshot_*.json")
 
 
-def load(path: Path):
+def load(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save(path: Path, data):
+def save(path: Path, data: Any) -> None:
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 
-def process_snapshot(path: Path):
+def process_snapshot(path: Path) -> int:
     logger.info("Scanning %s", path)
     data = load(path)
 

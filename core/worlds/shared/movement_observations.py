@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 
+Observation = dict[str, Any]
+
+
 class TankLikeMovementObservationBuilder:
     """Observation builder for tank-like world movement policies.
 

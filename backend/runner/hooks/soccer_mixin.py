@@ -69,7 +69,8 @@ class SoccerMixin:
         # Try direct method on world (e.g. TankWorldBackendAdapter)
         get_live = getattr(runner.world, "get_soccer_league_live_state", None)
         if callable(get_live):
-            return get_live()
+            live = get_live()
+            return live if isinstance(live, dict) else None
 
         # Try via engine
         engine = getattr(runner.world, "engine", None)
@@ -80,4 +81,5 @@ class SoccerMixin:
         if engine is None or not hasattr(engine, "get_soccer_league_live_state"):
             return None
 
-        return engine.get_soccer_league_live_state()
+        live = engine.get_soccer_league_live_state()
+        return live if isinstance(live, dict) else None

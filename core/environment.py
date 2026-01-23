@@ -243,7 +243,7 @@ class Environment:
         """
         return self.bounds.resolve_collision(agent)
 
-    def nearby_agents(self, agent: Agent, radius: int) -> List[Agent]:
+    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
         """
         Return a list of agents within a certain radius of the given agent.
 
@@ -251,22 +251,22 @@ class Environment:
         """
         return self.spatial_grid.query_radius(agent, float(radius))
 
-    def get_agents_of_type(self, agent_class: Type[Agent]) -> List[Agent]:
+    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
         """
         Get all agents of the given class.
 
         Uses caching to avoid re-filtering on repeated calls within the same frame.
         """
         # Check cache first
-        if agent_class in self._type_cache:
-            return self._type_cache[agent_class]
+        if agent_type in self._type_cache:
+            return self._type_cache[agent_type]
 
         # Compute and cache result
         if self.agents is None:
             return []
 
-        result = [agent for agent in self.agents if isinstance(agent, agent_class)]
-        self._type_cache[agent_class] = result
+        result = [agent for agent in self.agents if isinstance(agent, agent_type)]
+        self._type_cache[agent_type] = result
         return result
 
     def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
@@ -278,32 +278,42 @@ class Environment:
         return self.spatial_grid.closest_food(agent, radius)
 
     def nearby_agents_by_type(
-        self, agent: Agent, radius: int, agent_class: Type[Agent]
+        self,
+        agent: Agent,
+        radius: float,
+        agent_type: Optional[Type[Agent]] = None,
+        *,
+        agent_class: Optional[Type[Agent]] = None,
     ) -> List[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
         """
-        return self.spatial_grid.query_type(agent, float(radius), agent_class)
+        resolved_type = agent_type if agent_type is not None else agent_class
+        if resolved_type is None:
+            raise TypeError(
+                "nearby_agents_by_type requires 'agent_type' (positional) or 'agent_class' (keyword)"
+            )
+        return self.spatial_grid.query_type(agent, float(radius), resolved_type)
 
-    def nearby_evolving_agents(self, agent: Agent, radius: int) -> List[Agent]:
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
         """Get nearby evolving agents (entities that can reproduce)."""
         # Currently just fish
         return self.spatial_grid.query_fish(agent, float(radius))
 
-    def nearby_resources(self, agent: Agent, radius: int) -> List[Agent]:
+    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
         """Get nearby consumable resources."""
         # Currently just food
         return self.spatial_grid.query_food(agent, float(radius))
 
     def nearby_interaction_candidates(
-        self, agent: Agent, radius: int, crab_type: Type[Agent]
+        self, agent: Agent, radius: float, crab_type: Type[Agent]
     ) -> List[Agent]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
         return self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
 
-    def nearby_poker_entities(self, agent: Agent, radius: int) -> List[Agent]:
+    def nearby_poker_entities(self, agent: Agent, radius: float) -> List[Agent]:
         """
         Optimized method to get nearby fish and Plant entities for poker.
         """

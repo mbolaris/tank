@@ -46,9 +46,6 @@ def create_initial_population(
 
     rng = require_rng_param(rng, "__init__")
 
-    # Reset fish ID counter for deterministic runs
-    entities.Fish._id_counter = 0
-
     # These fish use the algorithmic evolution system with diverse genomes
     for _i in range(
         ecosystem_config.num_schooling_fish

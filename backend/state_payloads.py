@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 try:  # Prefer faster serializer when available
     import orjson
@@ -659,7 +659,7 @@ class FullStatePayload:
     def to_json(self) -> str:
         data = self.to_dict()
         if orjson:
-            return cast(str, orjson.dumps(data).decode("utf-8"))
+            return orjson.dumps(data).decode("utf-8")
         return json.dumps(data, separators=(",", ":"))
 
 
@@ -722,5 +722,5 @@ class DeltaStatePayload:
     def to_json(self) -> str:
         data = self.to_dict()
         if orjson:
-            return cast(str, orjson.dumps(data).decode("utf-8"))
+            return orjson.dumps(data).decode("utf-8")
         return json.dumps(data, separators=(",", ":"))

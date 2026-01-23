@@ -13,13 +13,13 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def scan_and_fix_lineage(lineage_log: List[Dict[str, Any]]) -> (List[Dict[str, Any]], int):
+def scan_and_fix_lineage(lineage_log: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]:
     valid_ids = {rec.get("id") for rec in lineage_log}
     valid_ids.add("root")
     fixed = []
@@ -39,14 +39,22 @@ def scan_and_fix_lineage(lineage_log: List[Dict[str, Any]]) -> (List[Dict[str, A
     return fixed, orphan_count
 
 
-def load_snapshot(path: Path) -> Dict[str, Any]:
+def load_snapshot(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_snapshot(path: Path, data: Dict[str, Any]):
+def save_snapshot(path: Path, data: Any) -> None:
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+
+def _as_lineage_log(value: Any) -> Optional[List[Dict[str, Any]]]:
+    if not isinstance(value, list):
+        return None
+    if not all(isinstance(rec, dict) for rec in value):
+        return None
+    return cast(List[Dict[str, Any]], value)
 
 
 def main():
@@ -66,10 +74,10 @@ def main():
     # 1) Top-level list (the /api/lineage endpoint returns a list)
     # 2) dict with key 'lineage_log'
     # 3) dict with 'ecosystem': {'lineage_log': [...]}
-    lineage_log = None
+    lineage_log: Optional[List[Dict[str, Any]]] = None
     data_is_list = False
     if isinstance(data, list):
-        lineage_log = data
+        lineage_log = _as_lineage_log(data)
         data_is_list = True
     elif isinstance(data, dict):
         if (
@@ -77,9 +85,9 @@ def main():
             and isinstance(data["ecosystem"], dict)
             and "lineage_log" in data["ecosystem"]
         ):
-            lineage_log = data["ecosystem"]["lineage_log"]
+            lineage_log = _as_lineage_log(data["ecosystem"]["lineage_log"])
         elif "lineage_log" in data:
-            lineage_log = data["lineage_log"]
+            lineage_log = _as_lineage_log(data["lineage_log"])
 
     if lineage_log is None:
         logger.error("Could not find lineage_log in snapshot file")
@@ -90,9 +98,13 @@ def main():
 
     if args.fix:
         # Write fixed data back into snapshot structure. Respect original shape
+        out: Any
         if data_is_list:
             out = fixed
         else:
+            if not isinstance(data, dict):
+                logger.error("Unexpected snapshot structure (expected dict)")
+                raise SystemExit(3)
             out = dict(data)
             if (
                 "ecosystem" in out

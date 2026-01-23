@@ -86,8 +86,8 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             }
         return snapshot
 
-    def get_current_metrics(self) -> dict[str, Any]:
-        return self._tank_backend.get_current_metrics()
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
+        return self._tank_backend.get_current_metrics(include_distributions=include_distributions)
 
     def get_debug_snapshot(self) -> dict[str, Any]:
         snapshot = self._tank_backend.get_debug_snapshot()
