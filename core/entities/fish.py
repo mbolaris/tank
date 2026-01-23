@@ -36,8 +36,7 @@ if TYPE_CHECKING:
 
 # Runtime imports (moved from local scopes)
 
-from core.agent_memory import AgentMemorySystem as FishMemorySystem
-from core.agent_memory import MemoryType
+from core.agent_memory import AgentMemorySystem, MemoryType
 from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
@@ -211,7 +210,7 @@ class Fish(GenericAgent):
 
         # NEW: Enhanced memory system
 
-        self.memory_system = FishMemorySystem(
+        self.memory_system = AgentMemorySystem(
             max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
             decay_rate=FISH_MEMORY_DECAY_RATE,
             learning_rate=FISH_MEMORY_LEARNING_RATE,

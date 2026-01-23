@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from core.agent_memory import AgentMemorySystem as FishMemorySystem
+from core.agent_memory import AgentMemorySystem
 from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
 from core.math_utils import Vector2
 
@@ -18,20 +18,20 @@ class TestPerceptionComponent:
 
     def test_init_with_memory_system(self):
         """Component should initialize with a memory system."""
-        memory = FishMemorySystem()
+        memory = AgentMemorySystem()
         perception = PerceptionComponent(memory)
         assert perception.memory_system is memory
 
     def test_get_food_locations_empty(self):
         """Should return empty list when no memories exist."""
-        memory = FishMemorySystem()
+        memory = AgentMemorySystem()
         perception = PerceptionComponent(memory)
         locations = perception.get_food_locations()
         assert locations == []
 
     def test_record_and_get_food_locations(self):
         """Should record food discoveries and retrieve them."""
-        memory = FishMemorySystem()
+        memory = AgentMemorySystem()
         perception = PerceptionComponent(memory)
 
         food_pos = Vector2(100.0, 200.0)
@@ -44,7 +44,7 @@ class TestPerceptionComponent:
 
     def test_record_danger(self):
         """Should record danger zones and retrieve them."""
-        memory = FishMemorySystem()
+        memory = AgentMemorySystem()
         perception = PerceptionComponent(memory)
 
         danger_pos = Vector2(50.0, 75.0)
@@ -55,7 +55,7 @@ class TestPerceptionComponent:
 
     def test_get_danger_zones(self):
         """Should return danger locations as zones to avoid."""
-        memory = FishMemorySystem()
+        memory = AgentMemorySystem()
         perception = PerceptionComponent(memory)
 
         perception.record_danger(Vector2(10.0, 20.0))
@@ -204,11 +204,11 @@ class TestFeedingComponent:
         assert effective == 20.0
 
 
-class TestPetriMicrobeAgent:
+class TestAgentCompositionInPetriView:
     """Tests for GenericAgent component composition.
 
     Historically this used PetriMicrobeAgent (a reference stub). We now keep the
-    same coverage by defining a minimal GenericAgent subclass inside the test.
+    test to ensure components work correctly in a "Petri dish" style composition.
     """
 
     def test_agent_initializes_with_components(self):
@@ -223,7 +223,7 @@ class TestPetriMicrobeAgent:
 
         class TestMicrobe(GenericAgent):
             def __init__(self, environment, x, y, speed):
-                memory = FishMemorySystem(
+                memory = AgentMemorySystem(
                     max_memories_per_type=50, decay_rate=0.02, learning_rate=0.2
                 )
                 components = AgentComponents(
@@ -262,7 +262,7 @@ class TestPetriMicrobeAgent:
 
         class TestMicrobe(GenericAgent):
             def __init__(self, environment, x, y, speed):
-                memory = FishMemorySystem(
+                memory = AgentMemorySystem(
                     max_memories_per_type=50, decay_rate=0.02, learning_rate=0.2
                 )
                 components = AgentComponents(

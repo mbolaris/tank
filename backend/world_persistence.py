@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 DATA_DIR = Path("data/worlds")
 
 
-def _respawn_soccer_elements(engine: Any) -> None:
-    """Respawn soccer elements (Ball/GoalZone) after world restoration.
+def _bootstrap_transient_elements(engine: Any) -> None:
+    """Re-create transient elements (Soccer Ball/Goals) after world restoration.
 
-    Soccer entities are not persisted (transient) so they need to be respawned
+    Soccer entities are not persisted so they need to be re-created
     based on current config settings after restoration.
     """
     try:
@@ -70,7 +70,7 @@ def _respawn_soccer_elements(engine: Any) -> None:
                 soccer_system.set_ball(ball)
                 # Store reference to prevent duplication
                 env.ball = ball
-                logger.info("SOCCER: Respawned Ball after restoration")
+                logger.info("SOCCER: Re-created Ball after restoration")
 
         # Respawn Goals if configured and not already present
         if soccer_cfg.tank_goals_visible:
@@ -94,45 +94,10 @@ def _respawn_soccer_elements(engine: Any) -> None:
                 soccer_system.set_goal_manager(goal_manager)
                 # Store reference to prevent duplication
                 env.goal_manager = goal_manager
-                logger.info("SOCCER: Respawned Goals after restoration")
+                logger.info("SOCCER: Re-created Goals after restoration")
 
     except Exception as e:
-        logger.warning(f"Failed to respawn soccer elements: {e}")
-
-
-def _respawn_essential_entities(engine: Any) -> None:
-    """Respawn essential entities (Castle/Crab) if missing after world restoration.
-
-    These entities may have been lost due to schema migrations or bugs in older
-    snapshots. We ensure they exist for proper tank simulation functionality.
-    """
-    try:
-        if not engine.environment:
-            return
-
-        from core.entities.base import Castle
-        from core.entities.predators import Crab
-
-        env = engine.environment
-
-        # Check if castle exists
-        has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
-        if not has_castle:
-            # Default castle position (from DisplayConfig.init_pos["castle"])
-            castle = Castle(environment=env, x=100.0, y=420.0)
-            engine.add_entity(castle)
-            logger.info("ESSENTIAL: Respawned Castle after restoration (was missing from snapshot)")
-
-        # Check if crab exists
-        has_crab = any(isinstance(e, Crab) for e in engine.entities_list)
-        if not has_crab:
-            # Default crab position (from DisplayConfig.init_pos["crab"])
-            crab = Crab(env, None, 920.0, 510.0)
-            engine.add_entity(crab)
-            logger.info("ESSENTIAL: Respawned Crab after restoration (was missing from snapshot)")
-
-    except Exception as e:
-        logger.warning(f"Failed to respawn essential entities: {e}")
+        logger.warning(f"Failed to bootstrap transient elements: {e}")
 
 
 def ensure_world_directory(world_id: str) -> Path:
@@ -408,17 +373,40 @@ def restore_world_from_snapshot(
             f"({restored_count} entities)"
         )
 
-        # Respawn soccer elements after restoration (they are not persisted)
-        _respawn_soccer_elements(engine)
+        # Bootstrap transient elements (soccer ball/goals)
+        # These are never persisted and must be re-created on restore
+        _bootstrap_transient_elements(engine)
 
-        # Respawn essential entities (castle/crab) if missing from old snapshots
-        _respawn_essential_entities(engine)
+        if not _validate_restored_world(engine):
+            logger.error("Restored world failed validation")
+            return False
 
         return True
 
     except Exception as e:
         logger.error(f"Failed to restore world from snapshot: {e}", exc_info=True)
         return False
+
+
+def _validate_restored_world(engine: Any) -> bool:
+    """Validate that the world was restored correctly with essential entities.
+
+    Args:
+        engine: The simulation engine
+
+    Returns:
+        True if valid, False otherwise
+    """
+    from core.entities.base import Castle
+
+    # Check for presence of Castle (required static entity)
+    # If missing, it means the snapshot is from an old version or corrupted
+    has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
+    if not has_castle:
+        logger.error("Validation Failed: Missing required entity 'Castle'")
+        return False
+
+    return True
 
 
 def list_world_snapshots(world_id: str) -> List[Dict[str, Any]]:

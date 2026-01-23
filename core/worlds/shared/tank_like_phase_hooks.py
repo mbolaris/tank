@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class FishPlantPhaseHooks(PhaseHooks):
+class TankLikePhaseHooks(PhaseHooks):
     """Phase behavior for Fish/Plant/Food entities in Tank-like worlds.
 
     This class contains the logic that was previously in SimulationEngine
@@ -194,4 +194,3 @@ class FishPlantPhaseHooks(PhaseHooks):
 
 
 # Backward-compatible alias
-TankPhaseHooks = FishPlantPhaseHooks

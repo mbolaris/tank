@@ -180,7 +180,3 @@ class TankLikeEntityIdentityProvider:
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
         for stale_id in stale_ids:
             del self._entity_stable_ids[stale_id]
-
-
-# Alias for backward compatibility
-TankEntityIdentityProvider = TankLikeEntityIdentityProvider

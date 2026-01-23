@@ -1,10 +1,9 @@
-from core.agent_memory import AgentMemorySystem as FishMemorySystem
-from core.agent_memory import MemoryType
+from core.agent_memory import AgentMemorySystem, MemoryType
 from core.math_utils import Vector2
 
 
 def test_memories_expire_based_on_frames():
-    system = FishMemorySystem()
+    system = AgentMemorySystem()
     system.current_frame = 100
 
     system.add_memory(MemoryType.FOOD_LOCATION, Vector2(10, 10))

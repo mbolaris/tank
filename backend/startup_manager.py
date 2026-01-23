@@ -10,6 +10,7 @@ import logging
 import platform
 import sys
 import time
+from pathlib import Path
 from typing import Any, Callable, Optional, Set
 
 from backend.auto_save_service import AutoSaveService
@@ -236,8 +237,30 @@ class StartupManager:
                             # Restore entities and state into the world
                             from backend.world_persistence import restore_world_from_snapshot
 
-                            restore_world_from_snapshot(snapshot, instance.runner.world)
-                            logger.info(f"Restored world {world_id[:8]} from snapshot")
+                            success = restore_world_from_snapshot(snapshot, instance.runner.world)
+                            if success:
+                                logger.info(f"Restored world {world_id[:8]} from snapshot")
+                            else:
+                                logger.error(
+                                    f"Failed to restore world {world_id[:8]} - initializing fresh world"
+                                )
+                                # Rename corrupt snapshot to prevent reload loop
+                                try:
+                                    corrupt_path = (
+                                        Path(snapshot_path).parent
+                                        / f"CORRUPT_{Path(snapshot_path).name}"
+                                    )
+                                    Path(snapshot_path).rename(corrupt_path)
+                                    logger.warning(
+                                        f"Renamed corrupt snapshot to {corrupt_path.name}"
+                                    )
+                                except Exception as rename_err:
+                                    logger.error(f"Failed to rename corrupt snapshot: {rename_err}")
+
+                                # Reset instance to fresh (factory defaults)
+                                # This ensures we don't start with a half-broken state
+                                instance.runner.world.reset(seed=instance.runner.world._seed)
+                                logger.info(f"Reset world {world_id[:8]} to fresh state")
                 except Exception as e:
                     logger.error(f"Failed to restore world {world_id[:8]}: {e}", exc_info=True)
 

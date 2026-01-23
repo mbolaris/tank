@@ -211,12 +211,12 @@ class TankLikePackBase(ABC):
     def get_phase_hooks(self) -> PhaseHooks:
         """Return Fish/Plant phase hooks for entity handling.
 
-        Tank-like modes use FishPlantPhaseHooks which handles:
+        Tank-like modes use TankLikePhaseHooks which handles:
         - Fish spawn population checks
         - Fish/Plant/PlantNectar death handling
         - Food expiry and cleanup
         - Fish population/energy statistics
         """
-        from core.worlds.shared.fish_plant_phase_hooks import FishPlantPhaseHooks
+        from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks
 
-        return FishPlantPhaseHooks()
+        return TankLikePhaseHooks()

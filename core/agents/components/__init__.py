@@ -1,7 +1,7 @@
 """Shared agent components for multi-mode simulation.
 
 This package contains reusable components that can be composed to create
-different agent types (Fish, PetriMicrobe, SoccerPlayer, etc.).
+different agent types (Fish, Microbe, SoccerPlayer, etc.).
 
 Components:
 - PerceptionComponent: Sensory data and memory queries

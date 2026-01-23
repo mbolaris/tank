@@ -1,20 +1,17 @@
 """Tank-specific movement observation builder.
 
 This module provides the Tank-specific observation builder by configuring
-the shared FishMovementObservationBuilder with Tank entity types.
-
-TankMovementObservationBuilder is exported as
-an alias to the configured shared builder.
+the shared TankLikeMovementObservationBuilder with Tank entity types.
 """
 
 from __future__ import annotations
 
 from core.entities import Crab, Food
 from core.policies.observation_registry import register_observation_builder
-from core.worlds.shared.movement_observations import FishMovementObservationBuilder
+from core.worlds.shared.movement_observations import TankLikeMovementObservationBuilder
 
 
-class TankMovementObservationBuilder(FishMovementObservationBuilder):
+class TankMovementObservationBuilder(TankLikeMovementObservationBuilder):
     """Tank-specific observation builder.
 
     Pre-configured with Tank entity types (Food, Crab).

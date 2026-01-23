@@ -1,7 +1,7 @@
 """Perception component for agent sensory and memory systems.
 
 This component manages an agent's sensory data processing and memory queries,
-providing a reusable abstraction for different agent types (Fish, PetriMicrobe, etc.).
+providing a reusable abstraction for different agent types (Fish, Microbe, etc.).
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from core.agent_memory import AgentMemorySystem as FishMemorySystem
+    from core.agent_memory import AgentMemorySystem
     from core.math_utils import Vector2
 
 
@@ -25,7 +25,7 @@ class PerceptionComponent:
     making it easy to compose into different agent types.
     """
 
-    def __init__(self, memory_system: FishMemorySystem) -> None:
+    def __init__(self, memory_system: AgentMemorySystem) -> None:
         """Initialize perception component.
 
         Args:
@@ -34,7 +34,7 @@ class PerceptionComponent:
         self._memory_system = memory_system
 
     @property
-    def memory_system(self) -> FishMemorySystem:
+    def memory_system(self) -> AgentMemorySystem:
         """Get the underlying memory system."""
         return self._memory_system
 

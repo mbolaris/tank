@@ -1,8 +1,8 @@
-"""Shared action translator for fish-based worlds.
+"""Shared action translator for tank-like kinematic worlds.
 
-Defines the action space for fish agents and translates raw actions from
+Defines the action space for kinematic agents and translates raw actions from
 external brains to domain Actions. This shared implementation works for
-any world with fish-like agents (Tank, Petri, etc.).
+any world with tank-like agents (Tank, Petri, etc.).
 """
 
 from __future__ import annotations
@@ -16,27 +16,27 @@ from core.brains.contracts import BrainAction
 Action = BrainAction
 
 
-class FishActionTranslator:
-    """Action translator for fish-based worlds.
+class TankLikeActionTranslator:
+    """Action translator for tank-like worlds.
 
-    Provides action space definition and translation for fish agents.
+    Provides action space definition and translation for tank-like agents (velocity physics).
     This is the shared implementation used by Tank, Petri, and other
-    fish-based worlds.
+    kinematic-compatible worlds.
     """
 
     def __init__(
         self,
         max_velocity: float = 5.0,
     ) -> None:
-        """Initialize the fish action translator.
+        """Initialize the tank action translator.
 
         Args:
-            max_velocity: Maximum velocity magnitude for fish
+            max_velocity: Maximum velocity magnitude for agent
         """
         self.max_velocity = max_velocity
 
     def get_action_space(self) -> ActionSpace:
-        """Get the fish action space descriptor.
+        """Get the tank action space descriptor.
 
         Returns:
             Action space with movement as continuous velocity control
@@ -60,7 +60,7 @@ class FishActionTranslator:
         - tuple/list of 2 floats: treat as (vx, vy)
 
         Args:
-            agent_id: Fish ID as string
+            agent_id: Agent ID as string
             raw_action: Raw action data from external brain
 
         Returns:

@@ -9,20 +9,18 @@ directly, keeping this module world-agnostic.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from core.config.food import BASE_FOOD_DETECTION_RANGE
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
-Observation = Dict[str, Any]
 
+class TankLikeMovementObservationBuilder:
+    """Observation builder for tank-like world movement policies.
 
-class FishMovementObservationBuilder:
-    """Observation builder for fish-based world movement policies.
-
-    This is the shared implementation used by Tank, Petri, and other fish-based
+    This is the shared implementation used by Tank, Petri, and other kinematic
     worlds. The entity types (food_type, threat_type) are passed during construction
     to avoid hard-coding Tank-specific imports.
 
@@ -176,7 +174,7 @@ def _nearest_vector(
 # =============================================================================
 
 
-def create_tank_observation_builder() -> FishMovementObservationBuilder:
+def create_tank_observation_builder() -> TankLikeMovementObservationBuilder:
     """Create observation builder configured for Tank/Petri worlds.
 
     This factory imports Tank-specific entity types and creates a properly
@@ -184,7 +182,7 @@ def create_tank_observation_builder() -> FishMovementObservationBuilder:
     """
     from core.entities import Crab, Food
 
-    return FishMovementObservationBuilder(
+    return TankLikeMovementObservationBuilder(
         food_type=Food,
         threat_type=Crab,
         threat_detection_range=200.0,
