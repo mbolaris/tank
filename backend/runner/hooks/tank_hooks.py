@@ -124,10 +124,9 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
 
     def _restore_castle_position(self, runner: Any) -> None:
         """Restore castle to its default tank position."""
-        from core.entities.base import Castle
-
         for entity in runner.engine.entities_list:
-            if isinstance(entity, Castle):
+            # Use snapshot_type for generic entity classification
+            if getattr(entity, 'snapshot_type', None) == "castle":
                 # Default tank castle position (from Castle.__init__)
                 entity.pos.x = 375.0
                 entity.pos.y = 475.0
@@ -207,12 +206,14 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
 
     def _relocate_plants_to_spots(self, runner: Any, manager: Any) -> None:
         """Relocate all existing plants to valid spots in the new manager."""
-        from core.entities import Plant
         from core.math_utils import Vector2
 
-        # Get all plants
+        # Get all plants using snapshot_type for generic entity classification
         if runner.engine.environment and runner.engine.environment.agents:
-            plants = [e for e in runner.engine.environment.agents if isinstance(e, Plant)]
+            plants = [
+                e for e in runner.engine.environment.agents
+                if getattr(e, 'snapshot_type', None) == "plant"
+            ]
         else:
             plants = []
         if not plants:

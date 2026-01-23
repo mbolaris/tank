@@ -363,10 +363,10 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                     # Get alive fish IDs for enrichment
                     alive_fish_ids = None
                     if hasattr(runner.world, "entities_list"):
-                        from core.entities.fish import Fish
-
+                        # Use snapshot_type for generic entity classification
                         alive_fish_ids = {
-                            e.fish_id for e in runner.world.entities_list if isinstance(e, Fish)
+                            e.fish_id for e in runner.world.entities_list
+                            if getattr(e, 'snapshot_type', None) == "fish"
                         }
                     lineage_data = ecosystem.get_lineage_data(alive_fish_ids)
                     return JSONResponse(lineage_data)

@@ -1,7 +1,6 @@
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from core.entities import Fish
 from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
 
 if TYPE_CHECKING:
@@ -140,9 +139,13 @@ class SoccerCommands:
             else:
                 seed = int(seed_value)
 
-            # Get Fish
+            # Get fish-type entities for soccer match
+            # Intentional: soccer currently designed for fish agents in TankWorld v1
             entities_list = self.world.get_entities_for_snapshot()
-            fish_list = [e for e in entities_list if isinstance(e, Fish)]
+            fish_list = [
+                e for e in entities_list
+                if getattr(e, 'snapshot_type', None) == "fish"
+            ]
 
             if len(fish_list) < 2:
                 return self._create_error_response("Not enough fish for soccer!")
@@ -402,13 +405,11 @@ class SoccerCommands:
 
     def _remove_tank_soccer(self, engine: Any) -> None:
         """Remove soccer elements from the engine."""
-        from core.entities.ball import Ball
-        from core.entities.goal_zone import GoalZone
-
-        # Gather entities to remove
+        # Gather entities to remove using snapshot_type for generic classification
         to_remove = []
         for entity in engine.entities_list:
-            if isinstance(entity, (Ball, GoalZone)):
+            entity_type = getattr(entity, 'snapshot_type', None)
+            if entity_type in ("ball", "goal_zone"):
                 to_remove.append(entity)
 
         for entity in to_remove:

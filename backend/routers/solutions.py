@@ -153,15 +153,17 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
 
         try:
             # Get the best fish from the world
-            from core.entities import Fish
-
             runner = instance.runner
             world = getattr(runner, "world", None)
             if not world:
                 raise HTTPException(status_code=400, detail="World has no entities")
 
             entities_list = getattr(world, "entities_list", [])
-            fish_list = [e for e in entities_list if isinstance(e, Fish)]
+            # Use snapshot_type for generic entity classification
+            fish_list = [
+                e for e in entities_list
+                if getattr(e, 'snapshot_type', None) == "fish"
+            ]
 
             if not fish_list:
                 raise HTTPException(status_code=400, detail="No fish in world")

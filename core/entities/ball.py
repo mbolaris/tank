@@ -90,6 +90,11 @@ class Ball(Agent):
         pixel_radius = self.DEFAULT_PIXEL_RADIUS
         self.set_size(pixel_radius * 2, pixel_radius * 2)
 
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization."""
+        return "ball"
+
     def kick(self, power: float, direction: Vector2, kicker: Optional[object] = None) -> None:
         """Apply force to the ball from a kick.
 

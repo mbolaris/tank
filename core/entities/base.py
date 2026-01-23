@@ -424,6 +424,11 @@ class Castle(Entity):
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         self.set_size(225.0, 225.0)
 
+    @property
+    def snapshot_type(self) -> str:
+        """Return entity type for snapshot serialization."""
+        return "castle"
+
     def is_dead(self) -> bool:
         """Castle is never dead (decorative only)."""
         return False
