@@ -395,10 +395,10 @@ class RCSSLiteEngine:
         # Apply turn (simple addition for now, no complex inertia for neck usually)
         player.neck_angle += math.radians(moment)
 
-        # Clamp neck angle to typical RCSS limits [-90 deg, 90 deg]
-        # TODO: Add min/max_neck_angle to params
-        max_neck_rad = math.radians(90)
-        player.neck_angle = max(-max_neck_rad, min(max_neck_rad, player.neck_angle))
+        # Clamp neck angle to RCSS limits
+        max_neck_rad = math.radians(self.params.max_neck_angle)
+        min_neck_rad = math.radians(self.params.min_neck_angle)
+        player.neck_angle = max(min_neck_rad, min(max_neck_rad, player.neck_angle))
 
     def _apply_kick(self, player: RCSSPlayerState, power: float, direction: float) -> None:
         """Apply kick command.

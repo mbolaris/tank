@@ -61,6 +61,8 @@ class RCSSParams:
     inertia_moment: float = 5.0  # turn rate affected by speed
     max_moment: float = 180.0  # max turn angle (degrees)
     min_moment: float = -180.0  # min turn angle (degrees)
+    max_neck_angle: float = 90.0  # max neck angle relative to body (degrees)
+    min_neck_angle: float = -90.0  # min neck angle relative to body (degrees)
 
     # =========================================================================
     # Field dimensions (standard RoboCup)
