@@ -23,9 +23,10 @@ logger = logging.getLogger(__name__)
 # Output type alias
 VelocityComponents = tuple[float, float]
 
-# Rate limiting for error logs to avoid spamming console
-_ERROR_LOG_INTERVAL = 60
-_ERROR_LAST_LOG: dict[int, int] = {}
+# Deterministic rate limiting for error logs (based on simulation frames, not wall clock)
+_ERROR_LOG_INTERVAL_FRAMES = 60
+_LAST_ERROR_BUCKET: dict[tuple[int, str, str], int] = {}
+_MAX_ERROR_KEYS = 10_000  # Safety cap to prevent unbounded memory growth
 
 
 def run_movement_policy(
@@ -81,18 +82,48 @@ def run_movement_policy(
         params=params,
     )
 
+    # Extract frame for rate-limited logging
+    frame = _extract_frame(observation)
+
     if not result.success:
-        _log_error(fish_id, component_id, f"Execution failed: {result.error_message}")
+        _log_error(
+            fish_id=fish_id,
+            component_id=component_id,
+            category="execution",
+            message=f"Execution failed: {result.error_message}",
+            frame=frame,
+        )
         return None
 
     # 3. Validate and Parse Output
     parsed_velocity = _parse_and_validate_output(result.output)
 
     if parsed_velocity is None:
-        _log_error(fish_id, component_id, f"Invalid output type: {type(result.output)}")
+        _log_error(
+            fish_id=fish_id,
+            component_id=component_id,
+            category="output",
+            message=f"Invalid output type: {type(result.output)}",
+            frame=frame,
+        )
         return None
 
     return parsed_velocity
+
+
+def _extract_frame(observation: dict[str, Any]) -> int | None:
+    """Extract frame number from observation, if available.
+
+    Uses observation["age"] as the canonical frame counter.
+    Returns None if age is not present or not int-coercible.
+    """
+    age = observation.get("age")
+    if age is None:
+        return None
+    try:
+        return int(age)
+    except (TypeError, ValueError):
+        return None
 
 
 def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
@@ -151,33 +182,54 @@ def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
     return vx, vy
 
 
-def _log_error(fish_id: int | None, component_id: str, message: str) -> None:
-    """Log error with rate limiting."""
+def _log_error(
+    *,
+    fish_id: int | None,
+    component_id: str,
+    category: str,
+    message: str,
+    frame: int | None,
+) -> None:
+    """Log error with deterministic, frame-based rate limiting.
+
+    Rate limits per (fish_id, component_id, category) tuple. Only logs once per
+    60-frame bucket when frame is available. If frame is missing, logs every time
+    (makes missing metadata obvious).
+
+    Args:
+        fish_id: The fish ID (None logs without rate limiting)
+        component_id: The policy component ID
+        category: Error category (e.g., "execution", "output")
+        message: The error message
+        frame: Current simulation frame (from observation["age"]), or None
+    """
+    # If no fish_id, just log it (probably test or debug context)
     if fish_id is None:
-        # If no ID, just log it (probably test or debug)
         logger.warning(f"Policy {component_id} error: {message}")
         return
 
-    # Simple rate limiting per fish
-    import time
+    # If no frame available, log every time (makes missing metadata obvious)
+    if frame is None:
+        logger.warning(f"Movement policy {component_id} error for fish {fish_id}: {message}")
+        return
 
-    int(time.time())  # approximate, or just increment counter?
-    # Using simple counter from AlgorithmicMovement style would require persistent state.
-    # We'll use a simplified global approach here or rely on the caller to handle state if needed.
-    # For now, let's just log every N times per fish? No, that requires memory.
-    # Let's use the same age-based approach if we had access to age, but we don't passed in widely.
-    # We will use the standard logging throttling if available, or a simple dict.
+    # Deterministic rate limiting based on frame buckets
+    bucket = frame // _ERROR_LOG_INTERVAL_FRAMES
+    key = (fish_id, component_id, category)
 
-    # We'll key by (fish_id, component_id) to avoid collision
-    key = (fish_id, component_id)
-    _ERROR_LAST_LOG.get(hash(key), 0)
+    # Check if we've already logged in this bucket
+    if _LAST_ERROR_BUCKET.get(key) == bucket:
+        return  # Already logged this bucket, skip
 
-    # We don't have a clock here, so we'll use a simple counter implementation using a tick
-    # Actually, let's just use logging.warning with a filter or just allow it but maybe it's too much?
-    # The requirement said "but does not spam every frame—rate limit".
+    # Safety: clear state if it grows too large (simple eviction)
+    if len(_LAST_ERROR_BUCKET) >= _MAX_ERROR_KEYS:
+        _LAST_ERROR_BUCKET.clear()
 
-    # Let's use a module-level counter for distinct errors to keep it simple
-    # If we really want per-fish rate limiting we need to store state or pass current time/frame.
-    # Let's assume we can tolerate some logs.
-
+    # Record this bucket and log
+    _LAST_ERROR_BUCKET[key] = bucket
     logger.warning(f"Movement policy {component_id} error for fish {fish_id}: {message}")
+
+
+def _reset_error_log_state_for_tests() -> None:
+    """Reset module-level error log state. For tests only."""
+    _LAST_ERROR_BUCKET.clear()

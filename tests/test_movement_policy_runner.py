@@ -142,3 +142,62 @@ def test_run_movement_policy_nan_check(mock_genome, mock_code_pool):
     result = run_movement_policy(mock_genome, mock_code_pool, {}, rng)
 
     assert result is None
+
+
+def test_movement_policy_error_logs_rate_limited_by_age(mock_genome, mock_code_pool, caplog):
+    """Test that error logs are rate-limited by frame bucket when age is present."""
+    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+
+    _reset_error_log_state_for_tests()
+
+    # Setup failing execution result
+    execution_result = MagicMock()
+    execution_result.success = False
+    execution_result.error_message = "Test error"
+    mock_code_pool.execute_policy.return_value = execution_result
+
+    rng = random.Random(42)
+
+    # Call multiple times within the same 60-frame bucket (ages 0, 1, 2, 59)
+    # Should only log once per bucket
+    caplog.clear()
+    for age in [0, 1, 2, 59]:
+        obs = {"dt": 1.0, "age": age}
+        run_movement_policy(mock_genome, mock_code_pool, obs, rng, fish_id=1)
+
+    warning_count = sum(1 for r in caplog.records if r.levelname == "WARNING")
+    assert warning_count == 1, f"Expected 1 warning in bucket 0, got {warning_count}"
+
+    # Call at age 60 (new bucket), should trigger second log
+    caplog.clear()
+    obs = {"dt": 1.0, "age": 60}
+    run_movement_policy(mock_genome, mock_code_pool, obs, rng, fish_id=1)
+
+    warning_count = sum(1 for r in caplog.records if r.levelname == "WARNING")
+    assert warning_count == 1, f"Expected 1 warning in bucket 1, got {warning_count}"
+
+
+def test_movement_policy_error_logs_not_rate_limited_without_age(
+    mock_genome, mock_code_pool, caplog
+):
+    """Test that error logs are NOT rate-limited when age is missing (makes missing metadata obvious)."""
+    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+
+    _reset_error_log_state_for_tests()
+
+    # Setup failing execution result
+    execution_result = MagicMock()
+    execution_result.success = False
+    execution_result.error_message = "Test error"
+    mock_code_pool.execute_policy.return_value = execution_result
+
+    rng = random.Random(42)
+
+    # Call twice without age - should log both times
+    caplog.clear()
+    obs = {"dt": 1.0}  # No "age" key
+    run_movement_policy(mock_genome, mock_code_pool, obs, rng, fish_id=1)
+    run_movement_policy(mock_genome, mock_code_pool, obs, rng, fish_id=1)
+
+    warning_count = sum(1 for r in caplog.records if r.levelname == "WARNING")
+    assert warning_count == 2, f"Expected 2 warnings without rate limiting, got {warning_count}"
