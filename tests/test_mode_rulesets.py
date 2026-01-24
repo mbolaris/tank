@@ -78,7 +78,7 @@ class TestTankRuleSet:
     def test_display_name(self):
         """Should have human-readable name."""
         ruleset = TankRuleSet()
-        assert ruleset.display_name == "Fish Tank"
+        assert ruleset.display_name == "Tank"
 
     def test_has_poker(self):
         """Tank mode should have poker enabled."""

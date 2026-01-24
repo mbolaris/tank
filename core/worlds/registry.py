@@ -148,7 +148,7 @@ def _register_builtin_modes() -> None:
         factory=lambda **kwargs: TankWorldBackendAdapter(**kwargs),
         mode_pack=create_tank_mode_pack(),
         default_view_mode="side",
-        display_name="Fish Tank",
+        display_name="Tank",
     )
 
     # Implemented petri mode (reuses tank backend)

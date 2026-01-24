@@ -1,8 +1,8 @@
 #!/bin/bash
-# Linux startup script for Fish Tank Simulation
+# Linux startup script for Tank World
 
 echo "========================================="
-echo "Fish Tank Simulation - Server Startup"
+echo "Tank World - Server Startup"
 echo "========================================="
 echo ""
 

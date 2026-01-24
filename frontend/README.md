@@ -1,6 +1,6 @@
-# Fish Tank Simulation - React Frontend
+# Tank World - React Frontend
 
-Modern React + TypeScript + Vite frontend for the fish tank simulation with real-time Canvas rendering and Tank World Net support.
+Modern React + TypeScript + Vite frontend for Tank World with real-time Canvas rendering and Tank World Net support.
 
 ## Features
 

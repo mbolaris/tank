@@ -335,7 +335,7 @@ The backend listens on port **8000** by default; the frontend proxies WebSocket 
 You can also launch the backend via the installed console script:
 
 ```bash
-fishtank
+tankworld
 ```
 
 ### Headless Mode (Fast, Stats-Only)
@@ -748,7 +748,7 @@ Tank World is open source and welcomes contributions:
 - **Improve the visualization** system
 - **Propose research directions** and experiments
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for contribution guidelines.
 
 ---
 

@@ -1,4 +1,4 @@
-# Fish Tank Simulation - Production Dockerfile
+# Tank World - Production Dockerfile
 # Optimized for Oracle Cloud Always Free ARM instances
 
 # Use Python 3.11 slim image for smaller size
@@ -22,8 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN groupadd --gid 1000 fishtank \
-    && useradd --uid 1000 --gid fishtank --shell /bin/bash --create-home fishtank
+RUN groupadd --gid 1000 tankworld \
+    && useradd --uid 1000 --gid tankworld --shell /bin/bash --create-home tankworld
 
 # Copy requirements first for better caching
 COPY backend/requirements.txt ./backend/
@@ -41,10 +41,10 @@ COPY main.py ./
 
 # Create data directories
 RUN mkdir -p /app/data /app/logs \
-    && chown -R fishtank:fishtank /app
+    && chown -R tankworld:tankworld /app
 
 # Switch to non-root user
-USER fishtank
+USER tankworld
 
 # Expose port
 EXPOSE 8000

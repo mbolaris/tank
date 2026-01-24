@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick analyzer for the running Fish Tank simulation.
+"""Quick analyzer for the running Tank World simulation.
 
 This script fetches `/api/evaluation-history` and `/api/lineage` from the
 local backend and prints a short report: top performers over time and

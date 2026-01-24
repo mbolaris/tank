@@ -103,7 +103,7 @@ The `/api/worlds/types` endpoint returns all registered world types with their c
     "mode_id": "tank",
     "world_type": "tank",
     "view_mode": "side",
-    "display_name": "Fish Tank",
+    "display_name": "Tank",
     "supports_persistence": true,
     "supports_actions": false,
     "supports_websocket": true,

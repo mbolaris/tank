@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class TankPack(TankLikePackBase):
-    """System pack for the standard Fish Tank simulation.
+    """System pack for the standard Tank simulation.
 
     Inherits shared Tank-like wiring from TankLikePackBase and provides
     Tank-specific mode_id, metadata, and identity provider.

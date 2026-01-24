@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["core", "backend"]
-py-modules = []
+py-modules = ["main"]
 
 [tool.setuptools.package-data]
 core = ["py.typed"]
 
 [project]
-name = "fishtank-simulation"
+name = "tankworld"
 version = "0.1.0"
-description = "An artificial life ecosystem simulation with evolving fish behaviors"
+description = "An artificial life research framework with evolving agent behaviors, modes, and deterministic benchmarking"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
@@ -56,7 +56,7 @@ ai = [
 ]
 
 [project.scripts]
-fishtank = "main:main"
+tankworld = "main:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1,4 +1,4 @@
-"""Application factory and context for Fish Tank Simulation API.
+"""Application factory and context for Tank World API.
 
 This module provides a clean factory pattern for creating the FastAPI app,
 avoiding import-time side effects. All singletons are created lazily
@@ -262,7 +262,7 @@ def create_app(
 
     # Create the FastAPI app
     app = FastAPI(
-        title="Fish Tank Simulation API",
+        title="Tank World API",
         lifespan=lifespan,
         docs_url=None if context.production_mode else "/docs",
         redoc_url=None if context.production_mode else "/redoc",

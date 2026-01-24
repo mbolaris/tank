@@ -1,11 +1,11 @@
 #!/bin/bash
-# Oracle Cloud Fish Tank Setup Script
+# Oracle Cloud Tank World Setup Script
 # Run this on your Oracle Cloud instance after SSH-ing in
 
 set -e  # Exit on error
 
 echo "=========================================="
-echo "Fish Tank Oracle Cloud Setup Script"
+echo "Tank World Oracle Cloud Setup Script"
 echo "=========================================="
 
 # Colors for output
@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 REPO_URL="${REPO_URL:-https://github.com/YOUR_USERNAME/tank.git}"
 INSTALL_DIR="/home/ubuntu/tank"
 PYTHON_VERSION="3.11"
-SERVER_ID="${SERVER_ID:-oracle-fishtank}"
+SERVER_ID="${SERVER_ID:-oracle-tankworld}"
 DOMAIN="${DOMAIN:-}"  # Set this if you have a domain
 
 print_status() {
@@ -114,9 +114,9 @@ print_status "Python environment ready"
 
 echo ""
 echo "Step 7: Creating systemd service..."
-sudo tee /etc/systemd/system/fishtank.service > /dev/null << EOF
+sudo tee /etc/systemd/system/tankworld.service > /dev/null << EOF
 [Unit]
-Description=Fish Tank Simulation Server
+Description=Tank World Simulation Server
 After=network.target
 
 [Service]
@@ -137,13 +137,13 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable fishtank
+sudo systemctl enable tankworld
 print_status "Systemd service created"
 
 echo ""
 echo "Step 8: Configuring Nginx..."
 NGINX_SERVER_NAME="${DOMAIN:-_}"
-sudo tee /etc/nginx/sites-available/fishtank > /dev/null << EOF
+sudo tee /etc/nginx/sites-available/tankworld > /dev/null << EOF
 limit_req_zone \$binary_remote_addr zone=api_limit:10m rate=10r/s;
 limit_conn_zone \$binary_remote_addr zone=conn_limit:10m;
 
@@ -197,22 +197,22 @@ server {
 }
 EOF
 
-sudo ln -sf /etc/nginx/sites-available/fishtank /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/tankworld /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
 print_status "Nginx configured"
 
 echo ""
-echo "Step 9: Starting Fish Tank service..."
-sudo systemctl start fishtank
+echo "Step 9: Starting Tank World service..."
+sudo systemctl start tankworld
 sleep 3
 
-if sudo systemctl is-active --quiet fishtank; then
-    print_status "Fish Tank service is running!"
+if sudo systemctl is-active --quiet tankworld; then
+    print_status "Tank World service is running!"
 else
-    print_error "Fish Tank service failed to start. Check logs:"
-    echo "  sudo journalctl -u fishtank -n 50"
+    print_error "Tank World service failed to start. Check logs:"
+    echo "  sudo journalctl -u tankworld -n 50"
     exit 1
 fi
 
@@ -227,7 +227,7 @@ echo "=========================================="
 echo -e "${GREEN}Setup Complete!${NC}"
 echo "=========================================="
 echo ""
-echo "Your Fish Tank server is now running!"
+echo "Your Tank World server is now running!"
 echo ""
 echo "Access your server:"
 PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "YOUR_PUBLIC_IP")
@@ -235,9 +235,9 @@ echo "  http://${PUBLIC_IP}/"
 echo "  http://${PUBLIC_IP}/health"
 echo ""
 echo "Useful commands:"
-echo "  sudo systemctl status fishtank    # Check status"
-echo "  sudo journalctl -u fishtank -f    # View logs"
-echo "  sudo systemctl restart fishtank   # Restart"
+echo "  sudo systemctl status tankworld    # Check status"
+echo "  sudo journalctl -u tankworld -f    # View logs"
+echo "  sudo systemctl restart tankworld   # Restart"
 echo ""
 
 if [ -z "$DOMAIN" ]; then
@@ -247,4 +247,4 @@ if [ -z "$DOMAIN" ]; then
     echo ""
 fi
 
-echo "Done! 🐟"
+echo "Done!"

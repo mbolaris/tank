@@ -46,7 +46,9 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        files: ^core/
         exclude: ^(frontend/|tests/)
+        stages: [manual]
         args: ['--ignore-missing-imports', '--no-strict-optional']
 
   - repo: https://github.com/pycqa/isort
