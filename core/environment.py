@@ -49,8 +49,7 @@ class Environment:
             event_bus: Optional EventBus for domain event dispatch
             simulation_config: Optional SimulationConfig for runtime parameters
         """
-        agents_list = list(agents) if agents is not None else None
-        self.agents: Optional[List[Agent]] = agents_list
+        self.agents: Optional[List[Agent]] = agents
         self.width = width
         self.height = height
 
@@ -98,8 +97,8 @@ class Environment:
         self._remove_requester = None
 
         # Build initial spatial grid if agents are provided
-        if agents_list is not None:
-            self.spatial_grid.rebuild(agents_list)
+        if self.agents is not None:
+            self.spatial_grid.rebuild(list(self.agents))
 
         self._type_cache: Dict[Type[Agent], List[Agent]] = {}
 

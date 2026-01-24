@@ -146,6 +146,10 @@ class Ball(Agent):
         # Update rect for collision detection
         self.rect.topleft = self.pos
 
+        # Update spatial grid position
+        if self.environment:
+            self.environment.update_agent_position(self)
+
         return EntityUpdateResult()
 
     def _handle_boundary_collision(self) -> None:
