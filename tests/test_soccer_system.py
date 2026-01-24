@@ -480,9 +480,7 @@ class TestSoccerSystemEdgeCases:
         system._process_auto_kicks(frame=0)
 
         # Count total kicks
-        total_kicks = sum(
-            len(f._modify_energy_calls) for f in [fish1, fish2, fish3]
-        )
+        total_kicks = sum(len(f._modify_energy_calls) for f in [fish1, fish2, fish3])
         assert total_kicks == 1
 
 
