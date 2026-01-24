@@ -801,6 +801,8 @@ class PlantNectar(Food):
 
         super().update(frame_count, time_modifier, time_of_day)
         self.update_position()
+        if self.environment:
+            self.environment.update_agent_position(self)
         return EntityUpdateResult()
 
     def get_energy_value(self) -> float:
