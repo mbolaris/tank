@@ -4,7 +4,7 @@ Tests the soccer system's energy accounting, team selection,
 deterministic kicker selection, and kick timing.
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
