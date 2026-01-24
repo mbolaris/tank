@@ -77,11 +77,12 @@ class SoccerSystem(BaseSystem):
         if not self.enabled or not self.ball:
             return
 
-        # 1. Update ball physics (RCSS-Lite)
-        self.ball.update(frame)
-
-        # 2. Auto-kick: Fish near ball automatically kick it
+        # 1. Auto-kick: Process kicks BEFORE ball physics (RCSS-style)
+        # This ensures kicks affect the same frame's physics step
         self._process_auto_kicks(frame)
+
+        # 2. Update ball physics (RCSS-Lite: accel→vel→pos→decay)
+        self.ball.update(frame)
 
         # 3. Check for goals
         if self.goal_manager:
@@ -95,6 +96,9 @@ class SoccerSystem(BaseSystem):
 
         This provides a simple interaction without requiring trained policies.
         Fish kick the ball toward the opponent's goal.
+
+        Kicker selection is deterministic: the closest eligible fish kicks,
+        with fish_id as tie-breaker for equal distances.
 
         Args:
             frame: Current frame number
@@ -112,6 +116,9 @@ class SoccerSystem(BaseSystem):
         # Keep slightly larger (30px) since fish are visually bigger than RCSS players
         kickable_distance = 30.0
 
+        # Collect all eligible fish with their distances for deterministic selection
+        eligible_fish: list[tuple[float, int, object]] = []
+
         for entity in self.engine.entities_list:
             # Use snapshot_type instead of isinstance for loose coupling
             if getattr(entity, "snapshot_type", None) != "fish" or entity.is_dead():
@@ -122,52 +129,64 @@ class SoccerSystem(BaseSystem):
             dy = ball_y - entity.pos.y
             dist = math.sqrt(dx * dx + dy * dy)
 
-            if dist <= kickable_distance:
-                # Fish can kick!
-                if dist > 0:
-                    # Determine team from fish_id (even = team A, odd = team B)
-                    fish_id = getattr(entity, "fish_id", 0)
-                    is_team_a = (fish_id % 2) == 0
+            if dist <= kickable_distance and dist > 0:
+                fish_id = getattr(entity, "fish_id", 0)
+                eligible_fish.append((dist, fish_id, entity))
 
-                    # Primary kick direction: fish's facing/movement direction
-                    if hasattr(entity, "vel") and entity.vel.length() > 0.1:
-                        # Kick in direction fish is moving
-                        kick_dx = entity.vel.x
-                        kick_dy = entity.vel.y
-                    else:
-                        # Stationary fish: kick toward opponent goal
-                        if is_team_a:
-                            kick_dx = self.engine.environment.width - 50 - ball_x
-                        else:
-                            kick_dx = 50 - ball_x
-                        kick_dy = (self.engine.environment.height / 2) - ball_y
+        if not eligible_fish:
+            return
 
-                    # Add slight goal-seeking bias without overwhelming direction
-                    if is_team_a:
-                        goal_bias_x = (self.engine.environment.width - 50 - ball_x) * 0.2
-                    else:
-                        goal_bias_x = (50 - ball_x) * 0.2
-                    kick_dx += goal_bias_x
+        # Deterministic selection: closest fish wins, fish_id breaks ties
+        eligible_fish.sort(key=lambda x: (x[0], x[1]))
+        _, _, kicker = eligible_fish[0]
 
-                    kick_dist = math.sqrt(kick_dx * kick_dx + kick_dy * kick_dy)
+        # Determine team: use fish.team if set, fallback to fish_id parity
+        fish_team = getattr(kicker, "team", None)
+        if fish_team is not None:
+            is_team_a = fish_team == "A"
+        else:
+            fish_id = getattr(kicker, "fish_id", 0)
+            is_team_a = (fish_id % 2) == 0
 
-                    if kick_dist > 0:
-                        direction = Vector2(kick_dx / kick_dist, kick_dy / kick_dist)
-                        # Kick power: base + fish speed bonus
-                        fish_speed = entity.vel.length() if hasattr(entity, "vel") else 0
-                        power = 40.0 + min(fish_speed * 20.0, 40.0)  # Power range: 40-80
-                        self.ball.kick(power, direction, kicker=entity)
+        # Primary kick direction: fish's facing/movement direction
+        if hasattr(kicker, "vel") and kicker.vel.length() > 0.1:
+            # Kick in direction fish is moving
+            kick_dx = kicker.vel.x
+            kick_dy = kicker.vel.y
+        else:
+            # Stationary fish: kick toward opponent goal
+            if is_team_a:
+                kick_dx = self.engine.environment.width - 50 - ball_x
+            else:
+                kick_dx = 50 - ball_x
+            kick_dy = (self.engine.environment.height / 2) - ball_y
 
-                        # Award small energy reward for kicking
-                        if hasattr(entity, "energy"):
-                            entity.energy += 2.0
-                            entity.energy = min(entity.energy, getattr(entity, "max_energy", 100))
+        # Add slight goal-seeking bias without overwhelming direction
+        if is_team_a:
+            goal_bias_x = (self.engine.environment.width - 50 - ball_x) * 0.2
+        else:
+            goal_bias_x = (50 - ball_x) * 0.2
+        kick_dx += goal_bias_x
 
-                        # Set visual effect for HUD display
-                        entity.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}
+        kick_dist = math.sqrt(kick_dx * kick_dx + kick_dy * kick_dy)
 
-                        # Only one fish kicks per frame
-                        break
+        if kick_dist > 0:
+            direction = Vector2(kick_dx / kick_dist, kick_dy / kick_dist)
+            # Kick power: base + fish speed bonus
+            fish_speed = kicker.vel.length() if hasattr(kicker, "vel") else 0
+            power = 40.0 + min(fish_speed * 20.0, 40.0)  # Power range: 40-80
+            self.ball.kick(power, direction, kicker=kicker)
+
+            # Award small energy reward for kicking via proper channel
+            if hasattr(kicker, "modify_energy"):
+                kicker.modify_energy(2.0, source="soccer_kick")
+            elif hasattr(kicker, "energy"):
+                # Fallback for non-Fish entities with energy
+                kicker.energy += 2.0
+                kicker.energy = min(kicker.energy, getattr(kicker, "max_energy", 100))
+
+            # Set visual effect for HUD display
+            kicker.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}
 
     def _handle_goal_scored(self, goal_event) -> None:
         """Handle a goal being scored and award energy.
@@ -188,10 +207,14 @@ class SoccerSystem(BaseSystem):
 
             # Check if this fish is the scorer
             if fish.fish_id == goal_event.scorer_id:
-                # Award big energy reward for scoring
+                # Award big energy reward for scoring via proper channel
                 reward = 50.0
-                fish.energy += reward
-                fish.energy = min(fish.energy, fish.max_energy)
+                if hasattr(fish, "modify_energy"):
+                    fish.modify_energy(reward, source="soccer_goal")
+                else:
+                    # Fallback for non-standard entities
+                    fish.energy += reward
+                    fish.energy = min(fish.energy, fish.max_energy)
 
                 # Set visual effect for HUD display
                 fish.soccer_effect_state = {"type": "goal", "amount": reward, "timer": 30}
