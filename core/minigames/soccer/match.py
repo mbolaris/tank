@@ -375,7 +375,12 @@ class SoccerMatch:
 
         # Sort by z-order: players first, then ball on top
         z_order = {"player": 5, "ball": 10}
-        entities_dicts.sort(key=lambda e: z_order.get(e.get("type", ""), 0))
+
+        def _z_key(entity: dict[str, Any]) -> int:
+            entity_type = entity.get("type")
+            return z_order.get(entity_type, 0) if isinstance(entity_type, str) else 0
+
+        entities_dicts.sort(key=_z_key)
 
         # Get team rosters from participants
         left_ids = [

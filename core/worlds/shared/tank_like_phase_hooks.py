@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 from core.simulation.phase_hooks import PhaseHooks, SpawnDecision
 
 if TYPE_CHECKING:
+    from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
     from core.simulation.engine import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ class TankLikePhaseHooks(PhaseHooks):
     """
 
     def __init__(self) -> None:
-        self._soccer_league_runtime = None
+        self._soccer_league_runtime: SoccerLeagueRuntime | None = None
 
     def on_entity_spawned(
         self,
@@ -64,7 +65,8 @@ class TankLikePhaseHooks(PhaseHooks):
 
             # Register birth for accepted fish
             spawned_entity.register_birth()
-            engine.lifecycle_system.record_birth()
+            if engine.lifecycle_system is not None:
+                engine.lifecycle_system.record_birth()
 
             return SpawnDecision(should_add=True, entity=spawned_entity, reason="fish_accepted")
 
@@ -114,16 +116,21 @@ class TankLikePhaseHooks(PhaseHooks):
         - Checks Food entities for expiry/off-screen and queues removal
         - Cleans up fish that finished their death animation
         """
+        lifecycle = engine.lifecycle_system
+        if lifecycle is None:
+            return
+
+        from core.entities import Food
+
         screen_height = engine.config.display.screen_height
 
         for entity in list(engine._entity_manager.entities_list):
             # Use snapshot_type for generic entity classification
-            if getattr(entity, "snapshot_type", None) == "food":
-                engine.lifecycle_system.process_food_removal(entity, screen_height)
+            if getattr(entity, "snapshot_type", None) == "food" and isinstance(entity, Food):
+                lifecycle.process_food_removal(entity, screen_height)
 
         # Cleanup fish that finished their death animation
-        if engine.lifecycle_system:
-            engine.lifecycle_system.cleanup_dying_fish()
+        lifecycle.cleanup_dying_fish()
 
     def on_reproduction_complete(
         self,
@@ -179,7 +186,7 @@ class TankLikePhaseHooks(PhaseHooks):
             for outcome in league_runtime.drain_events():
                 engine.add_soccer_event(outcome)
 
-    def _get_soccer_league_runtime(self, engine: SimulationEngine):
+    def _get_soccer_league_runtime(self, engine: SimulationEngine) -> SoccerLeagueRuntime | None:
         if self._soccer_league_runtime is not None:
             return self._soccer_league_runtime
 

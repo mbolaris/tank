@@ -39,7 +39,7 @@ class TerritorialDefender(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.territory_center = None
+        self.territory_center: Optional[Vector2] = None
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
@@ -47,15 +47,16 @@ class TerritorialDefender(BehaviorAlgorithm):
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
         from core.entities import Fish
-        from core.math_utils import Vector2
 
         if self.territory_center is None:
             self.territory_center = Vector2(fish.pos.x, fish.pos.y)
 
         # Performance: Use squared distances to avoid sqrt and Vector2 allocations
         territory_radius_sq = self.parameters["territory_radius"] ** 2
-        center_x = self.territory_center.x
-        center_y = self.territory_center.y
+        territory_center = self.territory_center
+        assert territory_center is not None
+        center_x = territory_center.x
+        center_y = territory_center.y
         fish_x = fish.pos.x
         fish_y = fish.pos.y
 
@@ -71,9 +72,11 @@ class TerritorialDefender(BehaviorAlgorithm):
 
         if intruders:
             # Find nearest intruder using squared distance
-            min_dist_sq = float("inf")
-            nearest = None
-            for f in intruders:
+            nearest = intruders[0]
+            dx = nearest.pos.x - fish_x
+            dy = nearest.pos.y - fish_y
+            min_dist_sq = dx * dx + dy * dy
+            for f in intruders[1:]:
                 dx = f.pos.x - fish_x
                 dy = f.pos.y - fish_y
                 dist_sq = dx * dx + dy * dy
@@ -88,12 +91,12 @@ class TerritorialDefender(BehaviorAlgorithm):
             )
 
         # Return to territory center
-        direction = self.territory_center - fish.pos
+        direction = territory_center - fish.pos
         if direction.length() > self.parameters["territory_radius"]:
             direction = self._safe_normalize(direction)
             return direction.x * 0.5, direction.y * 0.5
 
-        return 0, 0
+        return 0.0, 0.0
 
 
 @dataclass
@@ -147,7 +150,7 @@ class RandomExplorer(BehaviorAlgorithm):
 
         # Boundary avoidance - don't explore into walls
         edge_margin = 60
-        avoid_x, avoid_y = 0, 0
+        avoid_x, avoid_y = 0.0, 0.0
         if fish_x < edge_margin:
             avoid_x = 0.5
         elif fish_x > SCREEN_WIDTH - edge_margin:

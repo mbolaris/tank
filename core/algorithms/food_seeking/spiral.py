@@ -28,8 +28,8 @@ class SpiralForager(BehaviorAlgorithm):
             },
             rng=_rng,
         )
-        self.spiral_angle = 0
-        self.spiral_radius = 10
+        self.spiral_angle = 0.0
+        self.spiral_radius = 10.0
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

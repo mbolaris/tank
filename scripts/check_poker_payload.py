@@ -39,8 +39,4 @@ print("\nAfter injecting synthetic event:")
 for ev in pe2:
     print(ev)
 
-# Directly call the internal collector to debug
-collected = runner._collect_poker_events()
-print("\nCollected via _collect_poker_events():", len(collected))
-for ev in collected:
-    print(ev.to_dict())
+print("\n(Collector debug removed: SimulationRunner no longer exposes _collect_poker_events())")

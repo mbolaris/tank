@@ -233,6 +233,7 @@ class Fish(GenericAgent):
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
+        self.soccer_effect_state: dict[str, Any] | None = None
 
         # Behavior execution - coordinates movement, turn costs, and cooldowns
         self._behavior_executor = BehaviorExecutor(movement_strategy)

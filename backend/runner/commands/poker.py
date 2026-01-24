@@ -1,20 +1,28 @@
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from core.human_poker_game import HumanPokerGame
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    pass
 
 logger = logging.getLogger(__name__)
 
 
 class PokerCommands:
-    def _cmd_start_poker(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    if TYPE_CHECKING:
+        human_poker_game: Any
+        world: Any
+
+        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+
+        def _create_fish_player_data(
+            self, fish: Any, *, include_aggression: bool = False
+        ) -> Dict[str, Any]: ...
+
+    def _cmd_start_poker(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'start_poker' command."""
         logger.info("Starting human poker game...")
         try:
@@ -95,7 +103,7 @@ class PokerCommands:
             logger.error(f"Error starting poker game: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start poker game: {str(e)}")
 
-    def _apply_poker_rewards(self: "SimulationRunner", result: Dict[str, Any]) -> None:
+    def _apply_poker_rewards(self, result: Dict[str, Any]) -> None:
         """Apply energy and reproduction rewards to the winner of a poker hand."""
         if not result or not result.get("fish_id"):
             return
@@ -106,7 +114,7 @@ class PokerCommands:
 
         # 1. Apply Energy Reward
         # Find the winning fish entity
-        entities_list = getattr(self.world, "get_entities_for_snapshot", lambda: [])()
+        entities_list: list[Any] = getattr(self.world, "get_entities_for_snapshot", lambda: [])()
         if not entities_list:
             # Fallback if get_entities_for_snapshot is not available (e.g. some tests)
             engine = getattr(self.world, "engine", None)
@@ -173,9 +181,7 @@ class PokerCommands:
                     except Exception as e:
                         logger.error(f"Error triggering poker reproduction: {e}")
 
-    def _cmd_poker_action(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_action(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'poker_action' command."""
         if not self.human_poker_game:
             logger.warning("Poker action received but no game active")
@@ -189,7 +195,7 @@ class PokerCommands:
 
         logger.info(f"Processing poker action: {action}, amount: {amount}")
 
-        result = self.human_poker_game.handle_action("human", action, amount)
+        result = cast(Dict[str, Any], self.human_poker_game.handle_action("human", action, amount))
 
         # Check for game completion and apply rewards
         if result.get("success") and self.human_poker_game.game_over:
@@ -199,15 +205,13 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_process_ai_turn(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_process_ai_turn(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'poker_process_ai_turn' command."""
         if not self.human_poker_game:
             logger.warning("AI turn processing requested but no game active")
             return self._create_error_response("No poker game active")
 
-        result = self.human_poker_game.process_single_ai_turn()
+        result = cast(Dict[str, Any], self.human_poker_game.process_single_ai_turn())
 
         # Check for game completion and apply rewards
         if result.get("success") and self.human_poker_game.game_over:
@@ -217,20 +221,16 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_new_round(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_new_round(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'poker_new_round' command."""
         if not self.human_poker_game:
             logger.warning("New round requested but no game active")
             return self._create_error_response("No poker game active")
 
         logger.info("Starting new poker hand...")
-        return self.human_poker_game.start_new_hand()
+        return cast(Dict[str, Any], self.human_poker_game.start_new_hand())
 
-    def _cmd_poker_autopilot_action(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_autopilot_action(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'poker_autopilot_action' command."""
         if not self.human_poker_game:
             now = time.monotonic()

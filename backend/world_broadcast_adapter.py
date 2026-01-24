@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Optional, Protocol, cast, runtime_checkable
 
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState
@@ -135,13 +135,16 @@ class WorldSnapshotAdapter:
         result = state.to_json()
         if isinstance(result, bytes):
             return result
-        return result.encode("utf-8")
+        if isinstance(result, str):
+            return result.encode("utf-8")
+        return str(result).encode("utf-8")
 
     async def handle_command_async(
         self, command: str, data: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
         if hasattr(self._runner, "handle_command_async"):
-            return await self._runner.handle_command_async(command, data)
+            response = await self._runner.handle_command_async(command, data)
+            return cast(Optional[dict[str, Any]], response)
 
         response = self.handle_command(command, data or {})
         return response

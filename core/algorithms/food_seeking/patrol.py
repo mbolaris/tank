@@ -33,7 +33,7 @@ class PatrolFeeder(BehaviorAlgorithm):
             },
             rng=_rng,
         )
-        self.patrol_center = None
+        self.patrol_center: Optional[Vector2] = None
         self.patrol_angle = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
@@ -75,13 +75,11 @@ class PatrolFeeder(BehaviorAlgorithm):
         if self.patrol_center is None:
             self.patrol_center = Vector2(fish.pos.x, fish.pos.y)
 
+        patrol_center = self.patrol_center
+        assert patrol_center is not None
         self.patrol_angle += 0.15  # INCREASED from 0.05 for faster patrol
-        target_x = (
-            self.patrol_center.x + math.cos(self.patrol_angle) * self.parameters["patrol_radius"]
-        )
-        target_y = (
-            self.patrol_center.y + math.sin(self.patrol_angle) * self.parameters["patrol_radius"]
-        )
+        target_x = patrol_center.x + math.cos(self.patrol_angle) * self.parameters["patrol_radius"]
+        target_y = patrol_center.y + math.sin(self.patrol_angle) * self.parameters["patrol_radius"]
         direction = self._safe_normalize(Vector2(target_x, target_y) - fish.pos)
         # IMPROVEMENT: Patrol faster to cover more ground
         speed = self.parameters["patrol_speed"] * (1.3 if is_desperate else 1.0)

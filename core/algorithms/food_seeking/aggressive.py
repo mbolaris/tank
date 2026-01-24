@@ -41,7 +41,7 @@ class AggressiveHunter(BehaviorAlgorithm):
             },
             rng=_rng,
         )
-        self.last_food_pos = None
+        self.last_food_pos: Optional[Vector2] = None
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

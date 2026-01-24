@@ -18,6 +18,10 @@ class WorldHooks(Protocol):
     implementation that provides world-specific behavior.
     """
 
+    # Optional hook-managed state (TankWorldHooks provides these)
+    human_poker_game: Optional[Any]
+    standard_poker_series: Optional[Any]
+
     def supports_command(self, command: str) -> bool:
         """Check if this world supports a specific command.
 

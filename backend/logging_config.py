@@ -32,7 +32,8 @@ def configure_logging(
         The application logger configured for the backend (``tank.backend``).
     """
 
-    resolved_level = (level or os.getenv("TANK_LOG_LEVEL", "INFO")).upper()
+    raw_level = level if level is not None else os.getenv("TANK_LOG_LEVEL")
+    resolved_level = (raw_level or "INFO").upper()
     logging.basicConfig(level=resolved_level, format=format, datefmt=datefmt)
 
     app_logger = logging.getLogger("tank.backend")

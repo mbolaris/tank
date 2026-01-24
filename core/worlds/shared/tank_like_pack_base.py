@@ -79,7 +79,7 @@ class TankLikePackBase(ABC):
         from core.systems.entity_lifecycle import EntityLifecycleSystem
         from core.systems.poker_proximity import PokerProximitySystem
 
-        systems = {}
+        systems: dict[str, Any] = {}
         systems["lifecycle_system"] = EntityLifecycleSystem(engine)
         systems["collision_system"] = CollisionSystem(engine)
 

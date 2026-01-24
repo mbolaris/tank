@@ -371,7 +371,7 @@ class SpiralEscape(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.spiral_angle = 0
+        self.spiral_angle = 0.0
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):

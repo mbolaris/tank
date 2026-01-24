@@ -14,6 +14,10 @@ class NoOpWorldHooks:
     doesn't have specific hooks defined.
     """
 
+    def __init__(self) -> None:
+        self.human_poker_game: Optional[Any] = None
+        self.standard_poker_series: Optional[Any] = None
+
     def supports_command(self, command: str) -> bool:
         """No world-specific commands supported."""
         return False

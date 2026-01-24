@@ -341,4 +341,5 @@ def runs_in_phase(phase: UpdatePhase) -> Callable:
 
 def get_system_phase(system: "BaseSystem") -> Optional[UpdatePhase]:
     """Get the phase a system is declared to run in."""
-    return getattr(system, "_phase", None)
+    phase = getattr(system, "_phase", None)
+    return phase if isinstance(phase, UpdatePhase) else None

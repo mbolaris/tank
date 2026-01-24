@@ -78,6 +78,9 @@ class Environment:
             None  # Set by backend if migrations enabled
         )
 
+        # World mode identifier (set by mode pack / backend when available)
+        self.world_type: Optional[str] = None
+
         # Optional circular dish geometry for Petri mode (set during mode switching)
         self._dish: Optional[Any] = None
 

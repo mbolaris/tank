@@ -69,9 +69,9 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
             # Higher pursuit_aggression = willing to chase farther
             base_chase = CHASE_DISTANCE_SAFE_BASE * (1.0 + pursuit_aggression * 0.5)
             if is_critical:
-                max_chase_distance = CHASE_DISTANCE_CRITICAL
+                max_chase_distance: float = float(CHASE_DISTANCE_CRITICAL)
             elif is_low:
-                max_chase_distance = CHASE_DISTANCE_LOW
+                max_chase_distance = float(CHASE_DISTANCE_LOW)
             else:
                 max_chase_distance = base_chase + (energy_ratio * base_chase * 0.5)
 

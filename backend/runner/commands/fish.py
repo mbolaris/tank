@@ -7,13 +7,20 @@ from core.config.ecosystem import SPAWN_MARGIN_PIXELS
 from core.genetics import Genome
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    pass
 
 logger = logging.getLogger(__name__)
 
 
 class FishCommands:
-    def _cmd_spawn_fish(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if TYPE_CHECKING:
+        world: Any
+
+        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+
+        def _invalidate_state_cache(self) -> None: ...
+
+    def _cmd_spawn_fish(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'spawn_fish' command."""
         try:
             logger.info("Spawn fish command received")

@@ -673,7 +673,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
     """
 
     algorithm_id: str
-    parameters: Dict[str, float] = field(default_factory=dict)
+    parameters: Dict[str, Any] = field(default_factory=dict)
     parameter_bounds: Dict[str, Tuple[float, float]] = field(default_factory=dict)
     rng: Optional[random.Random] = field(default=None, repr=False)
 

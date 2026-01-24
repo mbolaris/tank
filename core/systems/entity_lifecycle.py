@@ -37,7 +37,7 @@ from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.entities import Agent, Food
+    from core.entities import Agent, Fish, Food
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ class EntityLifecycleSystem(BaseSystem):
         self._births_this_frame += 1
         self._total_births += 1
 
-    def record_fish_death(self, fish: "Agent", cause: Optional[str] = None) -> None:
+    def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
         The fish remains in the simulation briefly so its death effect icon

@@ -402,6 +402,8 @@ class StarvationPreventer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> Tuple[float, float]:
+        from core.entities import Crab
+
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -454,7 +456,7 @@ class StarvationPreventer(BehaviorAlgorithm):
                         direction.y * self.parameters["urgency_multiplier"],
                     )
 
-        return 0, 0
+        return 0.0, 0.0
 
 
 @dataclass
@@ -534,7 +536,7 @@ class AdaptivePacer(BehaviorAlgorithm):
         nearest_predator = self._find_nearest(fish, Crab)
         nearest_food = self._find_nearest_food(fish)
 
-        vx, vy = 0, 0
+        vx, vy = 0.0, 0.0
 
         # Predator response
         if nearest_predator:

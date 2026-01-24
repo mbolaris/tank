@@ -40,7 +40,7 @@ def _get_nearby_fish(fish: "Fish", radius: float) -> List["Fish"]:
 
     # Filter out dead or migrated fish
     # This prevents "ghost attraction" where fish school towards empty spots
-    return [f for f in nearby if not f.is_dead()]
+    return [f for f in nearby if isinstance(f, Fish) and not f.is_dead()]
 
 
 @dataclass
@@ -249,7 +249,7 @@ class SeparationSeeker(BehaviorAlgorithm):
         QUERY_RADIUS = int(self.parameters["min_distance"] * 1.5)
         allies = _get_nearby_fish(fish, QUERY_RADIUS)
 
-        vx, vy = 0, 0
+        vx, vy = 0.0, 0.0
         for ally in allies:
             distance = (ally.pos - fish.pos).length()
             if 0 < distance < self.parameters["min_distance"]:

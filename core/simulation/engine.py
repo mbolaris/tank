@@ -143,6 +143,10 @@ class SimulationEngine:
         # Visualization hint
         self.view_mode: str = "side"
 
+        # Optional wiring points populated by SystemPacks (typed for mypy)
+        self.event_bus: Any | None = None
+        self.genome_code_pool: Any | None = None
+
         # Components (delegated to managers)
         self._entity_manager = EntityManager(
             rng=self.rng,
@@ -182,8 +186,8 @@ class SimulationEngine:
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None
         self.plant_manager: PlantManager | None = None
-        self.poker_events: list[Any] = []
-        self._soccer_events: deque = deque(maxlen=self.config.soccer.max_events)
+        self.poker_events: deque[Any] = deque(maxlen=self.config.poker.max_poker_events)
+        self._soccer_events: deque[Any] = deque(maxlen=self.config.soccer.max_events)
         self._soccer_league_live: dict[str, Any] | None = None
 
         # Periodic poker benchmark evaluation

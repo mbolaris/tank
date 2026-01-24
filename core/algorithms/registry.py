@@ -1,5 +1,6 @@
 """Algorithm registry and utilities."""
 
+import copy
 import random
 from typing import Optional
 
@@ -377,7 +378,8 @@ def inherit_algorithm_with_mutation(
     try:
         offspring = parent_algorithm.__class__.random_instance(rng=_rng)
     except Exception:
-        offspring = parent_algorithm.__class__()
+        offspring = copy.deepcopy(parent_algorithm)
+        offspring.rng = _rng
 
     # Copy parent parameters
     offspring.parameters = parent_algorithm.parameters.copy()
@@ -454,10 +456,8 @@ def _crossover_algorithms_base(
         try:
             offspring = parent1_algorithm.__class__.random_instance(rng=_rng)
         except Exception:
-            try:
-                offspring = parent1_algorithm.__class__(rng=_rng)
-            except TypeError:
-                offspring = parent1_algorithm.__class__()
+            offspring = copy.deepcopy(parent1_algorithm)
+            offspring.rng = _rng
 
         for param_key in parent1_algorithm.parameters:
             if param_key in parent2_algorithm.parameters:
@@ -505,10 +505,8 @@ def _crossover_algorithms_base(
         try:
             offspring = chosen_parent.__class__.random_instance(rng=_rng)
         except Exception:
-            try:
-                offspring = chosen_parent.__class__(rng=_rng)
-            except TypeError:
-                offspring = chosen_parent.__class__()
+            offspring = copy.deepcopy(chosen_parent)
+            offspring.rng = _rng
         offspring.parameters = chosen_parent.parameters.copy()
 
     # Apply mutations to offspring parameters

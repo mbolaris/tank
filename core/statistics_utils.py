@@ -13,7 +13,7 @@ Design Principles:
 
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 
 @dataclass(frozen=True)
@@ -217,7 +217,7 @@ def compute_meta_stats(traits: List[Any]) -> MetaStats:
 
 
 def create_histogram(
-    values: List[float],
+    values: Sequence[float],
     range_min: float,
     range_max: float,
     num_bins: int = 12,

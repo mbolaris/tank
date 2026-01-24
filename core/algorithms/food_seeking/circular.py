@@ -35,7 +35,7 @@ class CircularHunter(BehaviorAlgorithm):
             },
             rng=_rng,
         )
-        self.circle_angle = 0
+        self.circle_angle = 0.0
         self.exploration_direction = _rng.uniform(0, 2 * math.pi)
 
     @classmethod

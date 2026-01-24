@@ -125,6 +125,15 @@ class MultiAgentWorldBackend(ABC):
         """
         pass
 
+    @property
+    def paused(self) -> bool:
+        """Legacy pause flag alias for compatibility."""
+        return self.is_paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        self.set_paused(value)
+
     @abstractmethod
     def set_paused(self, value: bool) -> None:
         """Set the simulation paused state.

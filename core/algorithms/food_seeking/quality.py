@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional, Tuple, cast
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -80,8 +80,8 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
 
         # Use World Protocol
         env: World = fish.environment
-        foods = env.get_agents_of_type(Food)
-        best_food = None
+        foods = [f for f in env.get_agents_of_type(Food) if isinstance(f, Food)]
+        best_food: Optional[Food] = None
         best_score = -float("inf")
 
         # IMPROVEMENT: Also consider remembered food locations if no food visible
@@ -96,7 +96,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
             quality = food.get_energy_value()
 
             # Check if predator is near this food (danger score)
-            danger_score = 0
+            danger_score = 0.0
             if nearest_predator:
                 predator_food_dist = (nearest_predator.pos - food.pos).length()
                 if predator_food_dist < PREDATOR_DANGER_ZONE_RADIUS:
@@ -155,7 +155,11 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
                 if hasattr(best_food, "food_properties"):
                     from core.config.food import FOOD_SINK_ACCELERATION
 
-                    sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
+                    raw_sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
+                    try:
+                        sink_multiplier = float(cast(Any, raw_sink_multiplier))
+                    except (TypeError, ValueError):
+                        sink_multiplier = 1.0
                     acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                     if acceleration > 0 and best_food.vel.y >= 0:
                         is_accelerating = True

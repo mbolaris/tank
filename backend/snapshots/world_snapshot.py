@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from backend.state_payloads import EntitySnapshot
 
+orjson: Any = None
 try:  # Prefer faster serializer when available
-    import orjson
+    import orjson as _orjson
+
+    orjson = _orjson
 except ImportError:
-    orjson = None
+    pass
 
 
 @dataclass
@@ -68,5 +71,5 @@ class WorldUpdatePayload:
     def to_json(self) -> str:
         data = self.to_dict()
         if orjson:
-            return orjson.dumps(data).decode("utf-8")
+            return cast(bytes, orjson.dumps(data)).decode("utf-8")
         return json.dumps(data, separators=(",", ":"))

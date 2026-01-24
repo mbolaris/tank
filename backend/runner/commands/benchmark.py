@@ -5,15 +5,21 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    pass
 
 logger = logging.getLogger(__name__)
 
 
 class BenchmarkCommands:
-    def _cmd_standard_poker_series(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    if TYPE_CHECKING:
+        world: Any
+        standard_poker_series: Any
+
+        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+
+        def _invalidate_state_cache(self) -> None: ...
+
+    def _cmd_standard_poker_series(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'standard_poker_series' command."""
         logger.info("Starting standard poker benchmark series...")
         try:
@@ -117,9 +123,7 @@ class BenchmarkCommands:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
             return self._create_error_response(f"Failed to run benchmark series: {str(e)}")
 
-    def _cmd_set_plant_energy_input(
-        self: "SimulationRunner", data: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+    def _cmd_set_plant_energy_input(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'set_plant_energy_input' command.
 
         Adjusts the runtime plant energy input rate (minimum energy gain per frame).

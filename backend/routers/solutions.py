@@ -9,7 +9,7 @@ This router provides endpoints for:
 """
 
 import logging
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
@@ -170,7 +170,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             if request.selection_mode == "tournament":
                 # Select opponents: best solution per author (by existing Elo), limited to top-N.
                 all_solutions = tracker.load_all_solutions()
-                by_author = {}
+                by_author: dict[str, Any] = {}
                 for sol in all_solutions:
                     author = (sol.metadata.author or "unknown").strip() or "unknown"
                     current = by_author.get(author)

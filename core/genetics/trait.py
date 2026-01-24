@@ -8,7 +8,7 @@ This module provides:
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -158,21 +158,23 @@ class TraitSpec:
         hgt_probability) to ensure the founding population has genetic diversity
         that can drift over evolution.
         """
+        raw_value: Any
         if self.default_factory:
-            val = self.default_factory(rng)
+            raw_value = self.default_factory(rng)
         elif self.discrete:
-            val = rng.randint(int(self.min_val), int(self.max_val))
+            raw_value = rng.randint(int(self.min_val), int(self.max_val))
         else:
-            val = rng.uniform(self.min_val, self.max_val)
+            raw_value = rng.uniform(self.min_val, self.max_val)
 
+        value: Union[float, int]
         if self.discrete:
-            default_val = int(round((self.min_val + self.max_val) / 2))
-            val = _coerce_int(val, default_val)
-            val = max(int(self.min_val), min(int(self.max_val), int(val)))
+            default_int = int(round((self.min_val + self.max_val) / 2))
+            int_value = _coerce_int(raw_value, default_int)
+            value = max(int(self.min_val), min(int(self.max_val), int(int_value)))
         else:
-            default_val = (self.min_val + self.max_val) / 2.0
-            val = _coerce_float(val, default_val)
-            val = max(self.min_val, min(self.max_val, float(val)))
+            default_float = (self.min_val + self.max_val) / 2.0
+            float_value = _coerce_float(raw_value, default_float)
+            value = max(self.min_val, min(self.max_val, float(float_value)))
 
         # Randomize meta-genetic values to seed initial diversity
         mutation_rate = _coerce_float(
@@ -185,7 +187,7 @@ class TraitSpec:
         )
         hgt_probability = _coerce_float(rng.uniform(0.0, 0.2), 0.1)
         return GeneticTrait(
-            val,
+            value,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             hgt_probability=hgt_probability,
@@ -208,8 +210,9 @@ class TraitSpec:
             base_mutation_strength * (trait1.mutation_strength + trait2.mutation_strength) / 2
         )
 
+        value: Union[float, int]
         if self.discrete:
-            new_val = _inherit_discrete_trait(
+            value = _inherit_discrete_trait(
                 int(trait1.value),
                 int(trait2.value),
                 int(self.min_val),
@@ -219,7 +222,7 @@ class TraitSpec:
                 rng=rng,
             )
         else:
-            new_val = _inherit_trait(
+            value = _inherit_trait(
                 float(trait1.value),
                 float(trait2.value),
                 self.min_val,
@@ -232,7 +235,7 @@ class TraitSpec:
 
         # Create new trait with blended metadata
         new_trait = GeneticTrait(
-            new_val,
+            value,
             mutation_rate=(trait1.mutation_rate + trait2.mutation_rate) / 2,
             mutation_strength=(trait1.mutation_strength + trait2.mutation_strength) / 2,
             hgt_probability=(trait1.hgt_probability + trait2.hgt_probability) / 2,
@@ -342,20 +345,20 @@ def apply_trait_values_from_dict(
         trait = getattr(traits, spec.name)
         raw = data[spec.name]
         # Coerce and clamp incoming values to the declared spec bounds.
-        try:
-            if spec.discrete:
-                val = int(raw)
-            else:
-                val = float(raw)
-        except (TypeError, ValueError):
-            # Ignore invalid incoming values; keep existing trait value
-            continue
         if spec.discrete:
-            val = max(int(spec.min_val), min(int(spec.max_val), int(val)))
-            trait.value = int(val)
+            try:
+                int_value = int(raw)
+            except (TypeError, ValueError):
+                continue
+            int_value = max(int(spec.min_val), min(int(spec.max_val), int(int_value)))
+            trait.value = int(int_value)
         else:
-            val = max(spec.min_val, min(spec.max_val, float(val)))
-            trait.value = float(val)
+            try:
+                float_value = float(raw)
+            except (TypeError, ValueError):
+                continue
+            float_value = max(spec.min_val, min(spec.max_val, float(float_value)))
+            trait.value = float(float_value)
 
 
 def apply_trait_meta_from_dict(

@@ -59,7 +59,7 @@ class MixedPokerInteraction:
         issues when modules are reloaded (old instances won't match new classes).
         """
         try:
-            from core.entities.fish import Fish  # type: ignore
+            from core.entities.fish import Fish
 
             if isinstance(player, Fish):
                 return True
@@ -72,7 +72,7 @@ class MixedPokerInteraction:
     def _is_plant_player(player: Any) -> bool:
         """Robust plant detection (see `_is_fish_player`)."""
         try:
-            from core.entities.plant import Plant  # type: ignore
+            from core.entities.plant import Plant
 
             if isinstance(player, Plant):
                 return True

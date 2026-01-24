@@ -63,9 +63,9 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
             return self._handle_cancel_auto_evaluate(runner, data)
         return None
 
-    def build_world_extras(self, runner: Any) -> dict:
+    def build_world_extras(self, runner: Any) -> dict[str, Any]:
         """Build tank-specific state extras (poker events, leaderboard, benchmarks)."""
-        extras = {}
+        extras: dict[str, Any] = {}
 
         # Collect poker events (from PokerMixin)
         poker_events = self.collect_poker_events(runner)

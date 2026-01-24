@@ -4,11 +4,18 @@ from core import entities
 from core.config.display import SCREEN_WIDTH
 
 if TYPE_CHECKING:
-    from backend.simulation_runner import SimulationRunner
+    pass
 
 
 class FoodCommands:
-    def _cmd_add_food(self: "SimulationRunner", data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if TYPE_CHECKING:
+        world: Any
+
+        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+
+        def _invalidate_state_cache(self) -> None: ...
+
+    def _cmd_add_food(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'add_food' command."""
         rng = self.world.rng
         if rng is None:

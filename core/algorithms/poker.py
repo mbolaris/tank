@@ -18,7 +18,7 @@ Performance optimizations:
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
 
@@ -60,6 +60,8 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
     nearest = None
 
     for other in nearby:
+        if not isinstance(other, FishClass):
+            continue
         if other.fish_id == fish_id:
             continue
         dx = other.pos.x - fish_x
@@ -92,7 +94,7 @@ def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
     else:
         nearby = env.nearby_agents_by_type(fish, radius, FishClass)
 
-    return [f for f in nearby if f.fish_id != fish_id]
+    return [f for f in nearby if isinstance(f, FishClass) and f.fish_id != fish_id]
 
 
 @dataclass
@@ -526,7 +528,7 @@ class PokerStrategist(BehaviorAlgorithm):
             rng=rng,
         )
         # Track recent poker encounters for opponent modeling
-        self.recent_encounters = []
+        self.recent_encounters: List[Dict[str, Any]] = []
         self.max_memory = 5
 
     @classmethod
