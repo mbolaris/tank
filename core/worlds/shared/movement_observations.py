@@ -142,7 +142,6 @@ def _nearest_vector(
             return {"x": 0.0, "y": 0.0}
 
     if max_distance is not None:
-        int(max_distance) + 1
         if use_resources and hasattr(environment, "nearby_resources"):
             agents = environment.nearby_resources(fish, radius)
         else:

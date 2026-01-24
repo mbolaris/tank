@@ -35,15 +35,21 @@ def run_movement_policy(
     observation: dict[str, Any],
     rng: pyrandom.Random,
     fish_id: int | None = None,
+    *,
+    dt: float = 1.0,
+    frame: int | None = None,
 ) -> VelocityComponents | None:
     """Execute the genome's movement policy and validate output.
 
     Args:
         genome: The genome containing policy configuration
         code_pool: The code pool system to execute against
-        observation: The observation dict (must include 'dt' if needed)
+        observation: The observation dict
         rng: Random number generator for determinism
         fish_id: Optional ID for logging purposes
+        dt: Time delta for physics calculations (explicit, no longer read from observation)
+        frame: Current simulation frame for rate-limited logging. Falls back to
+               observation["age"] if not provided.
 
     Returns:
         (vx, vy) if successful and valid, None otherwise.
@@ -70,9 +76,6 @@ def run_movement_policy(
         return None
 
     # 2. Execute via code pool
-    # Note: calculate dt from observation if possible, or default to 1.0
-    dt = observation.get("dt", 1.0)
-
     # We use the generic execute_policy method
     result = code_pool.execute_policy(
         component_id=component_id,
@@ -82,8 +85,8 @@ def run_movement_policy(
         params=params,
     )
 
-    # Extract frame for rate-limited logging
-    frame = _extract_frame(observation)
+    # Determine frame for rate-limited logging: prefer explicit, fall back to observation
+    effective_frame = frame if frame is not None else _extract_frame(observation)
 
     if not result.success:
         _log_error(
@@ -91,7 +94,7 @@ def run_movement_policy(
             component_id=component_id,
             category="execution",
             message=f"Execution failed: {result.error_message}",
-            frame=frame,
+            frame=effective_frame,
         )
         return None
 
@@ -104,7 +107,7 @@ def run_movement_policy(
             component_id=component_id,
             category="output",
             message=f"Invalid output type: {type(result.output)}",
-            frame=frame,
+            frame=effective_frame,
         )
         return None
 

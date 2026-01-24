@@ -237,6 +237,11 @@ class AlgorithmicMovement(MovementStrategy):
         # Build observation
         observation = build_movement_observation(fish)
 
+        # Extract explicit dt and frame for deterministic execution
+        env_dt = getattr(fish.environment, "dt", 1.0)
+        lifecycle = getattr(fish, "_lifecycle_component", None)
+        fish_frame = getattr(lifecycle, "age", None) if lifecycle is not None else None
+
         # Execute via runner
         # run_movement_policy handles extracting the component_id from the genome
         return run_movement_policy(
@@ -245,6 +250,8 @@ class AlgorithmicMovement(MovementStrategy):
             observation=observation,
             rng=fish.environment.rng,
             fish_id=getattr(fish, "fish_id", None),
+            dt=env_dt,
+            frame=fish_frame,
         )
 
     def _get_ball_pursuit_velocity(self, fish: Fish) -> VelocityComponents | None:
