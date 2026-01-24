@@ -77,7 +77,7 @@ def main():
         with open(args.champion_path) as f:
             champion_data = json.load(f)
 
-        champion_record = champion_data["champion"]
+        champion_record = champion_data.get("champion", champion_data)
 
         if not validate_reproduction(result, champion_record, args.tolerance):
             sys.exit(1)
