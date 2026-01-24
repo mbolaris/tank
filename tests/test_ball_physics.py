@@ -30,6 +30,10 @@ class MockWorld:
         """Return world boundaries."""
         return ((self.min_x, self.min_y), (self.max_x, self.max_y))
 
+    def update_agent_position(self, agent):
+        """No-op for testing - spatial grid update not needed."""
+        pass
+
 
 class TestBallPhysics:
     """Test basic ball physics."""
