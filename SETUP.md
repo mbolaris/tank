@@ -1,4 +1,4 @@
-# Fish Tank Simulation - Setup Instructions
+# Tank World - Setup Instructions
 
 ## macOS Quick Install (Sonoma / Apple Silicon)
 
@@ -74,7 +74,7 @@ npm run dev
 
 ### Step 3: Open Browser
 
-Visit http://localhost:3000 in your browser. You should now see the Fish Tank Simulation UI.
+Visit http://localhost:3000 in your browser. You should now see the Tank World UI.
 
 ## Full Setup Steps (First Time)
 

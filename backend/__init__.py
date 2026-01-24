@@ -1,4 +1,4 @@
-"""Backend package for Fish Tank Simulation API.
+"""Backend package for Tank World API.
 
 This package provides the FastAPI web server, WebSocket handling,
 tank management, and distributed networking capabilities.

@@ -61,7 +61,7 @@ def test_world_metadata() -> None:
     assert metadata.mode_id == "tank"
     assert metadata.world_type == "tank"
     assert metadata.view_mode == "side"
-    assert metadata.display_name == "Fish Tank"
+    assert metadata.display_name == "Tank"
 
 
 def test_world_runner_reset_returns_step_result() -> None:

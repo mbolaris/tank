@@ -1,8 +1,8 @@
-# Fish Tank Simulation - Windows Setup Script
+# Tank World - Windows Setup Script
 # This script sets up the Python environment and installs dependencies
 
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "Fish Tank Simulation - Setup" -ForegroundColor Cyan
+Write-Host "Tank World - Setup" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -35,7 +35,7 @@ python -m pip install --upgrade pip
 
 # Install the package in development mode
 Write-Host ""
-Write-Host "Installing fish tank simulation and dependencies..." -ForegroundColor Cyan
+Write-Host "Installing Tank World and dependencies..." -ForegroundColor Cyan
 python -m pip install -e .
 
 # Install development dependencies (optional)

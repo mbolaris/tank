@@ -1,8 +1,8 @@
-# Tank Simulation - Architecture Documentation
+# Tank World - Architecture Documentation
 
 ## Executive Summary
 
-Tank is an advanced artificial life (ALife) ecosystem simulation featuring parametrizable behavior algorithms, genetics, evolution, and emergent population dynamics.
+Tank World is an artificial life (ALife) simulation framework featuring parametrizable behavior algorithms, genetics, evolution, emergent population dynamics, and multiple world/mode configurations.
 
 **Tech Stack:**
 - **Backend**: Python with FastAPI + WebSocket
@@ -48,6 +48,8 @@ tank/
 |   |   `-- diagnostics.py         # Stats printing/export helpers
 |   |-- systems/                   # BaseSystem + system implementations
 |   |-- config/                    # Simulation configuration modules
+|   |-- agent_memory.py            # Agent-local memory primitives
+|   |-- agent_signals.py           # Agent signaling primitives
 |   |-- environment.py             # Spatial queries (implements World Protocol)
 |   `-- world.py                   # Abstract World interface
 |-- backend/                       # FastAPI WebSocket server
@@ -69,6 +71,7 @@ tank/
 
 **Design Goal:** Zero UI dependencies, fully testable
 
+- The same agent/engine loop runs across modes; modes swap rule sets and render profiles while reusing shared systems.
 - **entities/**: Fish, Plant, predator, and resource classes with deterministic IDs
 - **fish/**: Componentized fish systems (energy, lifecycle, reproduction, poker stats)
 - **genetics/**: Genome definitions, mutation, crossover, adaptive inheritance helpers
@@ -78,7 +81,7 @@ tank/
   - Composable behaviors (`composable.py`) expose sub-behavior knobs for hybrids
 - **environment.py**: Spatial grid for efficient proximity queries
 - **ecosystem.py / ecosystem_stats.py / population_tracker.py**: Population tracking, death cause tallies, and reproduction stats
-- **fish_communication.py / fish_memory.py**: Shared memory and communication helpers for strategies
+- **agent_memory.py / agent_signals.py**: Shared memory and signaling helpers for strategies and agent components
 - **world.py**: Abstract World Protocol for environment-agnostic simulation
 - **simulation/engine.py**: Central loop with system registry, plant management, and deterministic RNG plumbing
 
@@ -99,7 +102,7 @@ The codebase uses a domain-agnostic world abstraction to support multiple simula
 
 - **Built-in backends**:
   - `TankWorldBackendAdapter` - Fish ecosystem simulation
-  - `PetriWorldBackendAdapter` - Microbe simulation (same rules, different visuals)
+  - `PetriWorldBackendAdapter` - Microbe simulation (same agent loop, different rules + render profile)
 - **Minigames**:
   - `core/minigames/soccer` - Soccer league + training primitives (pure-Python physics)
 

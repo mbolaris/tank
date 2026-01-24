@@ -1,1 +1,1 @@
-"""API routers for the Fish Tank Simulation backend."""
+"""API routers for the Tank World backend."""

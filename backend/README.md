@@ -1,6 +1,6 @@
-# Fish Tank Simulation Backend
+# Tank World Backend
 
-FastAPI backend that runs the fish tank simulation and provides real-time updates via WebSocket.
+FastAPI backend that runs Tank World simulations and provides real-time updates via WebSocket.
 
 ## Installation
 

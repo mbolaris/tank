@@ -6,4 +6,4 @@
 
 - [Architecture Overview](docs/ARCHITECTURE.md)
 - [Documentation Index](docs/INDEX.md)
-- [ADR Index](docs/adr/INDEX.md)
+- [ADR Index](docs/adr/README.md)

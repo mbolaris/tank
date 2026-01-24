@@ -180,7 +180,7 @@ class TankRuleSet(ModeRuleSet):
 
     @property
     def display_name(self) -> str:
-        return "Fish Tank"
+        return "Tank"
 
     @property
     def energy_model(self) -> EnergyModel:

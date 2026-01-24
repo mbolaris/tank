@@ -202,7 +202,7 @@ export function drawSVGFish(
     // If we want them to rotate to face movement direction in top-down view (like RPG markers),
     // we might want to rotate. 
     // HOWEVER, Tank view usually just flips horizontal.
-    // If the user wants "Fish Tank Mode", they usually swim left/right.
+    // If the user wants "Tank Mode", they usually swim left/right.
     // But this is top-down soccer...
     // If I rotate them, they look like flat paper cutouts spinning.
     // If I don't rotate, they always face left/right. This is standard side-scroller look.

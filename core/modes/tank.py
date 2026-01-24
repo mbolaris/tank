@@ -38,7 +38,7 @@ def create_tank_mode_pack(
         mode_id="tank",
         world_type="tank",
         default_view_mode="side",
-        display_name="Fish Tank",
+        display_name="Tank",
         supports_persistence=True,
         supports_actions=False,
         supports_websocket=True,

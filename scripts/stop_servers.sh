@@ -1,7 +1,7 @@
 #!/bin/bash
-# Linux stop script for Fish Tank Simulation
+# Linux stop script for Tank World
 
-echo "Stopping Fish Tank servers..."
+echo "Stopping Tank World servers..."
 
 # Kill backend
 pkill -f "python.*backend.*main.py"

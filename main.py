@@ -101,7 +101,7 @@ def run_headless(
 def main():
     """Parse command-line arguments and run the appropriate mode."""
     parser = argparse.ArgumentParser(
-        description="Fish Tank Ecosystem Simulation",
+        description="Tank World Simulation",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
