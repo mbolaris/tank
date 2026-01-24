@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Any, Callable, List
 
 from core import entities
 from core.cache_manager import CacheManager
-from core.entities.plant import Plant
 from core.object_pool import FoodPool
 
 if TYPE_CHECKING:
@@ -108,9 +107,11 @@ class EntityManager:
         environment = self._get_environment()
         root_spot_manager = self._get_root_spot_manager()
 
-        # Check population limit for fish
-        if isinstance(entity, entities.Fish):
-            fish_count = sum(1 for e in self._entities if isinstance(e, entities.Fish))
+        # Check population limit for fish (use snapshot_type for loose coupling)
+        if getattr(entity, "snapshot_type", None) == "fish":
+            fish_count = sum(
+                1 for e in self._entities if getattr(e, "snapshot_type", None) == "fish"
+            )
             if ecosystem and fish_count >= ecosystem.max_population:
                 # At max population - reject this fish
                 # The energy invested in this baby is lost (population pressure)
@@ -152,7 +153,8 @@ class EntityManager:
         environment = self._get_environment()
 
         # Ensure fractal plant root spots are released even when removed externally
-        if isinstance(entity, Plant):
+        # Use snapshot_type for loose coupling
+        if getattr(entity, "snapshot_type", None) == "plant":
             entity.die()
 
         self._entities.remove(entity)
@@ -161,8 +163,8 @@ class EntityManager:
         if environment:
             environment.remove_agent_from_grid(entity)
 
-        # Return Food to pool for reuse
-        if isinstance(entity, entities.Food):
+        # Return Food to pool for reuse (use snapshot_type for loose coupling)
+        if getattr(entity, "snapshot_type", None) == "food":
             self._food_pool.release(entity)
 
         # Invalidate cached lists

@@ -34,14 +34,9 @@ ALLOWED_PATHS = {
 # Files that currently have legacy isinstance checks.
 # As we refactor these, remove them from the list.
 # New files should NOT be added without justification.
-LEGACY_VIOLATIONS = {
-    # Entity lifecycle needs type checks for death handling (planned for protocol refactor)
-    "core/systems/entity_lifecycle.py",
-    # Soccer system checks for Fish to filter soccer players
-    "core/systems/soccer_system.py",
-    # Entity manager filters by type for plant cleanup
-    "core/simulation/entity_manager.py",
-}
+#
+# UPDATE: All legacy files have been refactored to use snapshot_type!
+LEGACY_VIOLATIONS: set[str] = set()  # Empty - all refactored!
 
 # Directories to scan (relative to repo root)
 SCAN_DIRS = [
@@ -153,7 +148,7 @@ def test_legacy_violations_not_growing():
 
     Update EXPECTED_COUNT when you refactor files.
     """
-    EXPECTED_COUNT = 3  # entity_lifecycle.py, soccer_system.py, entity_manager.py
+    EXPECTED_COUNT = 0  # All legacy files refactored!
 
     actual_count = len(LEGACY_VIOLATIONS)
 

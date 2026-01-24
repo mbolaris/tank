@@ -110,28 +110,31 @@ class EntityLifecycleSystem(BaseSystem):
         Returns:
             True if entity was processed and removed, False otherwise
         """
-        from core.entities import Fish, Food
-        from core.entities.plant import Plant, PlantNectar
+        # Use snapshot_type for type dispatch instead of isinstance
+        # This enables loose coupling - new entity types just need snapshot_type
+        snapshot_type = getattr(entity, "snapshot_type", None)
 
-        if isinstance(entity, Fish):
+        if snapshot_type == "fish":
             # record_fish_death handles all stats tracking internally
             self.record_fish_death(entity)
             return True
 
-        elif isinstance(entity, Plant):
+        elif snapshot_type == "plant":
             entity.die()  # Release root spot
             self._engine.request_remove(entity, reason="plant_death")
             self._deaths_this_frame += 1
             self._total_deaths += 1
             self._plants_died += 1
-            logger.debug(f"Plant #{entity.plant_id} died at age {entity.age}")
+            plant_id = getattr(entity, "plant_id", "?")
+            age = getattr(entity, "age", 0)
+            logger.debug(f"Plant #{plant_id} died at age {age}")
             return True
 
-        elif isinstance(entity, PlantNectar):
+        elif snapshot_type == "plant_nectar":
             self._engine.request_remove(entity, reason="plant_nectar_expired")
             return True
 
-        elif isinstance(entity, Food):
+        elif snapshot_type == "food":
             self._engine.request_remove(entity, reason="food_removed")
             self._food_removed += 1
             return True
@@ -238,13 +241,16 @@ class EntityLifecycleSystem(BaseSystem):
         Called each frame to clean up fish that have finished showing
         their death animation.
         """
-        from core.entities import Fish
-
         to_remove = []
         for entity in self._engine.get_all_entities():
-            if isinstance(entity, Fish) and entity.visual_state.death_effect_state is not None:
+            # Use snapshot_type instead of isinstance for loose coupling
+            if getattr(entity, "snapshot_type", None) != "fish":
+                continue
+            # Check for death effect state
+            visual_state = getattr(entity, "visual_state", None)
+            if visual_state and visual_state.death_effect_state is not None:
                 # If timer expired, mark for removal
-                if entity.visual_state.death_effect_timer <= 0:
+                if visual_state.death_effect_timer <= 0:
                     to_remove.append(entity)
 
         for fish in to_remove:

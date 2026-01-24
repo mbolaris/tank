@@ -101,7 +101,6 @@ class SoccerSystem(BaseSystem):
         """
         import math
 
-        from core.entities import Fish
         from core.math_utils import Vector2
 
         if not self.engine.environment or not self.ball:
@@ -114,7 +113,8 @@ class SoccerSystem(BaseSystem):
         kickable_distance = 30.0
 
         for entity in self.engine.entities_list:
-            if not isinstance(entity, Fish) or entity.is_dead():
+            # Use snapshot_type instead of isinstance for loose coupling
+            if getattr(entity, "snapshot_type", None) != "fish" or entity.is_dead():
                 continue
 
             # Calculate distance to ball
@@ -179,7 +179,6 @@ class SoccerSystem(BaseSystem):
         Args:
             goal_event: GoalEvent with scorer and team information
         """
-        from core.entities import Fish
 
         if not self.engine.environment:
             return
@@ -187,7 +186,8 @@ class SoccerSystem(BaseSystem):
         # Find the scorer and award energy
         scorer_found = False
         for fish in self.engine.entities_list:
-            if not isinstance(fish, Fish) or fish.is_dead():
+            # Use snapshot_type instead of isinstance for loose coupling
+            if getattr(fish, "snapshot_type", None) != "fish" or fish.is_dead():
                 continue
 
             # Check if this fish is the scorer
