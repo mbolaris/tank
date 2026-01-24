@@ -37,7 +37,7 @@ class BottomFeeder(BehaviorAlgorithm):
         vy = (target_y - fish.pos.y) / 100
 
         nearest_food = self._find_nearest_food(fish)
-        vx = 0
+        vx = 0.0
         if nearest_food:
             # Prediction helps catch sinking food
             prediction_skill = fish.genome.behavioral.prediction_skill.value

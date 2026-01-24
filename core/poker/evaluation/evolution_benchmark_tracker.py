@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.poker.evaluation.comprehensive_benchmark import PopulationBenchmarkResult
 
 logger = logging.getLogger(__name__)
 
@@ -289,8 +290,6 @@ class EvolutionBenchmarkTracker:
     def should_run(self, current_frame: int) -> bool:
         """Check if it's time for a benchmark run."""
         return current_frame - self._last_eval_frame >= self.eval_interval_frames
-
-        return snapshot
 
     def _assign_rewards(
         self,

@@ -7,7 +7,7 @@ a clean interface without any legacy wrappers.
 
 import logging
 import random
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import SimulationEngine
@@ -15,6 +15,9 @@ from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, Ste
 from core.worlds.tank.action_bridge import apply_actions
 from core.worlds.tank.observation_builder import build_tank_observations
 from core.worlds.tank.pack import TankPack
+
+if TYPE_CHECKING:
+    from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def __init__(
         self,
         seed: Optional[int] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[Union[SimulationConfig, Dict[str, Any]]] = None,
         **config_overrides,
     ):
         """Initialize the Tank world backend adapter.
@@ -57,11 +60,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Start with production defaults
         base_config = SimulationConfig.production(headless=True)
 
-        merged_config = {}
-        if config and isinstance(config, dict):
+        merged_config: Dict[str, Any] = {}
+        if isinstance(config, dict):
             merged_config.update(config)
-        elif config and hasattr(config, "apply_flat_config"):
-            # If it's already a SimulationConfig, use it as the base
+        elif isinstance(config, SimulationConfig):
             base_config = config
 
         if config_overrides:
@@ -80,6 +82,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def environment(self):
         """Expose the underlying simulation environment."""
         return self._engine.environment if self._engine else None
+
+    @property
+    def world(self) -> Any:
+        """Expose the underlying world (alias for environment)."""
+        return self.environment
 
     def add_entity(self, entity) -> None:
         """Add an entity to the world (shim for tests)."""
@@ -412,20 +419,22 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
         # Import soccer types
+        BallCls: Optional[Type[Any]]
+        GoalZoneCls: Optional[Type[Any]]
         try:
-            from core.entities.ball import Ball
-            from core.entities.goal_zone import GoalZone
+            from core.entities.ball import Ball as BallCls
+            from core.entities.goal_zone import GoalZone as GoalZoneCls
         except ImportError:
-            Ball = None
-            GoalZone = None
+            BallCls = None
+            GoalZoneCls = None
 
         entities_snapshot = []
 
         for entity in self._engine.entities_list:
             # Skip transient soccer entities - they are respawned by SoccerSystem on restore
-            if Ball and isinstance(entity, Ball):
+            if BallCls is not None and isinstance(entity, BallCls):
                 continue
-            if GoalZone and isinstance(entity, GoalZone):
+            if GoalZoneCls is not None and isinstance(entity, GoalZoneCls):
                 continue
 
             entity_dict = None
@@ -472,30 +481,6 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "y": entity.pos.y,
                     "width": entity.width,
                     "height": entity.height,
-                }
-            elif Ball and isinstance(entity, Ball):
-                entity_dict = {
-                    "type": "ball",
-                    "id": entity.id,
-                    "x": entity.pos.x,
-                    "y": entity.pos.y,
-                    "radius": entity.radius,
-                    "vx": entity.vel.x,
-                    "vy": entity.vel.y,
-                    # Width/height for frontend compat
-                    "width": entity.radius * 2,
-                    "height": entity.radius * 2,
-                }
-            elif GoalZone and isinstance(entity, GoalZone):
-                entity_dict = {
-                    "type": "goalzone",
-                    "id": entity.id,
-                    "x": entity.pos.x,
-                    "y": entity.pos.y,
-                    "radius": entity.radius,
-                    "team": entity.team_id,
-                    "width": entity.radius * 2,
-                    "height": entity.radius * 2,
                 }
             else:
                 # Fallback for unknown entity types

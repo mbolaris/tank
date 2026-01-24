@@ -221,10 +221,11 @@ class Fish(GenericAgent):
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem
+        self.fish_id: int
         if fish_id is None and ecosystem is not None:
-            self.fish_id: int = ecosystem.generate_new_fish_id()
+            self.fish_id = ecosystem.generate_new_fish_id()
         else:
-            self.fish_id: int = fish_id if fish_id is not None else 0
+            self.fish_id = fish_id if fish_id is not None else 0
 
         # Type-safe ID wrapper (cached to avoid repeated object creation)
         self._typed_id: FishId | None = None

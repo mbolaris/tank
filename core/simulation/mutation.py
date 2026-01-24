@@ -1,6 +1,6 @@
 """Mutation transaction management."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
 
 from core.entities import Agent
 from core.simulation.entity_manager import EntityManager
@@ -111,6 +111,7 @@ class MutationTransaction:
             return entity.__class__.__name__.lower(), str(id(entity))
 
         if hasattr(provider, "type_name") and hasattr(provider, "stable_id"):
-            return provider.type_name(entity), provider.stable_id(entity)
+            return str(provider.type_name(entity)), str(provider.stable_id(entity))
 
-        return provider.get_identity(entity)
+        identity = provider.get_identity(entity)
+        return cast(Tuple[str, str], identity)

@@ -21,6 +21,7 @@ from core.worlds.shared.tank_like_pack_base import TankLikePackBase
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
     from core.worlds.identity import EntityIdentityProvider
+    from core.worlds.petri.environment import PetriEnvironment
 
 from core.worlds.petri.movement_observations import register_petri_movement_observation_builder
 from core.worlds.petri.petri_actions import register_petri_action_translator
@@ -72,7 +73,7 @@ class PetriPack(TankLikePackBase):
             "height": self.config.display.screen_height,
         }
 
-    def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
+    def build_environment(self, engine: SimulationEngine) -> PetriEnvironment:
         """Create the Petri environment with circular physics."""
         from core.events import EventBus
         from core.worlds.petri.environment import PetriEnvironment

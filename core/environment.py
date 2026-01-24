@@ -49,7 +49,8 @@ class Environment:
             event_bus: Optional EventBus for domain event dispatch
             simulation_config: Optional SimulationConfig for runtime parameters
         """
-        self.agents = agents
+        agents_list = list(agents) if agents is not None else None
+        self.agents: Optional[List[Agent]] = agents_list
         self.width = width
         self.height = height
 
@@ -84,6 +85,10 @@ class Environment:
         # Optional circular dish geometry for Petri mode (set during mode switching)
         self._dish: Optional[Any] = None
 
+        # Optional soccer components (populated by Soccer mode packs)
+        self.ball: Any = None
+        self.goal_manager: Any = None
+
         # Performance: Cache detection range modifier (updated once per frame)
         self._cached_detection_modifier: float = 1.0
 
@@ -93,8 +98,8 @@ class Environment:
         self._remove_requester = None
 
         # Build initial spatial grid if agents are provided
-        if agents:
-            self.spatial_grid.rebuild(agents)
+        if agents_list is not None:
+            self.spatial_grid.rebuild(agents_list)
 
         self._type_cache: Dict[Type[Agent], List[Agent]] = {}
 

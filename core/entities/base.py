@@ -22,11 +22,8 @@ from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
 from core.math_utils import Vector2
 
 # Import LifeStage from state_machine for centralized definition with transition validation
-from core.state_machine import (
-    EntityState,
-    LifeStage,  # noqa: F401 - re-exported via core.entities.__init__
-    create_entity_state_machine,
-)
+from core.state_machine import LifeStage  # noqa: F401 - re-exported via core.entities.__init__
+from core.state_machine import EntityState, create_entity_state_machine
 from core.world import World
 
 
@@ -399,10 +396,11 @@ class Agent(Entity):
             self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
 
 
-class Castle(Entity):
+class Castle(Agent):
     """A decorative castle entity that doesn't move.
 
-    Inherits from Entity (not Agent) since it has no movement or AI behaviors.
+    Implemented as an Agent (with zero speed) so it can participate in spatial
+    indexing and collision logic without special-casing static entities.
     """
 
     def __init__(
@@ -418,9 +416,8 @@ class Castle(Entity):
             x: Initial x position
             y: Initial y position
         """
-        super().__init__(environment, x, y)
+        super().__init__(environment, x, y, speed=0.0)
         self.blocks_root_spots = True
-        self.speed = 0  # Castle doesn't move
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         self.set_size(225.0, 225.0)
 

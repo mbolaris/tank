@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.entities.base import Entity
+from core.entities.base import Agent
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class GoalEvent:
     base_energy_reward: float  # Base energy given to scoring team
 
 
-class GoalZone(Entity):
+class GoalZone(Agent):
     """Fixed goal zone that detects ball scoring.
 
     Goals are placed at field boundaries and award energy to the scoring team.
@@ -65,7 +65,7 @@ class GoalZone(Entity):
             radius: Radius of goal detection zone
             base_energy_reward: Base energy awarded for scoring
         """
-        super().__init__(environment, x, y)
+        super().__init__(environment, x, y, speed=0.0)
 
         self.team = team
         self.goal_id = goal_id

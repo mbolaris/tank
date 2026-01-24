@@ -41,7 +41,7 @@ def create_initial_population(
     """
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
-    population = []
+    population: List[entities.Agent] = []
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
@@ -72,7 +72,7 @@ def create_initial_population(
 
     # Create initial food items to prevent startup pause
     # Spawn 8 food items at various locations so fish have immediate targets
-    initial_food = []
+    initial_food: List[entities.Food] = []
     food_positions = [
         (display_config.screen_width * 0.25, display_config.screen_height * 0.3),  # Upper left area
         (display_config.screen_width * 0.5, display_config.screen_height * 0.25),  # Upper middle

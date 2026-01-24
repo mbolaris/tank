@@ -28,7 +28,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from core.poker_system import PokerSystem
     from core.reproduction_service import ReproductionService
     from core.reproduction_system import ReproductionSystem
+    from core.root_spots import RootSpotManager
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
     from core.systems.poker_proximity import PokerProximitySystem
@@ -307,7 +308,9 @@ class SimulationEngine:
         self.coordinator.plant_manager = self.plant_manager
 
         # 2. Let the pack build the environment
-        self.environment = pack.build_environment(self)
+        from core.environment import Environment
+
+        self.environment = cast(Environment, pack.build_environment(self))
 
         # Wire up energy delta recorder for immediate tracking
         if self.environment and hasattr(self.environment, "set_energy_delta_recorder"):
@@ -381,7 +384,7 @@ class SimulationEngine:
 
     def _validate_system_phase_declarations(self) -> None:
         """Verify phase metadata matches the explicit phase loop."""
-        phase_map = {
+        phase_map: dict[UpdatePhase, list[Any]] = {
             UpdatePhase.FRAME_START: [self.lifecycle_system],
             UpdatePhase.TIME_UPDATE: [self.time_system],
             UpdatePhase.SPAWN: [self.food_spawning_system],

@@ -11,7 +11,7 @@ Core betting logic and learning logic have been moved to separate modules:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
@@ -85,7 +85,7 @@ class MixedPokerInteraction:
             and hasattr(player, "lose_energy")
         )
 
-    def __init__(self, players: List[Player], rng: Optional[Any] = None):
+    def __init__(self, players: Sequence[Player], rng: Optional[Any] = None):
         """Initialize a mixed poker interaction.
 
         Args:
@@ -107,15 +107,15 @@ class MixedPokerInteraction:
         if fish_count == 0:
             raise ValueError("MixedPokerInteraction: require at least 1 fish")
 
-        self.players = players
+        self.players = list(players)
         self.rng = rng
-        self.num_players = len(players)
+        self.num_players = len(self.players)
         self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[MixedPokerResult] = None
 
         # Categorize players
-        self.fish_players = [p for p in players if self._is_fish_player(p)]
-        self.plant_players = [p for p in players if self._is_plant_player(p)]
+        self.fish_players = [p for p in self.players if self._is_fish_player(p)]
+        self.plant_players = [p for p in self.players if self._is_plant_player(p)]
         self.fish_count = len(self.fish_players)
         self.plant_count = len(self.plant_players)
 

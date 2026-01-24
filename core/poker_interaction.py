@@ -20,17 +20,19 @@ Usage:
 from __future__ import annotations
 
 import random
+from typing import Protocol, Sequence
 
 from core.config.fish import (
     POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
     POST_POKER_REPRODUCTION_LOSER_PROB,
     POST_POKER_REPRODUCTION_WINNER_PROB,
 )
-from core.mixed_poker import MixedPokerInteraction, Player
+from core.mixed_poker import MixedPokerInteraction
 from core.mixed_poker import MixedPokerResult as PokerResult
 from core.mixed_poker import MultiplayerBettingRound as BettingRound
 from core.mixed_poker import MultiplayerGameState as GameState
 from core.mixed_poker import MultiplayerPlayerContext as PlayerContext
+from core.mixed_poker import Player
 
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
@@ -39,7 +41,9 @@ POKER_COOLDOWN = 30  # Reduced from 60 for faster poker turnaround
 MAX_PLAYERS = 6
 
 
-def get_ready_players(players: list, min_energy: float = MIN_ENERGY_TO_PLAY) -> list:
+def get_ready_players(
+    players: Sequence[Player], min_energy: float = MIN_ENERGY_TO_PLAY
+) -> list[Player]:
     """Filter players that are ready to play poker.
 
     Uses entity attributes directly (no global manager):
@@ -86,8 +90,15 @@ PokerInteraction = MixedPokerInteraction
 def _get_reproduction_cooldown(player: Player) -> int:
     component = getattr(player, "_reproduction_component", None)
     if component is not None:
-        return component.reproduction_cooldown
-    return getattr(player, "reproduction_cooldown", 0)
+        cooldown = getattr(component, "reproduction_cooldown", 0)
+        try:
+            return int(cooldown)
+        except (TypeError, ValueError):
+            return 0
+    try:
+        return int(getattr(player, "reproduction_cooldown", 0))
+    except (TypeError, ValueError):
+        return 0
 
 
 def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
@@ -117,9 +128,18 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     if _get_reproduction_cooldown(opponent) > 0:
         return False
 
-    # Check same species (fish can only reproduce with fish, plants with plants)
-    if player.species != opponent.species:
-        return False
+    # Check compatible reproduction group (fish with fish; plant with plant)
+    player_type = getattr(player, "snapshot_type", None)
+    opponent_type = getattr(opponent, "snapshot_type", None)
+    if player_type is not None or opponent_type is not None:
+        if player_type != opponent_type:
+            return False
+        if player_type == "fish":
+            if getattr(player, "species", None) != getattr(opponent, "species", None):
+                return False
+    else:
+        if type(player) is not type(opponent):
+            return False
 
     return True
 
@@ -233,8 +253,22 @@ def calculate_house_cut(winner_size: float, net_gain: float) -> float:
     return min(net_gain * house_cut_percentage, net_gain)
 
 
+class _HasXY(Protocol):
+    x: float
+    y: float
+
+
+class _HasRectPos(Protocol):
+    pos: _HasXY
+    width: float
+    height: float
+
+
 def check_poker_proximity(
-    entity1, entity2, min_distance: float = 40.0, max_distance: float = 80.0
+    entity1: _HasRectPos,
+    entity2: _HasRectPos,
+    min_distance: float = 40.0,
+    max_distance: float = 80.0,
 ) -> bool:
     """Check if two entities are close enough for poker but not touching.
 
@@ -250,16 +284,16 @@ def check_poker_proximity(
         True if they are in the poker proximity zone
     """
     # Calculate centers
-    e1_cx = entity1.pos.x + entity1.width / 2
-    e1_cy = entity1.pos.y + entity1.height / 2
-    e2_cx = entity2.pos.x + entity2.width / 2
-    e2_cy = entity2.pos.y + entity2.height / 2
+    e1_cx = float(entity1.pos.x) + float(entity1.width) / 2.0
+    e1_cy = float(entity1.pos.y) + float(entity1.height) / 2.0
+    e2_cx = float(entity2.pos.x) + float(entity2.width) / 2.0
+    e2_cy = float(entity2.pos.y) + float(entity2.height) / 2.0
 
     dx = e1_cx - e2_cx
     dy = e1_cy - e2_cy
     distance_sq = dx * dx + dy * dy
 
-    return min_distance * min_distance < distance_sq <= max_distance * max_distance
+    return bool(min_distance * min_distance < distance_sq <= max_distance * max_distance)
 
 
 def filter_mutually_proximate(

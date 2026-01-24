@@ -97,18 +97,6 @@ class PokerSystem(BaseSystem):
             if baby is not None:
                 return
 
-        # Fallback: check if reproduction was handled elsewhere
-        if (
-            poker.result is not None
-            and getattr(poker.result, "reproduction_occurred", False)
-            and getattr(poker.result, "offspring", None) is not None
-        ):
-            if self._request_spawn(poker.result.offspring, reason="poker_reproduction"):
-                if hasattr(poker.result.offspring, "register_birth"):
-                    poker.result.offspring.register_birth()
-                if hasattr(self._engine, "lifecycle_system"):
-                    self._engine.lifecycle_system.record_birth()
-
     def _add_poker_event_to_history(
         self,
         winner_id: int,

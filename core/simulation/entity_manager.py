@@ -63,7 +63,7 @@ class EntityManager:
             get_ecosystem: Callable returning the EcosystemManager (deferred access)
             get_root_spot_manager: Callable returning the RootSpotManager (deferred access)
         """
-        self._entities: List[entities.Entity] = []
+        self._entities: List[entities.Agent] = []
         self._cache_manager = CacheManager(lambda: self._entities)
         self._food_pool = FoodPool(rng=rng)
 
@@ -91,7 +91,7 @@ class EntityManager:
         """Check if caches need rebuilding."""
         return self._cache_manager.is_dirty
 
-    def add(self, entity: entities.Entity) -> bool:
+    def add(self, entity: entities.Agent) -> bool:
         """Add an entity to the simulation.
 
         For Fish entities, this respects population limits (max_population).
@@ -155,7 +155,9 @@ class EntityManager:
         # Ensure fractal plant root spots are released even when removed externally
         # Use snapshot_type for loose coupling
         if getattr(entity, "snapshot_type", None) == "plant":
-            entity.die()
+            die = getattr(entity, "die", None)
+            if callable(die):
+                die()
 
         self._entities.remove(entity)
 
@@ -164,7 +166,7 @@ class EntityManager:
             environment.remove_agent_from_grid(entity)
 
         # Return Food to pool for reuse (use snapshot_type for loose coupling)
-        if getattr(entity, "snapshot_type", None) == "food":
+        if getattr(entity, "snapshot_type", None) == "food" and isinstance(entity, entities.Food):
             self._food_pool.release(entity)
 
         # Invalidate cached lists

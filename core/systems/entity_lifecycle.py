@@ -31,13 +31,14 @@ between phases to prevent mid-iteration mutations.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities import Agent, Fish, Food
+    from core.entities.plant import Plant
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -116,17 +117,20 @@ class EntityLifecycleSystem(BaseSystem):
 
         if snapshot_type == "fish":
             # record_fish_death handles all stats tracking internally
-            self.record_fish_death(entity)
+            self.record_fish_death(cast("Fish", entity))
             return True
 
         elif snapshot_type == "plant":
-            entity.die()  # Release root spot
+            die = getattr(entity, "die", None)
+            if callable(die):
+                die()  # Release root spot
             self._engine.request_remove(entity, reason="plant_death")
             self._deaths_this_frame += 1
             self._total_deaths += 1
             self._plants_died += 1
-            plant_id = getattr(entity, "plant_id", "?")
-            age = getattr(entity, "age", 0)
+            plant = cast("Plant", entity)
+            plant_id = getattr(plant, "plant_id", "?")
+            age = getattr(plant, "age", 0)
             logger.debug(f"Plant #{plant_id} died at age {age}")
             return True
 

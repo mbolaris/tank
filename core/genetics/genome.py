@@ -8,7 +8,7 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
@@ -106,12 +106,13 @@ class Genome:
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
-        return genome_from_dict(
+        genome = genome_from_dict(
             data,
             schema_version_expected=GENOME_SCHEMA_VERSION,
             genome_factory=lambda: cls.random(use_algorithm=use_algorithm, rng=rng),
             rng=rng,
         )
+        return cast("Genome", genome)
 
     def debug_snapshot(self) -> Dict[str, Any]:
         """Return a compact, stable dict for logging/debugging."""

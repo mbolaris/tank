@@ -722,16 +722,24 @@ class EcosystemManager:
 
     def record_poker_outcome_record(self, record: PokerOutcomeRecord) -> None:
         """Record a poker game outcome from a value object."""
+        from typing import cast
+
+        from core.mixed_poker.types import MixedPokerResult
+        from core.poker.core import PokerHand
+
+        winner_hand = cast(PokerHand, record.winner_hand)
+        loser_hand = cast(PokerHand, record.loser_hand)
+        result = cast(Optional[MixedPokerResult], record.result)
         self.poker_manager.record_poker_outcome(
             record.winner_id,
             record.loser_id,
             record.winner_algo_id,
             record.loser_algo_id,
             record.amount,
-            record.winner_hand,
-            record.loser_hand,
+            winner_hand,
+            loser_hand,
             record.house_cut,
-            record.result,
+            result,
             record.player1_algo_id,
             record.player2_algo_id,
         )

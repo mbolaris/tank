@@ -225,7 +225,8 @@ def _build_gene_distributions(fish_list: List["Fish"]) -> Dict[str, Any]:
             values = [float(t.value) for t in traits if hasattr(t, "value")]
 
             if not values:
-                bins, edges = [], []
+                bins: List[int] = []
+                edges: List[float] = []
                 median_val = min_val = max_val = 0.0
             else:
                 bins, edges = create_histogram(values, spec.min_val, spec.max_val, num_bins=20)
@@ -416,10 +417,10 @@ def _get_poker_strategy_distributions(fish_list: List["Fish"]) -> List[Dict[str,
     def meta_for_traits(traits: List[Any]) -> Dict[str, float]:
         return compute_meta_stats(traits).to_dict()
 
-    betting_vals = []
-    hand_vals = []
-    bluff_vals = []
-    traits = []
+    betting_vals: List[int] = []
+    hand_vals: List[int] = []
+    bluff_vals: List[int] = []
+    traits: List[Any] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):

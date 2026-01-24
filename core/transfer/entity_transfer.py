@@ -6,7 +6,7 @@ for transferring between tanks.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +213,9 @@ class TransferRegistry:
                 outcome.error.message if outcome.error else "unknown error",
             )
             return None
-        return outcome.value
+        if outcome.value is None:
+            return None
+        return cast(SerializedEntity, outcome.value)
 
     def try_deserialize_entity(self, data: SerializedEntity, target_world: Any) -> TransferOutcome:
         if not isinstance(data, dict):

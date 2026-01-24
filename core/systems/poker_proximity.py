@@ -22,13 +22,13 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
+from core.entities import Fish
 from core.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
 from core.poker_interaction import PokerInteraction, filter_mutually_proximate, get_ready_players
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.entities import Fish
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -133,6 +133,8 @@ class PokerProximitySystem(BaseSystem):
             fish_cy = fish.pos.y + fish.height * 0.5
 
             for other in nearby:
+                if not isinstance(other, Fish):
+                    continue
                 if other is fish or other not in fish_set:
                     continue
                 if other.is_dead():

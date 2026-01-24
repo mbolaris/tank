@@ -21,9 +21,9 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
-from core.worlds.system_pack import EnvironmentLike
 
 if TYPE_CHECKING:
+    from core.environment import Environment
     from core.simulation.engine import SimulationEngine
     from core.simulation.phase_hooks import PhaseHooks
     from core.simulation.pipeline import EnginePipeline
@@ -104,7 +104,7 @@ class TankLikePackBase(ABC):
 
         return systems
 
-    def build_environment(self, engine: SimulationEngine) -> EnvironmentLike:
+    def build_environment(self, engine: SimulationEngine) -> Environment:
         """Create the Tank-like environment with EventBus and GenomeCodePool."""
         from core import environment
         from core.events import EventBus

@@ -170,9 +170,13 @@ class SoccerLeagueRuntime:
         return events
 
     def _should_start_match(self, cycle: int) -> bool:
-        match_every_frames = getattr(self.config, "match_every_frames", None)
-        if match_every_frames is None:
-            match_every_frames = self.config.interval_frames
+        match_every_frames_raw = getattr(self.config, "match_every_frames", None)
+        if match_every_frames_raw is None:
+            match_every_frames_raw = getattr(self.config, "interval_frames", 0)
+        try:
+            match_every_frames = int(match_every_frames_raw)
+        except (TypeError, ValueError):
+            match_every_frames = 0
         if match_every_frames <= 0:
             return False
         return cycle % match_every_frames == 0
@@ -197,8 +201,8 @@ class SoccerLeagueRuntime:
         entity_map = self._provider.find_entities(world_state, needed_ids)
 
         # Validate and balance participants
-        home_participants = []
-        away_participants = []
+        home_participants: list[Any] = []
+        away_participants: list[Any] = []
 
         def collect_team_participants(team, prefix, target_list):
             if team.source == TeamSource.BOT:

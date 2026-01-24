@@ -21,6 +21,7 @@ Key design principles:
 4. Metrics are for observation/reporting, not selection
 """
 
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
@@ -261,7 +262,7 @@ class SkillGame(ABC):
         return "Unknown"
 
     @abstractmethod
-    def create_default_strategy(self) -> SkillStrategy:
+    def create_default_strategy(self, rng: Optional[random.Random] = None) -> SkillStrategy:
         """Create a new default strategy for this game.
 
         This is used when a fish is born and needs a starting strategy.

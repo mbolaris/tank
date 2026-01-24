@@ -116,7 +116,7 @@ def _default_preference_value(spec: TraitSpec) -> float:
     return float(midpoint)
 
 
-def _coerce_preference_value(value: object, spec: TraitSpec) -> float:
+def _coerce_preference_value(value: Any, spec: TraitSpec) -> float:
     try:
         numeric = float(value)
     except (TypeError, ValueError):
@@ -490,17 +490,25 @@ def _inherit_composable_behavior(
     if behavior1 is None and behavior2 is None:
         return ComposableBehavior.create_random(rng=rng)
     elif behavior1 is None:
-        return behavior2.clone_with_mutation(
+        assert behavior2 is not None
+        child = ComposableBehavior.from_dict(behavior2.to_dict())
+        child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
+            sub_behavior_switch_rate=0.08,
             rng=rng,
         )
+        return child
     elif behavior2 is None:
-        return behavior1.clone_with_mutation(
+        assert behavior1 is not None
+        child = ComposableBehavior.from_dict(behavior1.to_dict())
+        child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
+            sub_behavior_switch_rate=0.08,
             rng=rng,
         )
+        return child
 
     return ComposableBehavior.from_parents(
         behavior1,

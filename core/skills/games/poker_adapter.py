@@ -240,13 +240,13 @@ class PokerSkillGame(SkillGame):
             "and pot-odds-based decisions."
         )
 
-    def create_default_strategy(self) -> PokerSkillStrategy:
+    def create_default_strategy(self, rng: Optional[random.Random] = None) -> PokerSkillStrategy:
         """Create a new default poker strategy.
 
         Returns:
             Random poker strategy for new fish
         """
-        return PokerSkillStrategy(_strategy=get_random_poker_strategy())
+        return PokerSkillStrategy(_strategy=get_random_poker_strategy(rng=rng))
 
     def create_optimal_strategy(self) -> OptimalPokerStrategy:
         """Create an optimal (GTO-approximating) strategy.

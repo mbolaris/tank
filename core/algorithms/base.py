@@ -385,7 +385,7 @@ class BehaviorStrategyBase(ABC):
     and algorithm registration. The Protocol and ABC define the same contract.
     """
 
-    pass
+    algorithm_id: str
 
 
 class BehaviorHelpersMixin:

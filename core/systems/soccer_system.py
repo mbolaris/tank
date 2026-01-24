@@ -164,11 +164,7 @@ class SoccerSystem(BaseSystem):
                             entity.energy = min(entity.energy, getattr(entity, "max_energy", 100))
 
                         # Set visual effect for HUD display
-                        entity.soccer_effect_state = {
-                            "type": "kick",
-                            "amount": 2.0,
-                            "timer": 10,  # ~1 second at broadcast rate
-                        }
+                        entity.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}
 
                         # Only one fish kicks per frame
                         break
@@ -185,7 +181,7 @@ class SoccerSystem(BaseSystem):
 
         # Find the scorer and award energy
         scorer_found = False
-        for fish in self.engine.entities_list:
+        for fish in self.engine.get_fish_list():
             # Use snapshot_type instead of isinstance for loose coupling
             if getattr(fish, "snapshot_type", None) != "fish" or fish.is_dead():
                 continue
@@ -198,11 +194,7 @@ class SoccerSystem(BaseSystem):
                 fish.energy = min(fish.energy, fish.max_energy)
 
                 # Set visual effect for HUD display
-                fish.soccer_effect_state = {
-                    "type": "goal",
-                    "amount": reward,
-                    "timer": 30,  # ~3 seconds at broadcast rate
-                }
+                fish.soccer_effect_state = {"type": "goal", "amount": reward, "timer": 30}
                 scorer_found = True
                 logger.info(f"Fish {fish.fish_id} scored a goal! Awarded {reward:.1f} energy")
                 break
