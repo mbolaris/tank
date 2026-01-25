@@ -99,7 +99,7 @@ def apply_soccer_rewards(
 
 
 def calculate_shaped_bonuses(
-    telemetry: "SoccerTelemetry",
+    telemetry: SoccerTelemetry,
     *,
     progress_weight: float = 0.5,
     touch_weight: float = 0.2,
@@ -157,7 +157,7 @@ def calculate_shaped_bonuses(
 def apply_shaped_soccer_rewards(
     player_map: Mapping[str, Any],
     winner_team: str | None,
-    telemetry: "SoccerTelemetry",
+    telemetry: SoccerTelemetry,
     *,
     entry_fees: Mapping[int, float] | None = None,
     reward_multiplier: float = 1.0,

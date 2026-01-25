@@ -21,7 +21,6 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass, field
-from typing import Any
 
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
