@@ -198,9 +198,7 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
                 # Check if this is a shot (kick toward opponent goal)
                 # Shot = ball velocity pointing toward opponent goal
                 ball_vx = ball.velocity.x
-                is_shot = (team == "left" and ball_vx > 0.5) or (
-                    team == "right" and ball_vx < -0.5
-                )
+                is_shot = (team == "left" and ball_vx > 0.5) or (team == "right" and ball_vx < -0.5)
                 if is_shot:
                     telemetry.teams[team].shots += 1
 

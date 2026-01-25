@@ -209,9 +209,9 @@ def test_telemetry_ball_progress():
 
     # Right team kicks toward left goal (negative x direction)
     # Ball progress for right team should be positive (they moved ball toward their goal)
-    assert tel.teams["right"].ball_progress > 0, (
-        "Right team should have positive ball progress when kicking toward left goal"
-    )
+    assert (
+        tel.teams["right"].ball_progress > 0
+    ), "Right team should have positive ball progress when kicking toward left goal"
 
 
 def test_shaped_rewards_nonzero_in_draw():

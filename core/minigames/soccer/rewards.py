@@ -135,9 +135,7 @@ def calculate_shaped_bonuses(
         bonus += player_tel.touches * touch_weight
 
         # Ball progress bonus: share team's progress among team players
-        team_players = [
-            pid for pid, pt in telemetry.players.items() if pt.team == team
-        ]
+        team_players = [pid for pid, pt in telemetry.players.items() if pt.team == team]
         if team_players and team_tel.ball_progress > 0:
             progress_share = team_tel.ball_progress / len(team_players)
             bonus += progress_share * progress_weight
