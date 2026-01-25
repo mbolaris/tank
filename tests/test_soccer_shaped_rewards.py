@@ -157,7 +157,10 @@ def test_shaped_pot_vs_pot_payout_different_outcomes():
         total_delta_2 = sum(outcome2.energy_deltas.values())
 
         # Shaped pot should give more total energy (bonuses on top of refunds)
-        if match2.telemetry.teams["left"].touches > 0 or match2.telemetry.teams["right"].touches > 0:
+        if (
+            match2.telemetry.teams["left"].touches > 0
+            or match2.telemetry.teams["right"].touches > 0
+        ):
             assert (
                 total_delta_2 > total_delta_1
             ), "shaped_pot should give more total energy than pot_payout in a draw with activity"
