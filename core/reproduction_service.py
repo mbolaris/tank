@@ -6,6 +6,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.energy.energy_utils import apply_energy_delta
+
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.poker_interaction import PokerInteraction
@@ -440,8 +442,8 @@ class ReproductionService:
             mate_contrib *= scale
             total_contrib = baby_max_energy
 
-        winner.energy = max(0.0, winner.energy - winner_contrib)
-        mate.energy = max(0.0, mate.energy - mate_contrib)
+        apply_energy_delta(winner, -winner_contrib, source="post_poker_reproduction")
+        apply_energy_delta(mate, -mate_contrib, source="post_poker_reproduction")
 
         winner._reproduction_component.reproduction_cooldown = max(
             winner._reproduction_component.reproduction_cooldown,

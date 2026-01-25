@@ -4,6 +4,7 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
+from core.energy.energy_utils import apply_energy_delta
 from core.entities.base import Agent
 from core.entities.fish import Fish
 from core.math_utils import Vector2
@@ -140,7 +141,12 @@ class Food(Agent):
             Amount of energy actually consumed
         """
         consumed = min(self.energy, bite_size)
-        self.energy -= consumed
+        apply_energy_delta(
+            self,
+            -consumed,
+            source="food_consumption",
+            allow_direct_assignment=True,
+        )
 
         # Update size based on remaining energy
         # Minimum size is 20% of original

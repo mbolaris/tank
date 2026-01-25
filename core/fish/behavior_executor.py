@@ -143,7 +143,7 @@ class BehaviorExecutor:
                 size_factor = fish.size**DIRECTION_CHANGE_SIZE_MULTIPLIER
                 energy_cost = DIRECTION_CHANGE_ENERGY_BASE * turn_intensity * size_factor
 
-                fish.energy = max(0, fish.energy - energy_cost)
+                fish.modify_energy(-energy_cost, source="turn_cost")
 
         self._last_direction = new_direction
 

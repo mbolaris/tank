@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from core.energy.energy_utils import apply_energy_delta
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase
 
@@ -179,12 +180,15 @@ class SoccerSystem(BaseSystem):
             self.ball.kick(power, direction, kicker=kicker)
 
             # Award small energy reward for kicking via proper channel
-            if hasattr(kicker, "modify_energy"):
-                kicker.modify_energy(2.0, source="soccer_kick")
-            elif hasattr(kicker, "energy"):
-                # Fallback for non-Fish entities with energy
-                kicker.energy += 2.0
-                kicker.energy = min(kicker.energy, getattr(kicker, "max_energy", 100))
+            try:
+                apply_energy_delta(
+                    kicker,
+                    2.0,
+                    source="soccer_kick",
+                    allow_direct_assignment=True,
+                )
+            except AttributeError:
+                pass
 
             # Set visual effect for HUD display
             kicker.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}
@@ -210,12 +214,12 @@ class SoccerSystem(BaseSystem):
             if fish.fish_id == goal_event.scorer_id:
                 # Award big energy reward for scoring via proper channel
                 reward = 50.0
-                if hasattr(fish, "modify_energy"):
-                    fish.modify_energy(reward, source="soccer_goal")
-                else:
-                    # Fallback for non-standard entities
-                    fish.energy += reward
-                    fish.energy = min(fish.energy, fish.max_energy)
+                try:
+                    apply_energy_delta(
+                        fish, reward, source="soccer_goal", allow_direct_assignment=True
+                    )
+                except AttributeError:
+                    pass
 
                 # Set visual effect for HUD display
                 fish.soccer_effect_state = {"type": "goal", "amount": reward, "timer": 30}

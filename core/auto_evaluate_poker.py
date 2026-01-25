@@ -25,6 +25,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from core.energy.energy_utils import apply_energy_delta
+
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
@@ -273,7 +275,14 @@ class AutoEvaluatePokerGame:
             player.current_bet = state_player.current_bet
             player.total_bet = state_player.total_bet
             player.folded = state_player.folded
-            player.energy = state_player.remaining_energy + payouts.get(player_id, 0.0)
+            target_energy = state_player.remaining_energy + payouts.get(player_id, 0.0)
+            delta = target_energy - player.energy
+            apply_energy_delta(
+                player,
+                delta,
+                source="auto_poker_sync",
+                allow_direct_assignment=True,
+            )
 
         winner_by_fold = game_state.get_winner_by_fold()
         if winner_by_fold is not None:

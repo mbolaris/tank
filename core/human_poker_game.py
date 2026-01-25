@@ -9,6 +9,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from core.energy.energy_utils import apply_energy_delta
 from core.poker.core import BettingAction, BettingRound, Card, Deck
 from core.poker.simulation.hand_engine import (
     MultiplayerGameState,
@@ -254,7 +255,14 @@ class HumanPokerGame:
             state_player = self._hand_state.players[i]
             player.current_bet = state_player.current_bet
             player.total_bet = state_player.total_bet
-            player.energy = state_player.remaining_energy
+            target_energy = state_player.remaining_energy
+            delta = target_energy - player.energy
+            apply_energy_delta(
+                player,
+                delta,
+                source="human_poker_sync",
+                allow_direct_assignment=True,
+            )
             player.folded = state_player.folded
             player.hole_cards = list(state_player.hole_cards)
 
