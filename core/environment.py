@@ -4,8 +4,10 @@ This module provides the Environment class which manages spatial queries
 for agents in the simulation.
 """
 
+from __future__ import annotations
+
 import random
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict
 
 from core.entities import Agent
 from core.interfaces import MigrationHandler
@@ -25,23 +27,23 @@ class Environment:
 
     # Class-level cache for issubclass results to avoid repeated checks
     # Key: (type_key, agent_class), Value: bool
-    _subclass_cache: Dict[Tuple[Type, Type], bool] = {}
+    _subclass_cache: dict[tuple[type, type], bool] = {}
 
     def __init__(
         self,
-        agents: Optional[Iterable[Agent]] = None,
+        agents: list[Agent] | None = None,
         width: int = 800,
         height: int = 600,
-        time_system: Optional[Any] = None,
-        rng: Optional[random.Random] = None,
-        event_bus: Optional[Any] = None,
-        simulation_config: Optional[Any] = None,
+        time_system: Any | None = None,
+        rng: random.Random | None = None,
+        event_bus: Any | None = None,
+        simulation_config: Any | None = None,
     ):
         """
         Initialize the environment.
 
         Args:
-            agents (Iterable[Agent], optional): A collection of agents. Defaults to None.
+            agents (list[Agent] | None): List of agents (stored by reference). Defaults to None.
             width (int): Width of the environment in pixels. Defaults to 800.
             height (int): Height of the environment in pixels. Defaults to 600.
             time_system (TimeSystem, optional): Time system for day/night cycle effects
@@ -49,7 +51,9 @@ class Environment:
             event_bus: Optional EventBus for domain event dispatch
             simulation_config: Optional SimulationConfig for runtime parameters
         """
-        self.agents: Optional[List[Agent]] = agents
+        if agents is not None and not isinstance(agents, list):
+            agents = list(agents)
+        self.agents: list[Agent] | None = agents
         self.width = width
         self.height = height
 
@@ -72,17 +76,17 @@ class Environment:
         # Migration support (injected by backend)
         self.connection_manager: Any = None  # Set by backend if migrations enabled
         self.world_manager: Any = None  # Set by backend if migrations enabled
-        self.world_id: Optional[str] = None  # Set by backend if migrations enabled
-        self.world_name: Optional[str] = None  # Set by backend for lineage tracking
-        self.migration_handler: Optional[MigrationHandler] = (
+        self.world_id: str | None = None  # Set by backend if migrations enabled
+        self.world_name: str | None = None  # Set by backend for lineage tracking
+        self.migration_handler: MigrationHandler | None = (
             None  # Set by backend if migrations enabled
         )
 
         # World mode identifier (set by mode pack / backend when available)
-        self.world_type: Optional[str] = None
+        self.world_type: str | None = None
 
         # Optional circular dish geometry for Petri mode (set during mode switching)
-        self._dish: Optional[Any] = None
+        self._dish: Any | None = None
 
         # Optional soccer components (populated by Soccer mode packs)
         self.ball: Any = None
@@ -98,9 +102,9 @@ class Environment:
 
         # Build initial spatial grid if agents are provided
         if self.agents is not None:
-            self.spatial_grid.rebuild(list(self.agents))
+            self.spatial_grid.rebuild(self.agents)
 
-        self._type_cache: Dict[Type[Agent], List[Agent]] = {}
+        self._type_cache: dict[type[Agent], list[Agent]] = {}
 
         # NEW: Initialize communication system for fish
         from core.agent_signals import AgentSignalSystem
@@ -108,11 +112,11 @@ class Environment:
         self.communication_system = AgentSignalSystem(max_signals=50, decay_rate=0.05)
 
     @property
-    def dish(self) -> Optional[Any]:
+    def dish(self) -> Any | None:
         return self._dish
 
     @dish.setter
-    def dish(self, value: Optional[Any]):
+    def dish(self, value: Any | None):
         self._dish = value
         # Update bounds component
         self.bounds.set_custom_boundary(value)
@@ -131,7 +135,7 @@ class Environment:
         """
         self._remove_requester = requester
 
-    def set_energy_delta_recorder(self, recorder: Optional["EnergyDeltaRecorder"]) -> None:
+    def set_energy_delta_recorder(self, recorder: EnergyDeltaRecorder | None) -> None:
         """Inject an energy delta recorder callback from the simulation engine.
 
         The recorder is called each time an entity's energy changes via modify_energy().
@@ -147,7 +151,7 @@ class Environment:
         entity: Agent,
         delta: float,
         source: str,
-        meta: Optional[Dict[str, Any]] = None,
+        meta: dict[str, Any] | None = None,
     ) -> None:
         """Record an energy change if recorder is active.
 
@@ -167,7 +171,7 @@ class Environment:
             recorder(entity, delta, source, meta or {})
 
     def request_spawn(
-        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+        self, entity: Agent, *, reason: str = "", metadata: dict[str, Any] | None = None
     ) -> bool:
         """Request an entity spawn via the engine's mutation queue.
 
@@ -180,7 +184,7 @@ class Environment:
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
     def request_remove(
-        self, entity: Agent, *, reason: str = "", metadata: Optional[Dict[str, Any]] = None
+        self, entity: Agent, *, reason: str = "", metadata: dict[str, Any] | None = None
     ) -> bool:
         """Request an entity removal via the engine's mutation queue.
 
@@ -212,7 +216,9 @@ class Environment:
 
     def rebuild_spatial_grid(self):
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
-        if self.agents:
+        if self.agents is None:
+            self.spatial_grid.clear()
+        else:
             self.spatial_grid.rebuild(self.agents)
         # Note: Type cache is NOT cleared here - it's only cleared on entity add/remove
 
@@ -250,7 +256,7 @@ class Environment:
         """
         return self.bounds.resolve_collision(agent)
 
-    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_agents(self, agent: Agent, radius: float) -> list[Agent]:
         """
         Return a list of agents within a certain radius of the given agent.
 
@@ -258,7 +264,7 @@ class Environment:
         """
         return self.spatial_grid.query_radius(agent, float(radius))
 
-    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+    def get_agents_of_type(self, agent_type: type[Agent]) -> list[Agent]:
         """
         Get all agents of the given class.
 
@@ -288,10 +294,10 @@ class Environment:
         self,
         agent: Agent,
         radius: float,
-        agent_type: Optional[Type[Agent]] = None,
+        agent_type: Optional[type[Agent]] = None,
         *,
-        agent_class: Optional[Type[Agent]] = None,
-    ) -> List[Agent]:
+        agent_class: Optional[type[Agent]] = None,
+    ) -> list[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
         """
@@ -302,25 +308,25 @@ class Environment:
             )
         return self.spatial_grid.query_type(agent, float(radius), resolved_type)
 
-    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> list[Agent]:
         """Get nearby evolving agents (entities that can reproduce)."""
         # Currently just fish
         return self.spatial_grid.query_fish(agent, float(radius))
 
-    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_resources(self, agent: Agent, radius: float) -> list[Agent]:
         """Get nearby consumable resources."""
         # Currently just food
         return self.spatial_grid.query_food(agent, float(radius))
 
     def nearby_interaction_candidates(
-        self, agent: Agent, radius: float, crab_type: Type[Agent]
-    ) -> List[Agent]:
+        self, agent: Agent, radius: float, crab_type: type[Agent]
+    ) -> list[Agent]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
         return self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
 
-    def nearby_poker_entities(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_poker_entities(self, agent: Agent, radius: float) -> list[Agent]:
         """
         Optimized method to get nearby fish and Plant entities for poker.
         """
@@ -349,7 +355,7 @@ class Environment:
     # making Environment usable as an abstract World in generic simulation code.
 
     @property
-    def dimensions(self) -> Tuple[float, ...]:
+    def dimensions(self) -> tuple[float, ...]:
         """Get environment dimensions (implements World Protocol).
 
         Returns:
@@ -357,7 +363,7 @@ class Environment:
         """
         return self.bounds.get_dimensions()
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Get environment boundaries (implements World Protocol).
 
         Returns:
@@ -365,7 +371,7 @@ class Environment:
         """
         return ((0.0, 0.0), (float(self.width), float(self.height)))
 
-    def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_2d_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Get 2D boundaries (implements World2D Protocol).
 
         Returns:
@@ -373,7 +379,7 @@ class Environment:
         """
         return self.get_bounds()
 
-    def is_valid_position(self, position: Tuple[float, float]) -> bool:
+    def is_valid_position(self, position: tuple[float, float]) -> bool:
         """Check if a position is valid within this environment (implements World Protocol).
 
         Args:
@@ -397,7 +403,7 @@ class Environment:
         """
         return self._rng
 
-    def list_policy_component_ids(self, kind: str) -> List[str]:
+    def list_policy_component_ids(self, kind: str) -> list[str]:
         """List available policy component IDs for a given policy kind.
 
         Canonical API for querying available policies. Use this instead of

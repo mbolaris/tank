@@ -115,9 +115,11 @@ class SoccerSystem(BaseSystem):
         # RCSS kickable_margin + player_size = ~1.0m, scaled = 10px
         # Keep slightly larger (30px) since fish are visually bigger than RCSS players
         kickable_distance = 30.0
+        kickable_distance_sq = kickable_distance * kickable_distance
 
-        # Collect all eligible fish with their distances for deterministic selection
-        eligible_fish: list[tuple[float, int, object]] = []
+        # Deterministic selection without per-frame sort: choose min((dist_sq, fish_id))
+        best_key: tuple[float, int] | None = None
+        kicker: object | None = None
 
         for entity in self.engine.entities_list:
             # Use snapshot_type instead of isinstance for loose coupling
@@ -127,18 +129,17 @@ class SoccerSystem(BaseSystem):
             # Calculate distance to ball
             dx = ball_x - entity.pos.x
             dy = ball_y - entity.pos.y
-            dist = math.sqrt(dx * dx + dy * dy)
+            dist_sq = dx * dx + dy * dy
 
-            if dist <= kickable_distance and dist > 0:
+            if 0 < dist_sq <= kickable_distance_sq:
                 fish_id = getattr(entity, "fish_id", 0)
-                eligible_fish.append((dist, fish_id, entity))
+                candidate_key = (dist_sq, fish_id)
+                if best_key is None or candidate_key < best_key:
+                    best_key = candidate_key
+                    kicker = entity
 
-        if not eligible_fish:
+        if kicker is None:
             return
-
-        # Deterministic selection: closest fish wins, fish_id breaks ties
-        eligible_fish.sort(key=lambda x: (x[0], x[1]))
-        _, _, kicker = eligible_fish[0]
 
         # Determine team: use fish.team if set, fallback to fish_id parity
         fish_team = getattr(kicker, "team", None)
