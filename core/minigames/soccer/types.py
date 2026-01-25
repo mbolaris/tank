@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from core.minigames.soccer.match import SoccerMatch
+if TYPE_CHECKING:
+    from core.minigames.soccer.match import SoccerMatch
 
 
 @dataclass
@@ -91,7 +92,7 @@ class SoccerMinigameOutcome:
 class SoccerMatchSetup:
     """Created match plus deterministic metadata for logging."""
 
-    match: SoccerMatch
+    match: "SoccerMatch"
     seed: int | None
     match_id: str
     selected_count: int

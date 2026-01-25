@@ -168,7 +168,8 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
         ball_dx = ball.position.x - prev_ball_x
 
         # Attribute ball progress to team with possession
-        current_touch_id = engine._last_touch_player_id
+        touch_info = engine.last_touch_info()
+        current_touch_id = touch_info["player_id"]
         if current_touch_id:
             touch_player = engine.get_player(current_touch_id)
             if touch_player:

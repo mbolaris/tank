@@ -23,8 +23,9 @@ from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
-from core.minigames.soccer.params import RCSSParams
+from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS
 from core.minigames.soccer.participant import create_participants_from_fish
+from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTelemetry
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -101,11 +102,8 @@ class SoccerMatch:
             )
         self._rng = pyrandom.Random(self._match_seed)
 
-        # Configure RCSS-Lite engine
-        self._params = RCSSParams(
-            field_length=100.0,
-            field_width=60.0,
-        )
+        # Configure RCSS-Lite engine with standard RCSS defaults
+        self._params = DEFAULT_RCSS_PARAMS
 
         # Field dimensions for snapshot output
         self._field = FieldDimensions(
@@ -128,6 +126,25 @@ class SoccerMatch:
         # Stable ID mapping for entity IDs (player/ball -> stable int)
         self._entity_ids: dict[str, int] = {}
         self._next_id = 1
+
+        # Initialize telemetry for shaped rewards
+        self.telemetry = SoccerTelemetry()
+        for team in ["left", "right"]:
+            self.telemetry.teams[team] = TeamTelemetry(team=team)
+        for participant in self.participants:
+            player_id = participant.participant_id
+            team = participant.team
+            self.telemetry.players[player_id] = PlayerTelemetry(player_id=player_id, team=team)
+
+        # Track previous positions and ball state for telemetry
+        self._prev_positions: dict[str, tuple[float, float]] = {}
+        for participant in self.participants:
+            player_id = participant.participant_id
+            player = self._engine.get_player(player_id)
+            if player:
+                self._prev_positions[player_id] = (player.position.x, player.position.y)
+        self._prev_ball_x = 0.0
+        self._last_touch_id: str | None = None
 
         logger.info(
             f"Soccer Match {match_id} initialized with {len(self.participants)} players "
@@ -176,6 +193,9 @@ class SoccerMatch:
             step_result = self._engine.step_cycle()
 
             self.current_frame += 1
+
+            # Update telemetry after step
+            self._update_telemetry()
 
             # Check for goals
             for event in step_result.get("events", []):
@@ -295,6 +315,72 @@ class SoccerMatch:
         # But if sides swapped, Right Team is on Left Side.
         # kick_off_right means Right Team kicks.
         self._engine._play_mode = "kick_off_right"
+
+    def _update_telemetry(self) -> None:
+        """Update telemetry after each cycle (for shaped rewards)."""
+        # Track player distance traveled
+        for participant in self.participants:
+            player_id = participant.participant_id
+            player = self._engine.get_player(player_id)
+            if player and player_id in self._prev_positions:
+                px, py = self._prev_positions[player_id]
+                dx = player.position.x - px
+                dy = player.position.y - py
+                dist = math.sqrt(dx * dx + dy * dy)
+                self.telemetry.players[player_id].distance_run += dist
+                self._prev_positions[player_id] = (player.position.x, player.position.y)
+
+        # Track ball progress
+        ball = self._engine.get_ball()
+        ball_dx = ball.position.x - self._prev_ball_x
+
+        # Attribute ball progress to team with possession
+        touch_info = self._engine.last_touch_info()
+        current_touch_id = touch_info["player_id"]
+        if current_touch_id:
+            touch_player = self._engine.get_player(current_touch_id)
+            if touch_player:
+                team = touch_player.team
+                # Left team wants ball to go right (+x), right team wants left (-x)
+                progress = ball_dx if team == "left" else -ball_dx
+                self.telemetry.teams[team].ball_progress += progress
+
+        self._prev_ball_x = ball.position.x
+
+        # Track touches via last_touch_player_id
+        if current_touch_id and current_touch_id != self._last_touch_id:
+            player = self._engine.get_player(current_touch_id)
+            if player:
+                team = player.team
+                self.telemetry.teams[team].touches += 1
+                self.telemetry.players[current_touch_id].touches += 1
+                self.telemetry.players[current_touch_id].kicks += 1
+
+                # Check if this is a shot (kick toward opponent goal)
+                ball_vx = ball.velocity.x
+                is_shot = (team == "left" and ball_vx > 0.5) or (team == "right" and ball_vx < -0.5)
+                if is_shot:
+                    self.telemetry.teams[team].shots += 1
+
+                    # Shot on target = ball trajectory intersects goal
+                    half_length = self._params.field_length / 2
+                    goal_x = half_length if team == "left" else -half_length
+                    if abs(ball_vx) > 0.01:
+                        t_to_goal = (goal_x - ball.position.x) / ball_vx
+                        if t_to_goal > 0:
+                            predicted_y = ball.position.y + ball.velocity.y * t_to_goal
+                            if abs(predicted_y) < self._params.goal_width / 2:
+                                self.telemetry.teams[team].shots_on_target += 1
+
+            self._last_touch_id = current_touch_id
+
+        # Track possession
+        if current_touch_id:
+            player = self._engine.get_player(current_touch_id)
+            if player:
+                self.telemetry.teams[player.team].possession_frames += 1
+
+        self.telemetry.total_cycles = self.current_frame
 
     def _get_stable_id(self, key: str) -> int:
         """Get or assign a stable integer ID for an entity key."""

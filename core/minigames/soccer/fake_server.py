@@ -186,7 +186,7 @@ class FakeRCSSServer:
             objects.append(ball_info)
 
         # Other players
-        for pid, other in self._engine._players.items():
+        for pid, other in self._engine.players().items():
             if pid == player_id:
                 continue
 

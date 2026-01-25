@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence
 
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.rewards import (
+    apply_shaped_soccer_rewards,
     apply_soccer_entry_fees,
     apply_soccer_repro_rewards,
     apply_soccer_rewards,
@@ -145,13 +146,25 @@ def finalize_soccer_match(
     """Apply rewards and return a compact outcome summary."""
     state = match.get_state()
     entry_fees = dict(entry_fees or {})
-    rewards = apply_soccer_rewards(
-        match.player_map,
-        match.winner_team,
-        reward_mode=reward_mode,
-        entry_fees=entry_fees,
-        reward_multiplier=reward_multiplier,
-    )
+
+    # Dispatch reward logic based on reward_mode
+    if reward_mode.lower().strip() == "shaped_pot":
+        rewards = apply_shaped_soccer_rewards(
+            match.player_map,
+            match.winner_team,
+            match.telemetry,
+            entry_fees=entry_fees,
+            reward_multiplier=reward_multiplier,
+        )
+    else:
+        rewards = apply_soccer_rewards(
+            match.player_map,
+            match.winner_team,
+            reward_mode=reward_mode,
+            entry_fees=entry_fees,
+            reward_multiplier=reward_multiplier,
+        )
+
     repro_credit_deltas = apply_soccer_repro_rewards(
         match.player_map,
         match.winner_team,
@@ -188,6 +201,7 @@ def finalize_soccer_match(
             "left": list(state.get("teams", {}).get("left", [])),
             "right": list(state.get("teams", {}).get("right", [])),
         },
+        telemetry=match.telemetry,
     )
 
 

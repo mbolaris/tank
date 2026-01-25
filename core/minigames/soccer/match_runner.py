@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
-from core.minigames.soccer.params import RCSSParams
+from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -88,14 +88,11 @@ class SoccerMatchRunner:
 
         Args:
             team_size: Number of players per team
-            params: RCSS physics parameters (uses defaults if None)
+            params: RCSS physics parameters (uses standard RCSS defaults if None)
             genome_code_pool: Pool for policy lookup
         """
         self.team_size = team_size
-        self._params = params or RCSSParams(
-            field_length=100.0,
-            field_width=60.0,
-        )
+        self._params = params or DEFAULT_RCSS_PARAMS
         self._genome_code_pool = genome_code_pool
         self._engine: RCSSLiteEngine | None = None
 
