@@ -180,13 +180,9 @@ class SoccerSystem(BaseSystem):
             self.ball.kick(power, direction, kicker=kicker)
 
             # Award small energy reward for kicking via proper channel
+            # Fish implements modify_energy(), no fallback needed
             try:
-                apply_energy_delta(
-                    kicker,
-                    2.0,
-                    source="soccer_kick",
-                    allow_direct_assignment=True,
-                )
+                apply_energy_delta(kicker, 2.0, source="soccer_kick")
             except AttributeError:
                 pass
 
@@ -213,11 +209,10 @@ class SoccerSystem(BaseSystem):
             # Check if this fish is the scorer
             if fish.fish_id == goal_event.scorer_id:
                 # Award big energy reward for scoring via proper channel
+                # Fish implements modify_energy(), no fallback needed
                 reward = 50.0
                 try:
-                    apply_energy_delta(
-                        fish, reward, source="soccer_goal", allow_direct_assignment=True
-                    )
+                    apply_energy_delta(fish, reward, source="soccer_goal")
                 except AttributeError:
                     pass
 

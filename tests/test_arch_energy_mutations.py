@@ -18,6 +18,11 @@ ALLOWLIST_PATHS = {
     Path("core/minigames/soccer/eval.py"),
     Path("core/minigames/soccer/league_runtime.py"),
     Path("core/transfer/entity_transfer.py"),
+    # energy_utils.py is the centralized energy mutation utility. Its direct
+    # assignment fallback (allow_direct_assignment=True) is intentional for
+    # entities that don't implement modify_energy() (e.g. Food, poker PlayerState).
+    # All other code should use apply_energy_delta() rather than direct assignment.
+    Path("core/energy/energy_utils.py"),
 }
 
 
