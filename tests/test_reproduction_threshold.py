@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test that the 90% energy threshold for reproduction works correctly."""
 
+import sys
+
 import pytest
 
 from core.entities import Fish, LifeStage

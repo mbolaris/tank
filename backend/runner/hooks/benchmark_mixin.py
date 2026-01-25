@@ -45,9 +45,7 @@ class BenchmarkMixin:
             return
 
         try:
-            from core.poker.evaluation.evolution_benchmark_tracker import (
-                EvolutionBenchmarkTracker,
-            )
+            from core.poker.evaluation.evolution_benchmark_tracker import EvolutionBenchmarkTracker
 
             # Write to shared benchmarks directory
             export_path = (

@@ -29,7 +29,7 @@ class Food(Agent):
         """Check if food is dead (it's not)."""
         return False
 
-    def get_entity_id(self) -> int | None:
+    def get_entity_id(self) -> Optional[int]:
         """Get the unique identifier for this food (Identifiable protocol).
 
         Food has no intrinsic ID - identity provider will use python id mapping.

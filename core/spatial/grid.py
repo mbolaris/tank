@@ -249,10 +249,9 @@ class SpatialGrid:
         min_row = max(0, int((agent_pos_y - radius) / cell_size))
         max_row = min(rows - 1, int((agent_pos_y + radius) / cell_size))
 
-        result = []
+        result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference to append
         grid = self.grid
-        type_order = self._cell_type_order
 
         # Iterate ranges directly - OPTIMIZATION: Filter inline
         for col in range(min_col, max_col + 1):
@@ -260,12 +259,7 @@ class SpatialGrid:
                 cell = (col, row)
                 cell_agents = grid.get(cell)
                 if cell_agents:
-                    sorted_types = type_order.get(cell)
-                    if sorted_types is None:
-                        sorted_types = sorted(cell_agents.keys(), key=lambda t: t.__name__)
-                        type_order[cell] = sorted_types
-                    for type_key in sorted_types:
-                        type_list = cell_agents[type_key]
+                    for type_key, type_list in cell_agents.items():
                         for other in type_list:
                             if other is not agent:
                                 other_pos = other.pos
@@ -301,7 +295,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cs))
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
-        result = []
+        result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
 
@@ -341,7 +335,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cs))
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
-        result = []
+        result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         food_grid = self.food_grid
 
@@ -466,7 +460,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cell_size))
         max_row = min(rows - 1, int((agent_y + radius) / cell_size))
 
-        result = []
+        result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         food_grid = self.food_grid
@@ -533,7 +527,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cell_size))
         max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
 
-        result = []
+        result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         grid = self.grid
@@ -574,7 +568,6 @@ class SpatialGrid:
         self.fish_grid.clear()
         self.food_grid.clear()
         self.agent_cells.clear()
-        self._cell_type_order.clear()
 
     def rebuild(self, agents: List[Agent]):
         """Rebuild the entire grid from scratch."""
@@ -620,7 +613,6 @@ class SpatialGrid:
         result = []
         result_append = result.append
         grid_dict = self.grid
-        type_order = self._cell_type_order
         subclass_cache = self._subclass_cache
 
         # Iterate cells
@@ -631,16 +623,8 @@ class SpatialGrid:
                 if not cell_buckets:
                     continue
 
-                # Use cached deterministic order per cell
-                sorted_types = type_order.get((col, row))
-                if sorted_types is None:
-                    sorted_types = sorted(cell_buckets.keys(), key=lambda t: t.__name__)
-                    type_order[(col, row)] = sorted_types
-
-                # Iterate over sorted type buckets
-                for type_key in sorted_types:
-                    agents = cell_buckets[type_key]
-
+                # Iterate over type buckets
+                for type_key, agents in cell_buckets.items():
                     # OPTIMIZATION: Use cached issubclass check
                     cache_key = (type_key, agent_class)
                     is_match = subclass_cache.get(cache_key)

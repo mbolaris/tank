@@ -4,6 +4,7 @@ Tests the soccer system's energy accounting, team selection,
 deterministic kicker selection, and kick timing.
 """
 
+from typing import Optional
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -21,8 +22,8 @@ class MockFish:
         fish_id: int,
         x: float,
         y: float,
-        team: str | None = None,
-        vel: Vector2 | None = None,
+        team: Optional[str] = None,
+        vel: Optional[Vector2] = None,
     ):
         self.fish_id = fish_id
         self.pos = Vector2(x, y)

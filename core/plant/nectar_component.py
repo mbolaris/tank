@@ -7,10 +7,7 @@ production logic for plant reproduction.
 import logging
 from typing import TYPE_CHECKING, Callable, Optional
 
-from core.config.plants import (
-    PLANT_NECTAR_COOLDOWN,
-    PLANT_NECTAR_ENERGY,
-)
+from core.config.plants import PLANT_NECTAR_COOLDOWN, PLANT_NECTAR_ENERGY
 
 if TYPE_CHECKING:
     from core.genetics import PlantGenome

@@ -16,26 +16,26 @@ from core.poker.core.hand import PokerHand
 class PokerGameState:
     """Tracks the state of a multi-round Texas Hold'em poker game."""
 
-    current_round: int  # BettingRound enum value
-    pot: float
-    player1_total_bet: float
-    player2_total_bet: float
-    player1_current_bet: float
-    player2_current_bet: float
-    player1_folded: bool
-    player2_folded: bool
-    player1_hole_cards: List[Card]
-    player2_hole_cards: List[Card]
-    community_cards: List[Card]  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
-    player1_hand: Optional[PokerHand]  # Evaluated at showdown
-    player2_hand: Optional[PokerHand]  # Evaluated at showdown
-    betting_history: List[Tuple[int, int, float]]  # (player, action, amount)
-    button_position: int  # Which player is on the button (1 or 2)
-    small_blind: float
-    big_blind: float
+    current_round: int = 1  # BettingRound enum value
+    pot: float = 0.0
+    player1_total_bet: float = 0.0
+    player2_total_bet: float = 0.0
+    player1_current_bet: float = 0.0
+    player2_current_bet: float = 0.0
+    player1_folded: bool = False
+    player2_folded: bool = False
+    player1_hole_cards: List[Card] = []
+    player2_hole_cards: List[Card] = []
+    community_cards: List[Card] = []  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
+    player1_hand: Optional[PokerHand] = None  # Evaluated at showdown
+    player2_hand: Optional[PokerHand] = None  # Evaluated at showdown
+    betting_history: List[Tuple[int, int, float]] = []  # (player, action, amount)
+    button_position: int = 1  # Which player is on the button (1 or 2)
+    small_blind: float = 0.0
+    big_blind: float = 0.0
     deck: Deck
-    min_raise: float  # Minimum raise amount (Texas Hold'em rule)
-    last_raise_amount: float  # Size of the last raise (to calculate next min raise)
+    min_raise: float = 0.0  # Minimum raise amount (Texas Hold'em rule)
+    last_raise_amount: float = 0.0  # Size of the last raise (to calculate next min raise)
 
     def __init__(
         self,

@@ -134,18 +134,20 @@ class RandomExplorer(BehaviorAlgorithm):
 
         # Predator avoidance - use squared distance
         if nearest_predator:
-            dx = nearest_predator.pos.x - fish_x
-            dy = nearest_predator.pos.y - fish_y
+            pred_pos = nearest_predator.pos
+            dx = pred_pos.x - fish_x
+            dy = pred_pos.y - fish_y
             if dx * dx + dy * dy < 14400:  # 120^2
-                direction = self._safe_normalize(fish.pos - nearest_predator.pos)
+                direction = self._safe_normalize(fish.pos - pred_pos)
                 return direction.x * 1.2, direction.y * 1.2
 
         # Food opportunism - use squared distance
         if nearest_food:
-            dx = nearest_food.pos.x - fish_x
-            dy = nearest_food.pos.y - fish_y
+            food_pos = nearest_food.pos
+            dx = food_pos.x - fish_x
+            dy = food_pos.y - fish_y
             if dx * dx + dy * dy < 4900:  # 70^2
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                direction = self._safe_normalize(food_pos - fish.pos)
                 return direction.x * 1.0, direction.y * 1.0
 
         # Boundary avoidance - don't explore into walls
@@ -366,10 +368,11 @@ class RoutePatroller(BehaviorAlgorithm):
 
         # Interrupt patrol for close food - use squared distance
         if nearest_food:
-            dx = nearest_food.pos.x - fish_x
-            dy = nearest_food.pos.y - fish_y
+            food_pos = nearest_food.pos
+            dx = food_pos.x - fish_x
+            dy = food_pos.y - fish_y
             if dx * dx + dy * dy < 3600:  # 60^2
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                direction = self._safe_normalize(food_pos - fish.pos)
                 return direction.x * 0.9, direction.y * 0.9
 
         # Continue patrol
@@ -493,11 +496,12 @@ class NomadicWanderer(BehaviorAlgorithm):
 
         # Opportunistic food grab - use squared distance
         if nearest_food:
-            dx = nearest_food.pos.x - fish_x
-            dy = nearest_food.pos.y - fish_y
+            food_pos = nearest_food.pos
+            dx = food_pos.x - fish_x
+            dy = food_pos.y - fish_y
             if dx * dx + dy * dy < 2500:  # 50^2
                 # Close food - grab it
-                direction = self._safe_normalize(nearest_food.pos - fish.pos)
+                direction = self._safe_normalize(food_pos - fish.pos)
                 return direction.x * 1.0, direction.y * 1.0
 
         # Boundary awareness - avoid getting stuck in corners

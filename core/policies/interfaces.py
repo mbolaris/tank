@@ -164,5 +164,5 @@ def build_movement_observation(fish: Fish) -> Observation:
     """
     from core.policies.observation_registry import build_observation
 
-    world_type = getattr(fish.environment, "world_type", "tank")
+    world_type = getattr(fish.environment, "world_type", None) or "tank"
     return build_observation(world_type, "movement", fish, fish.environment)

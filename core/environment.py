@@ -282,11 +282,11 @@ class Environment:
         self._type_cache[agent_type] = result
         return result
 
-    def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
+    def closest_fish(self, agent: Agent, radius: float) -> Agent | None:
         """Find closest fish efficiently."""
         return self.spatial_grid.closest_fish(agent, radius)
 
-    def closest_food(self, agent: Agent, radius: float) -> Optional[Agent]:
+    def closest_food(self, agent: Agent, radius: float) -> Agent | None:
         """Find closest food efficiently."""
         return self.spatial_grid.closest_food(agent, radius)
 
@@ -294,9 +294,9 @@ class Environment:
         self,
         agent: Agent,
         radius: float,
-        agent_type: Optional[type[Agent]] = None,
+        agent_type: type[Agent] | None = None,
         *,
-        agent_class: Optional[type[Agent]] = None,
+        agent_class: type[Agent] | None = None,
     ) -> list[Agent]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.

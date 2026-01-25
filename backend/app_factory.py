@@ -103,7 +103,7 @@ class AppContext:
         physical_cpus = None
 
         try:
-            import psutil
+            import psutil  # type: ignore
 
             process = psutil.Process()
             cpu_percent = process.cpu_percent(interval=0.1)

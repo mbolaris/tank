@@ -501,6 +501,7 @@ class TestPokerEffectState:
             for p in (e for e in engine.get_all_entities() if isinstance(e, Plant)):
                 if p.poker_effect_state is not None:
                     # Verify it's a dict with expected keys
+                    assert p.poker_effect_state is not None
                     assert isinstance(
                         p.poker_effect_state, dict
                     ), f"poker_effect_state should be dict, got {type(p.poker_effect_state)}"
@@ -588,7 +589,7 @@ class TestEnergyTransferTracking:
         poker.play_poker()
 
         result = poker.result
-        assert result is not None, "Should have result"
+        assert result is not None
         assert hasattr(result, "energy_transferred"), "Result should have energy_transferred"
         assert isinstance(result.energy_transferred, (int, float))
 

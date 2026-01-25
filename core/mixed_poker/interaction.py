@@ -413,16 +413,20 @@ class MixedPokerInteraction:
             best_hand_idx = active_players[0]
 
             for i in active_players[1:]:
-                if self.player_hands[i] and self.player_hands[best_hand_idx]:
-                    if self.player_hands[i].beats(self.player_hands[best_hand_idx]):
+                hand_i = self.player_hands[i]
+                hand_best = self.player_hands[best_hand_idx]
+                if hand_i and hand_best:
+                    if hand_i.beats(hand_best):
                         best_hand_idx = i
 
             # Check for ties
             tied_players = [best_hand_idx]
             for i in active_players:
                 if i != best_hand_idx:
-                    if self.player_hands[i] and self.player_hands[best_hand_idx]:
-                        if self.player_hands[i].ties(self.player_hands[best_hand_idx]):
+                    hand_i = self.player_hands[i]
+                    hand_best = self.player_hands[best_hand_idx]
+                    if hand_i and hand_best:
+                        if hand_i.ties(hand_best):
                             tied_players.append(i)
 
         # Calculate pot and distribute winnings

@@ -14,6 +14,7 @@ from core.config.food import (
 
 if TYPE_CHECKING:
     from core.entities import Fish
+
 from core.math_utils import Vector2
 
 

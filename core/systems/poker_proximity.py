@@ -133,8 +133,6 @@ class PokerProximitySystem(BaseSystem):
             fish_cy = fish.pos.y + fish.height * 0.5
 
             for other in nearby:
-                if not isinstance(other, Fish):
-                    continue
                 if other is fish or other not in fish_set:
                     continue
                 if other.is_dead():

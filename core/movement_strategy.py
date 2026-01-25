@@ -149,7 +149,7 @@ class AlgorithmicMovement(MovementStrategy):
         # Convert raw decision (velocity) to canonical Action via Registry
         # This ensures all behaviors go through the standard translation layer.
 
-        world_type = getattr(sprite_entity.environment, "world_type", "tank")
+        world_type = getattr(sprite_entity.environment, "world_type", None) or "tank"
 
         # Translate to standardized Action
         # Note: desired_velocity is a tuple (vx, vy), which calls DefaultActionTranslator

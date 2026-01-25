@@ -8,6 +8,7 @@ def test_stamina_consumption():
     env.add_player("p1", "left")
 
     player = env.get_player("p1")
+    assert player is not None
     initial_stamina = player.stamina
 
     # Dash 100
@@ -31,6 +32,7 @@ def test_effort_decay():
     env.add_player("p1", "left")
 
     player = env.get_player("p1")
+    assert player is not None
 
     # Manually drain stamina below effort_dec_thr (4000 * 0.25 = 1000)
     player.stamina = 800.0
@@ -50,6 +52,7 @@ def test_recovery_decay():
     env.add_player("p1", "left")
 
     player = env.get_player("p1")
+    assert player is not None
 
     # Drain stamina below recover_dec_thr (4000 * 0.25 = 1000)
     player.stamina = 800.0
@@ -67,6 +70,7 @@ def test_effort_refills():
     env.add_player("p1", "left")
 
     player = env.get_player("p1")
+    assert player is not None
     player.effort = 0.8
     player.stamina = 3000.0  # > effort_inc_thr (4000 * 0.6 = 2400)
 
@@ -82,6 +86,7 @@ def test_dash_effectiveness_with_effort():
     env.add_player("tired", "left", position=RCSSVector(0, 10))
 
     tired = env.get_player("tired")
+    assert tired is not None
     tired.effort = 0.5
 
     env.queue_command("fresh", RCSSCommand.dash(100))
@@ -91,6 +96,8 @@ def test_dash_effectiveness_with_effort():
 
     fresh = env.get_player("fresh")
     tired = env.get_player("tired")
+    assert fresh is not None
+    assert tired is not None
 
     # Fresh acceleration: 100 * 1.0 * power_rate
     # Tired acceleration: 100 * 0.5 * power_rate
@@ -111,6 +118,7 @@ def test_movement_noise():
     # With noise, velocity vector should not be perfectly aligned with dash dir if noise > 0
     # But here dash is 0 deg.
     p1 = env.get_player("p1")
+    assert p1 is not None
     # Dash direction is 0 (body angle 0). Expect pure X velocity without noise.
     # With noise, Y velocity might be non-zero.
 

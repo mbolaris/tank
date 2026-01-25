@@ -27,6 +27,7 @@ class TestRCSSLiteDeterminism:
                 engine.queue_command("left_1", RCSSCommand.dash(50, 0))
                 engine.step_cycle()
                 player = engine.get_player("left_1")
+                assert player is not None
                 positions.append((player.position.x, player.position.y))
 
             return positions
@@ -68,14 +69,18 @@ class TestRCSSLiteCommandSemantics:
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
         # Record initial position
-        initial_x = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_x = player.position.x
 
         # Queue dash and step
         engine.queue_command("left_1", RCSSCommand.dash(100, 0))
         engine.step_cycle()
 
         # Position should have changed
-        new_x = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        new_x = player.position.x
         assert new_x > initial_x, f"Position should increase: {new_x} > {initial_x}"
 
     def test_command_only_lasts_one_cycle(self):
@@ -86,11 +91,15 @@ class TestRCSSLiteCommandSemantics:
         # Queue dash and step
         engine.queue_command("left_1", RCSSCommand.dash(100, 0))
         engine.step_cycle()
-        pos_after_dash = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        pos_after_dash = player.position.x
 
         # Step without new command (should just decay)
         engine.step_cycle()
-        pos_after_decay = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        pos_after_decay = player.position.x
 
         # Position should still move (velocity from previous dash)
         # but acceleration should be zero
@@ -98,7 +107,9 @@ class TestRCSSLiteCommandSemantics:
 
         # Third step without dash - velocity decays further
         engine.step_cycle()
-        pos_final = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        pos_final = player.position.x
 
         # Velocity should be decaying
         delta_1 = pos_after_decay - pos_after_dash
@@ -110,13 +121,17 @@ class TestRCSSLiteCommandSemantics:
         engine = RCSSLiteEngine(seed=42)
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
-        initial_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_angle = player.body_angle
 
         # Turn 90 degrees
         engine.queue_command("left_1", RCSSCommand.turn(90))
         engine.step_cycle()
 
-        new_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        new_angle = player.body_angle
         # Should have turned (actual turn depends on inertia moment)
         assert new_angle != initial_angle
 
@@ -126,13 +141,17 @@ class TestRCSSLiteCommandSemantics:
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
         engine.set_ball_position(0.3, 0)  # Within kickable margin
 
-        initial_ball_x = engine.get_ball().position.x
+        ball = engine.get_ball()
+        assert ball is not None
+        initial_ball_x = ball.position.x
 
         # Kick ball
         engine.queue_command("left_1", RCSSCommand.kick(100, 0))
         engine.step_cycle()
 
-        new_ball_x = engine.get_ball().position.x
+        ball = engine.get_ball()
+        assert ball is not None
+        new_ball_x = ball.position.x
         assert new_ball_x > initial_ball_x, "Ball should move after kick"
 
 
@@ -149,11 +168,15 @@ class TestRCSSLitePhysicsInvariants:
         engine.queue_command("left_1", RCSSCommand.dash(100, 0))
         engine.step_cycle()
 
-        vel_after_dash = engine.get_player("left_1").velocity.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        vel_after_dash = player.velocity.x
 
         # Step without command - velocity should decay
         engine.step_cycle()
-        vel_after_decay = engine.get_player("left_1").velocity.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        vel_after_decay = player.velocity.x
 
         # Should have decayed by decay rate
         # Note: The decay happens during the step, so we're checking the result
@@ -170,11 +193,15 @@ class TestRCSSLitePhysicsInvariants:
         engine.queue_command("left_1", RCSSCommand.kick(100, 0))
         engine.step_cycle()
 
-        vel_after_kick = engine.get_ball().velocity.x
+        ball = engine.get_ball()
+        assert ball is not None
+        vel_after_kick = ball.velocity.x
 
         # Step without interaction - velocity should decay
         engine.step_cycle()
-        vel_after_decay = engine.get_ball().velocity.x
+        ball = engine.get_ball()
+        assert ball is not None
+        vel_after_decay = ball.velocity.x
 
         assert vel_after_decay < vel_after_kick, "Ball velocity should decay"
 
@@ -191,7 +218,9 @@ class TestRCSSLitePhysicsInvariants:
 
         # Should be clamped to field edge
         half_length = engine.params.field_length / 2
-        assert engine.get_player("left_1").position.x <= half_length
+        player = engine.get_player("left_1")
+        assert player is not None
+        assert player.position.x <= half_length
 
 
 class TestFakeRCSSServer:

@@ -204,6 +204,7 @@ class TestBenchmarkEvaluation(unittest.TestCase):
         for pid in problem_ids:
             print(f"Testing evaluation vs {pid}...")
             res = evaluate_vs_single_benchmark_duplicate(candidate, pid, cfg)
+            assert res is not None
             self.assertEqual(res.benchmark_id, pid)
 
 
