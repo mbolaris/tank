@@ -96,7 +96,7 @@ def build_tank_observations(
             velocity=(entity.vel.x, entity.vel.y),
             energy=entity.energy,
             max_energy=entity.max_energy,
-            age=entity._lifecycle_component.age,
+            age=entity.age or 0,
             nearby_food=nearby_food,
             nearby_fish=nearby_fish,
             nearby_threats=nearby_threats,

@@ -111,22 +111,13 @@ class TestProtocolConformance:
         entity_id = fish.get_entity_id()
         assert entity_id is not None or entity_id == 0  # 0 is valid for untracked fish
 
-    @pytest.mark.skip(reason="Fish stores life_stage in _lifecycle_component, not exposed directly")
     def test_fish_implements_lifecycle_aware(self, sample_fish):
-        """Fish should satisfy the LifecycleAware protocol.
-
-        NOTE: Currently fails because Fish stores life_stage in _lifecycle_component.
-        To implement LifecycleAware protocol, Fish would need:
-            @property
-            def life_stage(self) -> LifeStage:
-                return self._lifecycle_component.life_stage
-        """
+        """Fish should satisfy the LifecycleAware protocol."""
         fish = sample_fish()
 
         assert isinstance(fish, LifecycleAware)
         assert hasattr(fish, "life_stage")
 
-        # Can check life stage
         from core.entities.base import LifeStage
 
         assert isinstance(fish.life_stage, LifeStage)

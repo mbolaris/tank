@@ -79,10 +79,10 @@ def test_energy_flow():
         initial_energy=100.0,  # Start at max
     )
 
-    fish1._lifecycle_component.age = 100
-    fish2._lifecycle_component.age = 100
-    fish1._lifecycle_component.current_stage = LifeStage.ADULT
-    fish2._lifecycle_component.current_stage = LifeStage.ADULT
+    fish1.age = 100
+    fish2.age = 100
+    fish1.force_life_stage(LifeStage.ADULT)
+    fish2.force_life_stage(LifeStage.ADULT)
     fish1.reproduction_cooldown = 0
     fish2.reproduction_cooldown = 0
 

@@ -86,7 +86,7 @@ class TankLikeMovementObservationBuilder:
             "nearest_food_vector": nearest_food_vector,
             "nearest_threat_vector": nearest_threat_vector,
             "energy": fish.energy,
-            "age": getattr(getattr(fish, "_lifecycle_component", None), "age", 0),
+            "age": fish.age or 0,
             "can_play_poker": getattr(fish, "can_play_skill_games", False),
         }
 

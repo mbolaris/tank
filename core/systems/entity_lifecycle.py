@@ -226,7 +226,7 @@ class EntityLifecycleSystem(BaseSystem):
             ecosystem.record_death(
                 fish.fish_id,
                 fish.generation,
-                fish._lifecycle_component.age,
+                fish.age or 0,
                 death_cause,
                 fish.genome,
                 algorithm_id=algorithm_id,

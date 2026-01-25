@@ -150,10 +150,8 @@ def _make_adult_fish(
         initial_energy=None,
     )
     # Fast-forward to a reproducing adult with plenty of energy
-    fish._lifecycle_component.force_life_stage(LifeStage.ADULT)
-    fish._lifecycle_component.age = 200
-    # Must also update size to adult size for proper max_energy
-    fish._lifecycle_component.size = 1.0  # Adult size
+    fish.age = 200
+    fish.force_life_stage(LifeStage.ADULT)
     fish.energy = fish.max_energy
     fish._reproduction_component.reproduction_cooldown = 0
     # Bank enough overflow energy for reproduction (requires 75+ energy for a baby)
@@ -170,7 +168,7 @@ def _trigger_instant_reproductions(fish_list, env):
     newborns = []
     for fish in list(fish_list):
         # Ensure fish is eligible: adult, full energy, has banked overflow
-        if fish._lifecycle_component.life_stage != LifeStage.ADULT:
+        if fish.life_stage != LifeStage.ADULT:
             continue
         if fish.energy < fish.max_energy:
             continue
@@ -222,8 +220,8 @@ def test_multi_generation_reproduction(monkeypatch):
         ReproductionComponent.REPRODUCTION_COOLDOWN
     )
 
-    baby._lifecycle_component.force_life_stage(LifeStage.ADULT)
-    baby._lifecycle_component.age = 200
+    baby.age = 200
+    baby.force_life_stage(LifeStage.ADULT)
     baby.energy = baby.max_energy
     baby._reproduction_component.reproduction_cooldown = 0
     baby._reproduction_component.bank_overflow_energy(

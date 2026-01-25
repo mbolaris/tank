@@ -69,7 +69,8 @@ def should_trigger_plant_poker_asexual_reproduction(fish: "Fish") -> bool:
         return False
 
     # Check adult life stage (only adults can reproduce)
-    if fish._lifecycle_component.life_stage != LifeStage.ADULT:
+    life_stage = fish.life_stage
+    if life_stage != LifeStage.ADULT:
         return False
 
     return True

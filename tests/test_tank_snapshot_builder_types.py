@@ -54,10 +54,8 @@ def test_snapshot_builder_regression_all_types():
     fish.energy = 100
     fish.generation = 1
     fish.species = "test_species"
-    # Create a mock for lifecycle component
-    lifecycle = MagicMock()
-    lifecycle.age = 50
-    fish._lifecycle_component = lifecycle
+    # Provide age property
+    fish.age = 50
     fish.genome = MockGenome()
     # Mocking snapshot_type if the class doesn't have it, but strict mocks might fail
     # if we don't spec correctly.

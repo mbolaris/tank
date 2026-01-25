@@ -165,7 +165,8 @@ def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
     if fish._reproduction_component.reproduction_cooldown > 0:
         return False
 
-    if fish._lifecycle_component.life_stage.value < LifeStage.ADULT.value:
+    life_stage = fish.life_stage
+    if life_stage is None or life_stage.value < LifeStage.ADULT.value:
         return False
 
     if fish.species != opponent.species:
@@ -187,7 +188,8 @@ def is_valid_reproduction_mate(fish, parent) -> bool:
     """
     from core.entities.base import LifeStage
 
-    if fish._lifecycle_component.life_stage.value < LifeStage.ADULT.value:
+    life_stage = fish.life_stage
+    if life_stage is None or life_stage.value < LifeStage.ADULT.value:
         return False
 
     if fish.species != parent.species:

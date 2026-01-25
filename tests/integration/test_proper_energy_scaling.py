@@ -83,10 +83,10 @@ def test_with_scaled_energy():
     fish1.energy = fish1.max_energy * 0.95
     fish2.energy = fish2.max_energy * 0.95
 
-    fish1._lifecycle_component.age = 100
-    fish2._lifecycle_component.age = 100
-    fish1._lifecycle_component.force_life_stage(LifeStage.ADULT)
-    fish2._lifecycle_component.force_life_stage(LifeStage.ADULT)
+    fish1.age = 100
+    fish2.age = 100
+    fish1.force_life_stage(LifeStage.ADULT)
+    fish2.force_life_stage(LifeStage.ADULT)
     fish1._reproduction_component.reproduction_cooldown = 0
     fish2._reproduction_component.reproduction_cooldown = 0
 

@@ -179,8 +179,7 @@ class TankSnapshotBuilder:
     def _enrich_fish(self, snapshot: EntitySnapshot, fish: Any) -> None:
         snapshot.energy = fish.energy
         snapshot.generation = fish.generation
-        # Access age via lifecycle component
-        snapshot.age = fish._lifecycle_component.age
+        snapshot.age = fish.age
         snapshot.species = fish.species
 
         # Render hints & Genome Data

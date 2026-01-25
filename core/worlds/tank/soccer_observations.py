@@ -216,7 +216,7 @@ def get_nearby_teammates(
                     "distance": distance,
                     "angle": math.atan2(dy, dx),
                     "energy": other.energy,
-                    "age": other._lifecycle_component.age,
+                    "age": other.age or 0,
                 }
             )
 

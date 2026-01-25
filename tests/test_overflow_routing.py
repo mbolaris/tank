@@ -95,8 +95,7 @@ def _make_fish(env, fish_id: int, ecosystem):
 def _set_adult(fish) -> None:
     from core.config.fish import LIFE_STAGE_JUVENILE_MAX
 
-    fish._lifecycle_component.age = LIFE_STAGE_JUVENILE_MAX
-    fish._lifecycle_component.update_life_stage()
+    fish.age = LIFE_STAGE_JUVENILE_MAX
 
 
 def test_overflow_prefers_reproduction_bank_over_food(simulation_env):

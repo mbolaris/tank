@@ -16,8 +16,7 @@ def make_adult_fish(**kwargs):
 
     fish = Fish(**kwargs)
     # Age fish to ADULT stage (need age > 1800 frames)
-    fish._lifecycle_component.age = LIFE_STAGE_YOUNG_ADULT_MAX + 100
-    fish._lifecycle_component.update_life_stage()  # Update based on age
+    fish.age = LIFE_STAGE_YOUNG_ADULT_MAX + 100
     return fish
 
 
@@ -46,10 +45,10 @@ def _run_reproduction_threshold_logic():
     )
 
     # Age fish to ADULT stage (fish start as BABY)
-    fish._lifecycle_component.force_life_stage(LifeStage.ADULT)
+    fish.force_life_stage(LifeStage.ADULT)
 
     print("\nFish created:")
-    print(f"  Life stage: {fish._lifecycle_component.life_stage}")
+    print(f"  Life stage: {fish.life_stage}")
     print(f"  Max energy: {fish.max_energy:.1f}")
     print(f"  90% threshold: {fish.max_energy * 0.9:.1f}")
 

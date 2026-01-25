@@ -58,7 +58,7 @@ class TestModeSwitchPopulationPreservation:
             id(fish): {
                 "energy": fish.energy,
                 "generation": fish.generation,
-                "age": fish._lifecycle_component.age,
+                "age": fish.age,
                 "fish_id": fish.fish_id,
             }
             for fish in fish_before
@@ -78,9 +78,7 @@ class TestModeSwitchPopulationPreservation:
                 assert (
                     fish.generation == before["generation"]
                 ), f"Generation changed for fish {fish.fish_id}"
-                assert (
-                    fish._lifecycle_component.age == before["age"]
-                ), f"Age changed for fish {fish.fish_id}"
+                assert fish.age == before["age"], f"Age changed for fish {fish.fish_id}"
 
     def test_round_trip_preserves_population(self):
         """After tank→petri→tank, entities should still be the same instances."""

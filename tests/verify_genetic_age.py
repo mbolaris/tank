@@ -59,14 +59,12 @@ def verify_genetic_age():
         )
 
         expected_age = int(LIFE_STAGE_MATURE_MAX * 1.0 * 1.0)
-        print(
-            f"Test A (1.0, 1.0): Max Age: {fish._lifecycle_component.max_age} (Expected: {expected_age})"
-        )
+        print(f"Test A (1.0, 1.0): Max Age: {fish.max_age} (Expected: {expected_age})")
         # Allow small rounding errors if any, but int cast should match exact logic
-        if fish._lifecycle_component.max_age == expected_age:
+        if fish.max_age == expected_age:
             print("PASS: Calculation correct for base values.")
         else:
-            print(f"FAIL: Calculation incorrect. Got {fish._lifecycle_component.max_age}")
+            print(f"FAIL: Calculation incorrect. Got {fish.max_age}")
 
         # Case B: Long lifespan (1.4)
         genome.physical.lifespan_modifier.value = 1.4
@@ -81,9 +79,7 @@ def verify_genetic_age():
             ecosystem=None,
         )
         expected_age_long = int(LIFE_STAGE_MATURE_MAX * 1.0 * 1.4)
-        print(
-            f"Test B (1.0, 1.4): Max Age: {fish_long._lifecycle_component.max_age} (Expected: {expected_age_long})"
-        )
+        print(f"Test B (1.0, 1.4): Max Age: {fish_long.max_age} (Expected: {expected_age_long})")
 
         # Case C: Short lifespan (0.6)
         genome.physical.lifespan_modifier.value = 0.6
@@ -98,15 +94,9 @@ def verify_genetic_age():
             ecosystem=None,
         )
         expected_age_short = int(LIFE_STAGE_MATURE_MAX * 1.0 * 0.6)
-        print(
-            f"Test C (1.0, 0.6): Max Age: {fish_short._lifecycle_component.max_age} (Expected: {expected_age_short})"
-        )
+        print(f"Test C (1.0, 0.6): Max Age: {fish_short.max_age} (Expected: {expected_age_short})")
 
-        if (
-            fish_long._lifecycle_component.max_age
-            > fish._lifecycle_component.max_age
-            > fish_short._lifecycle_component.max_age
-        ):
+        if fish_long.max_age > fish.max_age > fish_short.max_age:
             print("PASS: Variance working correctly (Long > Normal > Short).")
         else:
             print("FAIL: Variance logic failed.")

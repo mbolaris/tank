@@ -141,6 +141,6 @@ class AggressiveHunter(BehaviorAlgorithm):
             return direction.x * 0.9, direction.y * 0.9
 
         # Active exploration - more aggressive fish explore faster
-        angle = fish._lifecycle_component.age * 0.1  # Use age for varied exploration
+        angle = (fish.age or 0) * 0.1  # Use age for varied exploration
         explore_speed = 0.7 + pursuit_aggression * 0.3  # 0.7-1.0 based on aggression
         return math.cos(angle) * explore_speed, math.sin(angle) * explore_speed

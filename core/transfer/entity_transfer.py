@@ -351,7 +351,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
         "vel_x": fish.vel.x,
         "vel_y": fish.vel.y,
         "energy": fish.energy,
-        "age": fish._lifecycle_component.age,
+        "age": fish.age or 0,
         "reproduction_cooldown": fish._reproduction_component.reproduction_cooldown,
         "repro_credits": fish._reproduction_component.repro_credits,
         "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
@@ -374,7 +374,7 @@ def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> Ser
         "energy": mutable_state["energy"],
         # max_energy is computed from size, not stored (removed in schema v2)
         "age": mutable_state["age"],
-        "max_age": fish._lifecycle_component.max_age,
+        "max_age": fish.max_age if fish.max_age is not None else 0,
         "generation": fish.generation,
         "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
         "genome_data": mutable_state["genome_data"],
@@ -541,10 +541,9 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
             parent_id=None,  # Clear parent_id: source tank parent doesn't exist here
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
-        fish._lifecycle_component.age = data.get("age", 0)
         if "max_age" in data:
-            fish._lifecycle_component.max_age = data["max_age"]
-        fish._lifecycle_component.update_life_stage()  # Update life stage based on restored age
+            fish.max_age = data["max_age"]
+        fish.age = data.get("age", 0)
         # max_energy is computed from size, so we don't restore it directly
         # Old saves may have max_energy, but it's ignored
         fish.vel.x = data.get("vel_x", 0.0)

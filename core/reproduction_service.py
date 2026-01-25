@@ -243,8 +243,11 @@ class ReproductionService:
                 required_credits
             ):
                 continue
+            life_stage = fish.life_stage
+            if life_stage is None:
+                continue
             if not fish._reproduction_component.can_asexually_reproduce(
-                fish._lifecycle_component.life_stage, fish.energy, fish.max_energy
+                life_stage, fish.energy, fish.max_energy
             ):
                 continue
 
@@ -380,9 +383,11 @@ class ReproductionService:
         bank = fish._reproduction_component.overflow_energy_bank
         baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
 
+        life_stage = fish.life_stage
+
         if (
             fish._reproduction_component.reproduction_cooldown <= 0
-            and fish._lifecycle_component.life_stage == LifeStage.ADULT
+            and life_stage == LifeStage.ADULT
             and bank >= baby_energy_needed
         ):
             return fish._create_asexual_offspring()

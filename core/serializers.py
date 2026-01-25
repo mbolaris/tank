@@ -57,12 +57,9 @@ class FishSerializer:
             return None
 
         # Handle potential missing attributes with defaults or safe access
-        lifecycle = getattr(fish, "_lifecycle_component", None)
-        size = (
-            lifecycle.size
-            if lifecycle is not None and hasattr(lifecycle, "size")
-            else fish.genome.physical.size_modifier.value
-        )
+        size = getattr(fish, "size", None)
+        if size is None:
+            size = fish.genome.physical.size_modifier.value
 
         return {
             "speed": fish.genome.speed_modifier,

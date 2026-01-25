@@ -25,11 +25,6 @@ class _DummyGenome:
         self.behavioral = _DummyBehavioral(chance)
 
 
-class _DummyLifecycle:
-    def __init__(self) -> None:
-        self.life_stage = LifeStage.ADULT
-
-
 class _DummyEnv:
     def __init__(self, rng: random.Random) -> None:
         self.rng = rng
@@ -41,7 +36,7 @@ class _DummyFish:
         self.energy = 100.0
         self.max_energy = 100.0
         self._reproduction_component = ReproductionComponent()
-        self._lifecycle_component = _DummyLifecycle()
+        self.life_stage = LifeStage.ADULT
         self.genome = _DummyGenome(1.0)
 
     def _create_asexual_offspring(self):

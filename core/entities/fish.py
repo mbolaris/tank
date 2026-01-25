@@ -306,10 +306,34 @@ class Fish(GenericAgent):
         self._behavior_executor.movement_strategy = strategy
 
     @property
-    def age(self) -> int | None:
+    def age(self) -> int:
         """Get the current lifecycle age for public consumers."""
-        lifecycle = getattr(self, "_lifecycle_component", None)
-        return lifecycle.age if lifecycle is not None else None
+        return self._lifecycle_component.age
+
+    @age.setter
+    def age(self, value: int) -> None:
+        """Set the lifecycle age for scenarios like state restoration."""
+        self._lifecycle_component.age = value
+        self._lifecycle_component.update_life_stage()
+
+    @property
+    def life_stage(self) -> LifeStage:
+        """Expose current life stage for non-fish systems."""
+        return self._lifecycle_component.life_stage
+
+    def force_life_stage(self, value: LifeStage, *, reason: str = "direct assignment") -> None:
+        """Force a life stage when necessary (tests, debugging, migrations)."""
+        self._lifecycle_component.force_life_stage(value, reason=reason)
+
+    @property
+    def max_age(self) -> int:
+        """Expose the maximum age so external systems can reason about lifespan."""
+        return self._lifecycle_component.max_age
+
+    @max_age.setter
+    def max_age(self, value: int) -> None:
+        """Allow adjusting max age during state restores."""
+        self._lifecycle_component.max_age = value
 
     @property
     def last_direction(self) -> Vector2 | None:
