@@ -29,11 +29,7 @@ from core.minigames.soccer.policy_adapter import (
     build_observation,
     default_policy_action,
 )
-from core.minigames.soccer.types import (
-    PlayerTelemetry,
-    SoccerTelemetry,
-    TeamTelemetry,
-)
+from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTelemetry
 
 
 @dataclass

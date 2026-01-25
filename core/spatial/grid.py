@@ -42,10 +42,6 @@ class SpatialGrid:
             lambda: defaultdict(list)
         )
 
-        # Cache deterministic per-cell type order to avoid sorting on every query.
-        # Key: cell tuple, Value: list of types sorted by __name__.
-        self._cell_type_order: Dict[Tuple[int, int], List[Type[Agent]]] = {}
-
         # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
         # These contain the SAME agent objects as self.grid, just indexed differently for speed
         self.fish_grid: Dict[Tuple[int, int], List[Agent]] = defaultdict(list)
@@ -54,39 +50,20 @@ class SpatialGrid:
         # Agent to cell mapping for quick updates
         self.agent_cells: Dict[Agent, Tuple[int, int]] = {}
 
-    def _insert_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
-        """Insert a type into the cached order list for a cell."""
-        order = self._cell_type_order.get(cell)
-        if order is None:
-            self._cell_type_order[cell] = [agent_type]
-            return
-
-        type_name = agent_type.__name__
-        # Insert into sorted position by name (small list; linear insert is fine).
-        for index, existing in enumerate(order):
-            if type_name < existing.__name__:
-                order.insert(index, agent_type)
-                return
-        order.append(agent_type)
-
-    def _remove_type_order(self, cell: Tuple[int, int], agent_type: Type[Agent]) -> None:
-        """Remove a type from the cached order list for a cell if present."""
-        order = self._cell_type_order.get(cell)
-        if not order:
-            return
-
-        try:
-            order.remove(agent_type)
-        except ValueError:
-            return
-
-        if not order:
-            del self._cell_type_order[cell]
-
     def _get_cell(self, x: float, y: float) -> Tuple[int, int]:
         """Get the grid cell coordinates for a position."""
-        col = max(0, min(self.cols - 1, int(x / self.cell_size)))
-        row = max(0, min(self.rows - 1, int(y / self.cell_size)))
+        col = int(x / self.cell_size)
+        if col < 0:
+            col = 0
+        elif col >= self.cols:
+            col = self.cols - 1
+
+        row = int(y / self.cell_size)
+        if row < 0:
+            row = 0
+        elif row >= self.rows:
+            row = self.rows - 1
+
         return (col, row)
 
     def _get_cell_range(self, x: float, y: float, radius: float) -> Tuple[int, int, int, int]:
@@ -95,13 +72,26 @@ class SpatialGrid:
         Returns:
             Tuple of (min_col, max_col, min_row, max_row)
         """
+        # OPTIMIZATION: Use cell_size directly
         cs = self.cell_size
         cols_m1 = self.cols - 1
         rows_m1 = self.rows - 1
-        min_col = max(0, int((x - radius) / cs))
-        max_col = min(cols_m1, int((x + radius) / cs))
-        min_row = max(0, int((y - radius) / cs))
-        max_row = min(rows_m1, int((y + radius) / cs))
+
+        min_col = int((x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
         return (min_col, max_col, min_row, max_row)
 
     def add_agent(self, agent: Agent):
@@ -118,7 +108,8 @@ class SpatialGrid:
         is_new_type = agent_type not in cell_map
         cell_map[agent_type].append(agent)
         if is_new_type:
-            self._insert_type_order(cell, agent_type)
+            # Optimized: No longer maintaining _cell_type_order as it was unused and expensive
+            pass
 
         # Update dedicated grids
         # We use string names to avoid circular imports or heavy isinstance checks
@@ -141,7 +132,8 @@ class SpatialGrid:
                     # Clean up empty lists to keep iteration fast
                     if not self.grid[cell][agent_type]:
                         del self.grid[cell][agent_type]
-                        self._remove_type_order(cell, agent_type)
+                        # Optimized: No longer maintaining _cell_type_order
+
                 except ValueError:
                     pass  # Agent might not be in the list if something went wrong
 
@@ -178,7 +170,8 @@ class SpatialGrid:
                         self.grid[old_cell][agent_type].remove(agent)
                         if not self.grid[old_cell][agent_type]:
                             del self.grid[old_cell][agent_type]
-                            self._remove_type_order(old_cell, agent_type)
+                            # Optimized: No longer maintaining _cell_type_order
+
                     except ValueError:
                         pass
 
@@ -200,7 +193,8 @@ class SpatialGrid:
             is_new_type = agent_type not in new_cell_map
             new_cell_map[agent_type].append(agent)
             if is_new_type:
-                self._insert_type_order(new_cell, agent_type)
+                # Optimized: No longer maintaining _cell_type_order
+                pass
 
             # Add to dedicated grids (new cell)
             type_name = agent_type.__name__
@@ -214,10 +208,11 @@ class SpatialGrid:
     def get_cells_in_radius(self, x: float, y: float, radius: float) -> List[Tuple[int, int]]:
         """Get all grid cells that intersect with a circular radius."""
         # Calculate the range of cells to check
-        min_col = max(0, int((x - radius) / self.cell_size))
-        max_col = min(self.cols - 1, int((x + radius) / self.cell_size))
-        min_row = max(0, int((y - radius) / self.cell_size))
-        max_row = min(self.rows - 1, int((y + radius) / self.cell_size))
+        cs = self.cell_size
+        min_col = max(0, int((x - radius) / cs))
+        max_col = min(self.cols - 1, int((x + radius) / cs))
+        min_row = max(0, int((y - radius) / cs))
+        max_row = min(self.rows - 1, int((y + radius) / cs))
 
         # Pre-allocate list size if possible or just use list comprehension which is faster than append loop
         return [
@@ -241,13 +236,26 @@ class SpatialGrid:
         radius_sq = radius * radius
 
         # Calculate cell range directly
-        cell_size = self.cell_size
-        cols = self.cols
-        rows = self.rows
-        min_col = max(0, int((agent_pos_x - radius) / cell_size))
-        max_col = min(cols - 1, int((agent_pos_x + radius) / cell_size))
-        min_row = max(0, int((agent_pos_y - radius) / cell_size))
-        max_row = min(rows - 1, int((agent_pos_y + radius) / cell_size))
+        # Calculate cell range directly
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+
+        min_col = int((agent_pos_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_pos_x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((agent_pos_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_pos_y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
 
         result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference to append
@@ -369,10 +377,22 @@ class SpatialGrid:
         cs = self.cell_size
         cols_m1 = self.cols - 1
         rows_m1 = self.rows - 1
-        min_col = max(0, int((agent_x - radius) / cs))
-        max_col = min(cols_m1, int((agent_x + radius) / cs))
-        min_row = max(0, int((agent_y - radius) / cs))
-        max_row = min(rows_m1, int((agent_y + radius) / cs))
+
+        min_col = int((agent_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((agent_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
 
         fish_grid = self.fish_grid
 
@@ -410,10 +430,22 @@ class SpatialGrid:
         cs = self.cell_size
         cols_m1 = self.cols - 1
         rows_m1 = self.rows - 1
-        min_col = max(0, int((agent_x - radius) / cs))
-        max_col = min(cols_m1, int((agent_x + radius) / cs))
-        min_row = max(0, int((agent_y - radius) / cs))
-        max_row = min(rows_m1, int((agent_y + radius) / cs))
+
+        min_col = int((agent_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((agent_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
 
         food_grid = self.food_grid
 
@@ -452,13 +484,25 @@ class SpatialGrid:
         agent_y = pos.y
         radius_sq = radius * radius
 
-        cell_size = self.cell_size
+        cs = self.cell_size
         cols = self.cols
         rows = self.rows
-        min_col = max(0, int((agent_x - radius) / cell_size))
-        max_col = min(cols - 1, int((agent_x + radius) / cell_size))
-        min_row = max(0, int((agent_y - radius) / cell_size))
-        max_row = min(rows - 1, int((agent_y + radius) / cell_size))
+
+        min_col = int((agent_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cs)
+        if max_col > cols - 1:
+            max_col = cols - 1
+
+        min_row = int((agent_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cs)
+        if max_row > rows - 1:
+            max_row = rows - 1
 
         result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -522,10 +566,22 @@ class SpatialGrid:
         radius_sq = radius * radius
 
         cell_size = self.cell_size
-        min_col = max(0, int((agent_x - radius) / cell_size))
-        max_col = min(self.cols - 1, int((agent_x + radius) / cell_size))
-        min_row = max(0, int((agent_y - radius) / cell_size))
-        max_row = min(self.rows - 1, int((agent_y + radius) / cell_size))
+
+        min_col = int((agent_x - radius) / cell_size)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cell_size)
+        if max_col > self.cols - 1:
+            max_col = self.cols - 1
+
+        min_row = int((agent_y - radius) / cell_size)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cell_size)
+        if max_row > self.rows - 1:
+            max_row = self.rows - 1
 
         result: list[Agent] = []
         result_append = result.append  # OPTIMIZATION: Local reference
@@ -605,10 +661,25 @@ class SpatialGrid:
         radius_sq = radius * radius
 
         # Calculate cell range
-        min_col = max(0, int((agent_x - radius) / self.cell_size))
-        max_col = min(self.cols - 1, int((agent_x + radius) / self.cell_size))
-        min_row = max(0, int((agent_y - radius) / self.cell_size))
-        max_row = min(self.rows - 1, int((agent_y + radius) / self.cell_size))
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+
+        min_col = int((agent_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((agent_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
 
         result = []
         result_append = result.append

@@ -59,6 +59,8 @@ class Environment:
 
         # New components
         self.bounds = WorldBounds(width, height)
+        # OPTIMIZATION: Cache bounds as tuple to avoid allocation in hot path
+        self._cached_bounds = ((0.0, 0.0), (float(width), float(height)))
         self.spatial_grid = SpatialGrid(width, height, cell_size=150)
 
         self.time_system = time_system
@@ -361,6 +363,9 @@ class Environment:
         Returns:
             Tuple of (width, height) for 2D environment
         """
+        # OPTIMIZATION: Return from cached bounds if available
+        if hasattr(self, "_cached_bounds"):
+            return self._cached_bounds[1]
         return self.bounds.get_dimensions()
 
     def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
@@ -369,7 +374,8 @@ class Environment:
         Returns:
             ((min_x, min_y), (max_x, max_y)) for 2D environment
         """
-        return ((0.0, 0.0), (float(self.width), float(self.height)))
+        # OPTIMIZATION: Return cached tuple to avoid allocation
+        return self._cached_bounds
 
     def get_2d_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Get 2D boundaries (implements World2D Protocol).
@@ -377,7 +383,7 @@ class Environment:
         Returns:
             ((min_x, min_y), (max_x, max_y))
         """
-        return self.get_bounds()
+        return self._cached_bounds
 
     def is_valid_position(self, position: tuple[float, float]) -> bool:
         """Check if a position is valid within this environment (implements World Protocol).
