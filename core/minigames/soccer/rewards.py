@@ -3,7 +3,9 @@
 Reward modes:
 - pot_payout: Winners split the entry fee pot (default)
 - refill_to_max: Winners get energy refilled to max
-- shaped_pot: Winners split pot + shaped bonuses from telemetry (for evolution)
+- shaped_pot: Winners split pot + shaped bonuses to ALL players from telemetry (for evolution)
+
+The shaped_pot mode is dispatched via finalize_soccer_match() to apply_shaped_soccer_rewards().
 """
 
 from __future__ import annotations

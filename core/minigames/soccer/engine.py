@@ -216,6 +216,39 @@ class RCSSLiteEngine:
         """Get ball state."""
         return self._ball
 
+    def players(self) -> dict[str, RCSSPlayerState]:
+        """Get read-only view of all players.
+
+        Returns:
+            Dict mapping player_id to RCSSPlayerState (read-only)
+        """
+        return self._players.copy()
+
+    def iter_players(self):
+        """Iterate over all player states.
+
+        Yields:
+            RCSSPlayerState objects for all players
+        """
+        return iter(self._players.values())
+
+    def last_touch_info(self) -> dict[str, Any]:
+        """Get information about last ball touch.
+
+        Returns:
+            Dict with keys:
+                - player_id: ID of player who last touched ball (or None)
+                - cycle: Cycle when last touch occurred (-1 if never)
+                - prev_player_id: ID of player who touched ball before (or None)
+                - prev_cycle: Cycle when previous touch occurred (-1 if never)
+        """
+        return {
+            "player_id": self._last_touch_player_id,
+            "cycle": self._last_touch_cycle,
+            "prev_player_id": self._prev_touch_player_id,
+            "prev_cycle": self._prev_touch_cycle,
+        }
+
     def set_ball_position(self, x: float, y: float) -> None:
         """Set ball position (for kickoff/reset)."""
         self._ball.position = RCSSVector(x, y)
