@@ -172,9 +172,9 @@ class SoccerMatchRunner:
             ball_delta_x = ball_state_after.position.x - prev_ball_x
 
             # Award shaped reward to last toucher (if within recent window)
-            # Access private state for touch info (engine owns this)
-            last_touch_id = getattr(self._engine, "_last_touch_player_id", None)
-            last_touch_cycle = getattr(self._engine, "_last_touch_cycle", -1)
+            touch_info = self._engine.last_touch_info()
+            last_touch_id = touch_info["player_id"]
+            last_touch_cycle = touch_info["cycle"]
 
             if last_touch_id and last_touch_id in player_stats:
                 # Only credit recent touches (within 10 cycles)
