@@ -122,3 +122,145 @@ def test_soccer_eval_multiple_players():
     # Verify determinism
     result2 = run_quick_eval(config)
     assert result.episode_hash == result2.episode_hash
+
+
+# =============================================================================
+# Telemetry Tests
+# =============================================================================
+
+
+def test_telemetry_determinism():
+    """Verify that telemetry is deterministic: same seed produces identical telemetry."""
+    config = QuickEvalConfig(
+        seed=42,
+        max_cycles=100,
+        initial_players={
+            "left": [(-0.8, 0), (-5, 3)],
+            "right": [(0.8, 0), (5, -3)],
+        },
+    )
+
+    result1 = run_quick_eval(config)
+    result2 = run_quick_eval(config)
+
+    # Telemetry should be identical
+    tel1 = result1.telemetry
+    tel2 = result2.telemetry
+
+    assert tel1.total_cycles == tel2.total_cycles
+
+    for team in ["left", "right"]:
+        t1 = tel1.teams[team]
+        t2 = tel2.teams[team]
+        assert t1.possession_frames == t2.possession_frames
+        assert t1.touches == t2.touches
+        assert t1.shots == t2.shots
+        assert t1.shots_on_target == t2.shots_on_target
+        assert abs(t1.ball_progress - t2.ball_progress) < 1e-6
+        assert t1.goals == t2.goals
+
+    for player_id in tel1.players:
+        p1 = tel1.players[player_id]
+        p2 = tel2.players[player_id]
+        assert p1.touches == p2.touches
+        assert p1.kicks == p2.kicks
+        assert abs(p1.distance_run - p2.distance_run) < 1e-6
+
+
+def test_telemetry_has_activity():
+    """Verify telemetry captures player movement and ball activity."""
+    # Place players far enough from ball that they need to chase it
+    config = QuickEvalConfig(
+        seed=42,
+        max_cycles=200,
+        initial_players={
+            "left": [(-5, 0)],
+            "right": [(5, 0)],
+        },
+    )
+
+    result = run_quick_eval(config)
+    tel = result.telemetry
+
+    # Players should have moved while chasing the ball
+    total_distance = sum(p.distance_run for p in tel.players.values())
+    assert total_distance > 0, "Expected players to move while chasing ball"
+
+    # Verify telemetry structure is correct
+    assert "left" in tel.teams
+    assert "right" in tel.teams
+    assert len(tel.players) == 2
+    assert tel.total_cycles == 200
+
+
+def test_telemetry_ball_progress():
+    """Verify ball progress is tracked correctly when a team kicks toward goal."""
+    # Place right player within kicking range, ball slightly left of center
+    # Right player should kick ball left (toward left goal = negative x)
+    config = QuickEvalConfig(
+        seed=42,
+        max_cycles=50,
+        initial_ball=(-0.5, 0),
+        initial_players={"right": [(0.5, 0)]},  # Within kicking range
+    )
+
+    result = run_quick_eval(config)
+    tel = result.telemetry
+
+    # Right team kicks toward left goal (negative x direction)
+    # Ball progress for right team should be positive (they moved ball toward their goal)
+    assert tel.teams["right"].ball_progress > 0, (
+        "Right team should have positive ball progress when kicking toward left goal"
+    )
+
+
+def test_shaped_rewards_nonzero_in_draw():
+    """Verify shaped rewards are non-zero in a 0-0 draw when there is ball movement."""
+    from core.minigames.soccer.rewards import calculate_shaped_bonuses
+
+    config = QuickEvalConfig(
+        seed=42,
+        max_cycles=100,
+        initial_players={
+            "left": [(-0.8, 0)],
+            "right": [(0.8, 0)],
+        },
+    )
+
+    result = run_quick_eval(config)
+
+    # Ensure it's a 0-0 draw (or at least no clear winner scenario for shaped rewards)
+    # The key test is that shaped bonuses are calculated from activity
+
+    bonuses = calculate_shaped_bonuses(result.telemetry)
+
+    # Should have some bonuses from touches/progress
+    total_bonus = sum(bonuses.values())
+    assert total_bonus > 0, "Expected non-zero shaped bonuses with ball activity"
+
+
+def test_shaped_rewards_bounded():
+    """Verify shaped rewards stay within expected bounds."""
+    from core.minigames.soccer.rewards import calculate_shaped_bonuses
+
+    config = QuickEvalConfig(
+        seed=42,
+        max_cycles=500,  # Longer match for more activity
+        initial_players={
+            "left": [(-0.8, 0), (-5, 3), (-10, -3)],
+            "right": [(0.8, 0), (5, -3), (10, 3)],
+        },
+    )
+
+    result = run_quick_eval(config)
+
+    max_bonus = 10.0  # Default max_bonus_per_player
+    bonuses = calculate_shaped_bonuses(
+        result.telemetry,
+        max_bonus_per_player=max_bonus,
+    )
+
+    # Each player's bonus should be capped
+    for player_id, bonus in bonuses.items():
+        assert bonus <= max_bonus, f"Player {player_id} bonus {bonus} exceeds cap {max_bonus}"
+        assert bonus >= 0, f"Player {player_id} bonus {bonus} should be non-negative"
