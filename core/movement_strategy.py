@@ -239,8 +239,7 @@ class AlgorithmicMovement(MovementStrategy):
 
         # Extract explicit dt and frame for deterministic execution
         env_dt = getattr(fish.environment, "dt", 1.0)
-        lifecycle = getattr(fish, "_lifecycle_component", None)
-        fish_frame = getattr(lifecycle, "age", None) if lifecycle is not None else None
+        fish_frame = fish.age
 
         # Execute via runner
         # run_movement_policy handles extracting the component_id from the genome
@@ -267,14 +266,15 @@ class AlgorithmicMovement(MovementStrategy):
 
         from core.entities.ball import Ball
 
-        # Find the ball in environment.agents
-        ball = None
-        agents = getattr(fish.environment, "agents", None)
-        if agents:
-            for entity in agents:
-                if isinstance(entity, Ball):
-                    ball = entity
-                    break
+        # Prefer the primary ball reference provided by the environment
+        ball = getattr(fish.environment, "ball", None)
+        if ball is None:
+            agents = getattr(fish.environment, "agents", None)
+            if agents:
+                for entity in agents:
+                    if isinstance(entity, Ball):
+                        ball = entity
+                        break
 
         if ball is None:
             return None  # No ball = no soccer

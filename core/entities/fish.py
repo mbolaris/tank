@@ -306,6 +306,12 @@ class Fish(GenericAgent):
         self._behavior_executor.movement_strategy = strategy
 
     @property
+    def age(self) -> int | None:
+        """Get the current lifecycle age for public consumers."""
+        lifecycle = getattr(self, "_lifecycle_component", None)
+        return lifecycle.age if lifecycle is not None else None
+
+    @property
     def last_direction(self) -> Vector2 | None:
         """Get the last movement direction (delegates to BehaviorExecutor)."""
         return self._behavior_executor.last_direction

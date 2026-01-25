@@ -1,6 +1,7 @@
 """Tests for movement strategies in the fish tank simulation."""
 
 from core.entities import Fish, Food
+from core.entities.ball import Ball
 from core.genetics import Genome
 from core.math_utils import Vector2
 from core.movement_strategy import AlgorithmicMovement, MovementStrategy
@@ -109,3 +110,23 @@ class TestAlgorithmicMovement:
         # We just test that it doesn't crash and velocity is a valid Vector2
         assert isinstance(fish.vel, Vector2)
         assert fish.vel.length() >= 0  # Valid velocity magnitude
+
+    def test_ball_pursuit_prefers_environment_ball(self, simulation_env):
+        """Ensure soccer pursuit honors env.ball before scanning agents."""
+        env, agents = simulation_env
+        strategy = AlgorithmicMovement()
+        fish = Fish(env, strategy, "george1.png", 10, 10, 3)
+        agents.add(fish)
+
+        ball = Ball(env, 500, 500)
+        env.ball = ball
+
+        class FixedRng:
+            def random(self) -> float:
+                return 0.0
+
+        env._rng = FixedRng()
+
+        velocity = strategy._get_ball_pursuit_velocity(fish)
+
+        assert velocity is not None
