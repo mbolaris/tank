@@ -15,7 +15,6 @@ ALLOWLIST_PATHS = {
     Path("core/entities/predators.py"),
     Path("core/energy/energy_component.py"),
     Path("core/plant/energy_component.py"),
-    Path("core/minigames/soccer/eval.py"),
     Path("core/minigames/soccer/league_runtime.py"),
     Path("core/transfer/entity_transfer.py"),
     # energy_utils.py is the centralized energy mutation utility. Its direct
