@@ -15,36 +15,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from core.math_utils import Vector2
+from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
 
 if TYPE_CHECKING:
     from core.entities.fish import Fish
-
-
-@dataclass
-class RCSSLitePhysicsParams:
-    """Physics parameters for RCSS-Lite movement mode.
-
-    These mirror the soccer engine physics for consistency.
-    """
-
-    # Acceleration and speed
-    dash_power_rate: float = 0.006  # Acceleration per power unit
-    player_speed_max: float = 1.05  # Max velocity per cycle
-    player_decay: float = 0.4  # Velocity retention ratio
-
-    # Stamina system
-    stamina_max: float = 8000.0  # Maximum stamina
-    stamina_inc_max: float = 45.0  # Recovery per cycle
-    dash_consume_rate: float = 1.0  # Stamina per power unit
-    effort_dec: float = 0.005  # Effort degradation per cycle
-    effort_min: float = 0.6  # Minimum effort multiplier
-    effort_inc: float = 0.01  # Effort recovery per cycle
-    recover_dec: float = 0.002  # Recovery degradation
-    recover_min: float = 0.5  # Minimum recovery multiplier
-
-    # Turn mechanics
-    inertia_moment: float = 5.0  # Speed-dependent turn reduction
-    max_moment: float = 180.0  # Max turn angle (degrees)
 
 
 @dataclass
@@ -60,7 +34,7 @@ class RCSSLiteAgentState:
         last_dash_power: Power of last dash command [0-100]
     """
 
-    stamina: float = 8000.0
+    stamina: float = DEFAULT_RCSS_PARAMS.stamina_max
     effort: float = 1.0
     recovery: float = 1.0
     body_angle: float = 0.0  # Radians
@@ -76,13 +50,13 @@ class RCSSLitePhysicsEngine:
     turn inertia, and acceleration-based movement.
     """
 
-    def __init__(self, params: RCSSLitePhysicsParams | None = None):
+    def __init__(self, params: RCSSParams | None = None):
         """Initialize the RCSS-Lite physics engine.
 
         Args:
-            params: Physics parameters (uses defaults if None)
+            params: Canonical RCSS parameters (uses defaults if None)
         """
-        self.params = params or RCSSLitePhysicsParams()
+        self.params = params or DEFAULT_RCSS_PARAMS
 
     def apply_dash_command(
         self, agent: Fish, agent_state: RCSSLiteAgentState, power: float
@@ -134,7 +108,7 @@ class RCSSLitePhysicsEngine:
             moment: Turn moment [-180, 180] degrees
         """
         # Clamp moment
-        moment = max(-self.params.max_moment, min(self.params.max_moment, moment))
+        moment = max(self.params.min_moment, min(self.params.max_moment, moment))
 
         # Apply inertia based on speed
         speed = agent_state.velocity.length()
@@ -230,7 +204,7 @@ def create_rcss_agent_state(fish: Fish) -> RCSSLiteAgentState:
         body_angle = math.atan2(fish.vel.y, fish.vel.x)
 
     state = RCSSLiteAgentState(
-        stamina=8000.0,  # Start with full stamina
+        stamina=DEFAULT_RCSS_PARAMS.stamina_max,
         effort=1.0,
         recovery=1.0,
         body_angle=body_angle,

@@ -326,7 +326,10 @@ GoalZone(
 ### RCSS-Lite Physics (near ball)
 
 ```python
-RCSSLitePhysicsParams(
+from core.minigames.soccer.params import RCSSParams
+
+# Leverage the canonical RCSS parameter definitions shared with the soccer engine.
+RCSSParams(
     dash_power_rate=0.006,     # Acceleration scaling
     player_speed_max=1.05,     # Maximum velocity
     player_decay=0.4,          # Velocity retention
