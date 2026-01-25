@@ -92,7 +92,7 @@ class SoccerMinigameOutcome:
 class SoccerMatchSetup:
     """Created match plus deterministic metadata for logging."""
 
-    match: "SoccerMatch"
+    match: SoccerMatch
     seed: int | None
     match_id: str
     selected_count: int

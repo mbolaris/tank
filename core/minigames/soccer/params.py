@@ -132,5 +132,13 @@ class RCSSParams:
 # Default parameters for training (noise disabled)
 DEFAULT_RCSS_PARAMS = RCSSParams()
 
+# Small field preset for faster training (100x60 instead of RCSS standard 105x68)
+# Used by default in SoccerMatch and SoccerMatchRunner for compatibility with
+# existing champions and faster episode evaluation
+SMALL_FIELD_PARAMS = RCSSParams(
+    field_length=100.0,
+    field_width=60.0,
+)
+
 # Parameters with noise for more realistic training
 NOISY_RCSS_PARAMS = RCSSParams(noise_enabled=True)
