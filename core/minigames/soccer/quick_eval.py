@@ -24,12 +24,14 @@ from dataclasses import dataclass, field
 
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+from core.minigames.soccer.participant import SoccerParticipant
 from core.minigames.soccer.policy_adapter import (
     action_to_command,
     build_observation,
     default_policy_action,
 )
-from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTelemetry
+from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
+from core.minigames.soccer.types import SoccerTelemetry
 
 
 @dataclass
@@ -89,9 +91,9 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
     # Initialize engine with seed
     engine = RCSSLiteEngine(params=config.params, seed=config.seed)
 
-    # Setup players and track team membership
+    # Setup players and create participants for telemetry
+    participants: list[SoccerParticipant] = []
     player_ids: list[str] = []
-    player_teams: dict[str, str] = {}
     for team, positions in config.initial_players.items():
         for i, (x, y) in enumerate(positions):
             player_id = f"{team}_{i + 1}"
@@ -99,7 +101,15 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
             body_angle = 0.0 if team == "left" else 3.14159
             engine.add_player(player_id, team, RCSSVector(x, y), body_angle=body_angle)
             player_ids.append(player_id)
-            player_teams[player_id] = team
+            # Create participant for telemetry collector
+            participants.append(
+                SoccerParticipant(
+                    participant_id=player_id,
+                    team=team,
+                    genome_ref=None,
+                    render_hint=None,
+                )
+            )
 
     # Sort for deterministic iteration
     player_ids.sort()
@@ -110,31 +120,17 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
     else:
         engine.set_ball_position(0.0, 0.0)
 
-    # Initialize telemetry
-    telemetry = SoccerTelemetry()
-    for team in ["left", "right"]:
-        telemetry.teams[team] = TeamTelemetry(team=team)
-    for player_id, team in player_teams.items():
-        telemetry.players[player_id] = PlayerTelemetry(player_id=player_id, team=team)
-
-    # Track previous positions for distance calculation
-    prev_positions: dict[str, tuple[float, float]] = {}
-    for player_id in player_ids:
-        player = engine.get_player(player_id)
-        if player:
-            prev_positions[player_id] = (player.position.x, player.position.y)
-
-    # Track ball position for progress calculation
-    prev_ball_x = engine.get_ball().position.x
+    # Initialize telemetry collector (single source of truth)
+    telemetry_collector = SoccerTelemetryCollector(
+        engine=engine,
+        params=config.params,
+        participants=participants,
+    )
 
     # Statistics tracking (legacy, kept for compatibility)
     touches: dict[str, int] = {"left": 0, "right": 0}
     possession_cycles: dict[str, int] = {"left": 0, "right": 0}
     event_log: list[tuple[int, str, str, str | None]] = []
-    last_touch_id: str | None = None
-
-    # Goal line positions
-    half_length = config.params.field_length / 2
 
     # Simulation loop
     for cycle in range(config.max_cycles):
@@ -152,79 +148,35 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
         # Step engine
         step_result = engine.step_cycle()
 
-        # Track player distance traveled
-        for player_id in player_ids:
-            player = engine.get_player(player_id)
-            if player and player_id in prev_positions:
-                px, py = prev_positions[player_id]
-                dx = player.position.x - px
-                dy = player.position.y - py
-                dist = math.sqrt(dx * dx + dy * dy)
-                telemetry.players[player_id].distance_run += dist
-                prev_positions[player_id] = (player.position.x, player.position.y)
+        # Update telemetry (via collector - single source of truth)
+        telemetry_collector.step()
 
-        # Track ball progress
-        ball = engine.get_ball()
-        ball_dx = ball.position.x - prev_ball_x
+        # Track legacy stats for backward compatibility
+        telemetry = telemetry_collector.get_telemetry()
+        touches = {
+            "left": telemetry.teams["left"].touches,
+            "right": telemetry.teams["right"].touches,
+        }
+        possession_cycles = {
+            "left": telemetry.teams["left"].possession_frames,
+            "right": telemetry.teams["right"].possession_frames,
+        }
 
-        # Attribute ball progress to team with possession
+        # Build event log (for hash computation)
         touch_info = engine.last_touch_info()
-        current_touch_id = touch_info["player_id"]
-        if current_touch_id:
-            touch_player = engine.get_player(current_touch_id)
-            if touch_player:
-                team = touch_player.team
-                # Left team wants ball to go right (+x), right team wants left (-x)
-                progress = ball_dx if team == "left" else -ball_dx
-                telemetry.teams[team].ball_progress += progress
-
-        prev_ball_x = ball.position.x
-
-        # Track touches via last_touch_player_id
-        if current_touch_id and current_touch_id != last_touch_id:
-            player = engine.get_player(current_touch_id)
-            if player:
-                team = player.team
-                touches[team] += 1
-                telemetry.teams[team].touches += 1
-                telemetry.players[current_touch_id].touches += 1
-                telemetry.players[current_touch_id].kicks += 1
-                event_log.append((cycle, "touch", team, current_touch_id))
-
-                # Check if this is a shot (kick toward opponent goal)
-                # Shot = ball velocity pointing toward opponent goal
-                ball_vx = ball.velocity.x
-                is_shot = (team == "left" and ball_vx > 0.5) or (team == "right" and ball_vx < -0.5)
-                if is_shot:
-                    telemetry.teams[team].shots += 1
-
-                    # Shot on target = ball y within goal width when it reaches goal line
-                    # Approximate: check if ball trajectory intersects goal
-                    goal_x = half_length if team == "left" else -half_length
-                    if abs(ball_vx) > 0.01:
-                        t_to_goal = (goal_x - ball.position.x) / ball_vx
-                        if t_to_goal > 0:
-                            predicted_y = ball.position.y + ball.velocity.y * t_to_goal
-                            if abs(predicted_y) < config.params.goal_width / 2:
-                                telemetry.teams[team].shots_on_target += 1
-
-            last_touch_id = current_touch_id
-
-        # Track possession
-        if current_touch_id:
-            player = engine.get_player(current_touch_id)
-            if player:
-                possession_cycles[player.team] += 1
-                telemetry.teams[player.team].possession_frames += 1
+        if touch_info["player_id"]:
+            # Track touch events for determinism hash
+            # Only log new touches (not every cycle with same toucher)
+            if not event_log or event_log[-1][3] != touch_info["player_id"]:
+                player = engine.get_player(touch_info["player_id"])
+                if player:
+                    event_log.append((cycle, "touch", player.team, touch_info["player_id"]))
 
         # Log goals
         for event in step_result.get("events", []):
             if event.get("type") == "goal":
                 scoring_team = event["team"]
-                telemetry.teams[scoring_team].goals += 1
                 event_log.append((cycle, "goal", scoring_team, event.get("scorer_id")))
-
-    telemetry.total_cycles = config.max_cycles
 
     # Calculate deterministic hash from final state
     ball = engine.get_ball()
@@ -245,6 +197,9 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
     state_str = json.dumps(final_state, sort_keys=True)
     episode_hash = hashlib.sha256(state_str.encode()).hexdigest()
 
+    # Get final telemetry from collector
+    final_telemetry = telemetry_collector.get_telemetry()
+
     return QuickEvalResult(
         seed=config.seed,
         cycles=config.max_cycles,
@@ -252,5 +207,5 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
         touches=touches,
         possession_cycles=possession_cycles,
         episode_hash=episode_hash,
-        telemetry=telemetry,
+        telemetry=final_telemetry,
     )

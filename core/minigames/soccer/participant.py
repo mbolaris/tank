@@ -99,10 +99,90 @@ def fish_to_participant(
     )
 
 
+def create_participants(
+    entities: list[Any],
+) -> tuple[list[SoccerParticipant], dict[str, Any]]:
+    """Create balanced teams of participants from a list of entities.
+
+    This is the main entry point for adapting entities to SoccerParticipant.
+    It supports:
+    - Already-adapted SoccerParticipant objects (used directly)
+    - Fish-like entities with fish_id (Fish, BotEntity, etc.)
+
+    Args:
+        entities: List of entities to convert (Fish, BotEntity, or SoccerParticipant)
+
+    Returns:
+        Tuple of (participants list, participant_id -> entity mapping)
+
+    Raises:
+        TypeError: If an entity doesn't have fish_id and isn't a SoccerParticipant
+    """
+    # Ensure even number of players
+    if len(entities) % 2 != 0:
+        entities = entities[:-1]
+
+    half = len(entities) // 2
+    participants: list[SoccerParticipant] = []
+    entity_map: dict[str, Any] = {}
+
+    # Left team
+    for i, entity in enumerate(entities[:half]):
+        # Check if already a participant (duck-typing via protocol)
+        if isinstance(entity, SoccerParticipant):
+            # Already adapted - use directly
+            p = entity
+            # Ensure team is set correctly for left team
+            if p.team != "left":
+                raise ValueError(
+                    f"Pre-adapted participant {p.participant_id} has team={p.team}, expected 'left'"
+                )
+        elif hasattr(entity, "fish_id"):
+            # It's a Fish-like entity (Fish, BotEntity, etc.)
+            # fish_to_participant handles entities with or without genome
+            p = fish_to_participant(entity, "left", i + 1)
+        else:
+            raise TypeError(
+                f"Entity {entity} is not a SoccerParticipant and does not have required 'fish_id' attribute. "
+                "Cannot adapt to soccer participant."
+            )
+
+        participants.append(p)
+        entity_map[p.participant_id] = entity
+
+    # Right team
+    for i, entity in enumerate(entities[half:]):
+        # Check if already a participant
+        if isinstance(entity, SoccerParticipant):
+            # Already adapted - use directly
+            p = entity
+            # Ensure team is set correctly for right team
+            if p.team != "right":
+                raise ValueError(
+                    f"Pre-adapted participant {p.participant_id} has team={p.team}, expected 'right'"
+                )
+        elif hasattr(entity, "fish_id"):
+            # It's a Fish-like entity (Fish, BotEntity, etc.)
+            # fish_to_participant handles entities with or without genome
+            p = fish_to_participant(entity, "right", i + 1)
+        else:
+            raise TypeError(
+                f"Entity {entity} is not a SoccerParticipant and does not have required 'fish_id' attribute. "
+                "Cannot adapt to soccer participant."
+            )
+
+        participants.append(p)
+        entity_map[p.participant_id] = entity
+
+    return participants, entity_map
+
+
 def create_participants_from_fish(
     fish_list: list[Fish],
 ) -> tuple[list[SoccerParticipant], dict[str, Fish]]:
     """Create balanced teams of participants from a list of fish.
+
+    DEPRECATED: Use create_participants() instead for entity-agnostic adaptation.
 
     Splits the fish list into two teams (left/right) and creates
     SoccerParticipant instances for each.
@@ -113,24 +193,5 @@ def create_participants_from_fish(
     Returns:
         Tuple of (participants list, player_id -> Fish mapping)
     """
-    # Ensure even number of players
-    if len(fish_list) % 2 != 0:
-        fish_list = fish_list[:-1]
-
-    half = len(fish_list) // 2
-    participants: list[SoccerParticipant] = []
-    fish_map: dict[str, Fish] = {}
-
-    # Left team
-    for i, fish in enumerate(fish_list[:half]):
-        p = fish_to_participant(fish, "left", i + 1)
-        participants.append(p)
-        fish_map[p.participant_id] = fish
-
-    # Right team
-    for i, fish in enumerate(fish_list[half:]):
-        p = fish_to_participant(fish, "right", i + 1)
-        participants.append(p)
-        fish_map[p.participant_id] = fish
-
-    return participants, fish_map
+    # Delegate to create_participants for consistency
+    return create_participants(fish_list)  # type: ignore[return-value]

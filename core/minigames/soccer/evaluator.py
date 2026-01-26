@@ -62,7 +62,7 @@ def create_soccer_match_from_participants(
 
     match = SoccerMatch(
         match_id=match_id,
-        fish_players=participants,
+        entities=participants,
         duration_frames=duration_frames,
         code_source=code_source,
         view_mode=view_mode,

@@ -25,7 +25,7 @@ class TestSoccerRules:
         """Test that players reset to initial positions after a goal."""
         fish_players = create_mock_fish(2)  # 1 vs 1
         match = SoccerMatch(
-            match_id="test_reset", fish_players=fish_players, duration_frames=1000, seed=42
+            match_id="test_reset", entities=fish_players, duration_frames=1000, seed=42
         )
 
         # Get initial positions
@@ -74,7 +74,7 @@ class TestSoccerRules:
         fish_players = create_mock_fish(2)
         # Duration 10 frames, half time at 5
         match = SoccerMatch(
-            match_id="test_swap", fish_players=fish_players, duration_frames=10, seed=42
+            match_id="test_swap", entities=fish_players, duration_frames=10, seed=42
         )
 
         # Capture initial positions
@@ -101,7 +101,7 @@ class TestSoccerRules:
         """Test ball resets at half-time."""
         fish_players = create_mock_fish(2)
         match = SoccerMatch(
-            match_id="test_ball", fish_players=fish_players, duration_frames=10, seed=42
+            match_id="test_ball", entities=fish_players, duration_frames=10, seed=42
         )
 
         # Move ball away
@@ -120,7 +120,7 @@ class TestSoccerRules:
         """Test scoring attribution after side switch."""
         fish_players = create_mock_fish(2)
         match = SoccerMatch(
-            match_id="test_score_swap", fish_players=fish_players, duration_frames=10, seed=42
+            match_id="test_score_swap", entities=fish_players, duration_frames=10, seed=42
         )
 
         # Reach half time
