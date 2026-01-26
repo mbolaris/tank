@@ -101,35 +101,35 @@ def fish_to_participant(
 
 def create_participants(
     entities: list[Any],
-) -> tuple[list[SoccerParticipant], dict[str, Any]]:
+) -> tuple[list[SoccerParticipantProtocol], dict[str, Any]]:
     """Create balanced teams of participants from a list of entities.
 
     This is the main entry point for adapting entities to SoccerParticipant.
     It supports:
-    - Already-adapted SoccerParticipant objects (used directly)
+    - Already-adapted SoccerParticipantProtocol objects (used directly)
     - Fish-like entities with fish_id (Fish, BotEntity, etc.)
 
     Args:
-        entities: List of entities to convert (Fish, BotEntity, or SoccerParticipant)
+        entities: List of entities to convert (Fish, BotEntity, or SoccerParticipantProtocol)
 
     Returns:
         Tuple of (participants list, participant_id -> entity mapping)
 
     Raises:
-        TypeError: If an entity doesn't have fish_id and isn't a SoccerParticipant
+        TypeError: If an entity doesn't have fish_id and isn't a SoccerParticipantProtocol
     """
     # Ensure even number of players
     if len(entities) % 2 != 0:
         entities = entities[:-1]
 
     half = len(entities) // 2
-    participants: list[SoccerParticipant] = []
+    participants: list[SoccerParticipantProtocol] = []
     entity_map: dict[str, Any] = {}
 
     # Left team
     for i, entity in enumerate(entities[:half]):
         # Check if already a participant (duck-typing via protocol)
-        if isinstance(entity, SoccerParticipant):
+        if isinstance(entity, SoccerParticipantProtocol):
             # Already adapted - use directly
             p = entity
             # Ensure team is set correctly for left team
@@ -143,17 +143,20 @@ def create_participants(
             p = fish_to_participant(entity, "left", i + 1)
         else:
             raise TypeError(
-                f"Entity {entity} is not a SoccerParticipant and does not have required 'fish_id' attribute. "
+                f"Entity {entity} is not a SoccerParticipantProtocol and does not have required 'fish_id' attribute. "
                 "Cannot adapt to soccer participant."
             )
 
         participants.append(p)
-        entity_map[p.participant_id] = entity
+        if isinstance(entity, SoccerParticipantProtocol):
+            entity_map[p.participant_id] = getattr(p, "source_entity", None) or p
+        else:
+            entity_map[p.participant_id] = entity
 
     # Right team
     for i, entity in enumerate(entities[half:]):
         # Check if already a participant
-        if isinstance(entity, SoccerParticipant):
+        if isinstance(entity, SoccerParticipantProtocol):
             # Already adapted - use directly
             p = entity
             # Ensure team is set correctly for right team
@@ -167,12 +170,15 @@ def create_participants(
             p = fish_to_participant(entity, "right", i + 1)
         else:
             raise TypeError(
-                f"Entity {entity} is not a SoccerParticipant and does not have required 'fish_id' attribute. "
+                f"Entity {entity} is not a SoccerParticipantProtocol and does not have required 'fish_id' attribute. "
                 "Cannot adapt to soccer participant."
             )
 
         participants.append(p)
-        entity_map[p.participant_id] = entity
+        if isinstance(entity, SoccerParticipantProtocol):
+            entity_map[p.participant_id] = getattr(p, "source_entity", None) or p
+        else:
+            entity_map[p.participant_id] = entity
 
     return participants, entity_map
 

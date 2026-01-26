@@ -150,7 +150,7 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
         # Update telemetry (via collector - single source of truth)
         telemetry_collector.step()
 
-        # Track legacy stats for backward compatibility
+        # Track legacy stats for compatibility
         telemetry = telemetry_collector.get_telemetry()
         touches = {
             "left": telemetry.teams["left"].touches,

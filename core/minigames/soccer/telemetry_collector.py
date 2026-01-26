@@ -20,7 +20,7 @@ from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTe
 if TYPE_CHECKING:
     from core.minigames.soccer.engine import RCSSLiteEngine
     from core.minigames.soccer.params import RCSSParams
-    from core.minigames.soccer.participant import SoccerParticipant
+    from core.minigames.soccer.participant import SoccerParticipantProtocol
 
 
 class SoccerTelemetryCollector:
@@ -38,7 +38,7 @@ class SoccerTelemetryCollector:
         self,
         engine: RCSSLiteEngine,
         params: RCSSParams,
-        participants: Sequence[SoccerParticipant],
+        participants: Sequence[SoccerParticipantProtocol],
     ):
         """Initialize telemetry collector.
 
@@ -74,8 +74,8 @@ class SoccerTelemetryCollector:
         # Track ball position for progress calculation
         self._prev_ball_x = self._engine.get_ball().position.x
 
-        # Track last touch for detecting new touches
-        self._last_touch_id: str | None = None
+        # Track previous touch for detecting new touches
+        self._prev_touch_id: str | None = None
 
         # Cycle counter
         self._cycle_count = 0
@@ -116,8 +116,8 @@ class SoccerTelemetryCollector:
 
         self._prev_ball_x = ball.position.x
 
-        # Track touches via last_touch_player_id
-        if current_touch_id and current_touch_id != self._last_touch_id:
+        # Track touches via last_touch_info()
+        if current_touch_id and current_touch_id != self._prev_touch_id:
             player = self._engine.get_player(current_touch_id)
             if player:
                 team = player.team
@@ -141,7 +141,7 @@ class SoccerTelemetryCollector:
                             if abs(predicted_y) < self._params.goal_width / 2:
                                 self.telemetry.teams[team].shots_on_target += 1
 
-            self._last_touch_id = current_touch_id
+            self._prev_touch_id = current_touch_id
 
         # Track possession
         if current_touch_id:
