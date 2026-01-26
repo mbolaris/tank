@@ -3,7 +3,7 @@
     "version": 1,
     "champion": {
         "seed": 42,
-        "score": 0.021742601572149342,
+        "score": 0.02666666666666667,
         "runtime_seconds": 0.88,
         "metadata": {
             "frames": 5000,
@@ -15,9 +15,9 @@
             "possession_right": 7,
             "total_possession": 14,
             "possession_diff": 0.0,
-            "avg_fitness": 0.21742601572149342,
+            "avg_fitness": 0.26666666666666666,
             "team_fitness_left": 0.7000000000000001,
-            "team_fitness_right": 0.6045560943289604
+            "team_fitness_right": 0.9000000000000001
         },
         "timestamp": 1768265500.0
     },
