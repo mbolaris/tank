@@ -114,8 +114,8 @@ class SoccerMatch:
             goal_depth=self._params.goal_depth,
         )
 
-        # Initialize RCSS-Lite engine
-        self._engine = RCSSLiteEngine(params=self._params, seed=seed)
+        # Initialize RCSS-Lite engine with deterministic seed
+        self._engine = RCSSLiteEngine(params=self._params, seed=self._match_seed)
 
         # Store initial positions for resets (x, y, angle)
         self._initial_positions: dict[str, tuple[float, float, float]] = {}

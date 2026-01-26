@@ -1,5 +1,8 @@
+import hashlib
+import json
 import math
 import random as pyrandom
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -14,6 +17,7 @@ from core.code_pool.pool import (
 )
 from core.genetics.trait import GeneticTrait
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.params import RCSSParams
 from core.minigames.soccer.policy_adapter import (
     MAX_KICK_POWER,
@@ -60,6 +64,105 @@ def test_determinism(engine):
     assert eng_a.get_player("p1").position.x == eng_b.get_player("p1").position.x
     assert eng_a.get_player("p1").velocity.x == eng_b.get_player("p1").velocity.x
     assert res_a["cycle"] == res_b["cycle"]
+
+
+def _create_mock_fish(count=4):
+    """Create mock fish entities for testing SoccerMatch."""
+    fish_list = []
+    for i in range(count):
+        fish = MagicMock()
+        fish.fish_id = i
+        fish.genome = MagicMock()
+        fish.genome.behavioral = MagicMock()
+        fish.genome.behavioral.soccer_policy_id = MagicMock(value=None)
+        fish.genome.behavioral.soccer_policy_params = MagicMock(value={})
+        fish.genome.physical = None
+        fish_list.append(fish)
+    return fish_list
+
+
+def _compute_match_hash(match: SoccerMatch) -> str:
+    """Compute deterministic hash from match final state."""
+    state = match.get_state()
+
+    # Extract deterministic state components
+    final_state = {
+        "frame": state["frame"],
+        "score": state["score"],
+        "ball_pos": None,
+        "player_positions": [],
+    }
+
+    # Find ball position
+    for entity in state["entities"]:
+        if entity["type"] == "ball":
+            final_state["ball_pos"] = (
+                round(entity["x"], 6),
+                round(entity["y"], 6),
+            )
+        elif entity["type"] == "player":
+            final_state["player_positions"].append({
+                "team": entity["team"],
+                "jersey": entity["jersey_number"],
+                "x": round(entity["x"], 6),
+                "y": round(entity["y"], 6),
+            })
+
+    # Sort players for determinism
+    final_state["player_positions"].sort(key=lambda p: (p["team"], p["jersey"]))
+
+    # Compute hash
+    state_str = json.dumps(final_state, sort_keys=True)
+    return hashlib.sha256(state_str.encode()).hexdigest()
+
+
+def test_soccer_match_determinism_with_seed_none():
+    """Test that SoccerMatch with seed=None produces deterministic results.
+
+    This test verifies the fix for the seeding footgun where seed=None would
+    create nondeterministic RNG. The match should compute a deterministic
+    _match_seed from match_id and pass it to the engine, ensuring reproducibility.
+    """
+    # Create two matches with same match_id but seed=None
+    fish_players_1 = _create_mock_fish(2)
+    match_1 = SoccerMatch(
+        match_id="determinism_test",
+        fish_players=fish_players_1,
+        duration_frames=50,
+        seed=None,  # Explicitly test seed=None case
+    )
+
+    # Run first match
+    for _ in range(50):
+        match_1.step()
+
+    hash_1 = _compute_match_hash(match_1)
+
+    # Create second match with same parameters
+    fish_players_2 = _create_mock_fish(2)
+    match_2 = SoccerMatch(
+        match_id="determinism_test",  # Same match_id
+        fish_players=fish_players_2,
+        duration_frames=50,
+        seed=None,  # Same seed=None
+    )
+
+    # Run second match
+    for _ in range(50):
+        match_2.step()
+
+    hash_2 = _compute_match_hash(match_2)
+
+    # Hashes should be identical (deterministic)
+    assert hash_1 == hash_2, (
+        f"Match with seed=None should be deterministic. "
+        f"Hash 1: {hash_1[:16]}... != Hash 2: {hash_2[:16]}..."
+    )
+
+    # Also verify final scores are identical
+    state_1 = match_1.get_state()
+    state_2 = match_2.get_state()
+    assert state_1["score"] == state_2["score"], "Scores should be identical"
 
 
 def test_command_timing_and_decay(engine):
