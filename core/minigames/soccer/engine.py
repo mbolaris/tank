@@ -255,6 +255,21 @@ class RCSSLiteEngine:
         self._ball.velocity = RCSSVector(0.0, 0.0)
         self._ball.acceleration = RCSSVector(0.0, 0.0)
 
+    @property
+    def play_mode(self) -> str:
+        """Current play mode."""
+        return self._play_mode
+
+    def set_play_mode(self, mode: str) -> None:
+        """Set play mode.
+
+        Only a small set of modes are currently supported.
+        """
+        valid_modes = ("before_kick_off", "kick_off_left", "kick_off_right")
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid play mode: {mode!r}. Expected one of {valid_modes}.")
+        self._play_mode = mode
+
     def set_swapped_sides(self, swapped: bool) -> None:
         """Set whether teams have swapped sides (affects goal attribution)."""
         self._swapped_sides = swapped

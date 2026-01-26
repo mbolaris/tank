@@ -315,7 +315,7 @@ class SoccerMatch:
         # 2nd half kick-off usually by Right team (if Left started)
         # But if sides swapped, Right Team is on Left Side.
         # kick_off_right means Right Team kicks.
-        self._engine._play_mode = "kick_off_right"
+        self._engine.set_play_mode("kick_off_right")
 
     def _update_telemetry(self) -> None:
         """Update telemetry after each cycle (for shaped rewards)."""
