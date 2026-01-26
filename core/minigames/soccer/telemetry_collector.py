@@ -76,6 +76,7 @@ class SoccerTelemetryCollector:
 
         # Track previous touch for detecting new touches
         self._prev_touch_id: str | None = None
+        self._prev_touch_cycle: int = -1
 
         # Cycle counter
         self._cycle_count = 0
@@ -88,6 +89,12 @@ class SoccerTelemetryCollector:
         """
         self._cycle_count += 1
 
+        ball = self._engine.get_ball()
+        kickable_dist = (
+            self._params.player_size + self._params.ball_size + self._params.kickable_margin
+        )
+        kickable_dist_sq = kickable_dist * kickable_dist
+
         # Track player distance traveled (deterministic: sorted IDs)
         for player_id in self._player_ids:
             player = self._engine.get_player(player_id)
@@ -99,13 +106,19 @@ class SoccerTelemetryCollector:
                 self.telemetry.players[player_id].distance_run += dist
                 self._prev_positions[player_id] = (player.position.x, player.position.y)
 
+            if player:
+                bdx = ball.position.x - player.position.x
+                bdy = ball.position.y - player.position.y
+                if (bdx * bdx + bdy * bdy) <= kickable_dist_sq:
+                    self.telemetry.players[player_id].possession_frames += 1
+
         # Track ball progress
-        ball = self._engine.get_ball()
         ball_dx = ball.position.x - self._prev_ball_x
 
         # Attribute ball progress to team with possession
         touch_info = self._engine.last_touch_info()
         current_touch_id = touch_info["player_id"]
+        current_touch_cycle = touch_info["cycle"]
         if current_touch_id:
             touch_player = self._engine.get_player(current_touch_id)
             if touch_player:
@@ -117,7 +130,12 @@ class SoccerTelemetryCollector:
         self._prev_ball_x = ball.position.x
 
         # Track touches via last_touch_info()
-        if current_touch_id and current_touch_id != self._prev_touch_id:
+        is_new_touch = (
+            current_touch_id is not None
+            and current_touch_cycle >= 0
+            and current_touch_cycle != self._prev_touch_cycle
+        )
+        if is_new_touch and current_touch_id:
             player = self._engine.get_player(current_touch_id)
             if player:
                 team = player.team
@@ -142,12 +160,18 @@ class SoccerTelemetryCollector:
                                 self.telemetry.teams[team].shots_on_target += 1
 
             self._prev_touch_id = current_touch_id
+            self._prev_touch_cycle = current_touch_cycle
 
         # Track possession
         if current_touch_id:
             player = self._engine.get_player(current_touch_id)
             if player:
                 self.telemetry.teams[player.team].possession_frames += 1
+
+        # Update goals from authoritative engine score.
+        score = self._engine.score
+        for team in ["left", "right"]:
+            self.telemetry.teams[team].goals = score.get(team, 0)
 
         # Update total cycles
         self.telemetry.total_cycles = self._cycle_count

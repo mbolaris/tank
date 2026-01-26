@@ -140,5 +140,9 @@ SMALL_FIELD_PARAMS = RCSSParams(
     field_width=60.0,
 )
 
+# Canonical evaluation params for soccer (Match / Runner / QuickEval defaults).
+# Keep this as a single source of truth to avoid evaluation drift across harnesses.
+SOCCER_CANONICAL_PARAMS = SMALL_FIELD_PARAMS
+
 # Parameters with noise for more realistic training
 NOISY_RCSS_PARAMS = RCSSParams(noise_enabled=True)

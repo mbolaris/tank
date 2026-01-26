@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
-from core.minigames.soccer.params import SMALL_FIELD_PARAMS
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS
 from core.minigames.soccer.participant import create_participants
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
 
@@ -104,9 +104,8 @@ class SoccerMatch:
             )
         self._rng = pyrandom.Random(self._match_seed)
 
-        # Configure RCSS-Lite engine with small field for faster training
-        # (100x60 instead of RCSS standard 105x68)
-        self._params = SMALL_FIELD_PARAMS
+        # Configure RCSS-Lite engine with the canonical soccer params preset.
+        self._params = SOCCER_CANONICAL_PARAMS
 
         # Field dimensions for snapshot output
         self._field = FieldDimensions(

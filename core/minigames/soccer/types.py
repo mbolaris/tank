@@ -20,6 +20,7 @@ class PlayerTelemetry:
     team: str
     touches: int = 0  # Number of times player kicked the ball
     kicks: int = 0  # Alias for touches (kick is the only way to touch)
+    possession_frames: int = 0  # Cycles where player was kickable to the ball
     distance_run: float = 0.0  # Approximate distance traveled (sum of position deltas)
 
 

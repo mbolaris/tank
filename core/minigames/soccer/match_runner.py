@@ -19,7 +19,10 @@ from typing import TYPE_CHECKING
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
-from core.minigames.soccer.params import RCSSParams, SMALL_FIELD_PARAMS
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
+from core.minigames.soccer.participant import SoccerParticipant
+from core.minigames.soccer.rewards import calculate_shaped_bonuses
+from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -88,11 +91,11 @@ class SoccerMatchRunner:
 
         Args:
             team_size: Number of players per team
-            params: RCSS physics parameters (uses SMALL_FIELD_PARAMS if None)
+            params: RCSS physics parameters (uses SOCCER_CANONICAL_PARAMS if None)
             genome_code_pool: Pool for policy lookup
         """
         self.team_size = team_size
-        self._params = params or SMALL_FIELD_PARAMS
+        self._params = params or SOCCER_CANONICAL_PARAMS
         self._genome_code_pool = genome_code_pool
         self._engine: RCSSLiteEngine | None = None
 
@@ -145,6 +148,22 @@ class SoccerMatchRunner:
             if actual_team_size + i < len(genomes):
                 genome_by_player[right_id] = genomes[actual_team_size + i]
 
+        # Sort for deterministic iteration.
+        player_ids.sort()
+
+        participants: list[SoccerParticipant] = []
+        for pid in player_ids:
+            player = self._engine.get_player(pid)
+            participants.append(
+                SoccerParticipant(participant_id=pid, team=player.team if player else "left")
+            )
+
+        telemetry_collector = SoccerTelemetryCollector(
+            engine=self._engine,
+            params=self._params,
+            participants=participants,
+        )
+
         # Initialize per-player stats
         player_stats: dict[str, PlayerStats] = {}
         for pid in player_ids:
@@ -155,37 +174,14 @@ class SoccerMatchRunner:
         episode_rng = pyrandom.Random(seed)
 
         # Run episode
-        prev_ball_x = 0.0
-        for frame in range(frames):
-            # Track ball position before step for shaped reward
-            ball_state = self._engine.get_ball()
-            prev_ball_x = ball_state.position.x
-
+        for _ in range(frames):
             # Queue autopolicy commands with forked RNG
             self._queue_autopolicy_commands(player_stats, genome_by_player, episode_rng)
 
             # Step engine
             step_result = self._engine.step_cycle()
 
-            # Shaped reward: ball progress toward opponent goal
-            ball_state_after = self._engine.get_ball()
-            ball_delta_x = ball_state_after.position.x - prev_ball_x
-
-            # Award shaped reward to last toucher (if within recent window)
-            touch_info = self._engine.last_touch_info()
-            last_touch_id = touch_info["player_id"]
-            last_touch_cycle = touch_info["cycle"]
-
-            if last_touch_id and last_touch_id in player_stats:
-                # Only credit recent touches (within 10 cycles)
-                cycles_since_touch = self._engine.cycle - last_touch_cycle
-                if cycles_since_touch <= 10:
-                    stats = player_stats[last_touch_id]
-                    # Left team: wants ball to go right (positive x)
-                    # Right team: wants ball to go left (negative x)
-                    direction_multiplier = 1.0 if stats.team == "left" else -1.0
-                    shaped_reward = ball_delta_x * direction_multiplier * 0.01  # Small weight
-                    stats.total_reward += shaped_reward
+            telemetry_collector.step()
 
             # Track goals and assists from engine events
             for event in step_result.get("events", []):
@@ -200,6 +196,17 @@ class SoccerMatchRunner:
                     # Increment assist for assister
                     if assist_id and assist_id in player_stats:
                         player_stats[assist_id].assists += 1
+
+        # Fold telemetry-derived stats and shaped bonuses into fitness inputs.
+        final_telemetry = telemetry_collector.get_telemetry()
+        shaped_bonuses = calculate_shaped_bonuses(final_telemetry)
+        for pid in player_ids:
+            stats = player_stats[pid]
+            player_tel = final_telemetry.players.get(pid)
+            if player_tel:
+                stats.kicks = player_tel.kicks
+                stats.possessions = player_tel.possession_frames
+            stats.total_reward += shaped_bonuses.get(pid, 0.0)
 
         # Extract final score
         score = self._engine.score
@@ -274,15 +281,11 @@ class SoccerMatchRunner:
             run_policy,
         )
 
-        for pid, stats in player_stats.items():
+        for pid in sorted(player_stats):
             # Build observation
             obs = build_observation(self._engine, pid, self._params)
             if not obs:
                 continue
-
-            # Track possession (re-implementing logic using obs for consistency)
-            if obs.get("is_kickable"):
-                stats.possessions += 1
 
             # Get genome
             genome = genome_by_player.get(pid)
@@ -298,10 +301,6 @@ class SoccerMatchRunner:
                 rng=player_rng,
                 dt=0.1,  # 100ms RCSS cycle
             )
-
-            # Additional stats tracking for kicks
-            if "kick" in action and action["kick"]:
-                stats.kicks += 1
 
             # Convert to command
             cmd = action_to_command(action, self._params)

@@ -85,18 +85,17 @@ def test_soccer_eval_goal_scoring():
     Place a player within kickable distance of the ball, near the goal.
     The default policy should kick the ball into the goal.
     """
-    # Field is 105x68 by default. Goals are at x = +/- 52.5
-    # Kickable distance = player_size(0.3) + ball_size(0.085) + kickable_margin(0.7) ≈ 1.085
-    # Place ball very close to left goal, with right player within kicking distance
+    # Canonical eval uses the small-field preset (100x60). Goals are at x = +/- 50.
+    # Place the ball just inside the left goal line so a right-team player can kick it in.
     config = QuickEvalConfig(
         seed=42,
         max_cycles=50,
-        initial_ball=(-51, 0),  # Ball very close to left goal line (-52.5)
-        initial_players={"right": [(-50, 0)]},  # Right player within 1m of ball
+        initial_ball=(-49.9, 0),
+        initial_players={"right": [(-49.0, 0)]},  # Within kickable distance
     )
     result = run_quick_eval(config)
 
-    # Right team should score in left goal (ball crosses x < -52.5)
+    # Right team should score in left goal.
     assert result.score["right"] > 0
 
 

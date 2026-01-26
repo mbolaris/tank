@@ -6,7 +6,8 @@ This module provides fast, deterministic soccer episode evaluation for:
 - Quick benchmarking
 
 Uses RCSSLiteEngine directly without Fish/Match overhead.
-This is the canonical evaluation path for soccer simulations.
+This is the canonical evaluation path for soccer simulations (shared params preset
+with SoccerMatch/SoccerMatchRunner via SOCCER_CANONICAL_PARAMS).
 
 Example:
     >>> config = QuickEvalConfig(seed=42, max_cycles=200)
@@ -22,7 +23,7 @@ import json
 from dataclasses import dataclass, field
 
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
-from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.participant import SoccerParticipant
 from core.minigames.soccer.policy_adapter import (
     action_to_command,
@@ -47,7 +48,9 @@ class QuickEvalConfig:
 
     seed: int
     max_cycles: int = 200
-    params: RCSSParams = field(default_factory=lambda: DEFAULT_RCSS_PARAMS)
+    params: RCSSParams = field(
+        default_factory=lambda: RCSSParams.from_dict(SOCCER_CANONICAL_PARAMS.to_dict())
+    )
     initial_ball: tuple[float, float] | None = None
     initial_players: dict[str, list[tuple[float, float]]] = field(default_factory=dict)
 
@@ -93,7 +96,8 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
     # Setup players and create participants for telemetry
     participants: list[SoccerParticipant] = []
     player_ids: list[str] = []
-    for team, positions in config.initial_players.items():
+    for team in sorted(config.initial_players):
+        positions = config.initial_players[team]
         for i, (x, y) in enumerate(positions):
             player_id = f"{team}_{i + 1}"
             # Face toward opponent goal
@@ -126,9 +130,6 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
         participants=participants,
     )
 
-    # Statistics tracking (legacy, kept for compatibility)
-    touches: dict[str, int] = {"left": 0, "right": 0}
-    possession_cycles: dict[str, int] = {"left": 0, "right": 0}
     event_log: list[tuple[int, str, str, str | None]] = []
 
     # Simulation loop
@@ -149,17 +150,6 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
 
         # Update telemetry (via collector - single source of truth)
         telemetry_collector.step()
-
-        # Track legacy stats for compatibility
-        telemetry = telemetry_collector.get_telemetry()
-        touches = {
-            "left": telemetry.teams["left"].touches,
-            "right": telemetry.teams["right"].touches,
-        }
-        possession_cycles = {
-            "left": telemetry.teams["left"].possession_frames,
-            "right": telemetry.teams["right"].possession_frames,
-        }
 
         # Build event log (for hash computation)
         touch_info = engine.last_touch_info()
@@ -198,6 +188,16 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
 
     # Get final telemetry from collector
     final_telemetry = telemetry_collector.get_telemetry()
+
+    # Legacy outputs (derived from telemetry to avoid drift)
+    touches: dict[str, int] = {
+        "left": final_telemetry.teams["left"].touches,
+        "right": final_telemetry.teams["right"].touches,
+    }
+    possession_cycles: dict[str, int] = {
+        "left": final_telemetry.teams["left"].possession_frames,
+        "right": final_telemetry.teams["right"].possession_frames,
+    }
 
     return QuickEvalResult(
         seed=config.seed,
