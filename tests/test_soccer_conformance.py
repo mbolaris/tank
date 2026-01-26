@@ -101,12 +101,14 @@ def _compute_match_hash(match: SoccerMatch) -> str:
                 round(entity["y"], 6),
             )
         elif entity["type"] == "player":
-            final_state["player_positions"].append({
-                "team": entity["team"],
-                "jersey": entity["jersey_number"],
-                "x": round(entity["x"], 6),
-                "y": round(entity["y"], 6),
-            })
+            final_state["player_positions"].append(
+                {
+                    "team": entity["team"],
+                    "jersey": entity["jersey_number"],
+                    "x": round(entity["x"], 6),
+                    "y": round(entity["y"], 6),
+                }
+            )
 
     # Sort players for determinism
     final_state["player_positions"].sort(key=lambda p: (p["team"], p["jersey"]))
