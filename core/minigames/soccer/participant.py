@@ -128,19 +128,25 @@ def create_participants(
 
     # Left team
     for i, entity in enumerate(entities[:half]):
+        # Prefer fish-like adaptation if fish_id is present. This avoids runtime-checkable
+        # Protocol + Mock traps where mocks accidentally satisfy SoccerParticipantProtocol.
+        if hasattr(entity, "fish_id"):
+            # It's a Fish-like entity (Fish, BotEntity, etc.)
+            # fish_to_participant handles entities with or without genome
+            p = fish_to_participant(entity, "left", i + 1)
         # Check if already a participant (duck-typing via protocol)
-        if isinstance(entity, SoccerParticipantProtocol):
+        elif isinstance(entity, SoccerParticipantProtocol):
             # Already adapted - use directly
             p = entity
+            if not isinstance(p.team, str):
+                raise ValueError(
+                    f"Pre-adapted participant {p.participant_id} must define team as 'left' or 'right'"
+                )
             # Ensure team is set correctly for left team
             if p.team != "left":
                 raise ValueError(
                     f"Pre-adapted participant {p.participant_id} has team={p.team}, expected 'left'"
                 )
-        elif hasattr(entity, "fish_id"):
-            # It's a Fish-like entity (Fish, BotEntity, etc.)
-            # fish_to_participant handles entities with or without genome
-            p = fish_to_participant(entity, "left", i + 1)
         else:
             raise TypeError(
                 f"Entity {entity} is not a SoccerParticipantProtocol and does not have required 'fish_id' attribute. "
@@ -155,19 +161,25 @@ def create_participants(
 
     # Right team
     for i, entity in enumerate(entities[half:]):
+        # Prefer fish-like adaptation if fish_id is present. This avoids runtime-checkable
+        # Protocol + Mock traps where mocks accidentally satisfy SoccerParticipantProtocol.
+        if hasattr(entity, "fish_id"):
+            # It's a Fish-like entity (Fish, BotEntity, etc.)
+            # fish_to_participant handles entities with or without genome
+            p = fish_to_participant(entity, "right", i + 1)
         # Check if already a participant
-        if isinstance(entity, SoccerParticipantProtocol):
+        elif isinstance(entity, SoccerParticipantProtocol):
             # Already adapted - use directly
             p = entity
+            if not isinstance(p.team, str):
+                raise ValueError(
+                    f"Pre-adapted participant {p.participant_id} must define team as 'left' or 'right'"
+                )
             # Ensure team is set correctly for right team
             if p.team != "right":
                 raise ValueError(
                     f"Pre-adapted participant {p.participant_id} has team={p.team}, expected 'right'"
                 )
-        elif hasattr(entity, "fish_id"):
-            # It's a Fish-like entity (Fish, BotEntity, etc.)
-            # fish_to_participant handles entities with or without genome
-            p = fish_to_participant(entity, "right", i + 1)
         else:
             raise TypeError(
                 f"Entity {entity} is not a SoccerParticipantProtocol and does not have required 'fish_id' attribute. "
