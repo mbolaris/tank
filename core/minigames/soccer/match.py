@@ -26,11 +26,9 @@ from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import SMALL_FIELD_PARAMS
 from core.minigames.soccer.participant import create_participants
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
-from core.minigames.soccer.types import SoccerTelemetry
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
-    from core.entities import Fish
 
 logger = logging.getLogger(__name__)
 
