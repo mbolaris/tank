@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from dataclasses import dataclass, field
 
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
