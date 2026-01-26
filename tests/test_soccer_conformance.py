@@ -129,7 +129,7 @@ def test_soccer_match_determinism_with_seed_none():
     fish_players_1 = _create_mock_fish(2)
     match_1 = SoccerMatch(
         match_id="determinism_test",
-        fish_players=fish_players_1,
+        entities=fish_players_1,
         duration_frames=50,
         seed=None,  # Explicitly test seed=None case
     )
@@ -144,7 +144,7 @@ def test_soccer_match_determinism_with_seed_none():
     fish_players_2 = _create_mock_fish(2)
     match_2 = SoccerMatch(
         match_id="determinism_test",  # Same match_id
-        fish_players=fish_players_2,
+        entities=fish_players_2,
         duration_frames=50,
         seed=None,  # Same seed=None
     )
@@ -165,6 +165,48 @@ def test_soccer_match_determinism_with_seed_none():
     state_1 = match_1.get_state()
     state_2 = match_2.get_state()
     assert state_1["score"] == state_2["score"], "Scores should be identical"
+
+
+def test_soccer_match_with_pre_adapted_participants():
+    """Test that SoccerMatch accepts already-adapted SoccerParticipant objects.
+
+    This test verifies the entity-agnostic API works with participants
+    that have already been converted (not just Fish entities).
+    """
+    from core.minigames.soccer.participant import SoccerParticipant
+
+    # Create pre-adapted participants manually
+    participants = [
+        SoccerParticipant(
+            participant_id="left_1",
+            team="left",
+            genome_ref=None,
+            render_hint=None,
+        ),
+        SoccerParticipant(
+            participant_id="right_1",
+            team="right",
+            genome_ref=None,
+            render_hint=None,
+        ),
+    ]
+
+    # Pass participants directly (not Fish)
+    match = SoccerMatch(
+        match_id="pre_adapted_test",
+        entities=participants,
+        duration_frames=50,
+        seed=42,
+    )
+
+    # Run the match
+    for _ in range(50):
+        match.step()
+
+    # Verify it ran successfully
+    state = match.get_state()
+    assert state["game_over"] is True
+    assert len(state["entities"]) > 0  # Should have players and ball
 
 
 def test_command_timing_and_decay(engine):

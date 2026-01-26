@@ -297,7 +297,7 @@ class TestSoccerMatch:
 
         match = SoccerMatch(
             match_id="test",
-            fish_players=mock_fish,
+            entities=mock_fish,
             duration_frames=100,
             seed=42,
         )

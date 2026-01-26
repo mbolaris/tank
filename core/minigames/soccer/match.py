@@ -24,8 +24,9 @@ from typing import TYPE_CHECKING, Any
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import SMALL_FIELD_PARAMS
-from core.minigames.soccer.participant import create_participants_from_fish
-from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTelemetry
+from core.minigames.soccer.participant import create_participants
+from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
+from core.minigames.soccer.types import SoccerTelemetry
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -60,7 +61,7 @@ class SoccerMatch:
     def __init__(
         self,
         match_id: str,
-        fish_players: list[Fish],
+        entities: list[Any],
         duration_frames: int = 3000,
         code_source: GenomeCodePool | None = None,
         view_mode: str = "side",
@@ -70,7 +71,7 @@ class SoccerMatch:
 
         Args:
             match_id: Unique identifier for this match
-            fish_players: List of fish entities to participate
+            entities: List of entities to participate (Fish or SoccerParticipant)
             duration_frames: Match duration in cycles (default 3000 = 5 minutes at 10Hz)
             code_source: Optional code pool for policy lookup
             view_mode: Rendering style ("side" for fish, "top" for microbes)
@@ -85,8 +86,11 @@ class SoccerMatch:
         self.view_mode = view_mode
         self._last_goal_event: dict[str, Any] | None = None
 
-        # Convert fish to participants
-        self.participants, self.player_map = create_participants_from_fish(fish_players)
+        # Convert entities to participants (entity-agnostic adapter)
+        self.participants, self._entity_by_participant_id = create_participants(entities)
+
+        # Legacy compatibility: player_map for existing code
+        self.player_map = self._entity_by_participant_id
 
         # Store code source for policy lookup (used directly, no copying)
         self._code_source = code_source
@@ -128,24 +132,15 @@ class SoccerMatch:
         self._entity_ids: dict[str, int] = {}
         self._next_id = 1
 
-        # Initialize telemetry for shaped rewards
-        self.telemetry = SoccerTelemetry()
-        for team in ["left", "right"]:
-            self.telemetry.teams[team] = TeamTelemetry(team=team)
-        for participant in self.participants:
-            player_id = participant.participant_id
-            team = participant.team
-            self.telemetry.players[player_id] = PlayerTelemetry(player_id=player_id, team=team)
+        # Initialize telemetry collector (single source of truth)
+        self._telemetry_collector = SoccerTelemetryCollector(
+            engine=self._engine,
+            params=self._params,
+            participants=self.participants,
+        )
 
-        # Track previous positions and ball state for telemetry
-        self._prev_positions: dict[str, tuple[float, float]] = {}
-        for participant in self.participants:
-            player_id = participant.participant_id
-            player = self._engine.get_player(player_id)
-            if player:
-                self._prev_positions[player_id] = (player.position.x, player.position.y)
-        self._prev_ball_x = 0.0
-        self._last_touch_id: str | None = None
+        # Expose telemetry for external access
+        self.telemetry = self._telemetry_collector.get_telemetry()
 
         logger.info(
             f"Soccer Match {match_id} initialized with {len(self.participants)} players "
@@ -195,8 +190,8 @@ class SoccerMatch:
 
             self.current_frame += 1
 
-            # Update telemetry after step
-            self._update_telemetry()
+            # Update telemetry after step (via collector)
+            self._telemetry_collector.step()
 
             # Check for goals
             for event in step_result.get("events", []):
@@ -317,71 +312,6 @@ class SoccerMatch:
         # kick_off_right means Right Team kicks.
         self._engine.set_play_mode("kick_off_right")
 
-    def _update_telemetry(self) -> None:
-        """Update telemetry after each cycle (for shaped rewards)."""
-        # Track player distance traveled
-        for participant in self.participants:
-            player_id = participant.participant_id
-            player = self._engine.get_player(player_id)
-            if player and player_id in self._prev_positions:
-                px, py = self._prev_positions[player_id]
-                dx = player.position.x - px
-                dy = player.position.y - py
-                dist = math.sqrt(dx * dx + dy * dy)
-                self.telemetry.players[player_id].distance_run += dist
-                self._prev_positions[player_id] = (player.position.x, player.position.y)
-
-        # Track ball progress
-        ball = self._engine.get_ball()
-        ball_dx = ball.position.x - self._prev_ball_x
-
-        # Attribute ball progress to team with possession
-        touch_info = self._engine.last_touch_info()
-        current_touch_id = touch_info["player_id"]
-        if current_touch_id:
-            touch_player = self._engine.get_player(current_touch_id)
-            if touch_player:
-                team = touch_player.team
-                # Left team wants ball to go right (+x), right team wants left (-x)
-                progress = ball_dx if team == "left" else -ball_dx
-                self.telemetry.teams[team].ball_progress += progress
-
-        self._prev_ball_x = ball.position.x
-
-        # Track touches via last_touch_player_id
-        if current_touch_id and current_touch_id != self._last_touch_id:
-            player = self._engine.get_player(current_touch_id)
-            if player:
-                team = player.team
-                self.telemetry.teams[team].touches += 1
-                self.telemetry.players[current_touch_id].touches += 1
-                self.telemetry.players[current_touch_id].kicks += 1
-
-                # Check if this is a shot (kick toward opponent goal)
-                ball_vx = ball.velocity.x
-                is_shot = (team == "left" and ball_vx > 0.5) or (team == "right" and ball_vx < -0.5)
-                if is_shot:
-                    self.telemetry.teams[team].shots += 1
-
-                    # Shot on target = ball trajectory intersects goal
-                    half_length = self._params.field_length / 2
-                    goal_x = half_length if team == "left" else -half_length
-                    if abs(ball_vx) > 0.01:
-                        t_to_goal = (goal_x - ball.position.x) / ball_vx
-                        if t_to_goal > 0:
-                            predicted_y = ball.position.y + ball.velocity.y * t_to_goal
-                            if abs(predicted_y) < self._params.goal_width / 2:
-                                self.telemetry.teams[team].shots_on_target += 1
-
-            self._last_touch_id = current_touch_id
-
-        # Track possession
-        if current_touch_id:
-            player = self._engine.get_player(current_touch_id)
-            if player:
-                self.telemetry.teams[player.team].possession_frames += 1
-
-        self.telemetry.total_cycles = self.current_frame
 
     def _get_stable_id(self, key: str) -> int:
         """Get or assign a stable integer ID for an entity key."""
@@ -470,16 +400,21 @@ class SoccerMatch:
         entities_dicts.sort(key=_z_key)
 
         # Get team rosters from participants
-        left_ids = [
-            self.player_map[p.participant_id].fish_id
-            for p in self.participants
-            if p.team == "left" and p.participant_id in self.player_map
-        ]
-        right_ids = [
-            self.player_map[p.participant_id].fish_id
-            for p in self.participants
-            if p.team == "right" and p.participant_id in self.player_map
-        ]
+        # Handle both Fish entities (with fish_id) and generic entities
+        left_ids = []
+        for p in self.participants:
+            if p.team == "left" and p.participant_id in self.player_map:
+                entity = self.player_map[p.participant_id]
+                # Try to get fish_id if it's a Fish, otherwise use participant_id
+                entity_id = getattr(entity, "fish_id", p.participant_id)
+                left_ids.append(entity_id)
+
+        right_ids = []
+        for p in self.participants:
+            if p.team == "right" and p.participant_id in self.player_map:
+                entity = self.player_map[p.participant_id]
+                entity_id = getattr(entity, "fish_id", p.participant_id)
+                right_ids.append(entity_id)
 
         return {
             "match_id": self.match_id,
