@@ -312,7 +312,6 @@ class SoccerMatch:
         # kick_off_right means Right Team kicks.
         self._engine.set_play_mode("kick_off_right")
 
-
     def _get_stable_id(self, key: str) -> int:
         """Get or assign a stable integer ID for an entity key."""
         stable = self._entity_ids.get(key)
