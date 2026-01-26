@@ -4,30 +4,45 @@ Verifies that external modules use public API methods rather than
 accessing private engine internals.
 """
 
-import subprocess
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+def _find_pattern_violations(
+    *,
+    pattern: str,
+    root: str,
+    allowed_path_substrings: tuple[str, ...] = (),
+    allowed_line_predicate=None,
+) -> list[str]:
+    """Return 'path:line: text' matches for pattern under root."""
+    regex = re.compile(pattern)
+    violations: list[str] = []
+
+    for path in Path(root).rglob("*.py"):
+        path_str = str(path)
+        if any(allowed in path_str for allowed in allowed_path_substrings):
+            continue
+
+        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            if not regex.search(line):
+                continue
+            if allowed_line_predicate and allowed_line_predicate(path_str, line):
+                continue
+            violations.append(f"{path_str}:{line_number}: {line.strip()}")
+
+    return violations
 
 
 def test_no_external_access_to_engine_private_players():
     """Verify no external module accesses engine._players directly."""
-    # Use grep to find any access to _engine._players outside engine.py
-    result = subprocess.run(
-        [
-            "grep",
-            "-r",
-            "-n",
-            "--include=*.py",
-            r"\._players",
-            "core/minigames/soccer/",
-        ],
-        capture_output=True,
-        text=True,
+    violations = _find_pattern_violations(
+        pattern=r"\._players\b",
+        root="core/minigames/soccer/",
+        allowed_path_substrings=("engine.py",),
     )
-
-    # Filter out engine.py itself (which is allowed to access _players)
-    violations = []
-    for line in result.stdout.splitlines():
-        if "engine.py:" not in line:
-            violations.append(line)
 
     assert not violations, (
         f"Found {len(violations)} external accesses to ._players:\n"
@@ -38,39 +53,48 @@ def test_no_external_access_to_engine_private_players():
 
 def test_no_external_access_to_engine_private_last_touch():
     """Verify no external module accesses engine._last_touch_* directly."""
-    # Use grep to find any access to _engine._last_touch outside engine.py
-    result = subprocess.run(
-        [
-            "grep",
-            "-r",
-            "-n",
-            "--include=*.py",
-            r"\._last_touch",
-            "core/minigames/soccer/",
-        ],
-        capture_output=True,
-        text=True,
-    )
 
-    # Filter out:
-    # 1. engine.py itself (which is allowed to access _last_touch_*)
-    # 2. match.py's own _last_touch_id (different from engine's)
-    violations = []
-    for line in result.stdout.splitlines():
-        # Skip engine.py
-        if "engine.py:" in line:
-            continue
-        # Skip match.py's own _last_touch_id field
-        if "match.py:" in line and "self._last_touch_id" in line:
-            continue
-        # Everything else is a violation
-        violations.append(line)
+    def allowed_line(path_str: str, line: str) -> bool:
+        return "match.py" in path_str and "self._last_touch_id" in line
+
+    violations = _find_pattern_violations(
+        pattern=r"\._last_touch",
+        root="core/minigames/soccer/",
+        allowed_path_substrings=("engine.py",),
+        allowed_line_predicate=allowed_line,
+    )
 
     assert not violations, (
         f"Found {len(violations)} external accesses to ._last_touch_*:\n"
         + "\n".join(violations)
         + "\n\nUse engine.last_touch_info() instead."
     )
+
+
+def test_no_external_access_to_engine_private_play_mode():
+    """Verify no external module accesses engine._play_mode directly."""
+    violations = _find_pattern_violations(
+        pattern=r"\._play_mode\b",
+        root="core/minigames/soccer/",
+        allowed_path_substrings=("engine.py",),
+    )
+
+    assert not violations, (
+        f"Found {len(violations)} external accesses to ._play_mode:\n"
+        + "\n".join(violations)
+        + "\n\nUse engine.set_play_mode(...) instead."
+    )
+
+
+def test_engine_set_play_mode_updates_state():
+    """Verify set_play_mode updates play_mode and snapshot state."""
+    from core.minigames.soccer.engine import RCSSLiteEngine
+
+    engine = RCSSLiteEngine(seed=42)
+    engine.set_play_mode("kick_off_right")
+
+    assert engine.play_mode == "kick_off_right"
+    assert engine.get_snapshot()["play_mode"] == "kick_off_right"
 
 
 def test_engine_public_api_exists():
