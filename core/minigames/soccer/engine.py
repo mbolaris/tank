@@ -153,10 +153,11 @@ class RCSSLiteEngine:
 
         Args:
             params: Physics parameters (defaults to DEFAULT_RCSS_PARAMS)
-            seed: Random seed for determinism
+            seed: Random seed for determinism (None defaults to 0 for reproducibility)
         """
         self.params = params or DEFAULT_RCSS_PARAMS
-        self._rng = random.Random(seed)
+        # Treat None as 0 to prevent accidental nondeterminism
+        self._rng = random.Random(seed if seed is not None else 0)
 
         # Game state
         self._players: dict[str, RCSSPlayerState] = {}
