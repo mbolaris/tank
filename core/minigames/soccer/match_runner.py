@@ -12,13 +12,13 @@ Key features:
 
 from __future__ import annotations
 
-import math
 import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.formation import build_default_formation
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.participant import SoccerParticipant
 from core.minigames.soccer.rewards import calculate_shaped_bonuses
@@ -127,26 +127,23 @@ class SoccerMatchRunner:
         player_ids: list[str] = []
         genome_by_player: dict[str, Genome] = {}
 
-        half_length = self._params.field_length / 2
+        for spec in build_default_formation(team_size=actual_team_size, params=self._params):
+            self._engine.add_player(
+                spec.player_id,
+                spec.team,
+                RCSSVector(spec.x, spec.y),
+                body_angle=spec.body_angle,
+            )
+            player_ids.append(spec.player_id)
 
-        for i in range(actual_team_size):
-            # Left team
-            left_id = f"left_{i + 1}"
-            x = -half_length / 2 + (i % 4) * 8 - 10
-            y = (i // 4 - actual_team_size // 8) * 12
-            self._engine.add_player(left_id, "left", RCSSVector(x, y), body_angle=0.0)
-            player_ids.append(left_id)
-            if i < len(genomes):
-                genome_by_player[left_id] = genomes[i]
+            try:
+                player_idx = int(spec.player_id.split("_", 1)[1]) - 1
+            except (IndexError, ValueError):
+                continue
 
-            # Right team
-            right_id = f"right_{i + 1}"
-            x = half_length / 2 - (i % 4) * 8 + 10
-            y = (i // 4 - actual_team_size // 8) * 12
-            self._engine.add_player(right_id, "right", RCSSVector(x, y), body_angle=math.pi)
-            player_ids.append(right_id)
-            if actual_team_size + i < len(genomes):
-                genome_by_player[right_id] = genomes[actual_team_size + i]
+            genome_idx = player_idx if spec.team == "left" else actual_team_size + player_idx
+            if 0 <= genome_idx < len(genomes):
+                genome_by_player[spec.player_id] = genomes[genome_idx]
 
         # Sort for deterministic iteration.
         player_ids.sort()
