@@ -41,7 +41,31 @@ jobs:
       env:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: |
-        pytest tests/smoke tests/test_determinism.py tests/test_phase_determinism_and_mutation_invariants.py tests/test_mutation_queue.py tests/test_ball_physics.py tests/test_energy_integration.py tests/test_mutation_enforcement.py tests/test_arch_energy_mutations.py tests/test_arch_no_lifecycle_component_access.py -v --tb=short
+        pytest \
+          tests/smoke \
+          tests/test_determinism.py \
+          tests/test_phase_determinism_and_mutation_invariants.py \
+          tests/test_mutation_queue.py \
+          tests/test_ball_physics.py \
+          tests/test_energy_integration.py \
+          tests/test_mutation_enforcement.py \
+          tests/test_arch_energy_mutations.py \
+          tests/test_arch_no_lifecycle_component_access.py \
+          tests/test_guardrails.py \
+          tests/test_soccer_eval.py \
+          tests/test_soccer_system.py \
+          tests/test_soccer_shaped_rewards.py \
+          tests/test_soccer_participant_adapter.py \
+          tests/test_soccer_formation.py \
+          tests/test_arch_soccer_engine_encapsulation.py \
+          tests/test_arch_soccer_params_canonical.py \
+          -v --tb=short
+
+    - name: Run deterministic soccer benchmark (fast-gate)
+      env:
+        PYTHONPATH: .
+      run: |
+        python tools/run_bench.py benchmarks/soccer/training_3k.py --seed 42 --verify-determinism
 
     - name: Check code formatting with black
       run: |

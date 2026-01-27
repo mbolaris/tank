@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 
 
 class CommandType(Enum):
@@ -152,10 +152,10 @@ class RCSSLiteEngine:
         """Initialize the RCSS-Lite engine.
 
         Args:
-            params: Physics parameters (defaults to DEFAULT_RCSS_PARAMS)
+            params: Physics parameters (defaults to SOCCER_CANONICAL_PARAMS)
             seed: Random seed for determinism (None defaults to 0 for reproducibility)
         """
-        self.params = params or DEFAULT_RCSS_PARAMS
+        self.params = params or SOCCER_CANONICAL_PARAMS
         # Treat None as 0 to prevent accidental nondeterminism
         self._rng = random.Random(seed if seed is not None else 0)
 

@@ -17,7 +17,7 @@ import random as pyrandom
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine
-from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool
@@ -31,7 +31,7 @@ MAX_KICK_POWER = 100.0
 
 
 def build_observation(
-    engine: RCSSLiteEngine, player_id: str, config: RCSSParams = DEFAULT_RCSS_PARAMS
+    engine: RCSSLiteEngine, player_id: str, config: RCSSParams = SOCCER_CANONICAL_PARAMS
 ) -> Dict[str, Any]:
     """Build a standardized observation dictionary for a player.
 
@@ -356,7 +356,7 @@ def default_policy_action(obs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def action_to_command(
-    action: Dict[str, Any], config: RCSSParams = DEFAULT_RCSS_PARAMS
+    action: Dict[str, Any], config: RCSSParams = SOCCER_CANONICAL_PARAMS
 ) -> Optional[RCSSCommand]:
     """Translate abstract action dict to RCSSCommand with strict clamping."""
     if not action:

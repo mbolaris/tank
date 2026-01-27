@@ -30,7 +30,7 @@ def main() -> int:
 
     try:
         from core.minigames.soccer import (
-            DEFAULT_RCSS_PARAMS,
+            SOCCER_CANONICAL_PARAMS,
             RCSSCommand,
             RCSSLiteEngine,
             RCSSVector,
@@ -80,10 +80,10 @@ def main() -> int:
         print(f"  Agent results: {len(agent_results)}")
 
         # Test params
-        print("\n[OK] Default RCSS Params:")
-        print(f"  cycle_ms: {DEFAULT_RCSS_PARAMS.cycle_ms}")
-        print(f"  player_speed_max: {DEFAULT_RCSS_PARAMS.player_speed_max}")
-        print(f"  ball_decay: {DEFAULT_RCSS_PARAMS.ball_decay}")
+        print("\n[OK] Canonical RCSS Params:")
+        print(f"  cycle_ms: {SOCCER_CANONICAL_PARAMS.cycle_ms}")
+        print(f"  player_speed_max: {SOCCER_CANONICAL_PARAMS.player_speed_max}")
+        print(f"  ball_decay: {SOCCER_CANONICAL_PARAMS.ball_decay}")
 
         print("\n" + "=" * 70)
         print("[PASS] All RCSS-Lite smoke tests passed!")

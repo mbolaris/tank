@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from core.math_utils import Vector2
-from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 
 if TYPE_CHECKING:
     from core.entities.fish import Fish
@@ -34,7 +34,7 @@ class RCSSLiteAgentState:
         last_dash_power: Power of last dash command [0-100]
     """
 
-    stamina: float = DEFAULT_RCSS_PARAMS.stamina_max
+    stamina: float = SOCCER_CANONICAL_PARAMS.stamina_max
     effort: float = 1.0
     recovery: float = 1.0
     body_angle: float = 0.0  # Radians
@@ -56,7 +56,7 @@ class RCSSLitePhysicsEngine:
         Args:
             params: Canonical RCSS parameters (uses defaults if None)
         """
-        self.params = params or DEFAULT_RCSS_PARAMS
+        self.params = params or SOCCER_CANONICAL_PARAMS
 
     def apply_dash_command(
         self, agent: Fish, agent_state: RCSSLiteAgentState, power: float
@@ -204,7 +204,7 @@ def create_rcss_agent_state(fish: Fish) -> RCSSLiteAgentState:
         body_angle = math.atan2(fish.vel.y, fish.vel.x)
 
     state = RCSSLiteAgentState(
-        stamina=DEFAULT_RCSS_PARAMS.stamina_max,
+        stamina=SOCCER_CANONICAL_PARAMS.stamina_max,
         effort=1.0,
         recovery=1.0,
         body_angle=body_angle,

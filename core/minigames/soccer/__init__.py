@@ -26,7 +26,7 @@ from core.minigames.soccer.fake_server import FakeRCSSServer
 from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.match_runner import AgentResult, EpisodeResult, SoccerMatchRunner
-from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, SOCCER_CANONICAL_PARAMS, RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.participant import (
     SoccerParticipant,
     create_participants_from_fish,
@@ -38,7 +38,6 @@ from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 __all__ = [
     # Engine
     "RCSSParams",
-    "DEFAULT_RCSS_PARAMS",
     "SOCCER_CANONICAL_PARAMS",
     "RCSSLiteEngine",
     "RCSSCommand",
