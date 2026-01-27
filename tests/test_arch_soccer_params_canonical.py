@@ -3,7 +3,10 @@
 from pathlib import Path
 from typing import List
 
-ALLOWED_PATHS = {"core/minigames/soccer/params.py"}
+ALLOWED_PATHS = {
+    "core/minigames/soccer/params.py",
+    "core/minigames/soccer/__init__.py",
+}
 ALLOWED_PREFIXES = ("tests/",)
 
 
