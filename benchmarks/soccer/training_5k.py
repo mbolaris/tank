@@ -18,6 +18,7 @@ from core.minigames.soccer import SoccerMatchRunner
 BENCHMARK_ID = "soccer/training_5k"
 FRAMES = 5000
 DEFAULT_N_SEEDS = 3
+SCORE_SCALE = 0.1
 
 
 def _create_default_population(
@@ -58,6 +59,7 @@ def _run_episode(
 
     score_left = episode_result.score_left
     score_right = episode_result.score_right
+    goal_diff = score_left - score_right
     total_goals = score_left + score_right
 
     possession_left = 0
@@ -68,13 +70,16 @@ def _run_episode(
         else:
             possession_right += stats.possessions
 
+    total_possession = possession_left + possession_right
+    possession_diff = (possession_left - possession_right) / 60.0
+
     team_fitness_left = sum(r.fitness for r in agent_results if r.team == "left")
     team_fitness_right = sum(r.fitness for r in agent_results if r.team == "right")
     team_fitness = team_fitness_left + team_fitness_right
     avg_fitness = team_fitness / max(len(population), 1)
 
     # Side-invariant score (left/right labels do not matter).
-    score = avg_fitness
+    score = avg_fitness * SCORE_SCALE
 
     return {
         "score": score,
@@ -84,9 +89,11 @@ def _run_episode(
         "score_left": score_left,
         "score_right": score_right,
         "total_goals": total_goals,
+        "goal_diff": goal_diff,
         "possession_left": possession_left,
         "possession_right": possession_right,
-        "total_possession": possession_left + possession_right,
+        "total_possession": total_possession,
+        "possession_diff": possession_diff,
     }
 
 
@@ -125,6 +132,8 @@ def run(
     per_seed_results: List[Dict[str, Any]] = []
     per_seed_scores: List[float] = []
 
+    base_seed_normal: Dict[str, Any] = {}
+
     for eval_seed in seeds:
         population = _create_default_population(
             seed=eval_seed,
@@ -140,6 +149,8 @@ def run(
 
         normal = _run_episode(runner, population, seed=eval_seed, frames=frames)
         swapped = _run_episode(runner, swapped_population, seed=eval_seed, frames=frames)
+        if eval_seed == seed:
+            base_seed_normal = normal
 
         per_seed_score = (normal["score"] + swapped["score"]) / 2.0
         per_seed_scores.append(per_seed_score)
@@ -162,12 +173,27 @@ def run(
         "score": score,
         "runtime_seconds": runtime,
         "metadata": {
+            # Legacy fields required for champion reproduction checks.
+            # Derived from the base-seed normal run so existing champions remain valid.
             "frames": frames,
+            "score_left": base_seed_normal.get("score_left"),
+            "score_right": base_seed_normal.get("score_right"),
+            "total_goals": base_seed_normal.get("total_goals"),
+            "goal_diff": base_seed_normal.get("goal_diff"),
+            "possession_left": base_seed_normal.get("possession_left"),
+            "possession_right": base_seed_normal.get("possession_right"),
+            "total_possession": base_seed_normal.get("total_possession"),
+            "possession_diff": base_seed_normal.get("possession_diff"),
+            "avg_fitness": base_seed_normal.get("avg_fitness"),
+            "team_fitness_left": base_seed_normal.get("team_fitness_left"),
+            "team_fitness_right": base_seed_normal.get("team_fitness_right"),
+            # New aggregation metadata.
             "team_size": team_size,
             "population_size": population_size,
             "n_seeds": n_seeds,
             "seeds": seeds,
-            "score_mode": "avg_fitness (side-invariant)",
+            "score_mode": f"avg_fitness*{SCORE_SCALE} (side-invariant)",
+            "score_scale": SCORE_SCALE,
             "per_seed_results": per_seed_results,
         },
     }
