@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.formation import build_default_formation
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS
 from core.minigames.soccer.participant import create_participants
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
@@ -146,22 +147,14 @@ class SoccerMatch:
 
     def _setup_formations(self, team_size: int) -> None:
         """Set up initial player formations."""
-        half_length = self._params.field_length / 2
-
-        for i in range(team_size):
-            # Left team - face right (0 radians)
-            left_id = f"left_{i + 1}"
-            x = -half_length / 2 + (i % 4) * 8 - 10
-            y = (i // 4 - team_size // 8) * 12
-            self._initial_positions[left_id] = (x, y, 0.0)
-            self._engine.add_player(left_id, "left", RCSSVector(x, y), body_angle=0.0)
-
-            # Right team - face left (pi radians)
-            right_id = f"right_{i + 1}"
-            x = half_length / 2 - (i % 4) * 8 + 10
-            y = (i // 4 - team_size // 8) * 12
-            self._initial_positions[right_id] = (x, y, math.pi)
-            self._engine.add_player(right_id, "right", RCSSVector(x, y), body_angle=math.pi)
+        for spec in build_default_formation(team_size=team_size, params=self._params):
+            self._initial_positions[spec.player_id] = (spec.x, spec.y, spec.body_angle)
+            self._engine.add_player(
+                spec.player_id,
+                spec.team,
+                RCSSVector(spec.x, spec.y),
+                body_angle=spec.body_angle,
+            )
 
     def step(self, num_steps: int = 1) -> dict[str, Any]:
         """Advance the match by one or more cycles.
