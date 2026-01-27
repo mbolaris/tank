@@ -208,5 +208,25 @@ class TestBenchmarkEvaluation(unittest.TestCase):
             self.assertEqual(res.benchmark_id, pid)
 
 
+class TestSoccerBenchmarkDeterminism(unittest.TestCase):
+    """Smoke tests for soccer benchmark determinism (fast config)."""
+
+    def test_training_3k_is_deterministic_smoke(self):
+        import benchmarks.soccer.training_3k as bench
+
+        res1 = bench.run(42, n_seeds=1, frames=100)
+        res2 = bench.run(42, n_seeds=1, frames=100)
+
+        self.assertAlmostEqual(res1["score"], res2["score"], places=9)
+
+    def test_training_5k_is_deterministic_smoke(self):
+        import benchmarks.soccer.training_5k as bench
+
+        res1 = bench.run(42, n_seeds=1, frames=100)
+        res2 = bench.run(42, n_seeds=1, frames=100)
+
+        self.assertAlmostEqual(res1["score"], res2["score"], places=9)
+
+
 if __name__ == "__main__":
     unittest.main()
