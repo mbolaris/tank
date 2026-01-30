@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
@@ -8,6 +8,7 @@ import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { initRenderers } from '../renderers/init';
 import { TransferDialog } from './TransferDialog';
+import { EntityInspector } from './EntityInspector';
 import { PlantIcon } from './ui';
 import {
     TankSoccerTab,
@@ -55,14 +56,22 @@ export function TankView({ worldId }: TankViewProps) {
         [sendCommand]
     );
 
-    // Entity transfer state
+    // Entity inspector + transfer state
     const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
-    const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
     const [showTransferDialog, setShowTransferDialog] = useState(false);
+    const [transferEntityId, setTransferEntityId] = useState<number | null>(null);
+    const [transferEntityType, setTransferEntityType] = useState<string | null>(null);
     const [transferMessage, setTransferMessage] = useState<{
         type: 'success' | 'error';
         text: string;
     } | null>(null);
+
+    // Look up the full entity data for the selected entity from current state
+    const selectedEntity = useMemo(() => {
+        if (selectedEntityId === null || !state) return null;
+        const entities = state.snapshot?.entities ?? state.entities ?? [];
+        return entities.find(e => e.id === selectedEntityId) ?? null;
+    }, [selectedEntityId, state]);
 
     const serverViewMode =
         state?.view_mode === 'side' || state?.view_mode === 'topdown'
@@ -84,23 +93,35 @@ export function TankView({ worldId }: TankViewProps) {
     // Ensure renderers are initialized
     initRenderers();
 
-    const handleEntityClick = (entityId: number, entityType: string) => {
+    // Click on canvas entity → open inspector
+    const handleEntityClick = (entityId: number, _entityType: string) => {
         setSelectedEntityId(entityId);
-        setSelectedEntityType(entityType);
+    };
+
+    // Inspector "Transfer" button → open transfer dialog
+    const handleInspectorTransfer = (entityId: number, entityType: string) => {
+        setTransferEntityId(entityId);
+        setTransferEntityType(entityType);
         setShowTransferDialog(true);
+    };
+
+    const handleCloseInspector = () => {
+        setSelectedEntityId(null);
     };
 
     const handleTransferComplete = (success: boolean, message: string) => {
         setTransferMessage({ type: success ? 'success' : 'error', text: message });
+        setTransferEntityId(null);
+        setTransferEntityType(null);
+        setShowTransferDialog(false);
         setSelectedEntityId(null);
-        setSelectedEntityType(null);
         setTimeout(() => setTransferMessage(null), 5000);
     };
 
     const handleCloseTransferDialog = () => {
         setShowTransferDialog(false);
-        setSelectedEntityId(null);
-        setSelectedEntityType(null);
+        setTransferEntityId(null);
+        setTransferEntityType(null);
     };
 
     return (
@@ -413,14 +434,23 @@ export function TankView({ worldId }: TankViewProps) {
                 </div>
             )}
 
-            {/* Transfer Dialog */}
+            {/* Entity Inspector */}
+            {selectedEntity && (
+                <EntityInspector
+                    entity={selectedEntity}
+                    onClose={handleCloseInspector}
+                    onTransfer={state?.world_id ? handleInspectorTransfer : undefined}
+                />
+            )}
+
+            {/* Transfer Dialog (opened from inspector) */}
             {showTransferDialog &&
-                selectedEntityId !== null &&
-                selectedEntityType !== null &&
+                transferEntityId !== null &&
+                transferEntityType !== null &&
                 state?.world_id && (
                     <TransferDialog
-                        entityId={selectedEntityId}
-                        entityType={selectedEntityType}
+                        entityId={transferEntityId}
+                        entityType={transferEntityType}
                         sourceWorldId={state.world_id}
                         sourceWorldName={state.world_id}
                         onClose={handleCloseTransferDialog}

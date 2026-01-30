@@ -16,6 +16,7 @@ export interface RenderOptions {
     showEffects?: boolean;
     showSoccer?: boolean;
     selectedEntityId?: number | null;
+    hoveredEntityId?: number | null;
     viewMode?: ViewMode;
 }
 

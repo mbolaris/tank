@@ -383,6 +383,74 @@ text-align: center;
 - Value: `--color-text-main`, 18px, weight 700.
 - Subtext: `--color-text-dim`, 10px.
 
+### 5.11 Entity Inspector
+
+A slide-in side panel that displays detailed data about a selected entity.
+Triggered by clicking an entity on the canvas.
+
+**Container:**
+```css
+position: fixed;
+top: 0;
+right: 0;
+width: 360px;
+height: 100vh;
+z-index: 90;
+background: var(--color-bg-deep);           /* #020617 */
+border-left: 1px solid var(--card-border);  /* #334155 */
+box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
+overflow-y: auto;
+```
+Slide-in from the right with `transform: translateX(100%) → translateX(0)`,
+using `--transition-smooth` (0.3s cubic-bezier).
+
+**Header:**
+- Sticky top, z-index 1 within the panel.
+- Background: `var(--color-bg-deep)` for visual anchor.
+- Close button (×): top-right, 32px circle, `rgba(255,255,255,0.1)` bg,
+  hover `rgba(255,255,255,0.2)`.
+- Entity type badge: colored pill using semantic colors
+  (`--color-primary` for fish, `--color-success` for plants,
+  `--color-danger` for crabs).
+- Entity ID in mono font.
+
+**Color Swatch:**
+- Circular swatch (48px) showing the entity's genome-derived color
+  (HSL from `color_hue`).
+- Positioned in the header area next to the entity name/ID.
+
+**Sections:**
+Each data group is a collapsible section (reusing the `CollapsibleSection`
+component). Sections per entity type:
+
+| Entity Type | Sections |
+|---|---|
+| Fish | Identity, Vitals, Genome, Visual Traits, Poker |
+| Plant | Identity, Vitals, L-System Genome, Nectar, Poker |
+| Crab | Identity, Vitals, Hunting |
+
+**StatRow usage:**
+All key-value pairs inside sections use the `StatRow` component. Numeric
+values use `--font-mono`.
+
+**Energy Bar:**
+A horizontal bar replicating the canvas energy bar style (3-tier gradient:
+red/yellow/green) at full panel width, placed prominently in the Vitals
+section.
+
+**Actions:**
+A footer area at the bottom of the header with action buttons:
+- "Transfer" (`Button` variant `primary`) — opens the existing transfer dialog.
+- Future actions can be added here.
+
+**Dismiss:**
+- Click the close (×) button.
+- Click outside the panel (on the backdrop).
+- Press Escape key.
+
+A semi-transparent backdrop (`rgba(0,0,0,0.3)`) covers the canvas area when
+the inspector is open, allowing click-to-dismiss.
+
 ---
 
 ## 6. Navigation
@@ -578,8 +646,11 @@ All icons are SVG components in `frontend/src/components/ui/Icons.tsx`.
 
 ### 9.2 Click Interactions
 
-- **Canvas entities**: Click to open transfer dialog. Selected entity gets
-  white dashed ring overlay.
+- **Canvas entities**: Click to select and open the Entity Inspector panel.
+  Selected entity gets white dashed ring overlay on the canvas. Food and
+  nectar items are not selectable. Clicking a different entity switches the
+  inspector to show that entity's data. Clicking outside any entity (or the
+  inspector backdrop) deselects.
 - **Panel toggles**: Toggle visibility of corresponding panel section.
   `aria-pressed` attribute tracks state.
 - **Collapsible panels**: Toggle content visibility. No animation on

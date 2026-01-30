@@ -27,11 +27,16 @@ interface CanvasProps {
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
+// Selectable entity types (excludes food, nectar, ball, goal zones)
+const SELECTABLE_TYPES = new Set(['fish', 'plant', 'crab']);
+
 export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hoveredEntityId, setHoveredEntityId] = useState<number | null>(null);
+    const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
 
     // Use ref to track if error has been set to avoid repeated setState calls
     const errorSetRef = useRef(false);
@@ -44,50 +49,76 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         }
     }, []);
 
-    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!state || !onEntityClick || error) return;
-
+    // Convert mouse event to world coordinates
+    const toWorldCoords = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        // Get click coordinates relative to canvas
+        if (!canvas) return null;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const clickX = (event.clientX - rect.left) * scaleX;
-        const clickY = (event.clientY - rect.top) * scaleY;
+        const canvasX = (event.clientX - rect.left) * scaleX;
+        const canvasY = (event.clientY - rect.top) * scaleY;
+        return {
+            worldX: canvasX * (WORLD_WIDTH / width),
+            worldY: canvasY * (WORLD_HEIGHT / height),
+            clientX: event.clientX,
+            clientY: event.clientY,
+        };
+    }, [width, height]);
 
-        // Account for world-to-canvas scaling
-        const worldScaleX = WORLD_WIDTH / width;
-        const worldScaleY = WORLD_HEIGHT / height;
-        const worldX = clickX * worldScaleX;
-        const worldY = clickY * worldScaleY;
-
-        // Find clicked entity (check in reverse order to prioritize entities rendered on top)
+    // Hit-test: find the selectable entity at world coordinates
+    const hitTest = useCallback((worldX: number, worldY: number) => {
+        if (!state) return null;
         const entities = state.snapshot?.entities ?? state.entities ?? [];
         for (let i = entities.length - 1; i >= 0; i--) {
             const entity = entities[i];
-
-            // Skip food items (only allow transferring fish and plants)
-            if (entity.type === 'food' || entity.type === 'plant_nectar') continue;
-
-            // Check if click is within entity bounds
+            if (!SELECTABLE_TYPES.has(entity.type)) continue;
             const left = entity.x - entity.width / 2;
             const right = entity.x + entity.width / 2;
             const top = entity.y - entity.height / 2;
             const bottom = entity.y + entity.height / 2;
-
             if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
-                onEntityClick(entity.id, entity.type);
-                return;
+                return entity;
             }
         }
+        return null;
+    }, [state]);
+
+    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!state || !onEntityClick || error) return;
+        const coords = toWorldCoords(event);
+        if (!coords) return;
+        const entity = hitTest(coords.worldX, coords.worldY);
+        if (entity) {
+            onEntityClick(entity.id, entity.type);
+        }
     };
+
+    const handleCanvasMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!state || error) return;
+        const coords = toWorldCoords(event);
+        if (!coords) return;
+        const entity = hitTest(coords.worldX, coords.worldY);
+        if (entity) {
+            setHoveredEntityId(entity.id);
+            const label = entity.type.charAt(0).toUpperCase() + entity.type.slice(1);
+            setTooltip({ x: coords.clientX, y: coords.clientY, text: `${label} #${entity.id}` });
+        } else {
+            setHoveredEntityId(null);
+            setTooltip(null);
+        }
+    }, [state, error, toWorldCoords, hitTest]);
+
+    const handleCanvasMouseLeave = useCallback(() => {
+        setHoveredEntityId(null);
+        setTooltip(null);
+    }, []);
 
     // Refs to hold latest state for the animation loop
     const stateRef = useRef(state);
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
+    const hoveredEntityIdRef = useRef(hoveredEntityId);
     const showEffectsRef = useRef(showEffects);
     const showSoccerRef = useRef(showSoccer);
     const viewModeRef = useRef(viewMode);
@@ -97,11 +128,12 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         stateRef.current = state;
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
+        hoveredEntityIdRef.current = hoveredEntityId;
         showEffectsRef.current = showEffects;
         showSoccerRef.current = showSoccer;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
+    }, [state, imagesLoaded, selectedEntityId, hoveredEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -170,6 +202,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                             showEffects: showEffectsRef.current,
                             showSoccer: showSoccerRef.current,
                             selectedEntityId: selectedEntityIdRef.current,
+                            hoveredEntityId: hoveredEntityIdRef.current,
                         },
                     }, {
                         canvas,
@@ -248,16 +281,43 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     }
 
     return (
-        <canvas
-            ref={canvasRef}
-            width={width}
-            height={height}
-            className="tank-canvas"
-            onClick={handleCanvasClick}
-            style={{
-                cursor: onEntityClick ? 'pointer' : 'default',
-                ...style,
-            }}
-        />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+            <canvas
+                ref={canvasRef}
+                width={width}
+                height={height}
+                className="tank-canvas"
+                onClick={handleCanvasClick}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseLeave={handleCanvasMouseLeave}
+                style={{
+                    cursor: hoveredEntityId !== null ? 'pointer' : 'default',
+                    ...style,
+                }}
+            />
+            {tooltip && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: tooltip.x + 12,
+                        top: tooltip.y - 28,
+                        padding: '4px 10px',
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        backdropFilter: 'blur(4px)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: 6,
+                        color: '#f1f5f9',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-main)',
+                        pointerEvents: 'none',
+                        zIndex: 60,
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    {tooltip.text}
+                </div>
+            )}
+        </div>
     );
 }
