@@ -9,7 +9,6 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BASE_SPEED
-from core.entities.base import LifeStage
 from core.telemetry.events import ReproductionEvent
 
 if TYPE_CHECKING:
@@ -47,14 +46,14 @@ class ReproductionMixin:
             self.max_energy,
         )
 
-    def try_mate(self, other: "Fish") -> bool:
+    def try_mate(self, other: Fish) -> bool:
         """Attempt to mate with another fish.
 
         Standard mating is disabled; fish only reproduce sexually after poker games.
         """
         return False
 
-    def update_reproduction(self) -> "Fish | None":
+    def update_reproduction(self) -> Fish | None:
         """Update reproduction state and potentially create offspring.
 
         Updates cooldown timer and checks if conditions are met for instant
@@ -68,7 +67,7 @@ class ReproductionMixin:
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(self)
 
-    def _create_asexual_offspring(self) -> "Fish | None":
+    def _create_asexual_offspring(self) -> Fish | None:
         """Create an offspring through asexual reproduction.
 
         Called when conditions are met for instant asexual reproduction.
