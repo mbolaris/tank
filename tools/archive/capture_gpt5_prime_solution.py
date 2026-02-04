@@ -251,12 +251,9 @@ def main():
             best_result.weighted_bb_per_100,
         )
 
-        if (
-            best_overall is None
-            or (
-                best_overall[0].benchmark_result is not None
-                and best_result.elo_rating > best_overall[0].benchmark_result.elo_rating
-            )
+        if best_overall is None or (
+            best_overall[0].benchmark_result is not None
+            and best_result.elo_rating > best_overall[0].benchmark_result.elo_rating
         ):
             best_overall = (best_record, bench, filepath, seed)
 

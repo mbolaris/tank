@@ -25,6 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # Define AI models to simulate with different configurations
 class _AIModel(TypedDict):
     name: str

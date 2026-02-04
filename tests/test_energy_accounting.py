@@ -25,7 +25,9 @@ class _EnvStub:
     def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
         return []
 
-    def nearby_agents_by_type(self, agent: Agent, radius: float, agent_type: Type[Agent]) -> List[Agent]:
+    def nearby_agents_by_type(
+        self, agent: Agent, radius: float, agent_type: Type[Agent]
+    ) -> List[Agent]:
         return []
 
     def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:

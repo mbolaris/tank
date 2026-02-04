@@ -41,7 +41,10 @@ def test_mutation_can_swap_policy():
             rng=rng,
             available_policies=available,
         )
-        if child.movement_policy_id is not None and child.movement_policy_id.value == "NEW_POLICY_ID":
+        if (
+            child.movement_policy_id is not None
+            and child.movement_policy_id.value == "NEW_POLICY_ID"
+        ):
             swapped = True
             break
 

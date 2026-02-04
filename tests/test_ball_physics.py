@@ -24,7 +24,9 @@ from core.math_utils import Vector2
 class MockWorld:
     """Mock world for testing."""
 
-    def __init__(self, width: float = 800, height: float = 600, rng: Optional[random.Random] = None):
+    def __init__(
+        self, width: float = 800, height: float = 600, rng: Optional[random.Random] = None
+    ):
         self.min_x = 0.0
         self.min_y = 0.0
         self.max_x = float(width)
@@ -36,7 +38,9 @@ class MockWorld:
     def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
         return []
 
-    def nearby_agents_by_type(self, agent: Agent, radius: float, agent_type: Type[Agent]) -> List[Agent]:
+    def nearby_agents_by_type(
+        self, agent: Agent, radius: float, agent_type: Type[Agent]
+    ) -> List[Agent]:
         return []
 
     def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:

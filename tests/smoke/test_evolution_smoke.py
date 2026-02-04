@@ -52,13 +52,13 @@ def _summarize_population(population: Sequence[Genome]) -> _PopulationSummary:
 
     return _PopulationSummary(
         {
-        "speed_min": min(speeds),
-        "speed_max": max(speeds),
-        "speed_mean": _mean(speeds),
-        "speed_spread": max(speeds) - min(speeds),
-        "speed_stdev": _stdev(speeds),
-        "aggression_mean": _mean(aggression),
-        "metabolism_mean": _mean(metabolism),
+            "speed_min": min(speeds),
+            "speed_max": max(speeds),
+            "speed_mean": _mean(speeds),
+            "speed_spread": max(speeds) - min(speeds),
+            "speed_stdev": _stdev(speeds),
+            "aggression_mean": _mean(aggression),
+            "metabolism_mean": _mean(metabolism),
         }
     )
 
@@ -94,11 +94,11 @@ def run_evolution_smoke_test(
 
     return EvolutionSmokeReport(
         {
-        "seed": seed,
-        "population_size": population_size,
-        "generations": generation_reports,
-        "final_population_stats": final_snapshot,
-        "champion_speeds": champion_speeds,
+            "seed": seed,
+            "population_size": population_size,
+            "generations": generation_reports,
+            "final_population_stats": final_snapshot,
+            "champion_speeds": champion_speeds,
         }
     )
 

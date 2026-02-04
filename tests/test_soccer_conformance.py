@@ -536,7 +536,9 @@ def test_rng_determinism_in_policy_execution(genome_code_pool):
 def test_run_policy_with_params(genome_code_pool):
     """Test that policy params are passed through to execution."""
     # Create genome with policy and params
-    genome: Any = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8})
+    genome: Any = MockGenome(
+        policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8}
+    )
 
     obs = {
         "self_x": 0.0,

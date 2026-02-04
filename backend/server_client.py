@@ -342,7 +342,9 @@ class ServerClient:
             try:
                 data = response.json()
                 connections: Any = data.get("connections") if isinstance(data, dict) else data
-                if isinstance(connections, list) and all(isinstance(item, dict) for item in connections):
+                if isinstance(connections, list) and all(
+                    isinstance(item, dict) for item in connections
+                ):
                     return cast(List[Dict[str, Any]], connections)
                 logger.error("Unexpected connections response format: %s", type(data))
                 return None

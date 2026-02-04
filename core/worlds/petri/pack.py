@@ -163,7 +163,9 @@ class PetriPack(TankLikePackBase):
         # 4. Register systems in execution order
         lifecycle_system = engine.lifecycle_system
         if lifecycle_system is None:
-            raise RuntimeError("Engine lifecycle_system must be initialized before registering systems")
+            raise RuntimeError(
+                "Engine lifecycle_system must be initialized before registering systems"
+            )
         engine._system_registry.register(lifecycle_system)
         engine._system_registry.register(engine.time_system)
         food_spawning_system = engine.food_spawning_system
@@ -173,15 +175,21 @@ class PetriPack(TankLikePackBase):
         poker_system = engine.poker_system
 
         if food_spawning_system is None:
-            raise RuntimeError("Engine food_spawning_system must be initialized before registering systems")
+            raise RuntimeError(
+                "Engine food_spawning_system must be initialized before registering systems"
+            )
         if collision_system is None:
-            raise RuntimeError("Engine collision_system must be initialized before registering systems")
+            raise RuntimeError(
+                "Engine collision_system must be initialized before registering systems"
+            )
         if poker_proximity_system is None:
             raise RuntimeError(
                 "Engine poker_proximity_system must be initialized before registering systems"
             )
         if reproduction_system is None:
-            raise RuntimeError("Engine reproduction_system must be initialized before registering systems")
+            raise RuntimeError(
+                "Engine reproduction_system must be initialized before registering systems"
+            )
         if poker_system is None:
             raise RuntimeError("Engine poker_system must be initialized before registering systems")
 
