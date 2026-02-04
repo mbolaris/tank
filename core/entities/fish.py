@@ -17,6 +17,7 @@ from core.config.fish import (
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
 )
+
 # Note: PREDATOR_ENCOUNTER_WINDOW, DEATH_REASON_* constants, and OVERFLOW_ENERGY_BANK_MULTIPLIER
 # are now used by the mixins (EnergyManagementMixin, MortalityMixin) directly.
 from core.entities.base import EntityState, LifeStage
