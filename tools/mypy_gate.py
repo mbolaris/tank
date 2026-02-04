@@ -173,7 +173,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:  # noqa: UP045
     # Detect fatal failures (mypy not installed, import errors, crashes)
     for pattern in _FATAL_PATTERNS:
         if pattern in output:
-            print(f"mypy gate FAILED: mypy did not run successfully.")
+            print("mypy gate FAILED: mypy did not run successfully.")
             print(f"Detected fatal pattern: {pattern!r}")
             print(f"--- mypy output ---\n{output.strip()}")
             return 2
