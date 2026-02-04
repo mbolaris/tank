@@ -75,10 +75,9 @@ jobs:
       run: |
         ruff check core/ tests/ tools/ backend/ --exclude frontend
 
-    - name: Type check with mypy
+    - name: Type check with mypy (baseline gate)
       run: |
-        mypy core/ --exclude frontend --exclude backend
-      continue-on-error: true
+        python tools/mypy_gate.py
 
   integration-gate:
     runs-on: ubuntu-latest
