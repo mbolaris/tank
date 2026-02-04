@@ -289,9 +289,15 @@ class LeagueTeamProvider:
             source=TeamSource.BOT,
             roster=[],  # Bots adhere to special logic, empty roster implies generated
         )
+        bot_size = self._get_team_size()
         availability["Bot:Balanced"] = TeamAvailability(
-            is_available=True, eligible_count=11, reason="Always available"
+            is_available=True, eligible_count=bot_size, reason="Always available"
         )
 
     def _get_team_size(self) -> int:
-        return self.config.team_size if self.config.team_size > 0 else 11
+        if self.config.team_size > 0:
+            return self.config.team_size
+        # Derive from num_players: split pool into two teams
+        if self.config.num_players > 0:
+            return max(1, self.config.num_players // 2)
+        return 3  # Safe fallback for minimal matches

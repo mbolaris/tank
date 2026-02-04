@@ -166,6 +166,69 @@ def test_full_match_flow(base_config):
     )
 
 
+def test_derived_team_size():
+    """Team size derives from num_players when team_size == 0."""
+    config = SoccerConfig(
+        enabled=True,
+        match_every_frames=1,
+        duration_frames=10,
+        team_size=0,
+        num_players=8,
+        entry_fee_energy=0.0,
+        cycles_per_frame=1,
+    )
+    runtime = SoccerLeagueRuntime(config)
+
+    # 8 fish, team_size = 8 // 2 = 4 → A (4), B (4)
+    fish = [DummyFish(i, 100.0) for i in range(8)]
+    world = DummyWorld(fish)
+
+    runtime.tick(world, seed_base=1, cycle=1)
+    state = runtime.get_live_state()
+    assert state is not None
+    av = state["availability"]
+
+    assert av["Tank1:A"]["available"] is True
+    assert av["Tank1:A"]["count"] == 4
+    assert av["Tank1:B"]["available"] is True
+    assert av["Tank1:B"]["count"] == 4
+
+
+def test_smoke_league_produces_match_outcome():
+    """Smoke test: with 10 fish and derived 3v3, the league completes a match."""
+    config = SoccerConfig(
+        enabled=True,
+        match_every_frames=1,
+        duration_frames=10,
+        team_size=0,
+        num_players=6,  # derives team_size = 3
+        entry_fee_energy=0.0,
+        cycles_per_frame=1,
+    )
+    runtime = SoccerLeagueRuntime(config)
+
+    fish = [DummyFish(i, 100.0) for i in range(10)]
+    world = DummyWorld(fish)
+
+    # Tick enough frames to start and complete at least one match
+    match_started = False
+    match_completed = False
+    for cycle in range(50):
+        runtime.tick(world, seed_base=42, cycle=cycle)
+
+        state = runtime.get_live_state()
+        if state and state["active_match"] is not None:
+            match_started = True
+
+        events = runtime.drain_events()
+        if events:
+            match_completed = True
+            break
+
+    assert match_started, "Expected at least one match to start within 50 frames"
+    assert match_completed, "Expected at least one match outcome within 50 frames"
+
+
 def test_leaderboard_sorting(base_config):
     """Test leaderboard is sorted by Points then GD."""
     runtime = SoccerLeagueRuntime(base_config)

@@ -26,6 +26,16 @@ export function TankPlayTab({
     const population = state?.stats?.fish_count ?? 0;
     const generation = state?.stats?.max_generation ?? state?.stats?.generation ?? 0;
 
+    // Derive the top availability reason when idle
+    const idleReason = (() => {
+        if (!soccerLeague?.availability) return null;
+        const entries = Object.values(soccerLeague.availability);
+        const unavailable = entries.filter((a) => !a.available);
+        if (unavailable.length === 0) return null;
+        // Show the most informative reason (first unavailable team)
+        return unavailable[0].reason;
+    })();
+
     return (
         <div className={styles.playTab}>
             {/* Main Canvas */}
@@ -75,7 +85,11 @@ export function TankPlayTab({
                                     {state?.soccer_events?.length ?? 0} matches
                                 </div>
                                 <div className={styles.cardSub}>
-                                    {soccerLeague ? 'Idle' : 'No league data'}
+                                    {soccerLeague
+                                        ? idleReason
+                                            ? `Waiting: ${idleReason}`
+                                            : 'Idle'
+                                        : 'No league data'}
                                 </div>
                             </>
                         )}
