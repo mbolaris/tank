@@ -225,7 +225,9 @@ class PokerChallenger(BehaviorAlgorithm):
             return _seek_food_or_idle(self, fish, speed=0.8)
 
         # Seek nearest fish for poker challenge
-        result = _seek_fish_or_none(self, fish, self.parameters["challenge_radius"], self.parameters["challenge_speed"])
+        result = _seek_fish_or_none(
+            self, fish, self.parameters["challenge_radius"], self.parameters["challenge_speed"]
+        )
         if result is not None:
             return result
 
@@ -714,7 +716,10 @@ class PokerConservative(BehaviorAlgorithm):
         for other in other_fish:
             if hasattr(other, "energy") and other.energy is not None:
                 energy_advantage = fish.energy - other.energy
-                if energy_advantage > energy_advantage_required and energy_advantage > best_advantage:
+                if (
+                    energy_advantage > energy_advantage_required
+                    and energy_advantage > best_advantage
+                ):
                     best_advantage = energy_advantage
                     best_target = other
 
