@@ -13,7 +13,9 @@ from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_R
 from core.entities.base import EntityState
 
 if TYPE_CHECKING:
-    pass
+    from core.agents.components.lifecycle_component import LifecycleComponent
+    from core.state_machine import StateMachine
+    from core.world import World
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,14 @@ class MortalityMixin:
         environment: World
         fish_id: int
     """
+
+    _cached_is_dead: bool
+    _lifecycle_component: LifecycleComponent
+    state: StateMachine[EntityState]
+    energy: float
+    last_predator_encounter_age: int
+    environment: World
+    fish_id: int
 
     def is_dead(self) -> bool:
         """Check if fish should die or has migrated.

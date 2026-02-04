@@ -6,13 +6,22 @@ Encapsulates reproduction eligibility, offspring creation, and mating logic.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, cast
 
 from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BASE_SPEED
 from core.telemetry.events import ReproductionEvent
 
 if TYPE_CHECKING:
+    from core.agents.components.lifecycle_component import LifecycleComponent
+    from core.agents.components.reproduction_component import ReproductionComponent
+    from core.ecosystem import EcosystemManager
     from core.entities.fish import Fish
+    from core.entities.visual_state import FishVisualState
+    from core.fish.skill_game_component import SkillGameComponent
+    from core.genetics import Genome
+    from core.math_utils import Vector2
+    from core.movement_strategy import MovementStrategy
+    from core.world import World
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +47,27 @@ class ReproductionMixin:
         _emit_event: Callable
     """
 
+    _reproduction_component: ReproductionComponent
+    _lifecycle_component: LifecycleComponent
+    _skill_game_component: SkillGameComponent
+    _emit_event: Callable[[object], None]
+    genome: Genome
+    environment: World
+    ecosystem: EcosystemManager | None
+    fish_id: int
+    generation: int
+    species: str
+    movement_strategy: MovementStrategy
+    energy: float
+    pos: Vector2
+    visual_state: FishVisualState
+
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce (delegates to ReproductionComponent)."""
         return self._reproduction_component.can_reproduce(
             self._lifecycle_component.life_stage,
             self.energy,
-            self.max_energy,
+            self.max_energy,  # type: ignore[attr-defined]  # provided by EnergyManagementMixin
         )
 
     def try_mate(self, other: Fish) -> bool:
@@ -65,7 +89,7 @@ class ReproductionMixin:
         from core.reproduction_service import ReproductionService
 
         self._reproduction_component.update_cooldown()
-        return ReproductionService.maybe_create_banked_offspring(self)
+        return ReproductionService.maybe_create_banked_offspring(cast("Fish", self))
 
     def _create_asexual_offspring(self) -> Fish | None:
         """Create an offspring through asexual reproduction.
@@ -81,9 +105,9 @@ class ReproductionMixin:
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
         # Get available policies for mutation
-        available_policies = self.environment.list_policy_component_ids("movement_policy")
-        if not available_policies:
-            available_policies = None
+        available_policies: list[str] | None = (
+            self.environment.list_policy_component_ids("movement_policy") or None
+        )
 
         # Generate offspring genome (also sets cooldown)
         (

@@ -10,6 +10,7 @@ Encapsulates all energy-related behavior:
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.fish import ENERGY_MAX_DEFAULT, OVERFLOW_ENERGY_BANK_MULTIPLIER
@@ -17,6 +18,12 @@ from core.constants import DEATH_REASON_STARVATION
 from core.energy.energy_component import EnergyComponent
 from core.entities.base import EntityState
 from core.fish.energy_state import EnergyState
+
+if TYPE_CHECKING:
+    from core.agents.components.lifecycle_component import LifecycleComponent
+    from core.math_utils import Vector2
+    from core.state_machine import StateMachine
+    from core.world import World
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +45,13 @@ class EnergyManagementMixin:
 
     _energy_component: EnergyComponent
     _reproduction_component: ReproductionComponent
+    _lifecycle_component: LifecycleComponent
+    _cached_is_dead: bool
+    state: StateMachine[EntityState]
+    pos: Vector2
+    vel: Vector2
+    speed: float
+    environment: World
 
     @property
     def energy(self) -> float:

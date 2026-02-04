@@ -18,7 +18,7 @@ from core.config.fish import (
     LIFE_STAGE_MATURE_MAX,
 )
 
-from core.entities.base import LifeStage
+from core.entities.base import EntityUpdateResult, LifeStage
 from core.entities.generic_agent import AgentComponents, GenericAgent
 from core.entities.mixins import EnergyManagementMixin, MortalityMixin, ReproductionMixin
 from core.entities.visual_state import FishVisualState
@@ -692,8 +692,6 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         Returns:
             EntityUpdateResult containing newborn fish if reproduction occurred
         """
-        from core.entities.base import EntityUpdateResult
-
         # Fish manages its own lifecycle/energy/memory updates. The only shared
         # behavior we need from the base Agent is position integration.
         self.update_position()
