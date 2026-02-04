@@ -8,7 +8,7 @@ SOCCER_EVALUATOR_INTERVAL_FRAMES = 1
 
 # Participant thresholds.
 SOCCER_EVALUATOR_MIN_PLAYERS = 6
-SOCCER_EVALUATOR_NUM_PLAYERS = 20
+SOCCER_EVALUATOR_NUM_PLAYERS = 6
 
 # Match duration (RCSS cycles at 10Hz).
 # 3000 cycles = 300 seconds (5 minutes) of match time.

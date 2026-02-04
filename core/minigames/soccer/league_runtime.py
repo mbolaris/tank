@@ -207,9 +207,11 @@ class SoccerLeagueRuntime:
         home_participants: list[Any] = []
         away_participants: list[Any] = []
 
+        team_size = self._provider._get_team_size()
+
         def collect_team_participants(team, prefix, target_list):
             if team.source == TeamSource.BOT:
-                for i in range(1, 12):  # 11 bots
+                for i in range(1, team_size + 1):
                     target_list.append(BotEntity(f"{prefix}_bot_{i}", team.team_id))
             else:
                 for eid in team.roster:
