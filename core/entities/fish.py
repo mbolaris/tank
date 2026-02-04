@@ -16,11 +16,12 @@ from core.config.fish import (
     FISH_TOP_MARGIN,
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
-    PREDATOR_ENCOUNTER_WINDOW,
 )
-from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_REASON_STARVATION
+# Note: PREDATOR_ENCOUNTER_WINDOW, DEATH_REASON_* constants, and OVERFLOW_ENERGY_BANK_MULTIPLIER
+# are now used by the mixins (EnergyManagementMixin, MortalityMixin) directly.
 from core.entities.base import EntityState, LifeStage
 from core.entities.generic_agent import AgentComponents, GenericAgent
+from core.entities.mixins import EnergyManagementMixin, MortalityMixin, ReproductionMixin
 from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
@@ -39,19 +40,17 @@ if TYPE_CHECKING:
 from core.agent_memory import AgentMemorySystem, MemoryType
 from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.config.fish import OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
-from core.fish.energy_state import EnergyState
 from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
-from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
+from core.telemetry.events import BirthEvent, FoodEatenEvent
 
 
-class Fish(GenericAgent):
+class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgent):
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
     Fish extends GenericAgent with full alife capabilities including genetics,
@@ -389,12 +388,7 @@ class Fish(GenericAgent):
         """
         return "fish"
 
-    def get_energy_state(self) -> EnergyState:
-        """Get immutable snapshot of current energy state."""
-        return EnergyState(
-            current_energy=self.energy,
-            max_energy=self._energy_component.max_energy,
-        )
+    # get_energy_state() is provided by EnergyManagementMixin
 
     # =========================================================================
     # PokerPlayer Protocol Implementation
@@ -478,203 +472,11 @@ class Fish(GenericAgent):
         return self.energy >= MIN_ENERGY_TO_PLAY and self.poker_cooldown <= 0 and not self.is_dead()
 
     # =========================================================================
-    # EnergyHolder Protocol Implementation
+    # EnergyHolder Protocol — provided by EnergyManagementMixin
+    # (energy, max_energy, bite_size, size, gain_energy, modify_energy,
+    #  consume_energy, is_starving, is_critical_energy, is_low_energy,
+    #  is_safe_energy, get_energy_ratio, get_energy_state)
     # =========================================================================
-
-    @property
-    def energy(self) -> float:
-        """Current energy level (read-only property delegating to EnergyComponent)."""
-        return self._energy_component.energy
-
-    @energy.setter
-    def energy(self, value: float) -> None:
-        """Set energy level."""
-        self._energy_component.energy = value
-        # OPTIMIZATION: Update dead cache if energy drops to/below zero
-        if value <= 0:
-            if self.state.state == EntityState.ACTIVE:
-                self.state.transition(EntityState.DEAD, reason=DEATH_REASON_STARVATION)
-            self._cached_is_dead = True
-
-    @property
-    def max_energy(self) -> float:
-        """Maximum energy capacity based on current size (age + genetics).
-
-        A fish's max energy grows as they physically grow from baby to adult.
-        Baby fish (size ~0.35-0.5) have less capacity than adults.
-        """
-        return ENERGY_MAX_DEFAULT * self._lifecycle_component.size
-
-    @property
-    def bite_size(self) -> float:
-        """Calculate the size of a bite this fish can take.
-
-        Bite size scales with fish size.
-        """
-        return 20.0 * self._lifecycle_component.size
-
-    @property
-    def size(self) -> float:
-        """Current size multiplier combining age and genetics.
-
-        Size affects:
-        - Visual rendering scale
-        - Max energy capacity
-        - Bite size
-        - Turn energy cost
-
-        Returns:
-            Size multiplier (typically 0.35-1.0+ depending on life stage and genetics)
-        """
-        return self._lifecycle_component.size
-
-    def gain_energy(self, amount: float) -> float:
-        """Gain energy from consuming food.
-
-        Applies energy gain via modify_energy so it is recorded properly.
-        Returns the amount requested to satisfy legacy callers.
-        """
-        # Apply energy gain immediately
-        self.modify_energy(amount, source="ate_food")
-
-        # Return amount so Food dies immediately (preserving game logic)
-        return amount
-
-    def _apply_energy_gain_internal(self, amount: float) -> float:
-        """Internal logic to apply energy gain and route overflow."""
-        old_energy = self._energy_component.energy
-        new_energy = old_energy + amount
-
-        if new_energy > self.max_energy:
-            overflow = new_energy - self.max_energy
-            self._energy_component.energy = self.max_energy
-            self._route_overflow_energy(overflow)
-        else:
-            self._energy_component.energy = new_energy
-
-        # Ensure fish is marked alive if it has energy and state is active
-        if self._energy_component.energy > 0 and self.state.state == EntityState.ACTIVE:
-            self._cached_is_dead = False
-
-        return self._energy_component.energy - old_energy
-
-    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
-        """Adjust energy by a specified amount, routing overflow productively.
-
-        Positive amounts are capped at max_energy with overflow handling.
-        Negative amounts won't go below zero.
-
-        Returns:
-            float: The actual energy change applied to the fish
-        """
-        old_energy = self._energy_component.energy
-        new_energy = old_energy + amount
-
-        if amount > 0:
-            if new_energy > self.max_energy:
-                overflow = new_energy - self.max_energy
-                self._energy_component.energy = self.max_energy
-                self._route_overflow_energy(overflow)
-            else:
-                self._energy_component.energy = new_energy
-        else:
-            final_energy = max(0.0, new_energy)
-            self._energy_component.energy = final_energy
-            if final_energy <= 0:
-                if self.state.state == EntityState.ACTIVE:
-                    self.state.transition(EntityState.DEAD, reason=DEATH_REASON_STARVATION)
-                self._cached_is_dead = True
-            elif self.state.state == EntityState.ACTIVE:
-                self._cached_is_dead = False
-
-        if hasattr(self, "environment") and hasattr(self.environment, "record_energy_delta"):
-            delta = self._energy_component.energy - old_energy
-            self.environment.record_energy_delta(self, delta, source)
-
-        return self._energy_component.energy - old_energy
-
-    def _route_overflow_energy(self, overflow: float) -> None:
-        """Route overflow energy into reproduction bank.
-
-        When a fish gains more energy than it can hold, this method banks
-        the overflow for future reproduction. If the bank is full, excess
-        is dropped as food.
-
-        Args:
-            overflow: Amount of energy exceeding max capacity
-        """
-        if overflow <= 0:
-            return
-
-        max_bank = self.max_energy * OVERFLOW_ENERGY_BANK_MULTIPLIER
-        banked = self._reproduction_component.bank_overflow_energy(overflow, max_bank=max_bank)
-        remainder = overflow - banked
-
-        if remainder > 0:
-            self._spawn_overflow_food(remainder)
-
-    def _spawn_overflow_food(self, overflow: float) -> None:
-        """Convert overflow energy into a food drop near the fish.
-
-        Args:
-            overflow: Amount of energy to convert to food
-        """
-        if overflow < 1.0:
-            return
-
-        try:
-            from core.entities.resources import Food
-            from core.util.mutations import request_spawn_in
-            from core.util.rng import require_rng
-
-            rng = require_rng(self.environment, "Fish._spawn_overflow_food")
-            food = Food(
-                environment=self.environment,
-                x=self.pos.x + rng.uniform(-20, 20),
-                y=self.pos.y + rng.uniform(-20, 20),
-                food_type="energy",
-            )
-            food.energy = min(overflow, food.max_energy)
-            food.max_energy = food.energy
-
-            if not request_spawn_in(self.environment, food, reason="overflow_food"):
-                logger.warning("spawn requester unavailable, overflow food lost")
-
-        except Exception:
-            pass  # Energy lost on failure is acceptable
-
-    def consume_energy(self, time_modifier: float = 1.0) -> None:
-        """Consume energy based on metabolism and activity.
-
-        Calculates burn and emits events. Energy is reduced via modify_energy.
-        """
-        energy_breakdown = self._energy_component.calculate_burn(
-            self.vel,
-            self.speed,
-            self._lifecycle_component.life_stage,
-            time_modifier,
-            self._lifecycle_component.size,
-        )
-
-        # Apply the energy reduction (this triggers the recorder)
-        self.modify_energy(-energy_breakdown["total"], source="metabolism")
-
-    def is_starving(self) -> bool:
-        return self._energy_component.is_starving()
-
-    def is_critical_energy(self) -> bool:
-        return self._energy_component.is_critical_energy()
-
-    def is_low_energy(self) -> bool:
-        return self._energy_component.is_low_energy()
-
-    def is_safe_energy(self) -> bool:
-        return self._energy_component.is_safe_energy()
-
-    def get_energy_ratio(self) -> float:
-        """Get energy as a ratio of max energy (0.0-1.0)."""
-        max_e = self.max_energy
-        return self.energy / max_e if max_e > 0 else 0.0
 
     def register_birth(self) -> None:
         """Register birth stats with the ecosystem.
@@ -788,51 +590,11 @@ class Fish(GenericAgent):
         """
         self.visual_state.set_death_effect(cause, duration)
 
-    def can_attempt_migration(self) -> bool:
-        """Fish can migrate when hitting horizontal tank boundaries."""
-
-        return True
-
-    def _attempt_migration(self, direction: str) -> bool:
-        """Attempt to migrate to a connected tank when hitting a boundary.
-
-        Uses the MigrationCapable protocol to check if migration is supported.
-        This keeps core entities decoupled from backend implementation.
-
-        Args:
-            direction: "left" or "right" - which boundary was hit
-
-        Returns:
-            True if migration successful, False if not supported or failed
-        """
-        from core.interfaces import MigrationCapable
-
-        # Check if environment supports migration using Protocol
-        if not isinstance(self.environment, MigrationCapable):
-            return False
-
-        migration_handler = self.environment.migration_handler
-        if migration_handler is None:
-            return False
-
-        world_id = self.environment.world_id
-        if world_id is None:
-            return False
-
-        # Delegate migration logic to the handler (backend implementation)
-        try:
-            success = migration_handler.attempt_entity_migration(self, direction, world_id)
-
-            if success:
-                # Mark this fish for removal from source tank
-                self.state.transition(EntityState.REMOVED, reason=DEATH_REASON_MIGRATION)
-                logger.debug(f"Fish #{self.fish_id} successfully migrated {direction}")
-
-            return success
-
-        except Exception as e:
-            logger.error(f"Migration failed: {e}", exc_info=True)
-            return False
+    # =========================================================================
+    # Mortality — provided by MortalityMixin
+    # (is_dead, get_death_cause, mark_predator_encounter,
+    #  can_attempt_migration, _attempt_migration)
+    # =========================================================================
 
     def get_remembered_food_locations(self) -> list[Vector2]:
         """Get list of remembered food locations (excluding expired memories).
@@ -843,245 +605,10 @@ class Fish(GenericAgent):
         memories = self.memory_system.get_all_memories(MemoryType.FOOD_LOCATION, min_strength=0.1)
         return [m.location for m in memories]
 
-    def is_dead(self) -> bool:
-        """Check if fish should die or has migrated.
-
-        OPTIMIZATION: Uses cached dead state when possible to avoid repeated checks.
-        Cache is updated when energy changes or age increments.
-        """
-        # OPTIMIZATION: Return cached value if already dead
-        if self._cached_is_dead:
-            return True
-
-        # Check active state first (checks underlying state machine)
-        if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
-            self._cached_is_dead = True
-            return True
-
-        # Check conditions and update state if now dead
-        # 1. Energy depletion
-        if self.energy <= 0:
-            self.state.transition(EntityState.DEAD, reason=DEATH_REASON_STARVATION)
-            self._cached_is_dead = True
-            return True
-
-        # 2. Old age
-        if self._lifecycle_component.age >= self._lifecycle_component.max_age:
-            self.state.transition(EntityState.DEAD, reason=DEATH_REASON_OLD_AGE)
-            self._cached_is_dead = True
-            return True
-
-        return False
-
-    def get_death_cause(self) -> str:
-        """Determine the cause of death.
-
-        Checks state history first for explicit causes recorded during transition.
-        If history is unavailable/unclear, infers cause from current state.
-
-        Returns:
-            str: Cause of death ('starvation', 'old_age', 'predation', 'migration')
-        """
-        # Check explicit history first
-        history = self.state.history
-        if history:
-            last_transition = history[-1]
-            if last_transition.to_state in (EntityState.DEAD, EntityState.REMOVED):
-                # Reason is stored in transition (e.g. "starvation", "old_age", "migration")
-                # Normalize reason to match expected strings
-                reason = last_transition.reason
-                if "migration" in reason:
-                    return "migration"
-                if "starvation" in reason:
-                    # Check for predation overlap even if recorded as starvation
-                    if (
-                        self._lifecycle_component.age - self.last_predator_encounter_age
-                        <= PREDATOR_ENCOUNTER_WINDOW
-                    ):
-                        return "predation"
-                    return "starvation"
-                if "old_age" in reason:
-                    return "old_age"
-                if "predation" in reason:
-                    return "predation"
-
-        # Fallback to inference if history unavailable/unclear
-        if self.state.state == EntityState.REMOVED:
-            return "migration"  # Assume removal implies migration if not death
-
-        # Logic for determining death cause based on state
-        if self.energy <= 0:
-            # Check if there was a recent predator encounter
-            if (
-                self._lifecycle_component.age - self.last_predator_encounter_age
-                <= PREDATOR_ENCOUNTER_WINDOW
-            ):
-                return "predation"  # Death after conflict
-            else:
-                return "starvation"  # Death without recent conflict
-        elif self._lifecycle_component.age >= self._lifecycle_component.max_age:
-            return "old_age"
-
-        # Debugging "Unknown" causes
-        # Capture state to identify why we reached here
-        parts = []
-        if self.state.state == EntityState.ACTIVE:
-            parts.append("active")
-        if self.state.state == EntityState.DEAD:
-            parts.append("dead")
-        if self.energy > 0:
-            parts.append("pos_energy")
-        if not history:
-            parts.append("no_hist")
-        else:
-            parts.append(f"last_rsn_{history[-1].reason}")
-
-        return f"unknown_{'_'.join(parts)}"
-
-    def mark_predator_encounter(self, escaped: bool = False, damage_taken: float = 0.0) -> None:
-        """Mark that this fish has encountered a predator.
-
-        This is used to determine death attribution - if the fish dies from
-        energy depletion shortly after this encounter, it counts as predation.
-
-        Args:
-            escaped: Whether the fish successfully escaped
-            damage_taken: Amount of damage/energy lost
-        """
-        self.last_predator_encounter_age = self._lifecycle_component.age
-
-    def can_reproduce(self) -> bool:
-        """Check if fish can reproduce.
-
-        Delegates to ReproductionComponent.
-
-        Returns:
-            bool: True if fish can reproduce
-        """
-        return self._reproduction_component.can_reproduce(
-            self._lifecycle_component.life_stage,
-            self.energy,
-            self.max_energy,
-        )
-
-    def try_mate(self, other: Fish) -> bool:
-        """Attempt to mate with another fish.
-
-        Delegates to ReproductionComponent for cleaner code organization.
-
-        Args:
-            other: Potential mate
-
-        Returns:
-            True if mating successful
-        """
-        # Standard mating is disabled; fish only reproduce sexually after poker games.
-        return False
-
-    def update_reproduction(self) -> Fish | None:
-        """Update reproduction state and potentially create offspring.
-
-        Updates cooldown timer and checks if conditions are met for instant
-        asexual reproduction (overflow energy banked + eligible).
-
-        Returns:
-            Newborn fish if reproduction occurred, None otherwise
-        """
-        from core.reproduction_service import ReproductionService
-
-        self._reproduction_component.update_cooldown()
-        return ReproductionService.maybe_create_banked_offspring(self)
-
-    def _create_asexual_offspring(self) -> Fish | None:
-        """Create an offspring through asexual reproduction.
-
-        This is called when conditions are met for instant asexual reproduction.
-        The baby is created immediately (no pregnancy/gestation period).
-
-        Returns:
-            The newly created baby fish, or None if creation failed
-        """
-        # Obtain RNG for determinism - fail loudly if unavailable
-        from core.util.rng import require_rng
-
-        rng = require_rng(self.environment, "Fish._create_asexual_offspring")
-
-        # Get available policies for mutation via canonical API
-        available_policies = self.environment.list_policy_component_ids("movement_policy")
-        if not available_policies:
-            available_policies = None  # Maintain existing mutation behavior with None
-
-        # Generate offspring genome (also sets cooldown)
-        (
-            offspring_genome,
-            _unused_fraction,
-        ) = self._reproduction_component.trigger_asexual_reproduction(
-            self.genome, rng=rng, available_policies=available_policies
-        )
-
-        # Calculate baby's max energy capacity (babies start at FISH_BABY_SIZE)
-        from core.config.fish import FISH_BABY_SIZE
-
-        baby_max_energy = (
-            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-        )
-
-        # Use banked overflow energy first, then draw from parent
-        bank_used = self._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
-        remaining_needed = baby_max_energy - bank_used
-        parent_transfer = min(self.energy, remaining_needed)
-
-        # Transfer energy from parent to baby
-        self.energy -= parent_transfer
-        baby_initial_energy = bank_used + parent_transfer
-
-        # Get boundaries from environment (World protocol)
-        bounds = self.environment.get_bounds()
-        (min_x, min_y), (max_x, max_y) = bounds
-
-        # Create offspring near parent
-        offset_x = rng.uniform(-30, 30)
-        offset_y = rng.uniform(-30, 30)
-        baby_x = self.pos.x + offset_x
-        baby_y = self.pos.y + offset_y
-
-        # Clamp to screen
-        baby_x = max(min_x, min(max_x - 50, baby_x))
-        baby_y = max(min_y, min(max_y - 50, baby_y))
-
-        # Create baby fish with transferred energy
-        baby = Fish(
-            environment=self.environment,
-            movement_strategy=self.movement_strategy.__class__(),
-            species=self.species,
-            x=baby_x,
-            y=baby_y,
-            speed=FISH_BASE_SPEED,
-            genome=offspring_genome,
-            generation=self.generation + 1,
-            ecosystem=self.ecosystem,
-            initial_energy=baby_initial_energy,
-            parent_id=self.fish_id,
-        )
-
-        # Record reproduction stats using composable behavior ID
-        composable = self.genome.behavioral.behavior
-        if composable is not None and composable.value is not None:
-            behavior_id = composable.value.behavior_id
-            algorithm_id = hash(behavior_id) % 1000
-            self._emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
-
-        # Inherit skill game strategies from parent with mutation
-        baby._skill_game_component.inherit_from_parent(
-            self._skill_game_component,
-            mutation_rate=0.1,
-            rng=rng,
-        )
-
-        # Set visual birth effect timer (60 frames = 2 seconds at 30fps)
-        self.visual_state.set_birth_effect(60)
-
-        return baby
+    # =========================================================================
+    # Reproduction — provided by ReproductionMixin
+    # (can_reproduce, try_mate, update_reproduction, _create_asexual_offspring)
+    # =========================================================================
 
     def _get_visual_bounds_offsets(self) -> tuple[float, float, float, float]:
         """Return visual bounds offsets from self.pos for edge clamping.
@@ -1237,9 +764,7 @@ class Fish(GenericAgent):
         # Apply energy immediately (modify_energy handles overflow banking)
         actual_energy = self.modify_energy(potential_energy)
 
-        # Record food location in memory
-        from core.agent_memory import MemoryType
-
+        # Record food location in memory (MemoryType imported at module level)
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 
         # Record food consumption for behavior performance tracking

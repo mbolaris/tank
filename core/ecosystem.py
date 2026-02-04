@@ -320,7 +320,6 @@ class EcosystemManager:
         EnergyGainEvent/EnergyBurnEvent are no-ops to avoid double-counting.
         """
         # Energy events are no-ops (accounting now via ingest_energy_deltas)
-        # Energy events are no-ops (accounting now via ingest_energy_deltas)
         if isinstance(event, FoodEatenEvent):
             self._on_food_eaten_event(event)
         elif isinstance(event, BirthEvent):
@@ -329,7 +328,7 @@ class EcosystemManager:
             self._on_reproduction_event(event)
 
     # =========================================================================
-    # Population Recording (delegate to PopulationTracker)
+    # Energy Delta Ingestion
     # =========================================================================
 
     def ingest_energy_deltas(self, deltas: List[Any]) -> None:
