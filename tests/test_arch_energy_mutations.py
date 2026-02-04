@@ -13,6 +13,9 @@ ALLOWLIST_PATHS = {
     Path("core/entities/plant.py"),
     Path("core/entities/generic_agent.py"),
     Path("core/entities/predators.py"),
+    # Fish entity mixins contain energy management logic extracted from fish.py.
+    Path("core/entities/mixins/energy_mixin.py"),
+    Path("core/entities/mixins/reproduction_mixin.py"),
     Path("core/energy/energy_component.py"),
     Path("core/plant/energy_component.py"),
     Path("core/minigames/soccer/league_runtime.py"),
