@@ -64,7 +64,15 @@ def _normalize_path(path_text: str) -> str:
     return text
 
 
-def _run_mypy() -> str:
+_FATAL_PATTERNS = (
+    "No module named mypy",
+    "ModuleNotFoundError",
+    "Traceback",
+)
+
+
+def _run_mypy() -> tuple[str, int]:
+    """Run mypy and return (combined_output, returncode)."""
     cmd = [
         sys.executable,
         "-m",
@@ -78,7 +86,7 @@ def _run_mypy() -> str:
         "--no-color-output",
     ]
     proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
-    return (proc.stdout or "") + (proc.stderr or "")
+    return (proc.stdout or "") + (proc.stderr or ""), proc.returncode
 
 
 def _parse_error_keys(mypy_output: str) -> tuple[Counter[MypyIssueKey], dict[MypyIssueKey, str]]:
@@ -160,7 +168,22 @@ def main(argv: Optional[Iterable[str]] = None) -> int:  # noqa: UP045
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
-    output = _run_mypy()
+    output, returncode = _run_mypy()
+
+    # Detect fatal failures (mypy not installed, import errors, crashes)
+    for pattern in _FATAL_PATTERNS:
+        if pattern in output:
+            print(f"mypy gate FAILED: mypy did not run successfully.")
+            print(f"Detected fatal pattern: {pattern!r}")
+            print(f"--- mypy output ---\n{output.strip()}")
+            return 2
+
+    # mypy returns 0 (clean) or 1 (type errors found). Anything else is a crash.
+    if returncode not in (0, 1):
+        print(f"mypy gate FAILED: unexpected return code {returncode}.")
+        print(f"--- mypy output ---\n{output.strip()}")
+        return 2
+
     current_counts, examples = _parse_error_keys(output)
 
     if args.write_baseline:
