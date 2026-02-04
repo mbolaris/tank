@@ -1,7 +1,9 @@
 import random
+from typing import Union, cast
 
 import pytest
 
+from core.entities import Fish, Plant
 from core.mixed_poker.interaction import MixedPokerInteraction
 from core.poker.betting.actions import BettingAction
 
@@ -64,7 +66,8 @@ def test_poker_winner_not_killed_mid_hand_settlement():
     f1 = _DummyFish(1, energy=20.0)
     f2 = _DummyFish(2, energy=20.0)
 
-    poker = MixedPokerInteraction([f1, f2], rng=random.Random(0))
+    players = cast(list[Union[Fish, Plant]], [f1, f2])
+    poker = MixedPokerInteraction(players, rng=random.Random(0))
     assert poker.play_poker()
     assert poker.result is not None
 

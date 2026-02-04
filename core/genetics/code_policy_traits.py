@@ -325,7 +325,7 @@ def assign_random_policy(
         SOCCER_POLICY: ("soccer_policy_id", "soccer_policy_params"),
     }
     id_attr, params_attr = kind_to_attr.get(kind, (None, None))
-    if id_attr is None:
+    if id_attr is None or params_attr is None:
         return False
 
     setattr(behavioral, id_attr, GeneticTrait(component_id))

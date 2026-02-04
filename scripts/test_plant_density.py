@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+from typing import cast
+
+from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.simulation.engine import SimulationEngine
+from core.world import World
 
 sim = SimulationEngine(headless=True)
 sim.setup()
 
 # Find three adjacent spots
 manager = sim.root_spot_manager
+assert manager is not None
 spots = manager.spots
 # Pick a middle index away from edges
 mid = len(spots) // 2
@@ -13,16 +20,17 @@ left = spots[mid - 1]
 center = spots[mid]
 right = spots[mid + 1]
 
-from core.entities.plant import Plant
-
 # Create genomes
 g1 = PlantGenome.create_random()
 g2 = PlantGenome.create_random()
 g3 = PlantGenome.create_random()
 
-p1 = Plant(sim.environment, g1, left)
-p2 = Plant(sim.environment, g2, center)
-p3 = Plant(sim.environment, g3, right)
+assert sim.environment is not None
+world = cast(World, sim.environment)
+
+p1 = Plant(world, g1, left, plant_id=1)
+p2 = Plant(world, g2, center, plant_id=2)
+p3 = Plant(world, g3, right, plant_id=3)
 
 # Claim spots
 left.claim(p1)

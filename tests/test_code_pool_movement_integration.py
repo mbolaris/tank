@@ -20,6 +20,10 @@ class StubBehavior:
 
 
 def _make_fish(env: Environment, behavior: StubBehavior) -> Fish:
+    from typing import Optional, cast
+
+    from core.algorithms.composable import ComposableBehavior
+
     movement = AlgorithmicMovement()
     fish = Fish(
         environment=env,
@@ -29,7 +33,7 @@ def _make_fish(env: Environment, behavior: StubBehavior) -> Fish:
         y=100,
         speed=2.0,
     )
-    fish.genome.behavioral.behavior = GeneticTrait(behavior)
+    fish.genome.behavioral.behavior = GeneticTrait(cast(Optional[ComposableBehavior], behavior))
     fish.vel = Vector2(0, 0)
     return fish
 

@@ -36,8 +36,12 @@ class TestSoccerRules:
                 initial_pos[entity["id"]] = (entity["x"], entity["y"])
 
         # Move players away
-        match._engine.get_player("left_1").position = RCSSVector(0, 0)
-        match._engine.get_player("right_1").position = RCSSVector(0, 0)
+        left = match._engine.get_player("left_1")
+        right = match._engine.get_player("right_1")
+        assert left is not None
+        assert right is not None
+        left.position = RCSSVector(0, 0)
+        right.position = RCSSVector(0, 0)
 
         # Verify moved
         current_state = match.get_state()
@@ -80,6 +84,7 @@ class TestSoccerRules:
         # Capture initial positions
         # left_1 starts at negative x
         p_left = match._engine.get_player("left_1")
+        assert p_left is not None
         initial_x = p_left.position.x
         assert initial_x < 0
 
@@ -90,6 +95,7 @@ class TestSoccerRules:
         # Check if sides swapped
         # left_1 should now be at -initial_x (positive)
         p_left_after = match._engine.get_player("left_1")
+        assert p_left_after is not None
         assert math.isclose(p_left_after.position.x, -initial_x, abs_tol=1e-5)
         # Angle should be flipped (0 -> pi)
         assert math.isclose(abs(p_left_after.body_angle), math.pi, abs_tol=1e-5)

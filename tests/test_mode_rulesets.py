@@ -37,7 +37,7 @@ class TestEnergyModel:
         """Should be frozen/immutable."""
         model = EnergyModel()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            model.existence_cost = 0.1
+            setattr(model, "existence_cost", 0.1)
 
 
 class TestScoringModel:
@@ -213,6 +213,7 @@ class TestModeRuleSetProtocol:
         """All rulesets should return allowed actions list."""
         for mode_id in ["tank", "petri", "soccer"]:
             ruleset = get_ruleset(mode_id)
+            assert ruleset is not None
             actions = ruleset.get_allowed_actions()
             assert isinstance(actions, list)
             assert len(actions) > 0

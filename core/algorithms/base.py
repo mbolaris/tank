@@ -18,10 +18,10 @@ Architecture Notes:
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, cast
 
 from core.math_utils import Vector2
-from core.util.rng import MissingRNGError, require_rng_param
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -630,7 +630,7 @@ class BehaviorHelpersMixin:
             flee_speed = FLEE_SPEED_NORMAL
 
         # Check if should flee
-        if predator_distance < flee_threshold:
+        if nearest_predator is not None and predator_distance < flee_threshold:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return True, direction.x * flee_speed, direction.y * flee_speed
 
@@ -675,7 +675,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
     algorithm_id: str
     parameters: Dict[str, Any] = field(default_factory=dict)
     parameter_bounds: Dict[str, Tuple[float, float]] = field(default_factory=dict)
-    rng: Optional[random.Random] = field(default=None, repr=False)
+    rng: random.Random = field(default=cast(random.Random, None), repr=False)
 
     def __post_init__(self) -> None:
         if not self.parameter_bounds:
@@ -717,11 +717,6 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             rng: Random number generator for determinism. If None, uses self.rng.
         """
         _rng = rng or self.rng
-        if _rng is None:
-            raise MissingRNGError(
-                f"mutate_parameters requires an RNG for {self.algorithm_id}. "
-                "Pass rng= explicitly or ensure self.rng was set at construction."
-            )
 
         # Optimization: If mutation is disabled, return early
         if mutation_rate <= 1e-9 and mutation_strength <= 1e-9:

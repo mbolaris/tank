@@ -112,23 +112,23 @@ class CircleCollisionDetector(CollisionDetector):
             True if distance between centers is less than threshold
         """
         # Calculate centers
-        x1, y1, w1, h1 = cast(Tuple[float, float, float, float], agent1.get_rect())
-        x2, y2, w2, h2 = cast(Tuple[float, float, float, float], agent2.get_rect())
+        x1, y1, w1, h1 = agent1.get_rect()
+        x2, y2, w2, h2 = agent2.get_rect()
 
         center1_x = x1 + w1 / 2
         center1_y = y1 + h1 / 2
         center2_x = x2 + w2 / 2
         center2_y = y2 + h2 / 2
 
-        # Calculate distance
+        # Calculate squared distance (avoid sqrt)
         dx = center2_x - center1_x
         dy = center2_y - center1_y
-        distance = (dx**2 + dy**2) ** 0.5
+        dist_sq = dx * dx + dy * dy
 
         # Default threshold is average of widths
         threshold_value = (w1 + w2) / 2 if threshold is None else float(threshold)
 
-        return distance < threshold_value
+        return dist_sq < threshold_value * threshold_value
 
 
 # Default collision detector

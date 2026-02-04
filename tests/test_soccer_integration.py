@@ -252,7 +252,7 @@ class TestSoccerPhysicsIntegration:
         """Test that fish team affiliation can be used for rendering."""
         env, _ = simulation_env
 
-        fish_teams = {"A": [], "B": []}
+        fish_teams: dict[str, list[Fish]] = {"A": [], "B": []}
 
         for team in ["A", "B"]:
             for i in range(5):

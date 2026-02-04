@@ -5,8 +5,10 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from core.config.fish import LIFE_STAGE_MATURE_MAX
+from core.environment import Environment
 from core.entities.fish import Fish
 from core.genetics.genome import Genome
+from core.movement_strategy import AlgorithmicMovement
 
 
 def verify_genetic_age():
@@ -24,19 +26,7 @@ def verify_genetic_age():
     # 2. Verify Max Age Calculation
     print("\n2. Testing Max Age Calculation...")
 
-    # Create a dummy class to mock what Fish needs
-    class MockMovement:
-        def __init__(self):
-            self.velocity = type("obj", (object,), {"length": lambda: 0})()
-
-    class MockEnv:
-        def __init__(self):
-            self.width = 1000
-            self.height = 1000
-            self.agents = []
-
-        def add_agent(self, agent):
-            pass
+    env = Environment(agents=[], width=1000, height=1000)
 
     # Manually modify genome for test cases
     # We must set the .value of the GeneticTrait
@@ -48,8 +38,8 @@ def verify_genetic_age():
 
     try:
         fish = Fish(
-            environment=MockEnv(),
-            movement_strategy=MockMovement(),
+            environment=env,
+            movement_strategy=AlgorithmicMovement(),
             species="TestSpecies",
             x=0,
             y=0,
@@ -69,8 +59,8 @@ def verify_genetic_age():
         # Case B: Long lifespan (1.4)
         genome.physical.lifespan_modifier.value = 1.4
         fish_long = Fish(
-            environment=MockEnv(),
-            movement_strategy=MockMovement(),
+            environment=env,
+            movement_strategy=AlgorithmicMovement(),
             species="TestSpecies",
             x=0,
             y=0,
@@ -84,8 +74,8 @@ def verify_genetic_age():
         # Case C: Short lifespan (0.6)
         genome.physical.lifespan_modifier.value = 0.6
         fish_short = Fish(
-            environment=MockEnv(),
-            movement_strategy=MockMovement(),
+            environment=env,
+            movement_strategy=AlgorithmicMovement(),
             species="TestSpecies",
             x=0,
             y=0,

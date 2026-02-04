@@ -345,8 +345,11 @@ class PokerSystem(BaseSystem):
         max_distance = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
 
         # Plan tables using fish-initiated local queries
+        environment = self._engine.environment
+        if environment is None:
+            return
         planner = MixedPokerTablePlanner(
-            environment=self._engine.environment,
+            environment=environment,
             max_players=POKER_MAX_PLAYERS,
             max_distance=max_distance,
             min_energy=MixedPokerInteraction.MIN_ENERGY_TO_PLAY,

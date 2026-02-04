@@ -146,18 +146,16 @@ class TestGeneticsRefactor:
         env = Environment(width=800, height=600, rng=rng)
 
         # Create fish with random genome
+        from core.movement_strategy import AlgorithmicMovement
+
         fish = Fish(
             environment=env,
-            movement_strategy=None,  # Mock or None if allowed, Fish init expects strategy
+            movement_strategy=AlgorithmicMovement(),
             species="test_fish",
             x=100,
             y=100,
             speed=5.0,
         )
-        # We need a real movement strategy or mock for update() to work
-        from core.movement_strategy import MovementStrategy
-
-        fish.movement_strategy = MovementStrategy()
 
         # Check accessing traits via fish properties (if any exist) or genome
         assert isinstance(fish.genome, Genome)
@@ -302,7 +300,7 @@ if __name__ == "__main__":
     t.test_genome_inheritance()
     t.test_genome_crossover_modes()
     # t.test_fish_integration() # Requires more setup
-    t.test_mate_compatibility()
+    t.test_mate_attraction()
     t.test_meta_mutation_occurs()
     t.test_meta_mutation_respects_bounds()
     t.test_meta_inheritance_in_offspring()

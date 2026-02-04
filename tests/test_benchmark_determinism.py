@@ -105,9 +105,11 @@ class TestHeadsUpDeterminism(unittest.TestCase):
 
         # Results should differ because cards are different
         # (unless extremely unlikely coincidence)
+        bb0 = stats_seat0.net_bb_for_candidate
+        assert bb0 is not None
         self.assertTrue(
             stats_seat0.net_bb_for_candidate != stats_different_seed.net_bb_for_candidate
-            or abs(stats_seat0.net_bb_for_candidate) < 0.1
+            or abs(bb0) < 0.1
         )
 
 

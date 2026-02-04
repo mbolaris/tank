@@ -41,8 +41,12 @@ class TestSoccerAnimation:
         engine.add_player("left_1", "left", RCSSVector(-20, 0), body_angle=0.0)
         engine.add_player("right_1", "right", RCSSVector(20, 0), body_angle=3.14159)
 
-        initial_left_x = engine.get_player("left_1").position.x
-        initial_right_x = engine.get_player("right_1").position.x
+        left = engine.get_player("left_1")
+        right = engine.get_player("right_1")
+        assert left is not None
+        assert right is not None
+        initial_left_x = left.position.x
+        initial_right_x = right.position.x
 
         # Step with dash commands
         for _ in range(20):
@@ -50,8 +54,12 @@ class TestSoccerAnimation:
             engine.queue_command("right_1", RCSSCommand.dash(100, 0))
             engine.step_cycle()
 
-        final_left_x = engine.get_player("left_1").position.x
-        final_right_x = engine.get_player("right_1").position.x
+        left = engine.get_player("left_1")
+        right = engine.get_player("right_1")
+        assert left is not None
+        assert right is not None
+        final_left_x = left.position.x
+        final_right_x = right.position.x
 
         # Both players should have moved
         assert final_left_x != initial_left_x, "Left player should move with dash"

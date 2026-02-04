@@ -161,10 +161,10 @@ def run_skill_game_simulation(
 
     if recent_events:
         logger.info("Sample recent events:")
-        for event in recent_events[:3]:
+        for event_data in recent_events[:3]:
             logger.info(
-                f"  Frame {event['frame']}: Player #{event['player1_id']} vs #{event['player2_id']} "
-                f"- Winner: #{event['winner_id']}, Energy: {event['energy_transferred']:.1f}"
+                f"  Frame {event_data['frame']}: Player #{event_data['player1_id']} vs #{event_data['player2_id']} "
+                f"- Winner: #{event_data['winner_id']}, Energy: {event_data['energy_transferred']:.1f}"
             )
 
     return results
@@ -210,12 +210,12 @@ def main():
     logger.info("=" * 60)
     logger.info("")
 
-    for game_type, result in results.items():
+    for game_type_name, result in results.items():
         if "error" in result:
-            logger.info(f"{game_type}: ERROR - {result['error']}")
+            logger.info(f"{game_type_name}: ERROR - {result['error']}")
         else:
             logger.info(
-                f"{game_type}: "
+                f"{game_type_name}: "
                 f"{result['total_skill_games']} games, "
                 f"{result['avg_optimality_rate']:.1%} avg optimality, "
                 f"{result['final_population']} fish"

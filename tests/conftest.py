@@ -61,9 +61,10 @@ def simulation_env(seeded_rng):
     """Provide a clean simulation environment for each test."""
     from core.agents_wrapper import AgentsWrapper
     from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
+    from core.entities import Agent
     from core.environment import Environment
 
-    entities_list = []
+    entities_list: list[Agent] = []
     env = Environment(entities_list, SCREEN_WIDTH, SCREEN_HEIGHT, rng=seeded_rng)
     agents_wrapper = AgentsWrapper(entities_list)
     return env, agents_wrapper

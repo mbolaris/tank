@@ -5,6 +5,7 @@ plant migration between connected tanks.
 """
 
 import logging
+import random
 from typing import TYPE_CHECKING, Callable, Optional
 
 from core.state_machine import EntityState
@@ -45,7 +46,7 @@ class PlantMigrationComponent:
         get_root_spot: Callable[[], Optional["RootSpot"]],
         get_environment: Callable[[], "World"],
         transition_state: Callable[[EntityState, str], None],
-        rng,
+        rng: Optional[random.Random],
     ) -> None:
         """Initialize the migration component.
 
@@ -56,11 +57,11 @@ class PlantMigrationComponent:
             transition_state: Callback to transition entity state.
             rng: Random number generator for deterministic behavior.
         """
-        self.migration_check_interval = 300  # Check every 5 seconds at 60fps
+        self.migration_check_interval: int = 300  # Check every 5 seconds at 60fps
         # Add random offset to prevent synchronized migrations
         if rng is None:
             raise RuntimeError("rng is required for deterministic plant initialization")
-        self.migration_timer = rng.randint(0, self.migration_check_interval)
+        self.migration_timer: int = rng.randint(0, self.migration_check_interval)
         self._get_root_spot = get_root_spot
         self._get_environment = get_environment
         self._transition_state = transition_state

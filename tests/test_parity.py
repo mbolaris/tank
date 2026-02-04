@@ -38,6 +38,7 @@ def test_simulation_determinism():
             print(f"  Frame {frame:4d}: {fish_count:2d} fish")
 
     # Get stats from simulation #1
+    assert sim1.ecosystem is not None
     stats1 = sim1.ecosystem.get_summary_stats(sim1.entities_list)
     print("\nSimulation #1 Results:")
     print(f"  Population: {stats1['total_population']}")
@@ -59,6 +60,7 @@ def test_simulation_determinism():
             print(f"  Frame {frame:4d}: {fish_count:2d} fish")
 
     # Get stats from simulation #2
+    assert sim2.ecosystem is not None
     stats2 = sim2.ecosystem.get_summary_stats(sim2.entities_list)
     print("\nSimulation #2 Results:")
     print(f"  Population: {stats2['total_population']}")

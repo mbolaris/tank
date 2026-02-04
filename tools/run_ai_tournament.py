@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from typing import List, Optional, TypedDict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import MultiAgentWorldBackend
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +26,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define AI models to simulate with different configurations
-AI_MODELS = [
+class _AIModel(TypedDict):
+    name: str
+    author: str
+    seed: int
+    frames: int
+
+
+AI_MODELS: List[_AIModel] = [
     {"name": "Claude Opus-4.5", "author": "Opus-4.5", "seed": 1001, "frames": 30000},
     {"name": "Claude Sonnet-4.5", "author": "Sonnet-4.5", "seed": 2002, "frames": 35000},
     {"name": "Claude Haiku-4.5", "author": "Haiku-4.5", "seed": 3003, "frames": 25000},
@@ -33,7 +42,7 @@ AI_MODELS = [
 ]
 
 
-def run_simulation(seed: int, max_frames: int):
+def run_simulation(seed: int, max_frames: int) -> MultiAgentWorldBackend:
     """Run a simulation to evolve fish with poker skills."""
     world = WorldRegistry.create_world("tank", seed=seed, headless=True)
     world.reset(seed=seed)
@@ -46,7 +55,9 @@ def run_simulation(seed: int, max_frames: int):
     return world
 
 
-def capture_solution_from_world(world, name: str, author: str) -> SolutionRecord:
+def capture_solution_from_world(
+    world: MultiAgentWorldBackend, name: str, author: str
+) -> SolutionRecord:
     """Capture the best fish as a solution."""
     from core.entities import Fish
 
@@ -54,8 +65,8 @@ def capture_solution_from_world(world, name: str, author: str) -> SolutionRecord
     fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
 
     # Find fish with most poker experience or highest energy
-    best_fish = None
-    best_score = -1
+    best_fish: Optional[Fish] = None
+    best_score = -1.0
 
     for fish in fish_list:
         score = fish.energy
@@ -69,6 +80,9 @@ def capture_solution_from_world(world, name: str, author: str) -> SolutionRecord
 
     if best_fish is None and fish_list:
         best_fish = fish_list[0]
+
+    if best_fish is None:
+        raise RuntimeError("No fish found in world to capture as a solution")
 
     solution = tracker.capture_solution(
         best_fish,

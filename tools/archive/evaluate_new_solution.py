@@ -38,6 +38,7 @@ def evaluate_solution(solution_path):
 
     # Load solution
     solution = SolutionRecord.load(str(solution_path))
+    stats = solution.capture_stats or {}
 
     print("Metadata:")
     print(f"  ID: {solution.metadata.solution_id}")
@@ -46,17 +47,27 @@ def evaluate_solution(solution_path):
     print(f"  Description: {solution.metadata.description}")
 
     # Show capture stats
-    if solution.capture_stats:
-        stats = solution.capture_stats
+    if stats:
         print("\nCapture Stats:")
-        print(f"  Total Games: {stats.total_games}")
-        print(f"  Win Rate: {stats.win_rate:.1%}")
-        print(f"  Button WR: {stats.button_win_rate:.1%} ({stats.games_on_button} games)")
-        print(f"  Non-Button WR: {stats.non_button_win_rate:.1%} ({stats.games_non_button} games)")
-        print(f"  Positional Balance: {stats.positional_advantage:.3f}")
-        print(f"  ROI: {stats.roi:.2f}")
-        print(f"  Best Streak: {stats.best_streak}")
-        print(f"  Skill Trend: {stats.skill_trend}")
+        total_games = int(stats.get("total_games", 0) or 0)
+        win_rate = float(stats.get("win_rate", 0.0) or 0.0)
+        button_wr = float(stats.get("button_win_rate", 0.0) or 0.0)
+        games_on_button = int(stats.get("games_on_button", 0) or 0)
+        non_button_wr = float(stats.get("non_button_win_rate", 0.0) or 0.0)
+        games_non_button = int(stats.get("games_non_button", 0) or 0)
+        positional_advantage = float(stats.get("positional_advantage", 0.0) or 0.0)
+        roi = float(stats.get("roi", 0.0) or 0.0)
+        best_streak = int(stats.get("best_streak", 0) or 0)
+        skill_trend = str(stats.get("skill_trend", ""))
+
+        print(f"  Total Games: {total_games}")
+        print(f"  Win Rate: {win_rate:.1%}")
+        print(f"  Button WR: {button_wr:.1%} ({games_on_button} games)")
+        print(f"  Non-Button WR: {non_button_wr:.1%} ({games_non_button} games)")
+        print(f"  Positional Balance: {positional_advantage:.3f}")
+        print(f"  ROI: {roi:.2f}")
+        print(f"  Best Streak: {best_streak}")
+        print(f"  Skill Trend: {skill_trend}")
 
     # Evaluate against benchmark
     print(f"\n{'─'*70}")
@@ -90,16 +101,21 @@ def evaluate_solution(solution_path):
     print(f"{'='*70}\n")
 
     # Comparison with Sonnet-4.5
-    print("\nComparison with Sonnet-4.5 (fec218b7_20251230_180755):")
-    print(f"{'─'*70}")
-    print("Metric                           Haiku-4.5      Sonnet-4.5")
-    print(f"{'─'*70}")
-    print(f"Button WR                        {stats.button_win_rate:>7.1%}         35.3%")
-    print(f"Non-Button WR                    {stats.non_button_win_rate:>7.1%}         35.1%")
-    print(f"Positional Balance               {stats.positional_advantage:>7.3f}         0.124")
-    print(f"Elo Rating                       {result.elo_rating:>7.0f}       1534.6")
-    print(f"bb/100                           {result.weighted_bb_per_100:>7.2f}       758.78")
-    print(f"{'─'*70}")
+    if stats:
+        button_wr = float(stats.get("button_win_rate", 0.0) or 0.0)
+        non_button_wr = float(stats.get("non_button_win_rate", 0.0) or 0.0)
+        positional_advantage = float(stats.get("positional_advantage", 0.0) or 0.0)
+
+        print("\nComparison with Sonnet-4.5 (fec218b7_20251230_180755):")
+        print(f"{'─'*70}")
+        print("Metric                           Haiku-4.5      Sonnet-4.5")
+        print(f"{'─'*70}")
+        print(f"Button WR                        {button_wr:>7.1%}         35.3%")
+        print(f"Non-Button WR                    {non_button_wr:>7.1%}         35.1%")
+        print(f"Positional Balance               {positional_advantage:>7.3f}         0.124")
+        print(f"Elo Rating                       {result.elo_rating:>7.0f}       1534.6")
+        print(f"bb/100                           {result.weighted_bb_per_100:>7.2f}       758.78")
+        print(f"{'─'*70}")
 
     return solution
 

@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -158,20 +158,22 @@ def main():
     # Import and modify backend settings
     from backend import main as backend_main
 
+    backend_main_any = cast(Any, backend_main)
+
     # Override server ID and port
-    backend_main.SERVER_ID = args.server_id
-    backend_main.DEFAULT_API_PORT = args.port
+    backend_main_any.SERVER_ID = args.server_id
+    backend_main_any.DEFAULT_API_PORT = args.port
 
     # Override data directory for discovery service
     from pathlib import Path
 
-    backend_main.discovery_service._data_dir = Path(data_dir)
-    backend_main.discovery_service._registry_file = Path(data_dir) / "server_registry.json"
+    backend_main_any.discovery_service._data_dir = Path(data_dir)
+    backend_main_any.discovery_service._registry_file = Path(data_dir) / "server_registry.json"
 
     # Optionally skip default tank creation
-    if args.no_default_tank and backend_main.tank_registry._default_tank_id:
-        tank_id = backend_main.tank_registry._default_tank_id
-        backend_main.tank_registry.remove_tank(tank_id)
+    if args.no_default_tank and backend_main_any.tank_registry._default_tank_id:
+        tank_id = backend_main_any.tank_registry._default_tank_id
+        backend_main_any.tank_registry.remove_tank(tank_id)
         logger.info("Removed default tank")
 
     # Schedule registration if needed

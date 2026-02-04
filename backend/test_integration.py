@@ -3,8 +3,8 @@
 import json
 import time
 
-from simulation_runner import SimulationRunner
-from state_payloads import FullStatePayload
+from backend.simulation_runner import SimulationRunner
+from backend.state_payloads import FullStatePayload
 
 
 def test_simulation_runner_lifecycle():

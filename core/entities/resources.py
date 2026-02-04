@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
 from core.energy.energy_utils import apply_energy_delta
-from core.entities.base import Agent
+from core.entities.base import Agent, EntityUpdateResult
 from core.entities.fish import Fish
 from core.math_utils import Vector2
 
@@ -85,13 +85,14 @@ class Food(Agent):
 
         self.food_type = food_type
         self.food_properties = self.FOOD_TYPES[food_type]
-        self.is_stationary: bool = self.food_properties.get("stationary", False)
+        self.is_stationary = bool(self.food_properties.get("stationary", False))
 
         super().__init__(environment, x, y, speed)
         self.source_plant: Optional[Plant] = source_plant
 
         # Energy tracking for partial consumption
-        self.max_energy: float = self.food_properties["energy"]
+        energy_value = self.food_properties.get("energy", 0.0)
+        self.max_energy = float(energy_value) if isinstance(energy_value, (int, float)) else 0.0
         self.energy: float = self.max_energy
         self.original_width: float = self.width
         self.original_height: float = self.height
@@ -121,10 +122,13 @@ class Food(Agent):
         food_types = [
             ft
             for ft, props in Food.FOOD_TYPES.items()
-            if (include_stationary or not props.get("stationary", False))
+            if (include_stationary or not bool(props.get("stationary", False)))
             and (include_live or ft != "live")
         ]
-        weights = [Food.FOOD_TYPES[ft]["rarity"] for ft in food_types]
+        weights: list[float] = []
+        for ft in food_types:
+            rarity = Food.FOOD_TYPES[ft].get("rarity", 0.0)
+            weights.append(float(rarity) if isinstance(rarity, (int, float)) else 0.0)
         return _rng.choices(food_types, weights=weights)[0]
 
     def get_energy_value(self) -> float:
@@ -165,8 +169,6 @@ class Food(Agent):
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
     ) -> "EntityUpdateResult":
         """Update the food state."""
-        from core.entities.base import EntityUpdateResult
-
         if self.is_stationary:
             # Stationary food stays attached to plant
             if self.source_plant is not None:
@@ -185,7 +187,9 @@ class Food(Agent):
         if self.is_stationary:
             return
 
-        sink_rate = FOOD_SINK_ACCELERATION * self.food_properties["sink_multiplier"]
+        sink_multiplier = self.food_properties.get("sink_multiplier", 1.0)
+        multiplier = float(sink_multiplier) if isinstance(sink_multiplier, (int, float)) else 1.0
+        sink_rate = FOOD_SINK_ACCELERATION * multiplier
         self.vel.y += sink_rate
 
     def get_eaten(self) -> None:
@@ -247,8 +251,6 @@ class LiveFood(Food):
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
     ) -> "EntityUpdateResult":
-        from core.entities.base import EntityUpdateResult
-
         self.age += 1
         self._apply_wander()
         self._avoid_nearby_fish()

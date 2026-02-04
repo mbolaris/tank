@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from core.minigames.soccer.fake_server import FakeRCSSServer
 from core.minigames.soccer.params import RCSSParams
 
 
-def _get_player_snapshot(snapshot: dict, player_id: str) -> dict:
+def _get_player_snapshot(snapshot: dict[str, Any], player_id: str) -> dict[str, Any]:
     for player in snapshot.get("players", []):
-        if player.get("id") == player_id:
+        if isinstance(player, dict) and player.get("id") == player_id:
             return player
     raise AssertionError(f"Player '{player_id}' not found in snapshot")
 

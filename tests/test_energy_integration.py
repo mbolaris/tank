@@ -1,10 +1,11 @@
 from core.entities.fish import Fish
+from core.movement_strategy import MovementStrategy
 from core.simulation.engine import SimulationEngine
 
 
-class DummyMovement:
-    def move(self, entity):
-        pass
+class DummyMovement(MovementStrategy):
+    def move(self, sprite: Fish) -> None:
+        return None
 
 
 def test_fish_energy_burn_loop():
@@ -16,10 +17,12 @@ def test_fish_energy_burn_loop():
     engine.config.server.plants_enabled = False
 
     engine.setup()
+    env = engine.environment
+    assert env is not None
 
     # Spawn a fish
     fish = Fish(
-        environment=engine.environment,
+        environment=env,
         movement_strategy=DummyMovement(),
         species="test_fish",
         x=50,
@@ -49,6 +52,7 @@ def test_fish_energy_burn_loop():
 
     # Check that events were processed
     # We can check ecosystem stats to confirm recording
+    assert engine.ecosystem is not None
     assert engine.ecosystem.energy_burn["metabolism"] > 0
 
 
@@ -58,9 +62,11 @@ def test_fish_eating_loop():
     engine.config.ecosystem.initial_fish_count = 0
     engine.config.server.plants_enabled = False
     engine.setup()
+    env = engine.environment
+    assert env is not None
 
     fish = Fish(
-        environment=engine.environment,
+        environment=env,
         movement_strategy=DummyMovement(),
         species="test_fish",
         x=50,
@@ -79,7 +85,7 @@ def test_fish_eating_loop():
     # Since we are outside engine.update(), we must manually set up the recorder
     engine._frame_energy_deltas = []
     recorder = engine._create_energy_recorder()
-    engine.environment.set_energy_delta_recorder(recorder)
+    env.set_energy_delta_recorder(recorder)
 
     # Debug info
     # print(f"DEBUG: fish.env ID={id(fish.environment)}")
@@ -118,6 +124,7 @@ def test_fish_eating_loop():
     # _on_sim_ate_food uses event.food_type as source, or "food" if generic
     # Now Fish.gain_energy uses "ate_food" explicitly, but stats show "food"?
     # Failure showed keys: 'soup_spawn', 'food': 10.0, etc.
+    assert engine.ecosystem is not None
     assert engine.ecosystem.energy_sources.get("food", 0) >= 10.0
 
 
@@ -127,9 +134,11 @@ def test_starvation_via_ledger():
     engine.config.ecosystem.initial_fish_count = 0
     engine.config.server.plants_enabled = False
     engine.setup()
+    env = engine.environment
+    assert env is not None
 
     fish = Fish(
-        environment=engine.environment,
+        environment=env,
         movement_strategy=DummyMovement(),
         species="test_fish",
         x=50,

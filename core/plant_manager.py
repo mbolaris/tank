@@ -130,7 +130,7 @@ class PlantManager:
         """Request a spawn via the engine mutation queue when available."""
         requester = getattr(self._entity_adder, "request_spawn", None)
         if callable(requester):
-            return requester(entity, reason=reason)
+            return bool(requester(entity, reason=reason))
         self._entity_adder.add_entity(entity)
         return True
 
@@ -138,7 +138,7 @@ class PlantManager:
         """Request a removal via the engine mutation queue when available."""
         requester = getattr(self._entity_adder, "request_remove", None)
         if callable(requester):
-            return requester(entity, reason=reason)
+            return bool(requester(entity, reason=reason))
         self._entity_adder.remove_entity(entity)
         return True
 

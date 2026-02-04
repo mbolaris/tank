@@ -346,6 +346,7 @@ def policy(observation, rng):
             source=simple_movement_source,
         )
         func = pool.get_callable(component_id)
+        assert func is not None
 
         observation = {"nearest_food_vector": {"x": 1.0, "y": 0.0}}
         assert validate_rng_determinism(func, observation, seed=42, num_trials=5)

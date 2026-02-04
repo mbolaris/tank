@@ -318,7 +318,7 @@ class TestProtocolArchitecturalBenefits:
 
         # Test with mocks instead of heavy Fish objects
         system = EnergyDrainSystem(drain_rate=10.0)
-        entities = [SimpleMock(50.0), SimpleMock(5.0), SimpleMock(100.0)]
+        entities: List[EnergyHolder] = [SimpleMock(50.0), SimpleMock(5.0), SimpleMock(100.0)]
 
         survivors = system.update(entities)
 
@@ -372,7 +372,7 @@ def sample_crab(environment):
     def _make_crab():
         from core.entities import Crab
 
-        return Crab(environment=environment, x=100.0, y=100.0, speed=1.5)
+        return Crab(environment=environment, x=100.0, y=100.0)
 
     return _make_crab
 

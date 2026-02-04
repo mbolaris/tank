@@ -209,7 +209,7 @@ def test_fitness_reflects_goals():
     episode_result, agent_results = runner.run_episode(genomes, seed=42, frames=300)
 
     # Extract fitness values
-    fitness_by_goals = {}
+    fitness_by_goals: dict[int, list[float]] = {}
     for agent in agent_results:
         goal_count = agent.goals
         if goal_count not in fitness_by_goals:
@@ -266,21 +266,19 @@ def test_shaped_reward_adds_to_total_reward():
     from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
     from core.genetics import Genome
     from core.genetics.trait import GeneticTrait
+    from typing import Optional, cast
 
     # Create a pool with a working policy
     pool = GenomeCodePool()
     pool.register_builtin(BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy)
 
     # Create genomes with chase ball policy (will actually move)
-    class MockBehavioral:
-        def __init__(self):
-            self.soccer_policy_id = GeneticTrait(BUILTIN_CHASE_BALL_SOCCER_ID)
-            self.soccer_policy_params = GeneticTrait({})
-
     genomes = []
     for _ in range(2):
         genome = Genome.random(use_algorithm=False, rng=None)
-        genome.behavioral = MockBehavioral()
+        genome.behavioral.soccer_policy_id = GeneticTrait(
+            cast(Optional[str], BUILTIN_CHASE_BALL_SOCCER_ID)
+        )
         genomes.append(genome)
 
     runner = SoccerMatchRunner(team_size=1, genome_code_pool=pool)

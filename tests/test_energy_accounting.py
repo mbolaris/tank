@@ -1,12 +1,14 @@
 import math
 import random
+from typing import Any, List, Tuple, Type, cast
 
 from core.ecosystem import EcosystemManager
-from core.entities import Fish
+from core.entities import Agent, Fish
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
 from core.movement_strategy import AlgorithmicMovement
+from core.root_spots import RootSpot
 from core.simulation.engine import SimulationEngine
 from core.skill_game_system import SkillGameSystem
 from core.skills.base import SkillGameResult
@@ -17,22 +19,43 @@ class _EnvStub:
     def __init__(self, width: int = 800, height: int = 600) -> None:
         self.width = width
         self.height = height
-        self.agents = []
-        self.rng = random.Random(42)  # Deterministic RNG for tests
+        self.agents: List[Agent] = []
+        self._rng = random.Random(42)  # Deterministic RNG for tests
 
-    def get_bounds(self):
+    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def nearby_agents_by_type(self, agent: Agent, radius: float, agent_type: Type[Agent]) -> List[Agent]:
+        return []
+
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def update_agent_position(self, agent: Agent) -> None:
+        return None
+
+    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+        return []
+
+    def list_policy_component_ids(self, kind: str) -> List[str]:
+        return []
+
+    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         return (0.0, 0.0), (float(self.width), float(self.height))
 
+    def is_valid_position(self, position: Any) -> bool:
+        return True
 
-class _RootSpotStub:
-    def __init__(self, x: float = 100.0, y: float = 550.0, spot_id: int = 12) -> None:
-        self.x = x
-        self.y = y
-        self.spot_id = spot_id
-        self.manager = None
+    @property
+    def dimensions(self) -> Tuple[float, float]:
+        return (float(self.width), float(self.height))
 
-    def release(self) -> None:  # pragma: no cover - used by die()
-        return None
+    @property
+    def rng(self) -> random.Random:
+        return self._rng
 
 
 def test_skill_game_records_energy_transfer(simulation_env):
@@ -64,7 +87,7 @@ def test_skill_game_records_energy_transfer(simulation_env):
     fish2.energy = fish2.max_energy * 0.4
 
     cfg = SkillGameConfig(stake_multiplier=1.0)
-    engine_stub = object()
+    engine_stub = cast(SimulationEngine, object())
     system = SkillGameSystem(engine_stub, config=cfg)
 
     result1 = SkillGameResult(
@@ -105,7 +128,7 @@ def test_single_player_skill_game_records_energy_delta(simulation_env):
     fish.energy = fish.max_energy * 0.2
 
     cfg = SkillGameConfig(stake_multiplier=1.0)
-    engine_stub = object()
+    engine_stub = cast(SimulationEngine, object())
     system = SkillGameSystem(engine_stub, config=cfg)
 
     win = SkillGameResult(
@@ -145,7 +168,7 @@ def test_plant_records_energy_gains_and_spends(simulation_env):
 
     ecosystem = EcosystemManager()
     env = _EnvStub()
-    spot = _RootSpotStub(spot_id=12)
+    spot = RootSpot(spot_id=12, x=100.0, y=550.0)
     genome = PlantGenome.create_random()
 
     plant = Plant(
@@ -252,6 +275,7 @@ def test_mixed_poker_house_cut_only_hits_fish_when_fish_wins():
         plant_count=1,
     )
 
+    assert engine.poker_system is not None
     engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
     assert math.isclose(
@@ -305,6 +329,7 @@ def test_mixed_poker_house_cut_only_hits_plants_when_plant_wins():
         plant_count=1,
     )
 
+    assert engine.poker_system is not None
     engine.poker_system._record_and_apply_mixed_poker_outcome(poker)
 
     # Verify fish loss is recorded

@@ -10,12 +10,34 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Sequence
+from typing import Sequence, TypedDict
 
 from core.genetics import Genome
 
 
-def _summarize_population(population: Sequence[Genome]) -> dict[str, float]:
+class _PopulationSummary(TypedDict):
+    speed_min: float
+    speed_max: float
+    speed_mean: float
+    speed_spread: float
+    speed_stdev: float
+    aggression_mean: float
+    metabolism_mean: float
+
+
+class _GenerationSnapshot(_PopulationSummary):
+    generation: int
+
+
+class EvolutionSmokeReport(TypedDict):
+    seed: int
+    population_size: int
+    generations: list[_GenerationSnapshot]
+    final_population_stats: _PopulationSummary
+    champion_speeds: list[float]
+
+
+def _summarize_population(population: Sequence[Genome]) -> _PopulationSummary:
     """Calculate simple metrics for a population snapshot."""
     speeds = [g.speed_modifier for g in population]
     aggression = [g.behavioral.aggression.value for g in population]
@@ -28,7 +50,8 @@ def _summarize_population(population: Sequence[Genome]) -> dict[str, float]:
         mu = _mean(values)
         return math.sqrt(sum((v - mu) ** 2 for v in values) / len(values))
 
-    return {
+    return _PopulationSummary(
+        {
         "speed_min": min(speeds),
         "speed_max": max(speeds),
         "speed_mean": _mean(speeds),
@@ -36,14 +59,15 @@ def _summarize_population(population: Sequence[Genome]) -> dict[str, float]:
         "speed_stdev": _stdev(speeds),
         "aggression_mean": _mean(aggression),
         "metabolism_mean": _mean(metabolism),
-    }
+        }
+    )
 
 
 def run_evolution_smoke_test(
     seed: int = 7,
     population_size: int = 12,
     generations: int = 6,
-) -> dict[str, object]:
+) -> EvolutionSmokeReport:
     """Run a playful evolution loop over a handful of generations.
 
     Returns a report dictionary that can be rendered for humans or asserted
@@ -51,12 +75,11 @@ def run_evolution_smoke_test(
     """
     rng = random.Random(seed)
     population = [Genome.random(use_algorithm=False, rng=rng) for _ in range(population_size)]
-    generation_reports: list[dict[str, float]] = []
+    generation_reports: list[_GenerationSnapshot] = []
 
     for gen in range(generations):
         snapshot = _summarize_population(population)
-        snapshot["generation"] = gen
-        generation_reports.append(snapshot)
+        generation_reports.append(_GenerationSnapshot({**snapshot, "generation": gen}))
 
         next_population: list[Genome] = []
         for _ in range(population_size):
@@ -69,16 +92,18 @@ def run_evolution_smoke_test(
     champions = sorted(population, key=lambda g: g.speed_modifier, reverse=True)[:3]
     champion_speeds = [round(c.speed_modifier, 3) for c in champions]
 
-    return {
+    return EvolutionSmokeReport(
+        {
         "seed": seed,
         "population_size": population_size,
         "generations": generation_reports,
         "final_population_stats": final_snapshot,
         "champion_speeds": champion_speeds,
-    }
+        }
+    )
 
 
-def format_report(report: dict[str, object]) -> str:
+def format_report(report: EvolutionSmokeReport) -> str:
     """Create a friendly multi-line string showing evolutionary drift."""
     lines = [
         "🚀 Evolution smoke test",

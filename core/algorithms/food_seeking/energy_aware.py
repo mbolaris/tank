@@ -69,12 +69,13 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
             if nearest_food:
                 # If predator is blocking food, try to path around it
                 if predator_nearby:
-                    predator_to_food = (nearest_food.pos - nearest_predator.pos).length()
-                    if predator_to_food < PREDATOR_GUARDING_FOOD_DISTANCE:
-                        # Try perpendicular approach
-                        to_food = (nearest_food.pos - fish.pos).normalize()
-                        perp_x, perp_y = -to_food.y, to_food.x
-                        return perp_x * 0.8, perp_y * 0.8
+                    if nearest_predator is not None:
+                        predator_to_food = (nearest_food.pos - nearest_predator.pos).length()
+                        if predator_to_food < PREDATOR_GUARDING_FOOD_DISTANCE:
+                            # Try perpendicular approach
+                            to_food = (nearest_food.pos - fish.pos).normalize()
+                            perp_x, perp_y = -to_food.y, to_food.x
+                            return perp_x * 0.8, perp_y * 0.8
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
 
                 # Hunting traits boost speed
@@ -87,7 +88,7 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
                 )
 
         # Flee if predator too close
-        if predator_nearby:
+        if nearest_predator is not None and predator_nearby:
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             return direction.x * 1.3, direction.y * 1.3
 

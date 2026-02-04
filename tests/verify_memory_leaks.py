@@ -17,7 +17,7 @@ def test_lineage_log_cap():
 
     # Setup
     eco = EcosystemManager()
-    eco.lineage_log = []  # Ensure empty
+    eco.lineage_log.clear()  # Ensure empty
 
     # Simulate MAX_LINEAGE_LOG_SIZE + 100 births
     MAX_LOG = 5000
@@ -45,6 +45,7 @@ def test_poker_stats_cleanup():
     engine = SimulationEngine(headless=True)
     engine.setup()
     eco = engine.ecosystem
+    assert eco is not None
 
     # Mock some poker stats
     # We need to populate plant_poker_stats

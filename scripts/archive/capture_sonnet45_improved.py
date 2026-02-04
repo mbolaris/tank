@@ -12,8 +12,9 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from core.entities import Fish
 from core.solutions import SolutionTracker
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def calculate_positional_balance(fish) -> float:
+def calculate_positional_balance(fish: Fish) -> float:
     """Calculate how balanced a fish's performance is across positions.
 
     Returns a score from 0-1, where 1 is perfectly balanced.
@@ -33,12 +34,12 @@ def calculate_positional_balance(fish) -> float:
     stats = fish.poker_stats
 
     # Need both position stats
-    if stats.button_games == 0 or stats.non_button_games == 0:
+    if stats.games_on_button == 0 or stats.games_non_button == 0:
         return 0.0
 
-    button_wr = stats.button_wins / stats.button_games if stats.button_games > 0 else 0
+    button_wr = stats.wins_on_button / stats.games_on_button if stats.games_on_button > 0 else 0
     non_button_wr = (
-        stats.non_button_wins / stats.non_button_games if stats.non_button_games > 0 else 0
+        stats.wins_non_button / stats.games_non_button if stats.games_non_button > 0 else 0
     )
 
     # Positional balance: 1.0 = equal win rates, lower = more imbalanced
@@ -59,7 +60,7 @@ def calculate_positional_balance(fish) -> float:
     return balance * avg_wr
 
 
-def score_poker_fish(fish) -> dict:
+def score_poker_fish(fish: Fish) -> dict:
     """Score a fish for tournament quality."""
     if not hasattr(fish, "poker_stats") or not fish.poker_stats:
         return {"score": 0.0, "reason": "no poker stats"}
@@ -93,8 +94,8 @@ def score_poker_fish(fish) -> dict:
         "positional_balance": positional_balance,
         "experience": experience,
         "games": stats.total_games,
-        "button_games": stats.button_games,
-        "non_button_games": stats.non_button_games,
+        "button_games": stats.games_on_button,
+        "non_button_games": stats.games_non_button,
         "roi": roi,
     }
 
@@ -103,9 +104,8 @@ def load_simulation(seed: int):
     """Load a completed simulation."""
     logger.info(f"Loading simulation with seed {seed}...")
 
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     return world
 

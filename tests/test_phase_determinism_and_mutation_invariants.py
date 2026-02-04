@@ -68,7 +68,7 @@ def _state_fingerprint(engine: SimulationEngine) -> str:
 
     # Optional: include plants/food counts without depending on unstable ordering
     all_entities = engine.entities_list
-    type_counts = defaultdict(int)
+    type_counts: defaultdict[str, int] = defaultdict(int)
     for e in all_entities:
         type_counts[e.__class__.__name__] += 1
     for k in sorted(type_counts):
@@ -95,8 +95,8 @@ def test_entity_list_only_changes_during_commit_points(simulation_engine, monkey
     assert engine.pipeline is not None
 
     stage_calls = []
-    commit_deltas_by_step = defaultdict(int)
-    current_step = {"name": None}
+    commit_deltas_by_step: defaultdict[str, int] = defaultdict(int)
+    current_step: dict[str, str] = {"name": ""}
 
     orig_apply = engine._apply_entity_mutations
 

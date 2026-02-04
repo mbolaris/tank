@@ -36,6 +36,8 @@ class FishCommands:
 
             # Create new fish with random genome
             environment = getattr(self.world, "environment", None)
+            if environment is None:
+                return self._create_error_response("Environment not available")
             genome = Genome.random(use_algorithm=True, rng=rng)
             new_fish = entities.Fish(
                 environment,

@@ -101,6 +101,7 @@ class TestSoccerEvolutionRunner:
 
         # Verify best genome has soccer policy traits
         assert hasattr(result.best_genome.behavioral, "soccer_policy_id")
+        assert result.best_genome.behavioral.soccer_policy_id is not None
         assert result.best_genome.behavioral.soccer_policy_id.value is not None
 
     def test_generation_stats_structure(self):

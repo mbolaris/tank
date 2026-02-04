@@ -69,9 +69,9 @@ def test_algorithm_parameters_genetic():
     # Test that genomes can be created with composable behaviors
     genome1 = Genome.random(use_algorithm=True)
 
-    behavior = genome1.behavioral.behavior
-    if behavior and behavior.value:
-        behavior = behavior.value
+    behavior_trait = genome1.behavioral.behavior
+    if behavior_trait is not None and behavior_trait.value is not None:
+        behavior = behavior_trait.value
         print("  Random genome created with composable behavior:")
         print(
             f"    - Threat response: {behavior.threat_response.name if behavior.threat_response else 'None'}"

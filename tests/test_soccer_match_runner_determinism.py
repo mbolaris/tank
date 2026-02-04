@@ -14,20 +14,18 @@ def test_match_runner_deterministic_with_code_pool():
     from core.genetics import Genome
     from core.genetics.trait import GeneticTrait
     from core.minigames.soccer.match_runner import SoccerMatchRunner
+    from typing import Optional, cast
 
     pool = GenomeCodePool()
     pool.register_builtin(BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy)
-
-    class MockBehavioral:
-        def __init__(self):
-            self.soccer_policy_id = GeneticTrait(BUILTIN_CHASE_BALL_SOCCER_ID)
-            self.soccer_policy_params = GeneticTrait({})
 
     def build_population(seed: int) -> list[Genome]:
         rng = random.Random(seed)
         population = [Genome.random(use_algorithm=False, rng=rng) for _ in range(4)]
         for genome in population:
-            genome.behavioral = MockBehavioral()
+            genome.behavioral.soccer_policy_id = GeneticTrait(
+                cast(Optional[str], BUILTIN_CHASE_BALL_SOCCER_ID)
+            )
         return population
 
     pop1 = build_population(42)

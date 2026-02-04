@@ -220,6 +220,7 @@ class TestAgentCompositionInPetriMode:
             PerceptionComponent,
         )
         from core.energy.energy_component import EnergyComponent
+        from core.entities.base import EntityUpdateResult
         from core.entities.generic_agent import AgentComponents, GenericAgent
 
         class TestMicrobe(GenericAgent):
@@ -240,6 +241,11 @@ class TestAgentCompositionInPetriMode:
                 super().__init__(
                     environment=environment, x=x, y=y, speed=speed, components=components
                 )
+
+            def update(
+                self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
+            ) -> EntityUpdateResult:
+                return self._update_common(frame_count, time_modifier, time_of_day)
 
         mock_world = MagicMock()
         mock_world.get_bounds.return_value = ((0, 0), (1000, 600))
@@ -259,6 +265,7 @@ class TestAgentCompositionInPetriMode:
             PerceptionComponent,
         )
         from core.energy.energy_component import EnergyComponent
+        from core.entities.base import EntityUpdateResult
         from core.entities.generic_agent import AgentComponents, GenericAgent
 
         class TestMicrobe(GenericAgent):
@@ -279,6 +286,11 @@ class TestAgentCompositionInPetriMode:
                 super().__init__(
                     environment=environment, x=x, y=y, speed=speed, components=components
                 )
+
+            def update(
+                self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
+            ) -> EntityUpdateResult:
+                return self._update_common(frame_count, time_modifier, time_of_day)
 
         mock_world = MagicMock()
         mock_world.get_bounds.return_value = ((0, 0), (1000, 600))

@@ -8,13 +8,14 @@ from core.config.entities import (
     CRAB_IDLE_CONSUMPTION,
     CRAB_INITIAL_ENERGY,
 )
-from core.entities.base import Agent
+from core.entities.base import Agent, EntityUpdateResult
 from core.entities.fish import Fish
 from core.entities.resources import Food
 from core.genetics import Genome
 
 if TYPE_CHECKING:
     from core.world import World
+    from core.worlds.petri.dish import PetriDish
 
 PETRI_CRAB_SPEED_MULTIPLIER = 2.5
 
@@ -98,8 +99,6 @@ class Crab(Agent):
         - Petri mode: orbit along the circular dish perimeter
         """
         import math
-
-        from core.entities.base import EntityUpdateResult
 
         # Update cooldown
         if self.hunt_cooldown > 0:

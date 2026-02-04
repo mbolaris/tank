@@ -20,7 +20,10 @@ class ReproductionSystem(BaseSystem):
 
     def __init__(self, engine: "SimulationEngine") -> None:
         super().__init__(engine, "Reproduction")
-        self._service: ReproductionService = engine.reproduction_service
+        service = engine.reproduction_service
+        if service is None:
+            raise RuntimeError("ReproductionService must be initialized before ReproductionSystem")
+        self._service: ReproductionService = service
 
     def _do_update(self, frame: int) -> SystemResult:
         stats = self._service.update_frame(frame)

@@ -404,7 +404,7 @@ class MixedPokerInteraction:
         winner_by_fold = game_state.get_winner_by_fold()
         won_by_fold = winner_by_fold is not None
 
-        if won_by_fold:
+        if winner_by_fold is not None:
             best_hand_idx = winner_by_fold
             tied_players = [winner_by_fold]
         else:
@@ -663,8 +663,9 @@ class MixedPokerInteraction:
 
                 # Determine hand rank
                 hand_rank = 0
-                if self.player_hands[i]:
-                    hand_rank = self.player_hands[i].rank_value
+                hand = self.player_hands[i]
+                if hand is not None:
+                    hand_rank = hand.rank_value
 
                 # Use actual button position from the game state
                 on_button = i == button_position

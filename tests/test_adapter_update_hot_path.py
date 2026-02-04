@@ -1,14 +1,16 @@
 from contextlib import ExitStack
+from typing import cast
 from unittest.mock import patch
 
 from core.worlds import WorldRegistry
+from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
 def test_adapter_update_avoids_expensive_calls():
     """Verify that adapter.update() does not call get_stats() or other expensive methods."""
 
     # Setup via canonical WorldRegistry path
-    adapter = WorldRegistry.create_world("tank", seed=42, headless=True)
+    adapter = cast(TankWorldBackendAdapter, WorldRegistry.create_world("tank", seed=42, headless=True))
     adapter.reset(seed=42)
 
     # Mock the underlying engine's expensive methods

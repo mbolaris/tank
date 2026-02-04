@@ -43,12 +43,12 @@ def run_benchmark(num_frames: int = 1000, warmup_frames: int = 100) -> dict:
 
     print(f"Warming up for {warmup_frames} frames...")
     for _ in range(warmup_frames):
-        world.update()
+        world.step()
 
     print(f"Benchmarking {num_frames} frames...")
     for i in range(num_frames):
         start = time.perf_counter()
-        world.update()
+        world.step()
         elapsed = time.perf_counter() - start
         frame_times.append(elapsed * 1000)  # Convert to ms
 
@@ -88,7 +88,7 @@ def run_profiled_benchmark(num_frames: int = 500) -> None:
 
     # Warmup
     for _ in range(50):
-        world.update()
+        world.step()
 
     # Profile
     profiler = cProfile.Profile()
@@ -96,7 +96,7 @@ def run_profiled_benchmark(num_frames: int = 500) -> None:
 
     profiler.enable()
     for _ in range(num_frames):
-        world.update()
+        world.step()
     profiler.disable()
 
     # Print stats

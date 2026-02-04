@@ -151,6 +151,7 @@ def policy(observation, rng):
         )
 
         func = pool.get_callable(component_id)
+        assert func is not None
 
         # Test both branches
         result1 = func({"energy": 60.0}, random.Random())
@@ -178,6 +179,7 @@ def policy(observation, rng):
         )
 
         func = pool.get_callable(component_id)
+        assert func is not None
         result = func({}, random.Random())
 
         # cos(π/4) ≈ sin(π/4) ≈ 0.707

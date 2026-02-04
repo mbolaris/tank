@@ -54,6 +54,7 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     # Verify default world exists
     assert world_manager_1.world_count == 1
     default_world_id = world_manager_1.default_world_id
+    assert default_world_id is not None
 
     # Create a second world (Petri)
     petri_world_instance = world_manager_1.create_world(
@@ -62,6 +63,7 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
         persistent=True,
     )
     petri_world_id = petri_world_instance.world_id
+    assert petri_world_id is not None
 
     assert world_manager_1.world_count == 2
 
@@ -69,7 +71,9 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     # Update existing Castle in Default World (Tank)
     # Note: TankWorld creates a default castle. We'll modify it to verify persistence.
     # Pause to prevent auto-spawning interference
-    default_world = world_manager_1.get_world(default_world_id).runner.world
+    default_world_instance = world_manager_1.get_world(default_world_id)
+    assert default_world_instance is not None
+    default_world = default_world_instance.runner.world
     default_world.paused = True
     existing_castles = [e for e in default_world.engine.entities_list if isinstance(e, Castle)]
     if existing_castles:

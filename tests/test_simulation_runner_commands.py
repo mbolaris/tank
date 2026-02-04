@@ -42,7 +42,7 @@ class TestSimulationRunnerCommands:
 
             runner = SimulationRunner(seed=123)
             # Mock the invalidate_state_cache method to avoid side effects
-            runner._invalidate_state_cache = MagicMock()
+            setattr(runner, "_invalidate_state_cache", MagicMock())
 
             return runner
 

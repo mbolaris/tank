@@ -1,6 +1,7 @@
 import logging
 import random
 import sys
+from typing import Any, cast
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -33,7 +34,7 @@ class MockPlant:
         self.plant_id = random.randint(1000, 9999)
         self.energy = energy
         self.max_energy = 200.0
-        self.genome = MockGenome()
+        self.genome: Any = MockGenome()
         self.environment = MockWorld()
         self.poker_cooldown = 0
         self.poker_wins = 0
@@ -114,9 +115,13 @@ def run_simulation():
         plant.genome.aggression = 0.9
         plant.genome.risk_tolerance = 0.9
 
-        interaction = MixedPokerInteraction([fish, plant], rng=random.Random(i))
+        interaction = MixedPokerInteraction(
+            [cast(Any, fish), cast(Any, plant)],
+            rng=random.Random(i),
+        )
 
         if interaction.play_poker():
+            assert interaction.result is not None
             if interaction.result.winner_type == "plant":
                 plant_wins += 1
                 # print(f"Game {i}: Plant Won! Pot: {interaction.result.total_pot:.1f}")

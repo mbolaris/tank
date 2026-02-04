@@ -115,6 +115,15 @@ class World(Protocol):
         """
         ...
 
+    def update_agent_position(self, agent: "Agent") -> None:
+        """Update an agent's position in any spatial index.
+
+        Implementations that maintain a spatial grid should update the agent's
+        cell membership here. Worlds without a spatial index may implement this
+        as a no-op.
+        """
+        ...
+
     def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
         """Get all agents of a specific type in the environment.
 
@@ -126,6 +135,14 @@ class World(Protocol):
 
         Returns:
             List of all agents of the specified type
+        """
+        ...
+
+    def list_policy_component_ids(self, kind: str) -> List[str]:
+        """List available policy component IDs for a given kind.
+
+        This is used by reproduction/mutation code to discover policy components
+        (e.g., movement policies) that can be assigned to offspring.
         """
         ...
 

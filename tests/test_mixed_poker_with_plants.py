@@ -16,6 +16,7 @@ Performance optimizations:
 """
 
 import math
+from typing import Protocol
 
 import pytest
 
@@ -24,6 +25,7 @@ from core.config.plants import PLANT_POKER_MAX_DISTANCE, PLANT_POKER_MIN_DISTANC
 from core.config.poker import POKER_MAX_PLAYERS
 from core.entities import Fish
 from core.entities.plant import Plant
+from core.math_utils import Vector2
 from core.mixed_poker import MixedPokerInteraction, check_poker_proximity
 from core.simulation.engine import SimulationEngine
 
@@ -75,19 +77,23 @@ def run_simulation():
 # ============================================================================
 
 
-def distance_squared(p1, p2) -> float:
+class _HasPos(Protocol):
+    pos: Vector2
+
+
+def distance_squared(p1: _HasPos, p2: _HasPos) -> float:
     """Calculate squared distance between two entities (avoids sqrt)."""
     dx = p1.pos.x - p2.pos.x
     dy = p1.pos.y - p2.pos.y
     return dx * dx + dy * dy
 
 
-def distance(p1, p2) -> float:
+def distance(p1: _HasPos, p2: _HasPos) -> float:
     """Calculate distance between two entities."""
     return math.sqrt(distance_squared(p1, p2))
 
 
-def get_min_distance_between_entities(entities: list) -> float:
+def get_min_distance_between_entities(entities: list[_HasPos]) -> float:
     """Find minimum distance between any pair of entities."""
     if len(entities) < 2:
         return float("inf")

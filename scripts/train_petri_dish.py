@@ -7,7 +7,7 @@ It uses the Pluggable Policy system to control the fish.
 import math
 import random
 import time
-from typing import Tuple
+from typing import Any, Tuple
 
 from core.entities import Fish, Food
 from core.genetics.genome import Genome
@@ -49,7 +49,7 @@ def main():
     print(f"Starting Petri Dish Training (Size: {WIDTH}x{HEIGHT})...")
 
     # 1. Setup World
-    config = {
+    config: dict[str, Any] = {
         "screen_width": WIDTH,
         "screen_height": HEIGHT,
         "auto_food_enabled": False,  # We manually spawn food
@@ -58,6 +58,9 @@ def main():
     }
 
     adapter = WorldRegistry.create_world("petri", seed=42, **config)
+    from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+    assert isinstance(adapter, PetriWorldBackendAdapter)
 
     adapter.reset(seed=42)  # This just resets, return value isn't the Env object
 

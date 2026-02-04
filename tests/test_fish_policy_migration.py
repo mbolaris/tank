@@ -12,6 +12,7 @@ def test_behavioral_traits_random_defaults():
     rng = random.Random(42)
     traits = BehavioralTraits.random(rng)
 
+    assert traits.movement_policy_id is not None
     assert traits.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
     # Legacy fields should be gone/None (not testing them as they are removed)
 
@@ -22,6 +23,7 @@ def test_mutation_can_swap_policy():
 
     # Parent with default policy
     parent = BehavioralTraits.random(rng)
+    assert parent.movement_policy_id is not None
     assert parent.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
 
     # Force mutation with a new available policy
@@ -39,7 +41,7 @@ def test_mutation_can_swap_policy():
             rng=rng,
             available_policies=available,
         )
-        if child.movement_policy_id.value == "NEW_POLICY_ID":
+        if child.movement_policy_id is not None and child.movement_policy_id.value == "NEW_POLICY_ID":
             swapped = True
             break
 

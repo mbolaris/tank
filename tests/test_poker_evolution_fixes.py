@@ -112,6 +112,8 @@ class TestWinnerBiasedInheritance:
             loser_genome = Genome.random(use_algorithm=True, rng=rng)
 
             # Ensure they have different strategies
+            assert winner_genome.behavioral.poker_strategy is not None
+            assert loser_genome.behavioral.poker_strategy is not None
             winner_genome.behavioral.poker_strategy.value = TightAggressiveStrategy(rng=rng)
             loser_genome.behavioral.poker_strategy.value = LooseAggressiveStrategy(rng=rng)
 
@@ -124,7 +126,11 @@ class TestWinnerBiasedInheritance:
                 rng=rng,
             )
 
-            if offspring.behavioral.poker_strategy.value.strategy_id == "tight_aggressive":
+            strategy_trait = offspring.behavioral.poker_strategy
+            assert strategy_trait is not None
+            strategy = strategy_trait.value
+            assert strategy is not None
+            if strategy.strategy_id == "tight_aggressive":
                 winner_strategy_count += 1
 
         winner_pct = winner_strategy_count / n_trials
@@ -209,7 +215,7 @@ class TestMutationRates:
             original.parameters["bluff_frequency"] = 0.10
 
             # Simulate generations of self-crossover (worst case for drift)
-            current = original
+            current: PokerStrategyAlgorithm = original
 
             for _ in range(n_generations):
                 current = crossover_poker_strategies(

@@ -2,6 +2,7 @@ import math
 import random
 
 from core.root_spots import RootSpot
+from core.worlds.petri.dish import PetriDish
 from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
 from core.worlds.petri.root_spots import CircularRootSpotManager
 
@@ -77,7 +78,7 @@ class TestCircularRootSpotManager:
         # Mock RNG
         rng = random.Random(42)
 
-        dish = MockPetriDish(PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS)
+        dish = PetriDish(cx=PETRI_CENTER_X, cy=PETRI_CENTER_Y, r=PETRI_RADIUS)
 
         manager = CircularRootSpotManager(
             dish=dish,

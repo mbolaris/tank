@@ -143,6 +143,7 @@ class TestTankWorldBackendAdapter:
         """Test that step() advances the simulation."""
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
         adapter.reset(seed=42)
+        assert adapter._engine is not None
 
         initial_frame = adapter._engine.frame_count
         adapter.step()
@@ -221,11 +222,13 @@ class TestTankWorldBackendAdapter:
         adapter.reset(seed=42)
         adapter.step()
         adapter.step()
+        assert adapter._engine is not None
         frame_after_steps = adapter._engine.frame_count
         assert frame_after_steps > 0
 
         # Reset and verify state is cleared
         adapter.reset(seed=42)
+        assert adapter._engine is not None
         assert adapter._engine.frame_count == 0
         assert adapter._current_frame == 0
 

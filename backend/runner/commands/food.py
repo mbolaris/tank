@@ -23,6 +23,8 @@ class FoodCommands:
 
         x = rng.randint(0, SCREEN_WIDTH)
         environment = getattr(self.world, "environment", None)
+        if environment is None:
+            return self._create_error_response("Environment not available")
         food = entities.Food(
             environment,
             x,

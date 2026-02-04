@@ -6,7 +6,7 @@ between Tank World Net servers in a distributed deployment.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import httpx
 
@@ -94,9 +94,13 @@ class ServerClient:
         """
         if self._client is None:
             await self.start()
+        client = self._client
+        if client is None:
+            logger.error("ServerClient HTTP client failed to start")
+            return None
 
         try:
-            response = await self._client.request(method, url, **kwargs)
+            response = await client.request(method, url, **kwargs)
             response.raise_for_status()
             return response
 
@@ -188,15 +192,11 @@ class ServerClient:
         if response:
             try:
                 data = response.json()
-                # Extract worlds array from response wrapper
-                if isinstance(data, dict) and "worlds" in data:
-                    return data["worlds"]
-                # If response is already a list, return it
-                elif isinstance(data, list):
-                    return data
-                else:
-                    logger.error("Unexpected world list response format: %s", type(data))
-                    return None
+                worlds: Any = data.get("worlds") if isinstance(data, dict) else data
+                if isinstance(worlds, list) and all(isinstance(item, dict) for item in worlds):
+                    return cast(List[Dict[str, Any]], worlds)
+                logger.error("Unexpected world list response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse world list: %s", e)
 
@@ -221,7 +221,11 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict):
+                    return cast(Dict[str, Any], data)
+                logger.error("Unexpected world info response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse world info: %s", e)
 
@@ -259,7 +263,11 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict):
+                    return cast(Dict[str, Any], data)
+                logger.error("Unexpected transfer result response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse transfer result: %s", e)
 
@@ -298,7 +306,11 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict):
+                    return cast(Dict[str, Any], data)
+                logger.error("Unexpected connection info response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse connection info: %s", e)
 
@@ -329,9 +341,11 @@ class ServerClient:
         if response:
             try:
                 data = response.json()
-                if isinstance(data, dict) and "connections" in data:
-                    return data["connections"]
-                return data
+                connections: Any = data.get("connections") if isinstance(data, dict) else data
+                if isinstance(connections, list) and all(isinstance(item, dict) for item in connections):
+                    return cast(List[Dict[str, Any]], connections)
+                logger.error("Unexpected connections response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse connections: %s", e)
 
@@ -436,7 +450,11 @@ class ServerClient:
 
         if response:
             try:
-                return response.json()
+                data = response.json()
+                if isinstance(data, dict):
+                    return cast(Dict[str, Any], data)
+                logger.error("Unexpected remote transfer result response format: %s", type(data))
+                return None
             except Exception as e:
                 logger.error("Failed to parse remote transfer result: %s", e)
 

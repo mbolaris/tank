@@ -10,29 +10,69 @@ Tests RCSS-Lite style ball physics including:
 
 from unittest.mock import Mock
 
+import random
+from typing import Any, List, Optional, Tuple, Type
+
 import pytest
 
 from core.entities.ball import Ball
 from core.entities.goal_zone import GoalZone
+from core.entities.base import Agent
 from core.math_utils import Vector2
 
 
 class MockWorld:
     """Mock world for testing."""
 
-    def __init__(self, width=800, height=600):
+    def __init__(self, width: float = 800, height: float = 600, rng: Optional[random.Random] = None):
         self.min_x = 0.0
         self.min_y = 0.0
         self.max_x = float(width)
         self.max_y = float(height)
+        self._rng = rng or random.Random(0)
 
-    def get_bounds(self):
+    # --- World protocol methods ---
+
+    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def nearby_agents_by_type(self, agent: Agent, radius: float, agent_type: Type[Agent]) -> List[Agent]:
+        return []
+
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+        return []
+
+    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+        return []
+
+    def list_policy_component_ids(self, kind: str) -> List[str]:
+        return []
+
+    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
         """Return world boundaries."""
         return ((self.min_x, self.min_y), (self.max_x, self.max_y))
 
-    def update_agent_position(self, agent):
+    def update_agent_position(self, agent: Agent) -> None:
         """No-op for testing - spatial grid update not needed."""
-        pass
+        return None
+
+    def is_valid_position(self, position: Any) -> bool:
+        try:
+            x, y = position
+        except Exception:
+            return True
+        return self.min_x <= float(x) <= self.max_x and self.min_y <= float(y) <= self.max_y
+
+    @property
+    def dimensions(self) -> Tuple[float, float]:
+        return (self.max_x - self.min_x, self.max_y - self.min_y)
+
+    @property
+    def rng(self) -> random.Random:
+        return self._rng
 
 
 class TestBallPhysics:
@@ -360,6 +400,7 @@ class TestGoalZone:
         # Check for goal
         goal_event = goal.check_goal(ball, frame_count=50)
 
+        assert goal_event is not None
         assert goal_event.scorer_id == 42
 
     def test_goal_zone_distance_calculation(self):

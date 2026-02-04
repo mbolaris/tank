@@ -735,6 +735,7 @@ def _inherit_single_policy(
             return None, None
     else:
         # Only parent2 has this policy kind
+        assert id2 is not None
         if rng.random() < (1 - weight1) or rng.random() < 0.3:  # Gene flow
             chosen_id, chosen_params = id2, params2
         else:

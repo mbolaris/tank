@@ -7,7 +7,7 @@ for agents in the simulation.
 from __future__ import annotations
 
 import random
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Iterable
 
 from core.entities import Agent
 from core.interfaces import MigrationHandler
@@ -31,7 +31,7 @@ class Environment:
 
     def __init__(
         self,
-        agents: list[Agent] | None = None,
+        agents: Iterable[Agent] | None = None,
         width: int = 800,
         height: int = 600,
         time_system: Any | None = None,
@@ -51,9 +51,14 @@ class Environment:
             event_bus: Optional EventBus for domain event dispatch
             simulation_config: Optional SimulationConfig for runtime parameters
         """
-        if agents is not None and not isinstance(agents, list):
-            agents = list(agents)
-        self.agents: list[Agent] | None = agents
+        agents_list: list[Agent] | None
+        if agents is None:
+            agents_list = None
+        elif isinstance(agents, list):
+            agents_list = agents
+        else:
+            agents_list = list(agents)
+        self.agents = agents_list
         self.width = width
         self.height = height
 

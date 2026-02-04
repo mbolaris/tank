@@ -188,6 +188,7 @@ def test_backend_integration():
     from backend.simulation_runner import SimulationRunner
     from core.entities import Fish
     from core.genetics import Genome
+    from core.fish.poker_stats_component import FishPokerStats
     from core.movement_strategy import AlgorithmicMovement
 
     runner = SimulationRunner()
@@ -211,11 +212,13 @@ def test_backend_integration():
         runner.world.add_entity(fish)
 
         # Add poker stats
+        fish.poker_stats = FishPokerStats()
+        assert fish.poker_stats is not None
         fish.poker_stats.total_games = 10 + i * 3
         fish.poker_stats.wins = 5 + i
         fish.poker_stats.losses = 5 - i
-        fish.poker_stats.energy_won = 40 + i * 5
-        fish.poker_stats.energy_lost = 20
+        fish.poker_stats.total_energy_won = 40 + i * 5
+        fish.poker_stats.total_energy_lost = 20
 
     fish_count = len([e for e in runner.world.entities_list if isinstance(e, Fish)])
     print(f"✓ Added {fish_count} fish to simulation")

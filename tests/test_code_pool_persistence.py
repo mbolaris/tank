@@ -120,4 +120,5 @@ def test_register_overwrites_previous():
 
     # Should use the second one
     func = pool.get_callable("test_id")
+    assert func is not None
     assert func({}, None) == (1.0, 1.0)

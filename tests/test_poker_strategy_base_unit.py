@@ -1,4 +1,6 @@
 import math
+import random
+from typing import Any, cast
 
 from core.poker.strategy.base import OpponentModel, PokerStrategyEngine
 
@@ -7,8 +9,9 @@ class DummyFish:
     pass
 
 
-class FixedRng:
+class FixedRng(random.Random):
     def __init__(self, value: float) -> None:
+        super().__init__(0)
         self._value = value
 
     def random(self) -> float:
@@ -17,7 +20,7 @@ class FixedRng:
 
 def test_opponent_model_update_and_style():
     model = OpponentModel(fish_id=1)
-    updates = [
+    updates: list[dict[str, Any]] = [
         {
             "won": True,
             "folded": False,
@@ -87,7 +90,7 @@ def test_opponent_model_defaults_when_unseen():
 
 
 def test_evaluate_starting_hand_strength_valid_and_invalid():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
 
     assert engine.evaluate_starting_hand_strength([("A", "s")]) == 0.5
     assert engine.evaluate_starting_hand_strength([("1", "s"), ("A", "h")]) == 0.5
@@ -98,7 +101,7 @@ def test_evaluate_starting_hand_strength_valid_and_invalid():
 
 
 def test_should_play_hand_position_and_opponent(monkeypatch):
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
 
     monkeypatch.setattr(engine, "evaluate_starting_hand_strength", lambda *_: 0.83)
     assert engine.should_play_hand([("A", "s"), ("K", "h")], position_on_button=True) is True
@@ -115,7 +118,7 @@ def test_should_play_hand_position_and_opponent(monkeypatch):
 
 
 def test_calculate_adjusted_aggression_accounts_for_position_opponent_and_hand():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
     model = engine.get_opponent_model(5)
     model.games_played = 5
     model.is_tight = True
@@ -131,7 +134,7 @@ def test_calculate_adjusted_aggression_accounts_for_position_opponent_and_hand()
 
 
 def test_calculate_adjusted_aggression_clamps_low_values():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
     model = engine.get_opponent_model(6)
     model.games_played = 5
     model.is_aggressive = True
@@ -147,7 +150,7 @@ def test_calculate_adjusted_aggression_clamps_low_values():
 
 
 def test_should_bluff_uses_probabilities():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
     engine.bluff_frequency = 0.2
 
     assert (
@@ -169,7 +172,7 @@ def test_should_bluff_uses_probabilities():
 
 
 def test_learn_from_poker_outcome_updates_on_win():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
 
     engine.learn_from_poker_outcome(
         won=True,
@@ -184,7 +187,7 @@ def test_learn_from_poker_outcome_updates_on_win():
 
 
 def test_learn_from_poker_outcome_updates_on_loss():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
     engine.bluff_frequency = 0.225
     engine.hand_selection_tightness = 0.45
 
@@ -200,7 +203,7 @@ def test_learn_from_poker_outcome_updates_on_loss():
 
 
 def test_strategy_and_opponent_summaries():
-    engine = PokerStrategyEngine(DummyFish())
+    engine = PokerStrategyEngine(cast(Any, DummyFish()))
     model_a = engine.get_opponent_model(1)
     model_b = engine.get_opponent_model(2)
 

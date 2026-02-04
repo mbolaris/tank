@@ -2,6 +2,7 @@ import hashlib
 import json
 import math
 import random as pyrandom
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -61,8 +62,13 @@ def test_determinism(engine):
     eng_b.queue_command("p1", RCSSCommand.dash(100, 0))
     res_b = eng_b.step_cycle()
 
-    assert eng_a.get_player("p1").position.x == eng_b.get_player("p1").position.x
-    assert eng_a.get_player("p1").velocity.x == eng_b.get_player("p1").velocity.x
+    player_a = eng_a.get_player("p1")
+    player_b = eng_b.get_player("p1")
+    assert player_a is not None
+    assert player_b is not None
+
+    assert player_a.position.x == player_b.position.x
+    assert player_a.velocity.x == player_b.velocity.x
     assert res_a["cycle"] == res_b["cycle"]
 
 
@@ -264,12 +270,14 @@ def test_policy_adapter_conformance():
     # Test Kick Clamping
     action_kick_huge = {"kick": [9999, 0]}
     cmd = action_to_command(action_kick_huge, params)
+    assert cmd is not None
     assert cmd.cmd_type.value == "kick"
     assert cmd.power == MAX_KICK_POWER
 
     # Test Turn Clamping
     action_turn_huge = {"turn": [1000]}
     cmd = action_to_command(action_turn_huge, params)
+    assert cmd is not None
     assert cmd.cmd_type.value == "turn"
     # Note: params.max_moment might be 180 or config dependent.
     # Default RCSSParams has max_moment=180
@@ -278,6 +286,7 @@ def test_policy_adapter_conformance():
     # Test Priority (Kick > Turn > Dash)
     action_mix = {"kick": [50, 0], "dash": [100]}
     cmd = action_to_command(action_mix, params)
+    assert cmd is not None
     assert cmd.cmd_type.value == "kick"
 
 
@@ -332,7 +341,7 @@ def genome_code_pool():
 def test_run_policy_uses_genome_code_pool(genome_code_pool):
     """Test that run_policy() executes via GenomeCodePool.execute_policy()."""
     # Create genome with soccer policy
-    genome = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID)
+    genome: Any = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID)
 
     # Create observation
     obs = {
@@ -360,7 +369,7 @@ def test_run_policy_uses_genome_code_pool(genome_code_pool):
 def test_run_policy_no_silent_fallback(genome_code_pool):
     """Test that valid policy ID does NOT silently fall back to default."""
     # Create genome with valid soccer policy
-    genome = MockGenome(policy_id=BUILTIN_STRIKER_SOCCER_ID)
+    genome: Any = MockGenome(policy_id=BUILTIN_STRIKER_SOCCER_ID)
 
     # Create observation where default action would kick (is_kickable)
     obs_kickable = {
@@ -393,7 +402,7 @@ def test_run_policy_no_silent_fallback(genome_code_pool):
 def test_run_policy_falls_back_on_missing_policy(genome_code_pool):
     """Test that run_policy falls back to default when policy is missing."""
     # Create genome with invalid/missing policy ID
-    genome = MockGenome(policy_id="nonexistent_policy_id")
+    genome: Any = MockGenome(policy_id="nonexistent_policy_id")
 
     obs = {
         "self_x": 0.0,
@@ -481,11 +490,11 @@ def test_different_policies_produce_different_actions(genome_code_pool):
     }
 
     # Execute striker policy
-    striker_genome = MockGenome(policy_id=BUILTIN_STRIKER_SOCCER_ID)
+    striker_genome: Any = MockGenome(policy_id=BUILTIN_STRIKER_SOCCER_ID)
     striker_action = run_policy(genome_code_pool, striker_genome, obs, rng=pyrandom.Random(42))
 
     # Execute defensive policy
-    defensive_genome = MockGenome(policy_id=BUILTIN_DEFENSIVE_SOCCER_ID)
+    defensive_genome: Any = MockGenome(policy_id=BUILTIN_DEFENSIVE_SOCCER_ID)
     defensive_action = run_policy(genome_code_pool, defensive_genome, obs, rng=pyrandom.Random(42))
 
     # They should produce different actions (at least one field differs)
@@ -501,7 +510,7 @@ def test_different_policies_produce_different_actions(genome_code_pool):
 
 def test_rng_determinism_in_policy_execution(genome_code_pool):
     """Test that same seed produces same policy output."""
-    genome = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID)
+    genome: Any = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID)
 
     obs = {
         "self_x": 5.0,
@@ -527,7 +536,7 @@ def test_rng_determinism_in_policy_execution(genome_code_pool):
 def test_run_policy_with_params(genome_code_pool):
     """Test that policy params are passed through to execution."""
     # Create genome with policy and params
-    genome = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8})
+    genome: Any = MockGenome(policy_id=BUILTIN_CHASE_BALL_SOCCER_ID, policy_params={"aggression": 0.8})
 
     obs = {
         "self_x": 0.0,

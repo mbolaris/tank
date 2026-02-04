@@ -27,7 +27,7 @@ class TestEnvironmentPolicyPoolAPI:
     def test_list_policy_component_ids_handles_none_pool(self):
         """Returns empty list when genome_code_pool is None."""
         env = Environment()
-        env.genome_code_pool = None
+        setattr(env, "genome_code_pool", None)
 
         policy_ids = env.list_policy_component_ids("movement_policy")
 
@@ -38,11 +38,12 @@ class TestEnvironmentPolicyPoolAPI:
         # This is a smoke test - the actual mutation behavior is tested elsewhere
         # We just verify the API is accessible from the fish reproduction path
         from core.entities.fish import Fish
+        from core.movement_strategy import AlgorithmicMovement
 
         env = Environment()
         fish = Fish(
             environment=env,
-            movement_strategy=None,
+            movement_strategy=AlgorithmicMovement(),
             species="test",
             x=100,
             y=100,

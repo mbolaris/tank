@@ -1,6 +1,7 @@
 """Tests for the movement policy runner."""
 
 import random
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -272,7 +273,7 @@ def test_explicit_dt_forwarded_to_execute_policy(mock_genome, mock_code_pool):
     mock_code_pool.execute_policy.return_value = execution_result
 
     rng = random.Random(42)
-    obs = {}
+    obs: dict[str, Any] = {}
 
     # Call with explicit dt=0.1
     run_movement_policy(mock_genome, mock_code_pool, obs, rng, dt=0.1)
@@ -291,7 +292,7 @@ def test_dt_defaults_to_1_when_not_provided(mock_genome, mock_code_pool):
     mock_code_pool.execute_policy.return_value = execution_result
 
     rng = random.Random(42)
-    obs = {}
+    obs: dict[str, Any] = {}
 
     # Call without explicit dt
     run_movement_policy(mock_genome, mock_code_pool, obs, rng)

@@ -6,38 +6,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.algorithms.energy_management import EnergyConserver
+from core.environment import Environment
 from core.entities import Fish, LifeStage
 from core.genetics import Genome
+from core.movement_strategy import AlgorithmicMovement
 from core.poker_interaction import PokerInteraction
-
-
-class MockEnvironment:
-    def __init__(self):
-        self.agents = []
-        self.width = 800
-        self.height = 600
-
-
-class MockEcosystem:
-    def __init__(self):
-        self.frame_count = 0
-        self.recent_death_rate = 0.0
-        self._next_fish_id = 1
-
-    def generate_new_fish_id(self):
-        fish_id = self._next_fish_id
-        self._next_fish_id += 1
-        return fish_id
-
-    def record_birth(self, fish_id, generation, parent_ids=None, algorithm_id=None, color=None):
-        pass
-
-    def record_reproduction(self, algo_id):
-        pass
-
-    def record_poker_outcome(self, **kwargs):
-        pass
 
 
 def test_with_scaled_energy():
@@ -46,8 +19,7 @@ def test_with_scaled_energy():
     print("PROPERLY SCALED ENERGY TEST")
     print("=" * 70)
 
-    env = MockEnvironment()
-    ecosystem = MockEcosystem()
+    env = Environment(agents=[], width=800, height=600)
 
     genome1 = Genome.random(use_algorithm=True)
     genome2 = Genome.random(use_algorithm=True)
@@ -55,27 +27,27 @@ def test_with_scaled_energy():
     # Create fish but DON'T set initial energy yet
     fish1 = Fish(
         environment=env,
-        movement_strategy=EnergyConserver(),
+        movement_strategy=AlgorithmicMovement(),
         species="test",
         x=100,
         y=100,
         speed=2.0,
         genome=genome1,
         generation=1,
-        ecosystem=ecosystem,
+        fish_id=1,
         initial_energy=50.0,  # Placeholder
     )
 
     fish2 = Fish(
         environment=env,
-        movement_strategy=EnergyConserver(),
+        movement_strategy=AlgorithmicMovement(),
         species="test",
         x=120,
         y=100,
         speed=2.0,
         genome=genome2,
         generation=1,
-        ecosystem=ecosystem,
+        fish_id=2,
         initial_energy=50.0,  # Placeholder
     )
 

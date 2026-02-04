@@ -12,13 +12,14 @@ immediately when reproduction conditions are met.
 
 import random
 from types import SimpleNamespace
-from typing import List
+from typing import List, Optional, Tuple, cast
 
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.algorithms.energy_management import EnergyConserver
+from core.ecosystem import EcosystemManager
 from core.entities import Fish, LifeStage
-from core.reproduction_system import ReproductionSystem
 from core.telemetry.events import BirthEvent, ReproductionEvent
+from core.world import World
+from core.movement_strategy import AlgorithmicMovement
 
 
 class MiniEcosystem:
@@ -26,7 +27,7 @@ class MiniEcosystem:
 
     def __init__(self) -> None:
         self._next_fish_id = 1
-        self.births = []
+        self.births: List[Tuple[int, int, Optional[List[int]], Optional[int]]] = []
         self.reproductions = 0
         self.recent_death_rate = 0.0
 
@@ -118,10 +119,6 @@ class MiniEngine:
                 files={"schooling_fish": ["test_fish"]},
             ),
         )
-        from core.reproduction_service import ReproductionService
-
-        self.reproduction_service = ReproductionService(self)
-        self.reproduction_system = ReproductionSystem(self)
 
     def get_all_entities(self):
         return self.entities_list
@@ -139,14 +136,14 @@ def _make_adult_fish(
     env: MiniEnvironment, ecosystem: MiniEcosystem, *, generation: int = 0
 ) -> Fish:
     fish = Fish(
-        environment=env,
-        movement_strategy=EnergyConserver(),
+        environment=cast(World, env),
+        movement_strategy=AlgorithmicMovement(),
         species="test_fish",
         x=50,
         y=50,
         speed=2.0,
         generation=generation,
-        ecosystem=ecosystem,
+        ecosystem=cast(EcosystemManager, ecosystem),
         initial_energy=None,
     )
     # Fast-forward to a reproducing adult with plenty of energy

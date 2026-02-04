@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test script to verify energy economy and algorithm evolution fixes."""
 
+import sys
+
 import pytest
 
 from core.algorithms.registry import crossover_algorithms
@@ -59,8 +61,12 @@ def test_algorithm_crossover():
     genome1 = Genome.random(use_algorithm=True)
     genome2 = Genome.random(use_algorithm=True)
 
+    assert genome1.behavioral.behavior is not None
+    assert genome2.behavioral.behavior is not None
     behavior1 = genome1.behavioral.behavior.value
     behavior2 = genome2.behavioral.behavior.value
+    assert behavior1 is not None
+    assert behavior2 is not None
 
     print(
         f"Parent 1 threat response: {behavior1.threat_response.name if behavior1.threat_response else 'None'}"
@@ -80,7 +86,9 @@ def test_algorithm_crossover():
     offspring_behaviors = []
     for i in range(10):
         offspring = Genome.from_parents(genome1, genome2, mutation_rate=0.0)
+        assert offspring.behavioral.behavior is not None
         behavior = offspring.behavioral.behavior.value
+        assert behavior is not None
         threat_name = behavior.threat_response.name if behavior.threat_response else "None"
         offspring_behaviors.append(threat_name)
 

@@ -169,18 +169,22 @@ def run_quick_eval(config: QuickEvalConfig) -> QuickEvalResult:
 
     # Calculate deterministic hash from final state
     ball = engine.get_ball()
+    final_player_pos: list[tuple[str, float, float]] = []
+    for pid in player_ids:
+        player = engine.get_player(pid)
+        if player is None:
+            continue
+        final_player_pos.append(
+            (
+                pid,
+                round(player.position.x, 6),
+                round(player.position.y, 6),
+            )
+        )
     final_state = {
         "event_log": event_log,
         "final_ball_pos": (round(ball.position.x, 6), round(ball.position.y, 6)),
-        "final_player_pos": [
-            (
-                pid,
-                round(engine.get_player(pid).position.x, 6),
-                round(engine.get_player(pid).position.y, 6),
-            )
-            for pid in player_ids
-            if engine.get_player(pid)
-        ],
+        "final_player_pos": final_player_pos,
         "final_score": engine.score,
     }
     state_str = json.dumps(final_state, sort_keys=True)

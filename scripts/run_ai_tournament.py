@@ -20,7 +20,7 @@ import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -66,7 +66,10 @@ def _http_json(
     req = Request(url, data=body, headers=headers, method=method)
     with urlopen(req, timeout=timeout_s) as resp:  # nosec B310 (local trusted URL)
         payload = resp.read().decode("utf-8")
-        return json.loads(payload)
+        obj = json.loads(payload)
+        if not isinstance(obj, dict):
+            raise ValueError(f"Expected JSON object from {url}, got {type(obj).__name__}")
+        return cast(dict[str, Any], obj)
 
 
 def _resolve_default_tank_id(api_base_url: str) -> str | None:
@@ -277,6 +280,7 @@ def run_tournament(config: TournamentConfig) -> tuple[str, dict[str, Any]]:
 
     for sol in selected:
         br = sol.benchmark_result
+        assert br is not None
         lines.append(
             f"- {sol.metadata.author:<18} | {sol.metadata.name:<30} | "
             f"Elo {br.elo_rating:7.1f} ({br.skill_tier:<8}) | bb/100 {br.weighted_bb_per_100:+8.2f} | "
@@ -287,6 +291,7 @@ def run_tournament(config: TournamentConfig) -> tuple[str, dict[str, Any]]:
     for rank, (sid, wr) in enumerate(standings, 1):
         sol = id_to_solution[sid]
         br = sol.benchmark_result
+        assert br is not None
         lines.append(
             f"#{rank:<2} {sol.metadata.author:<18} | WR {wr*100:6.1f}% | "
             f"Elo {br.elo_rating:7.1f} | bb/100 {br.weighted_bb_per_100:+8.2f} | {sol.metadata.name}"

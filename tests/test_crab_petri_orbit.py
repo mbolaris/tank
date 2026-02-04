@@ -7,8 +7,10 @@ bouncing on a non-existent bottom edge.
 from __future__ import annotations
 
 import math
+from typing import cast
 
 from core.entities.predators import Crab
+from core.world import World
 from core.worlds.petri.dish import PetriDish
 
 
@@ -51,7 +53,7 @@ def test_crab_orbits_petri_perimeter() -> None:
     env = MockPetriEnvironment(dish, rng)
 
     # Create crab near perimeter
-    crab = Crab(environment=env, x=400 + 250, y=300)
+    crab = Crab(environment=cast(World, env), x=400 + 250, y=300)
 
     # Record initial position
     initial_positions = []
@@ -85,7 +87,7 @@ def test_crab_uses_tank_patrol_without_dish() -> None:
     rng = random.Random(43)
     env = MockTankEnvironment(rng)
 
-    crab = Crab(environment=env, x=400, y=550)
+    crab = Crab(environment=cast(World, env), x=400, y=550)
 
     # Run a few updates
     for i in range(5):
@@ -105,7 +107,7 @@ def test_crab_orbit_state_preserved() -> None:
     dish = PetriDish(cx=400, cy=300, r=280)
     env = MockPetriEnvironment(dish, rng)
 
-    crab = Crab(environment=env, x=400 + 250, y=300)
+    crab = Crab(environment=cast(World, env), x=400 + 250, y=300)
 
     # First update initializes theta
     crab.update(frame_count=0, time_modifier=1.0)

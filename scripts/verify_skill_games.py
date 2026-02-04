@@ -14,6 +14,7 @@ Usage:
 import logging
 import os
 import sys
+from typing import Dict, TypedDict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -103,8 +104,8 @@ def test_energy_flow():
     biased = RPSStrategy(prob_rock=0.9, prob_paper=0.05, prob_scissors=0.05)
 
     # Play many games and track energy
-    total_optimal_score = 0
-    total_biased_score = 0
+    total_optimal_score = 0.0
+    total_biased_score = 0.0
 
     for _ in range(200):
         result = rps_game.play_round(biased, optimal)
@@ -135,8 +136,8 @@ def test_energy_flow():
     )
 
     # Play and let strategies learn
-    good_score = 0
-    bad_score = 0
+    good_score = 0.0
+    bad_score = 0.0
     for _ in range(100):
         result = num_game.play_round(good_strategy)
         good_score += result.score_change
@@ -174,7 +175,9 @@ def test_game_swapping():
     skill_system = SkillGameSystem(engine, config=config)
     engine.skill_game_system = skill_system
 
-    logger.info(f"  Starting with: {skill_system.get_active_game().name}")
+    starting_game = skill_system.get_active_game()
+    assert starting_game is not None
+    logger.info(f"  Starting with: {starting_game.name}")
 
     # Run 500 frames with RPS
     rps_games = 0
@@ -193,6 +196,7 @@ def test_game_swapping():
     skill_system._active_game = None
 
     active_game = skill_system.get_active_game()
+    assert active_game is not None
     logger.info(f"  Swapped to: {active_game.name}")
     assert active_game.game_type == SkillGameType.NUMBER_GUESSING, "Should be Number Guessing"
 
@@ -307,7 +311,12 @@ def test_both_games_functional():
     logger.info("TEST 5: Both Games Functional")
     logger.info("=" * 60)
 
-    results = {}
+    class _GameResult(TypedDict):
+        games: int
+        energy: float
+        fish: int
+
+    results: Dict[SkillGameType, _GameResult] = {}
 
     for game_type in [SkillGameType.ROCK_PAPER_SCISSORS, SkillGameType.NUMBER_GUESSING]:
         world = WorldRegistry.create_world("tank", seed=789, headless=True)
@@ -333,14 +342,14 @@ def test_both_games_functional():
             for e in events:
                 energy_transferred += e.energy_transferred
 
-        results[game_type.value] = {
+        results[game_type] = {
             "games": games_played,
             "energy": energy_transferred,
             "fish": len(engine.get_fish_list()),
         }
 
         logger.info(
-            f"  {game_type.value}: {games_played} games, {energy_transferred:.1f} energy, {results[game_type.value]['fish']} fish"
+            f"  {game_type.value}: {games_played} games, {energy_transferred:.1f} energy, {results[game_type]['fish']} fish"
         )
 
     # Both games should have some activity

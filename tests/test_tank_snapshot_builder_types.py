@@ -133,30 +133,39 @@ def test_snapshot_builder_regression_all_types():
 
     # Fish
     snap_fish = builder.to_snapshot(fish)
+    assert snap_fish is not None
     assert snap_fish.type == "fish"
+    assert snap_fish.render_hint is not None
     assert snap_fish.render_hint["style"] == "pixel"
     assert snap_fish.render_hint["sprite"] == "fish"
 
     # Plant
     snap_plant = builder.to_snapshot(plant)
+    assert snap_plant is not None
     assert snap_plant.type == "plant"
+    assert snap_plant.render_hint is not None
     assert snap_plant.render_hint["style"] == "fractal"
 
     # Food
     snap_food = builder.to_snapshot(food)
+    assert snap_food is not None
     assert snap_food.type == "food"
 
     # Nectar
     snap_nectar = builder.to_snapshot(nectar)
+    assert snap_nectar is not None
     assert snap_nectar.type == "plant_nectar"
 
     # Crab
     snap_crab = builder.to_snapshot(crab)
+    assert snap_crab is not None
     assert snap_crab.type == "crab"
+    assert snap_crab.render_hint is not None
     assert snap_crab.render_hint["sprite"] == "crab"
 
     # Castle
     snap_castle = builder.to_snapshot(castle)
+    assert snap_castle is not None
     # Check what calling code produces.
     # If mock doesn't have snapshot_type, provider uses lower(class name).
     # Since we set castle.__class__.__name__ = "Castle", it should be "castle".
@@ -164,10 +173,14 @@ def test_snapshot_builder_regression_all_types():
 
     # Ball
     snap_ball = builder.to_snapshot(ball)
+    assert snap_ball is not None
     assert snap_ball.type == "ball"
+    assert snap_ball.render_hint is not None
     assert snap_ball.render_hint["style"] == "soccer_ball"
 
     # GoalZone
     snap_goal = builder.to_snapshot(goal)
+    assert snap_goal is not None
     assert snap_goal.type == "goalzone"
+    assert snap_goal.render_hint is not None
     assert snap_goal.render_hint["style"] == "goal_zone"

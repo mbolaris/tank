@@ -156,6 +156,10 @@ class TankLikePackBase(ABC):
 
         eco_config = self.config.ecosystem
 
+        environment = engine.environment
+        if environment is None:
+            raise RuntimeError("Engine environment must be initialized before registering systems")
+
         # 1. Initialize EcosystemManager
         engine.ecosystem = EcosystemManager(
             max_population=eco_config.max_population,
@@ -165,7 +169,7 @@ class TankLikePackBase(ABC):
         # 2. Initialize PlantManager
         if self.config.server.plants_enabled:
             engine.plant_manager = PlantManager(
-                environment=engine.environment,
+                environment=environment,
                 ecosystem=engine.ecosystem,
                 entity_adder=engine,
                 rng=engine.rng,
@@ -181,13 +185,35 @@ class TankLikePackBase(ABC):
         )
 
         # 4. Register systems in execution order
-        engine._system_registry.register(engine.lifecycle_system)
+        lifecycle_system = engine.lifecycle_system
+        if lifecycle_system is None:
+            raise RuntimeError("Engine lifecycle_system must be initialized before registering systems")
+        engine._system_registry.register(lifecycle_system)
         engine._system_registry.register(engine.time_system)
-        engine._system_registry.register(engine.food_spawning_system)
-        engine._system_registry.register(engine.collision_system)
-        engine._system_registry.register(engine.poker_proximity_system)
-        engine._system_registry.register(engine.reproduction_system)
-        engine._system_registry.register(engine.poker_system)
+        food_spawning_system = engine.food_spawning_system
+        collision_system = engine.collision_system
+        poker_proximity_system = engine.poker_proximity_system
+        reproduction_system = engine.reproduction_system
+        poker_system = engine.poker_system
+
+        if food_spawning_system is None:
+            raise RuntimeError("Engine food_spawning_system must be initialized before registering systems")
+        if collision_system is None:
+            raise RuntimeError("Engine collision_system must be initialized before registering systems")
+        if poker_proximity_system is None:
+            raise RuntimeError(
+                "Engine poker_proximity_system must be initialized before registering systems"
+            )
+        if reproduction_system is None:
+            raise RuntimeError("Engine reproduction_system must be initialized before registering systems")
+        if poker_system is None:
+            raise RuntimeError("Engine poker_system must be initialized before registering systems")
+
+        engine._system_registry.register(food_spawning_system)
+        engine._system_registry.register(collision_system)
+        engine._system_registry.register(poker_proximity_system)
+        engine._system_registry.register(reproduction_system)
+        engine._system_registry.register(poker_system)
 
     def seed_entities(self, engine: SimulationEngine) -> None:
         """Create initial entities for the Tank-like world."""

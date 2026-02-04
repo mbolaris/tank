@@ -66,13 +66,17 @@ class TestRCSSLiteEngine:
         engine = RCSSLiteEngine(seed=42)
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
-        initial_x = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_x = player.position.x
 
         # Queue dash command
         engine.queue_command("left_1", RCSSCommand.dash(100, 0))
         engine.step_cycle()
 
-        final_x = engine.get_player("left_1").position.x
+        player = engine.get_player("left_1")
+        assert player is not None
+        final_x = player.position.x
 
         # Player should have moved right (positive x)
         assert final_x > initial_x
@@ -82,13 +86,17 @@ class TestRCSSLiteEngine:
         engine = RCSSLiteEngine(seed=42)
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
-        initial_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_angle = player.body_angle
 
         # Queue turn command (45 degrees)
         engine.queue_command("left_1", RCSSCommand.turn(45))
         engine.step_cycle()
 
-        final_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        final_angle = player.body_angle
 
         # Angle should have changed
         assert final_angle != initial_angle
@@ -124,9 +132,13 @@ class TestRCSSLiteEngine:
                 engine.queue_command("right_1", RCSSCommand.dash(50, 0))
                 engine.step_cycle()
 
+            left = engine.get_player("left_1")
+            right = engine.get_player("right_1")
+            assert left is not None
+            assert right is not None
             return (
-                engine.get_player("left_1").position.x,
-                engine.get_player("right_1").position.x,
+                left.position.x,
+                right.position.x,
             )
 
         result1 = run_episode(42)
@@ -145,7 +157,9 @@ class TestRCSSLiteEngine:
                 engine.queue_command("left_1", RCSSCommand.dash(100, 0))
                 engine.step_cycle()
 
-            return engine.get_player("left_1").position.x
+            player = engine.get_player("left_1")
+            assert player is not None
+            return player.position.x
 
         result1 = run_episode(42)
         result2 = run_episode(12345)

@@ -255,9 +255,11 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
             if val1 is not None and val2 is not None:
                 # Blend
                 blended = val1 * weight1 + val2 * (1 - weight1)
+            elif val1 is not None:
+                blended = val1
             else:
-                # Inherit from whoever has it
-                blended = val1 if val1 is not None else val2
+                assert val2 is not None
+                blended = val2
             blended_params[key] = blended
 
         # Create child

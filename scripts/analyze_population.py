@@ -62,7 +62,10 @@ def analyze_population(adapter, frames: int = 3000):
 
             # Reproduction readiness
             ready_to_reproduce = sum(1 for f in fish_list if f.can_reproduce())
-            off_cooldown = sum(1 for f in fish_list if f.reproduction_cooldown <= 0)
+            off_cooldown = 0
+            for fish in fish_list:
+                if fish._reproduction_component.reproduction_cooldown <= 0:
+                    off_cooldown += 1
             full_energy = sum(1 for f in fish_list if f.energy >= f.max_energy * 0.9)
             at_max_energy = sum(1 for f in fish_list if f.energy >= f.max_energy)
 

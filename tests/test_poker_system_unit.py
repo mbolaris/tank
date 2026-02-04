@@ -1,8 +1,10 @@
 """Unit tests for the PokerSystem helper."""
 
 from types import SimpleNamespace
+from typing import Any, List, cast
 
 from core.poker_system import PokerSystem
+from core.simulation.engine import SimulationEngine
 
 
 class DummyEngine:
@@ -10,7 +12,7 @@ class DummyEngine:
 
     def __init__(self) -> None:
         self.frame_count = 5
-        self.added_entities = []
+        self.added_entities: List[Any] = []
 
     def add_entity(self, entity):
         self.added_entities.append(entity)
@@ -63,7 +65,7 @@ def _poker(result):
 
 def test_add_poker_event_records_tie_message():
     engine = DummyEngine()
-    system = PokerSystem(engine, max_events=10)
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
 
     tie_result = _base_result(winner_id=-1, loser_id=-1, is_tie=True)
     poker = _poker(tie_result)
@@ -79,7 +81,7 @@ def test_add_poker_event_records_tie_message():
 
 def test_add_poker_event_records_win_message():
     engine = DummyEngine()
-    system = PokerSystem(engine, max_events=10)
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
 
     result = _base_result(
         winner_id=1,
@@ -102,7 +104,7 @@ def test_add_poker_event_records_win_message():
 
 def test_handle_poker_result_adds_offspring():
     engine = DummyEngine()
-    system = PokerSystem(engine, max_events=10)
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
 
     offspring = DummyOffspring()
     result = _base_result(
@@ -127,7 +129,7 @@ def test_handle_poker_result_adds_offspring():
 
 def test_plant_event_adds_metadata():
     engine = DummyEngine()
-    system = PokerSystem(engine, max_events=10)
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
 
     system.add_plant_poker_event(
         fish_id=3,

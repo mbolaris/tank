@@ -128,6 +128,7 @@ def create_participants(
 
     # Left team
     for i, entity in enumerate(entities[:half]):
+        p: SoccerParticipantProtocol
         # Prefer fish-like adaptation if fish_id is present. This avoids runtime-checkable
         # Protocol + Mock traps where mocks accidentally satisfy SoccerParticipantProtocol.
         if hasattr(entity, "fish_id"):

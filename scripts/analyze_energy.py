@@ -9,6 +9,7 @@ This helps identify if the issue is energy availability vs energy gathering effi
 
 import os
 import sys
+from typing import Any, Dict
 
 sys.path.insert(0, os.getcwd())
 
@@ -19,9 +20,10 @@ logging.basicConfig(level=logging.WARNING)
 from core.entities import Fish, Food
 from core.entities.plant import Plant, PlantNectar
 from core.worlds import WorldRegistry
+from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
-def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
+def analyze_energy_economy(tank: TankWorldBackendAdapter, frames: int = 3000) -> None:
     """Analyze energy sources and consumption."""
 
     print("\n" + "=" * 70)
@@ -60,8 +62,8 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
             plant_count = len([e for e in entities_after if isinstance(e, Plant)])
 
             # Average fish energy
-            avg_energy = 0
-            avg_energy_pct = 0
+            avg_energy = 0.0
+            avg_energy_pct = 0.0
             if fish_list_after:
                 avg_energy = sum(f.energy for f in fish_list_after) / len(fish_list_after)
                 avg_energy_pct = (
@@ -148,17 +150,23 @@ def analyze_energy_economy(tank: TankWorld, frames: int = 3000):
 def main():
     print("Initializing simulation for energy analysis...")
 
-    config = {
+    config: Dict[str, Any] = {
         "max_population": 100,
         "auto_food_enabled": True,
     }
 
-    world = WorldRegistry.create_world("tank", seed=42, **config)
+    world = WorldRegistry.create_world("tank", seed=42, config=config)
+    assert isinstance(world, TankWorldBackendAdapter)
     world.reset(seed=42)
 
     # Spawn initial population
+    from core.simulation.engine import SimulationEngine
+
+    engine = world.engine
+    assert isinstance(engine, SimulationEngine)
+    assert engine.reproduction_service is not None
     for _ in range(20):
-        world.engine.spawn_emergency_fish()
+        engine.reproduction_service._spawn_emergency_fish()
 
     fish_count = len([e for e in world.entities_list if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")

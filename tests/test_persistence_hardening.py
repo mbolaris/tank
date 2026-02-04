@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import cast
+
 from backend.world_persistence import restore_world_from_snapshot
 from core.entities import Fish, Plant, PlantNectar
 from core.genetics import PlantGenome
 from core.movement_strategy import AlgorithmicMovement
+from core.world import World
 from core.worlds import WorldRegistry
 
 
@@ -20,10 +23,12 @@ def test_persistence_round_trip():
     adapter = WorldRegistry.create_world("tank", seed=42, config=config)
     adapter.reset(seed=42, config=config)
     world = adapter
+    assert world.environment is not None
+    environment = cast(World, world.environment)
 
     # Add a Fish with specific properties we can verify
     test_fish = Fish(
-        environment=world,
+        environment=environment,
         movement_strategy=AlgorithmicMovement(),
         species="test-roundtrip-species",
         x=100,
@@ -45,7 +50,7 @@ def test_persistence_round_trip():
         spot.release()
 
     test_plant = Plant(
-        environment=world,
+        environment=environment,
         genome=PlantGenome.create_random(rng=world.rng),
         root_spot=spot,
         plant_id=999,
@@ -55,7 +60,7 @@ def test_persistence_round_trip():
     world.add_entity(test_plant)
 
     # Add Nectar linked to our test Plant
-    test_nectar = PlantNectar(x=200, y=200, source_plant=test_plant, environment=world)
+    test_nectar = PlantNectar(x=200, y=200, source_plant=test_plant, environment=environment)
     test_nectar.energy = 7.5
     world.add_entity(test_nectar)
 

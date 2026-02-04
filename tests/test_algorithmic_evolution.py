@@ -56,6 +56,7 @@ def test_genome_with_algorithm():
 
     # Create genome without algorithm
     genome_no_algo = Genome.random(use_algorithm=False, rng=rng)
+    assert genome_no_algo.behavioral.behavior is not None
     assert (
         genome_no_algo.behavioral.behavior.value is None
     ), "Genome should NOT have a composable behavior"
@@ -72,8 +73,12 @@ def test_algorithm_inheritance():
     parent1 = Genome.random(use_algorithm=True, rng=rng)
     parent2 = Genome.random(use_algorithm=True, rng=rng)
 
+    assert parent1.behavioral.behavior is not None
+    assert parent2.behavioral.behavior is not None
     behavior1 = parent1.behavioral.behavior.value
     behavior2 = parent2.behavioral.behavior.value
+    assert behavior1 is not None
+    assert behavior2 is not None
 
     print("Parent 1 composable behavior:")
     print(
@@ -174,7 +179,7 @@ def test_multiple_generations():
     print(f"Generation 0: {len(population)} fish")
 
     # Track behavior distribution using behavior
-    behavior_distribution = {}
+    behavior_distribution: dict[str, int] = {}
     for genome in population:
         if genome.behavioral.behavior and genome.behavioral.behavior.value:
             behavior = genome.behavioral.behavior.value

@@ -4,6 +4,8 @@ These tests verify the new architectural improvements work correctly
 and provide good examples of how to use them.
 """
 
+from typing import Any, List, cast
+
 from core.cache_manager import CachedList, CacheManager
 from core.systems.base import BaseSystem, SystemResult
 
@@ -182,30 +184,31 @@ class TestCacheManager:
         # Patch isinstance checks by using actual class names
         from core import entities as entity_module
 
-        original_fish = entity_module.Fish
-        original_food = entity_module.Food
+        entity_module_any = cast(Any, entity_module)
+        original_fish = entity_module_any.Fish
+        original_food = entity_module_any.Food
 
         try:
             # Temporarily replace for testing
-            entity_module.Fish = MockFish
-            entity_module.Food = MockFood
+            entity_module_any.Fish = MockFish
+            entity_module_any.Food = MockFood
 
-            manager = CacheManager(lambda: entities)
+            manager = CacheManager(cast(Any, lambda: entities))
 
             # Get fish
-            fish_list = manager.get_fish()
+            fish_list = cast(List[Any], manager.get_fish())
             assert len(fish_list) == 2
             assert fish1 in fish_list
             assert fish2 in fish_list
 
             # Get food
-            food_list = manager.get_food()
+            food_list = cast(List[Any], manager.get_food())
             assert len(food_list) == 1
             assert food1 in food_list
         finally:
             # Restore original classes
-            entity_module.Fish = original_fish
-            entity_module.Food = original_food
+            entity_module_any.Fish = original_fish
+            entity_module_any.Food = original_food
 
     def test_invalidation(self):
         """CacheManager.invalidate_entity_caches should invalidate all caches."""
@@ -215,10 +218,11 @@ class TestCacheManager:
 
         from core import entities as entity_module
 
-        original_fish = entity_module.Fish
+        entity_module_any = cast(Any, entity_module)
+        original_fish = entity_module_any.Fish
 
         try:
-            entity_module.Fish = MockFish
+            entity_module_any.Fish = MockFish
 
             compute_count = 0
             fish1 = MockFish()
@@ -229,7 +233,7 @@ class TestCacheManager:
                 return [fish1]
 
             # Need to wrap to track calls
-            manager = CacheManager(get_entities)
+            manager = CacheManager(cast(Any, get_entities))
 
             # First access
             manager.get_fish()
@@ -241,7 +245,7 @@ class TestCacheManager:
             # Next access should recompute
             manager.get_fish()
         finally:
-            entity_module.Fish = original_fish
+            entity_module_any.Fish = original_fish
 
     def test_stats(self):
         """CacheManager should provide statistics."""
@@ -251,12 +255,13 @@ class TestCacheManager:
 
         from core import entities as entity_module
 
-        original_fish = entity_module.Fish
+        entity_module_any = cast(Any, entity_module)
+        original_fish = entity_module_any.Fish
 
         try:
-            entity_module.Fish = MockFish
+            entity_module_any.Fish = MockFish
 
-            manager = CacheManager(lambda: [MockFish()])
+            manager = CacheManager(cast(Any, lambda: [MockFish()]))
 
             # Initial stats
             stats = manager.get_stats()
@@ -267,7 +272,7 @@ class TestCacheManager:
             stats = manager.get_stats()
             assert stats["total_invalidations"] == 1
         finally:
-            entity_module.Fish = original_fish
+            entity_module_any.Fish = original_fish
 
 
 class TestCollisionSystemWithSystemResult:
@@ -283,6 +288,7 @@ class TestCollisionSystemWithSystemResult:
 
         # Get the collision system
         collision_system = engine.collision_system
+        assert collision_system is not None
 
         # Run update
         result = collision_system.update(frame=1)
@@ -302,6 +308,7 @@ class TestCollisionSystemWithSystemResult:
         engine.setup()
 
         collision_system = engine.collision_system
+        assert collision_system is not None
 
         # Create mock entities for collision
         class MockEntity:
@@ -321,8 +328,8 @@ class TestCollisionSystemWithSystemResult:
         collision_system._do_update(frame=0)
 
         # Check collisions manually (not via the full iteration)
-        collision_system.check_collision(e1, e2)  # Should collide
-        collision_system.check_collision(e1, e3)  # Should not collide
+        collision_system.check_collision(cast(Any, e1), cast(Any, e2))  # Should collide
+        collision_system.check_collision(cast(Any, e1), cast(Any, e3))  # Should not collide
 
         # Get frame stats directly (don't call full update which resets them)
         assert collision_system._frame_collisions_checked == 2
@@ -330,6 +337,7 @@ class TestCollisionSystemWithSystemResult:
 
         # Now get result (which also resets counters)
         result = collision_system._do_update(frame=1)
+        assert isinstance(result, SystemResult)
 
         # Note: result includes our 2 manual checks from before
         # The _do_update also runs full iteration, so stats may include more
@@ -351,7 +359,7 @@ class TestBaseSystemWithResult:
         class TestSystem(BaseSystem):
             def __init__(self):
                 # Use None as engine for testing
-                self._engine = None
+                self._engine = cast(Any, None)
                 self._name = "Test"
                 self._enabled = True
                 self._update_count = 0
@@ -370,7 +378,7 @@ class TestBaseSystemWithResult:
 
         class TestSystem(BaseSystem):
             def __init__(self):
-                self._engine = None
+                self._engine = cast(Any, None)
                 self._name = "Test"
                 self._enabled = False
                 self._update_count = 0
@@ -389,7 +397,7 @@ class TestBaseSystemWithResult:
 
         class LegacySystem(BaseSystem):
             def __init__(self):
-                self._engine = None
+                self._engine = cast(Any, None)
                 self._name = "Legacy"
                 self._enabled = True
                 self._update_count = 0

@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.entities import Fish
 from core.solutions import SolutionRecord, SolutionTracker
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 AUTHOR = "GPT-5.2-Codex-Max"
 DEFAULT_NAME = "GPT-5.2-Codex-Max Tournament Hunter"
@@ -87,20 +87,19 @@ def _load_opponents_from_tournament_json(
 
 
 def _run_headless_simulation(*, frames: int, seed: int) -> tuple[list[Fish], int]:
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     stats_interval = max(10_000, frames // 10)
     for frame in range(frames):
-        world.update()
+        world.step()
 
         if frame and frame % stats_interval == 0:
-            fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
-            poker_games = sum(
-                (f.poker_stats.total_games if getattr(f, "poker_stats", None) else 0)
-                for f in fish_list
-            )
+            fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
+            poker_games = 0
+            for fish in fish_list:
+                if fish.poker_stats is not None:
+                    poker_games += fish.poker_stats.total_games
             logger.info(
                 "Seed %s frame %s/%s: %s fish alive, %s total poker games",
                 seed,
@@ -110,10 +109,11 @@ def _run_headless_simulation(*, frames: int, seed: int) -> tuple[list[Fish], int
                 poker_games,
             )
 
-    fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
-    poker_games = sum(
-        (f.poker_stats.total_games if getattr(f, "poker_stats", None) else 0) for f in fish_list
-    )
+    fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
+    poker_games = 0
+    for fish in fish_list:
+        if fish.poker_stats is not None:
+            poker_games += fish.poker_stats.total_games
     return fish_list, poker_games
 
 

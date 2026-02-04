@@ -50,7 +50,7 @@ async def _handle_websocket_for_adapter(
 
         # Send initial full state
         try:
-            state = adapter.get_state(force_full=True, allow_delta=False)
+            state = await adapter.get_state_async(force_full=True, allow_delta=False)
             if state is not None:
                 serialized = adapter.serialize_state(state)
                 await websocket.send_bytes(serialized)

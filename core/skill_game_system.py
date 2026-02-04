@@ -16,7 +16,7 @@ The system:
 
 import logging
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
 
 from core.skills.base import SkillGame, SkillGameResult, SkillGameType
@@ -41,7 +41,7 @@ class SkillGameEvent:
     energy_transferred: float
     player1_was_optimal: bool
     player2_was_optimal: bool = False
-    details: Dict[str, Any] = None
+    details: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -215,6 +215,10 @@ class SkillGameSystem:
         strategy2 = None
         if fish2 is not None:
             strategy2 = fish2._skill_game_component.get_strategy(game.game_type)
+            if strategy2 is None:
+                return None
+        if strategy1 is None:
+            return None
 
         # Play the game
         game_state = {
@@ -224,6 +228,7 @@ class SkillGameSystem:
 
         if game.is_zero_sum and fish2 is not None:
             # Two-player game
+            assert strategy2 is not None
             result1 = game.play_round(strategy1, strategy2, game_state)
 
             # Create opposite result for fish2

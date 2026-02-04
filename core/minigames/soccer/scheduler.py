@@ -103,6 +103,7 @@ class SoccerMinigameScheduler:
             effective_seed_base = 0
 
         outcomes: list[SoccerMinigameOutcome] = []
+        match_runner = self.match_runner or self._run_match
 
         for _ in range(matches_per_tick):
             num_players = self._get_num_players()
@@ -123,7 +124,7 @@ class SoccerMinigameScheduler:
                 )
             else:
                 try:
-                    outcome = self.match_runner(
+                    outcome = match_runner(
                         candidates,
                         num_players=num_players,
                         duration_frames=self.config.duration_frames,
@@ -219,8 +220,9 @@ class SoccerMinigameScheduler:
             entry_fee_energy=entry_fee_energy,
         )
         if len(selected) != num_players:
+            match_id_str = match_id or f"soccer_{match_seed or 0}_{match_counter}"
             return self._build_skip_outcome(
-                match_id=match_id,
+                match_id=match_id_str,
                 match_counter=match_counter,
                 match_seed=match_seed,
                 selection_seed=selection_seed,

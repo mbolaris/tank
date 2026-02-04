@@ -28,7 +28,10 @@ class TestConnectorLogic(unittest.TestCase):
 
         # Verify first connection exists
         self.assertEqual(len(self.connection_manager.list_connections()), 1)
-        self.assertEqual(self.connection_manager.get_connection("A->B").probability, 25)
+        stored = self.connection_manager.get_connection("A->B")
+        self.assertIsNotNone(stored)
+        assert stored is not None
+        self.assertEqual(stored.probability, 25)
 
         # Create connection B -> A (opposite direction - should be allowed)
         conn2 = TankConnection(

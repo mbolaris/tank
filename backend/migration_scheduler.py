@@ -242,15 +242,16 @@ class MigrationScheduler:
             source_world.engine.request_remove(entity, reason="migration_out")
 
             new_entity = outcome.value
+            if new_entity is None:
+                return
             dest_world.engine.request_spawn(new_entity, reason="migration_in")
 
             # Track energy entering the destination tank (for fish only)
-            if (
-                _get_entity_type(new_entity) == "fish"
-                and hasattr(new_entity, "ecosystem")
-                and new_entity.ecosystem is not None
-            ):
-                new_entity.ecosystem.record_energy_gain("migration_in", new_entity.energy)
+            if _get_entity_type(new_entity) == "fish":
+                ecosystem = getattr(new_entity, "ecosystem", None)
+                energy = getattr(new_entity, "energy", None)
+                if ecosystem is not None and isinstance(energy, (int, float)):
+                    ecosystem.record_energy_gain("migration_in", float(energy))
 
             # Try to invalidate cached SimulationRunner state so frontends update
             try:

@@ -14,17 +14,19 @@ def test_spawn_delta_ids_are_not_raw_python_id():
     """Verify spawn delta IDs for Fish/Food are stable offsets, not id()."""
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
+    assert engine.environment is not None
+    env = engine.environment
 
     # Create a fish and food entity
     fish = Fish(
-        environment=engine.environment,
+        environment=env,
         movement_strategy=AlgorithmicMovement(),
         species="test_fish",
         x=100,
         y=100,
         speed=2.0,
     )
-    food = Food(engine.environment, 200, 200, food_type="energy")
+    food = Food(env, 200, 200, food_type="energy")
 
     # Request spawns
     engine.request_spawn(fish, reason="test_fish_spawn")
@@ -39,6 +41,7 @@ def test_spawn_delta_ids_are_not_raw_python_id():
 
     assert fish_spawn is not None, "Fish spawn not found in _frame_spawns"
     assert food_spawn is not None, "Food spawn not found in _frame_spawns"
+    assert food_spawn.entity_id is not None
 
     # Verify fish ID uses the offset scheme (fish_id + FISH_ID_OFFSET)
     fish_stable_id = fish.fish_id + FISH_ID_OFFSET
@@ -64,9 +67,11 @@ def test_removal_delta_ids_are_not_raw_python_id():
     """Verify removal delta IDs for Food are stable offsets, not id()."""
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
+    assert engine.environment is not None
+    env = engine.environment
 
     # Create and add food
-    food = Food(engine.environment, 200, 200, food_type="energy")
+    food = Food(env, 200, 200, food_type="energy")
     engine.request_spawn(food, reason="spawn_for_removal")
     engine.update()
 
@@ -97,9 +102,11 @@ def test_delta_ids_stable_across_frames():
     """Verify that the same entity gets the same ID across multiple frames."""
     engine = SimulationEngine(headless=True, seed=42)
     engine.setup()
+    assert engine.environment is not None
+    env = engine.environment
 
     # Create and spawn food
-    food = Food(engine.environment, 200, 200, food_type="energy")
+    food = Food(env, 200, 200, food_type="energy")
     engine.request_spawn(food, reason="stable_id_test")
     engine.update()
 

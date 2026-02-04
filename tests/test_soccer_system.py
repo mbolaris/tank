@@ -344,7 +344,7 @@ class TestSoccerSystemKickTiming:
             kick_calls.append((power, direction, kicker))
             return original_kick(power, direction, kicker=kicker)
 
-        ball.kick = tracked_kick
+        setattr(ball, "kick", tracked_kick)
 
         # Run full update (kicks then physics)
         system._do_update(frame=0)
@@ -385,8 +385,8 @@ class TestSoccerSystemKickTiming:
             call_order.append("update")
             return original_update(*args, **kwargs)
 
-        ball.kick = tracked_kick
-        ball.update = tracked_update
+        setattr(ball, "kick", tracked_kick)
+        setattr(ball, "update", tracked_update)
 
         fish = MockFish(fish_id=1, x=400, y=310, team="A")
         mock_engine.entities_list = [fish]
@@ -444,7 +444,7 @@ class TestSoccerSystemEdgeCases:
 
         # Create a dead fish
         fish = MockFish(fish_id=1, x=400, y=310, team="A")
-        fish.is_dead = lambda: True  # Override to return True
+        setattr(fish, "is_dead", lambda: True)  # Override to return True
 
         mock_engine.entities_list = [fish]
 

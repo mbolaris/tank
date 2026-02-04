@@ -492,10 +492,10 @@ class BoidsBehavior(BehaviorAlgorithm):
 
         if not allies:
             # Alone - seek food or flee
-            if in_danger and predator_dist_sq < 22500:  # 150^2
+            if nearest_predator is not None and in_danger and predator_dist_sq < 22500:  # 150^2
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return direction.x * 1.3, direction.y * 1.3
-            elif food_nearby:
+            elif nearest_food is not None and food_nearby:
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return direction.x * 0.7, direction.y * 0.7
             return 0, 0
@@ -570,7 +570,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         vy = sep_y * sep_weight + align_y * align_weight + coh_dir.y * coh_weight
 
         # Add predator avoidance (use squared distance)
-        if in_danger and predator_dist_sq < 22500:  # 150^2
+        if nearest_predator is not None and in_danger and predator_dist_sq < 22500:  # 150^2
             avoid_dir = self._safe_normalize(fish.pos - nearest_predator.pos)
             predator_distance = math.sqrt(predator_dist_sq)
             threat_strength = (150 - predator_distance) / 150
@@ -578,7 +578,7 @@ class BoidsBehavior(BehaviorAlgorithm):
             vy += avoid_dir.y * threat_strength * 2.0
 
         # Add food attraction for whole school (use squared distance)
-        if food_nearby and food_dist_sq < 6400:  # 80^2
+        if nearest_food is not None and food_nearby and food_dist_sq < 6400:  # 80^2
             food_dir = self._safe_normalize(nearest_food.pos - fish.pos)
             vx += food_dir.x * 0.5
             vy += food_dir.y * 0.5

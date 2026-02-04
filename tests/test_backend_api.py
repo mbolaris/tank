@@ -136,7 +136,7 @@ def test_list_servers_combines_local_and_remote_worlds():
     world_manager = FakeWorldManager(worlds)
     local_info = make_server_info("local", True)
     remote_info = make_server_info("remote", False)
-    remote_worlds = [{"world_id": "remote-1"}]
+    remote_worlds: list[dict[str, object]] = [{"world_id": "remote-1"}]
     discovery_service = FakeDiscoveryService([local_info, remote_info])
     client = build_servers_client(
         world_manager=world_manager,

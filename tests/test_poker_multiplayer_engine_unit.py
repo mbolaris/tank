@@ -1,4 +1,5 @@
 import random
+from typing import Any, Dict, Optional, cast
 
 import pytest
 
@@ -7,14 +8,33 @@ from core.poker.betting.decision import AGGRESSION_MEDIUM
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.simulation import hand_engine
 from core.poker.simulation import multiplayer_engine as multiplayer_engine
+from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 
 
-class DummyStrategy:
+class DummyStrategy(PokerStrategyAlgorithm):
     def __init__(self) -> None:
-        self.last_kwargs = None
+        super().__init__(rng=random.Random(0))
+        self.last_kwargs: Dict[str, Any] = {}
 
-    def decide_action(self, **kwargs):
-        self.last_kwargs = kwargs
+    def decide_action(
+        self,
+        hand_strength: float,
+        current_bet: float,
+        opponent_bet: float,
+        pot: float,
+        player_energy: float,
+        position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
+    ) -> tuple[BettingAction, float]:
+        self.last_kwargs = {
+            "hand_strength": hand_strength,
+            "current_bet": current_bet,
+            "opponent_bet": opponent_bet,
+            "pot": pot,
+            "player_energy": player_energy,
+            "position_on_button": position_on_button,
+            "rng": rng,
+        }
         return BettingAction.CHECK, 0.0
 
 
@@ -397,7 +417,7 @@ def test_apply_multiplayer_action_unknown_returns_false():
         button_position=0,
     )
 
-    result = hand_engine._apply_multiplayer_action(0, "UNKNOWN", 0.0, state)
+    result = hand_engine._apply_multiplayer_action(0, cast(BettingAction, "UNKNOWN"), 0.0, state)
 
     assert result is False
 

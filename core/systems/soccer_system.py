@@ -187,7 +187,7 @@ class SoccerSystem(BaseSystem):
                 pass
 
             # Set visual effect for HUD display
-            kicker.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}
+            setattr(kicker, "soccer_effect_state", {"type": "kick", "amount": 2.0, "timer": 10})
 
     def _handle_goal_scored(self, goal_event) -> None:
         """Handle a goal being scored and award energy.

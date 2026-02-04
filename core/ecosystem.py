@@ -626,7 +626,7 @@ class EcosystemManager:
 
     def get_poker_leaderboard(
         self,
-        fish_list: Optional[List] = None,
+        fish_list: Optional[List["Fish"]] = None,
         limit: int = 10,
         sort_by: str = "net_energy",
     ) -> List[Dict[str, Any]]:
@@ -930,6 +930,11 @@ class EcosystemManager:
                 if ps.total_games > 0:
                     strategy_win_rates[strat.strategy_id].append(ps.get_win_rate())
 
+        avg_win_rates: Dict[str, float] = {}
+        for strat_id, rates in strategy_win_rates.items():
+            if rates:
+                avg_win_rates[strat_id] = sum(rates) / len(rates)
+
         result = {
             "total_fish": len(fish_list),
             "strategy_counts": dict(strategy_counts),
@@ -937,12 +942,8 @@ class EcosystemManager:
                 strategy_counts.most_common(1)[0][0] if strategy_counts else None
             ),
             "diversity": len(strategy_counts),
-            "strategy_avg_win_rates": {},
+            "strategy_avg_win_rates": avg_win_rates,
         }
-
-        for strat_id, rates in strategy_win_rates.items():
-            if rates:
-                result["strategy_avg_win_rates"][strat_id] = sum(rates) / len(rates)
 
         return result
 

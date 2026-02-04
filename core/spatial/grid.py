@@ -681,7 +681,7 @@ class SpatialGrid:
         if max_row > rows_m1:
             max_row = rows_m1
 
-        result = []
+        result: List[Agent] = []
         result_append = result.append
         grid_dict = self.grid
         subclass_cache = self._subclass_cache

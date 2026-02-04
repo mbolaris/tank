@@ -25,6 +25,7 @@ class TestTankSoccerToggle:
 
         # ENABLE
         resp = runner._cmd_set_tank_soccer_enabled({"enabled": True})
+        assert resp is not None
         assert resp["success"] is True
         assert resp["enabled"] is True
 
@@ -44,6 +45,7 @@ class TestTankSoccerToggle:
 
         # DISABLE
         resp = runner._cmd_set_tank_soccer_enabled({"enabled": False})
+        assert resp is not None
         assert resp["success"] is True
         assert resp["enabled"] is False
 

@@ -19,7 +19,7 @@ mixing physical collision handling with game logic. This separation:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.entities import Fish
@@ -69,7 +69,8 @@ class PokerProximitySystem(BaseSystem):
         Returns:
             SystemResult with poker proximity statistics
         """
-        if not self._engine.poker_system.enabled:
+        poker_system = self._engine.poker_system
+        if poker_system is None or not poker_system.enabled:
             return SystemResult.empty()
 
         # Get all fish
@@ -132,8 +133,8 @@ class PokerProximitySystem(BaseSystem):
             fish_cx = fish.pos.x + fish.width * 0.5
             fish_cy = fish.pos.y + fish.height * 0.5
 
-            for other in nearby:
-                if other is fish or other not in fish_set:
+            for other in fish_set.intersection(nearby):
+                if other is fish:
                     continue
                 if other.is_dead():
                     continue
@@ -212,7 +213,7 @@ class PokerProximitySystem(BaseSystem):
                 self._groups_detected += 1
 
                 # Filter to ready players
-                ready_fish = get_ready_players(group)
+                ready_fish = cast(List[Fish], get_ready_players(group))
                 if len(ready_fish) < 2:
                     continue
 

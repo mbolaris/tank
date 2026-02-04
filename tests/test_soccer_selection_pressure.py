@@ -110,7 +110,10 @@ def test_soccer_policy_mutation_changes_distribution() -> None:
     pool = create_default_genome_code_pool()
     population = create_population(rng, 20, pool)
 
-    initial_ids = {g.behavioral.soccer_policy_id.value for g in population}
+    initial_ids = set()
+    for genome in population:
+        assert genome.behavioral.soccer_policy_id is not None
+        initial_ids.add(genome.behavioral.soccer_policy_id.value)
     assert len(initial_ids) == 1
 
     config = CodePolicyMutationConfig(
@@ -123,6 +126,7 @@ def test_soccer_policy_mutation_changes_distribution() -> None:
     for genome in population:
         child = Genome.clone_with_mutation(genome, rng=rng)
         mutate_code_policies(child.behavioral, pool, rng, config=config)
+        assert child.behavioral.soccer_policy_id is not None
         mutated_ids.add(child.behavioral.soccer_policy_id.value)
 
     assert mutated_ids != initial_ids

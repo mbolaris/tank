@@ -1,10 +1,12 @@
 import math
+from typing import cast
 
 from core.ecosystem import EcosystemManager
 from core.entities import Fish
 from core.entities.resources import Food
 from core.movement_strategy import AlgorithmicMovement
 from core.telemetry.events import FoodEatenEvent
+from core.world import World
 
 
 class _EnvStub:
@@ -19,7 +21,7 @@ class _EnvStub:
 def test_fish_eat_without_ecosystem():
     env = _EnvStub()
     fish = Fish(
-        environment=env,
+        environment=cast(World, env),
         movement_strategy=AlgorithmicMovement(),
         species="test",
         x=100,
@@ -28,7 +30,7 @@ def test_fish_eat_without_ecosystem():
         ecosystem=None,
     )
     fish.energy = fish.max_energy * 0.5
-    food = Food(environment=env, x=110, y=110, food_type="energy")
+    food = Food(environment=cast(World, env), x=110, y=110, food_type="energy")
 
     before = fish.energy
     fish.eat(food)

@@ -68,9 +68,11 @@ class TestPolicyAdapter:
         mock_genome.behavioral.poker_strategy.value = None  # Ensure poker strategy check passes
         mock_genome.behavioral.aggression.value = 0.5
 
+        from core.movement_strategy import AlgorithmicMovement
+
         fish = Fish(
             environment=mock_env,
-            movement_strategy=None,  # Not used in this test
+            movement_strategy=AlgorithmicMovement(),
             species="test_fish",
             x=100,
             y=100,

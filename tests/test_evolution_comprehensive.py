@@ -189,8 +189,8 @@ class TestEdgeCasesAndBoundaries:
         parent1_count = 0
 
         for _ in range(trials):
-            result = blend_discrete("A", "B", weight1=0.7, rng=rng)
-            if result == "A":
+            result = blend_discrete(0, 1, weight1=0.7, rng=rng)
+            if result == 0:
                 parent1_count += 1
 
         # Should be roughly 70% parent1
@@ -400,11 +400,13 @@ class TestPokerEvolution:
         # Note: With 10% novelty injection in poker crossover, we expect fewer direct inheritances
         # With parent1_weight=0.75 and 10% random replacement among 10 strategies,
         # we expect roughly 90% * 75% = 68% max, but with added strategy switching we lower the bar
-        tight_aggressive_count = sum(
-            1
-            for o in offspring
-            if isinstance(o.behavioral.poker_strategy.value, TightAggressiveStrategy)
-        )
+        tight_aggressive_count = 0
+        for o in offspring:
+            trait = o.behavioral.poker_strategy
+            assert trait is not None
+            strategy = trait.value
+            if isinstance(strategy, TightAggressiveStrategy):
+                tight_aggressive_count += 1
         assert (
             tight_aggressive_count > 25
         ), f"Should inherit winner's strategy somewhat often (with novelty injection), got {tight_aggressive_count}/100"

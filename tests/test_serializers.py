@@ -51,6 +51,7 @@ class TestSerializers(unittest.TestCase):
 
     def test_fish_serializer_genome_data(self):
         data = FishSerializer.to_genome_data(self.mock_fish)
+        assert data is not None
         self.assertEqual(data["speed"], 1.0)
         self.assertEqual(data["size"], 1.0)
         self.assertEqual(data["template_id"], "test_template")

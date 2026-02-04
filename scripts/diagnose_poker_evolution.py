@@ -16,7 +16,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -171,15 +171,17 @@ def test_mutation_destroying_adaptations():
             avg_fold = sum(fold_vals) / len(fold_vals)
             fold_drift = abs(avg_fold - 0.35)
         else:
-            avg_fold = "N/A"
-            fold_drift = "N/A"
+            avg_fold = None
+            fold_drift = None
 
         print(f"\nGeneration {gen+1}:")
         print(
             f"  Same strategy type: {preserved_type}/{n_offspring} ({100*preserved_type/n_offspring:.1f}%)"
         )
+        avg_fold_str = f"{avg_fold:.3f}" if isinstance(avg_fold, float) else "N/A"
+        fold_drift_str = f"{fold_drift:.3f}" if isinstance(fold_drift, float) else "N/A"
         print(
-            f"  Avg fold_threshold: {avg_fold if isinstance(avg_fold, str) else f'{avg_fold:.3f}'} (drift: {fold_drift if isinstance(fold_drift, str) else f'{fold_drift:.3f}'})"
+            f"  Avg fold_threshold: {avg_fold_str} (drift: {fold_drift_str})"
         )
 
     print("\nCONCLUSION:")
@@ -266,10 +268,10 @@ def test_behavioral_traits_vs_strategy_conflict():
         genome.behavioral.aggression.value = aggression
 
         # Get the poker strategy from genome
-        strategy = genome.behavioral.poker_strategy_algorithm.value
-
-        if strategy is None:
+        strategy_trait = genome.behavioral.poker_strategy
+        if strategy_trait is None or strategy_trait.value is None:
             continue
+        strategy = strategy_trait.value
 
         # Test against standard
         game = AutoEvaluatePokerGame(
@@ -304,7 +306,7 @@ def test_behavioral_traits_vs_strategy_conflict():
         )
 
     print("\nNOTE: In the simulation, genome.behavioral.aggression is mapped to poker aggression")
-    print("      but the poker_strategy_algorithm makes its own decisions.")
+    print("      but the genome poker_strategy makes its own decisions.")
     print("      This creates potential for conflicting selection pressures.")
 
 
@@ -358,7 +360,7 @@ def simulate_evolution_over_generations():
         best_strategy = fitness_scores[0][2].strategy_id
 
         # Count strategy types
-        type_counts = defaultdict(int)
+        type_counts: Dict[str, int] = defaultdict(int)
         for _, _, s in fitness_scores:
             type_counts[s.strategy_id] += 1
         most_common = max(type_counts.items(), key=lambda x: x[1])
@@ -419,8 +421,10 @@ def diagnose_behavioral_inheritance():
     parent1 = Genome.random(use_algorithm=True)
     parent2 = Genome.random(use_algorithm=True)
 
-    parent1_strategy = parent1.behavioral.poker_strategy_algorithm.value
-    parent2_strategy = parent2.behavioral.poker_strategy_algorithm.value
+    parent1_trait = parent1.behavioral.poker_strategy
+    parent2_trait = parent2.behavioral.poker_strategy
+    parent1_strategy = parent1_trait.value if parent1_trait is not None else None
+    parent2_strategy = parent2_trait.value if parent2_trait is not None else None
     print(
         f"\nParent 1 poker strategy: {parent1_strategy.strategy_id if parent1_strategy else 'None'}"
     )
@@ -438,7 +442,8 @@ def diagnose_behavioral_inheritance():
     )
 
     print("\nOffspring (from_winner_choice with parent1 as winner):")
-    offspring_strategy = offspring.behavioral.poker_strategy_algorithm.value
+    offspring_trait = offspring.behavioral.poker_strategy
+    offspring_strategy = offspring_trait.value if offspring_trait is not None else None
     print(f"  Poker strategy: {offspring_strategy.strategy_id if offspring_strategy else 'None'}")
 
     # Run multiple trials to see distribution
@@ -455,7 +460,8 @@ def diagnose_behavioral_inheritance():
             mutation_strength=0.1,
         )
 
-        offspring_strategy = offspring.behavioral.poker_strategy_algorithm.value
+        offspring_trait = offspring.behavioral.poker_strategy
+        offspring_strategy = offspring_trait.value if offspring_trait is not None else None
         if offspring_strategy:
             if parent1_strategy and offspring_strategy.strategy_id == parent1_strategy.strategy_id:
                 same_as_winner += 1

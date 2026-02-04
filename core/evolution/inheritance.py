@@ -133,11 +133,31 @@ def inherit_algorithm(
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
-    from core.algorithms.registry import crossover_algorithms_weighted, get_random_algorithm
+    from core.algorithms.registry import (
+        crossover_algorithms_weighted,
+        get_random_algorithm,
+        inherit_algorithm_with_mutation,
+    )
 
     # Handle None cases
     if alg1 is None and alg2 is None:
         return get_random_algorithm(rng)
+    if alg1 is None:
+        assert alg2 is not None
+        return inherit_algorithm_with_mutation(
+            alg2,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+    if alg2 is None:
+        assert alg1 is not None
+        return inherit_algorithm_with_mutation(
+            alg1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
 
     # Check for random algorithm switch (novelty injection)
     if rng.random() < algorithm_switch_rate:

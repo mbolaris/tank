@@ -72,7 +72,7 @@ def _get_trait_values(
             continue
 
         trait = getattr(container, trait_name, None)
-        if hasattr(trait, "value"):
+        if trait is not None and hasattr(trait, "value"):
             values.append(float(trait.value))
         elif isinstance(trait, (int, float)):
             values.append(float(trait))
@@ -338,8 +338,10 @@ def _get_composable_behavior_distributions(fish_list: List["Fish"]) -> List[Dict
     for f in fish_list:
         if not hasattr(f, "genome"):
             continue
-        behavior = f.genome.behavioral.behavior.value
-        trait = f.genome.behavioral.behavior
+        trait = getattr(f.genome.behavioral, "behavior", None)
+        if trait is None:
+            continue
+        behavior = trait.value
 
         if isinstance(behavior, ComposableBehavior) and behavior.threat_response:
             threat_vals.append(behavior.threat_response.value)
@@ -373,8 +375,10 @@ def _get_composable_behavior_distributions(fish_list: List["Fish"]) -> List[Dict
     for f in fish_list:
         if not hasattr(f, "genome"):
             continue
-        behavior = f.genome.behavioral.behavior.value
-        trait = f.genome.behavioral.behavior
+        trait = getattr(f.genome.behavioral, "behavior", None)
+        if trait is None:
+            continue
+        behavior = trait.value
 
         if isinstance(behavior, ComposableBehavior) and behavior.food_approach:
             food_vals.append(behavior.food_approach.value)
@@ -428,8 +432,10 @@ def _get_poker_strategy_distributions(fish_list: List["Fish"]) -> List[Dict[str,
         if not hasattr(f.genome.behavioral, "poker_strategy"):
             continue
 
-        strategy = f.genome.behavioral.poker_strategy.value
-        trait = f.genome.behavioral.poker_strategy
+        trait = getattr(f.genome.behavioral, "poker_strategy", None)
+        if trait is None:
+            continue
+        strategy = trait.value
 
         if isinstance(strategy, ComposablePokerStrategy):
             betting_vals.append(strategy.betting_style.value)

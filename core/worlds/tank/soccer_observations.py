@@ -139,7 +139,7 @@ def add_soccer_extras(
     if "extra" not in observation:
         observation["extra"] = {}
 
-    soccer_extras = {
+    soccer_extras: dict[str, Any] = {
         "soccer_enabled": True,
         "team": fish.team,
     }

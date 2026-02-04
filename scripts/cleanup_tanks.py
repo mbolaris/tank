@@ -2,11 +2,12 @@ import logging
 import shutil
 import warnings
 from pathlib import Path
+from typing import List, TypedDict
 
 # Suppress DeprecationWarnings from simplejson/json interaction if any
 warnings.simplefilter("ignore", DeprecationWarning)
 
-from backend.world_persistence import DATA_DIR
+from backend.world_persistence import DATA_DIR, list_world_snapshots
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -15,12 +16,21 @@ BACKUP_DIR = Path("data/tanks_backup")
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 
+class _TankInfo(TypedDict):
+    id: str
+    path: Path
+    score: float
+    reason: str
+    frame: int
+    entities: int
+
+
 def analyze_tanks():
     if not DATA_DIR.exists():
         logger.error(f"DATA_DIR {DATA_DIR} does not exist!")
         return
 
-    tanks = []
+    tanks: List[_TankInfo] = []
 
     logger.info("Analyzing tanks in data/tanks/...")
 
@@ -29,19 +39,28 @@ def analyze_tanks():
             continue
 
         tank_id = tank_dir.name
-        snapshots = list_tank_snapshots(tank_id)
+        snapshots = list_world_snapshots(tank_id)
 
         if not snapshots:
             logger.warning(f"Tank {tank_id[:8]}: No snapshots found.")
-            tanks.append({"id": tank_id, "path": tank_dir, "score": -1, "reason": "empty"})
+            tanks.append(
+                {
+                    "id": tank_id,
+                    "path": tank_dir,
+                    "score": -1.0,
+                    "reason": "empty",
+                    "frame": 0,
+                    "entities": 0,
+                }
+            )
             continue
 
         latest_snap_meta = snapshots[0]
         try:
             # We don't load the full state to be fast, unless needed.
             # list_tank_snapshots already returns entity_count from metadata read.
-            entity_count = latest_snap_meta.get("entity_count", 0)
-            frame = latest_snap_meta.get("frame", 0)
+            entity_count = int(latest_snap_meta.get("entity_count", 0) or 0)
+            frame = int(latest_snap_meta.get("frame", 0) or 0)
 
             # Simple heuristic: Older tanks with more entities are likely "better"
             # (or newer tanks with entities? Usually users want the one they were working on)
@@ -55,7 +74,7 @@ def analyze_tanks():
                 {
                     "id": tank_id,
                     "path": tank_dir,
-                    "score": score,
+                    "score": float(score),
                     "frame": frame,
                     "entities": entity_count,
                     "reason": f"Frame {frame}, Entities {entity_count}",
@@ -63,7 +82,16 @@ def analyze_tanks():
             )
         except Exception as e:
             logger.error(f"Error analyzing {tank_id}: {e}")
-            tanks.append({"id": tank_id, "path": tank_dir, "score": -1, "reason": "error"})
+            tanks.append(
+                {
+                    "id": tank_id,
+                    "path": tank_dir,
+                    "score": -1.0,
+                    "reason": "error",
+                    "frame": 0,
+                    "entities": 0,
+                }
+            )
 
     # Sort by score descending
     tanks.sort(key=lambda x: x["score"], reverse=True)

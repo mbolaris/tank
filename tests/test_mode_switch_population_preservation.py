@@ -249,7 +249,7 @@ class TestModeSwitchHookSequencing:
             calls.append((old_type, new_type))
             return original_switch(self, runner_arg, old_type, new_type)
 
-        PetriWorldHooks.on_world_type_switch = tracking_switch
+        setattr(PetriWorldHooks, "on_world_type_switch", tracking_switch)
 
         try:
             runner.switch_world_type("petri")
@@ -261,7 +261,7 @@ class TestModeSwitchHookSequencing:
             assert new_type == "petri", f"New type should be 'petri', got '{new_type}'"
         finally:
             # Restore original method
-            PetriWorldHooks.on_world_type_switch = original_switch
+            setattr(PetriWorldHooks, "on_world_type_switch", original_switch)
 
 
 class TestModeSwitchIdempotency:

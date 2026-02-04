@@ -139,7 +139,9 @@ def test_tank_phase_hooks_death_handling():
     if len(fish_list) > 0:
         fish = fish_list[0]
         # Simulate death
-        fish._is_dead = True
+        from core.entities.base import EntityState
+
+        fish.state.transition(EntityState.DEAD, reason="test")
         should_remove = hooks.on_entity_died(engine, fish)
         # Fish death is recorded but not immediately removed (death animation)
         assert should_remove is False, "Fish death should not queue immediate removal"

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from backend.connection_manager import TankConnection
+from backend.connection_manager import ConnectionManager, TankConnection
 from backend.migration_handler import MigrationHandler
+from backend.world_manager import WorldManager
 
 
 @dataclass
@@ -41,7 +42,7 @@ def _make_connections() -> list[TankConnection]:
 
 
 def _make_handler() -> MigrationHandler:
-    return MigrationHandler(connection_manager=object(), world_manager=object())
+    return MigrationHandler(connection_manager=ConnectionManager(), world_manager=WorldManager())
 
 
 def test_migration_selection_stable_for_seed_and_entity() -> None:

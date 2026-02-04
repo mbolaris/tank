@@ -14,7 +14,7 @@ import logging
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 
@@ -202,7 +202,10 @@ def load_snapshot(snapshot_path: str) -> Optional[Dict[str, Any]]:
     """
     try:
         with open(snapshot_path) as f:
-            return json.load(f)
+            obj = json.load(f)
+            if not isinstance(obj, dict):
+                return None
+            return cast(Dict[str, Any], obj)
     except Exception as e:
         logger.error(f"Failed to load snapshot {snapshot_path}: {e}", exc_info=True)
         return None
@@ -314,6 +317,7 @@ def restore_world_from_snapshot(
                 x = entity_data["x"]
                 y = entity_data["y"]
 
+                food: Food
                 if food_type == "live":
                     food = LiveFood(environment=engine.environment, x=x, y=y)
                 else:
@@ -420,6 +424,8 @@ def _bootstrap_static_elements(engine: Any) -> None:
     that are expected to always exist in Tank mode. We recreate them here.
     """
     env = getattr(engine, "environment", None)
+    if env is None:
+        return
     world_type = getattr(env, "world_type", None)
     if world_type not in (None, "tank"):
         return
@@ -484,7 +490,10 @@ def get_latest_snapshot(world_id: str) -> Optional[str]:
         return None
 
     # Snapshots are sorted by newest first
-    return snapshots[0]["filepath"]
+    filepath = snapshots[0].get("filepath")
+    if not isinstance(filepath, str):
+        return None
+    return filepath
 
 
 def find_all_world_snapshots() -> Dict[str, str]:

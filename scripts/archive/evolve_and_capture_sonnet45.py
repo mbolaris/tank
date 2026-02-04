@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.entities import Fish
 from core.solutions import SolutionTracker
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def calculate_positional_balance(fish) -> float:
+def calculate_positional_balance(fish: Fish) -> float:
     """Calculate how balanced a fish's performance is across positions."""
     if not hasattr(fish, "poker_stats") or not fish.poker_stats:
         return 0.0
@@ -45,7 +45,7 @@ def calculate_positional_balance(fish) -> float:
     return balance * avg_wr
 
 
-def score_poker_fish(fish) -> dict:
+def score_poker_fish(fish: Fish) -> dict:
     """Score a fish for tournament quality."""
     if not hasattr(fish, "poker_stats") or not fish.poker_stats:
         return {"score": 0.0}
@@ -84,16 +84,15 @@ def run_and_capture(seed: int, max_frames: int = 150000):
     """Run simulation and capture the best balanced fish."""
     logger.info(f"Starting simulation with seed {seed}, max_frames {max_frames}")
 
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     logger.info(f"World initialized with {len(world.entities_list)} entities")
 
     # Run simulation
     stats_interval = 5000
     for frame in range(max_frames):
-        world.update()
+        world.step()
 
         if frame > 0 and frame % stats_interval == 0:
             fish_list = [e for e in world.entities_list if isinstance(e, Fish)]

@@ -26,12 +26,18 @@ def verify_single_plant(spot_id: int = 10, frames: int = 100) -> int:
         return 1
 
     genome = PlantGenome.create_random()
-    plant = Plant(environment=environment, genome=genome, root_spot=spot, initial_energy=50.0)
+    plant = Plant(
+        environment=environment,
+        genome=genome,
+        root_spot=spot,
+        initial_energy=50.0,
+        plant_id=spot_id,
+    )
     spot.claim(plant)
 
     print("Initial energy:", plant.energy)
     for frame in range(1, frames + 1):
-        plant.update(elapsed_time=frame, time_modifier=1.0, time_of_day=1.0)
+        plant.update(frame_count=frame, time_modifier=1.0, time_of_day=1.0)
         if frame % 10 == 0:
             print(f"Frame {frame}: energy={plant.energy:.4f}")
 

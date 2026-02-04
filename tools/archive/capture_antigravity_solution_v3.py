@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 BENCHMARK_OPPONENTS = [
     "always_fold",
@@ -39,17 +39,14 @@ def run_simulation_for_poker(max_frames: int = 150000, seed: int = 12345):
     logger.info("Starting extended v3 simulation for Antigravity...")
     logger.info(f"Running {max_frames} frames with seed {seed}")
 
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-
-    # Set up the world
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
     logger.info(f"World initialized with {len(world.entities_list)} entities")
 
     # Run simulation
     stats_interval = 5000
     for frame in range(max_frames):
-        world.update()
+        world.step()
 
         if frame > 0 and frame % stats_interval == 0:
             # Check poker activity

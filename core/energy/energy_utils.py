@@ -35,9 +35,8 @@ def apply_energy_delta(
     if delta == 0:
         return 0.0
 
-    modify = getattr(entity, "modify_energy", None)
-    if callable(modify):
-        return modify(delta, source=source)
+    if isinstance(entity, EnergyModifier):
+        return entity.modify_energy(delta, source=source)
 
     if not allow_direct_assignment:
         raise AttributeError(
@@ -47,13 +46,13 @@ def apply_energy_delta(
     if not hasattr(entity, "energy"):
         raise AttributeError("Cannot apply energy delta without energy attribute.")
 
-    old_energy = entity.energy
+    old_energy = float(entity.energy)
     max_energy = getattr(entity, "max_energy", None)
     new_energy = old_energy + delta
     if max_energy is not None:
-        new_energy = max(0.0, min(new_energy, max_energy))
+        new_energy = max(0.0, min(new_energy, float(max_energy)))
     else:
         new_energy = max(0.0, new_energy)
 
     entity.energy = new_energy
-    return new_energy - old_energy
+    return float(new_energy - old_energy)

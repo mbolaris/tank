@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 
 import pytest
 
@@ -8,12 +9,20 @@ from core.poker.core.cards import Card, Rank, Suit
 from core.poker.core.game_state import PokerGameState
 from core.poker.simulation import engine as simulation_engine
 from core.poker.simulation import hand_engine
+from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 
 
-class AlwaysCallStrategy:
-    def decide_action(self, **kwargs):
-        current_bet = kwargs["current_bet"]
-        opponent_bet = kwargs["opponent_bet"]
+class AlwaysCallStrategy(PokerStrategyAlgorithm):
+    def decide_action(
+        self,
+        hand_strength: float,
+        current_bet: float,
+        opponent_bet: float,
+        pot: float,
+        player_energy: float,
+        position_on_button: bool = False,
+        rng: Optional[random.Random] = None,
+    ) -> tuple[BettingAction, float]:
         if opponent_bet > current_bet:
             return BettingAction.CALL, opponent_bet - current_bet
         return BettingAction.CHECK, 0.0

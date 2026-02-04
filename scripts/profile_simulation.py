@@ -24,8 +24,9 @@ def run_simulation():
     print("Running profiled simulation (500 frames) with high load...")
 
     # Force higher population for stress testing (reduced to avoid deck exhaustion)
+    assert sim.reproduction_service is not None
     for _ in range(50):
-        sim.spawn_emergency_fish()
+        sim.reproduction_service._spawn_emergency_fish()
 
     start_time = time.time()
 

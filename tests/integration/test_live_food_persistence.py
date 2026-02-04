@@ -3,12 +3,21 @@
 
 import sys
 from pathlib import Path
+from typing import List, Optional, TypedDict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from core.entities.resources import Food, LiveFood
 from core.environment import Environment
+
+
+class _SavedFood(TypedDict):
+    type: str
+    x: float
+    y: float
+    energy: float
+    food_type: Optional[str]
 
 
 def _run_live_food_persistence():
@@ -37,11 +46,11 @@ def _run_live_food_persistence():
     # Simulate save logic
     print("\n3. Simulating save logic...")
     entities = [regular_food, live_food]
-    saved_data = []
+    saved_data: List[_SavedFood] = []
 
     for entity in entities:
         if isinstance(entity, Food):
-            data = {
+            data: _SavedFood = {
                 "type": "food",
                 "x": entity.pos.x,
                 "y": entity.pos.y,
@@ -53,7 +62,7 @@ def _run_live_food_persistence():
 
     # Simulate restore logic
     print("\n4. Simulating restore logic...")
-    restored_entities = []
+    restored_entities: List[Food] = []
 
     for entity_data in saved_data:
         food_type = entity_data["food_type"]
@@ -61,7 +70,7 @@ def _run_live_food_persistence():
         y = entity_data["y"]
 
         if food_type == "live":
-            food = LiveFood(
+            food: Food = LiveFood(
                 environment=env,
                 x=x,
                 y=y,

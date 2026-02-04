@@ -66,6 +66,7 @@ def test_rejects_loops_and_comprehensions(source: str) -> None:
 def test_allows_basic_policy() -> None:
     pool, component_id = _make_component("def policy(obs, rng):\n    return (1.0, 0.0)\n")
     func = pool.get_callable(component_id)
+    assert func is not None
     assert func({}, None) == (1.0, 0.0)
 
 
@@ -74,6 +75,7 @@ def test_determinism_with_seeded_rng() -> None:
         "def policy(obs, rng):\n    return (rng.random(), rng.random())\n"
     )
     func = pool.get_callable(component_id)
+    assert func is not None
     rng_a = random.Random(123)
     rng_b = random.Random(123)
     assert func(None, rng_a) == func(None, rng_b)
@@ -89,7 +91,7 @@ def test_compile_cache_per_version() -> None:
         calls += 1
         return original(component)
 
-    pool._compile_component = counting
+    setattr(pool, "_compile_component", counting)
     pool.compile(component_id)
     pool.compile(component_id)
     assert calls == 1

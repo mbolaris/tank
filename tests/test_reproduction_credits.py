@@ -69,10 +69,14 @@ class _DummyEngine:
 
 
 def test_reproduction_requires_credits() -> None:
+    from typing import cast
+
+    from core.simulation.engine import SimulationEngine
+
     rng = random.Random(7)
     fish = _DummyFish(rng)
     engine = _DummyEngine([fish])
-    service = ReproductionService(engine)
+    service = ReproductionService(cast(SimulationEngine, engine))
 
     service.update_frame(1)
     assert engine.spawned == []

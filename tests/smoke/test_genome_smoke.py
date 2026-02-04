@@ -10,6 +10,7 @@ def smoke():
     g = Genome.random(use_algorithm=False, rng=rng)
     print("size_modifier:", g.physical.size_modifier.value)
     print("aggression:", g.behavioral.aggression.value)
+    assert g.behavioral.mate_preferences is not None
     print("mate_prefs:", g.behavioral.mate_preferences.value)
 
 

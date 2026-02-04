@@ -11,6 +11,7 @@ def test_trait_containers():
     # Read trait containers
     assert isinstance(g.physical.size_modifier.value, float)
     assert isinstance(g.behavioral.aggression.value, float)
+    assert g.behavioral.mate_preferences is not None
     assert isinstance(g.behavioral.mate_preferences.value, dict)
 
     # Set values directly on GeneticTrait containers
@@ -91,12 +92,16 @@ def test_old_genome_loads_with_migration():
     # NEW BEHAVIOR: Legacy migration is removed, so we expect defaults (ignoring legacy ID)
     from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
 
+    assert g.behavioral.movement_policy_id is not None
     assert g.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID
     # Params should be None or default, definitively NOT the legacy param
+    assert g.behavioral.movement_policy_params is not None
     assert g.behavioral.movement_policy_params.value is None
 
     # Poker/Soccer should be empty
+    assert g.behavioral.poker_policy_id is not None
     assert g.behavioral.poker_policy_id.value is None
+    assert g.behavioral.soccer_policy_id is not None
     assert g.behavioral.soccer_policy_id.value is None
 
 
@@ -118,10 +123,14 @@ def test_genome_with_code_policy_round_trip():
     g2 = Genome.from_dict(data, rng=rng2, use_algorithm=False)
 
     # Verify round-trip
+    assert g2.behavioral.movement_policy_id is not None
     assert g2.behavioral.movement_policy_id.value == "comp_move"
+    assert g2.behavioral.movement_policy_params is not None
     assert g2.behavioral.movement_policy_params.value == {"speed": 1.0}
 
+    assert g2.behavioral.poker_policy_id is not None
     assert g2.behavioral.poker_policy_id.value == "comp_poker"
+    assert g2.behavioral.poker_policy_params is not None
     assert g2.behavioral.poker_policy_params.value == {"bet": 0.5}
 
 
@@ -169,8 +178,12 @@ def test_code_policy_inheritance_deterministic():
     child2 = Genome.from_parents_weighted(parent1, parent2, rng=rng2)
 
     # Should be identical
+    assert child1.behavioral.movement_policy_id is not None
+    assert child2.behavioral.movement_policy_id is not None
     assert child1.behavioral.movement_policy_id.value == child2.behavioral.movement_policy_id.value
     # Params may have been mutated, but deterministically
+    assert child1.behavioral.movement_policy_params is not None
+    assert child2.behavioral.movement_policy_params is not None
     assert (
         child1.behavioral.movement_policy_params.value
         == child2.behavioral.movement_policy_params.value
@@ -197,11 +210,13 @@ def test_code_policy_inheritance_from_single_parent():
     for i in range(total):
         rng = random.Random(1000 + i)
         child = Genome.from_parents_weighted(parent1, parent2, parent1_weight=0.5, rng=rng)
-        if child.behavioral.movement_policy_id.value is not None:
-            if child.behavioral.movement_policy_id.value == "custom_parent_comp":
-                custom_count += 1
-            elif child.behavioral.movement_policy_id.value == BUILTIN_SEEK_NEAREST_FOOD_ID:
-                default_count += 1
+        policy_trait = child.behavioral.movement_policy_id
+        if policy_trait is None or policy_trait.value is None:
+            continue
+        if policy_trait.value == "custom_parent_comp":
+            custom_count += 1
+        elif policy_trait.value == BUILTIN_SEEK_NEAREST_FOOD_ID:
+            default_count += 1
 
     # Both policies should be inherited sometimes (probabilistic)
     assert custom_count > 10, f"Custom policy inherited only {custom_count} times"
@@ -223,11 +238,13 @@ def test_code_policy_params_mutation():
     for i in range(100):
         rng = random.Random(2000 + i)
         child = Genome.from_parents_weighted(parent1, parent2, rng=rng)
-        if child.behavioral.movement_policy_params.value is not None:
-            params = child.behavioral.movement_policy_params.value
-            if params.get("a") != 5.0 or params.get("b") != -2.0:
-                mutated = True
-                break
+        params_trait = child.behavioral.movement_policy_params
+        if params_trait is None or params_trait.value is None:
+            continue
+        params = params_trait.value
+        if params.get("a") != 5.0 or params.get("b") != -2.0:
+            mutated = True
+            break
 
     # At least some mutations should occur
     assert mutated, "No param mutations detected over 100 offspring"

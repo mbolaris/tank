@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
     from core.systems.poker_proximity import PokerProximitySystem
+    from core.systems.soccer_system import SoccerSystem
     from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
     from core.worlds.system_pack import SystemPack
 
@@ -85,6 +86,7 @@ class PackableEngine(Protocol):
     reproduction_system: ReproductionSystem
     poker_system: PokerSystem
     poker_proximity_system: PokerProximitySystem
+    soccer_system: SoccerSystem | None
 
     def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
 
@@ -183,6 +185,7 @@ class SimulationEngine:
         self.reproduction_service: ReproductionService | None = None
         self.reproduction_system: ReproductionSystem | None = None
         self.poker_system: PokerSystem | None = None
+        self.soccer_system: SoccerSystem | None = None
         self.lifecycle_system: EntityLifecycleSystem | None = None
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None

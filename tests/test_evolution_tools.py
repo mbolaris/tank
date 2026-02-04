@@ -1,13 +1,8 @@
 import os
-import sys
 import tempfile
 import unittest
 
-# Add tools directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tools")))
-
-import run_bench
-import validate_improvement
+from tools import run_bench, validate_improvement
 
 
 class TestRunBench(unittest.TestCase):

@@ -13,15 +13,17 @@ import sys
 sys.path.insert(0, os.getcwd())
 
 import logging
+from typing import Any
 
 logging.basicConfig(level=logging.WARNING)
 
 from core.entities import Fish, Food
 from core.entities.plant import PlantNectar
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import MultiAgentWorldBackend
 
 
-def trace_energy_economy(tank: TankWorld, frames: int = 500):
+def trace_energy_economy(tank: MultiAgentWorldBackend, frames: int = 500) -> None:
     """Trace energy flow through the system to find bugs."""
 
     print("\n" + "=" * 70)
@@ -58,7 +60,7 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
             sample_energy_log.append(sample_fish.energy)
 
         # Run update
-        tank.update()
+        tank.step()
 
         # Snapshot after update
         entities_after = tank.engine.get_all_entities()
@@ -137,12 +139,12 @@ def trace_energy_economy(tank: TankWorld, frames: int = 500):
 def main():
     print("Starting energy economy bug hunt...")
 
-    config = {
+    config: dict[str, Any] = {
         "max_population": 100,
         "auto_food_enabled": True,
     }
 
-    world = WorldRegistry.create_world("tank", seed=42, **config)
+    world = WorldRegistry.create_world("tank", seed=42, config=config)
     world.reset(seed=42)
 
     # Spawn initial population

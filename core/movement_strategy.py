@@ -60,9 +60,12 @@ class MovementStrategy:
         else:
             nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
 
-        for food in nearby_food:
+        for candidate in nearby_food:
             # Get the food entity (unwrap if it's a sprite wrapper)
-            food_entity: Food = food._entity if hasattr(food, "_entity") else food
+            candidate_entity = candidate._entity if hasattr(candidate, "_entity") else candidate
+            if not isinstance(candidate_entity, Food):
+                continue
+            food_entity = candidate_entity
 
             # Use the collision detector for consistent collision detection
             if default_collision_detector.collides(sprite_entity, food_entity):

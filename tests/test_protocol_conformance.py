@@ -157,6 +157,9 @@ class TestSystemProtocol:
     def test_base_system_implements_protocol(self):
         """BaseSystem should implement System protocol."""
         from core.systems.base import BaseSystem, System, SystemResult
+        from typing import cast
+
+        from core.simulation.engine import SimulationEngine
 
         # Create a minimal concrete implementation
         class TestSystem(BaseSystem):
@@ -167,7 +170,7 @@ class TestSystemProtocol:
         class MockEngine:
             pass
 
-        system = TestSystem(MockEngine(), "test_system")
+        system = TestSystem(cast(SimulationEngine, MockEngine()), "test_system")
 
         # Verify protocol compliance
         assert isinstance(system, System), "BaseSystem should satisfy System protocol"
@@ -179,6 +182,9 @@ class TestSystemProtocol:
     def test_system_update_returns_system_result(self):
         """System.update() should return SystemResult."""
         from core.systems.base import BaseSystem, SystemResult
+        from typing import cast
+
+        from core.simulation.engine import SimulationEngine
 
         class TestSystem(BaseSystem):
             def _do_update(self, frame: int) -> SystemResult:
@@ -187,7 +193,7 @@ class TestSystemProtocol:
         class MockEngine:
             pass
 
-        system = TestSystem(MockEngine(), "test")
+        system = TestSystem(cast(SimulationEngine, MockEngine()), "test")
         result = system.update(frame=1)
 
         assert isinstance(result, SystemResult), "update() should return SystemResult"

@@ -147,7 +147,7 @@ def calculate_mate_attraction(
             # Skip missing traits
             continue
 
-        mate_value = get_trait_value(other_trait)
+        mate_value = float(get_trait_value(other_trait, default=0.0))
         score = _normalized_similarity(
             mate_value,
             desired,

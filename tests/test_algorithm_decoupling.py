@@ -1,4 +1,5 @@
-from typing import Any, List, Tuple, Type
+import random
+from typing import Any, List, Optional, Tuple, Type, cast
 from unittest.mock import MagicMock
 
 from core.algorithms.base import BehaviorAlgorithm
@@ -29,8 +30,9 @@ class MockWorld:
         return self.bounds
 
     def is_valid_position(self, position: Any) -> bool:
-        x, y = position.x, position.y
-        return 0 <= x <= 1000 and 0 <= y <= 1000
+        x = cast(float, position.x)
+        y = cast(float, position.y)
+        return 0.0 <= x <= 1000.0 and 0.0 <= y <= 1000.0
 
     @property
     def dimensions(self) -> Tuple[float, ...]:
@@ -106,11 +108,12 @@ def test_find_nearest_helper_works_with_mock_world():
 
     # We rely on base.py behavior injected into a dummy class
     class TestAlgo(BehaviorAlgorithm):
-        def execute(self, f):
-            return 0, 0
+        def execute(self, fish: Fish) -> Tuple[float, float]:
+            return (0.0, 0.0)
 
-        def random_instance(self):
-            return self()
+        @classmethod
+        def random_instance(cls, rng: Optional[random.Random] = None) -> "BehaviorAlgorithm":
+            return cls("test_id")
 
     algo = TestAlgo("test_id")
 

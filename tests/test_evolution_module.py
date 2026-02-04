@@ -285,6 +285,7 @@ class TestFullGenomeEvolution:
         # Offspring should have valid values
         assert 0.5 <= offspring.speed_modifier <= 1.5
         assert 0.0 <= offspring.behavioral.aggression.value <= 1.0
+        assert offspring.behavioral.behavior is not None
         assert offspring.behavioral.behavior.value is not None
 
     def test_genome_weighted_crossover_favors_winner(self):
@@ -353,6 +354,7 @@ class TestFullGenomeEvolution:
         for genome in population:
             assert 0.5 <= genome.speed_modifier <= 1.5
             assert 0.0 <= genome.behavioral.aggression.value <= 1.0
+            assert genome.behavioral.behavior is not None
             assert genome.behavioral.behavior.value is not None
 
 

@@ -61,6 +61,7 @@ def test_strict_availability(base_config):
 
     runtime.tick(world, seed_base=1, cycle=1)
     state = runtime.get_live_state()
+    assert state is not None
 
     av = state["availability"]
     # Tank1:A should exist but be unavailable
@@ -83,6 +84,7 @@ def test_team_forming(base_config):
 
     runtime.tick(world, seed_base=1, cycle=1)
     state = runtime.get_live_state()
+    assert state is not None
     av = state["availability"]
 
     assert av["Tank1:A"]["available"] is True
@@ -111,6 +113,7 @@ def test_scheduler_skipping(base_config):
     # Since only 2 teams and one is bad, it should end season or idle.
 
     state = runtime.get_live_state()
+    assert state is not None
     assert state["active_match"] is None
 
     # However, if we add a 3rd team (e.g. Bot 2), it might skip one and play the other.
@@ -128,6 +131,7 @@ def test_full_match_flow(base_config):
     # 1. Start Match (Cycle 0 matches config.match_every_frames=1 if checked properly)
     runtime.tick(world, seed_base=1, cycle=100)
     state = runtime.get_live_state()
+    assert state is not None
 
     assert state["active_match"] is not None
     match = state["active_match"]
@@ -140,6 +144,7 @@ def test_full_match_flow(base_config):
         runtime.tick(world, seed_base=1, cycle=101 + _)
 
     state = runtime.get_live_state()
+    assert state is not None
 
     # Should be game over or cleared
     # Runtime clears active match immediately after finalization in tick()
@@ -179,6 +184,7 @@ def test_leaderboard_sorting(base_config):
     }
 
     state = runtime.get_live_state()
+    assert state is not None
     lb = state["leaderboard"]
 
     assert lb[0]["team_id"] == "A"

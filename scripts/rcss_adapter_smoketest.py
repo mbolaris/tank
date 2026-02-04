@@ -45,8 +45,12 @@ def main() -> int:
         engine.add_player("left_1", "left", RCSSVector(-20, 0), body_angle=0.0)
         engine.add_player("right_1", "right", RCSSVector(20, 0), body_angle=3.14)
         print(f"  Cycle: {engine.cycle}")
-        print(f"  Players: left_1  ={engine.get_player('left_1').position.x:.1f}")
-        print(f"           right_1 = {engine.get_player('right_1').position.x:.1f}")
+        left = engine.get_player("left_1")
+        right = engine.get_player("right_1")
+        assert left is not None
+        assert right is not None
+        print(f"  Players: left_1  ={left.position.x:.1f}")
+        print(f"           right_1 = {right.position.x:.1f}")
 
         # Test stepping
         print("\n[OK] Stepping with commands:")
@@ -56,8 +60,12 @@ def main() -> int:
             engine.step_cycle()
 
         print("  After 10 steps:")
-        print(f"  left_1.x  = {engine.get_player('left_1').position.x:.2f}")
-        print(f"  right_1.x = {engine.get_player('right_1').position.x:.2f}")
+        left = engine.get_player("left_1")
+        right = engine.get_player("right_1")
+        assert left is not None
+        assert right is not None
+        print(f"  left_1.x  = {left.position.x:.2f}")
+        print(f"  right_1.x = {right.position.x:.2f}")
 
         # Test match runner
         print("\n[OK] Testing SoccerMatchRunner:")

@@ -51,6 +51,7 @@ class TestRCSSSpeedCaps:
             engine.step_cycle()
 
         player = engine.get_player("left_1")
+        assert player is not None
         speed = player.velocity.magnitude()
 
         # Speed should not exceed max
@@ -89,6 +90,7 @@ class TestRCSSDecay:
 
         # Get velocity after dash
         player = engine.get_player("left_1")
+        assert player is not None
         vel_after_dash = player.velocity.magnitude()
 
         # Step without new commands - velocity should decay
@@ -137,6 +139,7 @@ class TestRCSSCommandClamping:
 
         # Player should have moved (command was processed with clamped power)
         player = engine.get_player("left_1")
+        assert player is not None
         assert player.velocity.magnitude() > 0
 
     def test_turn_moment_clamped(self):
@@ -144,14 +147,18 @@ class TestRCSSCommandClamping:
         engine = RCSSLiteEngine(seed=42)
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
-        initial_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_angle = player.body_angle
 
         # Queue turn with excessive moment
         engine.queue_command("left_1", RCSSCommand.turn(360))
         engine.step_cycle()
 
         # Angle should have changed (command was processed)
-        final_angle = engine.get_player("left_1").body_angle
+        player = engine.get_player("left_1")
+        assert player is not None
+        final_angle = player.body_angle
         angle_change = abs(final_angle - initial_angle)
 
         # Change should be at most 180 degrees (clamped)
@@ -180,13 +187,17 @@ class TestRCSSStaminaModel:
         engine = RCSSLiteEngine(seed=42)
         engine.add_player("left_1", "left", RCSSVector(0, 0), body_angle=0.0)
 
-        initial_stamina = engine.get_player("left_1").stamina
+        player = engine.get_player("left_1")
+        assert player is not None
+        initial_stamina = player.stamina
 
         # Dash
         engine.queue_command("left_1", RCSSCommand.dash(100, 0))
         engine.step_cycle()
 
-        final_stamina = engine.get_player("left_1").stamina
+        player = engine.get_player("left_1")
+        assert player is not None
+        final_stamina = player.stamina
 
         # Stamina should have decreased
         assert final_stamina < initial_stamina
@@ -201,13 +212,17 @@ class TestRCSSStaminaModel:
             engine.queue_command("left_1", RCSSCommand.dash(100, 0))
             engine.step_cycle()
 
-        depleted_stamina = engine.get_player("left_1").stamina
+        player = engine.get_player("left_1")
+        assert player is not None
+        depleted_stamina = player.stamina
 
         # Rest (step without commands)
         for _ in range(10):
             engine.step_cycle()
 
-        recovered_stamina = engine.get_player("left_1").stamina
+        player = engine.get_player("left_1")
+        assert player is not None
+        recovered_stamina = player.stamina
 
         # Stamina should have recovered
         assert recovered_stamina > depleted_stamina
@@ -232,6 +247,8 @@ class TestRCSSDeterminism:
 
                 left = engine.get_player("left_1")
                 right = engine.get_player("right_1")
+                assert left is not None
+                assert right is not None
                 trajectory.append(
                     (left.position.x, left.position.y, right.position.x, right.position.y)
                 )
@@ -255,7 +272,9 @@ class TestRCSSDeterminism:
             engine.queue_command("left_1", RCSSCommand.dash(100, 0))
             engine.step_cycle()
 
-            return engine.get_player("left_1").position.x
+            player = engine.get_player("left_1")
+            assert player is not None
+            return player.position.x
 
         pos1 = run_simple_physics(42)
         pos2 = run_simple_physics(12345)

@@ -23,14 +23,16 @@ class TestFoodPrediction(unittest.TestCase):
         print(f"Linear Intercept: {intercept} in {time:.2f}s")
 
         self.assertIsNotNone(intercept)
+        assert intercept is not None
         self.assertLess(time, 2.0, "Should be able to intercept within 2s")
 
         # Verification
         fish_time = (intercept - fish_pos).length() / fish_speed
-        (intercept - target_pos).length() / target_vel.length()
+        target_time = (intercept - target_pos).length() / target_vel.length()
 
         # Times should match
         self.assertAlmostEqual(fish_time, time, places=1)
+        self.assertAlmostEqual(target_time, time, places=1)
 
     def test_falling_interception(self):
         """Test acceleration-aware interception (for falling food)."""
@@ -66,6 +68,9 @@ class TestFoodPrediction(unittest.TestCase):
         )
 
         print(f"Naive Intercept: {naive_intercept}")
+
+        self.assertIsNotNone(naive_intercept)
+        assert naive_intercept is not None
 
         # Naive prediction for stationary/slow start object is basically current position
         # Naive predicts (100, 0) + velocity*time. Velocity is 0. So (100, 0).

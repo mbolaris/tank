@@ -208,7 +208,7 @@ class PokerStatsManager:
         }
 
     def get_poker_leaderboard(
-        self, fish_list: List["Fish"], sort_by: str = "net_energy", limit: int = 10
+        self, fish_list: Optional[List["Fish"]], sort_by: str = "net_energy", limit: int = 10
     ) -> List[Dict[str, Any]]:
         """Get poker leaderboard of top-performing fish."""
         if fish_list is None:

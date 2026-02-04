@@ -69,7 +69,7 @@ class EnergyConserver(BehaviorAlgorithm):
                     return direction.x * 1.1, direction.y * 1.1
 
         # Flee if predator is very close
-        if predator_distance < 80:
+        if nearest_predator is not None and predator_distance < 80:
             # Must flee even if conserving energy
             direction = self._safe_normalize(fish.pos - nearest_predator.pos)
             # IMPROVEMENT: Smarter flee speed based on energy
@@ -175,14 +175,14 @@ class BurstSwimmer(BehaviorAlgorithm):
 
         if self.is_bursting:
             # Directed burst movement
-            if predator_nearby:
+            if nearest_predator is not None and predator_nearby:
                 # Burst away from predator
                 direction = self._safe_normalize(fish.pos - nearest_predator.pos)
                 return (
                     direction.x * self.parameters["burst_speed"],
                     direction.y * self.parameters["burst_speed"],
                 )
-            elif food_nearby:
+            elif nearest_food is not None and food_nearby:
                 # Burst toward food
                 direction = self._safe_normalize(nearest_food.pos - fish.pos)
                 return (

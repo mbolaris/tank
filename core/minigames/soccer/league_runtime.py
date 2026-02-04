@@ -173,10 +173,13 @@ class SoccerLeagueRuntime:
         match_every_frames_raw = getattr(self.config, "match_every_frames", None)
         if match_every_frames_raw is None:
             match_every_frames_raw = getattr(self.config, "interval_frames", 0)
-        try:
-            match_every_frames = int(match_every_frames_raw)
-        except (TypeError, ValueError):
+        if match_every_frames_raw is None:
             match_every_frames = 0
+        else:
+            try:
+                match_every_frames = int(match_every_frames_raw)
+            except (TypeError, ValueError):
+                match_every_frames = 0
         if match_every_frames <= 0:
             return False
         return cycle % match_every_frames == 0

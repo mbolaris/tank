@@ -16,7 +16,7 @@ The Plant class now delegates to specialized components for better modularity:
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from core.entities.base import Agent
+from core.entities.base import Agent, EntityUpdateResult
 from core.entities.resources import Food
 from core.entity_ids import PlantId
 from core.genetics import PlantGenome
@@ -92,6 +92,9 @@ class Plant(Agent):
             initial_energy: Starting energy level
             plant_id: Unique identifier (required, assigned by PlantManager)
         """
+        if root_spot is None:
+            raise ValueError("root_spot is required to initialize a Plant")
+
         # Initialize at the root spot position
         super().__init__(
             environment,
@@ -151,7 +154,7 @@ class Plant(Agent):
             plant_id=plant_id,
             get_root_spot=lambda: self.root_spot,
             get_environment=lambda: self.environment,
-            transition_state=lambda state, reason: self.state.transition(state, reason=reason),
+            transition_state=self._transition_state,
             rng=rng,
         )
 
@@ -446,7 +449,7 @@ class Plant(Agent):
             return False
 
         try:
-            success = migration_handler.attempt_entity_migration(self, direction, world_id)
+            success = bool(migration_handler.attempt_entity_migration(self, direction, world_id))
 
             if success:
                 # Mark this plant for removal from source tank
@@ -502,6 +505,9 @@ class Plant(Agent):
             self.environment.record_energy_delta(self, delta, source)
 
         return delta
+
+    def _transition_state(self, state: EntityState, reason: str) -> None:
+        self.state.transition(state, reason=reason)
 
     def lose_energy(self, amount: float, source: str = "poker") -> float:
         """Lose energy (from poker loss or being eaten).

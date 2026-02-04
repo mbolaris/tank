@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldManager
@@ -28,7 +28,7 @@ from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPaylo
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
-from core.worlds.interfaces import FAST_STEP_ACTION
+from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,7 @@ class SimulationRunner(CommandHandlerMixin):
         self._seed = seed  # Store for later use (e.g., switch_world_type)
         self._config = dict(config) if config else None
         # Create world via registry (world-agnostic)
+        self.world: MultiAgentWorldBackend
         self.world, self._entity_snapshot_builder = create_world(
             world_type, seed=seed, config=self._config
         )
@@ -228,12 +229,13 @@ class SimulationRunner(CommandHandlerMixin):
                 new_world_type,
             )
 
-            # Get the underlying TankWorldBackendAdapter (the "base" backend)
-            if hasattr(self.world, "_tank_backend"):
-                # Currently petri - extract the tank backend
+            # Get the underlying tank backend (the "base" backend)
+            from core.worlds.petri.backend import PetriWorldBackendAdapter
+
+            tank_backend: MultiAgentWorldBackend
+            if isinstance(self.world, PetriWorldBackendAdapter):
                 tank_backend = self.world._tank_backend
             else:
-                # Currently tank
                 tank_backend = self.world
 
             # 1) Cleanup OLD physics/resources using current hooks BEFORE switching
@@ -246,10 +248,9 @@ class SimulationRunner(CommandHandlerMixin):
                 cleanup(self)
 
             # 2) Swap the world backend (preserve underlying engine/entities)
+            new_world: MultiAgentWorldBackend
             if new_world_type == "petri":
-                from core.worlds.petri.backend import PetriWorldBackendAdapter
-
-                new_world = PetriWorldBackendAdapter(tank_backend=tank_backend)
+                new_world = PetriWorldBackendAdapter(tank_backend=cast(Any, tank_backend))
             else:
                 # Switching to tank - just use the tank backend directly
                 new_world = tank_backend
@@ -781,11 +782,15 @@ class SimulationRunner(CommandHandlerMixin):
         get_step_result = getattr(self.world, "get_last_step_result", None)
         if callable(get_step_result):
             step_result = get_step_result()
-            return self._entity_snapshot_builder.build(step_result, self.world)
+            if step_result is not None:
+                return self._entity_snapshot_builder.build(step_result, self.world)
 
         # Prefer the builder's world-aware build() path so it can use the engine's
         # identity provider (canonical source for stable IDs).
-        snapshots = self._entity_snapshot_builder.build(None, self.world)
+        snapshots = self._entity_snapshot_builder.build(
+            StepResult(snapshot=self.world.get_current_snapshot()),
+            self.world,
+        )
 
         # OPTIMIZATION: Post-process snapshots to strip heavy fields not needed for WebSocket visualization
         # This bypasses potential hot-reload issues with the snapshot builder itself
@@ -888,7 +893,9 @@ class SimulationRunner(CommandHandlerMixin):
         # Delegates to world hooks or manager if available
         tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
         if tracker:
-            return tracker.history
+            history = getattr(tracker, "history", None)
+            if isinstance(history, list):
+                return cast(List[Dict[str, Any]], history)
         return []
 
     def get_evolution_benchmark_data(self) -> Dict[str, Any]:
@@ -900,7 +907,10 @@ class SimulationRunner(CommandHandlerMixin):
         """
         tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
         if tracker is not None:
-            return tracker.get_api_data()
+            data = tracker.get_api_data()
+            if isinstance(data, dict):
+                return cast(Dict[str, Any], data)
+            return {}
 
         status = "disabled"
         # Check if it was meant to be enabled

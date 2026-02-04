@@ -9,6 +9,8 @@ This module tests key poker rules including:
 - Split pot handling
 """
 
+import sys
+
 import pytest
 
 from core.poker.core import (

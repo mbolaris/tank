@@ -24,13 +24,14 @@ Environment Variables:
 """
 
 import argparse
+import importlib
 import json
 import logging
 import os
 import subprocess
 import sys
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, cast
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class AlgorithmImprover:
         else:
             raise ValueError(f"Unknown provider: {provider}")
 
-    def load_stats(self, stats_file: str) -> Dict:
+    def load_stats(self, stats_file: str) -> Dict[str, Any]:
         """Load simulation statistics from JSON file.
 
         Args:
@@ -85,7 +86,10 @@ class AlgorithmImprover:
         """
         logger.info(f"Loading stats from: {stats_file}")
         with open(stats_file) as f:
-            return json.load(f)
+            obj = json.load(f)
+            if not isinstance(obj, dict):
+                raise ValueError(f"Expected JSON object in {stats_file}, got {type(obj).__name__}")
+            return cast(Dict[str, Any], obj)
 
     def identify_worst_performer(self, stats: Dict) -> Optional[Tuple[str, Dict]]:
         """Identify the worst performing algorithm.
@@ -223,9 +227,9 @@ Do not include markdown code blocks or explanations - just the raw Python code.
             Generated code
         """
         try:
-            import anthropic
-        except ImportError:
-            raise ImportError("anthropic package not installed. Run: pip install anthropic")
+            anthropic = importlib.import_module("anthropic")
+        except ModuleNotFoundError as e:
+            raise ImportError("anthropic package not installed. Run: pip install anthropic") from e
 
         client = anthropic.Anthropic(api_key=self.api_key)
 
@@ -236,7 +240,13 @@ Do not include markdown code blocks or explanations - just the raw Python code.
             messages=[{"role": "user", "content": prompt}],
         )
 
-        return message.content[0].text
+        content = getattr(message, "content", None)
+        if isinstance(content, list) and content:
+            text = getattr(content[0], "text", None)
+            if isinstance(text, str):
+                return text
+
+        raise ValueError("Unexpected anthropic response format (missing message.content[0].text)")
 
     def _call_gpt(self, prompt: str) -> str:
         """Call OpenAI GPT API for code generation.
@@ -248,9 +258,9 @@ Do not include markdown code blocks or explanations - just the raw Python code.
             Generated code
         """
         try:
-            import openai
-        except ImportError:
-            raise ImportError("openai package not installed. Run: pip install openai")
+            openai = importlib.import_module("openai")
+        except ModuleNotFoundError as e:
+            raise ImportError("openai package not installed. Run: pip install openai") from e
 
         client = openai.OpenAI(api_key=self.api_key)
 
@@ -261,7 +271,10 @@ Do not include markdown code blocks or explanations - just the raw Python code.
             max_tokens=4096,
         )
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        if isinstance(content, str):
+            return content
+        raise ValueError("Unexpected OpenAI response format (missing message content)")
 
     def write_improved_code(self, file_path: str, new_code: str) -> None:
         """Write improved code to file.

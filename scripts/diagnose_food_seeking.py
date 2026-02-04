@@ -12,15 +12,17 @@ import sys
 sys.path.insert(0, os.getcwd())
 
 import logging
+from typing import Any
 
 logging.basicConfig(level=logging.WARNING)
 
 from core.entities import Fish, Food
 from core.entities.plant import PlantNectar
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import MultiAgentWorldBackend
 
 
-def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
+def analyze_food_seeking(tank: MultiAgentWorldBackend, frames: int = 1000) -> None:
     """Diagnose food-seeking effectiveness."""
 
     print("\n" + "=" * 70)
@@ -34,7 +36,7 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
     food_eaten_count = 0
 
     # Track food eaten events
-    prev_food_ids = set()
+    prev_food_ids: set[int] = set()
 
     for frame in range(frames):
         entities = tank.engine.get_all_entities()
@@ -74,7 +76,7 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
                     if dot > 0:
                         fish_moving_toward_food_count += 1
 
-        tank.update()
+        tank.step()
 
         if frame % 200 == 0:
             avg_vel = 0
@@ -125,12 +127,12 @@ def analyze_food_seeking(tank: TankWorld, frames: int = 1000):
 def main():
     print("Initializing simulation for food-seeking diagnosis...")
 
-    config = {
+    config: dict[str, Any] = {
         "max_population": 100,
         "auto_food_enabled": True,
     }
 
-    world = WorldRegistry.create_world("tank", seed=42, **config)
+    world = WorldRegistry.create_world("tank", seed=42, config=config)
     world.reset(seed=42)
 
     # Spawn initial population

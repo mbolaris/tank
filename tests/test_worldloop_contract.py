@@ -13,7 +13,10 @@ import pytest
 
 from core.worlds.contracts import (
     ALL_WORLD_TYPES,
+    EnergyDeltaRecord,
     RenderHint,
+    RemovalRequest,
+    SpawnRequest,
     get_default_render_hint,
     is_valid_world_type,
 )
@@ -101,14 +104,15 @@ class TestStepResultExtendedFields:
     def test_step_result_with_extended_fields(self) -> None:
         """StepResult can be created with extended fields populated."""
         result = StepResult(
-            spawns=[{"entity_type": "fish", "entity_id": "1"}],
-            removals=[{"entity_id": "2", "reason": "death"}],
-            energy_deltas=[{"entity_id": "1", "delta": -10.0}],
+            spawns=[SpawnRequest(entity_type="fish", entity_id="1")],
+            removals=[RemovalRequest(entity_type="fish", entity_id="2", reason="death")],
+            energy_deltas=[EnergyDeltaRecord(entity_id="1", delta=-10.0)],
             render_hint={"style": "side", "entity_style": "fish"},
         )
         assert len(result.spawns) == 1
         assert len(result.removals) == 1
         assert len(result.energy_deltas) == 1
+        assert result.render_hint is not None
         assert result.render_hint["style"] == "side"
 
 
@@ -509,6 +513,9 @@ class TestIdentityProviderPruning:
         provider = engine._identity_provider
         if provider is None:
             pytest.skip("No identity provider available")
+        from core.worlds.shared.identity import TankLikeEntityIdentityProvider
+
+        assert isinstance(provider, TankLikeEntityIdentityProvider)
 
         # Create a food entity using the food pool and add it to the simulation
         food = engine.food_pool.acquire(engine.environment, 100, 100)
@@ -549,6 +556,9 @@ class TestIdentityProviderPruning:
         provider = engine._identity_provider
         if provider is None:
             pytest.skip("No identity provider available")
+        from core.worlds.shared.identity import TankLikeEntityIdentityProvider
+
+        assert isinstance(provider, TankLikeEntityIdentityProvider)
 
         # Create two food entities using the food pool
         food1 = engine.food_pool.acquire(engine.environment, 100, 100)

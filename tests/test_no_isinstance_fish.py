@@ -57,7 +57,7 @@ def _find_isinstance_fish_calls(file_path: Path) -> list[tuple[int, str]]:
 
     Returns list of (line_number, line_content) tuples.
     """
-    violations = []
+    violations: list[tuple[int, str]] = []
     try:
         source = file_path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(file_path))

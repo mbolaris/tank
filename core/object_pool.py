@@ -67,7 +67,7 @@ class FoodPool:
             )
             food.food_type = food_type
             food.food_properties = Food.FOOD_TYPES[food_type]
-            food.is_stationary = food.food_properties.get("stationary", False)
+            food.is_stationary = bool(food.food_properties.get("stationary", False))
         else:
             # Create new if pool is empty
             food = Food(

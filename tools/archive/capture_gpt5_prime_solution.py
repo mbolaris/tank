@@ -7,11 +7,11 @@ import os
 import sys
 from typing import Dict, List, Optional, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
-from core.tank_world import TankWorld, TankWorldConfig
+from core.worlds import WorldRegistry
 
 AUTHOR = "GPT-5.2-Codex-Prime"
 FINAL_NAME = "GPT-5.2-Codex-Prime Poker Overlord"
@@ -27,16 +27,15 @@ def run_simulation(max_frames: int = 100000, seed: int = 8888):
     """Run an extended headless simulation to evolve poker play."""
     from core.entities import Fish
 
-    config = TankWorldConfig(headless=True)
-    world = TankWorld(config=config, seed=seed)
-    world.setup()
+    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world.reset(seed=seed)
 
     stats_interval = 10000
     for frame in range(max_frames):
-        world.update()
+        world.step()
 
         if frame and frame % stats_interval == 0:
-            fish_list = [e for e in world.entities_list if isinstance(e, Fish)]
+            fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
             poker_games = 0
             for fish in fish_list:
                 if hasattr(fish, "poker_stats") and fish.poker_stats:
@@ -106,7 +105,7 @@ def evaluate_candidates(
             }
         ]
 
-    best_record: SolutionRecord | None = None
+    best_record: Optional[SolutionRecord] = None
     best_result = None
     best_stats = None
     best_entry = None
@@ -254,7 +253,10 @@ def main():
 
         if (
             best_overall is None
-            or best_result.elo_rating > best_overall[0].benchmark_result.elo_rating
+            or (
+                best_overall[0].benchmark_result is not None
+                and best_result.elo_rating > best_overall[0].benchmark_result.elo_rating
+            )
         ):
             best_overall = (best_record, bench, filepath, seed)
 
@@ -270,6 +272,7 @@ def main():
 
     record, bench, filepath, seed = best_overall
     result = record.benchmark_result
+    assert result is not None
     print("\nBEST OVERALL")
     print("=" * 60)
     print(f"Seed: {seed}")

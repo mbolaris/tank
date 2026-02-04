@@ -1,7 +1,9 @@
 """Unit tests for genetic_stats module."""
 
+from typing import cast
 from unittest.mock import MagicMock
 
+from core.entities import Fish
 from core.services.stats.genetic_stats import get_genetic_distribution_stats
 
 
@@ -42,7 +44,7 @@ class MockFish:
 def test_get_genetic_distribution_stats_structure():
     """Test that the stats structure is correct."""
     fish = MockFish()
-    stats = get_genetic_distribution_stats([fish])
+    stats = get_genetic_distribution_stats(cast(list[Fish], [fish]))
 
     # Check flat stats
     assert "adult_size_avg" in stats
@@ -91,7 +93,7 @@ def test_composable_strategy_stats():
     )
     fish.genome.behavioral.poker_strategy = MockTrait(strategy)
 
-    stats = get_genetic_distribution_stats([fish])
+    stats = get_genetic_distribution_stats(cast(list[Fish], [fish]))
 
     dists = stats["gene_distributions"]["behavioral"]
     keys = [d["key"] for d in dists]
