@@ -71,7 +71,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         self._simulation_config = base_config.apply_flat_config(merged_config)
         self._engine: Optional[SimulationEngine] = None
-        self._pack: Optional["SystemPack"] = None
+        self._pack: Optional[SystemPack] = None
         self._rng: Optional[random.Random] = None
         self._current_frame = 0
         self._last_step_result: Optional[StepResult] = None

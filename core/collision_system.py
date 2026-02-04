@@ -38,7 +38,7 @@ within handlers (see core/protocols.py for examples).
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set, cast
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED

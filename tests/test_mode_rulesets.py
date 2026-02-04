@@ -37,7 +37,7 @@ class TestEnergyModel:
         """Should be frozen/immutable."""
         model = EnergyModel()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            setattr(model, "existence_cost", 0.1)
+            model.existence_cost = 0.1
 
 
 class TestScoringModel:

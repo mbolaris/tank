@@ -27,7 +27,7 @@ class TestEnvironmentPolicyPoolAPI:
     def test_list_policy_component_ids_handles_none_pool(self):
         """Returns empty list when genome_code_pool is None."""
         env = Environment()
-        setattr(env, "genome_code_pool", None)
+        env.genome_code_pool = None
 
         policy_ids = env.list_policy_component_ids("movement_policy")
 

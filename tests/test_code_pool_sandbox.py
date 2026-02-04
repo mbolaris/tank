@@ -91,7 +91,7 @@ def test_compile_cache_per_version() -> None:
         calls += 1
         return original(component)
 
-    setattr(pool, "_compile_component", counting)
+    pool._compile_component = counting
     pool.compile(component_id)
     pool.compile(component_id)
     assert calls == 1
