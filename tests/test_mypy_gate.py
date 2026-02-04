@@ -68,7 +68,8 @@ class TestMypyGateFatalDetection:
     def test_clean_run_passes(self, tmp_path: Path):
         fake = _fake_run(stdout="Success: no issues found in 42 source files\n", returncode=0)
         baseline = tmp_path / "mypy_baseline.txt"
-        with patch("tools.mypy_gate.subprocess.run", fake), \
-             patch("tools.mypy_gate.BASELINE_PATH", baseline):
+        with patch("tools.mypy_gate.subprocess.run", fake), patch(
+            "tools.mypy_gate.BASELINE_PATH", baseline
+        ):
             rc = main(["--write-baseline"])
         assert rc == 0
