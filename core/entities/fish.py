@@ -141,6 +141,29 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             else:
                 self.genome.behavioral.poker_strategy.value = strategy
 
+        # Ensure soccer policy is set when soccer is enabled
+        _sim_config = getattr(environment, "simulation_config", None)
+        _soccer_cfg = getattr(_sim_config, "soccer", None) if _sim_config else None
+        if getattr(_soccer_cfg, "enabled", False):
+            _soccer_trait = self.genome.behavioral.soccer_policy_id
+            if _soccer_trait is None or _soccer_trait.value is None:
+                _pool = getattr(environment, "genome_code_pool", None)
+                if _pool is not None:
+                    from core.genetics.code_policy_traits import SOCCER_POLICY
+
+                    _rng = require_rng(environment, "Fish.__init__.soccer_policy")
+                    _default_id = _pool.get_default(SOCCER_POLICY)
+                    if _default_id:
+                        self.genome.behavioral.soccer_policy_id = GeneticTrait(_default_id)
+                        self.genome.behavioral.soccer_policy_params = GeneticTrait({})
+                    else:
+                        # No default; pick random from pool
+                        _available = _pool.get_components_by_kind(SOCCER_POLICY)
+                        if _available:
+                            _chosen = _rng.choice(_available)
+                            self.genome.behavioral.soccer_policy_id = GeneticTrait(_chosen)
+                            self.genome.behavioral.soccer_policy_params = GeneticTrait({})
+
         self.generation: int = generation
         self.species: str = species
         self.team: str | None = team  # Team affiliation ('A' or 'B' for soccer mode)
