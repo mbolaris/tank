@@ -104,18 +104,27 @@ class ReproductionMixin:
 
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
-        # Get available policies for mutation
-        available_policies: list[str] | None = (
-            self.environment.list_policy_component_ids("movement_policy") or None
-        )
-
         # Generate offspring genome (also sets cooldown)
+        # Note: available_policies is intentionally NOT passed here.
+        # Per-kind policy mutation is handled by mutate_code_policies below,
+        # which uses the GenomeCodePool to swap within the correct kind.
         (
             offspring_genome,
             _unused_fraction,
         ) = self._reproduction_component.trigger_asexual_reproduction(
-            self.genome, rng=rng, available_policies=available_policies
+            self.genome, rng=rng,
         )
+
+        # Pool-aware per-kind policy mutation (prevents cross-kind contamination)
+        pool = getattr(self.environment, "genome_code_pool", None)
+        if pool is not None:
+            from core.genetics.code_policy_traits import (
+                mutate_code_policies,
+                validate_code_policy_ids,
+            )
+
+            mutate_code_policies(offspring_genome.behavioral, pool, rng)
+            validate_code_policy_ids(offspring_genome.behavioral, pool, rng)
 
         # Calculate baby's max energy capacity
         from core.config.fish import FISH_BABY_SIZE

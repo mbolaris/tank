@@ -344,6 +344,17 @@ class ReproductionService:
             genome = Genome.random(use_algorithm=True, rng=self._engine.rng)
             generation = 0
 
+        # Pool-aware per-kind policy mutation for emergency spawns
+        pool = getattr(environment, "genome_code_pool", None)
+        if pool is not None:
+            from core.genetics.code_policy_traits import (
+                mutate_code_policies,
+                validate_code_policy_ids,
+            )
+
+            mutate_code_policies(genome.behavioral, pool, self._engine.rng)
+            validate_code_policy_ids(genome.behavioral, pool, self._engine.rng)
+
         bounds = environment.get_bounds()
         (min_x, min_y), (max_x, max_y) = bounds
         spawn_margin = self._engine.config.ecosystem.spawn_margin_pixels
@@ -426,6 +437,17 @@ class ReproductionService:
             ),
             rng=self._engine.rng,
         )
+
+        # Pool-aware per-kind policy mutation (prevents cross-kind contamination)
+        pool = getattr(winner.environment, "genome_code_pool", None)
+        if pool is not None:
+            from core.genetics.code_policy_traits import (
+                mutate_code_policies,
+                validate_code_policy_ids,
+            )
+
+            mutate_code_policies(offspring_genome.behavioral, pool, self._engine.rng)
+            validate_code_policy_ids(offspring_genome.behavioral, pool, self._engine.rng)
 
         baby_max_energy = (
             ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
