@@ -137,7 +137,7 @@ Visit http://localhost:3000 in your browser. You should now see the Tank World U
 
 ### Port Already in Use
 - **Cause**: Another process is using port 3000 or 8000
-- **Fix**: Kill the other process or change the port in `vite.config.ts` (frontend) or `core/constants.py` (backend)
+- **Fix**: Kill the other process or change the port in `vite.config.ts` (frontend) or `core/config/server.py` (backend)
 
 ### Module Not Found Errors
 - **Cause**: Python dependencies not installed
@@ -153,7 +153,7 @@ Visit http://localhost:3000 in your browser. You should now see the Tank World U
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Backend**: Python, FastAPI, WebSocket
-- **Simulation**: Custom physics engine with neural networks
+- **Simulation**: Custom physics engine with algorithmic evolution (58 parametrizable behavior strategies)
 
 ## Viewing Soccer Mode
 

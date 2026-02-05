@@ -34,9 +34,11 @@ This index provides a guide to all documentation in the Tank World project.
 |----------|-------------|
 | [BEHAVIOR_DEVELOPMENT_GUIDE.md](BEHAVIOR_DEVELOPMENT_GUIDE.md) | How to create and extend behavior algorithms |
 | [EVO_CONTRIBUTING.md](EVO_CONTRIBUTING.md) | Contributing to the evolutionary PR protocol |
+| [REPLAY.md](REPLAY.md) | Deterministic replay system documentation |
 | [SOCCER_INTEGRATION_GUIDE.md](SOCCER_INTEGRATION_GUIDE.md) | Soccer minigame integration guide |
 | [soccer_training.md](soccer_training.md) | Soccer training documentation |
 | [persistence.md](persistence.md) | State persistence and save/load |
+| [UI_SPEC.md](UI_SPEC.md) | User interface specification |
 
 ### AI Tournament
 

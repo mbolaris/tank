@@ -138,8 +138,8 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 ### Soccer Mode (Alternative Evolution Target)
 
 ```bash
-# Run soccer simulation
-python main.py --headless --mode soccer --max-frames 30000 --seed 42
+# Run soccer benchmark
+python tools/run_bench.py benchmarks/soccer/training_5k.py --seed 42
 ```
 
 ---
@@ -161,7 +161,7 @@ After running simulations, analyze these metrics from `results.json`:
 - `max_generation`: Higher = faster evolution
 
 #### Algorithm Performance
-Check `logs/algorithm_performance_report.txt` for:
+Run a simulation with `--export-stats results.json` and review the output for:
 - Per-algorithm reproduction rates
 - Survival rates
 - Average lifespan
@@ -351,15 +351,10 @@ Then open a PR on GitHub with:
 ### Submit Your Best Evolved Solution
 
 ```bash
-# Option 1: Use capture script (runs sim and captures best fish)
-python scripts/capture_first_solution.py
+# Run AI tournament to see current standings
+python scripts/run_ai_tournament.py
 
-# Option 2: CLI tool
-python scripts/submit_solution.py list           # See existing solutions
-python scripts/submit_solution.py evaluate <id>  # Evaluate a solution
-python scripts/submit_solution.py compare        # Compare all solutions
-
-# Option 3: Capture from running simulation (requires server)
+# Capture from running simulation (requires server)
 curl -X POST http://localhost:8000/api/solutions/capture/{tank_id} \
   -H "Content-Type: application/json" \
   -d '{"name": "My Strategy", "author": "Agent-Name", "evaluate": true}'
@@ -470,8 +465,10 @@ pre-commit run --all-files  # Run before committing
 | `docs/VISION.md` | Long-term goals |
 | `docs/ARCHITECTURE.md` | Technical architecture |
 | `docs/EVO_CONTRIBUTING.md` | Evolutionary PR protocol |
-| `MULTILEVEL_EVOLUTION_STRATEGY.md` | Soccer evolution strategy |
-| `BEHAVIOR_DEVELOPMENT_GUIDE.md` | Creating new behaviors |
+| `docs/MULTILEVEL_EVOLUTION_STRATEGY.md` | Soccer evolution strategy |
+| `docs/BEHAVIOR_DEVELOPMENT_GUIDE.md` | Creating new behaviors |
+| `docs/REPLAY.md` | Deterministic replay system |
+| `docs/persistence.md` | State persistence and save/load |
 
 ### Key Directories
 | Directory | Contents |
@@ -494,7 +491,6 @@ pre-commit run --all-files  # Run before committing
 | `tools/validate_improvement.py` | Compare against champions |
 | `scripts/ai_code_evolution_agent.py` | AI-powered code improvement |
 | `scripts/run_ai_tournament.py` | Run solution tournaments |
-| `scripts/submit_solution.py` | Manage solutions |
 
 ---
 

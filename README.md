@@ -65,16 +65,16 @@ Tank World maintains a **formal registry of best-known solutions** for reproduci
 tank/
 ├── benchmarks/              # Evaluation harnesses
 │   ├── tank/                # Tank world benchmarks
-│   │   ├── survival_30k.py  # 30k frame survival benchmark
-│   │   ├── reproduction_30k.py
-│   │   └── diversity_30k.py
-│   └── registry.json        # Index of all benchmarks
+│   │   └── survival_5k.py   # 5k frame survival benchmark
+│   └── soccer/              # Soccer world benchmarks
+│       ├── training_3k.py
+│       └── training_5k.py
 ├── champions/               # Best-known solutions
 │   ├── tank/
-│   │   ├── survival_30k.json   # Current champion for survival
-│   │   ├── reproduction_30k.json
-│   │   └── diversity_30k.json
-│   └── registry.json        # Index of all champions
+│   │   └── survival_5k.json    # Current champion for survival
+│   └── soccer/
+│       ├── training_3k.json
+│       └── training_5k.json
 └── tools/
     └── run_bench.py         # Standard benchmark runner
 ```
@@ -122,14 +122,14 @@ When you discover an improvement (human or AI agent):
 
 ```bash
 # 1. Run benchmark
-python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # 2. Compare against current BKS
-python tools/validate_improvement.py results.json champions/tank/survival_30k.json
+python tools/validate_improvement.py results.json champions/tank/survival_5k.json
 
 # 3. If better, update champion and open PR
 git checkout -b improve/survival-energy-conserver
-# ... update champions/tank/survival_30k.json
+# ... update champions/tank/survival_5k.json
 git commit -m "Improve survival benchmark: EnergyConserver optimization"
 git push -u origin improve/survival-energy-conserver
 
@@ -437,15 +437,20 @@ tank/
 |-- main.py                  # CLI entry point (web or headless)
 |-- backend/                 # FastAPI app + WebSocket bridge
 |   |-- main.py              # API and WebSocket server
+|   |-- app_factory.py       # FastAPI application factory
 |   |-- simulation_runner.py # Threaded simulation runner for the UI
+|   |-- broadcast.py         # State broadcasting to WebSocket clients
 |   |-- state_payloads.py    # Pydantic models for WebSocket state
+|   |-- world_persistence.py # Save/load world state
+|   |-- replay.py            # Deterministic replay system
+|   |-- routers/             # API route handlers
 |   `-- models.py            # Pydantic schemas shared with the frontend
 |-- frontend/                # React + Vite frontend (npm run dev)
 |   `-- src/                 # Components, hooks, rendering utilities
-|-- core/                    # Shared simulation logic
+|-- core/                    # Pure Python simulation engine (no UI deps)
 |   |-- world.py             # Abstract World interface for simulation
 |   |-- agents/              # Reusable agent components
-|   |   |-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
+|   |   `-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
 |   |-- modes/               # Mode pack definitions and rulesets
 |   |   |-- interfaces.py    # ModePack, ModePackDefinition protocols
 |   |   |-- rulesets.py      # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
@@ -456,8 +461,7 @@ tank/
 |   |   |-- interfaces.py    # MultiAgentWorldBackend, StepResult
 |   |   |-- registry.py      # WorldRegistry (factory for world backends)
 |   |   |-- tank/            # Tank world backend + system pack
-|   |   |-- petri/           # Petri world backend
-|   |-- minigames/           # Soccer and other minigames
+|   |   `-- petri/           # Petri world backend
 |   |-- simulation/          # Engine orchestration + diagnostics
 |   |   |-- engine.py        # Simulation engine used by both modes
 |   |   |-- entity_manager.py
@@ -468,28 +472,46 @@ tank/
 |   |   |-- plant.py         # L-system fractal plants
 |   |   |-- resources.py     # Food, PlantNectar, Castle
 |   |   |-- predators.py     # Crab entity
+|   |   |-- mixins/          # Entity mixins (energy, mortality, reproduction)
 |   |   `-- base.py          # Entity base classes
-|   |-- fish/                # Fish component system
-|   |   |-- energy_component.py
-|   |   |-- lifecycle_component.py
-|   |   |-- reproduction_component.py
-|   |   `-- poker_stats_component.py
+|   |-- fish/                # Fish subsystem
+|   |   |-- behavior_executor.py  # Behavior execution logic
+|   |   |-- energy_state.py       # Energy state tracking
+|   |   |-- poker_stats_component.py
+|   |   `-- visual_geometry.py    # Visual trait geometry
 |   |-- poker/               # Poker game system (organized package)
 |   |   |-- core/            # Card, Hand, PokerEngine
 |   |   |-- evaluation/      # Hand evaluation logic
 |   |   |-- simulation/      # Shared hand engine + simulation adapters
 |   |   `-- strategy/        # AI poker strategies
 |   |-- algorithms/          # Behavior algorithm library (58 strategies)
+|   |   |-- food_seeking/    # 14 food-seeking algorithms
+|   |   |-- composable/      # Composable behavior sub-system
+|   |   |-- energy_management.py
+|   |   |-- predator_avoidance.py
+|   |   |-- schooling.py
+|   |   |-- territory.py
+|   |   `-- poker.py
 |   |-- genetics/            # Fish/plant genome, traits, inheritance
 |   |-- systems/             # BaseSystem + system implementations
 |   |-- config/              # Simulation configuration modules
+|   |-- minigames/           # Soccer and other minigames
+|   |-- spatial/             # Spatial queries & grid
+|   |-- energy/              # Energy accounting subsystem
+|   |-- evolution/           # Evolution logic
+|   |-- telemetry/           # Telemetry and stats collection
 |   |-- ecosystem.py         # Population tracking & statistics
 |   |-- environment.py       # Spatial queries & collision detection
 |   `-- time_system.py       # Day/night cycle management
-|-- scripts/                 # Automation scripts (AI code evolution, demos)
-|-- tests/                   # Test suite (determinism, integration)
+|-- benchmarks/              # Deterministic benchmark harnesses
+|-- champions/               # Best-known solutions registry
+|-- solutions/               # Submitted poker solutions
+|-- tools/                   # Benchmark runners & validators
+|-- scripts/                 # Automation scripts (AI code evolution, analysis)
+|-- tests/                   # Test suite (determinism, integration, smoke)
 |-- docs/                    # Architecture + feature documentation (see docs/INDEX.md)
 |-- SETUP.md                 # Development environment setup
+|-- AGENTS.md                # AI agent contributor guide
 `-- README.md                # This file
 ```
 
@@ -544,7 +566,7 @@ Other notable config modules:
 - **Energy redistribution**: Poker transfers energy between fish and plants
 - **Fitness signaling**: Better poker players accumulate more energy
 - **Risk/reward**: Fish must balance poker with survival needs
-- **Energy accounting details**: See `docs/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
+- **Energy accounting details**: See `docs/archive/2025-12-cleanup/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
 
 ### Plant Ecosystem
 - **Fractal growth**: Plants grow from root spots using L-system genetics
@@ -648,8 +670,8 @@ Recently Completed: ✅
 
 Potential Future Additions:
 - [ ] Neural network option (as alternative to algorithmic evolution)
-- [ ] Save/load ecosystem states
-- [ ] Replay system to watch evolution over time
+- [x] Save/load ecosystem states (implemented via `backend/world_persistence.py`)
+- [x] Replay system for deterministic replay and verification (see `docs/REPLAY.md`)
 - [ ] More predator species (different hunting strategies)
 - [ ] Seasonal variations and environmental events
 - [ ] Water quality parameters affecting survival
@@ -729,7 +751,7 @@ Built with:
 **See [docs/INDEX.md](docs/INDEX.md) for a complete documentation index.**
 
 **Canonical docs** (these are maintained and up-to-date):
-- **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the two-layer evolution paradigm
+- **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the three-layer evolution paradigm
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Technical architecture and module layout
 - **[docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
 - **[SETUP.md](SETUP.md)**: Development environment setup
