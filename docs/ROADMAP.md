@@ -58,13 +58,15 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 **Goal**: Create the formal Best Known Solutions registry structure.
 
-- [ ] Create `benchmarks/` directory with Tank benchmarks:
-  - [ ] `benchmarks/tank/survival_30k.py` - Maximize average lifespan over 30k frames
+- [x] Create `benchmarks/` directory with Tank benchmarks:
+  - [x] `benchmarks/tank/survival_5k.py` - Initial survival benchmark (5k frames)
+  - [ ] `benchmarks/tank/survival_30k.py` - Extended survival benchmark (30k frames)
   - [ ] `benchmarks/tank/reproduction_30k.py` - Maximize total births over 30k frames
   - [ ] `benchmarks/tank/diversity_30k.py` - Maximize algorithm diversity (Shannon entropy)
 - [ ] Create `benchmarks/registry.json` index
-- [ ] Create `champions/` directory structure:
-  - [ ] `champions/tank/` subdirectory
+- [x] Create `champions/` directory structure:
+  - [x] `champions/tank/` subdirectory with `survival_5k.json`
+  - [x] `champions/soccer/` subdirectory with training benchmarks
   - [ ] `champions/registry.json` index
   - [ ] Define champion JSON schema (score, algorithm, genome, commit, seed, repro command)
 
@@ -72,11 +74,11 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 **Goal**: Standard tools for running benchmarks and validating improvements.
 
-- [ ] Implement `tools/run_bench.py`:
-  - [ ] Takes benchmark path + seed as args
-  - [ ] Runs headless simulation
-  - [ ] Outputs standardized `results.json` with metrics
-  - [ ] Includes reproduction metadata
+- [x] Implement `tools/run_bench.py`:
+  - [x] Takes benchmark path + seed as args
+  - [x] Runs headless simulation
+  - [x] Outputs standardized `results.json` with metrics
+  - [x] Includes reproduction metadata
 - [ ] Implement `tools/validate_improvement.py`:
   - [ ] Compares new results against current champion
   - [ ] Returns clear "better/worse/equal" verdict
@@ -97,11 +99,11 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 **Goal**: Clear protocol for evolutionary contributions.
 
-- [ ] Create `docs/EVO_CONTRIBUTING.md`:
-  - [ ] Evolutionary PR protocol requirements
-  - [ ] Step-by-step workflow examples
-  - [ ] Champion registry format specification
-  - [ ] CI validation process explanation
+- [x] Create `docs/EVO_CONTRIBUTING.md`:
+  - [x] Evolutionary PR protocol requirements
+  - [x] Step-by-step workflow examples
+  - [x] Champion registry format specification
+  - [x] CI validation process explanation
 - [ ] Update `CONTRIBUTING.md` to reference evolutionary PRs
 - [ ] Add benchmark documentation to each benchmark file
 
@@ -249,4 +251,4 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*
