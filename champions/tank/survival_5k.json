@@ -1,14 +1,14 @@
 {
   "benchmark_id": "tank/survival_5k",
   "seed": 42,
-  "score": 872.745628818782,
-  "runtime_seconds": 39.14291167259216,
+  "score": 924.1826887572446,
+  "runtime_seconds": 36.842491149902344,
   "metadata": {
     "frames": 5000,
-    "avg_energy": 2321.413524668902,
-    "avg_pop": 375.9544,
+    "avg_energy": 2446.8204737136466,
+    "avg_pop": 377.7076,
     "extinct": false,
     "samples": 5000
   },
-  "timestamp": 1769275611.57681
+  "timestamp": 1770255982.6071534
 }

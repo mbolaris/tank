@@ -38,6 +38,11 @@ def run(seed: int) -> Dict[str, Any]:
         "poker_activity_enabled": False,
         "plants_enabled": False,
         "auto_food_spawn_rate": 9,
+        # Pin soccer league off so default-config changes cannot shift the score.
+        # Ball+goals remain (tank_practice_enabled defaults to True) for the
+        # SoccerSystem kick/goal energy path, but the league never schedules
+        # matches and therefore never injects refill-to-max rewards.
+        "soccer_enabled": False,
     }
 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
