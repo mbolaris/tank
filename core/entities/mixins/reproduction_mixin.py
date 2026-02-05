@@ -112,7 +112,8 @@ class ReproductionMixin:
             offspring_genome,
             _unused_fraction,
         ) = self._reproduction_component.trigger_asexual_reproduction(
-            self.genome, rng=rng,
+            self.genome,
+            rng=rng,
         )
 
         # Pool-aware per-kind policy mutation (prevents cross-kind contamination)

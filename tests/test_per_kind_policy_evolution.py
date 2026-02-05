@@ -66,9 +66,9 @@ class TestFishCreationSoccerPolicy:
         # Should be a valid soccer policy
         pool = env.genome_code_pool
         soccer_ids = pool.get_components_by_kind("soccer_policy")
-        assert trait.value in soccer_ids, (
-            f"soccer_policy_id {trait.value} not in pool soccer components {soccer_ids}"
-        )
+        assert (
+            trait.value in soccer_ids
+        ), f"soccer_policy_id {trait.value} not in pool soccer components {soccer_ids}"
 
     def test_new_fish_soccer_policy_is_default_when_available(self):
         env = _make_soccer_env()
@@ -134,22 +134,22 @@ class TestReproductionPerKindIntegrity:
             # Movement policy should be a movement ID (or None)
             mv_trait = child.behavioral.movement_policy_id
             if mv_trait is not None and mv_trait.value is not None:
-                assert mv_trait.value in movement_ids, (
-                    f"movement_policy_id {mv_trait.value} is not a movement component"
-                )
-                assert mv_trait.value not in soccer_ids, (
-                    f"movement_policy_id {mv_trait.value} is a soccer component (cross-kind!)"
-                )
+                assert (
+                    mv_trait.value in movement_ids
+                ), f"movement_policy_id {mv_trait.value} is not a movement component"
+                assert (
+                    mv_trait.value not in soccer_ids
+                ), f"movement_policy_id {mv_trait.value} is a soccer component (cross-kind!)"
 
             # Soccer policy should be a soccer ID (or None)
             sc_trait = child.behavioral.soccer_policy_id
             if sc_trait is not None and sc_trait.value is not None:
-                assert sc_trait.value in soccer_ids, (
-                    f"soccer_policy_id {sc_trait.value} is not a soccer component"
-                )
-                assert sc_trait.value not in movement_ids, (
-                    f"soccer_policy_id {sc_trait.value} is a movement component (cross-kind!)"
-                )
+                assert (
+                    sc_trait.value in soccer_ids
+                ), f"soccer_policy_id {sc_trait.value} is not a soccer component"
+                assert (
+                    sc_trait.value not in movement_ids
+                ), f"soccer_policy_id {sc_trait.value} is a movement component (cross-kind!)"
 
     def test_no_cross_kind_contamination_without_pool_mutation(self):
         """Even with available_policies=None, inheritance shouldn't cross kinds."""
@@ -172,9 +172,9 @@ class TestReproductionPerKindIntegrity:
             if sc_trait is not None and sc_trait.value is not None:
                 # With available_policies=None, _inherit_single_policy can only
                 # inherit from parent or drop -- never swap to movement IDs.
-                assert sc_trait.value not in movement_ids, (
-                    f"soccer_policy_id {sc_trait.value} is a movement ID (cross-kind!)"
-                )
+                assert (
+                    sc_trait.value not in movement_ids
+                ), f"soccer_policy_id {sc_trait.value} is a movement ID (cross-kind!)"
 
     def test_mutate_code_policies_uses_correct_kind(self):
         """mutate_code_policies should swap within the correct kind only."""
@@ -233,9 +233,9 @@ class TestReproductionPathsCallPoolMutation:
             sc_trait = baby.genome.behavioral.soccer_policy_id
             assert sc_trait is not None, "Baby should have soccer_policy_id"
             assert sc_trait.value is not None, "Baby soccer_policy_id should not be None"
-            assert sc_trait.value in soccer_ids, (
-                f"Baby soccer_policy_id {sc_trait.value} not in soccer pool"
-            )
+            assert (
+                sc_trait.value in soccer_ids
+            ), f"Baby soccer_policy_id {sc_trait.value} not in soccer pool"
 
             # Should NOT have cross-kind contamination
             movement_ids = set(pool.get_components_by_kind("movement_policy"))
