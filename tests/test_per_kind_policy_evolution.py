@@ -18,8 +18,6 @@ from core.config.simulation_config import SimulationConfig, SoccerConfig
 from core.environment import Environment
 from core.genetics import Genome
 from core.genetics.code_policy_traits import (
-    MOVEMENT_POLICY,
-    SOCCER_POLICY,
     mutate_code_policies,
     validate_code_policy_ids,
 )
@@ -40,14 +38,14 @@ def _make_fish(env: Environment, **kwargs):
     """Create a fish in the given environment."""
     from core.entities.fish import Fish
 
-    defaults = dict(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test_fish",
-        x=100,
-        y=100,
-        speed=2.0,
-    )
+    defaults = {
+        "environment": env,
+        "movement_strategy": AlgorithmicMovement(),
+        "species": "test_fish",
+        "x": 100,
+        "y": 100,
+        "speed": 2.0,
+    }
     defaults.update(kwargs)
     return Fish(**defaults)
 
@@ -161,7 +159,6 @@ class TestReproductionPerKindIntegrity:
         parent.behavioral.soccer_policy_params = GeneticTrait({})
 
         movement_ids = set(pool.get_components_by_kind("movement_policy"))
-        soccer_ids = set(pool.get_components_by_kind("soccer_policy"))
 
         for seed in range(100):
             child_rng = random.Random(seed + 2000)
