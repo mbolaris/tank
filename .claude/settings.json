@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest*)",
+      "Bash(python main.py*)",
+      "Bash(python tools/*)",
+      "Bash(python scripts/*)",
+      "Bash(python benchmarks/*)",
+      "Bash(python -m pytest*)",
+      "Bash(pre-commit run*)",
+      "Bash(black *)",
+      "Bash(ruff *)",
+      "Bash(pip install*)",
+      "Bash(npm install*)",
+      "Bash(npm run*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git checkout*)",
+      "Bash(git branch*)",
+      "Bash(git push*)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(ls *)",
+      "Bash(cd *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
