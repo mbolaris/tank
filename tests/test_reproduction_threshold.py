@@ -75,7 +75,7 @@ def _run_reproduction_threshold_logic():
         passed = can_reproduce == expected
         result = "✓ PASS" if passed else "❌ FAIL"
 
-        print(f"  {label:<10} {str(can_reproduce):<15} {str(expected):<10} {result}")
+        print(f"  {label:<10} {can_reproduce!s:<15} {expected!s:<10} {result}")
 
         if not passed:
             all_passed = False

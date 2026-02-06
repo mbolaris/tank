@@ -43,12 +43,12 @@ def test_direct_mutation_blocked_during_collision_phase(simulation_engine):
         y=150,
         speed=2.0,
     )
-    with pytest.raises(RuntimeError, match="Unsafe call to add_entity.*COLLISION.*request_spawn"):
+    with pytest.raises(RuntimeError, match=r"Unsafe call to add_entity.*COLLISION.*request_spawn"):
         engine.add_entity(new_fish)
 
     # Direct remove_entity should raise error
     with pytest.raises(
-        RuntimeError, match="Unsafe call to remove_entity.*COLLISION.*request_remove"
+        RuntimeError, match=r"Unsafe call to remove_entity.*COLLISION.*request_remove"
     ):
         engine.remove_entity(fish)
 
@@ -86,10 +86,10 @@ def test_direct_mutation_blocked_during_reproduction_phase(simulation_engine):
         y=150,
         speed=2.0,
     )
-    with pytest.raises(RuntimeError, match="Unsafe call to add_entity.*REPRODUCTION"):
+    with pytest.raises(RuntimeError, match=r"Unsafe call to add_entity.*REPRODUCTION"):
         engine.add_entity(new_fish)
 
-    with pytest.raises(RuntimeError, match="Unsafe call to remove_entity.*REPRODUCTION"):
+    with pytest.raises(RuntimeError, match=r"Unsafe call to remove_entity.*REPRODUCTION"):
         engine.remove_entity(fish)
 
     # Reset phase

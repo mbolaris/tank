@@ -148,6 +148,7 @@ ignore = [
     "RUF022",  # unsorted-dunder-all (style-only, not a bug)
     "PERF203", # try-except-in-loop (many intentional uses)
     "PERF401", # manual-list-comprehension (readability preference)
+    "RUF001",  # ambiguous-unicode-character-string (intentional math symbols: μ, σ)
     "RUF002",  # ambiguous-unicode-character-docstring (false positives on intentional chars)
     "RUF003",  # ambiguous-unicode-character-comment (false positives on intentional chars)
     "RUF005",  # collection-literal-concatenation (readability preference)

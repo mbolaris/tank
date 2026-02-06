@@ -113,9 +113,7 @@ class FakeRCSSServer:
     # --- Response Builders ---
 
     def _build_init_response(self, init_cmd: str) -> str:
-        # Extract team from "(init params...)"
-        parts = init_cmd.split()
-        side = "l" if len(parts) > 0 else "l"
+        side = "l"  # Always assign to left side in fake server
         unum = 1  # Simple hardcoded unum
         play_mode = "before_kick_off"
         return f"(init {side} {unum} {play_mode})"

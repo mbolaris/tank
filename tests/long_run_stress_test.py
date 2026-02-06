@@ -10,7 +10,7 @@ p1 = Genome.random(rng=random.Random(1))
 p2 = Genome.random(rng=random.Random(2))
 
 
-def run_variation(n=10000):  # noqa: N803
+def run_variation(n=10000):
     count_meta_rate_changed = 0
     count_meta_strength_changed = 0
     count_hgt_changed = 0
