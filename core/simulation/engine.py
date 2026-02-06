@@ -271,7 +271,26 @@ class SimulationEngine:
         for attr, system in systems.items():
             setattr(self, attr, system)
 
-        # Wire systems into coordinator (coordinator owns these references)
+        # 2. Let the pack build the environment
+        from core.environment import Environment
+
+        self.environment = cast(Environment, pack.build_environment(self))
+
+        # Wire up energy delta recorder for immediate tracking
+        if self.environment and hasattr(self.environment, "set_energy_delta_recorder"):
+            self.environment.set_energy_delta_recorder(self._create_energy_recorder())
+
+        # 3. Let the pack register systems and contracts
+        #    NOTE: register_systems() creates ecosystem, plant_manager, and
+        #    food_spawning_system on the engine, so coordinator wiring MUST
+        #    happen after this step.
+        pack.register_systems(self)
+        pack.register_contracts(self)
+        self._validate_system_phase_declarations()
+        self._assert_required_systems()
+
+        # 4. Wire ALL systems into coordinator (after register_systems
+        #    which creates ecosystem, plant_manager, food_spawning_system)
         self.coordinator.collision_system = self.collision_system
         self.coordinator.reproduction_service = self.reproduction_service
         self.coordinator.reproduction_system = self.reproduction_system
@@ -281,39 +300,22 @@ class SimulationEngine:
         self.coordinator.food_spawning_system = self.food_spawning_system
         self.coordinator.plant_manager = self.plant_manager
         self.coordinator.entity_manager = self._entity_manager
-
-        # 2. Let the pack build the environment
-        from core.environment import Environment
-
-        self.environment = cast(Environment, pack.build_environment(self))
-
-        # Wire environment and ecosystem into coordinator
         self.coordinator.environment = self.environment
         self.coordinator.ecosystem = self.ecosystem
 
-        # Wire up energy delta recorder for immediate tracking
-        if self.environment and hasattr(self.environment, "set_energy_delta_recorder"):
-            self.environment.set_energy_delta_recorder(self._create_energy_recorder())
-
-        # 3. Let the pack register systems and contracts
-        pack.register_systems(self)
-        pack.register_contracts(self)
-        self._validate_system_phase_declarations()
-        self._assert_required_systems()
-
-        # 4. Wire up the pipeline (pack can override or use default)
+        # 5. Wire up the pipeline (pack can override or use default)
         from core.simulation.pipeline import default_pipeline
 
         custom_pipeline = pack.get_pipeline()
         self.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
 
-        # 5. Let the pack seed entities
+        # 6. Let the pack seed entities
         pack.seed_entities(self)
 
-        # 6. Store identity provider from pack
+        # 7. Store identity provider from pack
         self._identity_provider = pack.get_identity_provider()
 
-        # 7. Store phase hooks from pack
+        # 8. Store phase hooks from pack
         from core.simulation.phase_hooks import NoOpPhaseHooks
 
         hooks = pack.get_phase_hooks()
@@ -322,7 +324,7 @@ class SimulationEngine:
         # Update coordinator hooks
         self.coordinator.set_phase_hooks(self._phase_hooks)
 
-        # 8. Finalize setup: apply any queued mutations
+        # 9. Finalize setup: apply any queued mutations
         self._apply_entity_mutations("setup_finalize", record_outputs=False)
         if self._entity_manager.is_dirty:
             self._rebuild_caches()
