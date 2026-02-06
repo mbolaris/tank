@@ -17,13 +17,13 @@ from core.events.domain_events import (
 from core.events.event_bus import EventBus
 
 __all__ = [
-    "EventBus",
-    "EntityAteFoodEvent",
-    "EnergyTransferredEvent",
-    "PokerHandResolvedEvent",
-    "EntityDiedEvent",
-    "EntitySpawnedEvent",
-    "ReproductionOccurredEvent",
     "EnergyBurnedEvent",
     "EnergyGainedEvent",
+    "EnergyTransferredEvent",
+    "EntityAteFoodEvent",
+    "EntityDiedEvent",
+    "EntitySpawnedEvent",
+    "EventBus",
+    "PokerHandResolvedEvent",
+    "ReproductionOccurredEvent",
 ]

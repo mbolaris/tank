@@ -19,11 +19,11 @@ from core.skills.games.rock_paper_scissors import (
 )
 
 __all__ = [
-    "RockPaperScissorsGame",
-    "RPSAction",
-    "RPSStrategy",
-    "OptimalRPSStrategy",
     "NumberGuessingGame",
     "NumberGuessingStrategy",
     "OptimalNumberGuessingStrategy",
+    "OptimalRPSStrategy",
+    "RPSAction",
+    "RPSStrategy",
+    "RockPaperScissorsGame",
 ]

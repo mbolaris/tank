@@ -22,9 +22,9 @@ from backend.runner.hooks import (
 )
 
 __all__ = [
-    "WorldHooks",
     "NoOpWorldHooks",
-    "TankWorldHooks",
     "PetriWorldHooks",
+    "TankWorldHooks",
+    "WorldHooks",
     "get_hooks_for_world",
 ]

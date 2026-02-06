@@ -31,9 +31,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, runtime_checkab
 
 # Explicit public API
 __all__ = [
-    "SystemResult",
-    "System",
     "BaseSystem",
+    "System",
+    "SystemResult",
 ]
 
 if TYPE_CHECKING:

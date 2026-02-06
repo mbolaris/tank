@@ -7,4 +7,4 @@ implemented by different simulation environments (Tank, Petri, Soccer, etc.).
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 from core.worlds.registry import WorldRegistry
 
-__all__ = ["StepResult", "MultiAgentWorldBackend", "WorldRegistry"]
+__all__ = ["MultiAgentWorldBackend", "StepResult", "WorldRegistry"]

@@ -16,9 +16,9 @@ __all__ = [
     "MixedPokerInteraction",
     "MixedPokerResult",
     "MultiplayerBettingRound",
-    "Player",
     "MultiplayerGameState",
     "MultiplayerPlayerContext",
+    "Player",
     "check_poker_proximity",
     "should_trigger_plant_poker_asexual_reproduction",
 ]
