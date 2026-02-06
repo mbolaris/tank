@@ -156,10 +156,10 @@ class TestSystemProtocol:
 
     def test_base_system_implements_protocol(self):
         """BaseSystem should implement System protocol."""
-        from core.systems.base import BaseSystem, System, SystemResult
         from typing import cast
 
         from core.simulation.engine import SimulationEngine
+        from core.systems.base import BaseSystem, System, SystemResult
 
         # Create a minimal concrete implementation
         class TestSystem(BaseSystem):
@@ -181,10 +181,10 @@ class TestSystemProtocol:
 
     def test_system_update_returns_system_result(self):
         """System.update() should return SystemResult."""
-        from core.systems.base import BaseSystem, SystemResult
         from typing import cast
 
         from core.simulation.engine import SimulationEngine
+        from core.systems.base import BaseSystem, SystemResult
 
         class TestSystem(BaseSystem):
             def _do_update(self, frame: int) -> SystemResult:

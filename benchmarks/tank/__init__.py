@@ -1,2 +1,1 @@
 """Tank-mode benchmark suite."""
-

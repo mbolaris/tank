@@ -1,26 +1,34 @@
-"""Protocol interfaces for type safety and better IDE support.
+"""Canonical protocol definitions for the Tank World simulation.
 
-This module defines formal interfaces (Protocols) for the key abstractions
-in the simulation. These provide:
-- Better IDE autocomplete and type checking
-- Documentation of expected interfaces
-- Decoupling between components
+This is the **single source of truth** for all protocol interfaces in the
+simulation. Protocols are organized into two categories:
+
+Entity Capability Protocols (structural subtyping for entity features):
+    EnergyHolder, Positionable, Movable, Mortal, Reproducible,
+    Consumable, Predator, Identifiable, LifecycleAware, Evolvable,
+    PokerPlayer, SkillGamePlayer, SkillfulAgent
+
+System Protocols (contracts for simulation subsystems):
+    BehaviorStrategy, SimulationStats, EntityManager, FoodSpawner,
+    CollisionHandler, PokerCoordinator, TraitContainer, TelemetrySink,
+    MigrationHandler, MigrationCapable
 
 Design Philosophy
 -----------------
-Protocols in this module follow the **Interface Segregation Principle**:
-each protocol represents ONE capability that an entity might have.
-This allows entities to implement only the protocols they need.
+Protocols follow the **Interface Segregation Principle**: each protocol
+represents ONE capability. Entities implement only the protocols they need.
 
-For example, a Fish implements EnergyHolder, Positionable, PokerPlayer,
-Evolvable, Mortal, and Reproducible. A Plant might implement only
-EnergyHolder and Positionable.
+    Fish: EnergyHolder + Positionable + Movable + Mortal + Identifiable + ...
+    Plant: EnergyHolder + Positionable + Mortal
+    Food: Positionable + Consumable
 
 Protocol Composition:
-    PokerPlayer = EnergyHolder + Positionable
+    PokerPlayer = EnergyHolder + Positionable + poker-specific methods
 
-This composition pattern means code that needs a PokerPlayer can rely on
-both energy management AND position without explicit type unions.
+Why Protocols over ABC?
+    - Structural subtyping: no explicit inheritance required
+    - Duck typing support: third-party classes satisfy protocols automatically
+    - Better testability: lightweight mocks satisfy protocols without boilerplate
 
 Runtime Checking:
     Protocols marked with @runtime_checkable can be used with isinstance():
@@ -28,26 +36,10 @@ Runtime Checking:
         if isinstance(entity, EnergyHolder):
             entity.modify_energy(-10.0)
 
-    This is useful when handling heterogeneous entity collections.
-
-Extending the System:
-    To add a new entity type:
-    1. Identify which protocols it should implement
-    2. Implement the required methods from each protocol
-    3. The entity automatically works with any code using those protocols
-
-Why Protocols over ABC?
-    We use Protocols (structural subtyping) instead of ABCs (nominal subtyping)
-    because:
-    - No need to explicitly inherit from interfaces
-    - Better duck typing support
-    - Third-party classes can satisfy protocols without modification
-    - More Pythonic approach to interfaces
-
 Usage
 -----
 Import protocols for type hints:
-    from core.interfaces import EnergyHolder, PokerPlayer
+    from core.interfaces import EnergyHolder, Movable, Mortal
 
 Use isinstance() checks with @runtime_checkable protocols:
     if isinstance(entity, EnergyHolder):
@@ -60,11 +52,17 @@ from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_
 __all__ = [
     # Entity capability protocols
     "EnergyHolder",
-    "PokerPlayer",
     "Positionable",
-    "Evolvable",
+    "Movable",
     "Mortal",
+    "Consumable",
+    "Predator",
+    "Identifiable",
+    "LifecycleAware",
+    "Evolvable",
     "Reproducible",
+    "PokerPlayer",
+    "SkillGamePlayer",
     "SkillfulAgent",
     "TraitContainer",
     # System protocols
@@ -88,7 +86,10 @@ if TYPE_CHECKING:
         PokerOutcomeRecord,
     )
     from core.entities import Agent
+    from core.entities.base import EntityState, LifeStage
+    from core.fish.skill_game_component import SkillGameComponent
     from core.genetics import Genome
+    from core.math_utils import Vector2
     from core.poker.core import PokerHand
     from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
     from core.telemetry.events import TelemetryEvent
@@ -196,6 +197,103 @@ class Positionable(Protocol):
     @property
     def height(self) -> float:
         """Entity height."""
+        ...
+
+
+@runtime_checkable
+class Movable(Protocol):
+    """Any entity that can move with velocity.
+
+    Enables movement and collision systems to work with any moving entity
+    without needing to know the specific type (Fish, Food, Crab, etc.).
+    """
+
+    @property
+    def vel(self) -> "Vector2":
+        """Current velocity vector (pixels per frame)."""
+        ...
+
+    @vel.setter
+    def vel(self, value: "Vector2") -> None:
+        """Set the velocity vector."""
+        ...
+
+    @property
+    def speed(self) -> float:
+        """Base movement speed (pixels per frame)."""
+        ...
+
+    def update_position(self) -> None:
+        """Update position based on current velocity."""
+        ...
+
+
+@runtime_checkable
+class Consumable(Protocol):
+    """Any entity that can be consumed by other entities (Food, PlantNectar)."""
+
+    def is_consumed(self) -> bool:
+        """Check if this entity has been consumed."""
+        ...
+
+    def is_fully_consumed(self) -> bool:
+        """Check if this entity is completely consumed (no bites remaining)."""
+        ...
+
+    def get_eaten(self) -> None:
+        """Mark this entity as eaten, triggering cleanup/state changes."""
+        ...
+
+
+@runtime_checkable
+class Predator(Protocol):
+    """Any entity that can hunt and consume other entities (Crab, etc.)."""
+
+    @property
+    def is_predator(self) -> bool:
+        """Whether this entity is a predator."""
+        ...
+
+    def can_hunt(self) -> bool:
+        """Whether this predator can currently hunt (considering cooldowns, etc.)."""
+        ...
+
+    def eat_fish(self, fish: "EnergyHolder") -> None:
+        """Consume a fish, transferring its energy."""
+        ...
+
+
+@runtime_checkable
+class Identifiable(Protocol):
+    """Any entity with a unique identifier for tracking and lineage."""
+
+    def get_entity_id(self) -> Optional[int]:
+        """Get the unique identifier for this entity, or None if unassigned."""
+        ...
+
+
+@runtime_checkable
+class LifecycleAware(Protocol):
+    """Any entity aware of its lifecycle stage (baby, adult, elder)."""
+
+    @property
+    def life_stage(self) -> "LifeStage":
+        """Current life stage (BABY, ADULT, ELDER, etc.)."""
+        ...
+
+
+@runtime_checkable
+class SkillGamePlayer(Protocol):
+    """Any entity that can participate in skill games (poker).
+
+    Distinct from SkillfulAgent: this protocol checks for the component-based
+    skill game interface, while SkillfulAgent checks for the strategy-based
+    interface.
+    """
+
+    @property
+    def skill_game_component(self) -> "SkillGameComponent":
+        """Access to skill game state and logic."""
         ...
 
 
@@ -481,15 +579,21 @@ class Evolvable(Protocol):
         ...
 
 
+@runtime_checkable
 class Mortal(Protocol):
-    """Any entity that can die."""
+    """Any entity that can die and has a lifecycle state.
 
-    def is_dead(self) -> bool:
-        """Check if the entity is dead."""
+    Enables systems to check entity liveness without coupling to
+    concrete entity types (Fish, Plant, etc.).
+    """
+
+    @property
+    def state(self) -> "EntityState":
+        """Current lifecycle state (ACTIVE, DEAD, REMOVED, etc.)."""
         ...
 
-    def get_death_cause(self) -> str:
-        """Get the cause of death."""
+    def is_dead(self) -> bool:
+        """Check if this entity is dead or removed."""
         ...
 
 
@@ -505,11 +609,7 @@ class Reproducible(Protocol):
         ...
 
     def try_mate(self, partner: Any) -> bool:
-        """
-        Attempt to mate with a partner.
-
-        Args:
-            partner: Potential mating partner
+        """Attempt to mate with a partner.
 
         Returns:
             True if mating was successful

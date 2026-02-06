@@ -28,7 +28,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
@@ -67,38 +67,6 @@ class FrameOutputs:
     spawns: list[SpawnRequest]
     removals: list[RemovalRequest]
     energy_deltas: list[EnergyDeltaRecord]
-
-
-class PackableEngine(Protocol):
-    """Minimal interface that a SystemPack expects from the engine."""
-
-    config: SimulationConfig
-    rng: random.Random
-    event_bus: Any
-    genome_code_pool: Any
-    environment: environment.Environment | None
-    ecosystem: EcosystemManager | None
-    plant_manager: PlantManager | None
-    food_spawning_system: FoodSpawningSystem | None
-    time_system: TimeSystem
-    lifecycle_system: EntityLifecycleSystem
-    collision_system: CollisionSystem
-    reproduction_system: ReproductionSystem
-    poker_system: PokerSystem
-    poker_proximity_system: PokerProximitySystem
-    soccer_system: SoccerSystem | None
-
-    def request_spawn(self, entity: Any, **kwargs: Any) -> bool: ...
-
-    def request_remove(self, entity: Any, **kwargs: Any) -> bool: ...
-
-    def _apply_entity_mutations(self, stage: str) -> None: ...
-
-    def create_initial_entities(self) -> None: ...
-
-    def _block_root_spots_with_obstacles(self) -> None: ...
-
-    def _build_spawn_rate_config(self) -> SpawnRateConfig: ...
 
 
 class SimulationEngine:
@@ -191,8 +159,11 @@ class SimulationEngine:
         self.food_spawning_system: FoodSpawningSystem | None = None
         self.plant_manager: PlantManager | None = None
         self.poker_events: deque[Any] = deque(maxlen=self.config.poker.max_poker_events)
-        self._soccer_events: deque[Any] = deque(maxlen=self.config.soccer.max_events)
-        self._soccer_league_live: dict[str, Any] | None = None
+
+        # Soccer event management (extracted from engine)
+        from core.simulation.event_managers import SoccerEventManager
+
+        self._soccer_events_mgr = SoccerEventManager(max_events=self.config.soccer.max_events)
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
@@ -300,7 +271,7 @@ class SimulationEngine:
         for attr, system in systems.items():
             setattr(self, attr, system)
 
-        # Wire systems into coordinator
+        # Wire systems into coordinator (coordinator owns these references)
         self.coordinator.collision_system = self.collision_system
         self.coordinator.reproduction_service = self.reproduction_service
         self.coordinator.reproduction_system = self.reproduction_system
@@ -309,44 +280,44 @@ class SimulationEngine:
         self.coordinator.poker_proximity_system = self.poker_proximity_system
         self.coordinator.food_spawning_system = self.food_spawning_system
         self.coordinator.plant_manager = self.plant_manager
+        self.coordinator.entity_manager = self._entity_manager
 
         # 2. Let the pack build the environment
         from core.environment import Environment
 
         self.environment = cast(Environment, pack.build_environment(self))
 
+        # Wire environment and ecosystem into coordinator
+        self.coordinator.environment = self.environment
+        self.coordinator.ecosystem = self.ecosystem
+
         # Wire up energy delta recorder for immediate tracking
         if self.environment and hasattr(self.environment, "set_energy_delta_recorder"):
             self.environment.set_energy_delta_recorder(self._create_energy_recorder())
 
-        # 3. Let the pack register systems
+        # 3. Let the pack register systems and contracts
         pack.register_systems(self)
-        if hasattr(pack, "register_contracts"):
-            pack.register_contracts(self)
+        pack.register_contracts(self)
         self._validate_system_phase_declarations()
         self._assert_required_systems()
 
         # 4. Wire up the pipeline (pack can override or use default)
         from core.simulation.pipeline import default_pipeline
 
-        custom_pipeline = pack.get_pipeline() if hasattr(pack, "get_pipeline") else None
+        custom_pipeline = pack.get_pipeline()
         self.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
 
         # 5. Let the pack seed entities
         pack.seed_entities(self)
 
         # 6. Store identity provider from pack
-        if hasattr(pack, "get_identity_provider"):
-            self._identity_provider = pack.get_identity_provider()
+        self._identity_provider = pack.get_identity_provider()
 
         # 7. Store phase hooks from pack
         from core.simulation.phase_hooks import NoOpPhaseHooks
 
-        if hasattr(pack, "get_phase_hooks"):
-            hooks = pack.get_phase_hooks()
-            self._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
-        else:
-            self._phase_hooks = NoOpPhaseHooks()
+        hooks = pack.get_phase_hooks()
+        self._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
 
         # Update coordinator hooks
         self.coordinator.set_phase_hooks(self._phase_hooks)
@@ -603,9 +574,7 @@ class SimulationEngine:
         self._frame_removals.clear()
         self._frame_energy_deltas.clear()
 
-        self.coordinator.run_frame_start(
-            self.frame_count, self.lifecycle_system, self.plant_manager, self._entity_manager
-        )
+        self.coordinator.run_frame_start(self.frame_count)
         self._apply_entity_mutations("frame_start")
 
     def _phase_time_update(self) -> tuple[float, float]:
@@ -625,7 +594,7 @@ class SimulationEngine:
     def _phase_environment(self) -> None:
         """ENVIRONMENT: Update ecosystem and detection modifiers."""
         self._current_phase = UpdatePhase.ENVIRONMENT
-        self.coordinator.run_environment(self.ecosystem, self.environment, self.frame_count)
+        self.coordinator.run_environment(self.frame_count)
         self._apply_entity_mutations("environment")
 
     def _phase_entity_act(
@@ -637,11 +606,9 @@ class SimulationEngine:
         self._current_phase = UpdatePhase.ENTITY_ACT
 
         new_entities, entities_to_remove = self.coordinator.run_entity_act(
-            self._entity_manager,
             self.frame_count,
             time_modifier,
             time_of_day,
-            self._phase_hooks,
             self,
         )
         return new_entities, entities_to_remove
@@ -654,14 +621,14 @@ class SimulationEngine:
         """LIFECYCLE: Process deaths, add/remove entities."""
         self._current_phase = UpdatePhase.LIFECYCLE
 
-        self.coordinator.run_lifecycle(self, new_entities, entities_to_remove, self._phase_hooks)
+        self.coordinator.run_lifecycle(self, new_entities, entities_to_remove)
 
         self._apply_entity_mutations("lifecycle")
 
     def _phase_spawn(self) -> None:
         """SPAWN: Auto-spawn food and update spatial positions."""
         self._current_phase = UpdatePhase.SPAWN
-        self.coordinator.run_spawn(self.food_spawning_system, self.frame_count)
+        self.coordinator.run_spawn(self.frame_count)
         self._apply_entity_mutations("spawn")
 
         # Update spatial grid for moved entities
@@ -673,15 +640,13 @@ class SimulationEngine:
     def _phase_collision(self) -> None:
         """COLLISION: Handle physical collisions between entities."""
         self._current_phase = UpdatePhase.COLLISION
-        self.coordinator.run_collision(self.collision_system, self.frame_count)
+        self.coordinator.run_collision(self.frame_count)
         self._apply_entity_mutations("collision")
 
     def _phase_interaction(self) -> None:
         """INTERACTION: Handle social interactions between entities."""
         self._current_phase = UpdatePhase.INTERACTION
-        self.coordinator.run_interaction(
-            self.poker_proximity_system, self.poker_system, self.frame_count, self
-        )
+        self.coordinator.run_interaction(self.frame_count)
         self._apply_entity_mutations("interaction")
 
     def handle_mixed_poker_games(self) -> None:
@@ -694,16 +659,14 @@ class SimulationEngine:
         """REPRODUCTION: Handle mating and emergency spawns."""
         self._current_phase = UpdatePhase.REPRODUCTION
 
-        # ReproductionSystem now handles both mating and emergency spawns
-        self.handle_reproduction()
+        self.coordinator.run_reproduction(self.frame_count)
         self._apply_entity_mutations("reproduction")
 
         if self._phase_hooks:
             self._phase_hooks.on_reproduction_complete(self)
 
     def handle_reproduction(self) -> None:
-        """Orchestrate reproduction logic."""
-        # Delegated to coordinator's reproduction system logic essentially
+        """Orchestrate reproduction logic (compatibility method)."""
         if self.reproduction_system:
             self.reproduction_system.update(self.frame_count)
 
@@ -852,22 +815,20 @@ class SimulationEngine:
             "skipped": outcome.skipped,
             "skip_reason": outcome.skip_reason,
         }
-        self._soccer_events.append(event)
+        self._soccer_events_mgr.add_event(event)
 
     def get_recent_soccer_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
         """Get recent soccer events (within max_age_frames)."""
         max_age = max_age_frames or self.config.soccer.event_max_age_frames
-        return [
-            event for event in self._soccer_events if self.frame_count - event["frame"] < max_age
-        ]
+        return self._soccer_events_mgr.get_recent(self.frame_count, max_age)
 
     def set_soccer_league_live_state(self, state: dict[str, Any] | None) -> None:
         """Store the latest league match state for rendering."""
-        self._soccer_league_live = state
+        self._soccer_events_mgr.league_live_state = state
 
     def get_soccer_league_live_state(self) -> dict[str, Any] | None:
         """Return the latest league match state for rendering."""
-        return self._soccer_league_live
+        return self._soccer_events_mgr.league_live_state
 
     # =========================================================================
     # Statistics

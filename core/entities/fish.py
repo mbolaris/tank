@@ -17,7 +17,6 @@ from core.config.fish import (
     INITIAL_ENERGY_RATIO,
     LIFE_STAGE_MATURE_MAX,
 )
-
 from core.entities.base import EntityUpdateResult, LifeStage
 from core.entities.generic_agent import AgentComponents, GenericAgent
 from core.entities.mixins import EnergyManagementMixin, MortalityMixin, ReproductionMixin

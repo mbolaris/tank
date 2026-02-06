@@ -6,8 +6,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.environment import Environment
 from core.entities import Fish, LifeStage
+from core.environment import Environment
 from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
 from core.poker_interaction import PokerInteraction

@@ -17,9 +17,9 @@ from typing import List, Optional, Tuple, cast
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.ecosystem import EcosystemManager
 from core.entities import Fish, LifeStage
+from core.movement_strategy import AlgorithmicMovement
 from core.telemetry.events import BirthEvent, ReproductionEvent
 from core.world import World
-from core.movement_strategy import AlgorithmicMovement
 
 
 class MiniEcosystem:

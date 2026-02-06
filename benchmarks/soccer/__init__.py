@@ -1,2 +1,1 @@
 """Soccer-mode benchmark suite."""
-

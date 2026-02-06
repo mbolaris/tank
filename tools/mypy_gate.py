@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = ROOT / "tools" / "mypy_baseline.txt"
 
