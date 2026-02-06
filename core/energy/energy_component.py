@@ -55,7 +55,7 @@ class EnergyComponent:
         base_metabolism: Base metabolic rate (energy consumption per frame).
     """
 
-    __slots__ = ("energy", "max_energy", "base_metabolism")
+    __slots__ = ("base_metabolism", "energy", "max_energy")
 
     def __init__(
         self,

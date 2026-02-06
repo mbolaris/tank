@@ -4,8 +4,11 @@ This module provides functions to calculate genetic distribution statistics
 for the simulation, extracting this logic from the main StatsCalculator.
 """
 
+import logging
 import statistics
 from typing import TYPE_CHECKING, Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -307,7 +310,7 @@ def _build_gene_distributions(fish_list: List["Fish"]) -> Dict[str, Any]:
             },
         )
     except Exception:
-        pass
+        logger.debug("Failed to compute size distribution stats", exc_info=True)
 
     return {
         "physical": physical,

@@ -223,7 +223,7 @@ class LineageTracker:
             # Determine alive status
             try:
                 fish_numeric_id = int(sanitized["id"]) if sanitized.get("id") != "root" else -1
-            except Exception:
+            except (ValueError, TypeError, KeyError):
                 fish_numeric_id = -1
 
             sanitized["is_alive"] = fish_numeric_id in alive_fish_ids

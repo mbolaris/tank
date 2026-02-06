@@ -377,7 +377,7 @@ def inherit_algorithm_with_mutation(
     _rng = require_rng_param(rng, "inherit_algorithm_with_mutation")
     try:
         offspring = parent_algorithm.__class__.random_instance(rng=_rng)
-    except Exception:
+    except (TypeError, AttributeError):
         offspring = copy.deepcopy(parent_algorithm)
         offspring.rng = _rng
 
@@ -455,7 +455,7 @@ def _crossover_algorithms_base(
         # CASE 1: Both parents have same algorithm type - blend parameters
         try:
             offspring = parent1_algorithm.__class__.random_instance(rng=_rng)
-        except Exception:
+        except (TypeError, AttributeError):
             offspring = copy.deepcopy(parent1_algorithm)
             offspring.rng = _rng
 
@@ -504,7 +504,7 @@ def _crossover_algorithms_base(
         chosen_parent = parent1_algorithm if _rng.random() < parent1_weight else parent2_algorithm
         try:
             offspring = chosen_parent.__class__.random_instance(rng=_rng)
-        except Exception:
+        except (TypeError, AttributeError):
             offspring = copy.deepcopy(chosen_parent)
             offspring.rng = _rng
         offspring.parameters = chosen_parent.parameters.copy()

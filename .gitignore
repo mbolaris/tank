@@ -60,11 +60,15 @@ htmlcov/
 .tox/
 .nox/
 
+# One-off debug scripts (not real tests)
+tests/debug_*.py
+
 # Type checking
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pytype/
+mypy_errors*.txt
 
 # Generated reports and simulation output
 algorithm_performance_report.txt

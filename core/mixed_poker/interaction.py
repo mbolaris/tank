@@ -64,7 +64,9 @@ class MixedPokerInteraction:
             if isinstance(player, Fish):
                 return True
         except Exception:
-            pass
+            logger.debug(
+                "isinstance check failed for Fish, falling back to duck-typing", exc_info=True
+            )
 
         return hasattr(player, "fish_id") and hasattr(player, "genome")
 
@@ -77,7 +79,9 @@ class MixedPokerInteraction:
             if isinstance(player, Plant):
                 return True
         except Exception:
-            pass
+            logger.debug(
+                "isinstance check failed for Plant, falling back to duck-typing", exc_info=True
+            )
 
         return (
             hasattr(player, "plant_id")

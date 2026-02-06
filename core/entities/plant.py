@@ -579,7 +579,10 @@ class Plant(Agent):
             if not request_spawn_in(self.environment, food, reason="plant_overflow_food"):
                 logger.warning("spawn requester unavailable, plant overflow food lost")
         except Exception:
-            pass  # Energy lost on failure is acceptable
+            logger.debug(
+                "Plant overflow energy spawn failed; energy lost on failure is acceptable",
+                exc_info=True,
+            )
 
     # =========================================================================
     # Poker methods (delegating to component)

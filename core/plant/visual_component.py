@@ -33,8 +33,8 @@ class PlantVisualComponent:
     __slots__ = (
         "_cached_iterations",
         "_get_energy",
-        "_get_max_energy",
         "_get_genome",
+        "_get_max_energy",
         "_get_nectar_cooldown",
     )
 

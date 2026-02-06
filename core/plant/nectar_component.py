@@ -31,15 +31,15 @@ class PlantNectarComponent:
     """
 
     __slots__ = (
-        "nectar_cooldown",
-        "nectar_produced",
-        "_get_energy_ratio",
         "_get_energy",
-        "_get_genome",
+        "_get_energy_ratio",
         "_get_environment",
+        "_get_genome",
         "_get_plant_pos",
         "_get_plant_size",
         "_lose_energy",
+        "nectar_cooldown",
+        "nectar_produced",
     )
 
     def __init__(
@@ -194,7 +194,10 @@ class PlantNectarComponent:
                     "floral_saturation": sat,
                 }
             except Exception:
-                pass
+                logger.debug(
+                    "Failed to get floral visuals from strategy config, using defaults",
+                    exc_info=True,
+                )
 
         # If no strategy specific visuals, use genome colors
         if not floral_visuals:
@@ -219,11 +222,11 @@ class _NectarCreationData:
 
     __slots__ = (
         "environment",
-        "x",
-        "y",
-        "relative_y_offset_pct",
         "floral_visuals",
         "parent_genome",
+        "relative_y_offset_pct",
+        "x",
+        "y",
     )
 
     def __init__(

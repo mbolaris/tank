@@ -159,7 +159,7 @@ class SkillGameComponent:
     fish components (EnergyComponent, LifecycleComponent, ReproductionComponent).
     """
 
-    __slots__ = ("_strategies", "_stats")
+    __slots__ = ("_stats", "_strategies")
 
     def __init__(self) -> None:
         """Initialize the skill game component."""

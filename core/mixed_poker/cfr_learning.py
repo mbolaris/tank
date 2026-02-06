@@ -76,6 +76,7 @@ def update_cfr_learning(
                 hand = evaluate_hand(hole_cards, game_state.community_cards)
                 hand_strength = evaluate_hand_strength(hand)
             except Exception:
+                logger.debug("Hand strength evaluation failed, defaulting to 0.5", exc_info=True)
                 hand_strength = 0.5
         else:
             # Pre-flop fold - use starting hand strength

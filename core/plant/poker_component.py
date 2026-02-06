@@ -35,17 +35,17 @@ class PlantPokerComponent:
     """
 
     __slots__ = (
-        "poker_cooldown",
-        "poker_wins",
-        "poker_losses",
-        "last_button_position",
-        "poker_effect_state",
-        "poker_effect_timer",
         "_get_energy",
-        "_get_genome",
         "_get_environment",
+        "_get_genome",
         "_is_dead",
         "_plant_id",
+        "last_button_position",
+        "poker_cooldown",
+        "poker_effect_state",
+        "poker_effect_timer",
+        "poker_losses",
+        "poker_wins",
     )
 
     def __init__(

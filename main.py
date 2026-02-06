@@ -24,8 +24,8 @@ def _request_shutdown_best_effort() -> None:
         from core.auto_evaluate_poker import request_shutdown
 
         request_shutdown()
-    except Exception:
-        pass
+    except (ImportError, RuntimeError):
+        logger.debug("Shutdown request skipped (auto_evaluate_poker unavailable)")
 
 
 def run_web_server():
@@ -234,7 +234,7 @@ Examples:
                 try:
                     frame_s, mode_id = item.split(":", 1)
                     frame_i = int(frame_s)
-                except Exception:
+                except (ValueError, TypeError):
                     logger.error("Invalid --switch value: %r (expected FRAME:MODE)", item)
                     sys.exit(2)
                 if frame_i < 0:

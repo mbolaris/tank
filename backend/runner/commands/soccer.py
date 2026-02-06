@@ -60,14 +60,14 @@ class SoccerCommands:
             try:
                 ivalue = int(value)
             except (TypeError, ValueError):
-                raise ValueError("must be an integer")
+                raise ValueError("must be an integer") from None
             return max(min_value, min(max_value, ivalue))
 
         def clamp_float(value: Any, min_value: float, max_value: float) -> float:
             try:
                 fvalue = float(value)
             except (TypeError, ValueError):
-                raise ValueError("must be a number")
+                raise ValueError("must be a number") from None
             return max(min_value, min(max_value, fvalue))
 
         field_map = {
@@ -215,7 +215,7 @@ class SoccerCommands:
             return self._create_error_response(str(e))
         except Exception as e:
             logger.error(f"Error starting soccer match: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to start soccer match: {str(e)}")
+            return self._create_error_response(f"Failed to start soccer match: {e!s}")
 
     def _cmd_soccer_step(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'soccer_step' command.
@@ -233,7 +233,7 @@ class SoccerCommands:
             return {"success": True, "state": state}
         except Exception as e:
             logger.error(f"Error stepping soccer match: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to step soccer match: {str(e)}")
+            return self._create_error_response(f"Failed to step soccer match: {e!s}")
 
     def _cmd_end_soccer(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'end_soccer' command.
@@ -301,7 +301,7 @@ class SoccerCommands:
             }
         except Exception as e:
             logger.error(f"Error ending soccer match: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to end soccer match: {str(e)}")
+            return self._create_error_response(f"Failed to end soccer match: {e!s}")
 
     def _cmd_set_tank_soccer_enabled(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'set_tank_soccer_enabled' command.
@@ -330,7 +330,7 @@ class SoccerCommands:
                 logger.info("Tank soccer elements DISABLED")
         except Exception as e:
             logger.error(f"Failed to toggle tank soccer: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to toggle tank soccer: {str(e)}")
+            return self._create_error_response(f"Failed to toggle tank soccer: {e!s}")
 
         self._invalidate_state_cache()
         return {"success": True, "enabled": enabled}

@@ -184,7 +184,7 @@ def test_error_handling():
         runner.handle_command("invalid_command")
         # Should silently ignore
     except Exception as e:
-        raise AssertionError(f"Should handle invalid command gracefully: {e}")
+        raise AssertionError(f"Should handle invalid command gracefully: {e}") from e
 
     runner.stop()
     print("✅ Error handling test passed")
