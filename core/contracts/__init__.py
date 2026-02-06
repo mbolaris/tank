@@ -13,9 +13,9 @@ from core.contracts.version import (
 )
 
 __all__ = [
+    "ENTITY_TRANSFER_VERSION",
     "SNAPSHOT_VERSION",
     "WS_PAYLOAD_VERSION",
-    "ENTITY_TRANSFER_VERSION",
     "VersionMismatchError",
     "validate_snapshot_version",
 ]

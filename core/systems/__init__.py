@@ -13,8 +13,8 @@ from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
 
 __all__ = [
     "BaseSystem",
-    "System",
-    "SystemResult",
     "FoodSpawningSystem",
     "SpawnRateConfig",
+    "System",
+    "SystemResult",
 ]

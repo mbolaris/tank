@@ -11,11 +11,11 @@ from .definitions import (
 )
 
 __all__ = [
-    "ComposableBehavior",
-    "ThreatResponse",
-    "FoodApproach",
-    "SocialMode",
-    "PokerEngagement",
-    "SUB_BEHAVIOR_PARAMS",
     "SUB_BEHAVIOR_COUNTS",
+    "SUB_BEHAVIOR_PARAMS",
+    "ComposableBehavior",
+    "FoodApproach",
+    "PokerEngagement",
+    "SocialMode",
+    "ThreatResponse",
 ]

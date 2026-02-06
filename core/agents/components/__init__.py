@@ -18,9 +18,9 @@ from core.agents.components.perception_component import PerceptionComponent
 from core.agents.components.reproduction_component import ReproductionComponent
 
 __all__ = [
-    "PerceptionComponent",
-    "LocomotionComponent",
     "FeedingComponent",
     "LifecycleComponent",
+    "LocomotionComponent",
+    "PerceptionComponent",
     "ReproductionComponent",
 ]

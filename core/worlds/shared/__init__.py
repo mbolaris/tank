@@ -12,9 +12,9 @@ from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks, TankPha
 
 __all__ = [
     "TankLikeActionTranslator",
+    "TankLikeEntityIdentityProvider",
     "TankLikeMovementObservationBuilder",
+    "TankLikePackBase",
     "TankLikePhaseHooks",
     "TankPhaseHooks",
-    "TankLikeEntityIdentityProvider",
-    "TankLikePackBase",
 ]

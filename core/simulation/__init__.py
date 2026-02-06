@@ -22,8 +22,8 @@ from core.simulation.entity_manager import EntityManager
 from core.simulation.system_registry import SystemRegistry
 
 __all__ = [
-    "SimulationEngine",
-    "HeadlessSimulator",
     "EntityManager",
+    "HeadlessSimulator",
+    "SimulationEngine",
     "SystemRegistry",
 ]
