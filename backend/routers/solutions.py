@@ -87,7 +87,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             )
         except Exception as e:
             logger.error(f"Error listing solutions: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/{solution_id}")
     async def get_solution(solution_id: str):
@@ -110,7 +110,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             raise
         except Exception as e:
             logger.error(f"Error getting solution {solution_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/leaderboard")
     async def get_leaderboard():
@@ -130,7 +130,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             )
         except Exception as e:
             logger.error(f"Error generating leaderboard: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.post("/capture/{world_id}")
     async def capture_solution(
@@ -260,7 +260,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             raise
         except Exception as e:
             logger.error(f"Error capturing solution from world {world_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.post("/evaluate/{solution_id}")
     async def evaluate_solution(solution_id: str, background_tasks: BackgroundTasks):
@@ -303,7 +303,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             raise
         except Exception as e:
             logger.error(f"Error evaluating solution {solution_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.post("/submit")
     async def submit_solution(request: SubmitRequest):
@@ -349,7 +349,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
             raise
         except Exception as e:
             logger.error(f"Error submitting solution: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/compare")
     async def compare_solutions():
@@ -384,7 +384,7 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
 
         except Exception as e:
             logger.error(f"Error comparing solutions: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("/report")
     async def get_benchmark_report():
@@ -413,6 +413,6 @@ def create_solutions_router(world_manager: WorldManager) -> APIRouter:
 
         except Exception as e:
             logger.error(f"Error generating report: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return router

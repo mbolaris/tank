@@ -6,8 +6,11 @@ matches, decoupling the match logic from specific entity types (Fish, Microbe).
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -88,7 +91,7 @@ def fish_to_participant(
                 for spec in PHYSICAL_TRAIT_SPECS
             }
         except Exception:
-            pass
+            logger.debug("Failed to build render hints from physical traits", exc_info=True)
 
     return SoccerParticipant(
         participant_id=f"{team}_{player_index}",

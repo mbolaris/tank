@@ -101,7 +101,7 @@ class PokerCommands:
 
         except Exception as e:
             logger.error(f"Error starting poker game: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to start poker game: {str(e)}")
+            return self._create_error_response(f"Failed to start poker game: {e!s}")
 
     def _apply_poker_rewards(self, result: Dict[str, Any]) -> None:
         """Apply energy and reproduction rewards to the winner of a poker hand."""

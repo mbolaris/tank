@@ -302,7 +302,7 @@ def _evaluate_single_fish(
             if is_shutdown_requested():
                 break
         except Exception:
-            pass
+            logger.debug("Could not check shutdown status", exc_info=True)
         try:
             baseline_result = evaluate_vs_single_benchmark_duplicate(
                 candidate_algo=strat,
@@ -352,7 +352,7 @@ def run_comprehensive_benchmark(
                 fish_evaluated=0,
             )
     except Exception:
-        pass
+        logger.debug("Could not check shutdown status", exc_info=True)
 
     if config is None:
         config = ComprehensiveBenchmarkConfig()

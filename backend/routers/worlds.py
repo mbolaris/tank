@@ -121,10 +121,10 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 status_code=201,
             )
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.error(f"Error creating world: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("")
     async def list_worlds(world_type: Optional[str] = None):
@@ -376,7 +376,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             return JSONResponse([])
         except Exception as e:
             logger.error(f"Error getting lineage data: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error getting lineage data: {e}")
+            raise HTTPException(status_code=500, detail=f"Error getting lineage data: {e}") from e
 
     @router.put("/{world_id}/mode")
     async def update_world_mode(world_id: str, request: UpdateWorldModeRequest):
@@ -413,7 +413,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 }
             )
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
     @router.get("/default/id")
     async def get_default_world_id():

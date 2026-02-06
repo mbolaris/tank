@@ -49,9 +49,9 @@ class ReproductionComponent:
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
 
     __slots__ = (
-        "reproduction_cooldown",
         "overflow_energy_bank",
         "repro_credits",
+        "reproduction_cooldown",
     )
 
     def __init__(self) -> None:

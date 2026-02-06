@@ -111,6 +111,11 @@ class AlgorithmicMovement(MovementStrategy):
                     observation, sprite_entity.environment.rng
                 )
             except Exception:
+                logger.debug(
+                    "Movement policy failed for fish %s, falling back to genome behavior",
+                    getattr(sprite_entity, "fish_id", "?"),
+                    exc_info=True,
+                )
                 desired_velocity = None
 
             # If policy returned valid velocity, we use it directly

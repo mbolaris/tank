@@ -194,7 +194,9 @@ class EnergyManagementMixin:
                 logger.warning("spawn requester unavailable, overflow food lost")
 
         except Exception:
-            pass  # Energy lost on failure is acceptable
+            logger.debug(
+                "Overflow energy spawn failed; energy lost on failure is acceptable", exc_info=True
+            )
 
     def consume_energy(self, time_modifier: float = 1.0) -> None:
         """Consume energy based on metabolism and activity."""

@@ -121,7 +121,7 @@ class BenchmarkCommands:
 
         except Exception as e:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
-            return self._create_error_response(f"Failed to run benchmark series: {str(e)}")
+            return self._create_error_response(f"Failed to run benchmark series: {e!s}")
 
     def _cmd_set_plant_energy_input(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Handle 'set_plant_energy_input' command.

@@ -120,7 +120,7 @@ class AlgorithmValidator:
             return ValidationResult(
                 passed=False,
                 algorithm_id=algorithm_id,
-                reason=f"Simulation error: {str(e)}",
+                reason=f"Simulation error: {e!s}",
                 baseline_reproduction_rate=baseline_repro,
                 baseline_survival_rate=baseline_survival,
                 baseline_avg_lifespan=baseline_lifespan,

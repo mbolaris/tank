@@ -32,12 +32,12 @@ class PlantMigrationComponent:
     """
 
     __slots__ = (
-        "migration_timer",
-        "migration_check_interval",
-        "_get_root_spot",
         "_get_environment",
-        "_transition_state",
+        "_get_root_spot",
         "_plant_id",
+        "_transition_state",
+        "migration_check_interval",
+        "migration_timer",
     )
 
     def __init__(

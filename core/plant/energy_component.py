@@ -38,7 +38,7 @@ class PlantEnergyComponent:
         max_energy: Maximum energy capacity.
     """
 
-    __slots__ = ("energy", "max_energy", "_genome", "_get_root_spot", "_get_environment")
+    __slots__ = ("_genome", "_get_environment", "_get_root_spot", "energy", "max_energy")
 
     def __init__(
         self,

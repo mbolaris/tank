@@ -351,11 +351,8 @@ class PokerSkillGame(SkillGame):
         # Determine if play was "optimal" (folded weak hands, bet strong hands)
         if isinstance(player_strategy, PokerSkillStrategy):
             # Good play: fold weak, bet/raise strong
-            if (
-                player_strength < 0.3
-                and player_action == BettingAction.FOLD
-                or player_strength > 0.7
-                and player_action == BettingAction.RAISE
+            if (player_strength < 0.3 and player_action == BettingAction.FOLD) or (
+                player_strength > 0.7 and player_action == BettingAction.RAISE
             ):
                 was_optimal = True
             else:

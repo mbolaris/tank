@@ -50,12 +50,12 @@ class LifecycleComponent:
     """
 
     __slots__ = (
-        "age",
-        "max_age",
-        "genetic_size_modifier",
         "_state_machine",
-        "size",
         "_track_history",
+        "age",
+        "genetic_size_modifier",
+        "max_age",
+        "size",
     )
 
     def __init__(

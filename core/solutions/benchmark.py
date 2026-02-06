@@ -308,7 +308,7 @@ class SolutionBenchmark:
                         strategy._rng = rng
                     return strategy
             except Exception:
-                pass
+                logger.debug("Failed to deserialize poker strategy from config", exc_info=True)
 
             # Oldest format: class name only.
             if poker_config.get("class"):
@@ -319,7 +319,11 @@ class SolutionBenchmark:
                     if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
                         return strategy_class(rng=rng)
                 except Exception:
-                    pass
+                    logger.debug(
+                        "Failed to instantiate poker strategy class '%s'",
+                        poker_config.get("class"),
+                        exc_info=True,
+                    )
 
         # If we have behavior algorithm, try to create a strategy from its parameters
         behavior = solution.behavior_algorithm

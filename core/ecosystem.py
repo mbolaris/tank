@@ -513,7 +513,7 @@ class EcosystemManager:
 
     def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, Any]:
         """Get comprehensive ecosystem summary statistics."""
-        from statistics import median
+        from statistics import StatisticsError, median
 
         from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
 
@@ -567,7 +567,7 @@ class EcosystemManager:
             adult_size_max = max(adult_sizes)
             try:
                 adult_size_median = median(adult_sizes)
-            except Exception:
+            except StatisticsError:
                 adult_size_median = 0.0
             adult_size_range = f"{adult_size_min:.2f}-{adult_size_max:.2f}"
 

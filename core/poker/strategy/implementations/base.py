@@ -92,7 +92,7 @@ class PokerStrategyAlgorithm:
         for candidate_cls in [*get_all_poker_strategies(), *BASELINE_STRATEGIES]:
             try:
                 instance = candidate_cls(rng=random.Random(0))
-            except Exception:
+            except (TypeError, AttributeError, ValueError):
                 continue
             if instance.strategy_id:
                 strategy_map[instance.strategy_id] = candidate_cls

@@ -125,7 +125,9 @@ select = [
     "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+    "PERF", # perflint
 ]
 ignore = [
     "E501",  # line too long (handled by black)
@@ -142,7 +144,17 @@ ignore = [
     "SIM108",  # Use ternary operator (readability preference)
     "N806",  # Variable in function should be lowercase (test constants are OK)
     "B007",  # Loop variable not used (intentional in some cases)
-    "B904",  # raise from err (nice-to-have, not critical)
+    "RUF012",  # mutable-class-default (too noisy for dataclass-like patterns)
+    "RUF022",  # unsorted-dunder-all (style-only, not a bug)
+    "PERF203", # try-except-in-loop (many intentional uses)
+    "PERF401", # manual-list-comprehension (readability preference)
+    "RUF002",  # ambiguous-unicode-character-docstring (false positives on intentional chars)
+    "RUF003",  # ambiguous-unicode-character-comment (false positives on intentional chars)
+    "RUF005",  # collection-literal-concatenation (readability preference)
+    "RUF006",  # asyncio-dangling-task (fire-and-forget tasks are intentional)
+    "RUF046",  # unnecessary-cast-to-int (sometimes intentional for documentation)
+    "RUF059",  # unused-unpacked-variable (same reasoning as B007)
+    "PERF102", # incorrect-dict-iterator (sometimes .items() is clearer)
 ]
 
 [tool.mypy]
