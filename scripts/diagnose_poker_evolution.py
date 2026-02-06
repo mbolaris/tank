@@ -16,7 +16,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -180,9 +180,7 @@ def test_mutation_destroying_adaptations():
         )
         avg_fold_str = f"{avg_fold:.3f}" if isinstance(avg_fold, float) else "N/A"
         fold_drift_str = f"{fold_drift:.3f}" if isinstance(fold_drift, float) else "N/A"
-        print(
-            f"  Avg fold_threshold: {avg_fold_str} (drift: {fold_drift_str})"
-        )
+        print(f"  Avg fold_threshold: {avg_fold_str} (drift: {fold_drift_str})")
 
     print("\nCONCLUSION:")
     if preserved_type < n_offspring * 0.8:

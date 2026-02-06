@@ -1,103 +1,121 @@
-"""System Coordinator module.
+"""System Coordinator — wires subsystems and executes per-phase logic.
 
-Responsible for wiring subsystems and executing per-phase logic.
+Design Decisions:
+-----------------
+1. The coordinator **owns** references to all subsystems. Phase methods use
+   these stored references rather than receiving them as redundant parameters.
+
+2. All system references are Optional — the coordinator gracefully skips
+   systems that were not wired by the SystemPack.
+
+3. TYPE_CHECKING imports keep the module lightweight at runtime while
+   providing full type information for static analysis and IDE support.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    pass
+    from core.collision_system import CollisionSystem
+    from core.ecosystem import EcosystemManager
+    from core.environment import Environment
+    from core.plant_manager import PlantManager
+    from core.poker_system import PokerSystem
+    from core.reproduction_service import ReproductionService
+    from core.reproduction_system import ReproductionSystem
+    from core.simulation.entity_manager import EntityManager
+    from core.simulation.phase_hooks import PhaseHooks
+    from core.systems.entity_lifecycle import EntityLifecycleSystem
+    from core.systems.food_spawning import FoodSpawningSystem
+    from core.systems.poker_proximity import PokerProximitySystem
 
 logger = logging.getLogger(__name__)
 
 
 class SystemCoordinator:
+    """Coordinates simulation subsystems and executes phase logic.
+
+    The coordinator is populated during engine.setup() and then drives
+    each phase of the update loop using its stored system references.
     """
-    Coordinates simulation subsystems and executes phase logic.
-    """
 
-    def __init__(self):
-        # Systems
-        self.collision_system: Optional[Any] = None
-        self.reproduction_service: Optional[Any] = None
-        self.reproduction_system: Optional[Any] = None
-        self.poker_system: Optional[Any] = None
-        self.lifecycle_system: Optional[Any] = None
-        self.poker_proximity_system: Optional[Any] = None
-        self.food_spawning_system: Optional[Any] = None
+    def __init__(self) -> None:
+        # Core systems (set by engine.setup via SystemPack)
+        self.collision_system: CollisionSystem | None = None
+        self.reproduction_service: ReproductionService | None = None
+        self.reproduction_system: ReproductionSystem | None = None
+        self.poker_system: PokerSystem | None = None
+        self.lifecycle_system: EntityLifecycleSystem | None = None
+        self.poker_proximity_system: PokerProximitySystem | None = None
+        self.food_spawning_system: FoodSpawningSystem | None = None
 
-        # Managers (some are systems in disguise)
-        self.plant_manager: Optional[Any] = None
+        # Managers
+        self.plant_manager: PlantManager | None = None
+        self.ecosystem: EcosystemManager | None = None
+        self.environment: Environment | None = None
+        self.entity_manager: EntityManager | None = None
 
-        # Phase debugging
-        self._phase_hooks: Any = None
+        # Phase hooks (mode-specific behavior)
+        self._phase_hooks: PhaseHooks | None = None
 
-    def set_phase_hooks(self, hooks: Any) -> None:
+    def set_phase_hooks(self, hooks: PhaseHooks) -> None:
+        """Set the phase hooks for mode-specific entity handling."""
         self._phase_hooks = hooks
 
+    # =========================================================================
     # Phase Executions
+    # =========================================================================
 
-    def run_frame_start(
-        self, frame_count: int, lifecycle_system: Any, plant_manager: Any, entity_manager: Any
-    ) -> None:
+    def run_frame_start(self, frame_count: int) -> None:
         """Execute FRAME_START phase logic."""
-        if lifecycle_system:
-            lifecycle_system.update(frame_count)
+        if self.lifecycle_system:
+            self.lifecycle_system.update(frame_count)
 
         # Enforce the invariant: at most one Plant per RootSpot
-        if plant_manager is not None:
-            # We need entities list
-            entities = entity_manager.entities_list
-            plant_manager.reconcile_plants(entities, frame_count)
-            plant_manager.respawn_if_low(entities, frame_count)
+        if self.plant_manager is not None and self.entity_manager is not None:
+            entities = self.entity_manager.entities_list
+            self.plant_manager.reconcile_plants(entities, frame_count)
+            self.plant_manager.respawn_if_low(entities, frame_count)
 
-    def run_environment(self, ecosystem: Any, env: Any, frame_count: int) -> None:
+    def run_environment(self, frame_count: int) -> None:
         """Execute ENVIRONMENT phase logic."""
-        if ecosystem is not None:
-            ecosystem.update(frame_count)
+        if self.ecosystem is not None:
+            self.ecosystem.update(frame_count)
 
-        if env is not None:
-            env.update_detection_modifier()
+        if self.environment is not None:
+            self.environment.update_detection_modifier()
 
-    def run_spawn(self, food_system: Any, frame_count: int) -> None:
+    def run_spawn(self, frame_count: int) -> None:
         """Execute SPAWN phase logic."""
-        if food_system:
-            food_system.update(frame_count)
+        if self.food_spawning_system:
+            self.food_spawning_system.update(frame_count)
 
-    def run_collision(self, collision_system: Any, frame_count: int) -> None:
+    def run_collision(self, frame_count: int) -> None:
         """Execute COLLISION phase logic."""
-        if collision_system:
-            collision_system.update(frame_count)
+        if self.collision_system:
+            self.collision_system.update(frame_count)
 
-    def run_interaction(
-        self, proximity_system: Any, poker_system: Any, frame_count: int, engine_delegate: Any
-    ) -> None:
+    def run_interaction(self, frame_count: int) -> None:
         """Execute INTERACTION phase logic."""
-        if proximity_system:
-            proximity_system.update(frame_count)
+        if self.poker_proximity_system:
+            self.poker_proximity_system.update(frame_count)
 
-        if poker_system:
-            poker_system.update(frame_count)
+        if self.poker_system:
+            self.poker_system.update(frame_count)
+            self.poker_system.handle_mixed_poker_games()
 
-        # Mixed poker games (fish-plant, etc)
-        # Delegate back to engine for now if logic is complex or move logic here
-        # engine.handle_mixed_poker_games() just calls poker_system.handle_mixed_poker_games()
-        if poker_system:
-            poker_system.handle_mixed_poker_games()
-
-    def run_reproduction(
-        self, reproduction_system: Any, frame_count: int, phase_hooks: Any, engine: Any
-    ) -> None:
+    def run_reproduction(self, frame_count: int) -> None:
         """Execute REPRODUCTION phase logic."""
-        if reproduction_system:
-            reproduction_system.update(frame_count)
-
-        if phase_hooks:
-            phase_hooks.on_reproduction_complete(engine)
+        if self.reproduction_system:
+            self.reproduction_system.update(frame_count)
 
     def run_lifecycle(
-        self, engine: Any, new_entities: list, entities_to_remove: list, phase_hooks: Any
+        self,
+        engine: Any,
+        new_entities: list[Any],
+        entities_to_remove: list[Any],
     ) -> None:
         """Execute LIFECYCLE phase logic."""
         # Request removals
@@ -105,8 +123,8 @@ class SystemCoordinator:
             engine.request_remove(entity, reason="entity_act")
 
         # Mode-specific hooks
-        if phase_hooks:
-            phase_hooks.on_lifecycle_cleanup(engine)
+        if self._phase_hooks:
+            self._phase_hooks.on_lifecycle_cleanup(engine)
 
         # Request spawns
         for new_entity in new_entities:
@@ -114,18 +132,19 @@ class SystemCoordinator:
 
     def run_entity_act(
         self,
-        entity_manager: Any,
         frame_count: int,
         time_modifier: float,
         time_of_day: float,
-        phase_hooks: Any,
         engine: Any,
-    ) -> tuple[list, list]:
+    ) -> tuple[list[Any], list[Any]]:
         """Execute ENTITY_ACT phase logic. Returns (new_entities, entities_to_remove)."""
-        new_entities = []
-        entities_to_remove = []
+        if self.entity_manager is None:
+            return [], []
 
-        entities = list(entity_manager.entities_list)
+        new_entities: list[Any] = []
+        entities_to_remove: list[Any] = []
+
+        entities = list(self.entity_manager.entities_list)
         for entity in entities:
             # Polymorphic update
             result = entity.update(frame_count, time_modifier, time_of_day)
@@ -133,8 +152,8 @@ class SystemCoordinator:
             # Handle spawns
             if result.spawned_entities:
                 for spawned in result.spawned_entities:
-                    if phase_hooks:
-                        decision = phase_hooks.on_entity_spawned(engine, spawned, entity)
+                    if self._phase_hooks:
+                        decision = self._phase_hooks.on_entity_spawned(engine, spawned, entity)
                         if decision.should_add:
                             new_entities.append(decision.entity)
                     else:
@@ -143,8 +162,8 @@ class SystemCoordinator:
             # Handle death
             if entity.is_dead():
                 should_remove = True
-                if phase_hooks:
-                    should_remove = phase_hooks.on_entity_died(engine, entity)
+                if self._phase_hooks:
+                    should_remove = self._phase_hooks.on_entity_died(engine, entity)
 
                 if should_remove:
                     entities_to_remove.append(entity)

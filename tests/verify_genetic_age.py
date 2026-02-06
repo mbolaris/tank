@@ -5,8 +5,8 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from core.config.fish import LIFE_STAGE_MATURE_MAX
-from core.environment import Environment
 from core.entities.fish import Fish
+from core.environment import Environment
 from core.genetics.genome import Genome
 from core.movement_strategy import AlgorithmicMovement
 

@@ -8,16 +8,15 @@ Tests RCSS-Lite style ball physics including:
 - Position reset
 """
 
-from unittest.mock import Mock
-
 import random
 from typing import Any, List, Optional, Tuple, Type
+from unittest.mock import Mock
 
 import pytest
 
 from core.entities.ball import Ball
-from core.entities.goal_zone import GoalZone
 from core.entities.base import Agent
+from core.entities.goal_zone import GoalZone
 from core.math_utils import Vector2
 
 

@@ -9,12 +9,13 @@ import random
 
 def test_match_runner_deterministic_with_code_pool():
     """Same seed + same genomes => identical fitness outputs."""
+    from typing import Optional, cast
+
     from core.code_pool import GenomeCodePool
     from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
     from core.genetics import Genome
     from core.genetics.trait import GeneticTrait
     from core.minigames.soccer.match_runner import SoccerMatchRunner
-    from typing import Optional, cast
 
     pool = GenomeCodePool()
     pool.register_builtin(BUILTIN_CHASE_BALL_SOCCER_ID, "soccer_policy", chase_ball_soccer_policy)

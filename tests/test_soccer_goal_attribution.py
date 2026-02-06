@@ -262,11 +262,12 @@ def test_shaped_reward_adds_to_total_reward():
     likelihood of asymmetric play, but the shaped reward mechanism works
     correctly even when the final values are close to zero.
     """
+    from typing import Optional, cast
+
     from core.code_pool import GenomeCodePool
     from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
     from core.genetics import Genome
     from core.genetics.trait import GeneticTrait
-    from typing import Optional, cast
 
     # Create a pool with a working policy
     pool = GenomeCodePool()

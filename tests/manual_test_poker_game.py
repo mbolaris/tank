@@ -187,8 +187,8 @@ def test_backend_integration():
 
     from backend.simulation_runner import SimulationRunner
     from core.entities import Fish
-    from core.genetics import Genome
     from core.fish.poker_stats_component import FishPokerStats
+    from core.genetics import Genome
     from core.movement_strategy import AlgorithmicMovement
 
     runner = SimulationRunner()

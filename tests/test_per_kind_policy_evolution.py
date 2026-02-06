@@ -17,10 +17,7 @@ from core.code_pool import (
 from core.config.simulation_config import SimulationConfig, SoccerConfig
 from core.environment import Environment
 from core.genetics import Genome
-from core.genetics.code_policy_traits import (
-    mutate_code_policies,
-    validate_code_policy_ids,
-)
+from core.genetics.code_policy_traits import mutate_code_policies, validate_code_policy_ids
 from core.genetics.trait import GeneticTrait
 from core.movement_strategy import AlgorithmicMovement
 
