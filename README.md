@@ -1,755 +1,367 @@
 # Tank World
 
-**A framework for AI-driven automated Artificial Life research.**
+**Self-evolving artificial life where Git is the genome.**
 
-Tank World is an open-source platform where AI agents conduct Alife research autonomously. The simulation runs, collects data, and then an AI agent analyzes results and improves the underlying algorithms—creating a continuous, closed-loop research cycle that runs without human intervention.
+Tank World is an open-source research framework where AI agents autonomously conduct artificial life experiments and commit their improvements back to the codebase. The simulation runs, collects data, an AI analyzes the results, improves the underlying algorithms, and opens a pull request. CI validates the improvement. If it passes, the change merges and becomes the new baseline for the next cycle.
 
-The fish tank visualization is just the beginning. It makes the research **entertaining enough to watch**, which matters because entertaining simulations can drive distributed compute contributions. In future versions, the AI will evolve the visualizations themselves to maximize engagement.
+The result: a continuously improving evolutionary system where **PRs are mutations, CI is natural selection, and Git history is the phylogenetic tree**.
 
-> **See [docs/VISION.md](docs/VISION.md) for the full project vision and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for technical details.**
-
----
-
-## The Core Idea: Three-Layer Evolution
-
-Tank World is not just "a sim with evolution"—it's an **evolution engine whose own development process is part of the evolutionary loop**. Git becomes the heredity mechanism.
-
-### Layer 0: In-World Evolution (Inside Simulations)
-
-Traditional evolutionary computation. Fish compete for survival using behavior algorithms:
-- 58 parametrizable behavior strategies across 6 categories
-- Natural selection optimizes algorithm parameters over generations
-- Better strategies = more reproduction and survival
-- **Output**: Champion genomes + performance telemetry
-
-### Layer 1: Experiment Automation (Evolving the Search)
-
-AI agents run benchmarks, discover improvements, and propose changes via PRs:
-- Run deterministic benchmarks with fixed seeds
-- Compare results against Best Known Solutions (BKS) registry
-- Open PRs with improved algorithms + reproducible artifacts
-- CI validates improvements before merge
-- **Output**: Better algorithms, evaluators, mutation operators
-
-### Layer 2: Meta-Evolution (Evolving the Toolkit)
-
-AI agents improve the instructions, benchmarks, and workflows used by Layer 1:
-- Evolve benchmark design (better fitness functions)
-- Evolve agent instructions (better evolution workflows)
-- Evolve CI gates (stronger validation)
-- **Output**: Better "how we evolve" playbooks
-
-**The loop**: Run Benchmarks → Compare vs BKS → Open PR → CI Validates → Merge → Future Agents Inherit
-
-This is what makes Tank World different: **Git is the heredity mechanism. PRs are mutations, CI is selection, merged changes are offspring.**
+> **[Full Vision](docs/VISION.md)** | **[Architecture](docs/ARCHITECTURE.md)** | **[Agent Guide](AGENTS.md)** | **[Roadmap](docs/ROADMAP.md)**
 
 ---
 
-## What Evolves Here?
+## Why This Matters
 
-Tank World evolves three things simultaneously:
+Most AI-assisted development treats the AI as a tool that responds to human requests. Tank World inverts this: the AI is the primary researcher, running experiments 24/7, and the human reviews the results. The framework is designed so that:
 
-1. **In-world policies** - Fish behavior algorithms and their parameters
-2. **The evaluation harness** - Benchmarks, fitness functions, curriculum design
-3. **The development toolkit** - Agent instructions, workflows, and CI gates
+- **AI agents discover improvements** by analyzing simulation data and proposing code changes
+- **Benchmarks enforce rigor** with deterministic seeds and reproducible results
+- **CI gates prevent regressions** automatically before any merge
+- **Every merged PR raises the floor** for the next agent session
 
-Evolution happens through **evolutionary PRs** where improvements are validated against the Best Known Solutions (BKS) registry before merge.
-
-## Best Known Solutions (BKS) Registry
-
-Tank World maintains a **formal registry of best-known solutions** for reproducible benchmarks:
-
-### Structure
-
-```
-tank/
-├── benchmarks/              # Evaluation harnesses
-│   ├── tank/                # Tank world benchmarks
-│   │   ├── survival_30k.py  # 30k frame survival benchmark
-│   │   ├── reproduction_30k.py
-│   │   └── diversity_30k.py
-│   └── registry.json        # Index of all benchmarks
-├── champions/               # Best-known solutions
-│   ├── tank/
-│   │   ├── survival_30k.json   # Current champion for survival
-│   │   ├── reproduction_30k.json
-│   │   └── diversity_30k.json
-│   └── registry.json        # Index of all champions
-└── tools/
-    └── run_bench.py         # Standard benchmark runner
-```
-
-### Champion Registry Format
-
-Each champion file contains:
-- **Score**: The fitness achieved (higher is better)
-- **Algorithm**: The winning algorithm name and parameters
-- **Genome**: Complete genome data for reproduction
-- **Commit**: Git commit hash where this was achieved
-- **Seed**: Deterministic seed for reproduction
-- **Reproduction command**: Exact command to reproduce the result
-
-### Why BKS Matters
-
-- **Formal selection pressure**: No "this seems better"—only reproducible benchmark wins
-- **Auditable lineage**: Git history shows evolutionary progression
-- **Reproducible science**: Anyone can re-run and verify claims
-- **Future inheritance**: Each champion becomes the baseline for future improvements
-
-## Evolutionary PR Protocol
-
-When you discover an improvement (human or AI agent):
-
-### Requirements
-
-**Must include:**
-- ✅ Benchmark results showing improvement over current BKS
-- ✅ Updated champion registry entry if claiming a new record
-- ✅ Reproduction command that works with deterministic seeds
-- ✅ Clear explanation of what changed and why it's better
-
-**Must pass:**
-- ✅ CI re-runs the benchmark and confirms the score
-- ✅ No regressions on other benchmarks
-- ✅ Code review (human-in-the-loop for Layer 2 changes)
-
-**If merged:**
-- The new champion becomes the baseline for future PRs
-- Future agents inherit this improvement
-- Git history shows the evolutionary lineage
-
-### Example Workflow
-
-```bash
-# 1. Run benchmark
-python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
-
-# 2. Compare against current BKS
-python tools/validate_improvement.py results.json champions/tank/survival_30k.json
-
-# 3. If better, update champion and open PR
-git checkout -b improve/survival-energy-conserver
-# ... update champions/tank/survival_30k.json
-git commit -m "Improve survival benchmark: EnergyConserver optimization"
-git push -u origin improve/survival-energy-conserver
-
-# 4. CI validates and merges if confirmed
-```
-
-See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for complete protocol details.
+This creates compounding returns. Each improvement is inherited by future agents who build on top of it. Over time, the system gets better at getting better.
 
 ---
 
-## Long-Term Goals
+## Three-Layer Evolution
 
-Tank World aims to be **self-sustaining research infrastructure** where the development process itself is part of the evolutionary loop:
+Tank World is not "a sim with evolution." It is an **evolution engine whose own development process is part of the evolutionary loop**.
 
-1. **Evolution Loop MVP** (Current): Establish BKS registry + evolutionary PR protocol + CI validation
-2. **Closed-loop research**: Fully automated improvement cycles running 24/7 with human code review
-3. **Meta-evolution**: AI improves its own instructions, benchmarks, and workflows (Layer 2)
-4. **Legitimate research platform**: ALife research with measurable results and publishable findings
-5. **Distributed compute network**: Users contribute compute by running entertaining simulations
-6. **Evolving visualization**: AI evolves not just behaviors but how research is presented
+### Layer 0: In-World Evolution
 
-The ultimate vision: a research framework where **Git is the heredity mechanism**—running experiments produces improvements that get committed back to the repository, creating a continuous evolutionary loop at multiple levels (in-world, algorithms, and the evolution toolkit itself).
+Fish compete for survival using 58 parametrizable behavior algorithms. Natural selection optimizes parameters over generations. Better strategies mean more reproduction and longer survival.
 
-**Current status**: Phase 0 (Foundation) complete. Phase 1 (Evolution Loop MVP) in progress. See [docs/VISION.md](docs/VISION.md) and [docs/ROADMAP.md](docs/ROADMAP.md) for details.
+**Output**: Champion genomes, performance telemetry, population dynamics data.
 
----
+### Layer 1: AI-Driven Code Evolution
 
-## AI Oceanographer & Documentary Layer (Planned)
+AI agents run deterministic benchmarks, compare results against the Best Known Solutions registry, and propose improvements via pull requests. CI validates the improvement before merge.
 
-Today, Tank World already combines an Alife engine with an AI code-evolution loop. A future layer is an AI “oceanographer” that
- sits on top of all of this and talks to the user.
+**Output**: Better algorithms, tuned parameters, new behavior strategies.
 
-The idea is to have an AI narrator – think Jacques Cousteau or a slightly stranger Steve Zissou cousin – whose job is to:
+### Layer 2: Meta-Evolution
 
-- Explain what experiment is currently running in your tank
-- Point out interesting behaviors and evolutionary events as they happen
-- Connect visible behavior (“these blue predators discovered ambush tactics”) to underlying algorithm changes and fitness signal
-  s
-- Frame each tank run as a “mission” toward some goal, even if it’s a proxy task like optimizing an algorithm on a benchmark
+AI agents improve the benchmarks, fitness functions, agent instructions, and CI workflows that Layer 1 uses. This is evolution of the evolutionary process itself.
 
-Over time, the tank becomes AI-generated documentary content about artificial ecosystems. Users aren’t just donating compute; th
-ey’re watching an ongoing nature series where the “creatures” are candidate algorithms and policies.
+**Output**: Better ways of discovering improvements.
 
-We are deliberately conservative in claims here: most tanks will be working on proxy problems (e.g., algorithm tuning, synthetic
- tasks), not directly curing diseases. The long-term goal is to make it easy, engaging, and honest to run Alife experiments tha
-t can gradually be mapped to real-world problem domains.
+**The loop**: Run Benchmarks -> Compare vs BKS -> Open PR -> CI Validates -> Merge -> Future Agents Inherit
 
 ---
 
-## Current Features
+## What You See
 
-- **Algorithmic Evolution** - 58 unique parametrizable behavior strategies that evolve
-- **AI Code Evolution** - Automated coding agent improves algorithms between generations
-- **Predator-Prey Dynamics** - Crabs hunt fish in the ecosystem
-- **Fractal Plants** - L-system plants with genetic evolution and nectar production
-- **Genetic Evolution** - Traits and algorithms evolve across generations
-- **Modern Web UI** - React-based interface with real-time visualization
-- **Live Statistics & LLM Export** - Track evolution and export data for AI analysis
-- **Rich Ecosystem** - Day/night cycles, living plants, population dynamics
-- **Poker Minigame** - Fish can play poker against each other for energy
-- **Headless Mode** - Run 10-300x faster for data collection and testing
+A fish tank ecosystem with real evolutionary dynamics:
 
-## Detailed Feature Breakdown
+- **58 behavior algorithms** across food seeking, predator avoidance, schooling, energy management, territory, and poker strategies
+- **Predator-prey dynamics** with crabs hunting fish
+- **Fractal L-system plants** with genetic evolution and nectar production
+- **Fish poker** where fish play Texas Hold'em against each other and plants for energy
+- **Day/night cycles** affecting behavior and visibility
+- **Genetic inheritance** of physical traits, visual traits, behavior algorithms, and mate preferences
+- **Real-time web UI** built with React + FastAPI + WebSocket, rendering at 30 FPS
 
-### Algorithmic Evolution System
+The visualization is deliberately engaging. Entertainment drives participation: if people enjoy watching their tank, they'll run longer experiments and contribute more compute.
 
-The simulation features **58 parametrizable behavior algorithms** that fish can inherit and evolve! This creates unprecedented diversity and sophistication in fish behavior.
+### AI Oceanographer (Planned)
 
-**Key Features:**
-- **58 Unique Algorithms** across 6 categories:
-  - 🍔 Food Seeking (14 algorithms)
-  - 🛡️ Predator Avoidance (10 algorithms)
-  - 🐟 Schooling/Social (10 algorithms)
-  - ⚡ Energy Management (8 algorithms)
-  - 🗺️ Territory/Exploration (8 algorithms)
-  - 🎴 Poker Interactions (8 algorithms)
+A future narration layer will explain what's happening in plain language, like an AI Jacques Cousteau providing commentary on the evolutionary dynamics unfolding in your tank.
 
-- **Parametrizable Behaviors**: Each algorithm has tunable parameters that mutate during reproduction
-- **Inheritance**: Offspring inherit parent's algorithm type with parameter mutations
-- **Natural Selection**: Better algorithms survive and spread through the population
-- **High Interpretability**: Unlike neural networks, algorithm behaviors are clear and debuggable
+---
 
-**Example Algorithms:**
-- `GreedyFoodSeeker` - Always move toward nearest food
-- `AmbushFeeder` - Wait for food to come close
-- `PanicFlee` - Escape from predators at maximum speed
-- `TightSchooler` - Stay very close to school members
-- `BurstSwimmer` - Alternate between bursts and rest
-- `TerritorialDefender` - Defend territory from intruders
-- `PokerChallenger` - Actively seek poker games
-- `PokerDodger` - Avoid poker encounters
-- `PokerStrategist` - Uses opponent modeling for strategic poker play
-- `PokerBluffer` - Varies behavior unpredictably to confuse opponents
-- ...and 48 more!
-
-### Fish Poker Minigame
-Fish can play poker against each other and against plants for energy rewards!
-
-- **Automatic**: Fish play when they collide and have >10 energy
-- **Texas Hold'em**: Full poker rules with community cards and betting rounds
-- **Unified Hand Engine**: Shared hand-level engine powers heads-up, multiplayer, evaluation, and the human UI
-- **Energy Stakes**: Winner takes energy from loser (house cut only for fish-vs-fish)
-- **Mixed Games**: Fish and plants can play together (requires at least 1 fish per game)
-- **Energy Flow Tracking**: Stats panel shows 🌱⚡→🐟 indicator for net plant-to-fish energy transfers
-- **Evolving Poker Strategies**: Fish use genome-based poker aggression that evolves across generations!
-  - Each fish's poker playing style is determined by their genome's aggression trait
-  - Evolutionary pressure: Fish with optimal poker aggression win more energy and reproduce more
-  - 8 specialized poker behavior algorithms (Challenger, Dodger, Gambler, Strategist, Bluffer, Conservative, and more)
-- **Live Events**: See poker games happen in real-time in the UI with animated energy transfer arrows
-- **Statistics**: Track total games, wins/losses, best hands, and plant-fish energy flow
-
-### Fractal Plants with L-System Genetics
-Plants in the ecosystem are procedurally generated using **L-system fractals** with genetic inheritance:
-
-- **Genetic Diversity**: Each plant has a unique genome controlling branch angles, growth patterns, and colors
-- **Energy Collection**: Plants passively collect energy from the environment
-- **Nectar Production**: When plants accumulate enough energy, they produce nectar (food) with floral patterns
-- **Plant Poker**: Plants can play poker against fish - winning fish gain energy from plants
-- **Root Spots**: Plants grow from fixed anchor points at the tank bottom
-- **Visual Evolution**: Plant shapes and colors evolve across generations
-
-### Pure Algorithmic Evolution
-The ecosystem focuses on **algorithmic evolution** with all fish competing using parametrizable behavior algorithms:
-
-- **58 Different Algorithms** across 6 categories (food seeking, predator avoidance, schooling, energy management, territory, poker interactions)
-- **Parameter Tuning**: Each algorithm has parameters that mutate during reproduction
-- **Natural Selection**: Better algorithms survive and reproduce, spreading through the population
-- **High Interpretability**: Unlike black-box neural networks, algorithm behaviors are clear and analyzable
-- **Competition**: All fish compete for the same resources, creating evolutionary pressure for optimal strategies
-
-### Modern Web UI
-Built with **React + FastAPI + WebSocket**:
-
-- **Real-time Visualization**: HTML5 Canvas rendering at 30 FPS
-- **Parametric Fish**: SVG-based fish with genetic visual traits
-- **Live Stats Panel**: Population, generation, births, deaths, energy
-- **Poker Events**: See live poker games and results
-- **Control Panel**: Pause/resume, add food, reset simulation
-- **Responsive Design**: Works on desktop and mobile
-- **View Toggle**: Switch between Single Tank and Network views via a central pill-style toggle
-- **Tank Navigator**: Cycle through tanks with ← → arrow buttons or keyboard shortcuts
-
-## Running the Simulation
+## Quick Start
 
 ### Prerequisites
 
-- **Python 3.8+**
-- **Node 18+** (for the React/Vite frontend)
-- Recommended: create a virtual environment before installing Python dependencies
+- Python 3.8+
+- Node 18+ (for the React frontend)
 
-### Install dependencies
-
-#### Windows (PowerShell)
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
-# Core + developer tooling (pytest, black, ruff, mypy)
-python -m pip install --upgrade pip
-python -m pip install -e .[dev]
-
-# OPTIONAL: AI Code Evolution dependencies
-python -m pip install -e .[ai]
-
-# Frontend dependencies (run from the frontend/ directory)
-cd frontend
-npm install
-```
-
-#### Linux/Mac
+### Install
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+# Clone
+git clone https://github.com/mbolaris/tank.git
+cd tank
 
-# Core + developer tooling (pytest, black, ruff, mypy)
+# Python setup
+python3 -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .\.venv\Scripts\Activate.ps1  # Windows PowerShell
 pip install -e .[dev]
 
-# OPTIONAL: AI Code Evolution dependencies
-pip install -e .[ai]
-
-# Frontend dependencies (run from the frontend/ directory)
-cd frontend
-npm install
+# Frontend setup
+cd frontend && npm install && cd ..
 ```
 
-### Start the Simulation (Web UI)
+### Run the Web UI
 
 ```bash
-# Terminal 1: Start the backend server (FastAPI + WebSockets)
+# Terminal 1: Backend
 python main.py
 
-# Terminal 2: Start the React frontend (from frontend/)
-cd frontend
-npm run dev
+# Terminal 2: Frontend
+cd frontend && npm run dev
 
 # Open http://localhost:3000
 ```
 
-The backend listens on port **8000** by default; the frontend proxies WebSocket traffic to it during development.
-
-You can also launch the backend via the installed console script:
+### Run Headless (10-300x Faster)
 
 ```bash
-tankworld
+# Quick test
+python main.py --headless --max-frames 5000 --seed 42
+
+# Full experiment with stats export
+python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+
+# Run a benchmark
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 ```
 
-### Headless Mode (Fast, Stats-Only)
+See [SETUP.md](SETUP.md) for detailed setup instructions and troubleshooting.
 
-Run simulations 10-300x faster than realtime without visualization for testing or data collection. Defaults: `--max-frames 10000`, `--stats-interval 300`.
+---
 
-```bash
-# Quick test run
-python main.py --headless --max-frames 1000
+## The Evolution Loop
 
-# Long simulation with periodic stats
-python main.py --headless --max-frames 100000 --stats-interval 1000
+This is the core workflow that makes Tank World a self-improving system:
 
-# Deterministic simulation (for testing)
-python main.py --headless --max-frames 1000 --seed 42
-
-# Export comprehensive stats for LLM analysis
-python main.py --headless --max-frames 10000 --export-stats results.json
-
-# Record a deterministic replay (JSONL) with per-step snapshot fingerprints
-python main.py --headless --seed 42 --max-frames 500 --record run.replay.jsonl
-
-# Record less frequently (fingerprint every 10 frames)
-python main.py --headless --seed 42 --max-frames 2000 --record run.replay.jsonl --record-every 10
-
-# Record mode switches at specific frames (tank↔petri)
-python main.py --headless --seed 42 --max-frames 500 --record run.replay.jsonl --switch 200:petri --switch 400:tank
-
-# Replay and verify fingerprints match (fails fast on first mismatch)
-python main.py --headless --replay run.replay.jsonl
+```
+1. RUN benchmark with deterministic seed
+2. COMPARE results against Best Known Solutions registry
+3. IMPROVE code based on data analysis
+4. VALIDATE with tests and benchmarks
+5. OPEN PR with reproducible evidence
+6. CI CONFIRMS the improvement
+7. MERGE raises the baseline for all future agents
+8. REPEAT
 ```
 
-**Benefits of headless mode:**
-- 10-300x faster than realtime
-- Perfect for data collection and long simulations
-- No display required
-- Identical simulation behavior to web UI
-- **LLM-friendly stats export**: Export comprehensive JSON data including algorithm performance, evolution trends, and population dynamics for AI-assisted analysis
+### Best Known Solutions (BKS) Registry
 
-See `docs/REPLAY.md` for the replay format and workflow.
+The repository maintains a formal registry of champion solutions:
 
-## Code Quality & Testing
-
-Keep changes safe by running the test and lint workflow locally:
-
-```bash
-# Quick gate (fast, portable collection)
-pytest -m "not slow and not integration"
-
-# Run the full Python test suite (backend + simulation logic)
-pytest
-
-# Lint the core math helpers, plant verification script, and poker regression tests
-ruff check core/math_utils.py scripts/verify_plants_no_metabolic_cost.py tests/test_static_vs_fish_comparison.py tests/test_vector2.py
+```
+benchmarks/          # Evaluation harnesses (deterministic, reproducible)
+  tank/              # Tank world benchmarks
+  soccer/            # Soccer mode benchmarks
+champions/           # Best-known solutions per benchmark
+  tank/              # Current tank champions with scores, genomes, repro commands
+  soccer/            # Current soccer champions
 ```
 
-The `scripts/verify_plants_no_metabolic_cost.py` helper can also be used to spot-check plant energy behavior without launching the full UI:
+Each champion entry includes the score, algorithm, genome, Git commit, seed, and exact reproduction command. Anyone can verify any claimed improvement.
+
+### Evolutionary PR Protocol
+
+When you discover an improvement (human or AI):
+
+1. Run the benchmark: `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42`
+2. Compare vs champion: `python tools/validate_improvement.py results.json champions/tank/survival_5k.json`
+3. If better, update the champion file and open a PR with evidence
+4. CI re-runs the benchmark and confirms the score before merge
+
+See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the complete protocol.
+
+---
+
+## AI Code Evolution
+
+AI agents can autonomously improve the simulation:
 
 ```bash
-python scripts/verify_plants_no_metabolic_cost.py  # Prints energy every 10 frames for a sample plant
+# 1. Run simulation and export data
+python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+
+# 2. AI agent analyzes results, identifies underperformers, and improves code
+python scripts/ai_code_evolution_agent.py results.json --provider anthropic --validate
+
+# 3. Run AI tournament to evaluate poker strategies
+python scripts/run_ai_tournament.py --write-back
 ```
 
-### AI Code Evolution Workflow
+The AI agent reads simulation data, identifies the worst-performing algorithms, reads their source code, implements improvements, validates with benchmarks, and creates a Git branch with the changes. See [AGENTS.md](AGENTS.md) for the complete AI agent guide.
 
-**Automatically improve fish behaviors using AI!** AI agents (like Claude, GPT, or similar) can analyze simulation data and directly improve algorithms.
+---
+
+## Agentic Development with Claude Code
+
+Tank World is designed for AI-first development. The repository includes infrastructure for productive agentic sessions:
+
+- **[CLAUDE.md](CLAUDE.md)**: Project intelligence file loaded automatically by Claude Code
+- **[AGENTS.md](AGENTS.md)**: Comprehensive guide for AI agents entering the evolution loop
+- **Pre-commit hooks**: Automated formatting, linting, and type checking
+- **Deterministic benchmarks**: Reproducible evaluation with fixed seeds
+- **CI validation**: Automated verification of all improvements
+
+To start an agentic development session:
 
 ```bash
-# Step 1: Run simulation and export stats
-python main.py --headless --max-frames 10000 --export-stats results.json --seed 42
+# Install dev tools and hooks
+pip install -e .[dev]
+pre-commit install
 
-# Step 2: AI analyzes results and identifies underperformers
-# (The AI agent reads results.json and source code directly)
+# Run baseline to understand current state
+python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 
-# Step 3: AI improves the worst-performing algorithm
-# (Direct code edits to core/algorithms/)
-
-# Step 4: Validate improvements
+# Run benchmarks
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-# Step 5: Push and create PR
-git push -u origin <branch-name>
+# Make improvements, validate, commit
+pytest -m "not slow and not integration"
+pre-commit run --all-files
 ```
 
-**What the AI agent does:**
-- ✅ Identifies the worst performing algorithm (highest starvation rate)
-- ✅ Analyzes why it's failing (e.g., no food-seeking fallback)
-- ✅ Reads the source code and implements improvements
-- ✅ Validates with tests and benchmarks
-- ✅ Creates a git branch with descriptive commit message
+---
 
-**Example result**: MirrorMover improved with food-seeking behavior to reduce starvation!
+## Architecture
 
-See `AGENTS.md` for complete AI agent guide.
-
-## Project Structure
+Tank World uses a clean, modular architecture designed for extensibility:
 
 ```
 tank/
 |-- main.py                  # CLI entry point (web or headless)
-|-- backend/                 # FastAPI app + WebSocket bridge
-|   |-- main.py              # API and WebSocket server
-|   |-- simulation_runner.py # Threaded simulation runner for the UI
-|   |-- state_payloads.py    # Pydantic models for WebSocket state
-|   `-- models.py            # Pydantic schemas shared with the frontend
-|-- frontend/                # React + Vite frontend (npm run dev)
-|   `-- src/                 # Components, hooks, rendering utilities
-|-- core/                    # Shared simulation logic
-|   |-- world.py             # Abstract World interface for simulation
-|   |-- agents/              # Reusable agent components
-|   |   |-- components/      # PerceptionComponent, LocomotionComponent, FeedingComponent
-|   |-- modes/               # Mode pack definitions and rulesets
-|   |   |-- interfaces.py    # ModePack, ModePackDefinition protocols
-|   |   |-- rulesets.py      # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
-|   |   |-- tank.py          # Tank mode pack configuration
-|   |   |-- petri.py         # Petri mode pack configuration
-|   |   `-- soccer.py        # Soccer ruleset configuration (minigame)
-|   |-- worlds/              # World backend implementations
-|   |   |-- interfaces.py    # MultiAgentWorldBackend, StepResult
-|   |   |-- registry.py      # WorldRegistry (factory for world backends)
-|   |   |-- tank/            # Tank world backend + system pack
-|   |   |-- petri/           # Petri world backend
-|   |-- minigames/           # Soccer and other minigames
-|   |-- simulation/          # Engine orchestration + diagnostics
-|   |   |-- engine.py        # Simulation engine used by both modes
-|   |   |-- entity_manager.py
-|   |   |-- system_registry.py
-|   |   `-- diagnostics.py
-|   |-- entities/            # Entity classes (modular structure)
-|   |   |-- fish.py          # Fish entity with component system
-|   |   |-- plant.py         # L-system fractal plants
-|   |   |-- resources.py     # Food, PlantNectar, Castle
-|   |   |-- predators.py     # Crab entity
-|   |   `-- base.py          # Entity base classes
-|   |-- fish/                # Fish component system
-|   |   |-- energy_component.py
-|   |   |-- lifecycle_component.py
-|   |   |-- reproduction_component.py
-|   |   `-- poker_stats_component.py
-|   |-- poker/               # Poker game system (organized package)
-|   |   |-- core/            # Card, Hand, PokerEngine
-|   |   |-- evaluation/      # Hand evaluation logic
-|   |   |-- simulation/      # Shared hand engine + simulation adapters
-|   |   `-- strategy/        # AI poker strategies
-|   |-- algorithms/          # Behavior algorithm library (58 strategies)
-|   |-- genetics/            # Fish/plant genome, traits, inheritance
-|   |-- systems/             # BaseSystem + system implementations
-|   |-- config/              # Simulation configuration modules
-|   |-- ecosystem.py         # Population tracking & statistics
-|   |-- environment.py       # Spatial queries & collision detection
-|   `-- time_system.py       # Day/night cycle management
-|-- scripts/                 # Automation scripts (AI code evolution, demos)
-|-- tests/                   # Test suite (determinism, integration)
-|-- docs/                    # Architecture + feature documentation (see docs/INDEX.md)
-|-- SETUP.md                 # Development environment setup
-`-- README.md                # This file
+|-- backend/                 # FastAPI + WebSocket server
+|-- core/                    # Pure Python simulation engine
+|   |-- algorithms/          # 58 behavior algorithms (composable library)
+|   |-- worlds/              # Multi-world backend (Tank, Petri, Soccer)
+|   |-- modes/               # Game rulesets (energy models, scoring)
+|   |-- agents/components/   # Reusable agent building blocks
+|   |-- entities/            # Fish, Plant, Crab, Food, PlantNectar
+|   |-- poker/               # Full poker engine with evolving strategies
+|   |-- genetics/            # Genome, traits, inheritance
+|   |-- simulation/          # Engine orchestration
+|   `-- config/              # Tunable parameters
+|-- frontend/                # React 19 + TypeScript + Vite
+|-- tests/                   # 60+ test files (smoke, core, integration)
+|-- benchmarks/              # Deterministic evaluation harnesses
+|-- champions/               # Best Known Solutions registry
+|-- scripts/                 # AI evolution agent, tournaments, automation
+`-- tools/                   # Benchmark runner, validation, dev utilities
 ```
 
+**Key design decisions**:
+- **Protocol-based design** with dependency injection for testability
+- **Phase-based execution** for deterministic, reproducible simulation
+- **Component composition** for reusable agent building blocks
+- **Multi-world backend** enabling different world types (Tank, Petri, Soccer)
+- **Interpretable algorithms** over black-box neural networks (behaviors are debuggable)
 
-## Web UI Controls
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical deep-dive and [docs/adr/](docs/adr/) for architecture decision records.
 
-- **Add Food** button - Drop food into the tank
-- **Pause/Resume** button - Pause or resume the simulation
-- **Reset** button - Reset the simulation to initial state
+---
 
-## Configuration
-
-Simulation defaults live in `core/config/` and are aggregated in
-`core/config/simulation_config.py` (`SimulationConfig`).
-
-```python
-# core/config/display.py
-SCREEN_WIDTH = 1088
-SCREEN_HEIGHT = 612
-FRAME_RATE = 30
-
-# core/config/food.py
-AUTO_FOOD_SPAWN_RATE = 30  # 1 food per second at 30 FPS
-AUTO_FOOD_ENABLED = True
-AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 1500
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 3500
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 4500
-AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 6500
-```
-
-Other notable config modules:
-- `core/config/fish.py` (energy, lifecycle, reproduction tuning)
-- `core/config/plants.py` (food/nectar production tuning)
-- `core/config/poker.py` (poker event and benchmark settings)
-
-## Ecosystem Dynamics Observed
-
-### Sustainable Population
-- **Population**: Stable at 7-15 fish with balanced predation
-- **Birth rate**: ~10 births per 90 seconds
-- **Generation transitions**: Continuous evolution across generations
-- **Energy flow**: Environment → Fractal Plants → Nectar → Fish → Predators
-
-### Algorithmic Evolution in Action
-- **Algorithm diversity**: Population develops mix of strategies over time
-- **Trait selection**: Better algorithms = more offspring
-- **Parameter optimization**: Algorithm parameters fine-tune through mutation
-- **Emergent strategies**: Fish discover optimal foraging and survival patterns
-- **Performance tracking**: Stats export shows which algorithms dominate
-
-### Poker Economy
-- **Energy redistribution**: Poker transfers energy between fish and plants
-- **Fitness signaling**: Better poker players accumulate more energy
-- **Risk/reward**: Fish must balance poker with survival needs
-- **Energy accounting details**: See `docs/ENERGY_ACCOUNTING.md` for reconciliation + house cut attribution rules
-
-### Plant Ecosystem
-- **Fractal growth**: Plants grow from root spots using L-system genetics
-- **Nectar production**: Plants produce floral nectar when energy threshold reached
-- **Plant poker**: Fish can challenge plants to poker for energy rewards
-- **Visual diversity**: Each plant has unique branch angles, colors, and patterns
-
-### Population Dynamics
-- **Carrying capacity**: Max 100 fish prevents overpopulation
-- **Birth-death balance**: Sustainable with fractal plants producing nectar
-- **Predator-prey cycles**: Crab population affects fish numbers
-- **Starvation**: Rare with proper plant density
-
-## Genetics & Evolution
-
-### Heritable Traits
-- **Physical traits**: Speed, size, vision range, metabolism, max energy
-- **Visual traits**: Body shape, fin size, tail size, color pattern, pattern intensity
-- **Behavior algorithm**: One of 58 parametrizable algorithms (inherited from parent)
-- **Algorithm parameters**: Tunable values that control algorithm behavior
-- **Mate preferences**: Preferred mate trait values (size, color, template, fins, body aspect, eye size, pattern type) and a preference for high pattern intensity
-
-### Mutation
-- **Trait mutations**: Small random variations in physical traits during reproduction
-- **Preference mutations**: Mate preference targets drift over generations
-- **Parameter tuning**: Algorithm parameters mutate slightly to explore nearby strategies
-- **Algorithm switching**: Rare mutations can change to a completely different algorithm
-- **Visual variations**: Color and shape traits evolve independently
-
-### Natural Selection
-- **Survival pressure**: Fish with better-adapted genetics survive longer
-- **Reproductive success**: Better algorithms reproduce more, spreading through population
-- **Competition**: Limited food creates selection pressure for efficient foraging
-- **Generational evolution**: Population average fitness improves over time
-- **Algorithm diversity**: Multiple successful strategies can coexist
-
-## Testing
+## Testing & Code Quality
 
 ```bash
-# Run all tests
-pytest tests/
+# Quick gate (what CI runs first)
+pytest -m "not slow and not integration"
 
-# Run specific test
-python tests/test_simulation.py
+# Full test suite
+pytest
 
-# Test determinism
-python tests/test_parity.py
+# Formatting and linting
+black core/ tests/ tools/ backend/
+ruff check --fix core/ tests/ tools/
 
-# Run poker regression manual tests
-# Bash/macOS:
-python -m pytest tests/test_poker_*.py tests/test_texas_holdem_rules.py -m manual
-# PowerShell:
-$files = Get-ChildItem tests -Filter "test_poker_*.py"; python -m pytest $files tests/test_texas_holdem_rules.py -m manual
+# Pre-commit (runs all checks)
+pre-commit run --all-files
 
-# Run static analysis (import order, safety, style)
-ruff check
-
-# Format code
-black .
+# Benchmark determinism verification
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
 ```
 
-## Educational Value
+CI runs 5 parallel jobs: fast-gate (core tests + linting), integration tests, headless smoke test, frontend build/lint/test, and nightly full suite.
 
-This simulation demonstrates:
-- **Genetics & Heredity**: Mendelian inheritance with mutations
-- **Natural Selection**: Survival of the fittest in action
-- **Algorithmic Evolution**: Genetic algorithms with parametrizable behaviors
-- **L-System Fractals**: Procedural plant generation using Lindenmayer systems
-- **Predator-Prey Dynamics**: Balanced hunting and evasion
-- **Population Dynamics**: Carrying capacity, birth/death rates
-- **Energy Flow**: Producers (fractal plants) → Nectar → Consumers (fish) → Predators
-- **Emergent Behavior**: Complex ecosystem from simple rules
-- **Evolutionary Computation**: Parameter optimization through natural selection
-- **Game Theory**: Poker interactions and strategic play (fish vs fish, fish vs plant)
-- **Interpretable AI**: Clear, debuggable algorithm behaviors vs black-box approaches
-- **Data Science**: LLM-friendly stat exports for AI-assisted analysis
+---
 
-## Recent Improvements & Future Enhancements
+## Ecosystem Dynamics
 
-Recently Completed: ✅
-- [✅] **Multi-World Backend Architecture** - WorldRegistry + MultiAgentWorldBackend for Tank/Petri worlds
-- [✅] **Mode RuleSet Abstraction** - TankRuleSet, PetriRuleSet, SoccerRuleSet with energy/scoring models
-- [✅] **Agent Component System** - PerceptionComponent, LocomotionComponent, FeedingComponent for reuse
-- [✅] **Fractal Plants with L-System Genetics** - Procedurally generated plants with genetic evolution!
-- [✅] **Plant Nectar System** - Plants produce floral nectar food with unique patterns
-- [✅] **Plant Poker** - Fish can play poker against plants for energy rewards
-- [✅] **Root Spot System** - Plants anchor to fixed positions at tank bottom
-- [✅] **Evolving Poker Strategies** - Genome-based poker aggression that evolves across generations!
-- [✅] **8 Poker Behavior Algorithms** - Strategist, Bluffer, Conservative, and more poker strategies
-- [✅] **AI Code Evolution Agent** - Automated algorithm improvement using Claude/GPT-4!
-- [✅] **Algorithm Registry** - Source mapping for AI-driven code improvements
-- [✅] 58 parametrizable behavior algorithms
-- [✅] TankWorld class for clean simulation management
-- [✅] LLM-friendly JSON stats export with source file mapping
-- [✅] Comprehensive behavior evolution tracking
-- [✅] Predator-prey balance improvements
-- [✅] Headless mode (10-300x faster)
-- [✅] Deterministic seeding for reproducibility
-- [✅] React-based web UI
-- [✅] Removed pygame dependencies (pure Python core)
+### What Evolves
 
-Potential Future Additions:
-- [ ] Neural network option (as alternative to algorithmic evolution)
-- [ ] Save/load ecosystem states
-- [ ] Replay system to watch evolution over time
-- [ ] More predator species (different hunting strategies)
-- [ ] Seasonal variations and environmental events
-- [ ] Water quality parameters affecting survival
-- [ ] Disease/parasites system
-- [ ] Enhanced territorial behavior
-- [ ] Sexual dimorphism (male/female traits)
-- [ ] Real-time evolution graphs in UI
-- [ ] Downloadable simulation data CSV export
-- [ ] Multi-threaded population simulation
-- [ ] Cloud-based long-term evolution experiments
+| Domain | Mechanism | Example |
+|--------|-----------|---------|
+| Algorithm parameters | In-world natural selection | `GreedyFoodSeeker` tunes detection radius over generations |
+| Algorithm prevalence | Differential reproduction | `AmbushFeeder` outcompetes `PanicFlee` in low-predator environments |
+| Physical traits | Genetic inheritance + mutation | Speed, size, vision range, metabolism |
+| Poker strategies | Energy stakes selection | Aggressive bluffers vs conservative folders |
+| Visual traits | Mate preference evolution | Color patterns, fin sizes, body shapes |
+| Code itself | AI-driven PR cycle | Agent improves `MirrorMover` with food-seeking fallback |
 
-## Architecture
+### Energy Flow
 
-The simulation uses a clean architecture with separation of concerns:
+```
+Environment -> Fractal Plants -> Nectar -> Fish -> Predators (Crabs)
+                                   |
+                              Poker Games (energy redistribution)
+```
 
-- **Multi-World Backend** (`core/worlds/`): Domain-agnostic world abstraction
-  - `MultiAgentWorldBackend` interface for Tank and Petri worlds
-  - `WorldRegistry` factory for creating worlds from mode IDs
-  - Each world type has its own backend adapter (e.g., `TankWorldBackendAdapter`)
-  - Enables easy addition of new world types
+### Population Dynamics
 
-- **Mode System** (`core/modes/`): Mode configuration and rules
-  - `ModePack` defines mode configs, display names, and capabilities
-  - `ModeRuleSet` encapsulates game rules (energy models, scoring, allowed actions)
-  - Built-in modes: Tank (fish ecosystem), Petri (microbes), Soccer (minigame ruleset)
+- Stable population at 7-15 fish with balanced predation
+- Day/night cycles affecting behavior
+- Multiple successful strategies coexisting
+- Carrying capacity prevents overpopulation
+- Algorithm diversity maintained through mutation
 
-- **Agent Components** (`core/agents/components/`): Reusable agent building blocks
-  - `PerceptionComponent` - memory queries, food/danger tracking
-  - `LocomotionComponent` - movement, turn costs, boundary handling
-  - `FeedingComponent` - bite size, food consumption
-  - Same agents work across different world rules and render profiles (fish-style side view, microbe-style top-down view)
+---
 
-- **TankWorldBackendAdapter** (`core/worlds/tank/backend.py`): Tank simulation wrapper
-  - Clean interface for configuration management
-  - Random number generator (RNG) management for deterministic behavior
-  - Unified API for both headless and web modes
+## Project Status & Roadmap
 
-- **Core Logic** (`core/`): Pure Python simulation engine
-  - No UI dependencies (pygame removed)
-  - Fully testable and reproducible
-  - Used by both web and headless modes
-  - Algorithm-based evolution system
-  - Modular entity system (Fish, Plant, Crab, Food, PlantNectar)
+**Current**: Phase 1 (Evolution Loop MVP) - establishing BKS registry, evolutionary PR protocol, and CI validation.
 
-- **Backend** (`backend/`): FastAPI WebSocket server
-  - Runs simulation in background thread
-  - Broadcasts state at 30 FPS via WebSocket
-  - Handles commands (add food, pause, reset, spawn fish)
-  - REST API for state queries
+| Phase | Goal | Status |
+|-------|------|--------|
+| 0 | Foundation (58 algorithms, headless mode, web UI, basic AI evolution) | Complete |
+| 1 | Evolution Loop MVP (BKS registry, evolutionary PRs, CI validation) | In Progress |
+| 2 | Closed-loop automation (24/7 AI improvement cycles) | Planned |
+| 3 | Meta-evolution (AI improves its own instructions and benchmarks) | Planned |
+| 4 | Research platform (publishable ALife findings) | Planned |
+| 5 | Distributed compute (entertainment-driven participation) | Planned |
+| 6 | Evolving visualization (AI evolves how research is presented) | Planned |
 
-- **Frontend** (`frontend/`): React + TypeScript
-  - HTML5 Canvas rendering
-  - Parametric SVG fish templates
-  - Real-time stats and controls
-  - Responsive design
-  - WebSocket connection for live updates
+See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed milestones.
 
+---
 
-## License
+## Contributing
 
-This project is open source. Feel free to modify and extend!
+Tank World welcomes contributions from humans and AI agents:
 
-## Credits
+- **Run simulations** and share performance data
+- **Improve algorithms** in `core/algorithms/` and validate with benchmarks
+- **Review AI-proposed changes** to maintain quality
+- **Extend the benchmark suite** with new evaluation harnesses
+- **Improve the framework** (visualization, tooling, documentation)
 
-Built with:
-- **Python 3.8+**: Core simulation language
-- **React + TypeScript**: Frontend framework with type safety
-- **FastAPI**: Modern backend API framework
-- **NumPy**: Numerical computations
-- **HTML5 Canvas**: Real-time visualization
-- **WebSocket**: Real-time client-server communication
-- **Uvicorn**: High-performance ASGI server
-- **Love for ALife**: Inspired by Conway's Life, Tierra, and evolutionary algorithms
+See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the evolutionary PR protocol.
+
+---
 
 ## Documentation
 
-**See [docs/INDEX.md](docs/INDEX.md) for a complete documentation index.**
-
-**Canonical docs** (these are maintained and up-to-date):
-- **[docs/VISION.md](docs/VISION.md)**: Long-term goals and the two-layer evolution paradigm
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Technical architecture and module layout
-- **[docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md)**: How to create and extend behavior algorithms
-- **[SETUP.md](SETUP.md)**: Development environment setup
-- **[docs/adr/](docs/adr/)**: Architecture Decision Records
-
-> **Note**: Historical analysis docs have been archived to `docs/archive/`.
-
----
-
-## Contributing to the Framework
-
-Tank World is open source and welcomes contributions:
-- **Run simulations** and share performance data
-- **Review AI-proposed changes** to algorithms
-- **Extend the algorithm library** with new behaviors
-- **Improve the visualization** system
-- **Propose research directions** and experiments
-
-See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for contribution guidelines.
+| Document | Purpose |
+|----------|---------|
+| [CLAUDE.md](CLAUDE.md) | Claude Code project intelligence (auto-loaded) |
+| [AGENTS.md](AGENTS.md) | AI agent guide for entering the evolution loop |
+| [SETUP.md](SETUP.md) | Development environment setup |
+| [docs/VISION.md](docs/VISION.md) | Long-term vision and three-layer evolution paradigm |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Development roadmap and milestones |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture deep-dive |
+| [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) | Evolutionary PR protocol |
+| [docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md) | Creating new behavior algorithms |
+| [docs/INDEX.md](docs/INDEX.md) | Complete documentation index |
 
 ---
 
-*The fish tank is just the beginning. The goal is a self-improving Alife research framework—and we're building it in the open.*
+## Credits
+
+Built with Python, React, TypeScript, FastAPI, NumPy, and a deep appreciation for Conway's Life, Tierra, Avida, and the ALife research tradition.
+
+## License
+
+This project is open source under the [MIT License](LICENSE).
+
+---
+
+*The fish tank is just the surface. Underneath it, Git is evolving.*

@@ -7,6 +7,7 @@ This index provides a guide to all documentation in the Tank World project.
 | Document | Description |
 |----------|-------------|
 | [../README.md](../README.md) | Project overview, features, and quick start |
+| [../CLAUDE.md](../CLAUDE.md) | Claude Code project intelligence (auto-loaded each session) |
 | [../SETUP.md](../SETUP.md) | Development environment setup instructions |
 | [../AGENTS.md](../AGENTS.md) | Guide for AI agents working on the codebase |
 
