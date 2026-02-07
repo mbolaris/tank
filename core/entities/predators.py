@@ -2,12 +2,9 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from core.config.entities import (
-    CRAB_ATTACK_COOLDOWN,
-    CRAB_ATTACK_ENERGY_TRANSFER,
-    CRAB_IDLE_CONSUMPTION,
-    CRAB_INITIAL_ENERGY,
-)
+from core.config.entities import (CRAB_ATTACK_COOLDOWN,
+                                  CRAB_ATTACK_ENERGY_TRANSFER,
+                                  CRAB_IDLE_CONSUMPTION, CRAB_INITIAL_ENERGY)
 from core.entities.base import Agent, EntityUpdateResult
 from core.entities.fish import Fish
 from core.entities.resources import Food

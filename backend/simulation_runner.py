@@ -15,20 +15,20 @@ if TYPE_CHECKING:
 
 from backend.runner import CommandHandlerMixin
 from backend.runner.perf_tracker import PerfTracker
-from backend.runner.state_builders import (
-    build_base_stats,
-    build_energy_stats,
-    build_meta_stats,
-    build_physical_stats,
-    collect_poker_stats_payload,
-)
+from backend.runner.state_builders import (build_base_stats,
+                                           build_energy_stats,
+                                           build_meta_stats,
+                                           build_physical_stats,
+                                           collect_poker_stats_payload)
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
-from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
+from backend.state_payloads import (EntitySnapshot, PokerStatsPayload,
+                                    StatsPayload)
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
-from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.interfaces import (FAST_STEP_ACTION, MultiAgentWorldBackend,
+                                    StepResult)
 
 logger = logging.getLogger(__name__)
 
@@ -591,7 +591,8 @@ class SimulationRunner(CommandHandlerMixin):
                         world_label = self.world_name or self.world_id or "Unknown World"
 
                         # Get migration counts since last report
-                        from backend.transfer_history import get_and_reset_migration_counts
+                        from backend.transfer_history import \
+                            get_and_reset_migration_counts
 
                         migrations_in, migrations_out = get_and_reset_migration_counts(
                             self.world_id

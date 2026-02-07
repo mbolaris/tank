@@ -17,7 +17,8 @@ good poker genes win more energy and reproduce more.
 import random
 from typing import TYPE_CHECKING, Optional
 
-from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
+from core.evolution.mutation import (mutate_continuous_trait,
+                                     mutate_discrete_trait)
 
 if TYPE_CHECKING:
     from core.algorithms.base import BehaviorAlgorithm
@@ -133,11 +134,9 @@ def inherit_algorithm(
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
-    from core.algorithms.registry import (
-        crossover_algorithms_weighted,
-        get_random_algorithm,
-        inherit_algorithm_with_mutation,
-    )
+    from core.algorithms.registry import (crossover_algorithms_weighted,
+                                          get_random_algorithm,
+                                          inherit_algorithm_with_mutation)
 
     # Handle None cases
     if alg1 is None and alg2 is None:

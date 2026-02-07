@@ -11,14 +11,12 @@ from typing import Any, Dict, List, Optional
 
 from core.energy.energy_utils import apply_energy_delta
 from core.poker.core import BettingAction, BettingRound, Card, Deck
-from core.poker.simulation.hand_engine import (
-    MultiplayerGameState,
-    MultiplayerPlayerContext,
-    apply_action,
-    decide_action_for_player,
-    determine_payouts,
-    start_hand_from_players,
-)
+from core.poker.simulation.hand_engine import (MultiplayerGameState,
+                                               MultiplayerPlayerContext,
+                                               apply_action,
+                                               decide_action_for_player,
+                                               determine_payouts,
+                                               start_hand_from_players)
 
 logger = logging.getLogger(__name__)
 

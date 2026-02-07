@@ -25,11 +25,9 @@ from dataclasses import dataclass, field
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.participant import SoccerParticipant
-from core.minigames.soccer.policy_adapter import (
-    action_to_command,
-    build_observation,
-    default_policy_action,
-)
+from core.minigames.soccer.policy_adapter import (action_to_command,
+                                                  build_observation,
+                                                  default_policy_action)
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
 from core.minigames.soccer.types import SoccerTelemetry
 

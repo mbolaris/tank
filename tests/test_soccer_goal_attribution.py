@@ -8,7 +8,8 @@ This module tests that:
 
 import pytest
 
-from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.engine import (RCSSCommand, RCSSLiteEngine,
+                                          RCSSVector)
 from core.minigames.soccer.match_runner import SoccerMatchRunner
 from core.minigames.soccer.params import RCSSParams
 
@@ -265,7 +266,8 @@ def test_shaped_reward_adds_to_total_reward():
     from typing import Optional, cast
 
     from core.code_pool import GenomeCodePool
-    from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
+    from core.code_pool.pool import (BUILTIN_CHASE_BALL_SOCCER_ID,
+                                     chase_ball_soccer_policy)
     from core.genetics import Genome
     from core.genetics.trait import GeneticTrait
 

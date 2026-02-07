@@ -15,7 +15,8 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from core.brains.contracts import BrainAction, BrainActionMap, BrainObservationMap
+from core.brains.contracts import (BrainAction, BrainActionMap,
+                                   BrainObservationMap)
 
 # Convenience aliases
 Action = BrainAction

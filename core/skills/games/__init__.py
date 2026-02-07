@@ -6,17 +6,12 @@ This module contains implementations of specific skill games:
 - Matching Pennies: Zero-sum game similar to RPS but binary
 """
 
-from core.skills.games.number_guessing import (
-    NumberGuessingGame,
-    NumberGuessingStrategy,
-    OptimalNumberGuessingStrategy,
-)
-from core.skills.games.rock_paper_scissors import (
-    OptimalRPSStrategy,
-    RockPaperScissorsGame,
-    RPSAction,
-    RPSStrategy,
-)
+from core.skills.games.number_guessing import (NumberGuessingGame,
+                                               NumberGuessingStrategy,
+                                               OptimalNumberGuessingStrategy)
+from core.skills.games.rock_paper_scissors import (OptimalRPSStrategy,
+                                                   RockPaperScissorsGame,
+                                                   RPSAction, RPSStrategy)
 
 __all__ = [
     "NumberGuessingGame",

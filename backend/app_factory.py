@@ -36,7 +36,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.auto_save_service import AutoSaveService
-from backend.broadcast import start_broadcast_for_world, stop_broadcast_for_world
+from backend.broadcast import (start_broadcast_for_world,
+                               stop_broadcast_for_world)
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.logging_config import configure_logging
@@ -288,7 +289,8 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.routers import connections, discovery, servers, transfers, websocket
+    from backend.routers import (connections, discovery, servers, transfers,
+                                 websocket)
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
 

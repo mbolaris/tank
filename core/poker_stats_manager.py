@@ -4,7 +4,8 @@ import os
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
-from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerStats
+from core.ecosystem_stats import (EcosystemEvent, FishOpponentPokerStats,
+                                  PokerStats)
 
 if TYPE_CHECKING:
     from core.entities import Fish

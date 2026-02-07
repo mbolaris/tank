@@ -8,11 +8,8 @@ characteristics from genetic traits. Separating this logic from the data storage
 from typing import Tuple
 
 from core.color import FISH_COLOR_SATURATION, hue_to_rgb
-from core.genetics.behavioral import (
-    MATE_PREFERENCE_SPECS,
-    BehavioralTraits,
-    normalize_mate_preferences,
-)
+from core.genetics.behavioral import (MATE_PREFERENCE_SPECS, BehavioralTraits,
+                                      normalize_mate_preferences)
 from core.genetics.physical import PhysicalTraits
 from core.genetics.trait_utils import get_trait_value, has_trait_value
 

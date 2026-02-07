@@ -26,7 +26,8 @@ Example Usage:
 """
 
 import random
-from typing import TYPE_CHECKING, Any, List, Protocol, Tuple, Type, runtime_checkable
+from typing import (TYPE_CHECKING, Any, List, Protocol, Tuple, Type,
+                    runtime_checkable)
 
 if TYPE_CHECKING:
     from core.entities.base import Agent

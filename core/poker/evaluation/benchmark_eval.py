@@ -131,17 +131,15 @@ def create_standard_strategy(
     Returns:
         PokerStrategyAlgorithm instance
     """
-    from core.poker.strategy.implementations import (
-        AlwaysFoldStrategy,
-        BalancedStrategy,
-        GTOExpertStrategy,
-        LooseAggressiveStrategy,
-        LoosePassiveStrategy,
-        ManiacStrategy,
-        RandomStrategy,
-        TightAggressiveStrategy,
-        TightPassiveStrategy,
-    )
+    from core.poker.strategy.implementations import (AlwaysFoldStrategy,
+                                                     BalancedStrategy,
+                                                     GTOExpertStrategy,
+                                                     LooseAggressiveStrategy,
+                                                     LoosePassiveStrategy,
+                                                     ManiacStrategy,
+                                                     RandomStrategy,
+                                                     TightAggressiveStrategy,
+                                                     TightPassiveStrategy)
 
     strategy_map = {
         # Standard benchmark opponents
@@ -187,7 +185,8 @@ def evaluate_vs_single_benchmark_duplicate(
         SingleBenchmarkResult with bb/100 and confidence interval
     """
     # Import here to avoid circular import with core.auto_evaluate_poker
-    from core.auto_evaluate_poker import AutoEvaluatePokerGame, is_shutdown_requested
+    from core.auto_evaluate_poker import (AutoEvaluatePokerGame,
+                                          is_shutdown_requested)
 
     # Deterministically seed the benchmark opponent using simple string sum (stable)
     bench_seed = cfg.base_seed + sum(ord(c) for c in benchmark_id)

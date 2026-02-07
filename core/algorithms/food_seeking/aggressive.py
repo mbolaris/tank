@@ -6,16 +6,15 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.config.food import (
-    FOOD_STRIKE_DISTANCE,
-    PREDATOR_FLEE_DISTANCE_CAUTIOUS,
-    PREDATOR_FLEE_DISTANCE_DESPERATE,
-)
+from core.config.food import (FOOD_STRIKE_DISTANCE,
+                              PREDATOR_FLEE_DISTANCE_CAUTIOUS,
+                              PREDATOR_FLEE_DISTANCE_DESPERATE)
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
-from core.predictive_movement import predict_falling_intercept, predict_intercept_point
+from core.predictive_movement import (predict_falling_intercept,
+                                      predict_intercept_point)
 
 
 @dataclass

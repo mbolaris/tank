@@ -2,11 +2,8 @@
 
 import random
 
-from core.algorithms.registry import (
-    ALL_ALGORITHMS,
-    get_random_algorithm,
-    inherit_algorithm_with_mutation,
-)
+from core.algorithms.registry import (ALL_ALGORITHMS, get_random_algorithm,
+                                      inherit_algorithm_with_mutation)
 from core.genetics import Genome
 
 

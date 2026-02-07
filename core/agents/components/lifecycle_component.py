@@ -13,14 +13,11 @@ Architecture Notes:
 import logging
 from typing import TYPE_CHECKING, List
 
-from core.config.fish import (
-    FISH_ADULT_SIZE,
-    FISH_BABY_SIZE,
-    LIFE_STAGE_ADULT_MAX,
-    LIFE_STAGE_BABY_MAX,
-    LIFE_STAGE_JUVENILE_MAX,
-)
-from core.state_machine import LIFE_STAGE_TRANSITIONS, LifeStage, StateMachine, StateTransition
+from core.config.fish import (FISH_ADULT_SIZE, FISH_BABY_SIZE,
+                              LIFE_STAGE_ADULT_MAX, LIFE_STAGE_BABY_MAX,
+                              LIFE_STAGE_JUVENILE_MAX)
+from core.state_machine import (LIFE_STAGE_TRANSITIONS, LifeStage,
+                                StateMachine, StateTransition)
 
 if TYPE_CHECKING:
     pass

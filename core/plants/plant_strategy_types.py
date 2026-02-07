@@ -404,22 +404,17 @@ def get_poker_strategy_for_type(
     Returns:
         PokerStrategyAlgorithm instance for the given strategy type
     """
-    from core.poker.strategy.implementations import (
-        AlwaysFoldStrategy,
-        BalancedStrategy,
-        LooseAggressiveStrategy,
-        LoosePassiveStrategy,
-        ManiacStrategy,
-        RandomStrategy,
-        TightAggressiveStrategy,
-        TightPassiveStrategy,
-    )
+    from core.poker.strategy.implementations import (AlwaysFoldStrategy,
+                                                     BalancedStrategy,
+                                                     LooseAggressiveStrategy,
+                                                     LoosePassiveStrategy,
+                                                     ManiacStrategy,
+                                                     RandomStrategy,
+                                                     TightAggressiveStrategy,
+                                                     TightPassiveStrategy)
     from core.poker.strategy.implementations.advanced import (
-        AdaptiveStrategy,
-        MathematicalStrategy,
-        PositionalExploiter,
-        TrapSetterStrategy,
-    )
+        AdaptiveStrategy, MathematicalStrategy, PositionalExploiter,
+        TrapSetterStrategy)
     from core.poker.strategy.implementations.expert import GTOExpertStrategy
 
     strategy_map = {

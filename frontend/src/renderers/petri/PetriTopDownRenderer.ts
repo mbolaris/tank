@@ -7,8 +7,9 @@ import { drawSoccerBall } from '../../utils/drawSoccerBall';
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import type { EntityData, FishGenomeData } from '../../types/simulation';
 import { ImageLoader } from '../../utils/ImageLoader';
-import { renderPlant } from '../../utils/plant';
+import { renderPlant, prunePlantCaches } from '../../utils/plant';
 import type { PlantGenomeData } from '../../utils/plant';
+import { clearAvatarPathCache } from '../avatar_renderer';
 
 // Food type image mappings (matching the main tank renderer / core/constants.py)
 const PETRI_FOOD_TYPE_IMAGES: Record<string, string[]> = {
@@ -196,7 +197,8 @@ export class PetriTopDownRenderer implements Renderer {
     private lastNowMs: number = 0;
 
     dispose() {
-        // No heavy resources to dispose
+        // Clear avatar path cache to release memory
+        clearAvatarPathCache();
     }
 
     render(frame: RenderFrame, rc: RenderContext) {
@@ -205,6 +207,11 @@ export class PetriTopDownRenderer implements Renderer {
         const scene = buildPetriScene(frame.snapshot);
         const options = frame.options ?? {};
         const showEffects = options.showEffects ?? true;
+
+        // Prune plant caches for plants no longer in scene to prevent memory leaks
+        prunePlantCaches(
+            scene.entities.filter(e => e.sprite === 'colony').map(e => e.id)
+        );
 
         // Dark petri dish background
         ctx.fillStyle = "#0d1117";

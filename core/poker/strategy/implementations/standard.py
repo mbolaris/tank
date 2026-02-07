@@ -4,11 +4,9 @@ import random
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from core.config.poker import (
-    POKER_LAG_ENERGY_FRACTION,
-    POKER_PREFLOP_MAX_ENERGY_FRACTION,
-    POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
-)
+from core.config.poker import (POKER_LAG_ENERGY_FRACTION,
+                               POKER_PREFLOP_MAX_ENERGY_FRACTION,
+                               POKER_PREFLOP_MIN_RAISE_MULTIPLIER)
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 

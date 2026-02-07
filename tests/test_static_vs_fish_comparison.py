@@ -14,16 +14,15 @@ import random
 import sys
 from typing import Dict, List, Optional
 
-from core.algorithms.poker import PokerChallenger, PokerConservative, PokerGambler
+from core.algorithms.poker import (PokerChallenger, PokerConservative,
+                                   PokerGambler)
 from core.auto_evaluate_poker import AutoEvaluatePokerGame, AutoEvaluateStats
-from core.poker.strategy.implementations import (
-    BalancedStrategy,
-    LooseAggressiveStrategy,
-    LoosePassiveStrategy,
-    ManiacStrategy,
-    TightAggressiveStrategy,
-    TightPassiveStrategy,
-)
+from core.poker.strategy.implementations import (BalancedStrategy,
+                                                 LooseAggressiveStrategy,
+                                                 LoosePassiveStrategy,
+                                                 ManiacStrategy,
+                                                 TightAggressiveStrategy,
+                                                 TightPassiveStrategy)
 
 
 class PokerComparisonResults:

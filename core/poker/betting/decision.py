@@ -8,38 +8,33 @@ hand strength-based action selection and betting amounts.
 import random
 from typing import List, Optional, Tuple
 
-from core.config.poker import (
-    POKER_AGGRESSION_HIGH,
-    POKER_AGGRESSION_LOW,
-    POKER_AGGRESSION_MEDIUM,
-    POKER_MEDIUM_AGGRESSION_MULTIPLIER,
-    POKER_MEDIUM_CALL_MULTIPLIER,
-    POKER_MEDIUM_ENERGY_FRACTION,
-    POKER_MEDIUM_ENERGY_FRACTION_RERAISE,
-    POKER_MEDIUM_POT_MULTIPLIER,
-    POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD,
-    POKER_MEDIUM_RAISE_PROBABILITY,
-    POKER_PREFLOP_MAX_ENERGY_FRACTION,
-    POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
-    POKER_PREFLOP_STRENGTH_THRESHOLD,
-    POKER_STRONG_CALL_MULTIPLIER,
-    POKER_STRONG_ENERGY_FRACTION,
-    POKER_STRONG_ENERGY_FRACTION_RERAISE,
-    POKER_STRONG_POT_MULTIPLIER,
-    POKER_STRONG_RAISE_PROBABILITY,
-    POKER_WEAK_BLUFF_PROBABILITY,
-    POKER_WEAK_CALL_PROBABILITY,
-    POKER_WEAK_ENERGY_FRACTION,
-    POKER_WEAK_POT_MULTIPLIER,
-)
+from core.config.poker import (POKER_AGGRESSION_HIGH, POKER_AGGRESSION_LOW,
+                               POKER_AGGRESSION_MEDIUM,
+                               POKER_MEDIUM_AGGRESSION_MULTIPLIER,
+                               POKER_MEDIUM_CALL_MULTIPLIER,
+                               POKER_MEDIUM_ENERGY_FRACTION,
+                               POKER_MEDIUM_ENERGY_FRACTION_RERAISE,
+                               POKER_MEDIUM_POT_MULTIPLIER,
+                               POKER_MEDIUM_POT_ODDS_FOLD_THRESHOLD,
+                               POKER_MEDIUM_RAISE_PROBABILITY,
+                               POKER_PREFLOP_MAX_ENERGY_FRACTION,
+                               POKER_PREFLOP_MIN_RAISE_MULTIPLIER,
+                               POKER_PREFLOP_STRENGTH_THRESHOLD,
+                               POKER_STRONG_CALL_MULTIPLIER,
+                               POKER_STRONG_ENERGY_FRACTION,
+                               POKER_STRONG_ENERGY_FRACTION_RERAISE,
+                               POKER_STRONG_POT_MULTIPLIER,
+                               POKER_STRONG_RAISE_PROBABILITY,
+                               POKER_WEAK_BLUFF_PROBABILITY,
+                               POKER_WEAK_CALL_PROBABILITY,
+                               POKER_WEAK_ENERGY_FRACTION,
+                               POKER_WEAK_POT_MULTIPLIER)
 from core.poker.betting.actions import BettingAction
 from core.poker.core.cards import Card
 from core.poker.core.hand import HandRank, PokerHand
-from core.poker.evaluation.strength import (
-    calculate_pot_odds,
-    evaluate_starting_hand_strength,
-    get_action_recommendation,
-)
+from core.poker.evaluation.strength import (calculate_pot_odds,
+                                            evaluate_starting_hand_strength,
+                                            get_action_recommendation)
 
 # Default aggression constants
 AGGRESSION_LOW = POKER_AGGRESSION_LOW

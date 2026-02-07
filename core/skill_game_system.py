@@ -20,7 +20,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
 
 from core.skills.base import SkillGame, SkillGameResult, SkillGameType
-from core.skills.config import SkillGameConfig, get_active_skill_game, get_skill_game_config
+from core.skills.config import (SkillGameConfig, get_active_skill_game,
+                                get_skill_game_config)
 
 if TYPE_CHECKING:
     from core.entities import Fish

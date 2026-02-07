@@ -6,9 +6,11 @@ world modes (Tank, Petri) that share similar simulation mechanics.
 
 from core.worlds.shared.action_translator import TankLikeActionTranslator
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
-from core.worlds.shared.movement_observations import TankLikeMovementObservationBuilder
+from core.worlds.shared.movement_observations import \
+    TankLikeMovementObservationBuilder
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
-from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks, TankPhaseHooks
+from core.worlds.shared.tank_like_phase_hooks import (TankLikePhaseHooks,
+                                                      TankPhaseHooks)
 
 __all__ = [
     "TankLikeActionTranslator",

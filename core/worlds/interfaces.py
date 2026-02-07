@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
+    from core.worlds.contracts import (EnergyDeltaRecord, RemovalRequest,
+                                       SpawnRequest)
 
 FAST_STEP_ACTION = "__fast_step__"
 # Reserved meta-action key for internal fast stepping (non-gameplay).

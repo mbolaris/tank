@@ -13,22 +13,14 @@ import sys
 
 import pytest
 
-from core.poker.core import (
-    BettingAction,
-    PokerGameState,
-    decide_action,
-    evaluate_hand,
-    finalize_pot,
-    resolve_bet,
-    simulate_multi_round_game,
-)
+from core.poker.core import (BettingAction, PokerGameState, decide_action,
+                             evaluate_hand, finalize_pot, resolve_bet,
+                             simulate_multi_round_game)
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.evaluation.hand_evaluator import _evaluate_five_cards
-from core.poker.simulation.hand_engine import (
-    MultiplayerGameState,
-    MultiplayerPlayerContext,
-    _apply_multiplayer_action,
-)
+from core.poker.simulation.hand_engine import (MultiplayerGameState,
+                                               MultiplayerPlayerContext,
+                                               _apply_multiplayer_action)
 
 
 @pytest.mark.manual

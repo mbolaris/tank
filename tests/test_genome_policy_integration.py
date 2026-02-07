@@ -6,15 +6,12 @@ genome-based policy construction mechanism via GenomeCodePool.
 
 import random
 
-from core.code_pool import (
-    BUILTIN_CHASE_BALL_SOCCER_ID,
-    BUILTIN_DEFENSIVE_SOCCER_ID,
-    BUILTIN_FLEE_FROM_THREAT_ID,
-    BUILTIN_SEEK_NEAREST_FOOD_ID,
-    BUILTIN_STRIKER_SOCCER_ID,
-    GenomePolicySet,
-    create_default_genome_code_pool,
-)
+from core.code_pool import (BUILTIN_CHASE_BALL_SOCCER_ID,
+                            BUILTIN_DEFENSIVE_SOCCER_ID,
+                            BUILTIN_FLEE_FROM_THREAT_ID,
+                            BUILTIN_SEEK_NEAREST_FOOD_ID,
+                            BUILTIN_STRIKER_SOCCER_ID, GenomePolicySet,
+                            create_default_genome_code_pool)
 from core.environment import Environment
 from core.genetics import Genome
 from core.genetics.code_policy_traits import apply_policy_set_to_behavioral
@@ -323,7 +320,8 @@ class TestGenomePolicySetOperations:
         apply_policy_set_to_behavioral(genome.behavioral, policy_set, rng)
 
         # Extract and verify - BOTH policies should now be extracted!
-        from core.genetics.code_policy_traits import extract_policy_set_from_behavioral
+        from core.genetics.code_policy_traits import \
+            extract_policy_set_from_behavioral
 
         extracted = extract_policy_set_from_behavioral(genome.behavioral)
         # Movement policy should be extracted

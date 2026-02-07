@@ -46,7 +46,8 @@ Use isinstance() checks with @runtime_checkable protocols:
         entity.modify_energy(-10.0)
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import (TYPE_CHECKING, Any, List, Optional, Protocol, Tuple,
+                    runtime_checkable)
 
 # Explicit public API for this module
 __all__ = [
@@ -80,11 +81,9 @@ __all__ = [
 if TYPE_CHECKING:
     import random as pyrandom
 
-    from core.ecosystem_stats import (
-        MixedPokerOutcomeRecord,
-        PlantPokerOutcomeRecord,
-        PokerOutcomeRecord,
-    )
+    from core.ecosystem_stats import (MixedPokerOutcomeRecord,
+                                      PlantPokerOutcomeRecord,
+                                      PokerOutcomeRecord)
     from core.entities import Agent
     from core.entities.base import EntityState, LifeStage
     from core.fish.skill_game_component import SkillGameComponent

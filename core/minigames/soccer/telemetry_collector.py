@@ -15,7 +15,8 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Sequence
 
-from core.minigames.soccer.types import PlayerTelemetry, SoccerTelemetry, TeamTelemetry
+from core.minigames.soccer.types import (PlayerTelemetry, SoccerTelemetry,
+                                         TeamTelemetry)
 
 if TYPE_CHECKING:
     from core.minigames.soccer.engine import RCSSLiteEngine
