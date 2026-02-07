@@ -490,6 +490,20 @@ class EcosystemManager:
             mean_vision = sum(vision_ranges) / n_fish
             trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
 
+        # Track behavioral trait variances for convergence detection.
+        # Low variance in a trait means the population has converged on it,
+        # which may indicate a convergence trap (stuck at suboptimal value).
+        behavioral_traits = ["prediction_skill", "pursuit_aggression", "hunting_stamina"]
+        for trait_name in behavioral_traits:
+            values = []
+            for fish in fish_list:
+                trait = getattr(fish.genome.behavioral, trait_name, None)
+                if trait is not None and hasattr(trait, "value"):
+                    values.append(float(trait.value))
+            if len(values) > 1:
+                mean_val = sum(values) / len(values)
+                trait_variances[trait_name] = sum((v - mean_val) ** 2 for v in values) / len(values)
+
         self.genetic_diversity_stats.unique_algorithms = len(algorithms)
         self.genetic_diversity_stats.unique_species = len(species)
         self.genetic_diversity_stats.color_variance = color_variance
@@ -638,9 +652,16 @@ class EcosystemManager:
         return self.reproduction_manager.get_summary()
 
     def get_diversity_summary(self) -> Dict[str, Any]:
-        """Get summary genetic diversity statistics."""
+        """Get summary genetic diversity statistics.
+
+        Includes convergence warnings for traits with near-zero variance,
+        which may indicate convergence traps where evolution has stalled.
+        """
         diversity_score = self.genetic_diversity_stats.get_diversity_score()
         trait_vars = self.genetic_diversity_stats.trait_variances
+
+        # Detect converged traits (variance < 0.001 = essentially fixed)
+        converged_traits = [name for name, var in trait_vars.items() if var < 0.001]
 
         return {
             "unique_algorithms": self.genetic_diversity_stats.unique_algorithms,
@@ -649,8 +670,12 @@ class EcosystemManager:
             "speed_variance": trait_vars.get("speed", 0.0),
             "size_variance": trait_vars.get("size", 0.0),
             "vision_variance": trait_vars.get("vision", 0.0),
+            "prediction_skill_variance": trait_vars.get("prediction_skill", 0.0),
+            "pursuit_aggression_variance": trait_vars.get("pursuit_aggression", 0.0),
+            "hunting_stamina_variance": trait_vars.get("hunting_stamina", 0.0),
             "diversity_score": diversity_score,
             "diversity_score_pct": f"{diversity_score:.1%}",
+            "converged_traits": converged_traits,
         }
 
     def get_enhanced_stats_summary(self) -> Dict[str, Any]:
