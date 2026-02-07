@@ -3,8 +3,7 @@
 Uses the RCSS-Lite minigame engine.
 """
 
-from core.minigames.soccer import (RCSSCommand, RCSSLiteEngine, RCSSVector,
-                                   SoccerMatchRunner)
+from core.minigames.soccer import RCSSCommand, RCSSLiteEngine, RCSSVector, SoccerMatchRunner
 
 
 class TestSoccerAnimation:

@@ -4,8 +4,7 @@
 import sys
 
 from core import entities, environment
-from core.algorithms.energy_management import (EnergyConserver,
-                                               OpportunisticRester)
+from core.algorithms.energy_management import EnergyConserver, OpportunisticRester
 from core.ecosystem import EcosystemManager
 from core.entity_factory import create_initial_population
 

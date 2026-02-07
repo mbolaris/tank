@@ -1,5 +1,4 @@
-from core.minigames.soccer.engine import (RCSSCommand, RCSSLiteEngine,
-                                          RCSSVector)
+from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.params import RCSSParams
 
 

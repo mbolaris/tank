@@ -10,8 +10,7 @@ import math
 from typing import Any
 
 from core.actions.action_registry import ActionSpace
-from core.actions.soccer_action import (MovementMode, SoccerAction,
-                                        clamp_value, create_soccer_action)
+from core.actions.soccer_action import MovementMode, SoccerAction, clamp_value, create_soccer_action
 
 
 class SoccerActionTranslator:

@@ -6,13 +6,11 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from core.entities.base import Agent, EntityState, EntityUpdateResult
-from core.entities.generic_agent_types import (Action, AgentComponents,
-                                               DecisionPolicy, Percept)
+from core.entities.generic_agent_types import Action, AgentComponents, DecisionPolicy, Percept
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
-    from core.agents.components import (FeedingComponent, LocomotionComponent,
-                                        PerceptionComponent)
+    from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
     from core.world import World
 
 

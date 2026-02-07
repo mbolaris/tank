@@ -14,9 +14,17 @@ from typing import List
 
 import pytest
 
-from core.protocols import (Consumable, EnergyHolder, Identifiable,
-                            LifecycleAware, Mortal, Movable, Predator,
-                            Reproducible, SkillGamePlayer)
+from core.protocols import (
+    Consumable,
+    EnergyHolder,
+    Identifiable,
+    LifecycleAware,
+    Mortal,
+    Movable,
+    Predator,
+    Reproducible,
+    SkillGamePlayer,
+)
 
 
 class TestProtocolConformance:

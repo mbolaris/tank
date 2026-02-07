@@ -11,8 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import SimulationEngine
-from core.worlds.interfaces import (FAST_STEP_ACTION, MultiAgentWorldBackend,
-                                    StepResult)
+from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.tank.action_bridge import apply_actions
 from core.worlds.tank.observation_builder import build_tank_observations
 from core.worlds.tank.pack import TankPack

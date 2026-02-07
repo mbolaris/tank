@@ -11,10 +11,15 @@ from __future__ import annotations
 
 import pytest
 
-from core.worlds.contracts import (ALL_WORLD_TYPES, EnergyDeltaRecord,
-                                   RemovalRequest, RenderHint, SpawnRequest,
-                                   get_default_render_hint,
-                                   is_valid_world_type)
+from core.worlds.contracts import (
+    ALL_WORLD_TYPES,
+    EnergyDeltaRecord,
+    RemovalRequest,
+    RenderHint,
+    SpawnRequest,
+    get_default_render_hint,
+    is_valid_world_type,
+)
 from core.worlds.interfaces import StepResult
 
 

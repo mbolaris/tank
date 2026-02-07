@@ -25,9 +25,12 @@ Usage:
 from backend.runner.hooks.noop_hooks import NoOpWorldHooks
 from backend.runner.hooks.petri_hooks import PetriWorldHooks
 from backend.runner.hooks.protocol import WorldHooks
-from backend.runner.hooks.registry import (get_hooks_for_world,
-                                           get_registered_world_types,
-                                           register_hooks, unregister_hooks)
+from backend.runner.hooks.registry import (
+    get_hooks_for_world,
+    get_registered_world_types,
+    register_hooks,
+    unregister_hooks,
+)
 from backend.runner.hooks.tank_hooks import TankWorldHooks
 
 __all__ = [

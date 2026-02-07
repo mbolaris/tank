@@ -52,6 +52,7 @@ class MockCanvas {
 
 // Mock Path2D
 class MockPath2D {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     constructor(_path?: string | Path2D) { }
 }
 

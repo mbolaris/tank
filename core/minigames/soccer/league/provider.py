@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from core.config.simulation_config import SoccerConfig
-from core.minigames.soccer.league.types import (LeagueTeam, TeamAvailability,
-                                                TeamSource)
+from core.minigames.soccer.league.types import LeagueTeam, TeamAvailability, TeamSource
 from core.minigames.soccer.selection import get_entity_energy, get_entity_id
 
 

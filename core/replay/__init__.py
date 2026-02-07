@@ -6,8 +6,7 @@ This package provides:
 """
 
 from core.replay.fingerprint import SnapshotFingerprinter, fingerprint_snapshot
-from core.replay.jsonl import (JsonlReplayReader, JsonlReplayWriter,
-                               ReplayFormatError)
+from core.replay.jsonl import JsonlReplayReader, JsonlReplayWriter, ReplayFormatError
 
 __all__ = [
     "JsonlReplayReader",

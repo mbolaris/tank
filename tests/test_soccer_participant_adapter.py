@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from core.minigames.soccer.evaluator import (
-    create_soccer_match_from_participants, finalize_soccer_match)
+    create_soccer_match_from_participants,
+    finalize_soccer_match,
+)
 from core.minigames.soccer.participant import SoccerParticipant
 
 

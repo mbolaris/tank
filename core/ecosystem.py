@@ -8,12 +8,15 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
-from core.config.ecosystem import (ENERGY_STATS_WINDOW_FRAMES,
-                                   MAX_ECOSYSTEM_EVENTS)
-from core.ecosystem_stats import (EcosystemEvent, GeneticDiversityStats,
-                                  MixedPokerOutcomeRecord,
-                                  PlantPokerOutcomeRecord, PokerOutcomeRecord,
-                                  PokerStats)
+from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS
+from core.ecosystem_stats import (
+    EcosystemEvent,
+    GeneticDiversityStats,
+    MixedPokerOutcomeRecord,
+    PlantPokerOutcomeRecord,
+    PokerOutcomeRecord,
+    PokerStats,
+)
 from core.lineage_tracker import LineageTracker
 from core.poker_stats_manager import PokerStatsManager
 from core.population_tracker import PopulationTracker
@@ -512,8 +515,7 @@ class EcosystemManager:
         """Get comprehensive ecosystem summary statistics."""
         from statistics import StatisticsError, median
 
-        from core.config.fish import (FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX,
-                                      FISH_SIZE_MODIFIER_MIN)
+        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
 
         total_pop = self.get_total_population()
         poker_summary = self.get_poker_stats_summary()

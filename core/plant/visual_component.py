@@ -6,9 +6,13 @@ size calculations and rendering-related state for plants.
 
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
-from core.config.plants import (PLANT_BASE_HEIGHT, PLANT_BASE_WIDTH,
-                                PLANT_MAX_SIZE, PLANT_MIN_SIZE,
-                                PLANT_NECTAR_ENERGY)
+from core.config.plants import (
+    PLANT_BASE_HEIGHT,
+    PLANT_BASE_WIDTH,
+    PLANT_MAX_SIZE,
+    PLANT_MIN_SIZE,
+    PLANT_NECTAR_ENERGY,
+)
 
 if TYPE_CHECKING:
     from core.genetics import PlantGenome

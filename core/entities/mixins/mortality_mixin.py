@@ -9,8 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.config.fish import PREDATOR_ENCOUNTER_WINDOW
-from core.constants import (DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE,
-                            DEATH_REASON_STARVATION)
+from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_REASON_STARVATION
 from core.entities.base import EntityState
 
 if TYPE_CHECKING:

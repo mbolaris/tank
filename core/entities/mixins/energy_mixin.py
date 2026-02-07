@@ -13,8 +13,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.config.fish import (ENERGY_MAX_DEFAULT,
-                              OVERFLOW_ENERGY_BANK_MULTIPLIER)
+from core.config.fish import ENERGY_MAX_DEFAULT, OVERFLOW_ENERGY_BANK_MULTIPLIER
 from core.constants import DEATH_REASON_STARVATION
 from core.energy.energy_component import EnergyComponent
 from core.entities.base import EntityState

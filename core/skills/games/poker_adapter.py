@@ -21,11 +21,18 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from core.poker.betting.actions import BettingAction
-from core.poker.strategy.implementations import (BalancedStrategy,
-                                                 PokerStrategyAlgorithm,
-                                                 get_random_poker_strategy)
-from core.skills.base import (SkillEvaluationMetrics, SkillGame,
-                              SkillGameResult, SkillGameType, SkillStrategy)
+from core.poker.strategy.implementations import (
+    BalancedStrategy,
+    PokerStrategyAlgorithm,
+    get_random_poker_strategy,
+)
+from core.skills.base import (
+    SkillEvaluationMetrics,
+    SkillGame,
+    SkillGameResult,
+    SkillGameType,
+    SkillStrategy,
+)
 
 
 @dataclass

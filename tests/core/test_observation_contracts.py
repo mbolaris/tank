@@ -2,10 +2,12 @@ import unittest
 from unittest.mock import MagicMock
 
 from core.policies.interfaces import build_movement_observation
-from core.policies.observation_registry import (clear_registry,
-                                                register_observation_builder,
-                                                restore_registry,
-                                                snapshot_registry)
+from core.policies.observation_registry import (
+    clear_registry,
+    register_observation_builder,
+    restore_registry,
+    snapshot_registry,
+)
 
 
 class TestObservationContracts(unittest.TestCase):

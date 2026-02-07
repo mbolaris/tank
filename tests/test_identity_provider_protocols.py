@@ -7,8 +7,7 @@ importing concrete entity classes like Fish, Plant, etc.
 
 from __future__ import annotations
 
-from core.config.entities import (FISH_ID_OFFSET, FOOD_ID_OFFSET,
-                                  PLANT_ID_OFFSET)
+from core.config.entities import FISH_ID_OFFSET, FOOD_ID_OFFSET, PLANT_ID_OFFSET
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 
 

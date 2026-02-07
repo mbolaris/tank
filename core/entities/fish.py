@@ -3,17 +3,23 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from core.config.fish import (ENERGY_MAX_DEFAULT, ENERGY_MODERATE_MULTIPLIER,
-                              FISH_BASE_HEIGHT, FISH_BASE_SPEED,
-                              FISH_BASE_WIDTH, FISH_LAST_EVENT_INITIAL_AGE,
-                              FISH_MEMORY_DECAY_RATE,
-                              FISH_MEMORY_LEARNING_RATE,
-                              FISH_MEMORY_MAX_PER_TYPE, FISH_TOP_MARGIN,
-                              INITIAL_ENERGY_RATIO, LIFE_STAGE_MATURE_MAX)
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    ENERGY_MODERATE_MULTIPLIER,
+    FISH_BASE_HEIGHT,
+    FISH_BASE_SPEED,
+    FISH_BASE_WIDTH,
+    FISH_LAST_EVENT_INITIAL_AGE,
+    FISH_MEMORY_DECAY_RATE,
+    FISH_MEMORY_LEARNING_RATE,
+    FISH_MEMORY_MAX_PER_TYPE,
+    FISH_TOP_MARGIN,
+    INITIAL_ENERGY_RATIO,
+    LIFE_STAGE_MATURE_MAX,
+)
 from core.entities.base import EntityUpdateResult, LifeStage
 from core.entities.generic_agent import AgentComponents, GenericAgent
-from core.entities.mixins import (EnergyManagementMixin, MortalityMixin,
-                                  ReproductionMixin)
+from core.entities.mixins import EnergyManagementMixin, MortalityMixin, ReproductionMixin
 from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
@@ -35,8 +41,7 @@ from core.agents.components.reproduction_component import ReproductionComponent
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.skill_game_component import SkillGameComponent
-from core.fish.visual_geometry import (calculate_visual_bounds,
-                                       extract_traits_from_genome)
+from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
@@ -125,8 +130,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             self.genome.behavioral.poker_strategy is None
             or self.genome.behavioral.poker_strategy.value is None
         ):
-            from core.poker.strategy.implementations import \
-                get_random_poker_strategy
+            from core.poker.strategy.implementations import get_random_poker_strategy
 
             rng = require_rng(environment, "Fish.__init__.poker_strategy")
             strategy = get_random_poker_strategy(rng=rng)

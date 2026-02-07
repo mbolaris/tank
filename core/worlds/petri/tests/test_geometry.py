@@ -3,8 +3,7 @@
 import math
 import unittest
 
-from core.worlds.petri.geometry import (circle_perimeter_points,
-                                        reflect_velocity)
+from core.worlds.petri.geometry import circle_perimeter_points, reflect_velocity
 
 
 class TestPetriGeometry(unittest.TestCase):

@@ -596,10 +596,13 @@ class BehaviorHelpersMixin:
             - velocity_x: X component of flee velocity (0 if not fleeing)
             - velocity_y: Y component of flee velocity (0 if not fleeing)
         """
-        from core.config.fish import (FLEE_SPEED_CRITICAL, FLEE_SPEED_NORMAL,
-                                      FLEE_THRESHOLD_CRITICAL,
-                                      FLEE_THRESHOLD_LOW,
-                                      FLEE_THRESHOLD_NORMAL)
+        from core.config.fish import (
+            FLEE_SPEED_CRITICAL,
+            FLEE_SPEED_NORMAL,
+            FLEE_THRESHOLD_CRITICAL,
+            FLEE_THRESHOLD_LOW,
+            FLEE_THRESHOLD_NORMAL,
+        )
         from core.config.food import PREDATOR_DEFAULT_FAR_DISTANCE
         from core.entities import Crab
 

@@ -124,7 +124,9 @@ class PlantPokerComponent:
         # Check if this is a baseline strategy plant
         if genome.strategy_type is not None:
             from core.plants.plant_strategy_types import (
-                PlantStrategyType, get_poker_strategy_for_type)
+                PlantStrategyType,
+                get_poker_strategy_for_type,
+            )
 
             try:
                 strategy_type = PlantStrategyType(genome.strategy_type)

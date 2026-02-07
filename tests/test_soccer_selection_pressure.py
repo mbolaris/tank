@@ -7,8 +7,7 @@ import random
 from core.code_pool import create_default_genome_code_pool
 from core.experiments.soccer_evolution import create_population
 from core.genetics import Genome
-from core.genetics.code_policy_traits import (CodePolicyMutationConfig,
-                                              mutate_code_policies)
+from core.genetics.code_policy_traits import CodePolicyMutationConfig, mutate_code_policies
 from core.minigames.soccer import apply_soccer_entry_fees, apply_soccer_rewards
 
 

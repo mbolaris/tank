@@ -78,8 +78,7 @@ class StatsCalculator:
 
     def _get_genetic_distribution_stats(self) -> Dict[str, Any]:
         """Get genetic trait distribution statistics with histograms."""
-        from core.services.stats.genetic_stats import \
-            get_genetic_distribution_stats
+        from core.services.stats.genetic_stats import get_genetic_distribution_stats
 
         fish_list = self._engine.get_fish_list()
         return get_genetic_distribution_stats(fish_list)

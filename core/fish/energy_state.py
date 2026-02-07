@@ -7,9 +7,11 @@ critical energy thresholds, saturation, and other energy-derived states.
 
 from dataclasses import dataclass
 
-from core.config.fish import (CRITICAL_ENERGY_THRESHOLD_RATIO,
-                              LOW_ENERGY_THRESHOLD_RATIO,
-                              REPRODUCTION_MIN_ENERGY)
+from core.config.fish import (
+    CRITICAL_ENERGY_THRESHOLD_RATIO,
+    LOW_ENERGY_THRESHOLD_RATIO,
+    REPRODUCTION_MIN_ENERGY,
+)
 
 
 @dataclass(frozen=True)

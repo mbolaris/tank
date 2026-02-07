@@ -16,8 +16,7 @@ from core.poker.betting.decision import AGGRESSION_MEDIUM, decide_action
 from core.poker.core.cards import Card, Deck
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.evaluation.strength import (evaluate_hand_strength,
-                                            evaluate_starting_hand_strength)
+from core.poker.evaluation.strength import evaluate_hand_strength, evaluate_starting_hand_strength
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm

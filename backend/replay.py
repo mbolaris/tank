@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from core.replay.fingerprint import SnapshotFingerprinter
-from core.replay.jsonl import (JsonlReplayReader, JsonlReplayWriter,
-                               ReplayFormatError)
+from core.replay.jsonl import JsonlReplayReader, JsonlReplayWriter, ReplayFormatError
 
 
 class ReplayMismatchError(AssertionError):

@@ -16,8 +16,7 @@ from dataclasses import dataclass
 
 from core.code_pool import GenomeCodePool, create_default_genome_code_pool
 from core.genetics import Genome
-from core.genetics.code_policy_traits import (assign_random_policy,
-                                              mutate_code_policies)
+from core.genetics.code_policy_traits import assign_random_policy, mutate_code_policies
 from core.minigames.soccer import AgentResult, SoccerMatchRunner
 
 LEFT_TEAM = "left"

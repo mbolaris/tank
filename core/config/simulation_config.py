@@ -12,46 +12,61 @@ from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from core.config.display import (FILES, FRAME_RATE, INIT_POS, SCREEN_HEIGHT,
-                                 SCREEN_WIDTH, SEPARATOR_WIDTH)
-from core.config.ecosystem import (CRITICAL_POPULATION_THRESHOLD,
-                                   EMERGENCY_SPAWN_COOLDOWN, MAX_POPULATION,
-                                   NUM_SCHOOLING_FISH, SPAWN_MARGIN_PIXELS,
-                                   TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT)
-from core.config.food import (AUTO_FOOD_ENABLED,
-                              AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
-                              AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
-                              AUTO_FOOD_HIGH_POP_THRESHOLD_1,
-                              AUTO_FOOD_HIGH_POP_THRESHOLD_2,
-                              AUTO_FOOD_LOW_ENERGY_THRESHOLD,
-                              AUTO_FOOD_SPAWN_RATE,
-                              AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
-                              LIVE_FOOD_SPAWN_CHANCE)
+from core.config.display import (
+    FILES,
+    FRAME_RATE,
+    INIT_POS,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+    SEPARATOR_WIDTH,
+)
+from core.config.ecosystem import (
+    CRITICAL_POPULATION_THRESHOLD,
+    EMERGENCY_SPAWN_COOLDOWN,
+    MAX_POPULATION,
+    NUM_SCHOOLING_FISH,
+    SPAWN_MARGIN_PIXELS,
+    TOTAL_ALGORITHM_COUNT,
+    TOTAL_SPECIES_COUNT,
+)
+from core.config.food import (
+    AUTO_FOOD_ENABLED,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1,
+    AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_1,
+    AUTO_FOOD_HIGH_POP_THRESHOLD_2,
+    AUTO_FOOD_LOW_ENERGY_THRESHOLD,
+    AUTO_FOOD_SPAWN_RATE,
+    AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD,
+    LIVE_FOOD_SPAWN_CHANCE,
+)
 from core.config.plants import PLANT_MIN_ENERGY_GAIN
 from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
-from core.config.server import (DEFAULT_API_PORT, PLANTS_ENABLED,
-                                POKER_ACTIVITY_ENABLED)
-from core.config.soccer import (SOCCER_EVALUATOR_DURATION_FRAMES,
-                                SOCCER_EVALUATOR_ENABLED,
-                                SOCCER_EVALUATOR_INTERVAL_FRAMES,
-                                SOCCER_EVALUATOR_MIN_PLAYERS,
-                                SOCCER_EVALUATOR_NUM_PLAYERS,
-                                SOCCER_EVENT_MAX_AGE_FRAMES,
-                                SOCCER_LEAGUE_ALLOW_REPEAT_WITHIN_MATCH,
-                                SOCCER_LEAGUE_COOLDOWN_MATCHES,
-                                SOCCER_LEAGUE_CYCLES_PER_FRAME,
-                                SOCCER_LEAGUE_ENTRY_FEE_ENERGY,
-                                SOCCER_LEAGUE_MATCH_EVERY_FRAMES,
-                                SOCCER_LEAGUE_MATCHES_PER_TICK,
-                                SOCCER_LEAGUE_REPRO_CREDIT_AWARD,
-                                SOCCER_LEAGUE_REPRO_CREDIT_INITIAL,
-                                SOCCER_LEAGUE_REPRO_CREDIT_REQUIRED,
-                                SOCCER_LEAGUE_REPRO_REWARD_MODE,
-                                SOCCER_LEAGUE_REWARD_MODE,
-                                SOCCER_LEAGUE_REWARD_MULTIPLIER,
-                                SOCCER_LEAGUE_SEED_BASE,
-                                SOCCER_LEAGUE_SELECTION_STRATEGY,
-                                SOCCER_LEAGUE_TEAM_SIZE, SOCCER_MAX_EVENTS)
+from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
+from core.config.soccer import (
+    SOCCER_EVALUATOR_DURATION_FRAMES,
+    SOCCER_EVALUATOR_ENABLED,
+    SOCCER_EVALUATOR_INTERVAL_FRAMES,
+    SOCCER_EVALUATOR_MIN_PLAYERS,
+    SOCCER_EVALUATOR_NUM_PLAYERS,
+    SOCCER_EVENT_MAX_AGE_FRAMES,
+    SOCCER_LEAGUE_ALLOW_REPEAT_WITHIN_MATCH,
+    SOCCER_LEAGUE_COOLDOWN_MATCHES,
+    SOCCER_LEAGUE_CYCLES_PER_FRAME,
+    SOCCER_LEAGUE_ENTRY_FEE_ENERGY,
+    SOCCER_LEAGUE_MATCH_EVERY_FRAMES,
+    SOCCER_LEAGUE_MATCHES_PER_TICK,
+    SOCCER_LEAGUE_REPRO_CREDIT_AWARD,
+    SOCCER_LEAGUE_REPRO_CREDIT_INITIAL,
+    SOCCER_LEAGUE_REPRO_CREDIT_REQUIRED,
+    SOCCER_LEAGUE_REPRO_REWARD_MODE,
+    SOCCER_LEAGUE_REWARD_MODE,
+    SOCCER_LEAGUE_REWARD_MULTIPLIER,
+    SOCCER_LEAGUE_SEED_BASE,
+    SOCCER_LEAGUE_SELECTION_STRATEGY,
+    SOCCER_LEAGUE_TEAM_SIZE,
+    SOCCER_MAX_EVENTS,
+)
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 
 

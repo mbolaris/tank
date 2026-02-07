@@ -13,10 +13,16 @@ import random
 
 import pytest
 
-from core.code_pool import (CodePool, GenomeCodePool, GenomePolicySet,
-                            SafetyConfig, ValidationError,
-                            create_deterministic_rng, fork_rng,
-                            validate_rng_determinism)
+from core.code_pool import (
+    CodePool,
+    GenomeCodePool,
+    GenomePolicySet,
+    SafetyConfig,
+    ValidationError,
+    create_deterministic_rng,
+    fork_rng,
+    validate_rng_determinism,
+)
 from core.code_pool.sandbox import parse_and_validate
 
 # =============================================================================

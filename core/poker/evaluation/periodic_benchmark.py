@@ -7,9 +7,11 @@ periodically during simulation to track poker strategy evolution over time.
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from core.poker.evaluation.benchmark_eval import (BenchmarkEvalConfig,
-                                                  BenchmarkSuiteResult,
-                                                  evaluate_vs_benchmark_suite)
+from core.poker.evaluation.benchmark_eval import (
+    BenchmarkEvalConfig,
+    BenchmarkSuiteResult,
+    evaluate_vs_benchmark_suite,
+)
 
 if TYPE_CHECKING:
     from core.entities.fish import Fish

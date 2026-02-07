@@ -77,9 +77,12 @@ def test_empty_list():
 
 def test_composable_strategy_stats():
     """Test that composable poker strategy stats are correctly extracted."""
-    from core.poker.strategy.composable import (BettingStyle, BluffingApproach,
-                                                ComposablePokerStrategy,
-                                                HandSelection)
+    from core.poker.strategy.composable import (
+        BettingStyle,
+        BluffingApproach,
+        ComposablePokerStrategy,
+        HandSelection,
+    )
 
     fish = MockFish()
     # Mock a real composable strategy

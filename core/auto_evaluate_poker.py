@@ -26,11 +26,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from core.energy.energy_utils import apply_energy_delta
+
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
-from core.poker.simulation.hand_engine import (Deal, determine_payouts,
-                                               simulate_hand_from_deal)
+from core.poker.simulation.hand_engine import Deal, determine_payouts, simulate_hand_from_deal
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)

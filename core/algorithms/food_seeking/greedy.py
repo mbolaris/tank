@@ -8,14 +8,17 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.config.food import (CHASE_DISTANCE_CRITICAL, CHASE_DISTANCE_LOW,
-                              CHASE_DISTANCE_SAFE_BASE,
-                              FOOD_MEMORY_RECORD_DISTANCE,
-                              PROXIMITY_BOOST_DIVISOR,
-                              PROXIMITY_BOOST_MULTIPLIER,
-                              URGENCY_BOOST_CRITICAL, URGENCY_BOOST_LOW)
-from core.predictive_movement import (predict_falling_intercept,
-                                      predict_intercept_point)
+from core.config.food import (
+    CHASE_DISTANCE_CRITICAL,
+    CHASE_DISTANCE_LOW,
+    CHASE_DISTANCE_SAFE_BASE,
+    FOOD_MEMORY_RECORD_DISTANCE,
+    PROXIMITY_BOOST_DIVISOR,
+    PROXIMITY_BOOST_MULTIPLIER,
+    URGENCY_BOOST_CRITICAL,
+    URGENCY_BOOST_LOW,
+)
+from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 
 @dataclass

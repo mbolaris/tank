@@ -11,8 +11,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from core.evolution.mutation import (mutate_continuous_trait,
-                                     mutate_discrete_trait)
+from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
 
 
 @dataclass
@@ -231,8 +230,7 @@ class PlantGenome:
         Returns:
             PlantGenome configured for the specified strategy type
         """
-        from core.plants.plant_strategy_types import (
-            PlantStrategyType, get_strategy_visual_config)
+        from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -750,8 +748,7 @@ class PlantGenome:
         strategy_type = data.get("strategy_type")
         if not strategy_type:  # Handles None, empty string, and missing key
             # Migration: assign a random baseline strategy to legacy plants
-            from core.plants.plant_strategy_types import \
-                get_random_strategy_type
+            from core.plants.plant_strategy_types import get_random_strategy_type
 
             strategy_type = get_random_strategy_type(rng=rng).value
 

@@ -13,9 +13,13 @@ New code should import from backend.runner.hooks directly.
 """
 
 # Re-export all public symbols for backwards compatibility
-from backend.runner.hooks import (NoOpWorldHooks, PetriWorldHooks,
-                                  TankWorldHooks, WorldHooks,
-                                  get_hooks_for_world)
+from backend.runner.hooks import (
+    NoOpWorldHooks,
+    PetriWorldHooks,
+    TankWorldHooks,
+    WorldHooks,
+    get_hooks_for_world,
+)
 
 __all__ = [
     "NoOpWorldHooks",

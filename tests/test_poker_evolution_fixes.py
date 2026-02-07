@@ -13,12 +13,14 @@ import pytest
 
 from core.genetics import Genome
 from core.genetics.behavioral import _inherit_poker_strategy
-from core.poker.strategy.implementations import (POKER_EVOLUTION_CONFIG,
-                                                 LooseAggressiveStrategy,
-                                                 PokerStrategyAlgorithm,
-                                                 TightAggressiveStrategy,
-                                                 crossover_poker_strategies,
-                                                 get_random_poker_strategy)
+from core.poker.strategy.implementations import (
+    POKER_EVOLUTION_CONFIG,
+    LooseAggressiveStrategy,
+    PokerStrategyAlgorithm,
+    TightAggressiveStrategy,
+    crossover_poker_strategies,
+    get_random_poker_strategy,
+)
 
 
 class TestWinnerBiasedInheritance:

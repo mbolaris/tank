@@ -7,11 +7,13 @@ will be and intercept them more effectively.
 import math
 from typing import Optional, Tuple
 
-from core.config.fish import (MOVEMENT_DISTANCE_EPSILON,
-                              MOVEMENT_ESCAPE_DIRECT_WEIGHT,
-                              MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,
-                              MOVEMENT_FOV_ANGLE,
-                              MOVEMENT_SLOW_SPEED_MULTIPLIER)
+from core.config.fish import (
+    MOVEMENT_DISTANCE_EPSILON,
+    MOVEMENT_ESCAPE_DIRECT_WEIGHT,
+    MOVEMENT_ESCAPE_PERPENDICULAR_WEIGHT,
+    MOVEMENT_FOV_ANGLE,
+    MOVEMENT_SLOW_SPEED_MULTIPLIER,
+)
 from core.math_utils import Vector2
 
 

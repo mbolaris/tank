@@ -28,8 +28,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-from core.skills.base import (SkillEvaluationMetrics, SkillGame,
-                              SkillGameResult, SkillGameType, SkillStrategy)
+from core.skills.base import (
+    SkillEvaluationMetrics,
+    SkillGame,
+    SkillGameResult,
+    SkillGameType,
+    SkillStrategy,
+)
 from core.util.rng import require_rng_param
 
 

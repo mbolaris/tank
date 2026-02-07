@@ -70,8 +70,10 @@ class PokerStrategyAlgorithm:
     def from_dict(cls, data: dict[str, Any]) -> PokerStrategyAlgorithm:
         """Deserialize strategy from dictionary."""
         from core.poker.strategy.implementations.factory import (
-            BASELINE_STRATEGIES, get_all_poker_strategies,
-            get_random_poker_strategy)
+            BASELINE_STRATEGIES,
+            get_all_poker_strategies,
+            get_random_poker_strategy,
+        )
 
         strategy_id = data.get("strategy_id")
         if not isinstance(strategy_id, str) or not strategy_id:

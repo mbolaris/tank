@@ -20,12 +20,16 @@ from core.genetics.genome import GeneticCrossoverMode, Genome
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant_genome import PlantGenome
 from core.genetics.reproduction import ReproductionParams
-from core.genetics.trait import (GeneticTrait, TraitSpec,
-                                 apply_trait_meta_from_dict,
-                                 apply_trait_values_from_dict,
-                                 inherit_traits_from_specs,
-                                 inherit_traits_from_specs_recombination,
-                                 trait_meta_to_dict, trait_values_to_dict)
+from core.genetics.trait import (
+    GeneticTrait,
+    TraitSpec,
+    apply_trait_meta_from_dict,
+    apply_trait_values_from_dict,
+    inherit_traits_from_specs,
+    inherit_traits_from_specs_recombination,
+    trait_meta_to_dict,
+    trait_values_to_dict,
+)
 from core.genetics.validation import validate_traits_from_specs
 
 __all__ = [

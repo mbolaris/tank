@@ -11,8 +11,7 @@ from core.poker.betting.decision import AGGRESSION_MEDIUM
 from core.poker.core.game_state import PokerGameState
 from core.poker.core.hand import PokerHand
 from core.poker.evaluation.hand_evaluator import evaluate_hand
-from core.poker.simulation.hand_engine import (MultiplayerGameState,
-                                               simulate_hand)
+from core.poker.simulation.hand_engine import MultiplayerGameState, simulate_hand
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm

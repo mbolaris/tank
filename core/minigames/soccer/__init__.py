@@ -10,25 +10,29 @@ Components:
 - SoccerParticipant: Entity-agnostic participant protocol
 """
 
-from core.minigames.soccer.engine import (RCSSCommand, RCSSLiteEngine,
-                                          RCSSVector)
+from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.evaluator import (
-    SelectionStrategy, SoccerMatchSetup, SoccerMinigameOutcome,
-    create_soccer_match, create_soccer_match_from_participants,
-    derive_soccer_seed, finalize_soccer_match, run_soccer_minigame,
-    select_soccer_participants)
+    SelectionStrategy,
+    SoccerMatchSetup,
+    SoccerMinigameOutcome,
+    create_soccer_match,
+    create_soccer_match_from_participants,
+    derive_soccer_seed,
+    finalize_soccer_match,
+    run_soccer_minigame,
+    select_soccer_participants,
+)
 from core.minigames.soccer.fake_server import FakeRCSSServer
 from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 from core.minigames.soccer.match import SoccerMatch
-from core.minigames.soccer.match_runner import (AgentResult, EpisodeResult,
-                                                SoccerMatchRunner)
-from core.minigames.soccer.params import (DEFAULT_RCSS_PARAMS,
-                                          SOCCER_CANONICAL_PARAMS, RCSSParams)
-from core.minigames.soccer.participant import (SoccerParticipant,
-                                               create_participants_from_fish,
-                                               fish_to_participant)
-from core.minigames.soccer.rewards import (apply_soccer_entry_fees,
-                                           apply_soccer_rewards)
+from core.minigames.soccer.match_runner import AgentResult, EpisodeResult, SoccerMatchRunner
+from core.minigames.soccer.params import DEFAULT_RCSS_PARAMS, SOCCER_CANONICAL_PARAMS, RCSSParams
+from core.minigames.soccer.participant import (
+    SoccerParticipant,
+    create_participants_from_fish,
+    fish_to_participant,
+)
+from core.minigames.soccer.rewards import apply_soccer_entry_fees, apply_soccer_rewards
 from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 
 __all__ = [

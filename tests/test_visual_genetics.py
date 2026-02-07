@@ -3,9 +3,14 @@
 
 import random
 
-from core.config.fish import (BODY_ASPECT_MAX, BODY_ASPECT_MIN, EYE_SIZE_MAX,
-                              EYE_SIZE_MIN, FISH_PATTERN_COUNT,
-                              FISH_TEMPLATE_COUNT)
+from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
+    FISH_PATTERN_COUNT,
+    FISH_TEMPLATE_COUNT,
+)
 from core.genetics import Genome
 
 

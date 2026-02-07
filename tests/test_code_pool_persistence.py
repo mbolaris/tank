@@ -6,8 +6,12 @@ import random
 
 import pytest
 
-from core.code_pool import (BUILTIN_SEEK_NEAREST_FOOD_ID, CodePool,
-                            ValidationError, seek_nearest_food_policy)
+from core.code_pool import (
+    BUILTIN_SEEK_NEAREST_FOOD_ID,
+    CodePool,
+    ValidationError,
+    seek_nearest_food_policy,
+)
 
 
 def test_round_trip_with_custom_component():

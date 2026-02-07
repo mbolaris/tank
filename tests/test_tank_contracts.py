@@ -7,8 +7,7 @@ import random
 
 import pytest
 
-from core.brains.contracts import (BrainAction, BrainObservation,
-                                   WorldTickResult)
+from core.brains.contracts import BrainAction, BrainObservation, WorldTickResult
 
 # Use the canonical names in tests (backward-compat aliases still work)
 Action = BrainAction
@@ -92,8 +91,7 @@ class TestObservationBuilder:
 
     def test_observation_builder_produces_stable_fields(self):
         """Observation builder should produce observations with all fields."""
-        from core.worlds.tank.observation_builder import \
-            build_tank_observations
+        from core.worlds.tank.observation_builder import build_tank_observations
 
         adapter = TankWorldBackendAdapter(seed=42)
         adapter.reset(seed=42)
@@ -130,8 +128,7 @@ class TestActionBridge:
     def test_action_bridge_produces_actions_for_fish(self):
         """Action bridge should produce actions for each fish in observations."""
         from core.worlds.tank.action_bridge import decide_actions
-        from core.worlds.tank.observation_builder import \
-            build_tank_observations
+        from core.worlds.tank.observation_builder import build_tank_observations
 
         adapter = TankWorldBackendAdapter(seed=42)
         adapter.reset(seed=42)
@@ -158,8 +155,7 @@ class TestActionBridge:
         """Action velocities should match actual fish velocities."""
         from core.entities import Fish
         from core.worlds.tank.action_bridge import decide_actions
-        from core.worlds.tank.observation_builder import \
-            build_tank_observations
+        from core.worlds.tank.observation_builder import build_tank_observations
 
         adapter = TankWorldBackendAdapter(seed=42)
         adapter.reset(seed=42)

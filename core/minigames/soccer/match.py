@@ -229,9 +229,11 @@ class SoccerMatch:
         Uses GenomeCodePool directly (no local copying) and forks RNG per player
         to ensure deterministic but independent policy execution.
         """
-        from core.minigames.soccer.policy_adapter import (action_to_command,
-                                                          build_observation,
-                                                          run_policy)
+        from core.minigames.soccer.policy_adapter import (
+            action_to_command,
+            build_observation,
+            run_policy,
+        )
 
         for participant in self.participants:
             player_id = participant.participant_id

@@ -12,8 +12,7 @@ import pytest
 
 from core.solutions import SolutionBenchmark, SolutionRecord, SolutionTracker
 from core.solutions.benchmark import SolutionBenchmarkConfig
-from core.solutions.models import (BenchmarkResult, SolutionComparison,
-                                   SolutionMetadata)
+from core.solutions.models import BenchmarkResult, SolutionComparison, SolutionMetadata
 
 
 class TestSolutionMetadata:

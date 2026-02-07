@@ -5,8 +5,7 @@ from unittest.mock import Mock
 
 from core.algorithms.composable.behavior import ComposableBehavior
 from core.entities import Fish
-from core.policies.behavior_adapter import (BehaviorToMovementPolicyAdapter,
-                                            SimplePolicy)
+from core.policies.behavior_adapter import BehaviorToMovementPolicyAdapter, SimplePolicy
 
 
 class TestPolicyAdapter:

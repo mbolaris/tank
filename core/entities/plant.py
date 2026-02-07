@@ -32,8 +32,12 @@ if TYPE_CHECKING:
     from core.root_spots import RootSpot
     from core.world import World
 
-from core.config.plants import (PLANT_DEATH_ENERGY, PLANT_INITIAL_ENERGY,
-                                PLANT_MAX_ENERGY, PLANT_NECTAR_ENERGY)
+from core.config.plants import (
+    PLANT_DEATH_ENERGY,
+    PLANT_INITIAL_ENERGY,
+    PLANT_MAX_ENERGY,
+    PLANT_NECTAR_ENERGY,
+)
 
 logger = logging.getLogger(__name__)
 

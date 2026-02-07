@@ -5,10 +5,16 @@ This module tests the RCSS-Lite engine, SoccerMatch, and SoccerMatchRunner.
 
 import math
 
-from core.minigames.soccer import (DEFAULT_RCSS_PARAMS, RCSSCommand,
-                                   RCSSLiteEngine, RCSSParams, RCSSVector,
-                                   SoccerMatch, SoccerMatchRunner,
-                                   SoccerParticipant)
+from core.minigames.soccer import (
+    DEFAULT_RCSS_PARAMS,
+    RCSSCommand,
+    RCSSLiteEngine,
+    RCSSParams,
+    RCSSVector,
+    SoccerMatch,
+    SoccerMatchRunner,
+    SoccerParticipant,
+)
 
 
 class TestRCSSLiteEngine:

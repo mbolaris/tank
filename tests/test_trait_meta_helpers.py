@@ -1,5 +1,4 @@
-from core.genetics.trait import (GeneticTrait, apply_trait_meta_to_trait,
-                                 trait_meta_for_trait)
+from core.genetics.trait import GeneticTrait, apply_trait_meta_to_trait, trait_meta_for_trait
 
 
 def test_trait_meta_for_trait_omits_defaults() -> None:

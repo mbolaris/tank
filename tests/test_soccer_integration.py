@@ -154,8 +154,7 @@ class TestSoccerIntegration:
         """Test that observations include soccer information when available."""
         env, _ = simulation_env
 
-        from core.worlds.tank.observation_builder import \
-            build_tank_observations
+        from core.worlds.tank.observation_builder import build_tank_observations
 
         # Create a mock world with ball and goals
         mock_world = Mock()

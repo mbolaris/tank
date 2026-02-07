@@ -138,8 +138,7 @@ class TestSkillfulAgentProtocol:
 
     def test_protocol_is_runtime_checkable(self):
         """SkillfulAgent Protocol should be runtime checkable."""
-        from core.skills.base import (SkillGameResult, SkillGameType,
-                                      SkillStrategy)
+        from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 
         # Create a mock class that implements the protocol
         class MockSkillfulAgent:

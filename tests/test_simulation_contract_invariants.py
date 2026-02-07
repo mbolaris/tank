@@ -1,7 +1,6 @@
 """Tests for simulation contract invariants and delta tracking."""
 
-from core.worlds.contracts import (EnergyDeltaRecord, RemovalRequest,
-                                   SpawnRequest)
+from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 from core.worlds.interfaces import StepResult
 
 

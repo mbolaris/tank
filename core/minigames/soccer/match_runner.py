@@ -272,9 +272,11 @@ class SoccerMatchRunner:
         if self._engine is None:
             return
 
-        from core.minigames.soccer.policy_adapter import (action_to_command,
-                                                          build_observation,
-                                                          run_policy)
+        from core.minigames.soccer.policy_adapter import (
+            action_to_command,
+            build_observation,
+            run_policy,
+        )
 
         for pid in sorted(player_stats):
             # Build observation

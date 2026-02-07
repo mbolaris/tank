@@ -6,9 +6,12 @@ from typing import Any, Sequence
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
-    SelectionStrategy, SoccerMinigameOutcome,
-    create_soccer_match_from_participants, finalize_soccer_match,
-    select_soccer_participants)
+    SelectionStrategy,
+    SoccerMinigameOutcome,
+    create_soccer_match_from_participants,
+    finalize_soccer_match,
+    select_soccer_participants,
+)
 from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 
 

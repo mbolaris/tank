@@ -23,8 +23,7 @@ if TYPE_CHECKING:
     from core.worlds.identity import EntityIdentityProvider
     from core.worlds.petri.environment import PetriEnvironment
 
-from core.worlds.petri.movement_observations import \
-    register_petri_movement_observation_builder
+from core.worlds.petri.movement_observations import register_petri_movement_observation_builder
 from core.worlds.petri.petri_actions import register_petri_action_translator
 
 

@@ -46,8 +46,7 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.minigames.soccer.evaluator import SoccerMinigameOutcome
     from core.plant_manager import PlantManager
-    from core.poker.evaluation.periodic_benchmark import \
-        PeriodicBenchmarkEvaluator
+    from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
     from core.poker_interaction import PokerInteraction
     from core.poker_system import PokerSystem
     from core.reproduction_service import ReproductionService
@@ -57,8 +56,7 @@ if TYPE_CHECKING:
     from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
     from core.systems.poker_proximity import PokerProximitySystem
     from core.systems.soccer_system import SoccerSystem
-    from core.worlds.contracts import (EnergyDeltaRecord, RemovalRequest,
-                                       SpawnRequest)
+    from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
     from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)

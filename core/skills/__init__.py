@@ -25,8 +25,13 @@ Design goals:
 4. Observable: Clear metrics for humans/AI to track evolutionary progress
 """
 
-from core.skills.base import (SkillEvaluationMetrics, SkillGame,
-                              SkillGameResult, SkillGameType, SkillStrategy)
+from core.skills.base import (
+    SkillEvaluationMetrics,
+    SkillGame,
+    SkillGameResult,
+    SkillGameType,
+    SkillStrategy,
+)
 from core.skills.config import SkillGameConfig, get_active_skill_game
 
 __all__ = [

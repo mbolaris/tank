@@ -30,8 +30,12 @@ def _load_offsets() -> None:
     if _OFFSETS_LOADED:
         return
 
-    from core.config.entities import (FISH_ID_OFFSET, FOOD_ID_OFFSET,
-                                      NECTAR_ID_OFFSET, PLANT_ID_OFFSET)
+    from core.config.entities import (
+        FISH_ID_OFFSET,
+        FOOD_ID_OFFSET,
+        NECTAR_ID_OFFSET,
+        PLANT_ID_OFFSET,
+    )
 
     _TYPE_OFFSETS["fish"] = FISH_ID_OFFSET
     _TYPE_OFFSETS["plant"] = PLANT_ID_OFFSET

@@ -9,8 +9,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from core.agent_memory import AgentMemorySystem
-from core.agents.components import (FeedingComponent, LocomotionComponent,
-                                    PerceptionComponent)
+from core.agents.components import FeedingComponent, LocomotionComponent, PerceptionComponent
 from core.math_utils import Vector2
 
 
@@ -215,9 +214,11 @@ class TestAgentCompositionInPetriMode:
 
     def test_agent_initializes_with_components(self):
         """Agent should initialize with all required components."""
-        from core.agents.components import (FeedingComponent,
-                                            LocomotionComponent,
-                                            PerceptionComponent)
+        from core.agents.components import (
+            FeedingComponent,
+            LocomotionComponent,
+            PerceptionComponent,
+        )
         from core.energy.energy_component import EnergyComponent
         from core.entities.base import EntityUpdateResult
         from core.entities.generic_agent import AgentComponents, GenericAgent
@@ -258,9 +259,11 @@ class TestAgentCompositionInPetriMode:
 
     def test_agent_uses_perception_for_food_locations(self):
         """Agent should delegate food memory to perception component."""
-        from core.agents.components import (FeedingComponent,
-                                            LocomotionComponent,
-                                            PerceptionComponent)
+        from core.agents.components import (
+            FeedingComponent,
+            LocomotionComponent,
+            PerceptionComponent,
+        )
         from core.energy.energy_component import EnergyComponent
         from core.entities.base import EntityUpdateResult
         from core.entities.generic_agent import AgentComponents, GenericAgent

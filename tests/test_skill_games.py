@@ -13,15 +13,25 @@ import pytest
 
 from core.fish.skill_game_component import SkillGameComponent
 from core.skills.base import SkillGameType
-from core.skills.config import (SkillGameConfig, get_active_skill_game,
-                                set_active_skill_game, set_skill_game_config)
-from core.skills.games.number_guessing import (NumberGuessingGame,
-                                               NumberGuessingStrategy,
-                                               PatternGenerator, PatternType)
-from core.skills.games.rock_paper_scissors import (ExploitingRPSStrategy,
-                                                   OptimalRPSStrategy,
-                                                   RockPaperScissorsGame,
-                                                   RPSAction, RPSStrategy)
+from core.skills.config import (
+    SkillGameConfig,
+    get_active_skill_game,
+    set_active_skill_game,
+    set_skill_game_config,
+)
+from core.skills.games.number_guessing import (
+    NumberGuessingGame,
+    NumberGuessingStrategy,
+    PatternGenerator,
+    PatternType,
+)
+from core.skills.games.rock_paper_scissors import (
+    ExploitingRPSStrategy,
+    OptimalRPSStrategy,
+    RockPaperScissorsGame,
+    RPSAction,
+    RPSStrategy,
+)
 
 
 class TestRPSGame:

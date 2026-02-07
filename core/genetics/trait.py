@@ -8,11 +8,9 @@ This module provides:
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import (TYPE_CHECKING, Any, Callable, Dict, Generic, List,
-                    Optional, TypeVar, Union)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
-from core.evolution.inheritance import \
-    inherit_discrete_trait as _inherit_discrete_trait
+from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
 
 if TYPE_CHECKING:

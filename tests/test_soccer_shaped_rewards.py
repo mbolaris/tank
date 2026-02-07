@@ -10,7 +10,9 @@ from unittest.mock import Mock
 import pytest
 
 from core.minigames.soccer.evaluator import (
-    create_soccer_match_from_participants, finalize_soccer_match)
+    create_soccer_match_from_participants,
+    finalize_soccer_match,
+)
 
 
 def create_mock_fish(fish_id: int, initial_energy: float = 100.0):

@@ -5,56 +5,105 @@ import random
 from typing import Optional
 
 # Import base class and utilities
-from core.algorithms.base import (ALGORITHM_PARAMETER_BOUNDS,
-                                  BehaviorAlgorithm, BehaviorHelpersMixin,
-                                  Vector2)
+from core.algorithms.base import (
+    ALGORITHM_PARAMETER_BOUNDS,
+    BehaviorAlgorithm,
+    BehaviorHelpersMixin,
+    Vector2,
+)
+
 # Import composable behavior system
-from core.algorithms.composable import (SUB_BEHAVIOR_COUNTS,
-                                        SUB_BEHAVIOR_PARAMS,
-                                        ComposableBehavior, FoodApproach,
-                                        PokerEngagement, SocialMode,
-                                        ThreatResponse)
+from core.algorithms.composable import (
+    SUB_BEHAVIOR_COUNTS,
+    SUB_BEHAVIOR_PARAMS,
+    ComposableBehavior,
+    FoodApproach,
+    PokerEngagement,
+    SocialMode,
+    ThreatResponse,
+)
+
 # Import all energy management algorithms
-from core.algorithms.energy_management import (AdaptivePacer, BurstSwimmer,
-                                               EnergyBalancer, EnergyConserver,
-                                               MetabolicOptimizer,
-                                               OpportunisticRester,
-                                               StarvationPreventer,
-                                               SustainableCruiser)
+from core.algorithms.energy_management import (
+    AdaptivePacer,
+    BurstSwimmer,
+    EnergyBalancer,
+    EnergyConserver,
+    MetabolicOptimizer,
+    OpportunisticRester,
+    StarvationPreventer,
+    SustainableCruiser,
+)
+
 # Import all food-seeking algorithms
-from core.algorithms.food_seeking import (AggressiveHunter, AmbushFeeder,
-                                          BottomFeeder, CircularHunter,
-                                          CooperativeForager,
-                                          EnergyAwareFoodSeeker,
-                                          FoodMemorySeeker,
-                                          FoodQualityOptimizer,
-                                          GreedyFoodSeeker,
-                                          OpportunisticFeeder, PatrolFeeder,
-                                          SpiralForager, SurfaceSkimmer,
-                                          ZigZagForager)
+from core.algorithms.food_seeking import (
+    AggressiveHunter,
+    AmbushFeeder,
+    BottomFeeder,
+    CircularHunter,
+    CooperativeForager,
+    EnergyAwareFoodSeeker,
+    FoodMemorySeeker,
+    FoodQualityOptimizer,
+    GreedyFoodSeeker,
+    OpportunisticFeeder,
+    PatrolFeeder,
+    SpiralForager,
+    SurfaceSkimmer,
+    ZigZagForager,
+)
+
 # Import all poker interaction algorithms
-from core.algorithms.poker import (PokerBluffer, PokerChallenger,
-                                   PokerConservative, PokerDodger,
-                                   PokerGambler, PokerOpportunist,
-                                   PokerStrategist, SelectivePoker)
+from core.algorithms.poker import (
+    PokerBluffer,
+    PokerChallenger,
+    PokerConservative,
+    PokerDodger,
+    PokerGambler,
+    PokerOpportunist,
+    PokerStrategist,
+    SelectivePoker,
+)
+
 # Import all predator avoidance algorithms
-from core.algorithms.predator_avoidance import (BorderHugger, DistanceKeeper,
-                                                ErraticEvader, FreezeResponse,
-                                                GroupDefender, PanicFlee,
-                                                PerpendicularEscape,
-                                                SpiralEscape, StealthyAvoider,
-                                                VerticalEscaper)
+from core.algorithms.predator_avoidance import (
+    BorderHugger,
+    DistanceKeeper,
+    ErraticEvader,
+    FreezeResponse,
+    GroupDefender,
+    PanicFlee,
+    PerpendicularEscape,
+    SpiralEscape,
+    StealthyAvoider,
+    VerticalEscaper,
+)
+
 # Import all schooling algorithms
-from core.algorithms.schooling import (AlignmentMatcher, BoidsBehavior,
-                                       DynamicSchooler, FrontRunner,
-                                       LeaderFollower, LooseSchooler,
-                                       MirrorMover, PerimeterGuard,
-                                       SeparationSeeker, TightSchooler)
+from core.algorithms.schooling import (
+    AlignmentMatcher,
+    BoidsBehavior,
+    DynamicSchooler,
+    FrontRunner,
+    LeaderFollower,
+    LooseSchooler,
+    MirrorMover,
+    PerimeterGuard,
+    SeparationSeeker,
+    TightSchooler,
+)
+
 # Import all territory/exploration algorithms
-from core.algorithms.territory import (BoundaryExplorer, CenterHugger,
-                                       CornerSeeker, NomadicWanderer,
-                                       RandomExplorer, RoutePatroller,
-                                       TerritorialDefender, WallFollower)
+from core.algorithms.territory import (
+    BoundaryExplorer,
+    CenterHugger,
+    CornerSeeker,
+    NomadicWanderer,
+    RandomExplorer,
+    RoutePatroller,
+    TerritorialDefender,
+    WallFollower,
+)
 
 # All available algorithms (stable ordering for deterministic indexing)
 ALL_ALGORITHMS = [

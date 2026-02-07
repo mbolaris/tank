@@ -4,9 +4,14 @@ Tests the core statistical functions to ensure they handle
 edge cases correctly and provide consistent results.
 """
 
-from core.statistics_utils import (GeneDistribution, MetaStats,
-                                   compute_meta_stats, create_histogram,
-                                   descriptive_stats, safe_mean_std)
+from core.statistics_utils import (
+    GeneDistribution,
+    MetaStats,
+    compute_meta_stats,
+    create_histogram,
+    descriptive_stats,
+    safe_mean_std,
+)
 
 
 class TestSafeMeanStd:

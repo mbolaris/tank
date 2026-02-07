@@ -123,8 +123,7 @@ class SolutionTracker:
         The returned score is the candidate's average head-to-head win rate across
         all opponents (0.0-1.0).
         """
-        from core.solutions.benchmark import (SolutionBenchmark,
-                                              SolutionBenchmarkConfig)
+        from core.solutions.benchmark import SolutionBenchmark, SolutionBenchmarkConfig
 
         if candidate_pool_size <= 0:
             candidate_pool_size = 1

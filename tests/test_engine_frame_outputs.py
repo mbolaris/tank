@@ -1,6 +1,5 @@
 from core.simulation.engine import FrameOutputs, SimulationEngine
-from core.worlds.contracts import (EnergyDeltaRecord, RemovalRequest,
-                                   SpawnRequest)
+from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 
 
 class MockEntity:

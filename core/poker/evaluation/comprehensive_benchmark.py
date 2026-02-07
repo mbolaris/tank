@@ -22,14 +22,18 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from core.poker.evaluation.benchmark_eval import (
-    BenchmarkEvalConfig, SingleBenchmarkResult,
-    evaluate_vs_single_benchmark_duplicate)
-from core.poker.evaluation.benchmark_suite import (
-    BASELINE_OPPONENTS, ComprehensiveBenchmarkConfig)
-from core.poker.evaluation.elo_rating import (EloRating, PopulationEloStats,
-                                              compute_elo_from_benchmarks,
-                                              compute_population_elo_stats,
-                                              rating_to_skill_tier)
+    BenchmarkEvalConfig,
+    SingleBenchmarkResult,
+    evaluate_vs_single_benchmark_duplicate,
+)
+from core.poker.evaluation.benchmark_suite import BASELINE_OPPONENTS, ComprehensiveBenchmarkConfig
+from core.poker.evaluation.elo_rating import (
+    EloRating,
+    PopulationEloStats,
+    compute_elo_from_benchmarks,
+    compute_population_elo_stats,
+    rating_to_skill_tier,
+)
 
 if TYPE_CHECKING:
     from core.entities import Fish

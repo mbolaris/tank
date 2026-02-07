@@ -6,9 +6,11 @@ and leaderboard functionality to world hooks that support poker gameplay.
 
 from typing import Any, List, Optional
 
-from backend.state_payloads import (AutoEvaluateStatsPayload,
-                                    PokerEventPayload,
-                                    PokerLeaderboardEntryPayload)
+from backend.state_payloads import (
+    AutoEvaluateStatsPayload,
+    PokerEventPayload,
+    PokerLeaderboardEntryPayload,
+)
 
 
 class PokerMixin:

@@ -15,8 +15,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from core.poker.core.cards import Card, Rank, Suit
-from core.poker.evaluation.strength import \
-    evaluate_starting_hand_strength as _evaluate_strength
+from core.poker.evaluation.strength import evaluate_starting_hand_strength as _evaluate_strength
 
 if TYPE_CHECKING:
     from core.entities import Fish

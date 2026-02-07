@@ -195,7 +195,9 @@ class MigrationScheduler:
         try:
             from backend.transfer_history import log_transfer
             from core.transfer.entity_transfer import (
-                serialize_entity_for_transfer, try_deserialize_entity)
+                serialize_entity_for_transfer,
+                try_deserialize_entity,
+            )
 
             # Serialize entity
             entity_data = serialize_entity_for_transfer(entity)
@@ -325,7 +327,9 @@ class MigrationScheduler:
         try:
             from backend.transfer_history import log_transfer
             from core.transfer.entity_transfer import (
-                deserialize_entity, serialize_entity_for_transfer)
+                deserialize_entity,
+                serialize_entity_for_transfer,
+            )
 
             # Serialize entity
             entity_data = serialize_entity_for_transfer(entity)
@@ -416,7 +420,9 @@ class MigrationScheduler:
 
             # Try to restore entity
             from core.transfer.entity_transfer import (
-                deserialize_entity, serialize_entity_for_transfer)
+                deserialize_entity,
+                serialize_entity_for_transfer,
+            )
 
             try:
                 entity_data = serialize_entity_for_transfer(entity)

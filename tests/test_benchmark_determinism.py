@@ -6,11 +6,15 @@ import unittest
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.core.cards import Deck
 from core.poker.evaluation.benchmark_eval import (
-    BenchmarkEvalConfig, create_standard_strategy,
-    evaluate_vs_single_benchmark_duplicate)
-from core.poker.strategy.implementations import (AlwaysFoldStrategy,
-                                                 BalancedStrategy,
-                                                 TightAggressiveStrategy)
+    BenchmarkEvalConfig,
+    create_standard_strategy,
+    evaluate_vs_single_benchmark_duplicate,
+)
+from core.poker.strategy.implementations import (
+    AlwaysFoldStrategy,
+    BalancedStrategy,
+    TightAggressiveStrategy,
+)
 
 
 class TestDeckDeterminism(unittest.TestCase):
