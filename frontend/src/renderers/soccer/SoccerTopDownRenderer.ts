@@ -6,7 +6,7 @@
 import type { RenderContext, RenderFrame, RenderSnapshot, Renderer } from '../../rendering/types';
 import { drawSoccerBall } from '../../utils/drawSoccerBall';
 import type { EntityData, SoccerMatchState, SimulationUpdate } from '../../types/simulation';
-import { drawAvatar } from '../avatar_renderer';
+import { drawAvatar, clearAvatarPathCache } from '../avatar_renderer';
 
 
 /** Soccer-specific render hint structure */
@@ -122,7 +122,8 @@ export class SoccerTopDownRenderer implements Renderer {
     id = "soccer-topdown";
 
     dispose() {
-        // No heavy resources to dispose
+        // Clear avatar path cache to release memory
+        clearAvatarPathCache();
     }
 
     render(frame: RenderFrame, rc: RenderContext) {

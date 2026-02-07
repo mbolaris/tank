@@ -8,24 +8,14 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import List
 
-from core.config.fish import (
-    BODY_ASPECT_MAX,
-    BODY_ASPECT_MIN,
-    EYE_SIZE_MAX,
-    EYE_SIZE_MIN,
-    FISH_PATTERN_COUNT,
-    FISH_SIZE_MODIFIER_MAX,
-    FISH_SIZE_MODIFIER_MIN,
-    FISH_TEMPLATE_COUNT,
-    LIFESPAN_MODIFIER_MAX,
-    LIFESPAN_MODIFIER_MIN,
-)
-from core.genetics.trait import (
-    GeneticTrait,
-    TraitSpec,
-    inherit_traits_from_specs,
-    inherit_traits_from_specs_recombination,
-)
+from core.config.fish import (BODY_ASPECT_MAX, BODY_ASPECT_MIN, EYE_SIZE_MAX,
+                              EYE_SIZE_MIN, FISH_PATTERN_COUNT,
+                              FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN,
+                              FISH_TEMPLATE_COUNT, LIFESPAN_MODIFIER_MAX,
+                              LIFESPAN_MODIFIER_MIN)
+from core.genetics.trait import (GeneticTrait, TraitSpec,
+                                 inherit_traits_from_specs,
+                                 inherit_traits_from_specs_recombination)
 
 # Declarative specifications for all physical traits
 PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [

@@ -23,7 +23,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.poker.evaluation.comprehensive_benchmark import PopulationBenchmarkResult
+    from core.poker.evaluation.comprehensive_benchmark import \
+        PopulationBenchmarkResult
 
 logger = logging.getLogger(__name__)
 
@@ -363,9 +364,7 @@ class EvolutionBenchmarkTracker:
         import time as time_module
 
         from core.poker.evaluation.comprehensive_benchmark import (
-            run_full_benchmark,
-            run_quick_benchmark,
-        )
+            run_full_benchmark, run_quick_benchmark)
 
         # Run the appropriate benchmark with timing
         start_time = time_module.time()

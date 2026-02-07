@@ -96,7 +96,8 @@ class TankLikePackBase(ABC):
         systems["poker_proximity_system"] = PokerProximitySystem(engine)
 
         if self.config.poker.enable_periodic_benchmarks:
-            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+            from core.poker.evaluation.periodic_benchmark import \
+                PeriodicBenchmarkEvaluator
 
             systems["benchmark_evaluator"] = PeriodicBenchmarkEvaluator(
                 self.config.poker.benchmark_config

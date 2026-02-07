@@ -6,19 +6,15 @@ import uuid
 from typing import Any, Mapping, Sequence
 
 from core.minigames.soccer.match import SoccerMatch
-from core.minigames.soccer.rewards import (
-    apply_shaped_soccer_rewards,
-    apply_soccer_entry_fees,
-    apply_soccer_repro_rewards,
-    apply_soccer_rewards,
-)
-from core.minigames.soccer.seeds import derive_soccer_seed, stable_seed_from_parts
-from core.minigames.soccer.selection import (
-    SelectionStrategy,
-    get_entity_energy,
-    get_entity_id,
-    select_soccer_participants,
-)
+from core.minigames.soccer.rewards import (apply_shaped_soccer_rewards,
+                                           apply_soccer_entry_fees,
+                                           apply_soccer_repro_rewards,
+                                           apply_soccer_rewards)
+from core.minigames.soccer.seeds import (derive_soccer_seed,
+                                         stable_seed_from_parts)
+from core.minigames.soccer.selection import (SelectionStrategy,
+                                             get_entity_energy, get_entity_id,
+                                             select_soccer_participants)
 from core.minigames.soccer.types import SoccerMatchSetup, SoccerMinigameOutcome
 
 

@@ -210,7 +210,8 @@ class StartupManager:
 
     async def _restore_saved_worlds(self) -> None:
         """Restore worlds from saved snapshots."""
-        from backend.world_persistence import find_all_world_snapshots, load_snapshot
+        from backend.world_persistence import (find_all_world_snapshots,
+                                               load_snapshot)
 
         try:
             world_snapshots = find_all_world_snapshots()
@@ -235,7 +236,8 @@ class StartupManager:
                         )
                         if instance:
                             # Restore entities and state into the world
-                            from backend.world_persistence import restore_world_from_snapshot
+                            from backend.world_persistence import \
+                                restore_world_from_snapshot
 
                             success = restore_world_from_snapshot(snapshot, instance.runner.world)
                             if success:

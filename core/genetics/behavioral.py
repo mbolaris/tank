@@ -8,16 +8,14 @@ import random as pyrandom
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
+from core.evolution.inheritance import \
+    inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-from core.genetics.trait import (
-    GeneticTrait,
-    TraitSpec,
-    inherit_traits_from_specs,
-    inherit_traits_from_specs_recombination,
-    random_genetic_trait,
-)
+from core.genetics.trait import (GeneticTrait, TraitSpec,
+                                 inherit_traits_from_specs,
+                                 inherit_traits_from_specs_recombination,
+                                 random_genetic_trait)
 
 if TYPE_CHECKING:
     from core.algorithms.composable import ComposableBehavior
@@ -544,7 +542,8 @@ def _inherit_poker_strategy(
         Inherited poker strategy algorithm
     """
     if strat1 is not None or strat2 is not None:
-        from core.poker.strategy.implementations import crossover_poker_strategies
+        from core.poker.strategy.implementations import \
+            crossover_poker_strategies
 
         return crossover_poker_strategies(
             strat1,

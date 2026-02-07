@@ -1,13 +1,10 @@
 """Tests for the soccer evolution experiment runner."""
 
 from core.code_pool import create_default_genome_code_pool
-from core.experiments.soccer_evolution import (
-    EvolutionResult,
-    GenerationStats,
-    create_population,
-    run_generations,
-    select_parents,
-)
+from core.experiments.soccer_evolution import (EvolutionResult,
+                                               GenerationStats,
+                                               create_population,
+                                               run_generations, select_parents)
 
 
 class TestSoccerEvolutionRunner:

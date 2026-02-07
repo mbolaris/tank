@@ -6,7 +6,8 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from backend.transfer_history import log_transfer
-from core.transfer.entity_transfer import try_deserialize_entity, try_serialize_entity_for_transfer
+from core.transfer.entity_transfer import (try_deserialize_entity,
+                                           try_serialize_entity_for_transfer)
 
 if TYPE_CHECKING:
     from backend.connection_manager import ConnectionManager

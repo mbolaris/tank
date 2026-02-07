@@ -13,19 +13,13 @@ Core betting logic and learning logic have been moved to separate modules:
 import logging
 from typing import TYPE_CHECKING, Any, List, Optional, Sequence
 
-from core.config.poker import (
-    POKER_AGGRESSION_HIGH,
-    POKER_AGGRESSION_LOW,
-    POKER_ANTE_AMOUNT,
-    POKER_MAX_PLAYERS,
-)
+from core.config.poker import (POKER_AGGRESSION_HIGH, POKER_AGGRESSION_LOW,
+                               POKER_ANTE_AMOUNT, POKER_MAX_PLAYERS)
 from core.mixed_poker.betting_round import play_betting_round
 from core.mixed_poker.cfr_learning import update_cfr_learning
-from core.mixed_poker.state import (
-    MultiplayerBettingRound,
-    MultiplayerGameState,
-    MultiplayerPlayerContext,
-)
+from core.mixed_poker.state import (MultiplayerBettingRound,
+                                    MultiplayerGameState,
+                                    MultiplayerPlayerContext)
 from core.mixed_poker.types import MixedPokerResult, Player
 from core.poker.core import PokerHand
 

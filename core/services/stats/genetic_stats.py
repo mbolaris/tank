@@ -110,7 +110,8 @@ def _compute_numeric_stats(
 
 
 def _get_adult_size_stats(fish_list: List["Fish"]) -> Dict[str, Any]:
-    from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
+    from core.config.fish import (FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX,
+                                  FISH_SIZE_MODIFIER_MIN)
 
     # Calculate actual size (base * modifier)
     values = []
@@ -267,7 +268,8 @@ def _build_gene_distributions(fish_list: List["Fish"]) -> Dict[str, Any]:
 
     # Derived Adult Size Distribution
     try:
-        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
+        from core.config.fish import (FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX,
+                                      FISH_SIZE_MODIFIER_MIN)
 
         allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
         allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)

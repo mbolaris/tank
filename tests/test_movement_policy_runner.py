@@ -147,7 +147,8 @@ def test_run_movement_policy_nan_check(mock_genome, mock_code_pool):
 
 def test_movement_policy_error_logs_rate_limited_by_age(mock_genome, mock_code_pool, caplog):
     """Test that error logs are rate-limited by frame bucket when age is present."""
-    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+    from core.policies.movement_policy_runner import \
+        _reset_error_log_state_for_tests
 
     _reset_error_log_state_for_tests()
 
@@ -182,7 +183,8 @@ def test_movement_policy_error_logs_not_rate_limited_without_age(
     mock_genome, mock_code_pool, caplog
 ):
     """Test that error logs are NOT rate-limited when age is missing (makes missing metadata obvious)."""
-    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+    from core.policies.movement_policy_runner import \
+        _reset_error_log_state_for_tests
 
     _reset_error_log_state_for_tests()
 
@@ -206,7 +208,8 @@ def test_movement_policy_error_logs_not_rate_limited_without_age(
 
 def test_explicit_frame_parameter_used_for_rate_limiting(mock_genome, mock_code_pool, caplog):
     """Test that explicit frame parameter is used for rate limiting over observation age."""
-    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+    from core.policies.movement_policy_runner import \
+        _reset_error_log_state_for_tests
 
     _reset_error_log_state_for_tests()
 
@@ -243,7 +246,8 @@ def test_explicit_frame_parameter_used_for_rate_limiting(mock_genome, mock_code_
 
 def test_explicit_frame_falls_back_to_observation_age(mock_genome, mock_code_pool, caplog):
     """Test that when frame is None, observation['age'] is used for rate limiting."""
-    from core.policies.movement_policy_runner import _reset_error_log_state_for_tests
+    from core.policies.movement_policy_runner import \
+        _reset_error_log_state_for_tests
 
     _reset_error_log_state_for_tests()
 

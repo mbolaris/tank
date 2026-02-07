@@ -8,17 +8,9 @@ Prefer importing from core.interfaces directly in new code:
     from core.interfaces import EnergyHolder, Movable, Mortal
 """
 
-from core.interfaces import (
-    Consumable,
-    EnergyHolder,
-    Identifiable,
-    LifecycleAware,
-    Mortal,
-    Movable,
-    Predator,
-    Reproducible,
-    SkillGamePlayer,
-)
+from core.interfaces import (Consumable, EnergyHolder, Identifiable,
+                             LifecycleAware, Mortal, Movable, Predator,
+                             Reproducible, SkillGamePlayer)
 
 __all__ = [
     "Consumable",

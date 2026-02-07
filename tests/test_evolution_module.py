@@ -16,8 +16,10 @@ import pytest
 
 from core.evolution import CrossoverMode, calculate_adaptive_mutation_rate
 from core.evolution.crossover import blend_values, crossover_dict_values
-from core.evolution.inheritance import inherit_algorithm, inherit_discrete_trait, inherit_trait
-from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
+from core.evolution.inheritance import (inherit_algorithm,
+                                        inherit_discrete_trait, inherit_trait)
+from core.evolution.mutation import (mutate_continuous_trait,
+                                     mutate_discrete_trait)
 from core.genetics import Genome
 
 

@@ -7,7 +7,8 @@ import type { SimulationUpdate } from '../types/simulation';
 import type { Renderer, ViewMode } from '../rendering/types';
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
-import { clearAllPlantCaches } from '../utils/plant';
+import { clearAllPlantCaches, getPlantCacheSizes } from '../utils/plant';
+import { clearAvatarPathCache, getAvatarPathCacheSize } from '../renderers/avatar_renderer';
 import { ImageLoader } from '../utils/ImageLoader';
 
 interface CanvasProps {
@@ -201,21 +202,46 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
 
     // Periodic memory cleanup to prevent unbounded memory growth during long viewing sessions.
-    // This clears plant texture caches and path caches every 30 seconds.
+    // This clears plant texture caches and path caches every 10 seconds.
     // Caches will be regenerated on demand - plants may briefly flicker but memory stays bounded.
     useEffect(() => {
-        const CLEANUP_INTERVAL_MS = 30_000; // 30 seconds
+        const CLEANUP_INTERVAL_MS = 10_000; // 10 seconds (more aggressive)
 
         const interval = setInterval(() => {
             try {
+                // Log diagnostics in dev mode before cleanup
+                if (import.meta.env.DEV) {
+                    const plantSizes = getPlantCacheSizes();
+                    const avatarSize = getAvatarPathCacheSize();
+                    const imageLoaderSizes = ImageLoader.getCacheSizes();
+                    console.debug('[Memory Diagnostics] Before cleanup:', {
+                        plantCaches: plantSizes,
+                        avatarPathCache: avatarSize,
+                        imageLoader: imageLoaderSizes,
+                    });
+                }
+
                 // Clear all plant texture and geometry caches
                 clearAllPlantCaches();
+
+                // Clear the avatar renderer's path cache
+                clearAvatarPathCache();
 
                 // Clear the renderer's path cache
                 rendererRef.current?.clearPathCache?.();
 
+                // Clear browser performance entries to prevent React dev-mode profiling
+                // from accumulating unbounded PerformanceMeasure/PerformanceMark objects.
+                // In production React doesn't create these, but dev mode does.
+                if (typeof performance !== 'undefined') {
+                    performance.clearMeasures?.();
+                    performance.clearMarks?.();
+                    // Also clear resource timing entries if available
+                    performance.clearResourceTimings?.();
+                }
+
                 if (import.meta.env.DEV) {
-                    console.debug('[Memory Cleanup] Cleared plant caches and path cache');
+                    console.debug('[Memory Cleanup] Cleared all caches and performance entries');
                 }
             } catch {
                 // Ignore cleanup errors

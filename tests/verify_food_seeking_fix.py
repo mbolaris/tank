@@ -5,7 +5,8 @@ import unittest
 sys.path.append(".")
 
 from core.algorithms.base import Vector2
-from core.predictive_movement import predict_falling_intercept, predict_intercept_point
+from core.predictive_movement import (predict_falling_intercept,
+                                      predict_intercept_point)
 
 
 class TestFoodPrediction(unittest.TestCase):

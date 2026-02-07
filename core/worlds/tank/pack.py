@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Any
 from core.config.simulation_config import SimulationConfig
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
-from core.worlds.tank.movement_observations import register_tank_movement_observation_builder
+from core.worlds.tank.movement_observations import \
+    register_tank_movement_observation_builder
 from core.worlds.tank.tank_actions import register_tank_action_translator
 
 if TYPE_CHECKING:

@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Optional, Union
 import orjson
 
 from backend.runner.perf_tracker import PerfTracker
-from backend.state_payloads import DeltaStatePayload, EntitySnapshot, FullStatePayload
+from backend.state_payloads import (DeltaStatePayload, EntitySnapshot,
+                                    FullStatePayload)
 
 logger = logging.getLogger(__name__)
 

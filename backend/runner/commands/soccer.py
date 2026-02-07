@@ -2,7 +2,8 @@ import logging
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
+from core.minigames.soccer import (SelectionStrategy, create_soccer_match,
+                                   finalize_soccer_match)
 
 if TYPE_CHECKING:
     pass

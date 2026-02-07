@@ -13,7 +13,8 @@ from core.telemetry.events import ReproductionEvent
 
 if TYPE_CHECKING:
     from core.agents.components.lifecycle_component import LifecycleComponent
-    from core.agents.components.reproduction_component import ReproductionComponent
+    from core.agents.components.reproduction_component import \
+        ReproductionComponent
     from core.ecosystem import EcosystemManager
     from core.entities.fish import Fish
     from core.entities.visual_state import FishVisualState
@@ -120,9 +121,7 @@ class ReproductionMixin:
         pool = getattr(self.environment, "genome_code_pool", None)
         if pool is not None:
             from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
+                mutate_code_policies, validate_code_policy_ids)
 
             mutate_code_policies(offspring_genome.behavioral, pool, rng)
             validate_code_policy_ids(offspring_genome.behavioral, pool, rng)

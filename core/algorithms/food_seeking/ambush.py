@@ -8,7 +8,8 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.predictive_movement import predict_falling_intercept, predict_intercept_point
+from core.predictive_movement import (predict_falling_intercept,
+                                      predict_intercept_point)
 
 
 @dataclass

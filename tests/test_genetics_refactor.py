@@ -4,13 +4,8 @@ import pytest
 
 from core.entities.fish import Fish
 from core.environment import Environment
-from core.genetics import (
-    BehavioralTraits,
-    GeneticCrossoverMode,
-    GeneticTrait,
-    Genome,
-    PhysicalTraits,
-)
+from core.genetics import (BehavioralTraits, GeneticCrossoverMode,
+                           GeneticTrait, Genome, PhysicalTraits)
 
 
 class TestGeneticsRefactor:

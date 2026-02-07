@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.interfaces import (FAST_STEP_ACTION, MultiAgentWorldBackend,
+                                    StepResult)
 from core.worlds.tank.backend import TankWorldBackendAdapter
 
 
@@ -45,7 +46,8 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             }
 
         # Fallback to geometry constants (for early initialization)
-        from core.worlds.petri.geometry import PETRI_CENTER_X, PETRI_CENTER_Y, PETRI_RADIUS
+        from core.worlds.petri.geometry import (PETRI_CENTER_X, PETRI_CENTER_Y,
+                                                PETRI_RADIUS)
 
         return {
             "shape": "circle",

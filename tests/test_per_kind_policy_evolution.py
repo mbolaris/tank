@@ -9,15 +9,14 @@ Verifies that:
 
 import random
 
-from core.code_pool import (
-    BUILTIN_CHASE_BALL_SOCCER_ID,
-    BUILTIN_SEEK_NEAREST_FOOD_ID,
-    create_default_genome_code_pool,
-)
+from core.code_pool import (BUILTIN_CHASE_BALL_SOCCER_ID,
+                            BUILTIN_SEEK_NEAREST_FOOD_ID,
+                            create_default_genome_code_pool)
 from core.config.simulation_config import SimulationConfig, SoccerConfig
 from core.environment import Environment
 from core.genetics import Genome
-from core.genetics.code_policy_traits import mutate_code_policies, validate_code_policy_ids
+from core.genetics.code_policy_traits import (mutate_code_policies,
+                                              validate_code_policy_ids)
 from core.genetics.trait import GeneticTrait
 from core.movement_strategy import AlgorithmicMovement
 

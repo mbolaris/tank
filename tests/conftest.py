@@ -16,15 +16,18 @@ def register_builtin_contracts_for_tests() -> None:
     registration) still have access to required contracts like observation builders.
     """
     # Tank
-    from core.worlds.tank.movement_observations import register_tank_movement_observation_builder
+    from core.worlds.tank.movement_observations import \
+        register_tank_movement_observation_builder
     from core.worlds.tank.tank_actions import register_tank_action_translator
 
     register_tank_action_translator("tank")
     register_tank_movement_observation_builder("tank")
 
     # Petri (reuses Tank implementations but registers under "petri" world type)
-    from core.worlds.petri.movement_observations import register_petri_movement_observation_builder
-    from core.worlds.petri.petri_actions import register_petri_action_translator
+    from core.worlds.petri.movement_observations import \
+        register_petri_movement_observation_builder
+    from core.worlds.petri.petri_actions import \
+        register_petri_action_translator
 
     register_petri_action_translator("petri")
     register_petri_movement_observation_builder("petri")

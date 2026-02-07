@@ -8,26 +8,23 @@ from unittest.mock import MagicMock
 import pytest
 
 from core.code_pool import GenomeCodePool
-from core.code_pool.pool import (
-    BUILTIN_CHASE_BALL_SOCCER_ID,
-    BUILTIN_DEFENSIVE_SOCCER_ID,
-    BUILTIN_STRIKER_SOCCER_ID,
-    chase_ball_soccer_policy,
-    defensive_soccer_policy,
-    striker_soccer_policy,
-)
+from core.code_pool.pool import (BUILTIN_CHASE_BALL_SOCCER_ID,
+                                 BUILTIN_DEFENSIVE_SOCCER_ID,
+                                 BUILTIN_STRIKER_SOCCER_ID,
+                                 chase_ball_soccer_policy,
+                                 defensive_soccer_policy,
+                                 striker_soccer_policy)
 from core.genetics.trait import GeneticTrait
-from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.engine import (RCSSCommand, RCSSLiteEngine,
+                                          RCSSVector)
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.params import RCSSParams
-from core.minigames.soccer.policy_adapter import (
-    MAX_KICK_POWER,
-    _normalize_policy_output,
-    action_to_command,
-    build_observation,
-    default_policy_action,
-    run_policy,
-)
+from core.minigames.soccer.policy_adapter import (MAX_KICK_POWER,
+                                                  _normalize_policy_output,
+                                                  action_to_command,
+                                                  build_observation,
+                                                  default_policy_action,
+                                                  run_policy)
 
 
 @pytest.fixture

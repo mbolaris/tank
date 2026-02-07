@@ -6,14 +6,8 @@ from core.algorithms.base import BehaviorHelpersMixin
 from core.util import coerce_enum
 
 from .actions import BehaviorActionsMixin
-from .definitions import (
-    SUB_BEHAVIOR_PARAMS,
-    FoodApproach,
-    PokerEngagement,
-    SocialMode,
-    ThreatResponse,
-    _random_params,
-)
+from .definitions import (SUB_BEHAVIOR_PARAMS, FoodApproach, PokerEngagement,
+                          SocialMode, ThreatResponse, _random_params)
 
 if TYPE_CHECKING:
     from core.entities import Fish

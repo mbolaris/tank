@@ -10,17 +10,9 @@ import dataclasses
 
 import pytest
 
-from core.modes.rulesets import (
-    ActionSpace,
-    EnergyModel,
-    PetriRuleSet,
-    ScoringModel,
-    SoccerRuleSet,
-    TankRuleSet,
-    get_ruleset,
-    list_rulesets,
-    register_ruleset,
-)
+from core.modes.rulesets import (ActionSpace, EnergyModel, PetriRuleSet,
+                                 ScoringModel, SoccerRuleSet, TankRuleSet,
+                                 get_ruleset, list_rulesets, register_ruleset)
 
 
 class TestEnergyModel:

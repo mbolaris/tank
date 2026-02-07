@@ -13,15 +13,11 @@ import random
 import pytest
 
 from core.poker.betting.actions import BettingAction
-from core.poker.strategy.composable import (
-    POKER_SUB_BEHAVIOR_PARAMS,
-    BettingStyle,
-    BluffingApproach,
-    ComposablePokerStrategy,
-    HandSelection,
-    PositionAwareness,
-    ShowdownTendency,
-)
+from core.poker.strategy.composable import (POKER_SUB_BEHAVIOR_PARAMS,
+                                            BettingStyle, BluffingApproach,
+                                            ComposablePokerStrategy,
+                                            HandSelection, PositionAwareness,
+                                            ShowdownTendency)
 from core.poker.strategy.implementations import crossover_poker_strategies
 
 

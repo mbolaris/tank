@@ -64,8 +64,32 @@ function hslToRgbString(h: number, s: number, l: number): string {
 
 // --- Path Cache ---
 const pathCache = new Map<string, Path2D>();
+const MAX_PATH_CACHE_SIZE = 500;
+
+/**
+ * Clear the avatar path cache to release memory.
+ * Paths will be regenerated on demand.
+ * Call this periodically during long sessions to prevent unbounded memory growth.
+ */
+export function clearAvatarPathCache(): void {
+    pathCache.clear();
+}
+
+/**
+ * Get the current size of the avatar path cache (for diagnostics).
+ */
+export function getAvatarPathCacheSize(): number {
+    return pathCache.size;
+}
+
 function getPath(pathString: string): Path2D {
     if (typeof Path2D === 'undefined') return null as unknown as Path2D;
+    
+    // Automatic cleanup if cache grows too large
+    if (pathCache.size > MAX_PATH_CACHE_SIZE) {
+        pathCache.clear();
+    }
+    
     let path = pathCache.get(pathString);
     if (!path) {
         path = new Path2D(pathString);

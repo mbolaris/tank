@@ -7,11 +7,9 @@ This module is a thin wrapper over hand_engine to preserve the legacy API.
 import random
 from typing import TYPE_CHECKING, List, Optional
 
-from core.poker.simulation.hand_engine import (
-    MultiplayerGameState,
-    MultiplayerPlayerContext,
-    simulate_hand,
-)
+from core.poker.simulation.hand_engine import (MultiplayerGameState,
+                                               MultiplayerPlayerContext,
+                                               simulate_hand)
 
 if TYPE_CHECKING:
     from core.poker.strategy.implementations import PokerStrategyAlgorithm

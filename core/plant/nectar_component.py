@@ -174,9 +174,7 @@ class PlantNectarComponent:
         if genome.strategy_type:
             try:
                 from core.plants.plant_strategy_types import (
-                    PlantStrategyType,
-                    get_strategy_visual_config,
-                )
+                    PlantStrategyType, get_strategy_visual_config)
 
                 strategy_type = PlantStrategyType(genome.strategy_type)
                 config = get_strategy_visual_config(strategy_type)

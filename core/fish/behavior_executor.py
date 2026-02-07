@@ -25,7 +25,8 @@ Example:
 
 from typing import TYPE_CHECKING, Optional
 
-from core.config.fish import DIRECTION_CHANGE_ENERGY_BASE, DIRECTION_CHANGE_SIZE_MULTIPLIER
+from core.config.fish import (DIRECTION_CHANGE_ENERGY_BASE,
+                              DIRECTION_CHANGE_SIZE_MULTIPLIER)
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:

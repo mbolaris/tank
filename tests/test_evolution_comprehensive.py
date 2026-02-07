@@ -15,21 +15,19 @@ import pytest
 
 from core.algorithms.food_seeking import GreedyFoodSeeker
 from core.algorithms.registry import crossover_algorithms
-from core.evolution.crossover import CrossoverMode, blend_discrete, blend_values
-from core.evolution.mutation import (
-    MutationConfig,
-    calculate_adaptive_mutation_rate,
-    mutate_continuous_trait,
-    mutate_discrete_trait,
-    should_switch_algorithm,
-)
-from core.genetics import BehavioralTraits, GeneticTrait, Genome, PhysicalTraits, PlantGenome
-from core.poker.strategy.implementations import (
-    LooseAggressiveStrategy,
-    ManiacStrategy,
-    TightAggressiveStrategy,
-    crossover_poker_strategies,
-)
+from core.evolution.crossover import (CrossoverMode, blend_discrete,
+                                      blend_values)
+from core.evolution.mutation import (MutationConfig,
+                                     calculate_adaptive_mutation_rate,
+                                     mutate_continuous_trait,
+                                     mutate_discrete_trait,
+                                     should_switch_algorithm)
+from core.genetics import (BehavioralTraits, GeneticTrait, Genome,
+                           PhysicalTraits, PlantGenome)
+from core.poker.strategy.implementations import (LooseAggressiveStrategy,
+                                                 ManiacStrategy,
+                                                 TightAggressiveStrategy,
+                                                 crossover_poker_strategies)
 
 
 class TestEdgeCasesAndBoundaries:

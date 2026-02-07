@@ -109,7 +109,8 @@ class AutoSaveService:
         Args:
             instance: The WorldInstance to save
         """
-        from backend.world_persistence import cleanup_old_snapshots, save_world_state
+        from backend.world_persistence import (cleanup_old_snapshots,
+                                               save_world_state)
 
         world_id = instance.world_id
         interval = DEFAULT_AUTO_SAVE_INTERVAL

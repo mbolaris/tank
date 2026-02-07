@@ -7,18 +7,13 @@ from typing import Any
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
-    SoccerMinigameOutcome,
-    create_soccer_match_from_participants,
-    finalize_soccer_match,
-)
+    SoccerMinigameOutcome, create_soccer_match_from_participants,
+    finalize_soccer_match)
 from core.minigames.soccer.league.provider import LeagueTeamProvider
 from core.minigames.soccer.league.scheduler import LeagueScheduler
-from core.minigames.soccer.league.types import (
-    LeagueLeaderboardEntry,
-    LeagueMatch,
-    TeamAvailability,
-    TeamSource,
-)
+from core.minigames.soccer.league.types import (LeagueLeaderboardEntry,
+                                                LeagueMatch, TeamAvailability,
+                                                TeamSource)
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 

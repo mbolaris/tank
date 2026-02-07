@@ -20,7 +20,8 @@ from fastapi import WebSocket
 
 from backend.runner.runner_protocol import RunnerProtocol
 from backend.simulation_runner import SimulationRunner
-from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
+from backend.world_registry import (create_world, get_all_world_metadata,
+                                    get_world_metadata)
 from backend.world_runner import WorldRunner
 
 if TYPE_CHECKING:

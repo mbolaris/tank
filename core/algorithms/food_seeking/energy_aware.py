@@ -6,11 +6,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Tuple
 
 from core.algorithms.base import BehaviorAlgorithm
-from core.config.food import (
-    PREDATOR_DEFAULT_FAR_DISTANCE,
-    PREDATOR_GUARDING_FOOD_DISTANCE,
-    PREDATOR_PROXIMITY_THRESHOLD,
-)
+from core.config.food import (PREDATOR_DEFAULT_FAR_DISTANCE,
+                              PREDATOR_GUARDING_FOOD_DISTANCE,
+                              PREDATOR_PROXIMITY_THRESHOLD)
 
 if TYPE_CHECKING:
     from core.entities import Fish

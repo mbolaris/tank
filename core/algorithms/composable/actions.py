@@ -5,7 +5,8 @@ from core.config.food import FOOD_SINK_ACCELERATION
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
-from .definitions import FoodApproach, PokerEngagement, SocialMode, ThreatResponse
+from .definitions import (FoodApproach, PokerEngagement, SocialMode,
+                          ThreatResponse)
 
 if TYPE_CHECKING:
     from core.entities import Fish

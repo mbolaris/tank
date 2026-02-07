@@ -334,7 +334,8 @@ async def start_broadcast_for_world(
     Returns:
         The asyncio Task for the broadcast loop
     """
-    from backend.world_broadcast_adapter import WorldBroadcastAdapter, WorldSnapshotAdapter
+    from backend.world_broadcast_adapter import (WorldBroadcastAdapter,
+                                                 WorldSnapshotAdapter)
 
     # If we got a runner, wrap it in an adapter
     if isinstance(runner_or_adapter, RunnerProtocol) and not isinstance(

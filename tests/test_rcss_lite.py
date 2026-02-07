@@ -6,7 +6,8 @@ These tests verify that the RCSS-Lite engine correctly implements:
 - RCSS-like velocity decay each cycle
 """
 
-from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.engine import (RCSSCommand, RCSSLiteEngine,
+                                          RCSSVector)
 from core.minigames.soccer.fake_server import FakeRCSSServer
 from core.minigames.soccer.params import RCSSParams
 

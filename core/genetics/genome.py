@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
-from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
+from core.genetics.genome_codec import (genome_debug_snapshot,
+                                        genome_from_dict, genome_to_dict)
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
 from core.genetics.validation import validate_traits_from_specs

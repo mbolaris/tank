@@ -8,13 +8,8 @@ Target version: rcssserver 18.x (See params.py for version notes)
 
 import math
 
-from core.minigames.soccer import (
-    DEFAULT_RCSS_PARAMS,
-    RCSSCommand,
-    RCSSLiteEngine,
-    RCSSParams,
-    RCSSVector,
-)
+from core.minigames.soccer import (DEFAULT_RCSS_PARAMS, RCSSCommand,
+                                   RCSSLiteEngine, RCSSParams, RCSSVector)
 
 
 class TestRCSSCycleInvariants:

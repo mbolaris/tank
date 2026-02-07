@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from core.entities import Crab, Food
 from core.policies.observation_registry import register_observation_builder
-from core.worlds.shared.movement_observations import TankLikeMovementObservationBuilder
+from core.worlds.shared.movement_observations import \
+    TankLikeMovementObservationBuilder
 
 
 class TankMovementObservationBuilder(TankLikeMovementObservationBuilder):

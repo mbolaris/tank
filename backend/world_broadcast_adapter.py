@@ -5,7 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, Optional, Protocol, cast, runtime_checkable
+from typing import (TYPE_CHECKING, Any, Optional, Protocol, cast,
+                    runtime_checkable)
 
 from fastapi import WebSocket
 from starlette.websockets import WebSocketState

@@ -8,23 +8,20 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.config.food import (
-    DANGER_WEIGHT_CRITICAL,
-    DANGER_WEIGHT_LOW,
-    DANGER_WEIGHT_NORMAL,
-    FOOD_SAFETY_BONUS,
-    FOOD_SAFETY_DISTANCE_RATIO,
-    FOOD_SCORE_THRESHOLD_CRITICAL,
-    FOOD_SCORE_THRESHOLD_LOW,
-    FOOD_SCORE_THRESHOLD_NORMAL,
-    PREDATOR_DANGER_ZONE_DIVISOR,
-    PREDATOR_DANGER_ZONE_RADIUS,
-    PREDATOR_DEFAULT_FAR_DISTANCE,
-    PREDATOR_FLEE_DISTANCE_CAUTIOUS,
-    PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
-    PREDATOR_FLEE_DISTANCE_DESPERATE,
-)
-from core.predictive_movement import predict_falling_intercept, predict_intercept_point
+from core.config.food import (DANGER_WEIGHT_CRITICAL, DANGER_WEIGHT_LOW,
+                              DANGER_WEIGHT_NORMAL, FOOD_SAFETY_BONUS,
+                              FOOD_SAFETY_DISTANCE_RATIO,
+                              FOOD_SCORE_THRESHOLD_CRITICAL,
+                              FOOD_SCORE_THRESHOLD_LOW,
+                              FOOD_SCORE_THRESHOLD_NORMAL,
+                              PREDATOR_DANGER_ZONE_DIVISOR,
+                              PREDATOR_DANGER_ZONE_RADIUS,
+                              PREDATOR_DEFAULT_FAR_DISTANCE,
+                              PREDATOR_FLEE_DISTANCE_CAUTIOUS,
+                              PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
+                              PREDATOR_FLEE_DISTANCE_DESPERATE)
+from core.predictive_movement import (predict_falling_intercept,
+                                      predict_intercept_point)
 
 
 @dataclass

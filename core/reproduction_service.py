@@ -73,9 +73,7 @@ class ReproductionService:
         """Handle reproduction after a fish-fish poker game."""
         from core.config.fish import POST_POKER_MATING_DISTANCE
         from core.poker_interaction import (
-            is_post_poker_reproduction_eligible,
-            is_valid_reproduction_mate,
-        )
+            is_post_poker_reproduction_eligible, is_valid_reproduction_mate)
 
         result = getattr(poker, "result", None)
         if result is None or getattr(result, "is_tie", False):
@@ -153,7 +151,8 @@ class ReproductionService:
 
     def handle_plant_poker_asexual_reproduction(self, winner_fish: Fish) -> Fish | None:
         """Handle asexual reproduction when fish beats only plants."""
-        from core.mixed_poker import should_trigger_plant_poker_asexual_reproduction
+        from core.mixed_poker import \
+            should_trigger_plant_poker_asexual_reproduction
 
         if not should_trigger_plant_poker_asexual_reproduction(winner_fish):
             return None
@@ -348,9 +347,7 @@ class ReproductionService:
         pool = getattr(environment, "genome_code_pool", None)
         if pool is not None:
             from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
+                mutate_code_policies, validate_code_policy_ids)
 
             mutate_code_policies(genome.behavioral, pool, self._engine.rng)
             validate_code_policy_ids(genome.behavioral, pool, self._engine.rng)
@@ -411,16 +408,13 @@ class ReproductionService:
         return None
 
     def _create_post_poker_offspring(self, winner: Fish, mate: Fish) -> Fish | None:
-        from core.config.fish import (
-            ENERGY_MAX_DEFAULT,
-            FISH_BABY_SIZE,
-            FISH_BASE_SPEED,
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MUTATION_RATE,
-            POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
-            REPRODUCTION_COOLDOWN,
-        )
+        from core.config.fish import (ENERGY_MAX_DEFAULT, FISH_BABY_SIZE,
+                                      FISH_BASE_SPEED,
+                                      POST_POKER_CROSSOVER_WINNER_WEIGHT,
+                                      POST_POKER_MUTATION_RATE,
+                                      POST_POKER_MUTATION_STRENGTH,
+                                      POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+                                      REPRODUCTION_COOLDOWN)
         from core.entities import Fish
         from core.genetics import Genome, ReproductionParams
 
@@ -442,9 +436,7 @@ class ReproductionService:
         pool = getattr(winner.environment, "genome_code_pool", None)
         if pool is not None:
             from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
+                mutate_code_policies, validate_code_policy_ids)
 
             mutate_code_policies(offspring_genome.behavioral, pool, self._engine.rng)
             validate_code_policy_ids(offspring_genome.behavioral, pool, self._engine.rng)

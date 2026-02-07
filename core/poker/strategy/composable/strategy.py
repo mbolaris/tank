@@ -10,19 +10,10 @@ from typing import Any, Dict, Optional, Set, Tuple
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable.definitions import (
-    CFR_ACTIONS,
-    CFR_HAND_STRENGTH_BUCKETS,
-    CFR_INHERITANCE_DECAY,
-    CFR_MAX_INFO_SETS,
-    CFR_MIN_VISITS_FOR_INHERITANCE,
-    CFR_POT_RATIO_BUCKETS,
-    POKER_SUB_BEHAVIOR_PARAMS,
-    BettingStyle,
-    BluffingApproach,
-    HandSelection,
-    PositionAwareness,
-    ShowdownTendency,
-)
+    CFR_ACTIONS, CFR_HAND_STRENGTH_BUCKETS, CFR_INHERITANCE_DECAY,
+    CFR_MAX_INFO_SETS, CFR_MIN_VISITS_FOR_INHERITANCE, CFR_POT_RATIO_BUCKETS,
+    POKER_SUB_BEHAVIOR_PARAMS, BettingStyle, BluffingApproach, HandSelection,
+    PositionAwareness, ShowdownTendency)
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum

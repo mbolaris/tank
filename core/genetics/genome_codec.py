@@ -11,16 +11,14 @@ import logging
 import random as pyrandom
 from typing import Any, Callable
 
-from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
+from core.genetics.behavioral import (BEHAVIORAL_TRAIT_SPECS,
+                                      normalize_mate_preferences)
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-from core.genetics.trait import (
-    apply_trait_meta_from_dict,
-    apply_trait_meta_to_trait,
-    apply_trait_values_from_dict,
-    trait_meta_for_trait,
-    trait_meta_to_dict,
-    trait_values_to_dict,
-)
+from core.genetics.trait import (apply_trait_meta_from_dict,
+                                 apply_trait_meta_to_trait,
+                                 apply_trait_values_from_dict,
+                                 trait_meta_for_trait, trait_meta_to_dict,
+                                 trait_values_to_dict)
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +194,8 @@ def genome_from_dict(
         strat_data = data.get("poker_strategy")
         if strat_data:
             from core.genetics.trait import GeneticTrait
-            from core.poker.strategy.implementations import PokerStrategyAlgorithm
+            from core.poker.strategy.implementations import \
+                PokerStrategyAlgorithm
 
             strat = PokerStrategyAlgorithm.from_dict(strat_data)
             if genome.behavioral.poker_strategy is None:

@@ -605,18 +605,13 @@ def create_default_genome_code_pool() -> GenomeCodePool:
     Returns:
         GenomeCodePool with all builtin policies registered and defaults set
     """
-    from .pool import (
-        BUILTIN_CHASE_BALL_SOCCER_ID,
-        BUILTIN_DEFENSIVE_SOCCER_ID,
-        BUILTIN_FLEE_FROM_THREAT_ID,
-        BUILTIN_SEEK_NEAREST_FOOD_ID,
-        BUILTIN_STRIKER_SOCCER_ID,
-        chase_ball_soccer_policy,
-        defensive_soccer_policy,
-        flee_from_threat_policy,
-        seek_nearest_food_policy,
-        striker_soccer_policy,
-    )
+    from .pool import (BUILTIN_CHASE_BALL_SOCCER_ID,
+                       BUILTIN_DEFENSIVE_SOCCER_ID,
+                       BUILTIN_FLEE_FROM_THREAT_ID,
+                       BUILTIN_SEEK_NEAREST_FOOD_ID, BUILTIN_STRIKER_SOCCER_ID,
+                       chase_ball_soccer_policy, defensive_soccer_policy,
+                       flee_from_threat_policy, seek_nearest_food_policy,
+                       striker_soccer_policy)
 
     pool = GenomeCodePool()
 

@@ -11,12 +11,9 @@ import random
 
 import pytest
 
-from core.code_pool import (
-    CodePool,
-    ValidationError,
-    create_default_genome_code_pool,
-    validate_source_safety,
-)
+from core.code_pool import (CodePool, ValidationError,
+                            create_default_genome_code_pool,
+                            validate_source_safety)
 from core.code_pool.safety import SafetyConfig, SourceTooLongError
 
 
