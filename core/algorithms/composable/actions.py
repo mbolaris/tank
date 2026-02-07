@@ -152,8 +152,10 @@ class BehaviorActionsMixin:
                         nearest_food.pos.y + food_vel.y * time_to_reach,
                     )
                 # Blend current and predicted position based on prediction_skill
-                # skill_factor ranges from 0.2 (low skill) to 1.0 (high skill)
-                skill_factor = 0.2 + (prediction_skill * 0.8)
+                # skill_factor ranges from 0.35 (low skill) to 1.0 (high skill)
+                # Floor raised from 0.2 to 0.35 so even unskilled fish get meaningful
+                # prediction, creating selection pressure to evolve the trait higher.
+                skill_factor = 0.35 + (prediction_skill * 0.65)
                 target_pos = Vector2(
                     nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
                     nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
@@ -168,8 +170,8 @@ class BehaviorActionsMixin:
                     nearest_food.pos.x + food_vel.x * time_to_reach,
                     nearest_food.pos.y + food_vel.y * time_to_reach,
                 )
-                # Blend based on prediction_skill
-                skill_factor = 0.2 + (prediction_skill * 0.8)
+                # Blend based on prediction_skill (floor raised to 0.35)
+                skill_factor = 0.35 + (prediction_skill * 0.65)
                 target_pos = Vector2(
                     nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
                     nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
@@ -191,8 +193,11 @@ class BehaviorActionsMixin:
 
         elif self.food_approach == FoodApproach.PREDICTIVE_INTERCEPT:
             # Predictive intercept - genomic prediction_skill already applied above
-            # Additional speed boost based on prediction_skill (better predictors chase harder)
-            speed = base_speed * (1.0 + prediction_skill * 0.2) * stamina_boost
+            # Base 10% speed bonus for using prediction (rewards choosing this approach),
+            # scaling up to 40% at max prediction_skill. This creates strong selection
+            # pressure: fish that evolve prediction_skill catch food significantly faster.
+            intercept_bonus = 1.1 + prediction_skill * 0.3
+            speed = base_speed * intercept_bonus * stamina_boost
             return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.CIRCLING_STRIKE:
@@ -386,12 +391,28 @@ class BehaviorActionsMixin:
             return base_mod * 0.8  # Conserve when comfortable
 
     def _default_exploration(self, fish: "Fish") -> Tuple[float, float]:
-        """Default wandering behavior when nothing else applies."""
-        # Gentle random walk (use environment RNG for determinism)
+        """Default wandering behavior when nothing else applies.
+
+        Hungry fish explore faster to increase chance of finding food.
+        This prevents starvation spirals where slow-exploring fish never
+        encounter food in time.
+        """
+        # Use environment RNG for determinism
         rng = fish.environment.rng
-        self._patrol_angle += (rng.random() - 0.5) * 0.2
-        vx = math.cos(self._patrol_angle) * 0.3
-        vy = math.sin(self._patrol_angle) * 0.3
+        # Wider turning angle for more area coverage
+        self._patrol_angle += (rng.random() - 0.5) * 0.3
+
+        # Scale exploration speed by energy urgency
+        energy_ratio = fish.energy / max(fish.max_energy, 1.0)
+        if energy_ratio < 0.15:
+            speed = 0.6  # Desperate: explore fast to find food before starvation
+        elif energy_ratio < 0.30:
+            speed = 0.45  # Hungry: move with purpose
+        else:
+            speed = 0.3  # Comfortable: gentle exploration
+
+        vx = math.cos(self._patrol_angle) * speed
+        vy = math.sin(self._patrol_angle) * speed
         return vx, vy
 
     def _find_nearby_fish(self, fish: "Fish", radius: float) -> List["Fish"]:

@@ -1,0 +1,22 @@
+{
+  "benchmark_id": "tank/ecosystem_health_10k",
+  "seed": 42,
+  "score": 3.4433032422289847,
+  "runtime_seconds": 57.53488874435425,
+  "metadata": {
+    "frames": 10000,
+    "max_generation": 4,
+    "generation_rate": 4.0,
+    "starvation_rate": 0.896,
+    "starvation_deaths": 181,
+    "total_deaths": 202,
+    "unique_algorithms": 4,
+    "diversity_score": 0.1809,
+    "diversity_bonus": 1.7809,
+    "stability_bonus": 0.8757,
+    "starvation_penalty": 0.448,
+    "mean_population": 384.8,
+    "final_population": 389
+  },
+  "timestamp": 1770500542.3307667
+}
