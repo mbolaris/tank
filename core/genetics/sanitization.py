@@ -55,10 +55,10 @@ def sanitize_string(value: Any, default: str = "", max_length: int = MAX_STRING_
     """Sanitize a value to a safe string. Rejects suspicious characters."""
     if not isinstance(value, str):
         return default
-    value = value[:max_length]
-    if not _SAFE_STRING_PATTERN.match(value):
+    s: str = value[:max_length]
+    if not _SAFE_STRING_PATTERN.match(s):
         return default
-    return value
+    return s
 
 
 def sanitize_dict(
