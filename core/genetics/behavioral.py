@@ -47,6 +47,11 @@ DEFAULT_MATE_PREFERENCES: Dict[str, float] = {
     "prefer_different_color": 0.5,
     "prefer_high_energy": 0.5,
     "prefer_high_pattern_intensity": 0.5,
+    # Behavioral preference weights: how much to prefer mates with matching behavioral traits.
+    # These enable sexual selection to act on behavioral characteristics, creating
+    # evolutionary pressure for behavioral compatibility and specialization.
+    "prefer_high_aggression": 0.5,
+    "prefer_high_social_tendency": 0.5,
 }
 
 MATE_PREFERENCE_TRAIT_NAMES = (
@@ -60,8 +65,22 @@ MATE_PREFERENCE_TRAIT_NAMES = (
     "pattern_type",
 )
 
+# Behavioral traits that can be selected for via mate preferences.
+# These use the behavioral trait specs, not physical ones.
+MATE_BEHAVIORAL_PREFERENCE_NAMES = (
+    "aggression",
+    "social_tendency",
+)
+
 MATE_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
     spec.name: spec for spec in PHYSICAL_TRAIT_SPECS if spec.name in MATE_PREFERENCE_TRAIT_NAMES
+}
+
+# Add behavioral trait specs to mate preference specs
+MATE_BEHAVIORAL_PREFERENCE_SPECS: Dict[str, TraitSpec] = {
+    spec.name: spec
+    for spec in BEHAVIORAL_TRAIT_SPECS
+    if spec.name in MATE_BEHAVIORAL_PREFERENCE_NAMES
 }
 
 

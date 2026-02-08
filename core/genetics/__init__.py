@@ -16,6 +16,12 @@ Design Philosophy (ALife vs GA):
 
 # Re-export main classes for package convenience
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, BehavioralTraits
+from core.genetics.diversity import (
+    diversity_bonus,
+    genetic_distance,
+    population_diversity,
+    sharing_factor,
+)
 from core.genetics.genome import GeneticCrossoverMode, Genome
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant_genome import PlantGenome
@@ -57,4 +63,9 @@ __all__ = [
     "ReproductionParams",
     # Validation
     "validate_traits_from_specs",
+    # Diversity metrics
+    "genetic_distance",
+    "population_diversity",
+    "sharing_factor",
+    "diversity_bonus",
 ]
