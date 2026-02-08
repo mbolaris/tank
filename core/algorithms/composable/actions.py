@@ -152,10 +152,10 @@ class BehaviorActionsMixin:
                         nearest_food.pos.y + food_vel.y * time_to_reach,
                     )
                 # Blend current and predicted position based on prediction_skill
-                # skill_factor ranges from 0.35 (low skill) to 1.0 (high skill)
-                # Floor raised from 0.2 to 0.35 so even unskilled fish get meaningful
-                # prediction, creating selection pressure to evolve the trait higher.
-                skill_factor = 0.35 + (prediction_skill * 0.65)
+                # skill_factor ranges from 0.30 (low skill) to 1.0 (high skill)
+                # Floor 0.30 preserves useful prediction for unskilled fish
+                # without overcommitting to noisy long-horizon intercepts.
+                skill_factor = 0.30 + (prediction_skill * 0.70)
                 target_pos = Vector2(
                     nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
                     nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
@@ -170,8 +170,8 @@ class BehaviorActionsMixin:
                     nearest_food.pos.x + food_vel.x * time_to_reach,
                     nearest_food.pos.y + food_vel.y * time_to_reach,
                 )
-                # Blend based on prediction_skill (floor raised to 0.35)
-                skill_factor = 0.35 + (prediction_skill * 0.65)
+                # Blend based on prediction_skill with 0.30 baseline prediction.
+                skill_factor = 0.30 + (prediction_skill * 0.70)
                 target_pos = Vector2(
                     nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
                     nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
