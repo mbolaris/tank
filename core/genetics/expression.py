@@ -5,10 +5,11 @@ characteristics from genetic traits. Separating this logic from the data storage
 (Genome) allows for easier testing, tuning, and clearer separation of concerns.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 from core.color import FISH_COLOR_SATURATION, hue_to_rgb
 from core.genetics.behavioral import (
+    MATE_BEHAVIORAL_PREFERENCE_SPECS,
     MATE_PREFERENCE_SPECS,
     BehavioralTraits,
     normalize_mate_preferences,
@@ -119,12 +120,26 @@ def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
 
 
 def calculate_mate_attraction(
-    self_physical: PhysicalTraits, self_behavioral: BehavioralTraits, other_physical: PhysicalTraits
+    self_physical: PhysicalTraits,
+    self_behavioral: BehavioralTraits,
+    other_physical: PhysicalTraits,
+    other_behavioral: Optional[BehavioralTraits] = None,
 ) -> float:
     """Calculate attraction score to a potential mate (0.0-1.0).
 
     Attraction is based on how closely the mate matches this fish's
-    preferred physical trait values, plus a bonus for higher pattern intensity.
+    preferred physical trait values, plus a bonus for higher pattern intensity,
+    plus behavioral trait preferences (aggression, social_tendency).
+
+    Args:
+        self_physical: This fish's physical traits
+        self_behavioral: This fish's behavioral traits (includes mate preferences)
+        other_physical: Potential mate's physical traits
+        other_behavioral: Potential mate's behavioral traits (optional, for
+            behavioral preference matching)
+
+    Returns:
+        Attraction score between 0.0 and 1.0
     """
     raw_prefs = self_behavioral.mate_preferences.value if self_behavioral.mate_preferences else {}
     preferences = raw_prefs if isinstance(raw_prefs, dict) else {}
@@ -164,9 +179,45 @@ def calculate_mate_attraction(
         scores.append(_clamp(pattern_val, 0.0, 1.0))
         weights.append(pattern_weight)
 
+    # Behavioral trait preferences: prefer mates with desired behavioral characteristics.
+    # This creates sexual selection pressure on behavioral traits like aggression and
+    # social_tendency, enabling co-evolution of mating preferences and behaviors.
+    if other_behavioral is not None:
+        for trait_name, spec in MATE_BEHAVIORAL_PREFERENCE_SPECS.items():
+            pref_key = f"prefer_high_{trait_name}"
+            pref_weight = normalized_prefs.get(pref_key, 0.5)
+            other_trait = getattr(other_behavioral, trait_name, None)
+
+            if not has_trait_value(other_trait):
+                continue
+
+            mate_value = float(get_trait_value(other_trait, default=0.5))
+            # pref_weight > 0.5 means prefer HIGH values of this trait,
+            # pref_weight < 0.5 means prefer LOW values of this trait.
+            # Score is how well the mate matches the preference direction.
+            if pref_weight > 0.5:
+                # Prefer high values: mate_value itself is the score
+                score = _normalize_trait_value(mate_value, spec.min_val, spec.max_val)
+            else:
+                # Prefer low values: invert
+                score = 1.0 - _normalize_trait_value(mate_value, spec.min_val, spec.max_val)
+
+            # Weight by how strong the preference is (distance from 0.5)
+            preference_strength = abs(pref_weight - 0.5) * 2.0  # 0.0 to 1.0
+            scores.append(score)
+            weights.append(preference_strength * 0.5)  # Cap behavioral weight at 0.5
+
     total_weight = sum(weights)
     if total_weight <= 0.0:
         return 0.0
 
     attraction = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
     return min(max(attraction, 0.0), 1.0)
+
+
+def _normalize_trait_value(value: float, min_val: float, max_val: float) -> float:
+    """Normalize a value to [0, 1] given its range."""
+    span = max_val - min_val
+    if span <= 0:
+        return 0.5
+    return max(0.0, min(1.0, (value - min_val) / span))

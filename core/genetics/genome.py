@@ -384,9 +384,12 @@ class Genome:
         """Calculate how much this genome is attracted to another (0.0-1.0).
 
         Attraction is based on how closely the mate matches this fish's
-        preferred physical trait values, plus a bonus for higher pattern intensity.
+        preferred physical trait values, behavioral trait preferences,
+        plus a bonus for higher pattern intensity.
         """
-        return expression.calculate_mate_attraction(self.physical, self.behavioral, other.physical)
+        return expression.calculate_mate_attraction(
+            self.physical, self.behavioral, other.physical, other.behavioral
+        )
 
     def get_color_tint(self) -> Tuple[int, int, int]:
         """Get RGB color tint based on genome."""
