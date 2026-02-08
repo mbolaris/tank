@@ -51,6 +51,10 @@ class BehaviorActionsMixin:
     def _execute_threat_response(self, fish: "Fish") -> Tuple[float, float, bool]:
         """Execute the selected threat response sub-behavior.
 
+        Genomic behavioral traits affect threat response:
+        - aggression: High aggression reduces flee threshold (stands ground longer)
+          and decreases flee speed (less panicky). Low aggression flees earlier/faster.
+
         Returns:
             (vx, vy, is_active) - velocity and whether threat response triggered
         """
@@ -64,17 +68,27 @@ class BehaviorActionsMixin:
         distance = (predator.pos - fish.pos).length()
         flee_threshold = self.parameters.get("flee_threshold", 120.0)
 
+        # Aggression modulates flee threshold: aggressive fish stand ground longer
+        aggression = fish.genome.behavioral.aggression.value
+        # Scale threshold: low aggression (+20% threshold = flee earlier),
+        # high aggression (-20% threshold = stand ground longer)
+        flee_threshold *= 1.2 - aggression * 0.4
+
         if distance > flee_threshold:
             return 0.0, 0.0, False
 
         escape_dir = self._safe_normalize(fish.pos - predator.pos)
 
+        # Aggression modulates flee speed: low aggression = faster flee,
+        # high aggression = slower (more defiant) escape
+        aggression_speed_mod = 1.1 - aggression * 0.2  # 0.9x to 1.1x
+
         if self.threat_response == ThreatResponse.PANIC_FLEE:
-            speed = self.parameters.get("flee_speed", 1.2)
+            speed = self.parameters.get("flee_speed", 1.2) * aggression_speed_mod
             return escape_dir.x * speed, escape_dir.y * speed, True
 
         elif self.threat_response == ThreatResponse.STEALTH_AVOID:
-            speed = self.parameters.get("stealth_speed", 0.3)
+            speed = self.parameters.get("stealth_speed", 0.3) * aggression_speed_mod
             return escape_dir.x * speed, escape_dir.y * speed, True
 
         elif self.threat_response == ThreatResponse.FREEZE:
@@ -85,7 +99,7 @@ class BehaviorActionsMixin:
             return escape_dir.x * 0.2, escape_dir.y * 0.2, True
 
         elif self.threat_response == ThreatResponse.ERRATIC_EVADE:
-            speed = self.parameters.get("flee_speed", 1.0)
+            speed = self.parameters.get("flee_speed", 1.0) * aggression_speed_mod
             amplitude = self.parameters.get("erratic_amplitude", 0.5)
             # Add random perpendicular component (use environment RNG for determinism)
             perp = Vector2(-escape_dir.y, escape_dir.x)
@@ -278,27 +292,40 @@ class BehaviorActionsMixin:
     def _execute_social_mode(self, fish: "Fish") -> Tuple[float, float]:
         """Execute the selected social mode sub-behavior.
 
+        Genomic behavioral traits affect social behavior:
+        - social_tendency: Amplifies schooling forces and social detection range.
+          Low social_tendency weakens group cohesion even in schooling modes.
+          This creates evolutionary pressure: social fish survive better in groups
+          but may miss individual food opportunities.
+
         Returns:
             (vx, vy) social velocity influence
         """
         if self.social_mode == SocialMode.SOLO:
             return 0.0, 0.0
 
-        # Find nearby fish
+        # social_tendency modulates detection range and schooling strength
+        social_tendency = fish.genome.behavioral.social_tendency.value
+
+        # Find nearby fish - social_tendency widens detection range
         social_distance = self.parameters.get("social_distance", 50.0)
-        nearby = self._find_nearby_fish(fish, social_distance * 2)
+        range_mod = 0.7 + social_tendency * 0.6  # 0.7x to 1.3x range
+        nearby = self._find_nearby_fish(fish, social_distance * 2 * range_mod)
 
         if not nearby:
             return 0.0, 0.0
 
+        # social_tendency amplifies cohesion/alignment forces
+        social_boost = 0.6 + social_tendency * 0.8  # 0.6x to 1.4x force
+
         if self.social_mode == SocialMode.LOOSE_SCHOOL:
-            cohesion = self.parameters.get("cohesion_strength", 0.4)
+            cohesion = self.parameters.get("cohesion_strength", 0.4) * social_boost
             separation = self.parameters.get("separation_distance", 25.0)
             return self._boids_behavior(fish, nearby, cohesion, 0.0, separation)
 
         elif self.social_mode == SocialMode.TIGHT_SCHOOL:
-            cohesion = self.parameters.get("cohesion_strength", 0.7)
-            alignment = self.parameters.get("alignment_strength", 0.4)
+            cohesion = self.parameters.get("cohesion_strength", 0.7) * social_boost
+            alignment = self.parameters.get("alignment_strength", 0.4) * social_boost
             separation = self.parameters.get("separation_distance", 15.0)
             return self._boids_behavior(fish, nearby, cohesion, alignment, separation)
 
@@ -330,10 +357,17 @@ class BehaviorActionsMixin:
     ) -> Tuple[float, float, bool]:
         """Execute the selected poker engagement sub-behavior.
 
+        Genomic behavioral traits affect poker engagement:
+        - aggression: Lowers energy threshold for engagement (risk-taking)
+          and increases seek speed. Aggressive fish gamble more readily.
+
         Returns:
             (vx, vy, is_active) - velocity and whether poker behavior is active
         """
+        aggression = fish.genome.behavioral.aggression.value
         min_energy = self.parameters.get("min_energy_for_poker", 0.4)
+        # Aggression lowers the energy threshold for poker (more risk-taking)
+        min_energy *= 1.2 - aggression * 0.4  # 0.8x to 1.2x threshold
 
         if self.poker_engagement == PokerEngagement.AVOID:
             avoid_radius = self.parameters.get("poker_avoid_radius", 100.0)
@@ -353,10 +387,13 @@ class BehaviorActionsMixin:
                 return 0.0, 0.0, False
             seek_radius = self.parameters.get("poker_seek_radius", 120.0)
             nearby = self._find_nearby_fish(fish, seek_radius)
-            if nearby and fish.environment.rng.random() < 0.3:  # 30% chance to engage
+            # Aggression increases engage probability (0.2 to 0.4 range)
+            engage_chance = 0.2 + aggression * 0.2
+            if nearby and fish.environment.rng.random() < engage_chance:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest.pos - fish.pos)
-                return direction.x * 0.6, direction.y * 0.6, True
+                speed = 0.5 + aggression * 0.2  # 0.5 to 0.7
+                return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
 
         elif self.poker_engagement == PokerEngagement.AGGRESSIVE:
@@ -367,7 +404,8 @@ class BehaviorActionsMixin:
             if nearby:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
                 direction = self._safe_normalize(nearest.pos - fish.pos)
-                return direction.x * 0.9, direction.y * 0.9, True
+                speed = 0.7 + aggression * 0.3  # 0.7 to 1.0
+                return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
 
         return 0.0, 0.0, False

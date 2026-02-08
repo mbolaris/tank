@@ -314,9 +314,10 @@ class ReproductionService:
     def _spawn_emergency_fish(self) -> bool:
         """Spawn an emergency fish to maintain population.
 
-        IMPROVEMENT: When surviving fish exist, prefer cloning from the healthiest
-        one rather than creating a fully random genome. This preserves successful
-        genetic traits instead of diluting the gene pool with random genetics.
+        Uses diversity-aware selection: instead of always cloning the healthiest
+        fish, selects a parent that balances health with genetic uniqueness.
+        This prevents emergency spawning from creating monocultures when the
+        population is low.
 
         The cloned genome gets light mutation to maintain diversity.
         """
@@ -328,17 +329,16 @@ class ReproductionService:
         if environment is None or ecosystem is None:
             return False
 
-        # Try to clone from a surviving fish if any exist (preserves successful traits)
+        # Try to clone from a surviving fish, using diversity-aware selection
         fish_list = self._get_fish_list()
         if fish_list:
-            # Select the healthiest fish (highest energy ratio) as the template
-            best_fish = max(fish_list, key=lambda f: f.energy / max(f.max_energy, 1.0))
+            parent = self._select_diverse_parent(fish_list)
             # Clone with light mutation to maintain diversity
             genome = Genome.clone_with_mutation(
-                parent=best_fish.genome,
+                parent=parent.genome,
                 rng=self._engine.rng,
             )
-            generation = best_fish.generation  # Inherit generation for tracking
+            generation = parent.generation  # Inherit generation for tracking
         else:
             # No fish to clone from - create random genome (extinction recovery)
             genome = Genome.random(use_algorithm=True, rng=self._engine.rng)
@@ -379,6 +379,43 @@ class ReproductionService:
             lifecycle_system.record_emergency_spawn()
 
         return bool(self._engine.request_spawn(new_fish, reason="emergency_spawn"))
+
+    def _select_diverse_parent(self, fish_list: list[Fish]) -> Fish:
+        """Select a parent for emergency spawning that balances health and diversity.
+
+        Scores each fish by combining energy ratio (health) with a diversity bonus
+        that rewards genetically unique individuals. This prevents emergency
+        spawning from repeatedly cloning the same dominant genotype.
+
+        For small populations (<=3), falls back to healthiest fish to avoid
+        expensive diversity calculations when they don't matter much.
+
+        Args:
+            fish_list: Non-empty list of living fish
+
+        Returns:
+            Selected parent fish
+        """
+        if len(fish_list) <= 3:
+            # Small population: just pick the healthiest
+            return max(fish_list, key=lambda f: f.energy / max(f.max_energy, 1.0))
+
+        from core.genetics.diversity import diversity_bonus
+
+        genomes = [f.genome for f in fish_list]
+        best_fish = fish_list[0]
+        best_score = -1.0
+
+        for i, fish in enumerate(fish_list):
+            energy_ratio = fish.energy / max(fish.max_energy, 1.0)
+            # Diversity bonus rewards genetically unique fish (0.0 to 0.15)
+            d_bonus = diversity_bonus(genomes[i], genomes, sigma=0.5, bonus_weight=0.15)
+            score = energy_ratio * 0.7 + d_bonus * 0.3 + (energy_ratio * d_bonus)
+            if score > best_score:
+                best_score = score
+                best_fish = fish
+
+        return best_fish
 
     def _get_repro_credit_required(self) -> float:
         config = getattr(self._engine, "config", None)
