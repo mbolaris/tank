@@ -4,7 +4,7 @@ This module provides a mixin class that adds poker event collection
 and leaderboard functionality to world hooks that support poker gameplay.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from backend.state_payloads import (
     AutoEvaluateStatsPayload,
@@ -54,9 +54,7 @@ class PokerMixin:
 
         return poker_events
 
-    def collect_poker_leaderboard(
-        self, runner: Any
-    ) -> list[PokerLeaderboardEntryPayload] | None:
+    def collect_poker_leaderboard(self, runner: Any) -> list[PokerLeaderboardEntryPayload] | None:
         """Collect poker leaderboard from world ecosystem.
 
         Args:
