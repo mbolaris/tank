@@ -114,7 +114,7 @@ def ensure_world_directory(world_id: str) -> Path:
     return world_dir
 
 
-def save_snapshot_data(world_id: str, snapshot: dict[str, Any]) -> Optional[str]:
+def save_snapshot_data(world_id: str, snapshot: dict[str, Any]) -> str | None:
     """Save pre-captured snapshot data to disk.
 
     Args:
@@ -158,8 +158,8 @@ def save_snapshot_data(world_id: str, snapshot: dict[str, Any]) -> Optional[str]
 
 
 def save_world_state(
-    world_id: str, runner: "RunnerProtocol", metadata: Optional[dict[str, Any]] = None
-) -> Optional[str]:
+    world_id: str, runner: "RunnerProtocol", metadata: dict[str, Any] | None = None
+) -> str | None:
     """Save complete world state to disk.
 
     Args:
@@ -191,7 +191,7 @@ def save_world_state(
         return None
 
 
-def load_snapshot(snapshot_path: str) -> Optional[dict[str, Any]]:
+def load_snapshot(snapshot_path: str) -> dict[str, Any] | None:
     """Load a snapshot from disk.
 
     Args:
@@ -476,7 +476,7 @@ def list_world_snapshots(world_id: str) -> list[dict[str, Any]]:
     return snapshots
 
 
-def get_latest_snapshot(world_id: str) -> Optional[str]:
+def get_latest_snapshot(world_id: str) -> str | None:
     """Get the path to the most recent snapshot for a world.
 
     Args:

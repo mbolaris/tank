@@ -16,31 +16,31 @@ class EntityData(BaseModel):
     height: float
 
     # Velocity for animation
-    vel_x: Optional[float] = None
-    vel_y: Optional[float] = None
+    vel_x: float | None = None
+    vel_y: float | None = None
 
     # Fish-specific fields
-    energy: Optional[float] = None
-    generation: Optional[int] = None
-    age: Optional[int] = None
-    species: Optional[str] = None
-    genome_data: Optional[dict[str, Any]] = None
+    energy: float | None = None
+    generation: int | None = None
+    age: int | None = None
+    species: str | None = None
+    genome_data: dict[str, Any] | None = None
 
     # Food-specific fields
-    food_type: Optional[str] = None
+    food_type: str | None = None
 
     # Plant-specific fields (original static plants)
-    plant_type: Optional[int] = None
+    plant_type: int | None = None
 
     # Fractal plant-specific fields
-    genome: Optional[dict[str, Any]] = None  # L-system genome for rendering
-    max_energy: Optional[float] = None
-    size_multiplier: Optional[float] = None
-    iterations: Optional[int] = None
-    nectar_ready: Optional[bool] = None
+    genome: dict[str, Any] | None = None  # L-system genome for rendering
+    max_energy: float | None = None
+    size_multiplier: float | None = None
+    iterations: int | None = None
+    nectar_ready: bool | None = None
 
     # Plant nectar-specific fields
-    source_plant_id: Optional[int] = None
+    source_plant_id: int | None = None
 
 
 class PokerEventData(BaseModel):
@@ -123,21 +123,21 @@ class AutoEvaluatePlayerStats(BaseModel):
     player_id: str
     name: str
     is_standard: bool
-    fish_id: Optional[int] = None
-    fish_generation: Optional[int] = None
-    plant_id: Optional[int] = None
-    species: Optional[str] = "fish"
+    fish_id: int | None = None
+    fish_generation: int | None = None
+    plant_id: int | None = None
+    species: str | None = "fish"
     energy: float
     hands_won: int
     hands_lost: int
     total_energy_won: float
     total_energy_lost: float
     net_energy: float
-    win_rate: Optional[float] = None
-    bb_per_100: Optional[float] = None
-    showdowns_played: Optional[int] = None
-    showdowns_won: Optional[int] = None
-    showdown_win_rate: Optional[float] = None
+    win_rate: float | None = None
+    bb_per_100: float | None = None
+    showdowns_played: int | None = None
+    showdowns_won: int | None = None
+    showdown_win_rate: float | None = None
 
 
 class PokerPerformanceSnapshot(BaseModel):
@@ -154,7 +154,7 @@ class AutoEvaluateStats(BaseModel):
     hands_remaining: int
     players: list[AutoEvaluatePlayerStats]
     game_over: bool
-    winner: Optional[str]
+    winner: str | None
     reason: str
     performance_history: list[PokerPerformanceSnapshot] = []
 
@@ -182,7 +182,7 @@ class StatsData(BaseModel):
     poker_stats: PokerStatsData
     min_fish_energy: float = 0.0
     max_fish_energy: float = 0.0
-    poker_score: Optional[float] = None
+    poker_score: float | None = None
     poker_score_history: list[float] = []
 
 
@@ -196,14 +196,14 @@ class SimulationUpdate(BaseModel):
     stats: StatsData
     poker_events: list[PokerEventData] = []
     poker_leaderboard: list[PokerLeaderboardEntry] = []
-    auto_evaluation: Optional[AutoEvaluateStats] = None
+    auto_evaluation: AutoEvaluateStats | None = None
 
 
 class Command(BaseModel):
     """Command from client to server."""
 
     command: str  # 'add_food', 'spawn_fish', 'pause', 'resume', 'reset'
-    data: Optional[dict[str, Any]] = None
+    data: dict[str, Any] | None = None
 
 
 class ServerInfo(BaseModel):
@@ -222,14 +222,14 @@ class ServerInfo(BaseModel):
     world_count: int  # Number of worlds currently running on this server
     version: str  # Server version
     uptime_seconds: float = 0.0  # How long the server has been running
-    cpu_percent: Optional[float] = None  # CPU usage percentage (0-100)
-    memory_mb: Optional[float] = None  # Memory usage in MB
+    cpu_percent: float | None = None  # CPU usage percentage (0-100)
+    memory_mb: float | None = None  # Memory usage in MB
     is_local: bool = True  # Whether this is the local server
-    platform: Optional[str] = None  # OS family name (Linux, Windows, Darwin)
-    architecture: Optional[str] = None  # CPU architecture (x86_64, arm64, etc.)
-    hardware_model: Optional[str] = None  # Optional hardware descriptor
-    logical_cpus: Optional[int] = None  # Logical CPU count for load estimation
-    physical_cpus: Optional[int] = None  # Physical core count when available
+    platform: str | None = None  # OS family name (Linux, Windows, Darwin)
+    architecture: str | None = None  # CPU architecture (x86_64, arm64, etc.)
+    hardware_model: str | None = None  # Optional hardware descriptor
+    logical_cpus: int | None = None  # Logical CPU count for load estimation
+    physical_cpus: int | None = None  # Physical core count when available
 
 
 class ServerWithWorlds(BaseModel):

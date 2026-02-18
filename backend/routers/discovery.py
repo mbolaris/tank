@@ -92,7 +92,7 @@ def setup_router(discovery_service: DiscoveryService) -> APIRouter:
     async def send_heartbeat(
         request: Request,
         server_id: str,
-        server_info: Optional[ServerInfo] = None,
+        server_info: ServerInfo | None = None,
     ):
         """Record a heartbeat from a server.
 
@@ -127,7 +127,7 @@ def setup_router(discovery_service: DiscoveryService) -> APIRouter:
 
     @router.get("/servers")
     async def list_discovery_servers(
-        status: Optional[str] = None,
+        status: str | None = None,
         include_local: bool = True,
     ):
         """List all servers registered in the discovery service.

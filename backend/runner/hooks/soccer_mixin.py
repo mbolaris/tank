@@ -16,7 +16,7 @@ class SoccerMixin:
     game events and league state.
     """
 
-    def collect_soccer_events(self, runner: Any) -> Optional[list[SoccerEventPayload]]:
+    def collect_soccer_events(self, runner: Any) -> list[SoccerEventPayload] | None:
         """Collect soccer events from the world engine.
 
         Args:
@@ -57,7 +57,7 @@ class SoccerMixin:
 
         return soccer_events
 
-    def collect_soccer_league_live(self, runner: Any) -> Optional[dict]:
+    def collect_soccer_league_live(self, runner: Any) -> dict | None:
         """Collect soccer league live state.
 
         Args:

@@ -54,9 +54,9 @@ class StartupManager:
         discovery_service: DiscoveryService,
         server_client: ServerClient,
         server_id: str,
-        discovery_server_url: Optional[str] = None,
-        start_broadcast_callback: Optional[Callable[[Any, str], Any]] = None,
-        stop_broadcast_callback: Optional[Callable[[str], Any]] = None,
+        discovery_server_url: str | None = None,
+        start_broadcast_callback: Callable[[Any, str], Any] | None = None,
+        stop_broadcast_callback: Callable[[str], Any] | None = None,
     ) -> None:
         """Initialize the startup manager.
 
@@ -80,15 +80,15 @@ class StartupManager:
         self._stop_broadcast_callback = stop_broadcast_callback
 
         # Services created during startup
-        self.auto_save_service: Optional[AutoSaveService] = None
-        self.migration_scheduler: Optional[MigrationScheduler] = None
+        self.auto_save_service: AutoSaveService | None = None
+        self.migration_scheduler: MigrationScheduler | None = None
 
         # Background tasks
-        self._heartbeat_task: Optional[asyncio.Task] = None
+        self._heartbeat_task: asyncio.Task | None = None
         self._broadcast_task_ids: set[str] = set()  # Track which worlds have broadcast tasks
 
         # Parsed discovery hub info
-        self._discovery_hub_info: Optional[ServerInfo] = None
+        self._discovery_hub_info: ServerInfo | None = None
 
         # Server metadata
         self._start_time = time.time()
@@ -488,7 +488,7 @@ class StartupManager:
     # Helper Methods
     # =========================================================================
 
-    def _parse_discovery_url(self, url: str) -> Optional[ServerInfo]:
+    def _parse_discovery_url(self, url: str) -> ServerInfo | None:
         """Parse DISCOVERY_SERVER_URL into a ServerInfo object.
 
         Args:

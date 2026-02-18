@@ -89,10 +89,10 @@ def build_base_stats(
 
 def build_energy_stats(
     stats: dict[str, Any],
-    poker_score: Optional[float],
+    poker_score: float | None,
     poker_score_history: list[float],
-    poker_elo: Optional[float] = None,
-    poker_elo_history: Optional[list[float]] = None,
+    poker_elo: float | None = None,
+    poker_elo_history: list[float] | None = None,
 ) -> dict[str, Any]:
     """Build energy-related stats dictionary."""
     return {

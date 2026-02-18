@@ -146,7 +146,7 @@ class AutoSaveService:
                 f"Fatal error in auto-save loop for world {world_id[:8]}: {e}", exc_info=True
             )
 
-    async def save_world_now(self, world_id: str) -> Optional[str]:
+    async def save_world_now(self, world_id: str) -> str | None:
         """Immediately save a specific world (out of band).
 
         Args:

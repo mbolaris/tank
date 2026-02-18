@@ -32,29 +32,29 @@ class TransferRecord:
     timestamp: str  # ISO format
     entity_type: str  # "fish" or "plant"
     entity_old_id: int
-    entity_new_id: Optional[int]
+    entity_new_id: int | None
     source_world_id: str
     source_world_name: str
     destination_world_id: str
     destination_world_name: str
     success: bool
-    error: Optional[str] = None
-    generation: Optional[int] = None  # Fish generation (for tracking migration stats)
-    selection_seed: Optional[int] = None
+    error: str | None = None
+    generation: int | None = None  # Fish generation (for tracking migration stats)
+    selection_seed: int | None = None
 
 
 def log_transfer(
     entity_type: str,
     entity_old_id: int,
-    entity_new_id: Optional[int],
+    entity_new_id: int | None,
     source_world_id: str,
     source_world_name: str,
     destination_world_id: str,
     destination_world_name: str,
     success: bool,
-    error: Optional[str] = None,
-    generation: Optional[int] = None,
-    selection_seed: Optional[int] = None,
+    error: str | None = None,
+    generation: int | None = None,
+    selection_seed: int | None = None,
 ) -> TransferRecord:
     """Log a transfer event.
 
@@ -133,7 +133,7 @@ def _append_to_log(record: TransferRecord) -> None:
 
 def get_transfer_history(
     limit: int = 50,
-    world_id: Optional[str] = None,
+    world_id: str | None = None,
     success_only: bool = False,
 ) -> list[dict]:
     """Get transfer history records.
@@ -168,7 +168,7 @@ def get_transfer_history(
     return [asdict(r) for r in records]
 
 
-def get_transfer_by_id(transfer_id: str) -> Optional[dict]:
+def get_transfer_by_id(transfer_id: str) -> dict | None:
     """Get a specific transfer by ID.
 
     Args:
@@ -261,7 +261,7 @@ def clear_history() -> None:
     logger.warning("Transfer history cleared")
 
 
-def record_migration_in(world_id: Optional[str] = None) -> None:
+def record_migration_in(world_id: str | None = None) -> None:
     """Record an incoming migration for summary stats.
 
     Prefer relying on log_transfer for counts; this is a fallback for paths that
@@ -272,7 +272,7 @@ def record_migration_in(world_id: Optional[str] = None) -> None:
     _migration_in_counts[world_id] = _migration_in_counts.get(world_id, 0) + 1
 
 
-def get_and_reset_migration_counts(world_id: Optional[str] = None) -> tuple:
+def get_and_reset_migration_counts(world_id: str | None = None) -> tuple:
     """Get migration counts since last reset and reset them.
 
     Returns:

@@ -26,8 +26,8 @@ class BenchmarkMixin:
         _evolution_benchmark_last_completed_time: Last benchmark completion timestamp.
     """
 
-    evolution_benchmark_tracker: Optional[Any] = None
-    _evolution_benchmark_guard: Optional[threading.Lock] = None
+    evolution_benchmark_tracker: Any | None = None
+    _evolution_benchmark_guard: threading.Lock | None = None
     _evolution_benchmark_last_completed_time: float = 0.0
 
     def setup_benchmark_tracker(self, runner: Any) -> None:

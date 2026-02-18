@@ -46,7 +46,7 @@ class ServerClient:
         """
         self._timeout = timeout
         self._max_retries = max_retries
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -80,7 +80,7 @@ class ServerClient:
         url: str,
         retries: int = 0,
         **kwargs,
-    ) -> Optional[httpx.Response]:
+    ) -> httpx.Response | None:
         """Make an HTTP request with retry logic.
 
         Args:
@@ -156,7 +156,7 @@ class ServerClient:
 
         return f"http://{server.host}:{server.port}{path}"
 
-    async def get_server_info(self, server: ServerInfo) -> Optional[ServerInfo]:
+    async def get_server_info(self, server: ServerInfo) -> ServerInfo | None:
         """Get server information from a remote server.
 
         Args:
@@ -177,7 +177,7 @@ class ServerClient:
 
         return None
 
-    async def list_worlds(self, server: ServerInfo) -> Optional[list[dict[str, Any]]]:
+    async def list_worlds(self, server: ServerInfo) -> list[dict[str, Any]] | None:
         """List all worlds on a remote server.
 
         Args:
@@ -206,7 +206,7 @@ class ServerClient:
         self,
         server: ServerInfo,
         world_id: str,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get world information from a remote server.
 
         Args:
@@ -237,7 +237,7 @@ class ServerClient:
         source_world_id: str,
         destination_world_id: str,
         entity_id: int,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Transfer an entity between worlds on a remote server.
 
         Args:
@@ -280,7 +280,7 @@ class ServerClient:
         destination_world_id: str,
         probability: int = 50,
         direction: str = "right",
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Create a migration connection on a remote server.
 
         Args:
@@ -319,8 +319,8 @@ class ServerClient:
     async def get_connections(
         self,
         server: ServerInfo,
-        world_id: Optional[str] = None,
-    ) -> Optional[list[dict[str, Any]]]:
+        world_id: str | None = None,
+    ) -> list[dict[str, Any]] | None:
         """Get migration connections from a remote server.
 
         Args:
@@ -424,7 +424,7 @@ class ServerClient:
         entity_data: dict[str, Any],
         source_server_id: str,
         source_world_id: str,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Transfer an entity to a remote server.
 
         This sends a serialized entity to a remote server for cross-server migration.

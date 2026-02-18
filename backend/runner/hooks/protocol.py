@@ -19,8 +19,8 @@ class WorldHooks(Protocol):
     """
 
     # Optional hook-managed state (TankWorldHooks provides these)
-    human_poker_game: Optional[Any]
-    standard_poker_series: Optional[Any]
+    human_poker_game: Any | None
+    standard_poker_series: Any | None
 
     def supports_command(self, command: str) -> bool:
         """Check if this world supports a specific command.
@@ -33,7 +33,7 @@ class WorldHooks(Protocol):
         """
         ...
 
-    def handle_command(self, runner: Any, command: str, data: dict) -> Optional[dict]:
+    def handle_command(self, runner: Any, command: str, data: dict) -> dict | None:
         """Handle a world-specific command.
 
         Args:

@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 class CaptureRequest(BaseModel):
     """Request to capture a solution from a tank."""
 
-    name: Optional[str] = None
-    description: Optional[str] = None
-    author: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
+    author: str | None = None
     evaluate: bool = False
 
     # How to choose the fish to capture from the live tank.
@@ -45,7 +45,7 @@ class SubmitRequest(BaseModel):
     """Request to submit a solution to git."""
 
     solution_id: str
-    commit_message: Optional[str] = None
+    commit_message: str | None = None
     push: bool = True
 
 

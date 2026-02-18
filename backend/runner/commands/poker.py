@@ -22,7 +22,7 @@ class PokerCommands:
             self, fish: Any, *, include_aggression: bool = False
         ) -> dict[str, Any]: ...
 
-    def _cmd_start_poker(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_start_poker(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'start_poker' command."""
         logger.info("Starting human poker game...")
         try:
@@ -181,7 +181,7 @@ class PokerCommands:
                     except Exception as e:
                         logger.error(f"Error triggering poker reproduction: {e}")
 
-    def _cmd_poker_action(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_poker_action(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'poker_action' command."""
         if not self.human_poker_game:
             logger.warning("Poker action received but no game active")
@@ -205,7 +205,7 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_process_ai_turn(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_poker_process_ai_turn(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'poker_process_ai_turn' command."""
         if not self.human_poker_game:
             logger.warning("AI turn processing requested but no game active")
@@ -221,7 +221,7 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_new_round(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_poker_new_round(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'poker_new_round' command."""
         if not self.human_poker_game:
             logger.warning("New round requested but no game active")
@@ -230,7 +230,7 @@ class PokerCommands:
         logger.info("Starting new poker hand...")
         return cast(dict[str, Any], self.human_poker_game.start_new_hand())
 
-    def _cmd_poker_autopilot_action(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_poker_autopilot_action(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'poker_autopilot_action' command."""
         if not self.human_poker_game:
             now = time.monotonic()

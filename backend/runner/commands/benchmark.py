@@ -19,7 +19,7 @@ class BenchmarkCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_standard_poker_series(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_standard_poker_series(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'standard_poker_series' command."""
         logger.info("Starting standard poker benchmark series...")
         try:
@@ -123,7 +123,7 @@ class BenchmarkCommands:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
             return self._create_error_response(f"Failed to run benchmark series: {e!s}")
 
-    def _cmd_set_plant_energy_input(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_set_plant_energy_input(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'set_plant_energy_input' command.
 
         Adjusts the runtime plant energy input rate (minimum energy gain per frame).

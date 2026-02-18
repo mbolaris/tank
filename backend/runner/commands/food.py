@@ -15,7 +15,7 @@ class FoodCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_add_food(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_add_food(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'add_food' command."""
         rng = self.world.rng
         if rng is None:

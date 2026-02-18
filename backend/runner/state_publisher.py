@@ -25,12 +25,12 @@ class StatePublisher:
         self.delta_sync_interval = delta_sync_interval
 
         # Cache state
-        self._cached_state: Optional[FullStatePayload | DeltaStatePayload] = None
-        self._cached_state_frame: Optional[int] = None
+        self._cached_state: FullStatePayload | DeltaStatePayload | None = None
+        self._cached_state_frame: int | None = None
         self._frames_since_update = 0
 
         # Delta sync state
-        self._last_full_frame: Optional[int] = None
+        self._last_full_frame: int | None = None
         self._last_entities: dict[int, EntitySnapshot] = {}
 
     def invalidate_cache(self) -> None:
@@ -239,7 +239,7 @@ class StatePublisher:
             tank_soccer_enabled=tank_soccer_enabled,
         )
 
-    def _get_tank_soccer_enabled(self, runner: Any) -> Optional[bool]:
+    def _get_tank_soccer_enabled(self, runner: Any) -> bool | None:
         """Get the tank_practice_enabled state from the soccer config."""
         try:
             engine = getattr(runner.world, "engine", None)

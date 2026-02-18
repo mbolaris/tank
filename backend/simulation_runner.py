@@ -41,12 +41,12 @@ class SimulationRunner(CommandHandlerMixin):
 
     def __init__(
         self,
-        seed: Optional[int] = None,
-        world_id: Optional[str] = None,
-        world_name: Optional[str] = None,
+        seed: int | None = None,
+        world_id: str | None = None,
+        world_name: str | None = None,
         world_type: str = "tank",
         world_manager: Optional["WorldManager"] = None,
-        config: Optional[dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ):
         """Initialize the simulation runner.
         world_type: Type of world to create (default "tank")
@@ -74,7 +74,7 @@ class SimulationRunner(CommandHandlerMixin):
         self.world.set_paused(False)
 
         self.running = False
-        self.thread: Optional[threading.Thread] = None
+        self.thread: threading.Thread | None = None
         self.lock = threading.Lock()
 
         # Performance instrumentation
@@ -177,7 +177,7 @@ class SimulationRunner(CommandHandlerMixin):
         # Write to shared benchmarks directory to avoid creating orphan world directories
         return Path("data") / "benchmarks" / f"poker_evolution_{world_id[:8]}.json"
 
-    def set_world_identity(self, world_id: str, world_name: Optional[str] = None) -> None:
+    def set_world_identity(self, world_id: str, world_name: str | None = None) -> None:
         """Update world identity for restored/renamed worlds.
 
         This keeps runner-level persistence paths and migration context consistent
@@ -485,7 +485,7 @@ class SimulationRunner(CommandHandlerMixin):
         if self.thread:
             self.thread.join(timeout=2.0)
 
-    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> None:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> None:
         """Advance the simulation by one step.
 
         Note: This explicitly steps even if the world is paused,
@@ -513,8 +513,8 @@ class SimulationRunner(CommandHandlerMixin):
 
     def reset(
         self,
-        seed: Optional[int] = None,
-        config: Optional[dict[str, Any]] = None,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
     ) -> Any:
         """Reset the world to initial state."""
         with self.lock:
@@ -926,7 +926,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         return {"status": status}
 
-    def _entity_to_data(self, entity: entities.Agent) -> Optional[EntitySnapshot]:
+    def _entity_to_data(self, entity: entities.Agent) -> EntitySnapshot | None:
         """Convert an entity to a lightweight snapshot for serialization.
 
         Kept for compatibility/greppability; delegates to `EntitySnapshotBuilder`.
@@ -934,7 +934,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         return self._entity_snapshot_builder.to_snapshot(entity)
 
-    def handle_command(self, command: str, data: Optional[dict[str, Any]] = None):
+    def handle_command(self, command: str, data: dict[str, Any] | None = None):
         """Handle a command from the client.
 
         Commands can be:
@@ -1013,7 +1013,7 @@ class SimulationRunner(CommandHandlerMixin):
             logger.warning(f"Unknown command received: {command}")
             return self._create_error_response(f"Unknown command: {command}")
 
-    async def handle_command_async(self, command: str, data: Optional[dict[str, Any]] = None):
+    async def handle_command_async(self, command: str, data: dict[str, Any] | None = None):
         """Async wrapper to route commands off the event loop thread."""
 
         loop = asyncio.get_running_loop()

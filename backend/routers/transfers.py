@@ -16,7 +16,7 @@ def setup_router() -> APIRouter:
     @router.get("")
     async def list_transfers(
         limit: int = Query(default=50, ge=1, le=200),
-        world_id: Optional[str] = Query(default=None),
+        world_id: str | None = Query(default=None),
         success_only: bool = Query(default=False),
     ) -> JSONResponse:
         """List recent transfers with optional filters."""

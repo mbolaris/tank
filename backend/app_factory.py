@@ -73,7 +73,7 @@ class AppContext:
     api_port: int = field(
         default_factory=lambda: int(os.getenv("TANK_API_PORT", str(DEFAULT_API_PORT)))
     )
-    discovery_server_url: Optional[str] = field(
+    discovery_server_url: str | None = field(
         default_factory=lambda: os.getenv("DISCOVERY_SERVER_URL")
     )
     production_mode: bool = field(
@@ -84,9 +84,9 @@ class AppContext:
     )
 
     # Runtime state (initialized during lifespan)
-    startup_manager: Optional[StartupManager] = None
-    auto_save_service: Optional[AutoSaveService] = None
-    migration_scheduler: Optional[MigrationScheduler] = None
+    startup_manager: StartupManager | None = None
+    auto_save_service: AutoSaveService | None = None
+    migration_scheduler: MigrationScheduler | None = None
 
     # Timing
     server_start_time: float = field(default_factory=time.time)
@@ -175,10 +175,10 @@ def _configure_windows_event_loop(logger: logging.Logger) -> None:
 
 def create_app(
     *,
-    server_id: Optional[str] = None,
-    discovery_server_url: Optional[str] = None,
-    production_mode: Optional[bool] = None,
-    context: Optional[AppContext] = None,
+    server_id: str | None = None,
+    discovery_server_url: str | None = None,
+    production_mode: bool | None = None,
+    context: AppContext | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 

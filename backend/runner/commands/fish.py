@@ -20,7 +20,7 @@ class FishCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_spawn_fish(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def _cmd_spawn_fish(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'spawn_fish' command."""
         try:
             logger.info("Spawn fish command received")

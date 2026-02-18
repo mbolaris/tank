@@ -28,8 +28,8 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
 
     def __init__(self):
         """Initialize tank hooks."""
-        self.human_poker_game: Optional[Any] = None
-        self.standard_poker_series: Optional[Any] = None
+        self.human_poker_game: Any | None = None
+        self.standard_poker_series: Any | None = None
         # BenchmarkMixin attributes are initialized via its setup method
 
     def supports_command(self, command: str) -> bool:
@@ -42,7 +42,7 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
         }
         return command in tank_commands
 
-    def handle_command(self, runner: Any, command: str, data: dict) -> Optional[dict]:
+    def handle_command(self, runner: Any, command: str, data: dict) -> dict | None:
         """Handle tank-specific commands.
 
         Args:

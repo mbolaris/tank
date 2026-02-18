@@ -22,8 +22,8 @@ class TankConnection:
     destination_world_id: str
     probability: int  # 0-100, percentage chance of migration per check
     direction: str = "right"  # "left" or "right" - which boundary triggers migration
-    source_server_id: Optional[str] = None  # Server hosting source tank (None = local)
-    destination_server_id: Optional[str] = None  # Server hosting destination tank (None = local)
+    source_server_id: str | None = None  # Server hosting source tank (None = local)
+    destination_server_id: str | None = None  # Server hosting destination tank (None = local)
 
     def is_remote(self) -> bool:
         """Check if this is a cross-server connection.
@@ -153,7 +153,7 @@ class ConnectionManager:
                 return True
             return False
 
-    def get_connection(self, connection_id: str) -> Optional[TankConnection]:
+    def get_connection(self, connection_id: str) -> TankConnection | None:
         """Get a specific connection.
 
         Args:
@@ -175,7 +175,7 @@ class ConnectionManager:
             return list(self._connections.values())
 
     def get_connections_for_world(
-        self, world_id: str, direction: Optional[str] = None
+        self, world_id: str, direction: str | None = None
     ) -> list[TankConnection]:
         """Get connections where the world is the source, optionally filtered by direction.
 
@@ -220,7 +220,7 @@ class ConnectionManager:
             return len(to_remove)
 
     def validate_connections(
-        self, valid_world_ids: list[str], local_server_id: Optional[str] = None
+        self, valid_world_ids: list[str], local_server_id: str | None = None
     ) -> int:
         """Remove connections that reference non-existent local worlds.
 

@@ -22,9 +22,9 @@ class CreateWorldRequest(BaseModel):
 
     world_type: str
     name: str
-    config: Optional[dict[str, Any]] = None
+    config: dict[str, Any] | None = None
     persistent: bool = True
-    seed: Optional[int] = None
+    seed: int | None = None
     description: str = ""
     start_paused: bool = False
 
@@ -127,7 +127,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             raise HTTPException(status_code=500, detail=str(e)) from e
 
     @router.get("")
-    async def list_worlds(world_type: Optional[str] = None):
+    async def list_worlds(world_type: str | None = None):
         """List all active worlds.
 
         Args:
@@ -231,7 +231,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
     @router.post("/{world_id}/step")
-    async def step_world(world_id: str, actions: Optional[dict[str, Any]] = None):
+    async def step_world(world_id: str, actions: dict[str, Any] | None = None):
         """Step a world by one frame.
 
         Args:

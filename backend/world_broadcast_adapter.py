@@ -144,7 +144,7 @@ class WorldSnapshotAdapter:
     ) -> dict[str, Any] | None:
         if hasattr(self._runner, "handle_command_async"):
             response = await self._runner.handle_command_async(command, data)
-            return cast(Optional[dict[str, Any]], response)
+            return cast(dict[str, Any] | None, response)
 
         response = self.handle_command(command, data or {})
         return response

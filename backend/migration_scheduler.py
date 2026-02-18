@@ -60,7 +60,7 @@ class MigrationScheduler:
         self.discovery_service = discovery_service
         self.server_client = server_client
         self.local_server_id = local_server_id
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self._running = False
         logger.info(f"MigrationScheduler initialized (check_interval={check_interval}s)")
 

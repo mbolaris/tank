@@ -69,7 +69,7 @@ def _env_flag(name: str) -> bool:
 
 async def broadcast_updates_for_world(
     adapter: "WorldBroadcastAdapter",
-    world_id: Optional[str] = None,
+    world_id: str | None = None,
     stream_id: str = "default",
 ) -> None:
     """Broadcast simulation updates to all clients connected to a world.
@@ -321,7 +321,7 @@ _broadcast_locks: dict[tuple[str, str], asyncio.Lock] = {}
 
 async def start_broadcast_for_world(
     runner_or_adapter: Union[RunnerProtocol, "WorldBroadcastAdapter"],
-    world_id: Optional[str] = None,
+    world_id: str | None = None,
     stream_id: str = "default",
 ) -> asyncio.Task:
     """Start a broadcast task for a world.
@@ -379,7 +379,7 @@ async def start_broadcast_for_world(
         return task
 
 
-async def stop_broadcast_for_world(world_id: str, stream_id: Optional[str] = None) -> None:
+async def stop_broadcast_for_world(world_id: str, stream_id: str | None = None) -> None:
     """Stop the broadcast task for a world.
 
     Args:
@@ -399,7 +399,7 @@ async def stop_broadcast_for_world(world_id: str, stream_id: Optional[str] = Non
                 await task
 
 
-def get_broadcast_task(world_id: str, stream_id: Optional[str] = None) -> Optional[asyncio.Task]:
+def get_broadcast_task(world_id: str, stream_id: str | None = None) -> asyncio.Task | None:
     """Get the broadcast task for a world if it exists.
 
     Args:

@@ -52,7 +52,7 @@ class DiscoveryService:
         self._data_dir = data_dir
         self._registry_file = data_dir / "server_registry.json"
         self._lock = asyncio.Lock()
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
         # Create data directory if needed
         self._data_dir.mkdir(parents=True, exist_ok=True)
@@ -155,7 +155,7 @@ class DiscoveryService:
                 return True
             return False
 
-    async def heartbeat(self, server_id: str, server_info: Optional[ServerInfo] = None) -> bool:
+    async def heartbeat(self, server_id: str, server_info: ServerInfo | None = None) -> bool:
         """Record a heartbeat from a server.
 
         Args:
@@ -184,7 +184,7 @@ class DiscoveryService:
 
             return True
 
-    async def get_server(self, server_id: str) -> Optional[ServerInfo]:
+    async def get_server(self, server_id: str) -> ServerInfo | None:
         """Get server info by ID.
 
         Args:
@@ -198,7 +198,7 @@ class DiscoveryService:
 
     async def list_servers(
         self,
-        status_filter: Optional[str] = None,
+        status_filter: str | None = None,
         include_local: bool = True,
     ) -> list[ServerInfo]:
         """List all registered servers.

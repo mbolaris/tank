@@ -15,14 +15,14 @@ class NoOpWorldHooks:
     """
 
     def __init__(self) -> None:
-        self.human_poker_game: Optional[Any] = None
-        self.standard_poker_series: Optional[Any] = None
+        self.human_poker_game: Any | None = None
+        self.standard_poker_series: Any | None = None
 
     def supports_command(self, command: str) -> bool:
         """No world-specific commands supported."""
         return False
 
-    def handle_command(self, runner: Any, command: str, data: dict) -> Optional[dict]:
+    def handle_command(self, runner: Any, command: str, data: dict) -> dict | None:
         """No command handling."""
         return None
 

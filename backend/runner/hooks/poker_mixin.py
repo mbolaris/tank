@@ -20,7 +20,7 @@ class PokerMixin:
     game events and leaderboards.
     """
 
-    def collect_poker_events(self, runner: Any) -> Optional[list[PokerEventPayload]]:
+    def collect_poker_events(self, runner: Any) -> list[PokerEventPayload] | None:
         """Collect poker events from the world engine.
 
         Args:
@@ -56,7 +56,7 @@ class PokerMixin:
 
     def collect_poker_leaderboard(
         self, runner: Any
-    ) -> Optional[list[PokerLeaderboardEntryPayload]]:
+    ) -> list[PokerLeaderboardEntryPayload] | None:
         """Collect poker leaderboard from world ecosystem.
 
         Args:
@@ -83,7 +83,7 @@ class PokerMixin:
         except Exception:
             return []
 
-    def collect_auto_eval(self, runner: Any) -> Optional[AutoEvaluateStatsPayload]:
+    def collect_auto_eval(self, runner: Any) -> AutoEvaluateStatsPayload | None:
         """Collect auto-evaluation stats (placeholder for now).
 
         Args:

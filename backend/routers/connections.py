@@ -31,13 +31,13 @@ class ConnectionResponse(BaseModel):
 def setup_router(
     connection_manager: ConnectionManager,
     world_manager: WorldManager,
-    local_server_id: Optional[str] = None,
+    local_server_id: str | None = None,
 ) -> APIRouter:
     """Create and configure the connections router."""
 
     @router.get("")
     async def list_connections(
-        world_id: Annotated[Optional[str], Query()] = None,
+        world_id: Annotated[str | None, Query()] = None,
     ) -> JSONResponse:
         """List all migration connections, optionally filtered by source world."""
         if world_id:
@@ -70,7 +70,7 @@ def setup_router(
                 detail="Direction must be 'left' or 'right'",
             )
 
-        def is_local(server_id: Optional[str]) -> bool:
+        def is_local(server_id: str | None) -> bool:
             if server_id is None:
                 return True
             if local_server_id is None:
