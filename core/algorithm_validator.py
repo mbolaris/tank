@@ -28,7 +28,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class ValidationResult:
     improvement_lifespan: float = 0.0
 
     # Detailed results
-    metrics_improved: Dict[str, bool] = field(default_factory=dict)
+    metrics_improved: dict[str, bool] = field(default_factory=dict)
     simulation_error: Optional[str] = None
 
 
@@ -85,7 +85,7 @@ class AlgorithmValidator:
         self,
         algorithm_id: str,
         new_code: str,
-        baseline_metrics: Dict[str, float],
+        baseline_metrics: dict[str, float],
         seed: int = 42,
     ) -> ValidationResult:
         """Validate that improved algorithm code performs better than baseline.
@@ -192,7 +192,7 @@ class AlgorithmValidator:
         algorithm_id: str,
         new_code: str,
         seed: int,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Run a test simulation with the improved algorithm.
 
         This method:
@@ -279,7 +279,7 @@ class AlgorithmValidator:
         self,
         algorithm_id: str,
         seed: int,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Run a headless simulation and return algorithm performance.
 
         Args:
@@ -325,7 +325,7 @@ class AlgorithmValidator:
             "total_deaths": algo_metrics.get("total_deaths", 0),
         }
 
-    def validate_syntax(self, new_code: str) -> Tuple[bool, str]:
+    def validate_syntax(self, new_code: str) -> tuple[bool, str]:
         """Validate that the new code has valid Python syntax.
 
         Args:
@@ -344,7 +344,7 @@ class AlgorithmValidator:
 def quick_validate(
     algorithm_id: str,
     new_code: str,
-    baseline_metrics: Dict[str, float],
+    baseline_metrics: dict[str, float],
     test_frames: int = 5000,
     seed: int = 42,
 ) -> ValidationResult:

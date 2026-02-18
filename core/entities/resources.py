@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Optional
 
 from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
 from core.energy.energy_utils import apply_energy_delta
-from core.entities.base import Agent, EntityUpdateResult
+from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
+from core.energy.energy_utils import apply_energy_delta
+from core.entities.base import Agent, Entity, MobileEntity, EntityUpdateResult
 from core.entities.fish import Fish
 from core.math_utils import Vector2
 
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
     from core.world import World
 
 
-class Food(Agent):
+class Food(MobileEntity):
     """A food entity with variable nutrients (pure logic, no rendering).
 
     Attributes:

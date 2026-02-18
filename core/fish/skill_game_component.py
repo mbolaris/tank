@@ -9,7 +9,7 @@ Selection happens naturally through energy gains/losses from games.
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Deque, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from random import Random
@@ -48,8 +48,8 @@ class FishSkillGameStats:
     suboptimal_plays: int = 0
 
     # Track recent results for observing learning trends
-    _recent_results: Deque[int] = field(default_factory=lambda: deque(maxlen=20), repr=False)
-    _recent_optimal: Deque[int] = field(default_factory=lambda: deque(maxlen=20), repr=False)
+    _recent_results: deque[int] = field(default_factory=lambda: deque(maxlen=20), repr=False)
+    _recent_optimal: deque[int] = field(default_factory=lambda: deque(maxlen=20), repr=False)
 
     def get_net_energy(self) -> float:
         """Calculate net energy from skill games."""
@@ -129,7 +129,7 @@ class FishSkillGameStats:
             self.suboptimal_plays += 1
             self._recent_optimal.append(0)
 
-    def get_stats_dict(self) -> Dict[str, Any]:
+    def get_stats_dict(self) -> dict[str, Any]:
         """Get statistics as dictionary for serialization."""
         return {
             "game_type": self.game_type.value,
@@ -164,9 +164,9 @@ class SkillGameComponent:
     def __init__(self) -> None:
         """Initialize the skill game component."""
         # Strategies for each game type
-        self._strategies: Dict[SkillGameType, SkillStrategy] = {}
+        self._strategies: dict[SkillGameType, SkillStrategy] = {}
         # Stats for each game type
-        self._stats: Dict[SkillGameType, FishSkillGameStats] = {}
+        self._stats: dict[SkillGameType, FishSkillGameStats] = {}
 
     def get_strategy(self, game_type: SkillGameType) -> Optional[SkillStrategy]:
         """Get the fish's strategy for a game type.
@@ -221,7 +221,7 @@ class SkillGameComponent:
         if strategy is not None:
             strategy.learn_from_result(result)
 
-    def get_strategy_parameters(self, game_type: SkillGameType) -> Dict[str, float]:
+    def get_strategy_parameters(self, game_type: SkillGameType) -> dict[str, float]:
         """Get strategy parameters for inheritance.
 
         Args:
@@ -235,7 +235,7 @@ class SkillGameComponent:
             return strategy.get_parameters()
         return {}
 
-    def set_strategy_parameters(self, game_type: SkillGameType, params: Dict[str, float]) -> None:
+    def set_strategy_parameters(self, game_type: SkillGameType, params: dict[str, float]) -> None:
         """Set strategy parameters (e.g., from parent).
 
         Args:
@@ -257,7 +257,7 @@ class SkillGameComponent:
         if strategy is not None:
             strategy.mutate(mutation_rate)
 
-    def get_all_stats_dict(self) -> Dict[str, Any]:
+    def get_all_stats_dict(self) -> dict[str, Any]:
         """Get all game stats as dictionary."""
         return {game_type.value: stats.get_stats_dict() for game_type, stats in self._stats.items()}
 

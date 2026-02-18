@@ -5,7 +5,7 @@ entity collection mid-phase. The engine decides when to apply mutations.
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -17,15 +17,15 @@ class EntityMutation:
 
     entity: "Agent"
     reason: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class EntityMutationQueue:
     """Collects entity spawn/removal requests for deferred application."""
 
     def __init__(self) -> None:
-        self._pending_spawns: List[EntityMutation] = []
-        self._pending_removals: List[EntityMutation] = []
+        self._pending_spawns: list[EntityMutation] = []
+        self._pending_removals: list[EntityMutation] = []
         self._spawn_ids: set[int] = set()
         self._removal_ids: set[int] = set()
 
@@ -34,7 +34,7 @@ class EntityMutationQueue:
         entity: "Agent",
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Queue an entity spawn request.
 
@@ -54,7 +54,7 @@ class EntityMutationQueue:
         entity: "Agent",
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Queue an entity removal request.
 
@@ -80,14 +80,14 @@ class EntityMutationQueue:
             mutation for mutation in self._pending_spawns if id(mutation.entity) != entity_id
         ]
 
-    def drain_spawns(self) -> List[EntityMutation]:
+    def drain_spawns(self) -> list[EntityMutation]:
         """Return and clear pending spawns."""
         spawns = self._pending_spawns
         self._pending_spawns = []
         self._spawn_ids.clear()
         return spawns
 
-    def drain_removals(self) -> List[EntityMutation]:
+    def drain_removals(self) -> list[EntityMutation]:
         """Return and clear pending removals."""
         removals = self._pending_removals
         self._pending_removals = []

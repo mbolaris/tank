@@ -2,7 +2,7 @@ import logging
 import shutil
 import warnings
 from pathlib import Path
-from typing import List, TypedDict
+from typing import TypedDict
 
 # Suppress DeprecationWarnings from simplejson/json interaction if any
 warnings.simplefilter("ignore", DeprecationWarning)
@@ -30,7 +30,7 @@ def analyze_tanks():
         logger.error(f"DATA_DIR {DATA_DIR} does not exist!")
         return
 
-    tanks: List[_TankInfo] = []
+    tanks: list[_TankInfo] = []
 
     logger.info("Analyzing tanks in data/tanks/...")
 

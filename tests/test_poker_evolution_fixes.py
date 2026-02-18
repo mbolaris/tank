@@ -7,7 +7,6 @@ These tests verify that:
 """
 
 import random
-from typing import List
 
 import pytest
 
@@ -255,7 +254,7 @@ class TestEvolutionSimulation:
         rng = random.Random(42)  # rng for initial pop and mutation
         # Note: get_random_poker_strategy might need rng param if it supports it,
         # checking signature... likely yes given recent changes
-        population: List[PokerStrategyAlgorithm] = [
+        population: list[PokerStrategyAlgorithm] = [
             get_random_poker_strategy(rng=rng) for _ in range(population_size)
         ]
 

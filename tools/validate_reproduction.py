@@ -7,11 +7,11 @@ Usage:
 import argparse
 import json
 import sys
-from typing import Any, Dict
+from typing import Any
 
 
 def validate_reproduction(
-    new_result: Dict[str, Any], champion_record: Dict[str, Any], tolerance: float = 1e-9
+    new_result: dict[str, Any], champion_record: dict[str, Any], tolerance: float = 1e-9
 ) -> bool:
     """Check if new result exactly reproduces champion."""
 

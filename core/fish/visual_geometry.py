@@ -18,7 +18,7 @@ geometry calculations pure functions that don't depend on entity state.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -80,7 +80,7 @@ def calculate_visual_bounds(
     base_size: float,
     size_multiplier: float,
     traits: Optional[FishTraits] = None,
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """Calculate visual bounds offsets for a fish.
 
     Accounts for lifecycle scaling and parametric template geometry so the
@@ -127,7 +127,7 @@ def calculate_visual_bounds(
 
 def _get_template_geometry(
     traits: FishTraits,
-) -> Tuple[float, float, Tuple[float, float, float, float]]:
+) -> tuple[float, float, tuple[float, float, float, float]]:
     """Get geometry parameters for a specific fish template.
 
     Args:

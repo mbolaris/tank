@@ -10,18 +10,18 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Deque, Dict, List, Optional
+from typing import Optional
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
 # History storage
 HISTORY_FILE = Path("data/transfers.log")
-_transfer_history: Deque["TransferRecord"] = deque(maxlen=100)  # Keep last 100 in memory
+_transfer_history: deque["TransferRecord"] = deque(maxlen=100)  # Keep last 100 in memory
 
 # Migration counters for summary stats (reset periodically, per tank)
-_migration_in_counts: Dict[str, int] = {}
-_migration_out_counts: Dict[str, int] = {}
+_migration_in_counts: dict[str, int] = {}
+_migration_out_counts: dict[str, int] = {}
 
 
 @dataclass
@@ -135,7 +135,7 @@ def get_transfer_history(
     limit: int = 50,
     world_id: Optional[str] = None,
     success_only: bool = False,
-) -> List[Dict]:
+) -> list[dict]:
     """Get transfer history records.
 
     Args:
@@ -168,7 +168,7 @@ def get_transfer_history(
     return [asdict(r) for r in records]
 
 
-def get_transfer_by_id(transfer_id: str) -> Optional[Dict]:
+def get_transfer_by_id(transfer_id: str) -> Optional[dict]:
     """Get a specific transfer by ID.
 
     Args:
@@ -183,7 +183,7 @@ def get_transfer_by_id(transfer_id: str) -> Optional[Dict]:
     return None
 
 
-def get_world_transfer_stats(world_id: str) -> Dict[str, int]:
+def get_world_transfer_stats(world_id: str) -> dict[str, int]:
     """Get transfer statistics for a world.
 
     Args:

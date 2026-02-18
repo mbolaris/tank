@@ -5,7 +5,8 @@ supporting both raw lists (for testing) and engine-aware management
 that keeps spatial grids and caches in sync.
 """
 
-from typing import Any, Iterator, List
+from typing import Any
+from collections.abc import Iterator
 
 
 class AgentsWrapper:
@@ -34,7 +35,7 @@ class AgentsWrapper:
             entities_or_engine, "entities_list"
         ):
             self._engine = entities_or_engine
-            self._entities: List[Any] = entities_or_engine.entities_list
+            self._entities: list[Any] = entities_or_engine.entities_list
         else:
             self._engine = None
             self._entities = entities_or_engine

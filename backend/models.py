@@ -1,6 +1,6 @@
 """Data models for WebSocket communication."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -24,7 +24,7 @@ class EntityData(BaseModel):
     generation: Optional[int] = None
     age: Optional[int] = None
     species: Optional[str] = None
-    genome_data: Optional[Dict[str, Any]] = None
+    genome_data: Optional[dict[str, Any]] = None
 
     # Food-specific fields
     food_type: Optional[str] = None
@@ -33,7 +33,7 @@ class EntityData(BaseModel):
     plant_type: Optional[int] = None
 
     # Fractal plant-specific fields
-    genome: Optional[Dict[str, Any]] = None  # L-system genome for rendering
+    genome: Optional[dict[str, Any]] = None  # L-system genome for rendering
     max_energy: Optional[float] = None
     size_multiplier: Optional[float] = None
     iterations: Optional[int] = None
@@ -144,7 +144,7 @@ class PokerPerformanceSnapshot(BaseModel):
     """Net energy snapshot for all players after a hand."""
 
     hand: int
-    players: List[Dict[str, Any]]
+    players: list[dict[str, Any]]
 
 
 class AutoEvaluateStats(BaseModel):
@@ -152,11 +152,11 @@ class AutoEvaluateStats(BaseModel):
 
     hands_played: int
     hands_remaining: int
-    players: List[AutoEvaluatePlayerStats]
+    players: list[AutoEvaluatePlayerStats]
     game_over: bool
     winner: Optional[str]
     reason: str
-    performance_history: List[PokerPerformanceSnapshot] = []
+    performance_history: list[PokerPerformanceSnapshot] = []
 
 
 class StatsData(BaseModel):
@@ -172,18 +172,18 @@ class StatsData(BaseModel):
     deaths: int
     capacity: str
     time: str
-    death_causes: Dict[str, int]
+    death_causes: dict[str, int]
     fish_count: int
     food_count: int
     plant_count: int
     total_energy: float
     energy_from_poker_plant: float = 0.0
-    energy_burn_recent: Dict[str, float] = {}
+    energy_burn_recent: dict[str, float] = {}
     poker_stats: PokerStatsData
     min_fish_energy: float = 0.0
     max_fish_energy: float = 0.0
     poker_score: Optional[float] = None
-    poker_score_history: List[float] = []
+    poker_score_history: list[float] = []
 
 
 class SimulationUpdate(BaseModel):
@@ -192,10 +192,10 @@ class SimulationUpdate(BaseModel):
     type: str = "update"
     frame: int
     elapsed_time: int
-    entities: List[EntityData]
+    entities: list[EntityData]
     stats: StatsData
-    poker_events: List[PokerEventData] = []
-    poker_leaderboard: List[PokerLeaderboardEntry] = []
+    poker_events: list[PokerEventData] = []
+    poker_leaderboard: list[PokerLeaderboardEntry] = []
     auto_evaluation: Optional[AutoEvaluateStats] = None
 
 
@@ -203,7 +203,7 @@ class Command(BaseModel):
     """Command from client to server."""
 
     command: str  # 'add_food', 'spawn_fish', 'pause', 'resume', 'reset'
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[dict[str, Any]] = None
 
 
 class ServerInfo(BaseModel):
@@ -236,13 +236,13 @@ class ServerWithWorlds(BaseModel):
     """Server information with list of worlds running on it."""
 
     server: ServerInfo
-    worlds: List[Dict[str, Any]]  # List of world status dictionaries
+    worlds: list[dict[str, Any]]  # List of world status dictionaries
 
 
 class RemoteTransferRequest(BaseModel):
     """Request body for cross-server entity transfer."""
 
     destination_world_id: str
-    entity_data: Dict[str, Any]
+    entity_data: dict[str, Any]
     source_server_id: str
     source_world_id: str

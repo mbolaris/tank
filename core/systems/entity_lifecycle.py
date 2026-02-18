@@ -31,7 +31,7 @@ between phases to prevent mid-iteration mutations.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -260,7 +260,7 @@ class EntityLifecycleSystem(BaseSystem):
         for fish in to_remove:
             self._engine.request_remove(fish, reason="death_effect_complete")
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return lifecycle statistics for debugging.
 
         Returns:

@@ -5,7 +5,7 @@ import argparse
 import logging
 import os
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -55,9 +55,9 @@ def run_simulation(max_frames: int = 100000, seed: int = 8888):
 def gather_candidates(fish_list, min_games: int = 100):
     """Pick candidate fish using multiple metrics."""
     tracker = SolutionTracker(min_games_threshold=min_games)
-    candidate_map: Dict[int, Dict] = {}
+    candidate_map: dict[int, dict] = {}
 
-    metric_specs: List[Tuple[str, int]] = [
+    metric_specs: list[tuple[str, int]] = [
         ("elo", 4),
         ("net_energy", 2),
         ("roi", 2),
@@ -184,7 +184,7 @@ def main():
     logger.info("RUNNING GPT-5.2 EXTENDED POKER SIMULATION")
     logger.info("=" * 60)
 
-    best_overall: Optional[Tuple[SolutionRecord, SolutionBenchmark, str, int]] = None
+    best_overall: Optional[tuple[SolutionRecord, SolutionBenchmark, str, int]] = None
 
     for seed in seeds:
         logger.info("=== Seed %s | Frames %s ===", seed, max_frames)

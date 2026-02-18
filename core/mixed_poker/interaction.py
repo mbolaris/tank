@@ -11,7 +11,8 @@ Core betting logic and learning logic have been moved to separate modules:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Sequence
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
@@ -114,7 +115,7 @@ class MixedPokerInteraction:
         self.players = list(players)
         self.rng = rng
         self.num_players = len(self.players)
-        self.player_hands: List[Optional[PokerHand]] = [None] * self.num_players
+        self.player_hands: list[Optional[PokerHand]] = [None] * self.num_players
         self.result: Optional[MixedPokerResult] = None
 
         # Categorize players
@@ -125,7 +126,7 @@ class MixedPokerInteraction:
 
         # Snapshot player energies at the start of the interaction so callers can
         # attribute the net deltas correctly (fish-vs-plant transfer vs house cut).
-        self._initial_player_energies: List[float] = [
+        self._initial_player_energies: list[float] = [
             self._get_player_energy(p) for p in self.players
         ]
 
@@ -286,7 +287,7 @@ class MixedPokerInteraction:
         #
         # To prevent irreversible death state transitions during betting, we queue
         # all per-action energy deltas and settle them once at the end of the hand.
-        pending_energy_deltas: List[float] = [0.0] * self.num_players
+        pending_energy_deltas: list[float] = [0.0] * self.num_players
         player_idx_by_object_id = {id(p): i for i, p in enumerate(self.players)}
 
         def queue_energy_change(player: Player, amount: float) -> None:
@@ -324,7 +325,7 @@ class MixedPokerInteraction:
         )
 
         # Create player contexts
-        contexts: List[MultiplayerPlayerContext] = []
+        contexts: list[MultiplayerPlayerContext] = []
         for i, player in enumerate(self.players):
             ctx = MultiplayerPlayerContext(
                 player=player,
@@ -632,8 +633,8 @@ class MixedPokerInteraction:
     def _update_poker_stats(
         self,
         winner_idx: int,
-        tied_players: List[int],
-        player_bets: List[float],
+        tied_players: list[int],
+        player_bets: list[float],
         button_position: int = 0,
     ) -> None:
         """Update poker statistics for fish players."""

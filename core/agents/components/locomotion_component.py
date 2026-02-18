@@ -6,7 +6,7 @@ and energy costs associated with locomotion.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from core.math_utils import Vector2
 

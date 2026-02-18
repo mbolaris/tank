@@ -12,7 +12,8 @@ Design goals:
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, TypeVar
+from typing import TypeVar
+from collections.abc import Callable
 
 T = TypeVar("T")
 

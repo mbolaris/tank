@@ -9,13 +9,13 @@ This module calculates statistics about simulation entities:
 
 import time
 from statistics import median
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.simulation import SimulationEngine
 
 
-def get_simulation_state(engine: "SimulationEngine") -> Dict[str, Any]:
+def get_simulation_state(engine: "SimulationEngine") -> dict[str, Any]:
     """Get simulation state statistics.
 
     Returns:
@@ -32,7 +32,7 @@ def get_simulation_state(engine: "SimulationEngine") -> Dict[str, Any]:
     }
 
 
-def get_entity_stats(engine: "SimulationEngine") -> Dict[str, Any]:
+def get_entity_stats(engine: "SimulationEngine") -> dict[str, Any]:
     """Get entity count and energy statistics.
 
     Returns:
@@ -65,7 +65,7 @@ def get_entity_stats(engine: "SimulationEngine") -> Dict[str, Any]:
     }
 
 
-def get_fish_health_stats(engine: "SimulationEngine") -> Dict[str, Any]:
+def get_fish_health_stats(engine: "SimulationEngine") -> dict[str, Any]:
     """Get fish health and energy distribution statistics.
 
     Returns:

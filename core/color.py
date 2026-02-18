@@ -9,10 +9,8 @@ Design Note:
     They can be tested in isolation and used by any module.
 """
 
-from typing import Tuple
 
-
-def hue_to_rgb(hue: float, saturation: float = 0.3) -> Tuple[int, int, int]:
+def hue_to_rgb(hue: float, saturation: float = 0.3) -> tuple[int, int, int]:
     """Convert a hue value (0.0-1.0) to an RGB color tuple.
 
     Uses a simplified HSL-to-RGB conversion with configurable saturation.

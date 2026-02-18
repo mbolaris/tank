@@ -10,9 +10,10 @@ class TestSimulationRunnerCommands:
     def runner(self):
         """Create a SimulationRunner with mocked world via registry."""
         # Patch create_world to return mock world and snapshot builder
-        with patch("backend.simulation_runner.create_world") as mock_create_world, patch(
-            "backend.simulation_runner.get_world_metadata"
-        ) as mock_get_metadata:
+        with (
+            patch("backend.simulation_runner.create_world") as mock_create_world,
+            patch("backend.simulation_runner.get_world_metadata") as mock_get_metadata,
+        ):
             # Configure mock world
             mock_world = MagicMock()
             mock_snapshot_builder = MagicMock()

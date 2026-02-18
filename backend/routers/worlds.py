@@ -5,7 +5,7 @@ worlds of all types (tank, petri) through a unified API.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
@@ -22,7 +22,7 @@ class CreateWorldRequest(BaseModel):
 
     world_type: str
     name: str
-    config: Optional[Dict[str, Any]] = None
+    config: Optional[dict[str, Any]] = None
     persistent: bool = True
     seed: Optional[int] = None
     description: str = ""
@@ -60,7 +60,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
     """
     router = APIRouter(prefix="/api/worlds", tags=["worlds"])
 
-    @router.get("/types", response_model=List[WorldTypeResponse])
+    @router.get("/types", response_model=list[WorldTypeResponse])
     async def list_world_types():
         """List all available world types with their capabilities.
 
@@ -231,7 +231,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")
 
     @router.post("/{world_id}/step")
-    async def step_world(world_id: str, actions: Optional[Dict[str, Any]] = None):
+    async def step_world(world_id: str, actions: Optional[dict[str, Any]] = None):
         """Step a world by one frame.
 
         Args:

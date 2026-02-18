@@ -5,7 +5,7 @@ periodically during simulation to track poker strategy evolution over time.
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
@@ -25,12 +25,12 @@ class PeriodicBenchmarkEvaluator:
     eval_interval_frames: int = 10_000
 
     last_eval_frame: int = 0
-    history: List[Dict[str, Any]] = field(default_factory=list)
+    history: list[dict[str, Any]] = field(default_factory=list)
 
     def maybe_run(
         self,
         frame: int,
-        fish_population: List["Fish"],
+        fish_population: list["Fish"],
     ) -> None:
         """Run evaluation if enough frames have passed.
 
@@ -86,7 +86,7 @@ class PeriodicBenchmarkEvaluator:
 
         self.last_eval_frame = frame
 
-    def get_history(self) -> List[Dict[str, Any]]:
+    def get_history(self) -> list[dict[str, Any]]:
         """Get evaluation history.
 
         Returns:
@@ -94,7 +94,7 @@ class PeriodicBenchmarkEvaluator:
         """
         return self.history
 
-    def get_latest_results(self, n: int = 10) -> List[Dict[str, Any]]:
+    def get_latest_results(self, n: int = 10) -> list[dict[str, Any]]:
         """Get most recent evaluation results.
 
         Args:

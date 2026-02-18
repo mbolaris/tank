@@ -11,7 +11,7 @@ forcing fish to evolve strategies to beat them. Successful plants
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
 class PlantStrategyType(Enum):
@@ -47,21 +47,21 @@ class PlantVisualConfig:
 
     # L-system structure
     axiom: str
-    angle_range: Tuple[float, float]  # (min, max) angle in degrees
-    length_ratio_range: Tuple[float, float]
-    branch_probability_range: Tuple[float, float]
-    curve_factor_range: Tuple[float, float]
+    angle_range: tuple[float, float]  # (min, max) angle in degrees
+    length_ratio_range: tuple[float, float]
+    branch_probability_range: tuple[float, float]
+    curve_factor_range: tuple[float, float]
 
     # Color palette
-    color_hue_range: Tuple[float, float]  # HSL hue (0-1)
-    color_saturation_range: Tuple[float, float]
+    color_hue_range: tuple[float, float]  # HSL hue (0-1)
+    color_saturation_range: tuple[float, float]
 
     # Physical traits
-    stem_thickness_range: Tuple[float, float]
-    leaf_density_range: Tuple[float, float]
+    stem_thickness_range: tuple[float, float]
+    leaf_density_range: tuple[float, float]
 
     # Production rules template (optional override)
-    production_rules: Optional[List[Tuple[str, str, float]]] = None
+    production_rules: Optional[list[tuple[str, str, float]]] = None
 
     # Display name for UI
     display_name: str = ""
@@ -78,7 +78,7 @@ class PlantVisualConfig:
 
 # Visual configurations for each strategy type
 # IMPORTANT: Each strategy has a VERY DISTINCT color to be easily identifiable
-PLANT_STRATEGY_VISUALS: Dict[PlantStrategyType, PlantVisualConfig] = {
+PLANT_STRATEGY_VISUALS: dict[PlantStrategyType, PlantVisualConfig] = {
     PlantStrategyType.ALWAYS_FOLD: PlantVisualConfig(
         axiom="F",
         angle_range=(45.0, 60.0),  # Very droopy
@@ -391,7 +391,7 @@ def get_random_strategy_type(rng: Optional[random.Random] = None) -> PlantStrate
     return _rng.choice(list(PlantStrategyType))
 
 
-def get_all_strategy_types() -> List[PlantStrategyType]:
+def get_all_strategy_types() -> list[PlantStrategyType]:
     """Get all available strategy types."""
     return list(PlantStrategyType)
 

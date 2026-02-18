@@ -7,7 +7,7 @@ server restarts.
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldInstance, WorldManager
@@ -32,7 +32,7 @@ class AutoSaveService:
             world_manager: The world manager to monitor
         """
         self._world_manager = world_manager
-        self._tasks: Dict[str, asyncio.Task] = {}
+        self._tasks: dict[str, asyncio.Task] = {}
         self._running = False
 
     async def start(self) -> None:

@@ -1,6 +1,5 @@
 import random
 from enum import IntEnum
-from typing import Dict
 
 # =============================================================================
 # Sub-behavior Enums - Each category has discrete options
@@ -110,6 +109,6 @@ SUB_BEHAVIOR_PARAMS = {
 }
 
 
-def _random_params(rng: random.Random) -> Dict[str, float]:
+def _random_params(rng: random.Random) -> dict[str, float]:
     """Generate random parameters within bounds."""
     return {key: rng.uniform(low, high) for key, (low, high) in SUB_BEHAVIOR_PARAMS.items()}

@@ -3,7 +3,7 @@
 
 import sys
 from pathlib import Path
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -46,7 +46,7 @@ def _run_live_food_persistence():
     # Simulate save logic
     print("\n3. Simulating save logic...")
     entities = [regular_food, live_food]
-    saved_data: List[_SavedFood] = []
+    saved_data: list[_SavedFood] = []
 
     for entity in entities:
         if isinstance(entity, Food):
@@ -62,7 +62,7 @@ def _run_live_food_persistence():
 
     # Simulate restore logic
     print("\n4. Simulating restore logic...")
-    restored_entities: List[Food] = []
+    restored_entities: list[Food] = []
 
     for entity_data in saved_data:
         food_type = entity_data["food_type"]

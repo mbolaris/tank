@@ -16,7 +16,7 @@ The Plant class now delegates to specialized components for better modularity:
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from core.entities.base import Agent, EntityUpdateResult
+from core.entities.base import Agent, Entity, EntityUpdateResult
 from core.entities.resources import Food
 from core.entity_ids import PlantId
 from core.genetics import PlantGenome
@@ -42,7 +42,7 @@ from core.config.plants import (
 logger = logging.getLogger(__name__)
 
 
-class Plant(Agent):
+class Plant(Entity):
     """A plant entity with evolving L-system genetics.
 
     Plants:
@@ -100,7 +100,6 @@ class Plant(Agent):
             environment,
             root_spot.x,
             root_spot.y,
-            0,  # Plants don't move
         )
 
         # Assign unique ID (no fallback - must be provided by PlantManager)

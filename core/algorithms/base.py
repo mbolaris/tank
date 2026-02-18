@@ -18,7 +18,7 @@ Architecture Notes:
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Type, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
@@ -415,7 +415,7 @@ class BehaviorHelpersMixin:
     """
 
     def _find_nearest(
-        self, fish: "Fish", agent_type: Type, max_distance: Optional[float] = None
+        self, fish: "Fish", agent_type: type, max_distance: Optional[float] = None
     ) -> Optional[Any]:
         """Find nearest agent of given type within optional distance limit.
 
@@ -493,7 +493,7 @@ class BehaviorHelpersMixin:
 
     def _get_predator_threat(
         self, fish: "Fish", max_distance: float = float("inf")
-    ) -> Tuple[Optional[Any], float, Vector2]:
+    ) -> tuple[Optional[Any], float, Vector2]:
         """Get information about the nearest predator threat.
 
         This helper method consolidates the common pattern of finding the nearest
@@ -579,7 +579,7 @@ class BehaviorHelpersMixin:
 
         return nearest
 
-    def _should_flee_predator(self, fish: "Fish") -> Tuple[bool, float, float]:
+    def _should_flee_predator(self, fish: "Fish") -> tuple[bool, float, float]:
         """Check if fish should flee from predators based on energy state.
 
         Uses energy-aware flee thresholds:
@@ -636,7 +636,7 @@ class BehaviorHelpersMixin:
 
         return False, 0.0, 0.0
 
-    def _get_energy_state(self, fish: "Fish") -> Tuple[bool, bool, float]:
+    def _get_energy_state(self, fish: "Fish") -> tuple[bool, bool, float]:
         """Get fish energy state information.
 
         Consolidates common energy checks into a single call.
@@ -673,8 +673,8 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
     """
 
     algorithm_id: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
-    parameter_bounds: Dict[str, Tuple[float, float]] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
+    parameter_bounds: dict[str, tuple[float, float]] = field(default_factory=dict)
     rng: random.Random = field(default=cast(random.Random, None), repr=False)
 
     def __post_init__(self) -> None:
@@ -688,7 +688,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
         self.rng = require_rng_param(self.rng, f"BehaviorAlgorithm '{self.algorithm_id}'")
 
     @abstractmethod
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         """Execute the algorithm and return desired velocity.
 
         Args:
@@ -768,7 +768,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
         """
         raise NotImplementedError("Subclasses must implement random_instance")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize algorithm for migration/storage.
 
         Returns dictionary containing class name and parameters needed to

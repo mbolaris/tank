@@ -242,7 +242,6 @@ class TestPlant:
 
         genome = PlantGenome.create_random(rng=env.rng)
         plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
-        assert plant.speed == 0
 
     def test_plant_does_not_move(self, simulation_env):
         """Test that plant stays in place."""
@@ -275,4 +274,3 @@ class TestCastle:
         """Test that castle initializes correctly."""
         env, _ = simulation_env
         castle = Castle(env)
-        assert castle.speed == 0

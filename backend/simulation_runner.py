@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldManager
@@ -46,7 +46,7 @@ class SimulationRunner(CommandHandlerMixin):
         world_name: Optional[str] = None,
         world_type: str = "tank",
         world_manager: Optional["WorldManager"] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
     ):
         """Initialize the simulation runner.
         world_type: Type of world to create (default "tank")
@@ -95,7 +95,7 @@ class SimulationRunner(CommandHandlerMixin):
         self.fps_frame_count = 0
         self.current_actual_fps = 0.0
 
-        self._cached_gene_distributions: Dict[str, Any] = {}
+        self._cached_gene_distributions: dict[str, Any] = {}
         self._last_distribution_time = 0.0
         raw_distribution_interval = os.getenv("BROADCAST_DISTRIBUTIONS_INTERVAL_SECONDS", "10")
         try:
@@ -348,7 +348,7 @@ class SimulationRunner(CommandHandlerMixin):
                 "Cannot update migration context: world.engine or world.engine.environment not found"
             )
 
-    def _create_error_response(self, error_msg: str) -> Dict[str, Any]:
+    def _create_error_response(self, error_msg: str) -> dict[str, Any]:
         """Create a standardized error response.
 
         Args:
@@ -400,7 +400,7 @@ class SimulationRunner(CommandHandlerMixin):
         if hasattr(self.world, "paused"):
             self.world.paused = value
 
-    def get_entities_snapshot(self) -> List[EntitySnapshot]:
+    def get_entities_snapshot(self) -> list[EntitySnapshot]:
         """Get entity snapshots for rendering (public API for RunnerProtocol).
 
         Returns:
@@ -408,7 +408,7 @@ class SimulationRunner(CommandHandlerMixin):
         """
         return self._collect_entities()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get current simulation statistics (public API for RunnerProtocol).
 
         Returns:
@@ -433,7 +433,7 @@ class SimulationRunner(CommandHandlerMixin):
             "poker_elo_history": stats_payload.poker_elo_history,
         }
 
-    def get_world_info(self) -> Dict[str, str]:
+    def get_world_info(self) -> dict[str, str]:
         """Get world metadata for frontend (public API for RunnerProtocol).
 
         Returns:
@@ -447,7 +447,7 @@ class SimulationRunner(CommandHandlerMixin):
 
     def _create_fish_player_data(
         self, fish: "Fish", include_aggression: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create fish player data dictionary.
 
         Args:
@@ -485,7 +485,7 @@ class SimulationRunner(CommandHandlerMixin):
         if self.thread:
             self.thread.join(timeout=2.0)
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> None:
+    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> None:
         """Advance the simulation by one step.
 
         Note: This explicitly steps even if the world is paused,
@@ -514,7 +514,7 @@ class SimulationRunner(CommandHandlerMixin):
     def reset(
         self,
         seed: Optional[int] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
     ) -> Any:
         """Reset the world to initial state."""
         with self.lock:
@@ -777,7 +777,7 @@ class SimulationRunner(CommandHandlerMixin):
     # This logic is now likely in StatePublisher, or not needed.
     # Note: StatePublisher has its own _build_full_state.
 
-    def _collect_entities(self) -> List[EntitySnapshot]:
+    def _collect_entities(self) -> list[EntitySnapshot]:
         # Optimization: Use fast path if available (e.g. from C++ backend or optimized step result)
         get_step_result = getattr(self.world, "get_last_step_result", None)
         if callable(get_step_result):
@@ -810,7 +810,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         return snapshots
 
-    def _collect_poker_stats_payload(self, stats: Dict[str, Any]) -> PokerStatsPayload:
+    def _collect_poker_stats_payload(self, stats: dict[str, Any]) -> PokerStatsPayload:
         """Delegate to state_builders module."""
         return collect_poker_stats_payload(stats)
 
@@ -840,7 +840,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Get Poker Score from evolution benchmark tracker
         poker_score = None
-        poker_score_history: List[float] = []
+        poker_score_history: list[float] = []
         if self.evolution_benchmark_tracker is not None:
             latest = self.evolution_benchmark_tracker.get_latest_snapshot()
             if latest is not None and latest.confidence_vs_strong is not None:
@@ -854,7 +854,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Get Poker Elo from evolution benchmark tracker
         poker_elo = None
-        poker_elo_history: List[float] = []
+        poker_elo_history: list[float] = []
         if self.evolution_benchmark_tracker is not None:
             latest = self.evolution_benchmark_tracker.get_latest_snapshot()
             if latest is not None and latest.pop_mean_elo is not None:
@@ -888,17 +888,17 @@ class SimulationRunner(CommandHandlerMixin):
     # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
     # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)
 
-    def get_full_evaluation_history(self) -> List[Dict[str, Any]]:
+    def get_full_evaluation_history(self) -> list[dict[str, Any]]:
         """Return the full auto-evaluation history."""
         # Delegates to world hooks or manager if available
         tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
         if tracker:
             history = getattr(tracker, "history", None)
             if isinstance(history, list):
-                return cast(List[Dict[str, Any]], history)
+                return cast(list[dict[str, Any]], history)
         return []
 
-    def get_evolution_benchmark_data(self) -> Dict[str, Any]:
+    def get_evolution_benchmark_data(self) -> dict[str, Any]:
         """Return the evolution benchmark tracking data.
 
         Returns:
@@ -909,7 +909,7 @@ class SimulationRunner(CommandHandlerMixin):
         if tracker is not None:
             data = tracker.get_api_data()
             if isinstance(data, dict):
-                return cast(Dict[str, Any], data)
+                return cast(dict[str, Any], data)
             return {}
 
         status = "disabled"
@@ -934,7 +934,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         return self._entity_snapshot_builder.to_snapshot(entity)
 
-    def handle_command(self, command: str, data: Optional[Dict[str, Any]] = None):
+    def handle_command(self, command: str, data: Optional[dict[str, Any]] = None):
         """Handle a command from the client.
 
         Commands can be:
@@ -1013,7 +1013,7 @@ class SimulationRunner(CommandHandlerMixin):
             logger.warning(f"Unknown command received: {command}")
             return self._create_error_response(f"Unknown command: {command}")
 
-    async def handle_command_async(self, command: str, data: Optional[Dict[str, Any]] = None):
+    async def handle_command_async(self, command: str, data: Optional[dict[str, Any]] = None):
         """Async wrapper to route commands off the event loop thread."""
 
         loop = asyncio.get_running_loop()

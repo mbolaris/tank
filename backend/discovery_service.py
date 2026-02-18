@@ -13,7 +13,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from backend.models import ServerInfo
 
@@ -47,8 +47,8 @@ class DiscoveryService:
         Args:
             data_dir: Directory for persistent storage
         """
-        self._servers: Dict[str, ServerInfo] = {}
-        self._last_heartbeat: Dict[str, float] = {}
+        self._servers: dict[str, ServerInfo] = {}
+        self._last_heartbeat: dict[str, float] = {}
         self._data_dir = data_dir
         self._registry_file = data_dir / "server_registry.json"
         self._lock = asyncio.Lock()
@@ -200,7 +200,7 @@ class DiscoveryService:
         self,
         status_filter: Optional[str] = None,
         include_local: bool = True,
-    ) -> List[ServerInfo]:
+    ) -> list[ServerInfo]:
         """List all registered servers.
 
         Args:
@@ -222,7 +222,7 @@ class DiscoveryService:
 
             return servers
 
-    async def get_online_servers(self) -> List[ServerInfo]:
+    async def get_online_servers(self) -> list[ServerInfo]:
         """Get all online servers.
 
         Returns:

@@ -14,7 +14,7 @@ Usage:
 import logging
 import os
 import sys
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -316,7 +316,7 @@ def test_both_games_functional():
         energy: float
         fish: int
 
-    results: Dict[SkillGameType, _GameResult] = {}
+    results: dict[SkillGameType, _GameResult] = {}
 
     for game_type in [SkillGameType.ROCK_PAPER_SCISSORS, SkillGameType.NUMBER_GUESSING]:
         world = WorldRegistry.create_world("tank", seed=789, headless=True)

@@ -1,5 +1,5 @@
 import random
-from typing import Any, Dict, Optional, cast
+from typing import Any, Optional, cast
 
 import pytest
 
@@ -14,7 +14,7 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 class DummyStrategy(PokerStrategyAlgorithm):
     def __init__(self) -> None:
         super().__init__(rng=random.Random(0))
-        self.last_kwargs: Dict[str, Any] = {}
+        self.last_kwargs: dict[str, Any] = {}
 
     def decide_action(
         self,

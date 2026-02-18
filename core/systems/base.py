@@ -27,7 +27,7 @@ predictable execution order regardless of registration order.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
 
 # Explicit public API
 __all__ = [
@@ -70,7 +70,7 @@ class SystemResult:
     entities_removed: int = 0
     events_emitted: int = 0
     skipped: bool = False
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
     def skipped_result() -> "SystemResult":
@@ -252,7 +252,7 @@ class BaseSystem(ABC):
         """
         return self._phase
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return debug information about this system's state.
 
         Override in subclasses to expose system-specific state.

@@ -8,7 +8,7 @@ state and decision logic centralized for reuse across simulation entry points.
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction, BettingRound
@@ -32,7 +32,7 @@ class MultiplayerPlayerContext:
     remaining_energy: float
     aggression: float
     strategy: Optional["PokerStrategyAlgorithm"] = None
-    hole_cards: List[Card] = field(default_factory=list)
+    hole_cards: list[Card] = field(default_factory=list)
     current_bet: float = 0.0
     total_bet: float = 0.0
     folded: bool = False
@@ -44,20 +44,20 @@ class MultiplayerGameState:
     """Tracks the state of a multiplayer Texas Hold'em poker game."""
 
     num_players: int
-    players: Dict[int, MultiplayerPlayerContext]
-    community_cards: List[Card] = field(default_factory=list)
+    players: dict[int, MultiplayerPlayerContext]
+    community_cards: list[Card] = field(default_factory=list)
     pot: float = 0.0
     current_round: int = BettingRound.PRE_FLOP
-    betting_history: List[Tuple[int, BettingAction, float]] = field(default_factory=list)
+    betting_history: list[tuple[int, BettingAction, float]] = field(default_factory=list)
     button_position: int = 0
     small_blind: float = 2.5
     big_blind: float = 5.0
     deck: Deck = field(default_factory=Deck)
     min_raise: float = 5.0
     last_raise_amount: float = 5.0
-    player_hands: Dict[int, Optional[PokerHand]] = field(default_factory=dict)
+    player_hands: dict[int, Optional[PokerHand]] = field(default_factory=dict)
 
-    def get_active_players(self) -> List[int]:
+    def get_active_players(self) -> list[int]:
         """Return list of player IDs who haven't folded."""
         return [pid for pid, player in self.players.items() if not player.folded]
 
@@ -104,17 +104,17 @@ class MultiplayerGameState:
 class Deal:
     """Pre-dealt hand data for deterministic replay."""
 
-    hole_cards: Dict[int, List[Card]]
-    community_cards: List[Card]
+    hole_cards: dict[int, list[Card]]
+    community_cards: list[Card]
     button_position: int
 
 
 def simulate_hand(
     num_players: int,
     initial_bet: float,
-    player_energies: List[float],
-    player_aggressions: Optional[List[float]] = None,
-    player_strategies: Optional[List[Optional["PokerStrategyAlgorithm"]]] = None,
+    player_energies: list[float],
+    player_aggressions: Optional[list[float]] = None,
+    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
     button_position: int = 0,
     rng: Optional[random.Random] = None,
 ) -> MultiplayerGameState:
@@ -149,9 +149,9 @@ def simulate_hand(
 def simulate_hand_from_deal(
     deal: Deal,
     initial_bet: float,
-    player_energies: List[float],
-    player_aggressions: Optional[List[float]] = None,
-    player_strategies: Optional[List[Optional["PokerStrategyAlgorithm"]]] = None,
+    player_energies: list[float],
+    player_aggressions: Optional[list[float]] = None,
+    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
     small_blind: Optional[float] = None,
     rng: Optional[random.Random] = None,
 ) -> MultiplayerGameState:
@@ -188,9 +188,9 @@ def simulate_hand_from_deal(
 def _create_multiplayer_game_state(
     num_players: int,
     initial_bet: float,
-    player_energies: List[float],
-    player_aggressions: List[float],
-    player_strategies: List[Optional["PokerStrategyAlgorithm"]],
+    player_energies: list[float],
+    player_aggressions: list[float],
+    player_strategies: list[Optional["PokerStrategyAlgorithm"]],
     button_position: int,
     rng: Optional[random.Random] = None,
 ) -> MultiplayerGameState:
@@ -199,7 +199,7 @@ def _create_multiplayer_game_state(
     big_blind = min(initial_bet, min_energy)
     small_blind = min(initial_bet / 2, big_blind / 2, min_energy)
 
-    players: Dict[int, MultiplayerPlayerContext] = {}
+    players: dict[int, MultiplayerPlayerContext] = {}
     for i in range(num_players):
         players[i] = MultiplayerPlayerContext(
             player_id=i,
@@ -232,9 +232,9 @@ def _create_multiplayer_game_state(
 def _create_multiplayer_game_state_from_deal(
     num_players: int,
     initial_bet: float,
-    player_energies: List[float],
-    player_aggressions: List[float],
-    player_strategies: List[Optional["PokerStrategyAlgorithm"]],
+    player_energies: list[float],
+    player_aggressions: list[float],
+    player_strategies: list[Optional["PokerStrategyAlgorithm"]],
     deal: Deal,
     small_blind_override: Optional[float] = None,
 ) -> MultiplayerGameState:
@@ -246,7 +246,7 @@ def _create_multiplayer_game_state_from_deal(
     else:
         small_blind = min(small_blind_override, big_blind, min_energy)
 
-    players: Dict[int, MultiplayerPlayerContext] = {}
+    players: dict[int, MultiplayerPlayerContext] = {}
     for i in range(num_players):
         players[i] = MultiplayerPlayerContext(
             player_id=i,
@@ -324,7 +324,7 @@ def _deal_hole_cards(game_state: MultiplayerGameState) -> None:
         game_state.players[i].hole_cards = deck.deal(2)
 
 
-def _blind_positions(num_players: int, button_position: int) -> Tuple[int, int]:
+def _blind_positions(num_players: int, button_position: int) -> tuple[int, int]:
     if num_players == 2:
         return button_position, (button_position + 1) % num_players
     return (button_position + 1) % num_players, (button_position + 2) % num_players
@@ -344,7 +344,7 @@ def _play_multiplayer_betting_rounds(
     game_state: MultiplayerGameState, rng: Optional[random.Random] = None
 ) -> None:
     """Play all betting rounds of the game."""
-    hand_cache: Dict[int, PokerHand] = {}
+    hand_cache: dict[int, PokerHand] = {}
 
     for round_num in range(4):
         if game_state.get_winner_by_fold() is not None:
@@ -370,7 +370,7 @@ def _play_multiplayer_betting_rounds(
 
 def _play_single_betting_round(
     game_state: MultiplayerGameState,
-    hand_cache: Dict[int, PokerHand],
+    hand_cache: dict[int, PokerHand],
     round_num: int,
     rng: Optional[random.Random] = None,
 ) -> None:
@@ -457,9 +457,9 @@ def _is_round_complete(
 def _decide_multiplayer_action(
     player_id: int,
     game_state: MultiplayerGameState,
-    hand_cache: Dict[int, PokerHand],
+    hand_cache: dict[int, PokerHand],
     rng: Optional[random.Random] = None,
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide what action a player should take."""
     player = game_state.players[player_id]
 
@@ -592,7 +592,7 @@ def _evaluate_multiplayer_hands(game_state: MultiplayerGameState) -> None:
             game_state.player_hands[player_id] = None
 
 
-def determine_payouts(game_state: MultiplayerGameState) -> Dict[int, float]:
+def determine_payouts(game_state: MultiplayerGameState) -> dict[int, float]:
     """Determine payouts for each player after a hand."""
     winner_by_fold = game_state.get_winner_by_fold()
     if winner_by_fold is not None:
@@ -605,7 +605,7 @@ def determine_payouts(game_state: MultiplayerGameState) -> Dict[int, float]:
         return {}
 
     best_hand: Optional[PokerHand] = None
-    winners: List[int] = []
+    winners: list[int] = []
 
     for player_id in active_players:
         hand = game_state.player_hands.get(player_id)
@@ -635,7 +635,7 @@ def determine_payouts(game_state: MultiplayerGameState) -> Dict[int, float]:
 
 
 def start_hand_from_players(
-    players: Dict[int, MultiplayerPlayerContext],
+    players: dict[int, MultiplayerPlayerContext],
     button_position: int,
     small_blind: float,
     big_blind: float,
@@ -697,9 +697,9 @@ def apply_action(
 def decide_action_for_player(
     game_state: MultiplayerGameState,
     player_id: int,
-    hand_cache: Dict[int, PokerHand],
+    hand_cache: dict[int, PokerHand],
     rng: Optional[random.Random] = None,
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide what action an AI player should take.
 
     Args:

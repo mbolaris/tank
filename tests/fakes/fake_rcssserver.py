@@ -11,7 +11,7 @@ It can be restored if real rcssserver integration is needed later.
 
 import logging
 from collections import deque
-from typing import Deque, List, Optional, Protocol, Tuple
+from typing import Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class SocketInterface(Protocol):
     """Protocol for socket-like objects (needed for type hints)."""
 
-    def send(self, data: str, addr: Tuple[str, int]) -> None: ...
+    def send(self, data: str, addr: tuple[str, int]) -> None: ...
 
     def recv(self, bufsize: int) -> str: ...
 
@@ -33,20 +33,20 @@ class FakeRCSSServer:
     RCSSServerAdapter.
     """
 
-    def __init__(self, script: Optional[List[Tuple[str, str]]] = None):
+    def __init__(self, script: Optional[list[tuple[str, str]]] = None):
         """Initialize the fake server.
 
         Args:
             script: Optional list of (expected_command_prefix, response) tuples.
                     If provided, verifies commands match expectations.
         """
-        self._sent_commands: List[str] = []
-        self._response_queue: Deque[str] = deque()
+        self._sent_commands: list[str] = []
+        self._response_queue: deque[str] = deque()
         self._script = deque(script) if script else None
         self._connected = True
         self._time = 0
 
-    def send(self, data: str, addr: Tuple[str, int]) -> None:
+    def send(self, data: str, addr: tuple[str, int]) -> None:
         """Receive data from client (adapter)."""
         if not self._connected:
             raise BrokenPipeError("Fake socket closed")
@@ -104,7 +104,7 @@ class FakeRCSSServer:
     def queue_sense_body(self, time: int, stamina: float = 4000) -> None:
         self._response_queue.append(self._build_sense_body(time, stamina))
 
-    def queue_see(self, time: int, objects: Optional[List[str]] = None) -> None:
+    def queue_see(self, time: int, objects: Optional[list[str]] = None) -> None:
         self._response_queue.append(self._build_see(time, objects))
 
     def get_last_command(self) -> Optional[str]:
@@ -131,7 +131,7 @@ class FakeRCSSServer:
             f"(turn_neck 0) (catch 0) (move 0) (change_view 0))"
         )
 
-    def _build_see(self, time: int, objects: Optional[List[str]] = None) -> str:
+    def _build_see(self, time: int, objects: Optional[list[str]] = None) -> str:
         if objects is None:
             # Default: ball + goal
             objects = ["((b) 10 0)", "((g r) 50 0)"]

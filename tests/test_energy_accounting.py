@@ -1,6 +1,6 @@
 import math
 import random
-from typing import Any, List, Tuple, Type, cast
+from typing import Any, cast
 
 from core.ecosystem import EcosystemManager
 from core.entities import Agent, Fish
@@ -19,40 +19,40 @@ class _EnvStub:
     def __init__(self, width: int = 800, height: int = 600) -> None:
         self.width = width
         self.height = height
-        self.agents: List[Agent] = []
+        self.agents: list[Agent] = []
         self._rng = random.Random(42)  # Deterministic RNG for tests
 
-    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_agents(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
     def nearby_agents_by_type(
-        self, agent: Agent, radius: float, agent_type: Type[Agent]
-    ) -> List[Agent]:
+        self, agent: Agent, radius: float, agent_type: type[Agent]
+    ) -> list[Agent]:
         return []
 
-    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
-    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_resources(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
     def update_agent_position(self, agent: Agent) -> None:
         return None
 
-    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+    def get_agents_of_type(self, agent_type: type[Agent]) -> list[Agent]:
         return []
 
-    def list_policy_component_ids(self, kind: str) -> List[str]:
+    def list_policy_component_ids(self, kind: str) -> list[str]:
         return []
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         return (0.0, 0.0), (float(self.width), float(self.height))
 
     def is_valid_position(self, position: Any) -> bool:
         return True
 
     @property
-    def dimensions(self) -> Tuple[float, float]:
+    def dimensions(self) -> tuple[float, float]:
         return (float(self.width), float(self.height))
 
     @property

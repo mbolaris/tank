@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Pattern
+from re import Pattern
 
 PRIVATE_FIELD_PATTERNS: list[tuple[str, Pattern[str]]] = [
     (

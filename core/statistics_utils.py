@@ -13,7 +13,8 @@ Design Principles:
 
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any
+from collections.abc import Sequence
 
 
 @dataclass(frozen=True)
@@ -60,7 +61,7 @@ class MetaStats:
     hgt_prob_mean: float = 0.0
     hgt_prob_std: float = 0.0
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Convert to dictionary for JSON serialization."""
         return {
             "mut_rate_mean": self.mut_rate_mean,
@@ -103,11 +104,11 @@ class GeneDistribution:
     min: float = 0.0
     max: float = 0.0
     median: float = 0.0
-    bins: List[int] = field(default_factory=list)
-    bin_edges: List[float] = field(default_factory=list)
+    bins: list[int] = field(default_factory=list)
+    bin_edges: list[float] = field(default_factory=list)
     meta: MetaStats = field(default_factory=MetaStats)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "key": self.key,
@@ -125,7 +126,7 @@ class GeneDistribution:
         }
 
 
-def safe_mean_std(values: List[float]) -> Tuple[float, float]:
+def safe_mean_std(values: list[float]) -> tuple[float, float]:
     """Calculate mean and standard deviation safely.
 
     Handles edge cases consistently:
@@ -154,7 +155,7 @@ def safe_mean_std(values: List[float]) -> Tuple[float, float]:
     return float(m), float(s)
 
 
-def descriptive_stats(values: List[float]) -> DescriptiveStats:
+def descriptive_stats(values: list[float]) -> DescriptiveStats:
     """Calculate comprehensive descriptive statistics.
 
     Args:
@@ -183,7 +184,7 @@ def descriptive_stats(values: List[float]) -> DescriptiveStats:
     )
 
 
-def compute_meta_stats(traits: List[Any]) -> MetaStats:
+def compute_meta_stats(traits: list[Any]) -> MetaStats:
     """Calculate meta-genetic statistics from a list of traits.
 
     Each trait is expected to have mutation_rate, mutation_strength,
@@ -221,7 +222,7 @@ def create_histogram(
     range_min: float,
     range_max: float,
     num_bins: int = 12,
-) -> Tuple[List[int], List[float]]:
+) -> tuple[list[int], list[float]]:
     """Create a histogram from a list of values.
 
     Args:

@@ -5,7 +5,7 @@ This module provides game simulation, pot resolution, and bet finalization logic
 """
 
 import random
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from core.poker.betting.decision import AGGRESSION_MEDIUM
 from core.poker.core.game_state import PokerGameState
@@ -105,7 +105,7 @@ def simulate_multi_round_game(
 
 def resolve_bet(
     hand1: PokerHand, hand2: PokerHand, bet1_amount: float, bet2_amount: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Resolve a poker bet between two hands with proper kicker comparison.
 
@@ -119,7 +119,7 @@ def resolve_bet(
     return (0.0, 0.0)
 
 
-def finalize_pot(game_state: PokerGameState) -> Tuple[float, float]:
+def finalize_pot(game_state: PokerGameState) -> tuple[float, float]:
     """
     Determines the final payout from the pot to Player 1 and Player 2.
 

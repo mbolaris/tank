@@ -6,7 +6,7 @@ These interfaces are implemented by specific world backends (Tank, Petri).
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
@@ -36,17 +36,17 @@ class StepResult:
         render_hint: Frontend-agnostic rendering metadata (optional)
     """
 
-    obs_by_agent: Dict[str, Any] = field(default_factory=dict)
-    snapshot: Dict[str, Any] = field(default_factory=dict)
-    events: List[Dict[str, Any]] = field(default_factory=list)
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    obs_by_agent: dict[str, Any] = field(default_factory=dict)
+    snapshot: dict[str, Any] = field(default_factory=dict)
+    events: list[dict[str, Any]] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
     done: bool = False
-    info: Dict[str, Any] = field(default_factory=dict)
+    info: dict[str, Any] = field(default_factory=dict)
     # Extended fields for world loop contract (all optional)
-    spawns: List["SpawnRequest"] = field(default_factory=list)
-    removals: List["RemovalRequest"] = field(default_factory=list)
-    energy_deltas: List["EnergyDeltaRecord"] = field(default_factory=list)
-    render_hint: Optional[Dict[str, Any]] = None
+    spawns: list["SpawnRequest"] = field(default_factory=list)
+    removals: list["RemovalRequest"] = field(default_factory=list)
+    energy_deltas: list["EnergyDeltaRecord"] = field(default_factory=list)
+    render_hint: Optional[dict[str, Any]] = None
 
 
 class MultiAgentWorldBackend(ABC):
@@ -63,7 +63,7 @@ class MultiAgentWorldBackend(ABC):
 
     @abstractmethod
     def reset(
-        self, seed: Optional[int] = None, config: Optional[Dict[str, Any]] = None
+        self, seed: Optional[int] = None, config: Optional[dict[str, Any]] = None
     ) -> StepResult:
         """Reset the world to initial state.
 
@@ -77,7 +77,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> StepResult:
         """Advance the world by one time step.
 
         Args:
@@ -90,7 +90,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_current_snapshot(self) -> Dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, Any]:
         """Get current world state snapshot without stepping.
 
         Returns:
@@ -99,7 +99,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_current_metrics(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
         """Get current world metrics/statistics without stepping.
 
         Args:
@@ -144,7 +144,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_entities_for_snapshot(self) -> List[Any]:
+    def get_entities_for_snapshot(self) -> list[Any]:
         """Get entities for snapshot building.
 
         This provides a world-agnostic way to access entities without
@@ -157,12 +157,12 @@ class MultiAgentWorldBackend(ABC):
 
     @property
     @abstractmethod
-    def entities_list(self) -> List[Any]:
+    def entities_list(self) -> list[Any]:
         """Legacy access to entities list."""
         pass
 
     @abstractmethod
-    def capture_state_for_save(self) -> Dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, Any]:
         """Capture complete world state for persistence.
 
         Returns:
@@ -172,7 +172,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, Any]) -> None:
         """Restore world state from a saved snapshot.
 
         Args:
@@ -207,7 +207,7 @@ class MultiAgentWorldBackend(ABC):
         """Initialize the world state (legacy hook)."""
         pass
 
-    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Return current metrics/statistics."""
         return self.get_current_metrics()
 
@@ -231,6 +231,6 @@ class MultiAgentWorldBackend(ABC):
         """Return the world type identifier."""
         return "unknown"
 
-    def get_recent_poker_events(self, max_age_frames: int = 60) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int = 60) -> list[dict[str, Any]]:
         """Get recent poker events if supported."""
         return []

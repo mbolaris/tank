@@ -4,7 +4,7 @@ This module contains functions for building state payloads for WebSocket broadca
 Extracted from SimulationRunner to reduce class size.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from backend.state_payloads import PokerStatsPayload
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     pass
 
 
-def collect_poker_stats_payload(stats: Dict[str, Any]) -> PokerStatsPayload:
+def collect_poker_stats_payload(stats: dict[str, Any]) -> PokerStatsPayload:
     """Create PokerStatsPayload from stats dictionary."""
     poker_stats_dict = stats.get("poker_stats", {})
     return PokerStatsPayload(
@@ -57,11 +57,11 @@ def collect_poker_stats_payload(stats: Dict[str, Any]) -> PokerStatsPayload:
 
 
 def build_base_stats(
-    stats: Dict[str, Any],
+    stats: dict[str, Any],
     frame: int,
     fps: float,
     fast_forward: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build base simulation stats dictionary."""
     return {
         "frame": frame,
@@ -88,12 +88,12 @@ def build_base_stats(
 
 
 def build_energy_stats(
-    stats: Dict[str, Any],
+    stats: dict[str, Any],
     poker_score: Optional[float],
-    poker_score_history: List[float],
+    poker_score_history: list[float],
     poker_elo: Optional[float] = None,
-    poker_elo_history: Optional[List[float]] = None,
-) -> Dict[str, Any]:
+    poker_elo_history: Optional[list[float]] = None,
+) -> dict[str, Any]:
     """Build energy-related stats dictionary."""
     return {
         "total_energy": stats.get("total_energy", 0.0),
@@ -138,7 +138,7 @@ def build_energy_stats(
     }
 
 
-def build_physical_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
+def build_physical_stats(stats: dict[str, Any]) -> dict[str, Any]:
     """Build physical trait stats dictionary."""
     return {
         # Adult size
@@ -219,7 +219,7 @@ def build_physical_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def build_meta_stats(stats: Dict[str, Any]) -> Dict[str, Any]:
+def build_meta_stats(stats: dict[str, Any]) -> dict[str, Any]:
     """Build meta stats (mutation rate, strength, HGT) dictionary."""
     meta_stats = {}
     traits = [

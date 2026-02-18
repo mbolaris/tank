@@ -11,7 +11,7 @@ Architecture Notes:
 """
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from core.config.fish import (
     FISH_ADULT_SIZE,
@@ -235,7 +235,7 @@ class LifecycleComponent:
         """
         return self._state_machine.state.value.capitalize()
 
-    def get_transition_history(self) -> List[StateTransition[LifeStage]]:
+    def get_transition_history(self) -> list[StateTransition[LifeStage]]:
         """Get life stage transition history (if tracking enabled).
 
         Returns:
@@ -243,7 +243,7 @@ class LifecycleComponent:
         """
         return self._state_machine.history
 
-    def get_valid_next_stages(self) -> List[LifeStage]:
+    def get_valid_next_stages(self) -> list[LifeStage]:
         """Get valid next life stages from current state.
 
         Useful for debugging and understanding lifecycle flow.

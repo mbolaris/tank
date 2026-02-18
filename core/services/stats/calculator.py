@@ -6,7 +6,7 @@ statistics from specialized sub-modules:
 - genetic_stats: Genetic trait distributions
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 from core.services.stats import entity_stats
 from core.services.stats.utils import calculate_meta_stats, humanize_gene_label
@@ -33,7 +33,7 @@ class StatsCalculator:
         """
         self._engine = engine
 
-    def _calculate_meta_stats(self, traits: List[Any], prefix: str) -> Dict[str, Any]:
+    def _calculate_meta_stats(self, traits: list[Any], prefix: str) -> dict[str, Any]:
         """Delegate to utils module."""
         return calculate_meta_stats(traits, prefix)
 
@@ -41,7 +41,7 @@ class StatsCalculator:
         """Delegate to utils module."""
         return humanize_gene_label(key)
 
-    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Get comprehensive simulation statistics.
 
         This is the main entry point that aggregates all stat categories.
@@ -76,7 +76,7 @@ class StatsCalculator:
 
         return stats
 
-    def _get_genetic_distribution_stats(self) -> Dict[str, Any]:
+    def _get_genetic_distribution_stats(self) -> dict[str, Any]:
         """Get genetic trait distribution statistics with histograms."""
         from core.services.stats.genetic_stats import get_genetic_distribution_stats
 

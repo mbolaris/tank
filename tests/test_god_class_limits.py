@@ -5,11 +5,10 @@ as the codebase grows.
 """
 
 from pathlib import Path
-from typing import List, Set, Tuple
 
 # Files that currently exceed the limit.
 # As we refactor these, remove them from the list.
-LEGACY_EXCEEDS: Set[str] = {
+LEGACY_EXCEEDS: set[str] = {
     "fish.py",  # 1201 lines - needs component extraction
     "engine.py",  # 991 lines - orchestrator, hard to split safely
     "ecosystem.py",  # 987 lines - facade for trackers
@@ -61,7 +60,7 @@ LEGACY_EXCEEDS: Set[str] = {
 MAX_LINES_FOR_NEW_FILES = 500
 
 
-def _get_core_python_files() -> List[Path]:
+def _get_core_python_files() -> list[Path]:
     """Get all Python files in the core directory."""
     core_root = Path(__file__).resolve().parents[1] / "core"
     return [path for path in core_root.rglob("*.py") if "__pycache__" not in path.parts]
@@ -75,7 +74,7 @@ def test_no_new_god_classes() -> None:
 
     This prevents architectural debt from accumulating.
     """
-    violations: List[Tuple[str, int]] = []
+    violations: list[tuple[str, int]] = []
 
     for path in _get_core_python_files():
         # Skip grandfathered files

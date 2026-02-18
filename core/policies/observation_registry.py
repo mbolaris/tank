@@ -21,12 +21,12 @@ Usage:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     pass
 
-Observation = Dict[str, Any]
+Observation = dict[str, Any]
 
 
 class ObservationBuilder(Protocol):

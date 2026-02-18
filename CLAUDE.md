@@ -77,7 +77,7 @@ tank/
 
 ## Code Conventions
 
-- **Python 3.8+ compatible**: Use `from __future__ import annotations` for modern type hints
+- **Python 3.10+**: Modern type hints (`X | Y`, `list[str]`) used natively
 - **Formatting**: black (100 char line length), isort (black profile)
 - **Linting**: ruff with select rules (see pyproject.toml)
 - **Type checking**: mypy on core/ (baseline mode via tools/mypy_gate.py)
@@ -149,7 +149,7 @@ The standard evolution loop:
 
 - Always use `--seed 42` for reproducible benchmarks
 - Run `pre-commit run --all-files` before committing (or `pre-commit install` to auto-run)
-- CI uses Python 3.10, not 3.8; but code must be 3.8-compatible
+- CI uses Python 3.10; `requires-python = ">=3.10"` in pyproject.toml
 - Frontend is excluded from Python linting (separate ESLint config)
 - The `TANK_ENFORCE_MUTATION_INVARIANTS=1` env var enables strict mutation checks in tests
 - `PYTHONPATH=.` is set automatically by pytest config but may need manual setting for scripts

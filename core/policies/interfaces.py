@@ -33,12 +33,12 @@ from __future__ import annotations
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
-Observation = Dict[str, Any]
+Observation = dict[str, Any]
 
 
 # =============================================================================

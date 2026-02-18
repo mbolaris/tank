@@ -4,7 +4,7 @@ This module contains the runtime state tracking classes.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.mixed_poker.types import MultiplayerBettingRound, Player
 from core.poker.betting.actions import BettingAction
@@ -50,15 +50,15 @@ class MultiplayerGameState:
         self.deck = Deck(rng=rng)
 
         # Per-player state
-        self.player_hole_cards: List[List[Any]] = [[] for _ in range(num_players)]
-        self.player_hands: List[Optional[PokerHand]] = [None] * num_players
-        self.player_current_bets: List[float] = [0.0] * num_players
-        self.player_total_bets: List[float] = [0.0] * num_players
-        self.player_folded: List[bool] = [False] * num_players
-        self.player_all_in: List[bool] = [False] * num_players
+        self.player_hole_cards: list[list[Any]] = [[] for _ in range(num_players)]
+        self.player_hands: list[Optional[PokerHand]] = [None] * num_players
+        self.player_current_bets: list[float] = [0.0] * num_players
+        self.player_total_bets: list[float] = [0.0] * num_players
+        self.player_folded: list[bool] = [False] * num_players
+        self.player_all_in: list[bool] = [False] * num_players
 
-        self.community_cards: List[Any] = []
-        self.betting_history: List[Tuple[int, BettingAction, float]] = []
+        self.community_cards: list[Any] = []
+        self.betting_history: list[tuple[int, BettingAction, float]] = []
 
         # Raise tracking
         self.min_raise = big_blind

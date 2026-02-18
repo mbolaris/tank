@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
@@ -42,7 +42,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -109,7 +109,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -178,7 +178,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -248,7 +248,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)

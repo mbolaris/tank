@@ -14,7 +14,7 @@ is only used as a fallback for legacy CodePool usage.
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
@@ -32,7 +32,7 @@ MAX_KICK_POWER = 100.0
 
 def build_observation(
     engine: RCSSLiteEngine, player_id: str, config: RCSSParams = SOCCER_CANONICAL_PARAMS
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a standardized observation dictionary for a player.
 
     Args:
@@ -142,10 +142,10 @@ def build_observation(
 def run_policy(
     code_source: Optional["GenomeCodePool"],
     genome: Optional["Genome"],
-    observation: Dict[str, Any],
+    observation: dict[str, Any],
     rng: Optional[pyrandom.Random] = None,
     dt: float = 0.1,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute a genome's soccer policy using GenomeCodePool.execute_policy().
 
     This is the primary entry point for policy execution in soccer matches.
@@ -231,7 +231,7 @@ def _get_policy_id(genome: "Genome") -> Optional[str]:
     return None
 
 
-def _get_policy_params(genome: "Genome") -> Optional[Dict[str, float]]:
+def _get_policy_params(genome: "Genome") -> Optional[dict[str, float]]:
     """Extract soccer_policy_params from genome behavioral traits."""
     try:
         if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_params"):
@@ -243,7 +243,7 @@ def _get_policy_params(genome: "Genome") -> Optional[Dict[str, float]]:
     return None
 
 
-def _normalize_policy_output(output: Any) -> Dict[str, Any]:
+def _normalize_policy_output(output: Any) -> dict[str, Any]:
     """Convert policy output to RCSS command format.
 
     Policies may return either:
@@ -271,7 +271,7 @@ def _normalize_policy_output(output: Any) -> Dict[str, Any]:
     return _convert_normalized_to_rcss(output)
 
 
-def _validate_command_format(output: Dict[str, Any]) -> Dict[str, Any]:
+def _validate_command_format(output: dict[str, Any]) -> dict[str, Any]:
     """Validate RCSS command format output."""
     result = {}
 
@@ -291,7 +291,7 @@ def _validate_command_format(output: Dict[str, Any]) -> Dict[str, Any]:
     return result
 
 
-def _convert_normalized_to_rcss(output: Dict[str, Any]) -> Dict[str, Any]:
+def _convert_normalized_to_rcss(output: dict[str, Any]) -> dict[str, Any]:
     """Convert normalized policy output to RCSS command format.
 
     Normalized format:
@@ -327,7 +327,7 @@ def _convert_normalized_to_rcss(output: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def default_policy_action(obs: Dict[str, Any]) -> Dict[str, Any]:
+def default_policy_action(obs: dict[str, Any]) -> dict[str, Any]:
     """Fallback chase-ball logic."""
     if not obs:
         return {}
@@ -356,7 +356,7 @@ def default_policy_action(obs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def action_to_command(
-    action: Dict[str, Any], config: RCSSParams = SOCCER_CANONICAL_PARAMS
+    action: dict[str, Any], config: RCSSParams = SOCCER_CANONICAL_PARAMS
 ) -> Optional[RCSSCommand]:
     """Translate abstract action dict to RCSSCommand with strict clamping."""
     if not action:

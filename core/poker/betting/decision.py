@@ -6,7 +6,7 @@ hand strength-based action selection and betting amounts.
 """
 
 import random
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
@@ -49,7 +49,7 @@ AGGRESSION_HIGH = POKER_AGGRESSION_HIGH
 
 def _decide_strong_hand_action(
     call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide action for strong hands (flush or better)."""
     if call_amount == 0:
         # No bet to call - raise most of the time
@@ -76,7 +76,7 @@ def _decide_strong_hand_action(
 
 def _decide_medium_hand_action(
     call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide action for medium hands (pair through straight)."""
     if call_amount == 0:
         # No bet - check or small raise
@@ -108,7 +108,7 @@ def _decide_medium_hand_action(
 
 def _decide_weak_hand_action(
     call_amount: float, pot: float, player_energy: float, aggression: float, rng: random.Random
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide action for weak hands (high card)."""
     if call_amount == 0:
         # No bet - usually check, rarely bluff
@@ -136,11 +136,11 @@ def decide_action(
     pot: float,
     player_energy: float,
     aggression: Optional[float] = None,
-    hole_cards: Optional[List[Card]] = None,
-    community_cards: Optional[List[Card]] = None,
+    hole_cards: Optional[list[Card]] = None,
+    community_cards: Optional[list[Card]] = None,
     position_on_button: bool = False,
     rng: Optional[random.Random] = None,
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """
     Decide what action to take based on hand strength and game state.
 

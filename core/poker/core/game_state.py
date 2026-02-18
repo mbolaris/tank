@@ -6,7 +6,7 @@ state of a multi-round Texas Hold'em poker game.
 """
 
 import random
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
@@ -24,12 +24,12 @@ class PokerGameState:
     player2_current_bet: float = 0.0
     player1_folded: bool = False
     player2_folded: bool = False
-    player1_hole_cards: List[Card] = []
-    player2_hole_cards: List[Card] = []
-    community_cards: List[Card] = []  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
+    player1_hole_cards: list[Card] = []
+    player2_hole_cards: list[Card] = []
+    community_cards: list[Card] = []  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
     player1_hand: Optional[PokerHand] = None  # Evaluated at showdown
     player2_hand: Optional[PokerHand] = None  # Evaluated at showdown
-    betting_history: List[Tuple[int, int, float]] = []  # (player, action, amount)
+    betting_history: list[tuple[int, int, float]] = []  # (player, action, amount)
     button_position: int = 1  # Which player is on the button (1 or 2)
     small_blind: float = 0.0
     big_blind: float = 0.0

@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core import entities, movement_strategy
 from core.config.display import FILES, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -16,11 +16,11 @@ class FishCommands:
     if TYPE_CHECKING:
         world: Any
 
-        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_spawn_fish(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_spawn_fish(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'spawn_fish' command."""
         try:
             logger.info("Spawn fish command received")

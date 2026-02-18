@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -33,7 +33,7 @@ class AmbushFeeder(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         nearest_food = self._find_nearest_food(fish)
         if nearest_food:
             distance = (nearest_food.pos - fish.pos).length()

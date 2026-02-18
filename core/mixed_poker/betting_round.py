@@ -14,7 +14,8 @@ Betting logic is separated from the main interaction class because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
+from collections.abc import Callable
 
 from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction
@@ -30,10 +31,10 @@ logger = logging.getLogger(__name__)
 def decide_player_action(
     player_idx: int,
     game_state: "MultiplayerGameState",
-    contexts: "List[MultiplayerPlayerContext]",
-    players: List[Any],
+    contexts: "list[MultiplayerPlayerContext]",
+    players: list[Any],
     rng: Optional[Any] = None,
-) -> Tuple[BettingAction, float]:
+) -> tuple[BettingAction, float]:
     """Decide action for a player based on hand strength and aggression.
 
     Args:
@@ -82,7 +83,7 @@ def decide_player_action(
             position_on_button=position_on_button,
             rng=rng,
         )
-        return cast(Tuple[BettingAction, float], decision)
+        return cast(tuple[BettingAction, float], decision)
 
     # Fallback: Simple aggression-based decision
     # Use provided RNG, or fallback to player environment RNG
@@ -131,10 +132,10 @@ def decide_player_action(
 
 def play_betting_round(
     game_state: "MultiplayerGameState",
-    contexts: "List[MultiplayerPlayerContext]",
+    contexts: "list[MultiplayerPlayerContext]",
     start_position: int,
     num_players: int,
-    players: List[Any],
+    players: list[Any],
     modify_player_energy: Callable[[Any, float], None],
     rng: Optional[Any] = None,
 ) -> bool:

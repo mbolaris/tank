@@ -9,7 +9,7 @@ Tests RCSS-Lite style ball physics including:
 """
 
 import random
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -34,27 +34,27 @@ class MockWorld:
 
     # --- World protocol methods ---
 
-    def nearby_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_agents(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
     def nearby_agents_by_type(
-        self, agent: Agent, radius: float, agent_type: Type[Agent]
-    ) -> List[Agent]:
+        self, agent: Agent, radius: float, agent_type: type[Agent]
+    ) -> list[Agent]:
         return []
 
-    def nearby_evolving_agents(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_evolving_agents(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
-    def nearby_resources(self, agent: Agent, radius: float) -> List[Agent]:
+    def nearby_resources(self, agent: Agent, radius: float) -> list[Agent]:
         return []
 
-    def get_agents_of_type(self, agent_type: Type[Agent]) -> List[Agent]:
+    def get_agents_of_type(self, agent_type: type[Agent]) -> list[Agent]:
         return []
 
-    def list_policy_component_ids(self, kind: str) -> List[str]:
+    def list_policy_component_ids(self, kind: str) -> list[str]:
         return []
 
-    def get_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Return world boundaries."""
         return ((self.min_x, self.min_y), (self.max_x, self.max_y))
 
@@ -70,7 +70,7 @@ class MockWorld:
         return self.min_x <= float(x) <= self.max_x and self.min_y <= float(y) <= self.max_y
 
     @property
-    def dimensions(self) -> Tuple[float, float]:
+    def dimensions(self) -> tuple[float, float]:
         return (self.max_x - self.min_x, self.max_y - self.min_y)
 
     @property

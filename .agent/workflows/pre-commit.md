@@ -35,21 +35,13 @@ Note: Black is configured via `pyproject.toml` (>=24.0.0) and uses 2024+ style.
 
 If this fails, run without `--check-only` to auto-fix.
 
-## 4. Python 3.9 Compatibility
-
-Avoid these patterns that require Python 3.10+:
-- `int | None` → use `Optional[int]` from `typing`
-- `list[str]` → use `List[str]` from `typing`
-- `dict[str, Any]` → use `Dict[str, Any]` from `typing`
-- `match` statements → use if/elif chains
-
-## 5. Fast Test Gate
+## 4. Fast Test Gate
 
 ```bash
 .venv\Scripts\python.exe -m pytest tests/ -m "not slow and not integration" -q
 ```
 
-## 6. Commit
+## 5. Commit
 
 Only after all checks pass:
 ```bash

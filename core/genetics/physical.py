@@ -6,7 +6,6 @@ and physical capabilities (size, speed derived from body shape, etc.).
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import List
 
 from core.config.fish import (
     BODY_ASPECT_MAX,
@@ -28,7 +27,7 @@ from core.genetics.trait import (
 )
 
 # Declarative specifications for all physical traits
-PHYSICAL_TRAIT_SPECS: List[TraitSpec] = [
+PHYSICAL_TRAIT_SPECS: list[TraitSpec] = [
     TraitSpec("size_modifier", FISH_SIZE_MODIFIER_MIN, FISH_SIZE_MODIFIER_MAX),
     TraitSpec("color_hue", 0.0, 1.0),
     TraitSpec("template_id", 0, FISH_TEMPLATE_COUNT - 1, discrete=True),

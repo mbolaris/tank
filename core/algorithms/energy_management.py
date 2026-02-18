@@ -14,7 +14,7 @@ This module contains 8 algorithms focused on managing energy expenditure:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -46,7 +46,7 @@ class EnergyConserver(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         # IMPROVEMENT: Use new critical energy methods
@@ -131,7 +131,7 @@ class BurstSwimmer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         energy_ratio = fish.energy / fish.max_energy
@@ -224,7 +224,7 @@ class OpportunisticRester(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Food
 
         # Check for nearby stimuli
@@ -290,7 +290,7 @@ class EnergyBalancer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # IMPROVEMENT: Use new energy methods and be more conservative
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -367,7 +367,7 @@ class SustainableCruiser(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Just maintain steady pace in current direction
         cruise = self.parameters["cruise_speed"] * self.parameters["consistency"]
         vel_len_sq = fish.vel.length_squared()
@@ -401,7 +401,7 @@ class StarvationPreventer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         # IMPROVEMENT: Use new critical energy methods
@@ -481,7 +481,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use genome metabolism as efficiency indicator
         efficiency = 1.0 / fish.genome.metabolism_rate if fish.genome.metabolism_rate > 0 else 1.0
 
@@ -522,7 +522,7 @@ class AdaptivePacer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Fish
 
         energy_ratio = fish.energy / fish.max_energy

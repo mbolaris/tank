@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -17,7 +16,7 @@ def test_no_external_lifecycle_component_usage():
         (core_dir / "entities" / "mixins" / "reproduction_mixin.py").resolve(),
     }
 
-    offenders: List[Path] = []
+    offenders: list[Path] = []
     for path in core_dir.rglob("*.py"):
         if path.resolve() in allowed_paths:
             continue

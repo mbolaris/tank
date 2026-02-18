@@ -7,16 +7,17 @@ for agents in the simulation.
 from __future__ import annotations
 
 import random
-from typing import Any, Callable, Dict, Iterable
+from typing import Any
+from collections.abc import Callable, Iterable
 
-from core.entities import Agent
+from core.entities import Agent, Entity
 from core.interfaces import MigrationHandler
 from core.spatial.bounds import WorldBounds
 from core.spatial.grid import SpatialGrid
 
 # Type alias for energy delta recorder callback
 # Signature: (entity, delta, source, metadata) -> None
-EnergyDeltaRecorder = Callable[["Agent", float, str, Dict[str, Any]], None]
+EnergyDeltaRecorder = Callable[["Agent", float, str, dict[str, Any]], None]
 
 
 class Environment:
@@ -233,17 +234,17 @@ class Environment:
         """Invalidate the type cache when entities are added or removed."""
         self._type_cache.clear()
 
-    def add_agent_to_grid(self, agent: Agent):
+    def add_agent_to_grid(self, agent: Entity):
         """Add a new agent to the spatial grid and invalidate caches."""
         self.spatial_grid.add_agent(agent)
         self.invalidate_type_cache()
 
-    def remove_agent_from_grid(self, agent: Agent):
+    def remove_agent_from_grid(self, agent: Entity):
         """Remove an agent from the spatial grid and invalidate caches."""
         self.spatial_grid.remove_agent(agent)
         self.invalidate_type_cache()
 
-    def update_agent_position(self, agent: Agent):
+    def update_agent_position(self, agent: Entity):
         """Update an agent's position in the spatial grid. Call when agent moves."""
         self.spatial_grid.update_agent(agent)
 

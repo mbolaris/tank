@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Mapping, Sequence
+from typing import Any
+from collections.abc import Mapping, Sequence
 
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.rewards import (

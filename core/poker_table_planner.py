@@ -16,7 +16,7 @@ Table Formation:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Set, Union, cast
+from typing import TYPE_CHECKING, Optional, Union, cast
 
 from core.config.server import POKER_ACTIVITY_ENABLED
 
@@ -43,9 +43,9 @@ class PokerEffects:
     # Energy changes are already applied by MixedPokerInteraction
     # These flags tell the engine what post-game actions to take
 
-    dead_fish: List["Fish"] = field(default_factory=list)
-    dead_plants: List["Plant"] = field(default_factory=list)
-    babies: List["Fish"] = field(default_factory=list)
+    dead_fish: list["Fish"] = field(default_factory=list)
+    dead_plants: list["Plant"] = field(default_factory=list)
+    babies: list["Fish"] = field(default_factory=list)
     cooldowns_applied: bool = True  # MixedPokerInteraction applies these
 
 
@@ -54,7 +54,7 @@ class PlannedTable:
     """A planned poker table with fish initiator and other players."""
 
     initiator: "Fish"
-    players: List[PokerPlayer]
+    players: list[PokerPlayer]
 
 
 class MixedPokerTablePlanner:
@@ -101,9 +101,9 @@ class MixedPokerTablePlanner:
 
     def plan_tables(
         self,
-        fish_list: List["Fish"],
-        plant_list: List["Plant"],
-    ) -> List[PlannedTable]:
+        fish_list: list["Fish"],
+        plant_list: list["Plant"],
+    ) -> list[PlannedTable]:
         """Plan poker tables for this tick.
 
         Fish-initiated: each eligible fish can form a table with nearby
@@ -130,11 +130,11 @@ class MixedPokerTablePlanner:
 
         # Build set of all poker-eligible entities for fast lookup
         eligible_plants = [p for p in plant_list if self._is_eligible_plant(p)]
-        all_eligible: Set[PokerPlayer] = set(eligible_fish) | set(eligible_plants)
+        all_eligible: set[PokerPlayer] = set(eligible_fish) | set(eligible_plants)
 
         # Track who has been assigned this tick
-        assigned: Set[PokerPlayer] = set()
-        tables: List[PlannedTable] = []
+        assigned: set[PokerPlayer] = set()
+        tables: list[PlannedTable] = []
 
         max_dist_sq = self.max_distance * self.max_distance
 
@@ -157,7 +157,7 @@ class MixedPokerTablePlanner:
             fish_cx = fish.pos.x + fish.width * 0.5
             fish_cy = fish.pos.y + fish.height * 0.5
 
-            nearby_valid: List[tuple] = []  # (distance_sq, player)
+            nearby_valid: list[tuple] = []  # (distance_sq, player)
             for candidate in candidates:
                 c_cx = candidate.pos.x + candidate.width * 0.5
                 c_cy = candidate.pos.y + candidate.height * 0.5
@@ -175,7 +175,7 @@ class MixedPokerTablePlanner:
             nearby_valid.sort(key=lambda x: (x[0], self._get_stable_id(x[1])))
 
             # Build table: initiator + up to (max_players - 1) others
-            table_players: List[PokerPlayer] = [fish]
+            table_players: list[PokerPlayer] = [fish]
             for _, candidate in nearby_valid:
                 if len(table_players) >= self.max_players:
                     break
@@ -214,9 +214,9 @@ class MixedPokerTablePlanner:
     def _get_nearby_candidates(
         self,
         fish: "Fish",
-        all_eligible: Set[PokerPlayer],
-        assigned: Set[PokerPlayer],
-    ) -> List[PokerPlayer]:
+        all_eligible: set[PokerPlayer],
+        assigned: set[PokerPlayer],
+    ) -> list[PokerPlayer]:
         """Get nearby poker-eligible entities."""
         if self.environment is None:
             return []
@@ -240,7 +240,7 @@ class MixedPokerTablePlanner:
 
     def _is_mutually_proximate(
         self,
-        current_players: List[PokerPlayer],
+        current_players: list[PokerPlayer],
         candidate: PokerPlayer,
         max_dist_sq: float,
     ) -> bool:

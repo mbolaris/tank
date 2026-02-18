@@ -18,7 +18,7 @@ Design Notes:
 
 import logging
 import random
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol
+from typing import TYPE_CHECKING, Optional, Protocol
 
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import (
@@ -156,7 +156,7 @@ class PlantManager:
         """
         self.root_spot_manager.block_spots_for_entity(entity, padding=padding)
 
-    def get_variant_counts(self, entities: List["Agent"]) -> Dict[str, int]:
+    def get_variant_counts(self, entities: list["Agent"]) -> dict[str, int]:
         """Count plants by variant type.
 
         Args:
@@ -176,7 +176,7 @@ class PlantManager:
 
     def pick_balanced_variant(
         self,
-        entities: List["Agent"],
+        entities: list["Agent"],
         preferred_type: Optional[str] = None,
     ) -> str:
         """Select a variant that balances the LLM beauty contest.
@@ -242,7 +242,7 @@ class PlantManager:
         factory = variant_factories.get(variant, PlantGenome.create_random)
         return factory(rng=self.rng)
 
-    def create_initial_plants(self, entities: List["Agent"]) -> int:
+    def create_initial_plants(self, entities: list["Agent"]) -> int:
         """Create the initial plant population.
 
         Creates plants with random baseline poker strategy types. Each plant
@@ -289,7 +289,7 @@ class PlantManager:
 
     def respawn_if_low(
         self,
-        entities: List["Agent"],
+        entities: list["Agent"],
         frame_count: int,
     ) -> bool:
         """Respawn a plant if the population is below minimum.
@@ -351,7 +351,7 @@ class PlantManager:
         parent_genome: PlantGenome,
         parent_x: float,
         parent_y: float,
-        entities: List["Agent"],
+        entities: list["Agent"],
     ) -> Result[Plant, str]:
         """Sprout a new plant from a parent.
 
@@ -405,7 +405,7 @@ class PlantManager:
 
     def reconcile_plants(
         self,
-        entities: List["Agent"],
+        entities: list["Agent"],
         frame_count: int,
     ) -> int:
         """Remove orphaned plants that don't own their root spot.
@@ -431,7 +431,7 @@ class PlantManager:
 
         self._last_reconcile_frame = frame_count
 
-        plants_to_remove: List[Plant] = []
+        plants_to_remove: list[Plant] = []
         for entity in entities:
             if not isinstance(entity, Plant):
                 continue

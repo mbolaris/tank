@@ -12,7 +12,7 @@ Note: All reproduction is instant (no pregnancy/gestation period). Asexual repro
 triggers immediately when conditions are met, and offspring are created in the same frame.
 """
 
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from random import Random
@@ -151,8 +151,8 @@ class ReproductionComponent:
         self,
         own_genome: "Genome",
         rng: Optional["Random"] = None,
-        available_policies: Optional[List[str]] = None,
-    ) -> Tuple["Genome", float]:
+        available_policies: Optional[list[str]] = None,
+    ) -> tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 
         This creates a mutated clone of the parent's genome. The reproduction

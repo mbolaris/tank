@@ -18,7 +18,7 @@ Benefits:
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations import (
@@ -55,7 +55,7 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
         if self._strategy is None:
             self._strategy = get_random_poker_strategy()
 
-    def choose_action(self, game_state: Dict[str, Any]) -> BettingAction:
+    def choose_action(self, game_state: dict[str, Any]) -> BettingAction:
         """Choose a poker betting action based on game state.
 
         Args:
@@ -106,7 +106,7 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
         # not runtime learning. This is intentional - poker is complex enough
         # that we let evolution find good parameters rather than runtime learning.
 
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Get strategy parameters for inheritance.
 
         Returns:
@@ -116,7 +116,7 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
         params["strategy_type"] = hash(type(self._strategy).__name__) % 1000
         return params
 
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Set strategy parameters.
 
         Args:
@@ -170,7 +170,7 @@ class OptimalPokerStrategy(PokerSkillStrategy):
         """Optimal strategy doesn't change from results."""
         pass
 
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Optimal strategy ignores parameter changes."""
         pass
 
@@ -260,7 +260,7 @@ class PokerSkillGame(SkillGame):
         self,
         player_strategy: SkillStrategy,
         opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[Dict[str, Any]] = None,
+        game_state: Optional[dict[str, Any]] = None,
     ) -> SkillGameResult:
         """Play one round of simplified poker.
 
@@ -461,7 +461,7 @@ class PokerSkillGame(SkillGame):
     def get_evaluation_summary(
         self,
         metrics: SkillEvaluationMetrics,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get poker-specific evaluation summary."""
         base = super().get_evaluation_summary(metrics)
 

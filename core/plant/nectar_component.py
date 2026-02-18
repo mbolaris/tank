@@ -5,7 +5,8 @@ production logic for plant reproduction.
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
+from collections.abc import Callable
 
 from core.config.plants import PLANT_NECTAR_COOLDOWN, PLANT_NECTAR_ENERGY
 

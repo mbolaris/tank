@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, TextIO
+from typing import Any, TextIO
+from collections.abc import Iterator
 
 
 class ReplayFormatError(ValueError):

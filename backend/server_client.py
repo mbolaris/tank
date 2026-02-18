@@ -6,7 +6,7 @@ between Tank World Net servers in a distributed deployment.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Optional, cast
 
 import httpx
 
@@ -177,7 +177,7 @@ class ServerClient:
 
         return None
 
-    async def list_worlds(self, server: ServerInfo) -> Optional[List[Dict[str, Any]]]:
+    async def list_worlds(self, server: ServerInfo) -> Optional[list[dict[str, Any]]]:
         """List all worlds on a remote server.
 
         Args:
@@ -194,7 +194,7 @@ class ServerClient:
                 data = response.json()
                 worlds: Any = data.get("worlds") if isinstance(data, dict) else data
                 if isinstance(worlds, list) and all(isinstance(item, dict) for item in worlds):
-                    return cast(List[Dict[str, Any]], worlds)
+                    return cast(list[dict[str, Any]], worlds)
                 logger.error("Unexpected world list response format: %s", type(data))
                 return None
             except Exception as e:
@@ -206,7 +206,7 @@ class ServerClient:
         self,
         server: ServerInfo,
         world_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get world information from a remote server.
 
         Args:
@@ -223,7 +223,7 @@ class ServerClient:
             try:
                 data = response.json()
                 if isinstance(data, dict):
-                    return cast(Dict[str, Any], data)
+                    return cast(dict[str, Any], data)
                 logger.error("Unexpected world info response format: %s", type(data))
                 return None
             except Exception as e:
@@ -237,7 +237,7 @@ class ServerClient:
         source_world_id: str,
         destination_world_id: str,
         entity_id: int,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Transfer an entity between worlds on a remote server.
 
         Args:
@@ -265,7 +265,7 @@ class ServerClient:
             try:
                 data = response.json()
                 if isinstance(data, dict):
-                    return cast(Dict[str, Any], data)
+                    return cast(dict[str, Any], data)
                 logger.error("Unexpected transfer result response format: %s", type(data))
                 return None
             except Exception as e:
@@ -280,7 +280,7 @@ class ServerClient:
         destination_world_id: str,
         probability: int = 50,
         direction: str = "right",
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Create a migration connection on a remote server.
 
         Args:
@@ -308,7 +308,7 @@ class ServerClient:
             try:
                 data = response.json()
                 if isinstance(data, dict):
-                    return cast(Dict[str, Any], data)
+                    return cast(dict[str, Any], data)
                 logger.error("Unexpected connection info response format: %s", type(data))
                 return None
             except Exception as e:
@@ -320,7 +320,7 @@ class ServerClient:
         self,
         server: ServerInfo,
         world_id: Optional[str] = None,
-    ) -> Optional[List[Dict[str, Any]]]:
+    ) -> Optional[list[dict[str, Any]]]:
         """Get migration connections from a remote server.
 
         Args:
@@ -345,7 +345,7 @@ class ServerClient:
                 if isinstance(connections, list) and all(
                     isinstance(item, dict) for item in connections
                 ):
-                    return cast(List[Dict[str, Any]], connections)
+                    return cast(list[dict[str, Any]], connections)
                 logger.error("Unexpected connections response format: %s", type(data))
                 return None
             except Exception as e:
@@ -421,10 +421,10 @@ class ServerClient:
         self,
         server: ServerInfo,
         destination_world_id: str,
-        entity_data: Dict[str, Any],
+        entity_data: dict[str, Any],
         source_server_id: str,
         source_world_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Transfer an entity to a remote server.
 
         This sends a serialized entity to a remote server for cross-server migration.
@@ -454,7 +454,7 @@ class ServerClient:
             try:
                 data = response.json()
                 if isinstance(data, dict):
-                    return cast(Dict[str, Any], data)
+                    return cast(dict[str, Any], data)
                 logger.error("Unexpected remote transfer result response format: %s", type(data))
                 return None
             except Exception as e:

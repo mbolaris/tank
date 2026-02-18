@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
@@ -31,7 +31,7 @@ class AlwaysFoldStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > 0:
             return (BettingAction.FOLD, 0.0)
@@ -64,7 +64,7 @@ class RandomStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
         fold_prob = self.parameters.get("fold_prob", 0.33)
         call_prob = self.parameters.get("call_prob", 0.33)

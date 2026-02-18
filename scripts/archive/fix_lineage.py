@@ -13,13 +13,13 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Optional, cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def scan_and_fix_lineage(lineage_log: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]:
+def scan_and_fix_lineage(lineage_log: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
     valid_ids = {rec.get("id") for rec in lineage_log}
     valid_ids.add("root")
     fixed = []
@@ -49,12 +49,12 @@ def save_snapshot(path: Path, data: Any) -> None:
         json.dump(data, f, indent=2)
 
 
-def _as_lineage_log(value: Any) -> Optional[List[Dict[str, Any]]]:
+def _as_lineage_log(value: Any) -> Optional[list[dict[str, Any]]]:
     if not isinstance(value, list):
         return None
     if not all(isinstance(rec, dict) for rec in value):
         return None
-    return cast(List[Dict[str, Any]], value)
+    return cast(list[dict[str, Any]], value)
 
 
 def main():
@@ -74,7 +74,7 @@ def main():
     # 1) Top-level list (the /api/lineage endpoint returns a list)
     # 2) dict with key 'lineage_log'
     # 3) dict with 'ecosystem': {'lineage_log': [...]}
-    lineage_log: Optional[List[Dict[str, Any]]] = None
+    lineage_log: Optional[list[dict[str, Any]]] = None
     data_is_list = False
     if isinstance(data, list):
         lineage_log = _as_lineage_log(data)

@@ -5,7 +5,6 @@ This module tracks individual fish poker performance for leaderboards and analys
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Deque
 
 
 @dataclass
@@ -62,7 +61,7 @@ class FishPokerStats:
     _hand_rank_sum: float = field(default=0.0, repr=False)
     # Track recent game results for skill progression (1 = win, 0 = loss/tie)
     # Using last 10 games for recent performance
-    _recent_results: Deque[int] = field(default_factory=lambda: deque(maxlen=10), repr=False)
+    _recent_results: deque[int] = field(default_factory=lambda: deque(maxlen=10), repr=False)
 
     def get_net_energy(self) -> float:
         """Calculate net energy profit/loss."""

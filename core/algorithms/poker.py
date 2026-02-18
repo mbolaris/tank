@@ -19,7 +19,7 @@ Performance optimizations:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.algorithms.base import BehaviorAlgorithm
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 # =========================================================================
 
 
-def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["Fish"], float]:
+def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> tuple[Optional["Fish"], float]:
     """Find nearest other fish using optimized spatial query.
 
     Performance: Uses spatial grid query instead of iterating all fish.
@@ -80,7 +80,7 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> Tuple[Optional["F
     return nearest, min_dist_sq
 
 
-def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> List["Fish"]:
+def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> list["Fish"]:
     """Get nearby fish using optimized spatial query.
 
     Args:
@@ -115,7 +115,7 @@ def _flee_from_predator(
     fish_y: float,
     danger_dist_sq: float = 14400,
     flee_speed: float = 1.2,
-) -> Optional[Tuple[float, float]]:
+) -> Optional[tuple[float, float]]:
     """Check for nearby predator and return flee velocity if threatened.
 
     This consolidates the predator-evasion pattern used by all poker algorithms.
@@ -149,7 +149,7 @@ def _flee_from_predator(
 
 def _seek_food_or_idle(
     algo: BehaviorAlgorithm, fish: "Fish", speed: float = 1.0
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Seek nearest food at given speed, or return (0, 0) if no food found.
 
     This consolidates the food-seeking fallback pattern used by all poker algorithms.
@@ -171,7 +171,7 @@ def _seek_food_or_idle(
 
 def _seek_fish_or_none(
     algo: BehaviorAlgorithm, fish: "Fish", radius: float, speed: float = 1.0
-) -> Optional[Tuple[float, float]]:
+) -> Optional[tuple[float, float]]:
     """Seek nearest other fish within radius. Returns direction or None.
 
     Args:
@@ -213,7 +213,7 @@ class PokerChallenger(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -258,7 +258,7 @@ class PokerDodger(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -340,7 +340,7 @@ class PokerGambler(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -390,7 +390,7 @@ class SelectivePoker(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -431,7 +431,7 @@ class PokerOpportunist(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -502,14 +502,14 @@ class PokerStrategist(BehaviorAlgorithm):
             rng=rng,
         )
         # Track recent poker encounters for opponent modeling
-        self.recent_encounters: List[Dict[str, Any]] = []
+        self.recent_encounters: list[dict[str, Any]] = []
         self.max_memory = 5
 
     @classmethod
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -598,7 +598,7 @@ class PokerBluffer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         flee = _flee_from_predator(self, fish, fish_x, fish_y)
@@ -693,7 +693,7 @@ class PokerConservative(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         fish_x, fish_y = fish.pos.x, fish.pos.y
 
         # Conservative: wider danger zone (150^2) and faster flee (1.3)

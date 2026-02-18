@@ -22,7 +22,7 @@ Design Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -97,8 +97,8 @@ class WorldTickResult:
 
 # Type aliases for clarity
 EntityId = str
-BrainObservationMap = Dict[EntityId, BrainObservation]
-BrainActionMap = Dict[EntityId, BrainAction]
+BrainObservationMap = dict[EntityId, BrainObservation]
+BrainActionMap = dict[EntityId, BrainAction]
 
 # Backward-compatibility aliases (deprecated, will be removed in future version)
 Observation = BrainObservation

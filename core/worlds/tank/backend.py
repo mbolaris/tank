@@ -7,7 +7,7 @@ a clean interface without any legacy wrappers.
 
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import SimulationEngine
@@ -45,7 +45,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def __init__(
         self,
         seed: Optional[int] = None,
-        config: Optional[Union[SimulationConfig, Dict[str, Any]]] = None,
+        config: Optional[SimulationConfig | dict[str, Any]] = None,
         **config_overrides,
     ):
         """Initialize the Tank world backend adapter.
@@ -60,7 +60,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Start with production defaults
         base_config = SimulationConfig.production(headless=True)
 
-        merged_config: Dict[str, Any] = {}
+        merged_config: dict[str, Any] = {}
         if isinstance(config, dict):
             merged_config.update(config)
         elif isinstance(config, SimulationConfig):
@@ -97,7 +97,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def reset(
         self,
         seed: Optional[int] = None,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
         pack: Optional["SystemPack"] = None,
     ) -> StepResult:
         """Reset the tank world to initial state.
@@ -196,7 +196,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._engine.paused = value
 
     @property
-    def entities_list(self) -> List[Any]:
+    def entities_list(self) -> list[Any]:
         """Expose entities list for snapshot builders."""
         if self._engine is None:
             raise RuntimeError(
@@ -204,7 +204,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             )
         return self._engine.entities_list
 
-    def get_entities_for_snapshot(self) -> List[Any]:
+    def get_entities_for_snapshot(self) -> list[Any]:
         """Get entities for snapshot building (protocol method)."""
         if self._engine is None:
             return []
@@ -235,7 +235,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._cached_brain_mode = brain_mode
         return brain_mode
 
-    def step(self, actions_by_agent: Optional[Dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> StepResult:
         """Advance the tank world by one time step.
 
         The step now follows an action pipeline internally:
@@ -260,7 +260,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         brain_mode = self._get_brain_mode()
 
         # External brain mode: build observations and apply actions
-        obs_by_agent: Dict[str, Any] = {}
+        obs_by_agent: dict[str, Any] = {}
         if brain_mode == "external" and not fast_step:
             observations = build_tank_observations(self)
             obs_by_agent = {str(k): v.__dict__ for k, v in observations.items()}
@@ -326,13 +326,13 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._engine.update()
         self._current_frame = self._engine.frame_count
 
-    def get_stats(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Return current metrics."""
         if self._engine is None:
             raise RuntimeError("World not initialized. Call reset() before get_stats().")
         return self.get_current_metrics(include_distributions=include_distributions)
 
-    def get_current_snapshot(self) -> Dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, Any]:
         """Get current world state snapshot.
 
         Returns:
@@ -343,7 +343,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return self._build_snapshot()
 
-    def get_current_metrics(self, include_distributions: bool = True) -> Dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
         """Get current simulation metrics/statistics.
 
         Returns:
@@ -358,7 +358,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             metrics["frame"] = self._engine.frame_count
         return metrics
 
-    def _build_snapshot(self) -> Dict[str, Any]:
+    def _build_snapshot(self) -> dict[str, Any]:
         """Build a minimal snapshot of current world state.
 
         Returns only cheap metadata. Entity data is built separately by the
@@ -382,7 +382,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             },
         }
 
-    def get_debug_snapshot(self) -> Dict[str, Any]:
+    def get_debug_snapshot(self) -> dict[str, Any]:
         """Build a full snapshot including all entities (for debugging/testing).
 
         This method builds a complete snapshot with entity data. It should NOT
@@ -400,7 +400,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         snapshot["entities"] = self._build_entities_list()
         return snapshot
 
-    def _build_entities_list(self) -> List[Dict[str, Any]]:
+    def _build_entities_list(self) -> list[dict[str, Any]]:
         """Build list of all entities for persistence/debugging.
 
         Uses the proper entity transfer codecs to ensure full serialization
@@ -419,8 +419,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
         # Import soccer types
-        BallCls: Optional[Type[Any]]
-        GoalZoneCls: Optional[Type[Any]]
+        BallCls: Optional[type[Any]]
+        GoalZoneCls: Optional[type[Any]]
         try:
             from core.entities.ball import Ball as BallCls
             from core.entities.goal_zone import GoalZone as GoalZoneCls
@@ -499,7 +499,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return entities_snapshot
 
-    def _extract_genome_data(self, entity: Any) -> Optional[Dict[str, Any]]:
+    def _extract_genome_data(self, entity: Any) -> Optional[dict[str, Any]]:
         """Extract minimal genome data for rendering.
 
         Args:
@@ -540,7 +540,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return genome_data if genome_data else None
 
-    def _collect_recent_events(self) -> List[Dict[str, Any]]:
+    def _collect_recent_events(self) -> list[dict[str, Any]]:
         """Collect recent events from the simulation.
 
         Returns:
@@ -626,7 +626,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     # Protocol methods for state persistence
     # ========================================================================
 
-    def capture_state_for_save(self) -> Dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, Any]:
         """Capture complete world state for persistence.
 
         This provides a lightweight snapshot that can be serialized.
@@ -653,7 +653,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             "entities": self._build_entities_list(),
         }
 
-    def restore_state_from_save(self, state: Dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, Any]) -> None:
         """Restore world state from a saved snapshot.
 
         Note: Full restoration including entities is handled by
@@ -674,13 +674,13 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     # Legacy TankWorld-compatible properties (for smooth transition)
     # ========================================================================
 
-    def get_recent_poker_events(self, max_age_frames: int = 180) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int = 180) -> list[dict[str, Any]]:
         """Get recent poker events (TankWorld API compatibility)."""
         if self._engine is None:
             return []
         return self._engine.get_recent_poker_events(max_age_frames)
 
-    def get_soccer_league_live_state(self) -> Optional[Dict[str, Any]]:
+    def get_soccer_league_live_state(self) -> Optional[dict[str, Any]]:
         """Get live league match state for rendering."""
         if self._engine is None:
             return None

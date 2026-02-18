@@ -46,7 +46,7 @@ Use isinstance() checks with @runtime_checkable protocols:
         entity.modify_energy(-10.0)
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
 
 # Explicit public API for this module
 __all__ = [
@@ -367,7 +367,7 @@ class BehaviorStrategy(Protocol):
                 pass  # No evolvable parameters
     """
 
-    def execute(self, fish: Any) -> Tuple[float, float]:
+    def execute(self, fish: Any) -> tuple[float, float]:
         """Execute the behavior and return movement direction.
 
         Args:
@@ -503,7 +503,7 @@ class EntityManager(Protocol):
         """Remove an entity from the simulation."""
         ...
 
-    def get_all_entities(self) -> List["Agent"]:
+    def get_all_entities(self) -> list["Agent"]:
         """Get all entities in the simulation."""
         ...
 
@@ -521,7 +521,7 @@ class FoodSpawner(Protocol):
         """
         ...
 
-    def update(self) -> List["Agent"]:
+    def update(self) -> list["Agent"]:
         """
         Update spawner state and return any new food entities.
 
@@ -548,11 +548,11 @@ class CollisionHandler(Protocol):
 class PokerCoordinator(Protocol):
     """Interface for poker game coordination."""
 
-    def find_poker_groups(self) -> List[List[Any]]:
+    def find_poker_groups(self) -> list[list[Any]]:
         """Find groups of entities eligible for poker games."""
         ...
 
-    def play_game(self, players: List[Any]) -> Optional[Any]:
+    def play_game(self, players: list[Any]) -> Optional[Any]:
         """
         Play a poker game between the given players.
 

@@ -16,7 +16,8 @@ external analysis by contributing agents (Layer 1/2).
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
+from collections.abc import Sequence
 
 if TYPE_CHECKING:
     from core.genetics.genome import Genome

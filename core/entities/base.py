@@ -15,7 +15,7 @@ movement methods.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
@@ -35,8 +35,8 @@ class EntityUpdateResult:
         events: List of events emitted by this entity (e.g. death, interaction)
     """
 
-    spawned_entities: List["Entity"] = field(default_factory=list)
-    events: List[Any] = field(default_factory=list)
+    spawned_entities: list["Entity"] = field(default_factory=list)
+    events: list[Any] = field(default_factory=list)
 
 
 class Rect:
@@ -111,13 +111,13 @@ class Entity:
         self.blocks_root_spots: bool = False
 
         self.rect: Rect = Rect(x, y, self.width, self.height)
-        self._groups: List = []  # Track sprite groups for kill() method
+        self._groups: list = []  # Track sprite groups for kill() method
 
         # Lifecycle state machine (Active -> Dead/Removed)
         self.state = create_entity_state_machine(track_history=True)
         self.state.transition(EntityState.ACTIVE, reason="spawned")
 
-    def get_rect(self) -> Tuple[float, float, float, float]:
+    def get_rect(self) -> tuple[float, float, float, float]:
         """Get bounding rectangle (x, y, width, height) for collision detection."""
         return (self.pos.x, self.pos.y, self.width, self.height)
 
@@ -200,23 +200,19 @@ class Entity:
         self.rect.topleft = self.pos
 
 
-class Agent(Entity):
-    """Moving entity with velocity and AI behaviors.
+class MobileEntity(Entity):
+    """Entities that move with velocity.
 
     Extends Entity with:
     - Velocity and movement (update_position, handle_screen_edges)
-    - AI behaviors (avoid, align_near, move_away, move_towards)
     - Migration support
-
-    Use this for Fish, Plant, Food, Crab, and other entities that move or
-    have behavioral AI.
     """
 
     def __init__(self, environment: World, x: float, y: float, speed: float) -> None:
-        """Initialize an agent.
+        """Initialize a mobile entity.
 
         Args:
-            environment: The world the agent lives in
+            environment: The world the entity lives in
             x: Initial x position
             y: Initial y position
             speed: Base movement speed
@@ -226,21 +222,17 @@ class Agent(Entity):
         # Movement attributes
         self.speed: float = speed
         self.vel: Vector2 = Vector2(speed, 0)
-        self.avoidance_velocity: Vector2 = Vector2(0, 0)
-
-        # Entity traits (overridden by subclasses)
-        self.is_predator: bool = False
 
     def update_position(self) -> None:
-        """Update the position of the agent."""
-        effective_velocity = self.vel + self.avoidance_velocity
-        self.pos += effective_velocity
+        """Update the position of the entity."""
+        # Simple movement for base MobileEntity (can be overridden)
+        self.pos += self.vel
         self.handle_screen_edges()
         # Keep rect in sync with position
         self.rect.topleft = self.pos
 
     def handle_screen_edges(self) -> None:
-        """Handle the agent hitting the edge of the screen.
+        """Handle the entity hitting the edge of the screen.
 
         Entities with migration support can attempt to leave the tank on horizontal
         boundaries. Other entities just bounce.
@@ -288,7 +280,6 @@ class Agent(Entity):
 
     def can_attempt_migration(self) -> bool:
         """Return True if the entity should try migration when hitting boundaries."""
-
         return False
 
     def _attempt_migration(self, direction: str) -> bool:  # pragma: no cover - default no-op
@@ -296,34 +287,67 @@ class Agent(Entity):
 
         Subclasses override this to integrate with migration handlers.
         """
-
         return False
 
-    def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
-    ) -> "EntityUpdateResult":
-        """Update the agent state (pure logic, no rendering).
-
-        Returns:
-            EntityUpdateResult containing any spawned entities or events.
-        """
-        self.update_position()
-        return EntityUpdateResult()
-
-    def add_random_velocity_change(self, probabilities: List[float], divisor: float) -> None:
-        """Add a random direction change to the agent.
+    def add_random_velocity_change(self, probabilities: list[float], divisor: float) -> None:
+        """Add a random direction change to the entity.
 
         Uses environment's RNG for deterministic behavior.
         """
         from core.util.rng import require_rng
 
-        _rng = require_rng(self.environment, "Agent.add_random_velocity_change")
+        _rng = require_rng(self.environment, "MobileEntity.add_random_velocity_change")
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         self.vel.x += random_x_direction / divisor
         self.vel.y += random_y_direction / divisor
 
-    def avoid(self, other_sprites: List["Agent"], min_distance: float) -> None:
+    def update(
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+    ) -> "EntityUpdateResult":
+        """Update the mobile entity state.
+
+        Returns:
+            EntityUpdateResult containing any spawned entities or events.
+        """
+        self.update_position()
+        return super().update(frame_count, time_modifier, time_of_day)
+
+
+class Agent(MobileEntity):
+    """Moving entity with AI behaviors.
+
+    Extends MobileEntity with:
+    - AI behaviors (avoid, align_near, move_away, move_towards)
+
+    Use this for Fish, Crab, and other entities that have behavioral AI.
+    """
+
+    def __init__(self, environment: World, x: float, y: float, speed: float) -> None:
+        """Initialize an agent.
+
+        Args:
+            environment: The world the agent lives in
+            x: Initial x position
+            y: Initial y position
+            speed: Base movement speed
+        """
+        super().__init__(environment, x, y, speed)
+
+        self.avoidance_velocity: Vector2 = Vector2(0, 0)
+
+        # Entity traits (overridden by subclasses)
+        self.is_predator: bool = False
+
+    def update_position(self) -> None:
+        """Update the position of the agent (including avoidance)."""
+        effective_velocity = self.vel + self.avoidance_velocity
+        self.pos += effective_velocity
+        self.handle_screen_edges()
+        # Keep rect in sync with position
+        self.rect.topleft = self.pos
+
+    def avoid(self, other_sprites: list["Agent"], min_distance: float) -> None:
         """Avoid other agents."""
         any_sprite_close = False
 
@@ -337,7 +361,9 @@ class Agent(Entity):
                 if dist_length > 0:
                     velocity_change = dist_vector.normalize()
 
-                    if other.is_predator:
+                    # Only flee if the other entity is a predator (handle safe attribute access)
+                    is_predator = getattr(other, "is_predator", False)
+                    if is_predator:
                         velocity_change.y = abs(velocity_change.y)
                     self.avoidance_velocity -= velocity_change * AVOIDANCE_SPEED_CHANGE
 
@@ -351,7 +377,7 @@ class Agent(Entity):
             if self.avoidance_velocity.length_squared() > max_avoidance * max_avoidance:
                 self.avoidance_velocity = self.avoidance_velocity.normalize() * max_avoidance
 
-    def align_near(self, other_sprites: List["Agent"], min_distance: float) -> None:
+    def align_near(self, other_sprites: list["Agent"], min_distance: float) -> None:
         """Align with nearby agents."""
         if not other_sprites:
             return
@@ -362,12 +388,12 @@ class Agent(Entity):
         if self.vel.x != 0 or self.vel.y != 0:  # Checking if it's a zero vector
             self.vel = self.vel.normalize() * abs(self.speed)
 
-    def get_average_position(self, other_sprites: List["Agent"]) -> Vector2:
+    def get_average_position(self, other_sprites: list["Agent"]) -> Vector2:
         """Calculate the average position of other agents."""
         return sum((other.pos for other in other_sprites), Vector2()) / len(other_sprites)
 
     def adjust_velocity_towards_or_away_from_other_sprites(
-        self, other_sprites: List["Agent"], avg_pos: Vector2, min_distance: float
+        self, other_sprites: list["Agent"], avg_pos: Vector2, min_distance: float
     ) -> None:
         """Adjust velocity based on the position of other agents."""
         for other in other_sprites:
@@ -395,11 +421,10 @@ class Agent(Entity):
             self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
 
 
-class Castle(Agent):
+class Castle(Entity):
     """A decorative castle entity that doesn't move.
 
-    Implemented as an Agent (with zero speed) so it can participate in spatial
-    indexing and collision logic without special-casing static entities.
+    Inherits from Entity (not Agent) as it has no movement or behavior.
     """
 
     def __init__(
@@ -415,7 +440,7 @@ class Castle(Agent):
             x: Initial x position
             y: Initial y position
         """
-        super().__init__(environment, x, y, speed=0.0)
+        super().__init__(environment, x, y)
         self.blocks_root_spots = True
         # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
         self.set_size(225.0, 225.0)

@@ -7,7 +7,7 @@ and associating them with high-level mode packs.
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
 from core.modes.petri import create_petri_mode_pack

@@ -16,7 +16,6 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -38,9 +37,9 @@ class EvolutionExperiment:
 
     generation: int = 0
     avg_win_rate_vs_baseline: float = 0.0
-    strategy_distribution: Dict[str, int] = field(default_factory=dict)
-    parameter_means: Dict[str, float] = field(default_factory=dict)
-    parameter_variances: Dict[str, float] = field(default_factory=dict)
+    strategy_distribution: dict[str, int] = field(default_factory=dict)
+    parameter_means: dict[str, float] = field(default_factory=dict)
+    parameter_variances: dict[str, float] = field(default_factory=dict)
 
 
 def test_poker_strategy_inheritance_bias():
@@ -358,7 +357,7 @@ def simulate_evolution_over_generations():
         best_strategy = fitness_scores[0][2].strategy_id
 
         # Count strategy types
-        type_counts: Dict[str, int] = defaultdict(int)
+        type_counts: dict[str, int] = defaultdict(int)
         for _, _, s in fitness_scores:
             type_counts[s.strategy_id] += 1
         most_common = max(type_counts.items(), key=lambda x: x[1])

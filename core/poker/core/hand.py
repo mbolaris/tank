@@ -6,7 +6,6 @@ This module defines poker hand types and provides hand comparison logic.
 
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List
 
 from core.poker.core.cards import Card
 
@@ -33,9 +32,9 @@ class PokerHand:
     hand_type: str
     rank_value: HandRank
     description: str
-    cards: List[Card] = field(default_factory=list)
-    primary_ranks: List[int] = field(default_factory=list)
-    kickers: List[int] = field(default_factory=list)
+    cards: list[Card] = field(default_factory=list)
+    primary_ranks: list[int] = field(default_factory=list)
+    kickers: list[int] = field(default_factory=list)
 
     def beats(self, other: "PokerHand") -> bool:
         """Check if this hand beats another hand, including kicker comparison."""

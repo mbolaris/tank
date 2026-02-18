@@ -1,6 +1,7 @@
 """Table orchestration for poker games between fish players."""
 
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Optional
+from collections.abc import Iterable
 
 from core.entities import Fish
 

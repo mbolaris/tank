@@ -1,7 +1,7 @@
 """Performance tracking for the simulation runner."""
 
 import time
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 
 class PerfStats(TypedDict):
@@ -16,8 +16,8 @@ class PerfTracker:
 
     def __init__(self, enable_logging: bool = True):
         self._enable_logging = enable_logging
-        self._stats: Dict[str, PerfStats] = {}
-        self._starts: Dict[str, float] = {}
+        self._stats: dict[str, PerfStats] = {}
+        self._starts: dict[str, float] = {}
 
     def start(self, name: str) -> None:
         """Start timing an operation."""
@@ -72,7 +72,7 @@ class PerfTracker:
 
         return " | " + " ".join(parts)
 
-    def stats_for(self, name: str) -> Dict[str, float]:
+    def stats_for(self, name: str) -> dict[str, float]:
         """Get current raw stats for a specific operation (peek)."""
         if name not in self._stats:
             return {"count": 0, "total_ms": 0.0, "max_ms": 0.0}

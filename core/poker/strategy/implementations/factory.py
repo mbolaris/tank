@@ -1,7 +1,7 @@
 """Factory and registry for poker strategies."""
 
 import random
-from typing import List, Optional, Type
+from typing import Optional
 
 from core.poker.strategy.implementations.advanced import (
     AdaptiveStrategy,
@@ -22,7 +22,7 @@ from core.poker.strategy.implementations.standard import (
 )
 
 # Registry of all EVOLVING strategy classes
-ALL_POKER_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
+ALL_POKER_STRATEGIES: list[type[PokerStrategyAlgorithm]] = [
     TightAggressiveStrategy,
     LooseAggressiveStrategy,
     TightPassiveStrategy,
@@ -37,7 +37,7 @@ ALL_POKER_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
 ]
 
 # Baseline strategies for benchmarking (not included in evolution pool)
-BASELINE_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
+BASELINE_STRATEGIES: list[type[PokerStrategyAlgorithm]] = [
     AlwaysFoldStrategy,
     RandomStrategy,
     TightPassiveStrategy,  # "Rock" - also useful as baseline
@@ -46,7 +46,7 @@ BASELINE_STRATEGIES: List[Type[PokerStrategyAlgorithm]] = [
 ]
 
 
-def get_all_poker_strategies() -> List[Type[PokerStrategyAlgorithm]]:
+def get_all_poker_strategies() -> list[type[PokerStrategyAlgorithm]]:
     """Get list of all evolving poker strategy classes."""
     return ALL_POKER_STRATEGIES
 

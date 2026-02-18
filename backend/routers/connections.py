@@ -6,8 +6,8 @@ import sys
 if sys.version_info >= (3, 9):
     from typing import Annotated
 else:
-    from typing_extensions import Annotated
-from typing import Any, Dict, List, Optional
+    from typing import Annotated
+from typing import Any, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/connections", tags=["connections"])
 class ConnectionResponse(BaseModel):
     """Response model for a list of connections."""
 
-    connections: List[Dict]
+    connections: list[dict]
 
 
 def setup_router(
@@ -50,7 +50,7 @@ def setup_router(
 
     @router.post("")
     async def create_connection(
-        payload: Annotated[Dict[str, Any], Body(...)],
+        payload: Annotated[dict[str, Any], Body(...)],
     ) -> JSONResponse:
         """Create or update a migration connection."""
         try:

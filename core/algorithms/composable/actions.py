@@ -1,5 +1,5 @@
 import math
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.food import FOOD_SINK_ACCELERATION
 from core.math_utils import Vector2
@@ -27,7 +27,7 @@ class BehaviorActionsMixin:
     """
 
     # Required attributes (provided by ComposableBehavior dataclass)
-    parameters: Dict[str, float]
+    parameters: dict[str, float]
     threat_response: ThreatResponse
     food_approach: FoodApproach
     social_mode: SocialMode
@@ -38,7 +38,7 @@ class BehaviorActionsMixin:
 
     # Required helpers (provided by BehaviorHelpersMixin)
     def _find_nearest(
-        self, fish: "Fish", agent_type: Type[Any], max_distance: Optional[float] = None
+        self, fish: "Fish", agent_type: type[Any], max_distance: Optional[float] = None
     ) -> Optional[Any]:
         raise NotImplementedError
 
@@ -48,7 +48,7 @@ class BehaviorActionsMixin:
     def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
         raise NotImplementedError
 
-    def _execute_threat_response(self, fish: "Fish") -> Tuple[float, float, bool]:
+    def _execute_threat_response(self, fish: "Fish") -> tuple[float, float, bool]:
         """Execute the selected threat response sub-behavior.
 
         Genomic behavioral traits affect threat response:
@@ -111,7 +111,7 @@ class BehaviorActionsMixin:
 
         return 0.0, 0.0, False
 
-    def _execute_food_approach(self, fish: "Fish") -> Tuple[float, float]:
+    def _execute_food_approach(self, fish: "Fish") -> tuple[float, float]:
         """Execute the selected food approach sub-behavior.
 
         Returns:
@@ -289,7 +289,7 @@ class BehaviorActionsMixin:
         speed = base_speed * stamina_boost
         return direction.x * speed, direction.y * speed
 
-    def _execute_social_mode(self, fish: "Fish") -> Tuple[float, float]:
+    def _execute_social_mode(self, fish: "Fish") -> tuple[float, float]:
         """Execute the selected social mode sub-behavior.
 
         Genomic behavioral traits affect social behavior:
@@ -354,7 +354,7 @@ class BehaviorActionsMixin:
 
     def _execute_poker_engagement(
         self, fish: "Fish", energy_ratio: float
-    ) -> Tuple[float, float, bool]:
+    ) -> tuple[float, float, bool]:
         """Execute the selected poker engagement sub-behavior.
 
         Genomic behavioral traits affect poker engagement:
@@ -428,7 +428,7 @@ class BehaviorActionsMixin:
         else:
             return base_mod * 0.8  # Conserve when comfortable
 
-    def _default_exploration(self, fish: "Fish") -> Tuple[float, float]:
+    def _default_exploration(self, fish: "Fish") -> tuple[float, float]:
         """Default wandering behavior when nothing else applies.
 
         Hungry fish explore faster to increase chance of finding food.
@@ -453,7 +453,7 @@ class BehaviorActionsMixin:
         vy = math.sin(self._patrol_angle) * speed
         return vx, vy
 
-    def _find_nearby_fish(self, fish: "Fish", radius: float) -> List["Fish"]:
+    def _find_nearby_fish(self, fish: "Fish", radius: float) -> list["Fish"]:
         """Find nearby fish within radius."""
         from core.entities import Fish as FishClass
 
@@ -471,11 +471,11 @@ class BehaviorActionsMixin:
     def _boids_behavior(
         self,
         fish: "Fish",
-        neighbors: List["Fish"],
+        neighbors: list["Fish"],
         cohesion: float,
         alignment: float,
         separation: float,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Classic boids algorithm for schooling."""
         if not neighbors:
             return 0.0, 0.0

@@ -5,7 +5,7 @@ will be and intercept them more effectively.
 """
 
 import math
-from typing import Optional, Tuple
+from typing import Optional
 
 from core.config.fish import (
     MOVEMENT_DISTANCE_EPSILON,
@@ -19,7 +19,7 @@ from core.math_utils import Vector2
 
 def predict_intercept_point(
     fish_pos: Vector2, fish_speed: float, target_pos: Vector2, target_vel: Vector2
-) -> Tuple[Optional[Vector2], float]:
+) -> tuple[Optional[Vector2], float]:
     """Predict where to move to intercept a moving target.
 
     Uses basic ballistic prediction to calculate where the fish should
@@ -109,7 +109,7 @@ def predict_falling_intercept(
     target_pos: Vector2,
     target_vel: Vector2,
     acceleration: float = 0.01,
-) -> Tuple[Vector2, float]:
+) -> tuple[Vector2, float]:
     """Predict intercept point for accelerating target (like sinking food).
 
     Unlike predict_intercept_point which assumes constant velocity, this
@@ -283,7 +283,7 @@ def is_target_ahead(
 
 def calculate_smooth_approach(
     fish_pos: Vector2, target_pos: Vector2, approach_distance: float, slowdown_distance: float
-) -> Tuple[Vector2, float]:
+) -> tuple[Vector2, float]:
     """Calculate smooth approach to target with slowdown.
 
     Args:

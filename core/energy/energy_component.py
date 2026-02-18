@@ -17,7 +17,7 @@ The Fish class wraps this component and exposes these as its own properties,
 making Fish satisfy EnergyHolder.
 """
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from core.config.fish import (
     BABY_METABOLISM_MULTIPLIER,
@@ -81,7 +81,7 @@ class EnergyComponent:
         life_stage: "LifeStage",
         time_modifier: float = 1.0,
         size: float = 1.0,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Calculate energy burn based on metabolism and activity.
 
         SIMPLIFIED ENERGY SYSTEM with 3 clear costs:

@@ -12,7 +12,6 @@ Sub-tournament categories:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List
 
 
 class BenchmarkCategory(Enum):
@@ -51,7 +50,7 @@ class BaselineOpponent:
 
 
 # Comprehensive baseline opponent suite
-BASELINE_OPPONENTS: List[BaselineOpponent] = [
+BASELINE_OPPONENTS: list[BaselineOpponent] = [
     # Trivial baselines (difficulty 1) - sanity checks
     BaselineOpponent(
         name="Always Fold",
@@ -125,12 +124,12 @@ BASELINE_OPPONENTS: List[BaselineOpponent] = [
 
 def get_baselines_by_difficulty(
     difficulty: BaselineDifficulty,
-) -> List[BaselineOpponent]:
+) -> list[BaselineOpponent]:
     """Get all baselines at a specific difficulty level."""
     return [b for b in BASELINE_OPPONENTS if b.difficulty == difficulty]
 
 
-def get_baseline_ids_by_tier(tier: str) -> List[str]:
+def get_baseline_ids_by_tier(tier: str) -> list[str]:
     """Get baseline strategy IDs by tier name.
 
     Args:
@@ -163,7 +162,7 @@ class SubTournamentConfig:
     hands_per_match: int = 500  # Hands per duplicate set per seat
     num_duplicate_sets: int = 20  # Number of seeds for variance reduction
     replicates: int = 1  # Number of times to run for confidence intervals
-    baseline_opponents: List[str] = field(default_factory=list)
+    baseline_opponents: list[str] = field(default_factory=list)
 
     def total_hands_per_opponent(self) -> int:
         """Total hands played against each opponent."""
@@ -225,7 +224,7 @@ class ComprehensiveBenchmarkConfig:
     parallel_evaluation: bool = True
     max_workers: int = 4
 
-    def get_baseline_weights(self) -> Dict[str, float]:
+    def get_baseline_weights(self) -> dict[str, float]:
         """Get weight for each baseline opponent."""
         return {b.strategy_id: b.weight for b in BASELINE_OPPONENTS}
 

@@ -12,7 +12,7 @@ These strategies evolve over time as fish learn from poker outcomes.
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.evaluation.strength import evaluate_starting_hand_strength as _evaluate_strength
@@ -135,7 +135,7 @@ class PokerStrategyEngine:
         self.fish = fish
 
         # Opponent models (fish_id -> OpponentModel)
-        self.opponent_models: Dict[int, OpponentModel] = {}
+        self.opponent_models: dict[int, OpponentModel] = {}
 
         # Hand selection preferences (learned over time)
         self.hand_selection_tightness = 0.5  # 0=loose, 1=tight
@@ -185,7 +185,7 @@ class PokerStrategyEngine:
         "s": Suit.SPADES,
     }
 
-    def evaluate_starting_hand_strength(self, hole_cards: List[Tuple[str, str]]) -> float:
+    def evaluate_starting_hand_strength(self, hole_cards: list[tuple[str, str]]) -> float:
         """Evaluate the strength of starting hole cards (0.0-1.0).
 
         Delegates to core.poker.evaluation.strength for the actual evaluation.
@@ -204,7 +204,7 @@ class PokerStrategyEngine:
 
     def should_play_hand(
         self,
-        hole_cards: List[Tuple[str, str]],
+        hole_cards: list[tuple[str, str]],
         position_on_button: bool,
         opponent_id: Optional[int] = None,
     ) -> bool:
@@ -353,7 +353,7 @@ class PokerStrategyEngine:
                     1.0, self.hand_selection_tightness + learning_rate * 0.5
                 )
 
-    def get_strategy_summary(self) -> Dict[str, Any]:
+    def get_strategy_summary(self) -> dict[str, Any]:
         """Get summary of current poker strategy."""
         return {
             "hand_selection_tightness": self.hand_selection_tightness,
@@ -365,7 +365,7 @@ class PokerStrategyEngine:
             ),
         }
 
-    def get_opponent_summary(self, opponent_id: int) -> Dict[str, Any]:
+    def get_opponent_summary(self, opponent_id: int) -> dict[str, Any]:
         """Get summary of opponent model."""
         if opponent_id not in self.opponent_models:
             return {}

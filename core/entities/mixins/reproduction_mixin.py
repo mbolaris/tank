@@ -6,7 +6,8 @@ Encapsulates reproduction eligibility, offspring creation, and mating logic.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, cast
+from collections.abc import Callable
 
 from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BASE_SPEED
 from core.telemetry.events import ReproductionEvent

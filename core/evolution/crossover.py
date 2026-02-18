@@ -23,7 +23,7 @@ for testing and internal use.
 
 import random
 from enum import Enum
-from typing import Dict, Optional
+from typing import Optional
 
 
 class CrossoverMode(Enum):
@@ -112,12 +112,12 @@ def blend_discrete(
 
 
 def crossover_dict_values(
-    dict1: Dict[str, float],
-    dict2: Dict[str, float],
+    dict1: dict[str, float],
+    dict2: dict[str, float],
     weight1: float = 0.5,
     mode: CrossoverMode = CrossoverMode.WEIGHTED,
     rng: Optional[random.Random] = None,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Crossover two dictionaries of float values (e.g., algorithm parameters).
 
     Handles keys that exist in one parent but not the other.
@@ -135,7 +135,7 @@ def crossover_dict_values(
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
-    result: Dict[str, float] = {}
+    result: dict[str, float] = {}
 
     # Get all keys from both parents
     all_keys = set(dict1.keys()) | set(dict2.keys())

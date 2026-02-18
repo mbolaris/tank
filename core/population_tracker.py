@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
-from core.ecosystem_stats import (AlgorithmStats, EcosystemEvent,
-                                  GenerationStats)
+from core.ecosystem_stats import AlgorithmStats, EcosystemEvent, GenerationStats
 
 if TYPE_CHECKING:
     from core.entities import Fish

@@ -1,7 +1,8 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Callable
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerStats
@@ -25,8 +26,8 @@ class PokerStatsManager:
         self._add_event = add_event
         self._frame_provider = frame_provider
 
-        self.poker_stats: Dict[int, PokerStats] = {}
-        self.plant_poker_stats: Dict[int, FishOpponentPokerStats] = {}
+        self.poker_stats: dict[int, PokerStats] = {}
+        self.plant_poker_stats: dict[int, FishOpponentPokerStats] = {}
         self.total_fish_poker_games: int = 0
         self.total_plant_poker_games: int = 0
         self.total_plant_poker_energy_transferred: float = 0.0
@@ -36,7 +37,7 @@ class PokerStatsManager:
 
         self._init_poker_stats()
 
-    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
+    def cleanup_dead_fish(self, alive_fish_ids: set[int]) -> int:
         """Remove poker stats for fish that are no longer alive.
 
         Args:
@@ -89,7 +90,7 @@ class PokerStatsManager:
         for i in range(TOTAL_ALGORITHM_COUNT + 5):
             self.poker_stats[i] = PokerStats(algorithm_id=i)
 
-    def get_poker_stats_summary(self) -> Dict[str, Any]:
+    def get_poker_stats_summary(self) -> dict[str, Any]:
         """Get summary poker statistics across all algorithms."""
         total_games = sum(s.total_games for s in self.poker_stats.values())
         total_wins = sum(s.total_wins for s in self.poker_stats.values())
@@ -208,15 +209,15 @@ class PokerStatsManager:
         }
 
     def get_poker_leaderboard(
-        self, fish_list: Optional[List["Fish"]], sort_by: str = "net_energy", limit: int = 10
-    ) -> List[Dict[str, Any]]:
+        self, fish_list: Optional[list["Fish"]], sort_by: str = "net_energy", limit: int = 10
+    ) -> list[dict[str, Any]]:
         """Get poker leaderboard of top-performing fish."""
         if fish_list is None:
             return []
 
         from core.fish.poker_stats_component import FishPokerStats
 
-        poker_fish: List[tuple[Fish, FishPokerStats]] = []
+        poker_fish: list[tuple[Fish, FishPokerStats]] = []
         for fish in fish_list:
             if fish.poker_stats is None:
                 fish.poker_stats = FishPokerStats()

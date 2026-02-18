@@ -178,8 +178,7 @@ class TestSoccerLeaderboardCap:
 
     def test_leaderboard_cap(self):
         """Verify leaderboard doesn't exceed MAX_LEADERBOARD_SIZE."""
-        from core.minigames.soccer.league.types import (LeagueLeaderboardEntry,
-                                                        TeamSource)
+        from core.minigames.soccer.league.types import LeagueLeaderboardEntry, TeamSource
         from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 
         config = MagicMock()

@@ -5,7 +5,6 @@ for collision resolution and point generation.
 """
 
 import math
-from typing import List, Tuple
 
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 
@@ -19,7 +18,7 @@ PETRI_RIM_MARGIN = 10.0
 PETRI_RADIUS = (min(SCREEN_WIDTH, SCREEN_HEIGHT) / 2) - PETRI_RIM_MARGIN
 
 
-def reflect_velocity(vx: float, vy: float, nx: float, ny: float) -> Tuple[float, float]:
+def reflect_velocity(vx: float, vy: float, nx: float, ny: float) -> tuple[float, float]:
     """Reflect velocity vector v about a unit normal n.
 
     Args:
@@ -39,7 +38,7 @@ def circle_perimeter_points(
     cy: float,
     r: float,
     count: int,
-) -> List[Tuple[float, float, float, float]]:
+) -> list[tuple[float, float, float, float]]:
     """Generate points distributed around a circle perimeter.
 
     Args:
@@ -50,7 +49,7 @@ def circle_perimeter_points(
     Returns:
         List of (x, y, nx, ny) tuples where (nx, ny) is the inward-facing normal
     """
-    pts: List[Tuple[float, float, float, float]] = []
+    pts: list[tuple[float, float, float, float]] = []
     for i in range(count):
         a = (2.0 * math.pi * i) / count
         x = cx + r * math.cos(a)

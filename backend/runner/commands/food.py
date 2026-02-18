@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core import entities
 from core.config.display import SCREEN_WIDTH
@@ -11,11 +11,11 @@ class FoodCommands:
     if TYPE_CHECKING:
         world: Any
 
-        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_add_food(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_add_food(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'add_food' command."""
         rng = self.world.rng
         if rng is None:

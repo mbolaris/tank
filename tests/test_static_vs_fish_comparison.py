@@ -12,7 +12,7 @@ with their own aggression parameters and decision-making logic.
 
 import random
 import sys
-from typing import Dict, List, Optional
+from typing import Optional
 
 from core.algorithms.poker import PokerChallenger, PokerConservative, PokerGambler
 from core.auto_evaluate_poker import AutoEvaluatePokerGame, AutoEvaluateStats
@@ -32,10 +32,10 @@ class PokerComparisonResults:
     def __init__(self, behavior_name: str):
         self.behavior_name = behavior_name
         self.standard_net_energy = 0.0
-        self.fish_net_energies: List[float] = []
+        self.fish_net_energies: list[float] = []
         self.standard_win_rate = 0.0
-        self.fish_win_rates: List[float] = []
-        self.fish_aggression_levels: List[float] = []
+        self.fish_win_rates: list[float] = []
+        self.fish_aggression_levels: list[float] = []
         self.hands_played = 0
         self.game_completed = False
 
@@ -107,7 +107,7 @@ def create_fish_player_config(
     fish_id: int,
     poker_strategy_class=None,
     rng: Optional[random.Random] = None,
-) -> Dict:
+) -> dict:
     """Create a fish player configuration for auto-evaluation.
 
     Args:
@@ -304,7 +304,7 @@ def test_static_vs_poker_conservative():
     print("\n✓ TEST PASSED: Tournament completed successfully")
 
 
-def comprehensive_analysis(all_results: List[PokerComparisonResults]):
+def comprehensive_analysis(all_results: list[PokerComparisonResults]):
     """Provide comprehensive analysis of standard algorithm vs fish performance."""
     print("\n" + "=" * 80)
     print("COMPREHENSIVE ANALYSIS: Standard Algorithm vs Fish Behaviors")

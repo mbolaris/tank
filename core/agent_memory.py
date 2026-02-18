@@ -9,7 +9,7 @@ This module provides advanced memory capabilities including:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Optional
 
 from core.math_utils import Vector2
 
@@ -34,7 +34,7 @@ class Memory:
     timestamp: int = 0  # Frame when memory was created
     success_count: int = 0  # How many times this memory led to success
     failure_count: int = 0  # How many times this memory led to failure
-    metadata: Dict = field(default_factory=dict)  # Additional data
+    metadata: dict = field(default_factory=dict)  # Additional data
 
     def decay(self, decay_rate: float = 0.001):
         """Decay memory strength over time."""
@@ -66,7 +66,7 @@ class AgentMemorySystem:
         learning_rate: How fast agents learn from experience
     """
 
-    memories: Dict[MemoryType, List[Memory]] = field(default_factory=dict)
+    memories: dict[MemoryType, list[Memory]] = field(default_factory=dict)
     max_memories_per_type: int = 10
     decay_rate: float = 0.001
     learning_rate: float = 0.05
@@ -83,7 +83,7 @@ class AgentMemorySystem:
         memory_type: MemoryType,
         location: Vector2,
         strength: float = 1.0,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
     ):
         """Add a new memory or reinforce existing one nearby.
 
@@ -152,7 +152,7 @@ class AgentMemorySystem:
             return nearest
         return None
 
-    def get_all_memories(self, memory_type: MemoryType, min_strength: float = 0.1) -> List[Memory]:
+    def get_all_memories(self, memory_type: MemoryType, min_strength: float = 0.1) -> list[Memory]:
         """Get all memories of a type above minimum strength.
 
         Args:

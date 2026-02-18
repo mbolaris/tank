@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.algorithms.base import BehaviorHelpersMixin
 from core.util import coerce_enum
@@ -40,7 +40,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     food_approach: FoodApproach = FoodApproach.DIRECT_PURSUIT
     social_mode: SocialMode = SocialMode.SOLO
     poker_engagement: PokerEngagement = PokerEngagement.PASSIVE
-    parameters: Dict[str, float] = field(default_factory=dict)
+    parameters: dict[str, float] = field(default_factory=dict)
 
     # Internal state for stateful behaviors (food approach patterns)
     _circle_angle: float = field(default=0.0, repr=False)
@@ -89,7 +89,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     # Main Execute Method
     # -------------------------------------------------------------------------
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         """Execute the composed behavior and return desired velocity.
 
         The execution priority is:
@@ -191,7 +191,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     # Serialization
     # -------------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary for storage/transmission."""
         return {
             "type": "ComposableBehavior",
@@ -203,7 +203,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ComposableBehavior":
+    def from_dict(cls, data: dict[str, Any]) -> "ComposableBehavior":
         """Deserialize from dictionary.
 
         NOTE: energy_style is ignored if present in data (removed from behavior system).

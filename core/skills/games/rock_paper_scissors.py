@@ -16,7 +16,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.skills.base import (
     SkillEvaluationMetrics,
@@ -73,10 +73,10 @@ class RPSStrategy(SkillStrategy[RPSAction]):
     memory_length: int = 10  # How many recent opponent actions to remember
 
     # Opponent modeling (for learning)
-    opponent_history: List[RPSAction] = field(default_factory=list)
+    opponent_history: list[RPSAction] = field(default_factory=list)
 
     # Track own action history for entropy calculation
-    own_history: List[RPSAction] = field(default_factory=list)
+    own_history: list[RPSAction] = field(default_factory=list)
 
     def __post_init__(self):
         """Normalize probabilities after initialization."""
@@ -94,7 +94,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
             self.prob_rock = self.prob_paper = self.prob_scissors = 1.0 / 3.0
 
     def choose_action(
-        self, game_state: Dict[str, Any], rng: Optional[random.Random] = None
+        self, game_state: dict[str, Any], rng: Optional[random.Random] = None
     ) -> RPSAction:
         """Choose an action based on current probabilities.
 
@@ -172,7 +172,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
         else:
             self.prob_scissors = max(0.01, min(0.98, self.prob_scissors + delta))
 
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Get strategy parameters for inheritance."""
         return {
             "prob_rock": self.prob_rock,
@@ -181,7 +181,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
             "learning_rate": self.learning_rate,
         }
 
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Set strategy parameters."""
         self.prob_rock = params.get("prob_rock", 0.33)
         self.prob_paper = params.get("prob_paper", 0.33)
@@ -189,7 +189,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
         self.learning_rate = params.get("learning_rate", 0.1)
         self._normalize_probabilities()
 
-    def get_action_distribution(self) -> Dict[str, float]:
+    def get_action_distribution(self) -> dict[str, float]:
         """Get the probability distribution over actions."""
         return {
             "rock": self.prob_rock,
@@ -256,7 +256,7 @@ class OptimalRPSStrategy(RPSStrategy):
         """Optimal strategy doesn't change."""
         pass
 
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Optimal strategy ignores parameter changes."""
         pass
 
@@ -269,7 +269,7 @@ class ExploitingRPSStrategy(RPSStrategy):
     """
 
     def choose_action(
-        self, game_state: Dict[str, Any], rng: Optional[random.Random] = None
+        self, game_state: dict[str, Any], rng: Optional[random.Random] = None
     ) -> RPSAction:
         """Choose the counter to opponent's most frequent action."""
         if len(self.opponent_history) < 5:
@@ -376,7 +376,7 @@ class RockPaperScissorsGame(SkillGame):
         self,
         player_strategy: SkillStrategy,
         opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[Dict[str, Any]] = None,
+        game_state: Optional[dict[str, Any]] = None,
     ) -> SkillGameResult:
         """Play one round of Rock-Paper-Scissors.
 
@@ -491,7 +491,7 @@ class RockPaperScissorsGame(SkillGame):
 
         return metrics
 
-    def _calculate_exploitability_from_probs(self, probs: Dict[RPSAction, float]) -> float:
+    def _calculate_exploitability_from_probs(self, probs: dict[RPSAction, float]) -> float:
         """Calculate how exploitable a strategy is.
 
         For RPS, exploitability = max expected value an exploiter can achieve.
@@ -522,7 +522,7 @@ class RockPaperScissorsGame(SkillGame):
         max_ev = max(ev_rock, ev_paper, ev_scissors)
         return max(0.0, max_ev)  # Clamp to non-negative
 
-    def _calculate_distance_from_optimal(self, probs: Dict[RPSAction, float]) -> float:
+    def _calculate_distance_from_optimal(self, probs: dict[RPSAction, float]) -> float:
         """Calculate distance from optimal strategy.
 
         Uses total variation distance from uniform distribution.
@@ -567,7 +567,7 @@ class RockPaperScissorsGame(SkillGame):
         """RPS is a simple game."""
         return 0.2
 
-    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> Dict[str, Any]:
+    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> dict[str, Any]:
         """Get RPS-specific evaluation summary."""
         base = super().get_evaluation_summary(metrics)
         base.update(

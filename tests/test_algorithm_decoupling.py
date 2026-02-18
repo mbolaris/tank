@@ -1,5 +1,5 @@
 import random
-from typing import Any, List, Optional, Tuple, Type, cast
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 
 from core.algorithms.base import BehaviorAlgorithm
@@ -15,18 +15,18 @@ class MockWorld:
         self.agents = []
         self.bounds = ((0, 0), (1000, 1000))
 
-    def nearby_agents(self, agent: "Agent", radius: float) -> List["Agent"]:
+    def nearby_agents(self, agent: "Agent", radius: float) -> list["Agent"]:
         return [a for a in self.agents if a is not agent]
 
     def nearby_agents_by_type(
-        self, agent: "Agent", radius: float, agent_type: Type["Agent"]
-    ) -> List["Agent"]:
+        self, agent: "Agent", radius: float, agent_type: type["Agent"]
+    ) -> list["Agent"]:
         return [a for a in self.agents if isinstance(a, agent_type) and a is not agent]
 
-    def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
+    def get_agents_of_type(self, agent_type: type["Agent"]) -> list["Agent"]:
         return [a for a in self.agents if isinstance(a, agent_type)]
 
-    def get_bounds(self) -> Tuple[Any, Any]:
+    def get_bounds(self) -> tuple[Any, Any]:
         return self.bounds
 
     def is_valid_position(self, position: Any) -> bool:
@@ -35,11 +35,11 @@ class MockWorld:
         return 0.0 <= x <= 1000.0 and 0.0 <= y <= 1000.0
 
     @property
-    def dimensions(self) -> Tuple[float, ...]:
+    def dimensions(self) -> tuple[float, ...]:
         return (1000, 1000)
 
     # Generic methods
-    def nearby_resources(self, agent: "Agent", radius: float) -> List["Agent"]:
+    def nearby_resources(self, agent: "Agent", radius: float) -> list["Agent"]:
         return self.nearby_agents_by_type(agent, radius, Food)
 
     # Note: domain-specific methods like nearby_fish are NOT implemented
@@ -108,7 +108,7 @@ def test_find_nearest_helper_works_with_mock_world():
 
     # We rely on base.py behavior injected into a dummy class
     class TestAlgo(BehaviorAlgorithm):
-        def execute(self, fish: Fish) -> Tuple[float, float]:
+        def execute(self, fish: Fish) -> tuple[float, float]:
             return (0.0, 0.0)
 
         @classmethod

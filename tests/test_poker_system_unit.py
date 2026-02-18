@@ -1,7 +1,7 @@
 """Unit tests for the PokerSystem helper."""
 
 from types import SimpleNamespace
-from typing import Any, List, cast
+from typing import Any, cast
 
 from core.poker_system import PokerSystem
 from core.simulation.engine import SimulationEngine
@@ -12,7 +12,7 @@ class DummyEngine:
 
     def __init__(self) -> None:
         self.frame_count = 5
-        self.added_entities: List[Any] = []
+        self.added_entities: list[Any] = []
 
     def add_entity(self, entity):
         self.added_entities.append(entity)

@@ -1,5 +1,5 @@
 import importlib
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -17,7 +17,7 @@ class MockWorldStatus:
 
 # Mock WorldManager instead of defining a full Fake class
 class FakeWorldManager:
-    def __init__(self, worlds: Optional[List[Dict]] = None):
+    def __init__(self, worlds: Optional[list[dict]] = None):
         self.worlds = [MockWorldStatus(w) for w in worlds or []]
 
     def list_worlds(self):
@@ -30,8 +30,8 @@ def get_router_module(module_path: str):
 
 
 class FakeDiscoveryService:
-    def __init__(self, servers: Optional[List[ServerInfo]] = None):
-        self.servers: Dict[str, ServerInfo] = {s.server_id: s for s in servers or []}
+    def __init__(self, servers: Optional[list[ServerInfo]] = None):
+        self.servers: dict[str, ServerInfo] = {s.server_id: s for s in servers or []}
 
     async def register_server(self, server_info: ServerInfo) -> None:
         self.servers[server_info.server_id] = server_info
@@ -63,7 +63,7 @@ class FakeDiscoveryService:
 
 class FakeServerClient:
     def __init__(
-        self, remote_worlds: Optional[List[Dict[str, object]]] = None, should_fail: bool = False
+        self, remote_worlds: Optional[list[dict[str, object]]] = None, should_fail: bool = False
     ):
         self.remote_worlds = remote_worlds or []
         self.should_fail = should_fail

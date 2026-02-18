@@ -14,7 +14,8 @@ CFR learning is separated from the core interaction logic because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
@@ -28,12 +29,12 @@ logger = logging.getLogger(__name__)
 
 def update_cfr_learning(
     game_state: "MultiplayerGameState",
-    contexts: "List[MultiplayerPlayerContext]",
+    contexts: "list[MultiplayerPlayerContext]",
     winner_idx: int,
-    tied_players: List[int],
-    players: List[Any],
+    tied_players: list[int],
+    players: list[Any],
     get_player_energy: Callable[[Any], float],
-    initial_player_energies: List[float],
+    initial_player_energies: list[float],
 ) -> None:
     """Update CFR learning for fish with composable strategies.
 
@@ -136,10 +137,10 @@ def _infer_action_taken(player_idx: int, game_state: "MultiplayerGameState") -> 
 def _estimate_counterfactual_values(
     player_idx: int,
     game_state: "MultiplayerGameState",
-    contexts: "List[MultiplayerPlayerContext]",
+    contexts: "list[MultiplayerPlayerContext]",
     winner_idx: int,
     actual_profit: float,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Estimate what we would have won/lost with each action.
 
     This is a simplified estimate - true CFR would require re-playing the hand.

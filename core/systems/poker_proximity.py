@@ -19,7 +19,7 @@ mixing physical collision handling with game logic. This separation:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.entities import Fish
@@ -99,7 +99,7 @@ class PokerProximitySystem(BaseSystem):
 
         return result
 
-    def _build_proximity_graph(self, fish_list: List["Fish"]) -> Dict["Fish", Set["Fish"]]:
+    def _build_proximity_graph(self, fish_list: list["Fish"]) -> dict["Fish", set["Fish"]]:
         """Build a graph of fish within poker proximity of each other.
 
         Args:
@@ -110,7 +110,7 @@ class PokerProximitySystem(BaseSystem):
             fish within poker range
         """
 
-        fish_poker_contacts: Dict[Fish, Set[Fish]] = {fish: set() for fish in fish_list}
+        fish_poker_contacts: dict[Fish, set[Fish]] = {fish: set() for fish in fish_list}
 
         # Pre-compute squared distance constants
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
@@ -160,8 +160,8 @@ class PokerProximitySystem(BaseSystem):
 
     def _process_poker_groups(
         self,
-        fish_list: List["Fish"],
-        fish_poker_contacts: Dict["Fish", Set["Fish"]],
+        fish_list: list["Fish"],
+        fish_poker_contacts: dict["Fish", set["Fish"]],
     ) -> int:
         """Find connected components and trigger poker games.
 
@@ -173,8 +173,8 @@ class PokerProximitySystem(BaseSystem):
             Number of poker games triggered
         """
         games_triggered = 0
-        visited: Set[Fish] = set()
-        processed_fish: Set[Fish] = set()
+        visited: set[Fish] = set()
+        processed_fish: set[Fish] = set()
 
         # PERF: Limit to 1 game per frame to prevent CPU spikes
         # (poker.play_poker() is expensive - can take 10-50ms)
@@ -189,7 +189,7 @@ class PokerProximitySystem(BaseSystem):
                 continue
 
             # DFS to find connected component
-            group: List[Fish] = []
+            group: list[Fish] = []
             stack = [fish]
 
             while stack:
@@ -213,13 +213,13 @@ class PokerProximitySystem(BaseSystem):
                 self._groups_detected += 1
 
                 # Filter to ready players
-                ready_fish = cast(List[Fish], get_ready_players(group))
+                ready_fish = cast(list[Fish], get_ready_players(group))
                 if len(ready_fish) < 2:
                     continue
 
                 # Build sub-groups of mutually proximate ready fish
                 ready_set = set(ready_fish)
-                ready_visited: Set[Fish] = set()
+                ready_visited: set[Fish] = set()
 
                 for start in sorted(ready_fish, key=fish_key):
                     if start in ready_visited:
@@ -229,7 +229,7 @@ class PokerProximitySystem(BaseSystem):
                     if games_triggered >= MAX_GAMES_PER_FRAME:
                         break
 
-                    sub_group: List[Fish] = []
+                    sub_group: list[Fish] = []
                     sub_stack = [start]
 
                     while sub_stack:
@@ -279,7 +279,7 @@ class PokerProximitySystem(BaseSystem):
 
         return games_triggered
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return poker proximity statistics for debugging."""
         return {
             **super().get_debug_info(),

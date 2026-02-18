@@ -15,7 +15,8 @@ Design Decisions:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, List
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 from core import entities
 from core.cache_manager import CacheManager
@@ -63,7 +64,7 @@ class EntityManager:
             get_ecosystem: Callable returning the EcosystemManager (deferred access)
             get_root_spot_manager: Callable returning the RootSpotManager (deferred access)
         """
-        self._entities: List[entities.Agent] = []
+        self._entities: list[entities.Agent] = []
         self._cache_manager = CacheManager(lambda: self._entities)
         self._food_pool = FoodPool(rng=rng)
 
@@ -73,7 +74,7 @@ class EntityManager:
         self._get_root_spot_manager = get_root_spot_manager
 
     @property
-    def entities_list(self) -> List[entities.Agent]:
+    def entities_list(self) -> list[entities.Agent]:
         """Get the master entities list.
 
         Note: This returns the actual list, not a copy. This is intentional
@@ -172,7 +173,7 @@ class EntityManager:
         # Invalidate cached lists
         self._cache_manager.invalidate_entity_caches("entity removed")
 
-    def get_fish(self) -> List[entities.Fish]:
+    def get_fish(self) -> list[entities.Fish]:
         """Get cached list of all fish in the simulation.
 
         Returns:
@@ -180,7 +181,7 @@ class EntityManager:
         """
         return self._cache_manager.get_fish()
 
-    def get_food(self) -> List[entities.Food]:
+    def get_food(self) -> list[entities.Food]:
         """Get cached list of all food in the simulation.
 
         Returns:
@@ -200,7 +201,7 @@ class EntityManager:
         """
         self._cache_manager.invalidate_entity_caches(reason)
 
-    def get_all(self) -> List[entities.Agent]:
+    def get_all(self) -> list[entities.Agent]:
         """Get all entities in the simulation.
 
         Returns:

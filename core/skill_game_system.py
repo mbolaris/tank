@@ -17,7 +17,7 @@ The system:
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Deque, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.skills.base import SkillGame, SkillGameResult, SkillGameType
 from core.skills.config import SkillGameConfig, get_active_skill_game, get_skill_game_config
@@ -41,9 +41,9 @@ class SkillGameEvent:
     energy_transferred: float
     player1_was_optimal: bool
     player2_was_optimal: bool = False
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "frame": self.frame,
@@ -84,14 +84,14 @@ class SkillGameSystem:
         """
         self.engine = engine
         self.config = config or get_skill_game_config()
-        self.events: Deque[SkillGameEvent] = deque(maxlen=max_events)
+        self.events: deque[SkillGameEvent] = deque(maxlen=max_events)
 
         # Cache the active game instance
         self._active_game: Optional[SkillGame] = None
         self._game_type: Optional[SkillGameType] = None
 
         # Track cooldowns to prevent spam (fish_id -> frame when can play again)
-        self._cooldowns: Dict[int, int] = {}
+        self._cooldowns: dict[int, int] = {}
         self._cooldown_frames = 60  # 2 seconds at 30fps
 
         # Aggregate stats for observation
@@ -348,10 +348,10 @@ class SkillGameSystem:
 
     def check_and_run_encounters(
         self,
-        fish_list: List["Fish"],
+        fish_list: list["Fish"],
         current_frame: int,
         encounter_distance: float = 50.0,
-    ) -> List[SkillGameEvent]:
+    ) -> list[SkillGameEvent]:
         """Check for and run skill game encounters between nearby fish.
 
         Args:
@@ -409,7 +409,7 @@ class SkillGameSystem:
 
         return events
 
-    def get_recent_events(self, count: int = 10) -> List[Dict[str, Any]]:
+    def get_recent_events(self, count: int = 10) -> list[dict[str, Any]]:
         """Get recent game events for display.
 
         Args:
@@ -420,7 +420,7 @@ class SkillGameSystem:
         """
         return [e.to_dict() for e in list(self.events)[-count:]]
 
-    def get_aggregate_stats(self) -> Dict[str, Any]:
+    def get_aggregate_stats(self) -> dict[str, Any]:
         """Get aggregate statistics for observation.
 
         Returns:

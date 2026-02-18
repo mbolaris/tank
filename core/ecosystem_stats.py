@@ -5,7 +5,7 @@ Extracted from ecosystem.py to improve code organization and maintainability.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Optional
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
 
@@ -350,7 +350,7 @@ class GeneticDiversityStats:
     unique_algorithms: int = 0
     unique_species: int = 0
     color_variance: float = 0.0
-    trait_variances: Dict[str, float] = field(default_factory=dict)
+    trait_variances: dict[str, float] = field(default_factory=dict)
     avg_genome_similarity: float = 0.0
 
     def get_diversity_score(self) -> float:

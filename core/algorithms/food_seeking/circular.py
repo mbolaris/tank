@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
@@ -43,7 +43,7 @@ class CircularHunter(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         # Check energy status for smarter decisions

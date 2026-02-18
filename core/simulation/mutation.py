@@ -1,6 +1,6 @@
 """Mutation transaction management."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.entities import Agent
 from core.simulation.entity_manager import EntityManager
@@ -21,7 +21,7 @@ class MutationTransaction:
         entity: Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Queue a spawn request."""
         return self._queue.request_spawn(entity, reason=reason, metadata=metadata)
@@ -31,7 +31,7 @@ class MutationTransaction:
         entity: Agent,
         *,
         reason: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> bool:
         """Queue a removal request."""
         return self._queue.request_remove(entity, reason=reason, metadata=metadata)
@@ -51,8 +51,8 @@ class MutationTransaction:
     def commit(
         self,
         entity_manager: EntityManager,
-        frame_spawns: Optional[List["SpawnRequest"]] = None,
-        frame_removals: Optional[List["RemovalRequest"]] = None,
+        frame_spawns: Optional[list["SpawnRequest"]] = None,
+        frame_removals: Optional[list["RemovalRequest"]] = None,
         identity_provider: Optional[Any] = None,
         pre_add_callback: Optional[Any] = None,
     ) -> None:
@@ -105,7 +105,7 @@ class MutationTransaction:
 
             entity_manager.add(entity)
 
-    def _get_id(self, entity: Any, provider: Optional[Any]) -> Tuple[str, str]:
+    def _get_id(self, entity: Any, provider: Optional[Any]) -> tuple[str, str]:
         """Resolve entity identity."""
         if provider is None:
             return entity.__class__.__name__.lower(), str(id(entity))
@@ -114,4 +114,4 @@ class MutationTransaction:
             return str(provider.type_name(entity)), str(provider.stable_id(entity))
 
         identity = provider.get_identity(entity)
-        return cast(Tuple[str, str], identity)
+        return cast(tuple[str, str], identity)

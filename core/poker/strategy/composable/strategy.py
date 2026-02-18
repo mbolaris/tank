@@ -6,7 +6,7 @@ definitions from definitions.py and opponent models from opponent.py.
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable.definitions import (
@@ -28,25 +28,25 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 
 
-def _random_params(rng: random.Random) -> Dict[str, float]:
+def _random_params(rng: random.Random) -> dict[str, float]:
     """Generate random parameters within bounds."""
     return {key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()}
 
 
 def _blend_regret_tables(
-    table1: Dict[str, Dict[str, float]],
-    table2: Dict[str, Dict[str, float]],
+    table1: dict[str, dict[str, float]],
+    table2: dict[str, dict[str, float]],
     weight1: float,
     decay: float,
     min_visits: int,
-    visit_count1: Dict[str, int],
-    visit_count2: Dict[str, int],
-) -> Dict[str, Dict[str, float]]:
+    visit_count1: dict[str, int],
+    visit_count2: dict[str, int],
+) -> dict[str, dict[str, float]]:
     """Blend two regret/strategy_sum tables with weighting and decay."""
-    blended: Dict[str, Dict[str, float]] = {}
+    blended: dict[str, dict[str, float]] = {}
 
     # Collect all info sets from both parents that meet minimum visits
-    all_info_sets: Set[str] = set()
+    all_info_sets: set[str] = set()
     for k in table1:
         if visit_count1.get(k, 0) >= min_visits:
             all_info_sets.add(k)
@@ -93,16 +93,16 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     bluffing_approach: BluffingApproach = BluffingApproach.OCCASIONAL
     position_awareness: PositionAwareness = PositionAwareness.SLIGHT_ADJUSTMENT
     showdown_tendency: ShowdownTendency = ShowdownTendency.CALL_STATION
-    parameters: Dict[str, float] = field(default_factory=dict)
-    opponent_models: Dict[str, SimpleOpponentModel] = field(default_factory=dict, repr=False)
+    parameters: dict[str, float] = field(default_factory=dict)
+    opponent_models: dict[str, SimpleOpponentModel] = field(default_factory=dict, repr=False)
 
     # CFR Learning State (Lamarckian-inheritable)
     # regret[info_set][action] = cumulative regret for that action
-    regret: Dict[str, Dict[str, float]] = field(default_factory=dict, repr=False)
+    regret: dict[str, dict[str, float]] = field(default_factory=dict, repr=False)
     # strategy_sum[info_set][action] = cumulative strategy for averaging
-    strategy_sum: Dict[str, Dict[str, float]] = field(default_factory=dict, repr=False)
+    strategy_sum: dict[str, dict[str, float]] = field(default_factory=dict, repr=False)
     # visit_count[info_set] = how many times we've visited this info set
-    visit_count: Dict[str, int] = field(default_factory=dict, repr=False)
+    visit_count: dict[str, int] = field(default_factory=dict, repr=False)
     # Learning rate for regret accumulation (can evolve)
     learning_rate: float = 1.0
 
@@ -155,7 +155,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         rng: Optional[random.Random] = None,
         *,
         opponent_id: Optional[str] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         """Make betting decision based on composed sub-behaviors.
 
         Args:
@@ -364,7 +364,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         energy: float,
         opponent_adj: float,
         rng: random.Random,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         """Decide whether to call or fold based on showdown_tendency."""
         if call_amount <= 0:
             return (BettingAction.CHECK, 0.0)
@@ -401,7 +401,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
                 return (BettingAction.CALL, call_amount)
             return (BettingAction.FOLD, 0.0)
 
-    def _fold_or_check(self, call_amount: float) -> Tuple[BettingAction, float]:
+    def _fold_or_check(self, call_amount: float) -> tuple[BettingAction, float]:
         """Return appropriate non-play action."""
         if call_amount > 0:
             return (BettingAction.FOLD, 0.0)
@@ -520,7 +520,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         pos = "IP" if position_on_button else "OOP"
         return f"{hs_bucket}:{pr_bucket}:{pos}:{street}"
 
-    def get_regret_strategy(self, info_set: str) -> Optional[Dict[str, float]]:
+    def get_regret_strategy(self, info_set: str) -> Optional[dict[str, float]]:
         """Get action probabilities from regret matching.
 
         Returns None if no regret data exists, meaning caller should use
@@ -576,7 +576,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         self,
         info_set: str,
         action_taken: str,
-        action_values: Dict[str, float],
+        action_values: dict[str, float],
     ) -> None:
         """Update regret after a hand.
 
@@ -629,7 +629,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         self.strategy_sum = {k: v for k, v in self.strategy_sum.items() if k in keeps}
         self.visit_count = {k: v for k, v in self.visit_count.items() if k in keeps}
 
-    def get_average_strategy(self, info_set: str) -> Optional[Dict[str, float]]:
+    def get_average_strategy(self, info_set: str) -> Optional[dict[str, float]]:
         """Get the time-averaged strategy for an info set.
 
         This is more stable than the regret-matched strategy and better
@@ -644,7 +644,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             return None
         return {a: s / total for a, s in sums.items()}
 
-    def get_learning_stats(self) -> Dict[str, Any]:
+    def get_learning_stats(self) -> dict[str, Any]:
         """Get statistics about learned knowledge."""
         return {
             "info_sets_learned": len(self.regret),
@@ -656,7 +656,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     # Serialization
     # -------------------------------------------------------------------------
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary for storage/transmission."""
         # Only include well-visited info sets in serialization
         inheritable_regret = {
@@ -688,7 +688,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ComposablePokerStrategy":
+    def from_dict(cls, data: dict[str, Any]) -> "ComposablePokerStrategy":
         """Deserialize from dictionary."""
         return cls(
             strategy_id=data.get("strategy_id", "composable"),

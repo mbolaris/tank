@@ -4,7 +4,7 @@ This system delegates reproduction rules to ReproductionService, which
 centralizes all reproduction logic (asexual, emergency, and post-poker).
 """
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from core.reproduction_service import ReproductionService
 from core.systems.base import BaseSystem, SystemResult
@@ -36,7 +36,7 @@ class ReproductionSystem(BaseSystem):
             },
         )
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         return {
             **super().get_debug_info(),
             **self._service.get_debug_info(),

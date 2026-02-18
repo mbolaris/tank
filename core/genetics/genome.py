@@ -8,7 +8,7 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Optional, cast
 
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
@@ -81,7 +81,7 @@ class Genome:
 
     def to_dict(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Serialize this genome into JSON-compatible primitives.
 
         This is intended as a stable boundary format for persistence and transfer.
@@ -94,7 +94,7 @@ class Genome:
     @classmethod
     def from_dict(
         cls,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         *,
         rng: Optional[pyrandom.Random] = None,
         use_algorithm: bool = True,
@@ -114,11 +114,11 @@ class Genome:
         )
         return cast("Genome", genome)
 
-    def debug_snapshot(self) -> Dict[str, Any]:
+    def debug_snapshot(self) -> dict[str, Any]:
         """Return a compact, stable dict for logging/debugging."""
         return genome_debug_snapshot(self)
 
-    def validate(self) -> Dict[str, Any]:
+    def validate(self) -> dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
         from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -190,7 +190,7 @@ class Genome:
         *,
         params: ReproductionParams,
         rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[List[str]] = None,
+        available_policies: Optional[list[str]] = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -212,7 +212,7 @@ class Genome:
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
         rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[List[str]] = None,
+        available_policies: Optional[list[str]] = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -261,7 +261,7 @@ class Genome:
         cls,
         parent: "Genome",
         rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[List[str]] = None,
+        available_policies: Optional[list[str]] = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -282,7 +282,7 @@ class Genome:
         mutation_strength: float = 0.15,  # Increased from 0.1
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[List[str]] = None,
+        available_policies: Optional[list[str]] = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         from core.util.rng import require_rng_param
@@ -391,6 +391,6 @@ class Genome:
             self.physical, self.behavioral, other.physical, other.behavioral
         )
 
-    def get_color_tint(self) -> Tuple[int, int, int]:
+    def get_color_tint(self) -> tuple[int, int, int]:
         """Get RGB color tint based on genome."""
         return expression.calculate_color_tint(self.physical)

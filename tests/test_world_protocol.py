@@ -8,7 +8,6 @@ These tests verify that:
 """
 
 import random
-from typing import List
 
 import pytest
 
@@ -93,7 +92,7 @@ class TestWorldProtocol:
         env.rebuild_spatial_grid()
 
         # Test nearby_agents query through World Protocol
-        nearby: List[Agent] = env.nearby_agents(agent1, radius=100)
+        nearby: list[Agent] = env.nearby_agents(agent1, radius=100)
 
         # Should find agent2 (distance ~70) but not agent3 (distance ~565)
         assert agent2 in nearby, "Should find nearby agent"

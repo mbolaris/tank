@@ -1,17 +1,17 @@
 import ast
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 ALLOWED_RANDOM_ATTRS = {"Random", "SystemRandom"}
 
 
-def _iter_core_files() -> List[Path]:
+def _iter_core_files() -> list[Path]:
     core_root = Path(__file__).resolve().parents[1] / "core"
     return [path for path in core_root.rglob("*.py") if "__pycache__" not in path.parts]
 
 
-def _collect_random_aliases(tree: ast.AST) -> Set[str]:
-    aliases: Set[str] = set()
+def _collect_random_aliases(tree: ast.AST) -> set[str]:
+    aliases: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -21,10 +21,10 @@ def _collect_random_aliases(tree: ast.AST) -> Set[str]:
 
 
 class _RandomUsageVisitor(ast.NodeVisitor):
-    def __init__(self, random_aliases: Set[str]) -> None:
+    def __init__(self, random_aliases: set[str]) -> None:
         self._aliases = random_aliases
-        self._stack: List[ast.AST] = []
-        self.violations: List[Tuple[int, str]] = []
+        self._stack: list[ast.AST] = []
+        self.violations: list[tuple[int, str]] = []
 
     def visit(self, node: ast.AST) -> None:
         self._stack.append(node)
@@ -62,7 +62,7 @@ class _RandomUsageVisitor(ast.NodeVisitor):
 
 def test_no_global_random_usage_in_core() -> None:
     """Core simulation should avoid global random module usage."""
-    violations: List[str] = []
+    violations: list[str] = []
     for path in _iter_core_files():
         source = path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(source, filename=str(path))
@@ -78,9 +78,9 @@ def test_no_global_random_usage_in_core() -> None:
 class _UnseededRandomFinder(ast.NodeVisitor):
     """AST visitor that finds calls to random.Random() with no seed arguments."""
 
-    def __init__(self, random_aliases: Set[str]) -> None:
+    def __init__(self, random_aliases: set[str]) -> None:
         self._aliases = random_aliases
-        self.violations: List[Tuple[int, str]] = []
+        self.violations: list[tuple[int, str]] = []
 
     def visit_Call(self, node: ast.Call) -> None:
         """Check if this is a call to random.Random() with no args (unseeded)."""
@@ -131,7 +131,7 @@ def test_no_unseeded_random_in_core() -> None:
         "core/human_poker_game.py",  # Human-facing game
     }
 
-    violations: List[str] = []
+    violations: list[str] = []
     for path in _iter_core_files():
         # Check file allowlist
         if path.name in allowlist_files:

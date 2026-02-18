@@ -7,7 +7,6 @@ poker hand from hole cards and community cards.
 
 from functools import lru_cache
 from itertools import combinations
-from typing import List, Tuple
 
 from core.poker.core.cards import Card, get_card
 from core.poker.core.hand import HandRank, PokerHand
@@ -38,8 +37,8 @@ def _rank_name(rank: int) -> str:
 
 
 def _evaluate_five_cards_core(
-    ranks: List[int], suits: List[int]
-) -> Tuple[str, HandRank, str, List[int], List[int]]:
+    ranks: list[int], suits: list[int]
+) -> tuple[str, HandRank, str, list[int], list[int]]:
     """Core 5-card evaluation logic.
 
     Args:
@@ -169,7 +168,7 @@ def _evaluate_five_cards_core(
     )
 
 
-def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
+def _evaluate_five_cards(cards: list[Card]) -> PokerHand:
     """Evaluate exactly 5 Card objects and return the poker hand."""
     # Sort cards by rank descending
     sorted_cards = sorted(cards, key=lambda c: c.rank, reverse=True)
@@ -190,7 +189,7 @@ def _evaluate_five_cards(cards: List[Card]) -> PokerHand:
 
 
 @lru_cache(maxsize=4096)
-def _evaluate_five_cards_cached(five_cards_key: Tuple[int, int, int, int, int]) -> PokerHand:
+def _evaluate_five_cards_cached(five_cards_key: tuple[int, int, int, int, int]) -> PokerHand:
     """Cached hand evaluation using compact int keys.
 
     `five_cards_key` is a tuple of 5 integers encoding (rank << 2) | suit,
@@ -233,7 +232,7 @@ def _make_pokerhand_from_ints(
     )
 
 
-def evaluate_hand(hole_cards: List[Card], community_cards: List[Card]) -> PokerHand:
+def evaluate_hand(hole_cards: list[Card], community_cards: list[Card]) -> PokerHand:
     """
     Evaluate the best 5-card poker hand from hole cards and community cards.
 
@@ -273,7 +272,7 @@ def evaluate_hand(hole_cards: List[Card], community_cards: List[Card]) -> PokerH
 
 
 @lru_cache(maxsize=16384)
-def evaluate_hand_cached(hole_key: Tuple[int, ...], community_key: Tuple[int, ...]) -> PokerHand:
+def evaluate_hand_cached(hole_key: tuple[int, ...], community_key: tuple[int, ...]) -> PokerHand:
     """Cached evaluate_hand that uses compact int keys for input cards.
 
     This function reconstructs minimal int lists for ranks and suits and

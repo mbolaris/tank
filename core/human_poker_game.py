@@ -7,7 +7,7 @@ This module manages poker games between a human player and AI fish opponents.
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.energy.energy_utils import apply_energy_delta
 from core.poker.core import BettingAction, BettingRound, Card, Deck
@@ -30,7 +30,7 @@ class PlayerState:
     player_id: str
     name: str
     energy: float
-    hole_cards: List[Card] = field(default_factory=list)
+    hole_cards: list[Card] = field(default_factory=list)
     current_bet: float = 0.0
     total_bet: float = 0.0
     folded: bool = False
@@ -39,7 +39,7 @@ class PlayerState:
     fish_id: Optional[int] = None
     generation: Optional[int] = None
     algorithm: Optional[str] = None
-    genome_data: Optional[Dict[str, Any]] = None
+    genome_data: Optional[dict[str, Any]] = None
     aggression: float = 0.5
     last_action: Optional[str] = None  # Track last action (fold, check, call, raise, bet)
 
@@ -49,16 +49,16 @@ class HumanPokerGameState:
     """Tracks the state of a multi-player poker game with human and AI players."""
 
     game_id: str
-    players: List[PlayerState]
+    players: list[PlayerState]
     current_round: BettingRound
     pot: float
-    community_cards: List[Card]
+    community_cards: list[Card]
     current_player_index: int
     button_index: int
     small_blind: float
     big_blind: float
     deck: Deck
-    betting_history: List[Dict[str, Any]] = field(default_factory=list)
+    betting_history: list[dict[str, Any]] = field(default_factory=list)
     winner_index: Optional[int] = None
     game_over: bool = False  # Current hand is over
     session_over: bool = False  # Entire session is over (quit or 1 player left)
@@ -76,7 +76,7 @@ class HumanPokerGame:
         self,
         game_id: str,
         human_energy: float,
-        ai_fish: List[Dict[str, Any]],
+        ai_fish: list[dict[str, Any]],
         small_blind: float = 5.0,
         big_blind: float = 10.0,
     ):
@@ -94,7 +94,7 @@ class HumanPokerGame:
         self.big_blind = big_blind
 
         # Create players list (human + 3 AI) - all start with 100 energy
-        self.players: List[PlayerState] = []
+        self.players: list[PlayerState] = []
 
         # Add human player
         self.players.append(
@@ -124,12 +124,12 @@ class HumanPokerGame:
 
         # Initialize game state
         self.deck = Deck()
-        self.community_cards: List[Card] = []
+        self.community_cards: list[Card] = []
         self.pot = 0.0
         self.current_round = BettingRound.PRE_FLOP
         self.button_index = 0  # Dealer button position
         self.current_player_index = 0
-        self.betting_history: List[Dict[str, Any]] = []
+        self.betting_history: list[dict[str, Any]] = []
         self.winner_index: Optional[int] = None
         self.game_over = False
         self.session_over = False
@@ -138,12 +138,12 @@ class HumanPokerGame:
         self.actions_this_round = 0  # Track actions per betting round
         self.big_blind_index = 0  # Track big blind position for BB option
         self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
-        self.last_move: Optional[Dict[str, str]] = None  # Track the single most recent move
+        self.last_move: Optional[dict[str, str]] = None  # Track the single most recent move
 
         # Decision RNG for deterministic AI decisions (unseeded for human game variation)
         self._decision_rng = random.Random()
         self._hand_state: Optional[MultiplayerGameState] = None
-        self._hand_cache: Dict[int, Any] = {}
+        self._hand_cache: dict[int, Any] = {}
         self._players_acted_since_raise: set[int] = set()
         self._last_raiser: Optional[int] = None
 
@@ -155,7 +155,7 @@ class HumanPokerGame:
         len(self.players)
 
         self.deck.reset()
-        contexts: Dict[int, MultiplayerPlayerContext] = {}
+        contexts: dict[int, MultiplayerPlayerContext] = {}
         for i, player in enumerate(self.players):
             player.current_bet = 0.0
             player.total_bet = 0.0
@@ -397,7 +397,7 @@ class HumanPokerGame:
             self.game_over = True
             self._check_session_over()
 
-    def start_new_hand(self) -> Dict[str, Any]:
+    def start_new_hand(self) -> dict[str, Any]:
         """Start a new hand after the previous one ends.
 
         Returns:
@@ -496,7 +496,7 @@ class HumanPokerGame:
                 # or if not everyone has acted yet this round
                 return
 
-    def handle_action(self, player_id: str, action: str, amount: float = 0.0) -> Dict[str, Any]:
+    def handle_action(self, player_id: str, action: str, amount: float = 0.0) -> dict[str, Any]:
         """Handle a player action.
 
         Args:
@@ -788,7 +788,7 @@ class HumanPokerGame:
         if not self.game_over:
             self._next_player()
 
-    def get_last_hand_result(self) -> Optional[Dict[str, Any]]:
+    def get_last_hand_result(self) -> Optional[dict[str, Any]]:
         """
         Returns a summary of the last hand result for reward processing.
         Should be called immediately after a hand concludes (game_over=True)
@@ -807,7 +807,7 @@ class HumanPokerGame:
             "winning_hand_description": self.message,
         }
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Get current game state for frontend.
 
         Returns:

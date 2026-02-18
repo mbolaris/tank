@@ -9,7 +9,7 @@ This helps identify if the issue is energy availability vs energy gathering effi
 
 import os
 import sys
-from typing import Any, Dict
+from typing import Any
 
 sys.path.insert(0, os.getcwd())
 
@@ -150,7 +150,7 @@ def analyze_energy_economy(tank: TankWorldBackendAdapter, frames: int = 3000) ->
 def main():
     print("Initializing simulation for energy analysis...")
 
-    config: Dict[str, Any] = {
+    config: dict[str, Any] = {
         "max_population": 100,
         "auto_food_enabled": True,
     }

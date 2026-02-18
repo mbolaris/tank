@@ -5,7 +5,7 @@ characteristics from genetic traits. Separating this logic from the data storage
 (Genome) allows for easier testing, tuning, and clearer separation of concerns.
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from core.color import FISH_COLOR_SATURATION, hue_to_rgb
 from core.genetics.behavioral import (
@@ -107,7 +107,7 @@ def calculate_vision_range(physical: PhysicalTraits) -> float:
     return max(EYE_SIZE_MIN, min(EYE_SIZE_MAX, val))
 
 
-def calculate_color_tint(physical: PhysicalTraits) -> Tuple[int, int, int]:
+def calculate_color_tint(physical: PhysicalTraits) -> tuple[int, int, int]:
     """Get RGB color tint based on genome.
 
     Delegates to core.color.hue_to_rgb for the actual conversion.

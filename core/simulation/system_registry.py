@@ -33,7 +33,7 @@ automatic phase-based execution, at the cost of some flexibility.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from core.systems.base import BaseSystem
@@ -66,7 +66,7 @@ class SystemRegistry:
 
     def __init__(self) -> None:
         """Initialize an empty system registry."""
-        self._systems: List[BaseSystem] = []
+        self._systems: list[BaseSystem] = []
 
     def register(self, system: "BaseSystem") -> None:
         """Register a system for execution.
@@ -108,7 +108,7 @@ class SystemRegistry:
                 return system
         return None
 
-    def get_all(self) -> List["BaseSystem"]:
+    def get_all(self) -> list["BaseSystem"]:
         """Get all registered systems in execution order.
 
         Returns:
@@ -133,7 +133,7 @@ class SystemRegistry:
             return True
         return False
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Get debug information from all registered systems.
 
         Returns:

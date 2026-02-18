@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Tuple, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -48,7 +48,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Food
         from core.world import World
 

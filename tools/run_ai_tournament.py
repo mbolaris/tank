@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +34,7 @@ class _AIModel(TypedDict):
     frames: int
 
 
-AI_MODELS: List[_AIModel] = [
+AI_MODELS: list[_AIModel] = [
     {"name": "Claude Opus-4.5", "author": "Opus-4.5", "seed": 1001, "frames": 30000},
     {"name": "Claude Sonnet-4.5", "author": "Sonnet-4.5", "seed": 2002, "frames": 35000},
     {"name": "Claude Haiku-4.5", "author": "Haiku-4.5", "seed": 3003, "frames": 25000},

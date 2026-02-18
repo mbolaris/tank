@@ -5,7 +5,7 @@ This module is a thin wrapper over hand_engine to preserve the legacy API.
 """
 
 import random
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.poker.simulation.hand_engine import (
     MultiplayerGameState,
@@ -20,9 +20,9 @@ if TYPE_CHECKING:
 def simulate_multiplayer_game(
     num_players: int,
     initial_bet: float,
-    player_energies: List[float],
-    player_aggressions: Optional[List[float]] = None,
-    player_strategies: Optional[List[Optional["PokerStrategyAlgorithm"]]] = None,
+    player_energies: list[float],
+    player_aggressions: Optional[list[float]] = None,
+    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
     button_position: int = 0,
     rng: Optional[random.Random] = None,
 ) -> MultiplayerGameState:

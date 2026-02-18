@@ -11,7 +11,7 @@ import inspect
 import os
 import pkgutil
 from importlib import import_module
-from typing import Dict, Iterable, List, Set, Type
+from collections.abc import Iterable
 
 from core import algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase
@@ -26,11 +26,11 @@ def _iter_algorithm_modules() -> Iterable[str]:
         yield module_info.name
 
 
-def _discover_algorithms() -> List[Type[BehaviorStrategyBase]]:
+def _discover_algorithms() -> list[type[BehaviorStrategyBase]]:
     """Dynamically import and collect behavior strategy classes."""
 
-    discovered: List[Type[BehaviorStrategyBase]] = []
-    seen: Set[Type[BehaviorStrategyBase]] = set()
+    discovered: list[type[BehaviorStrategyBase]] = []
+    seen: set[type[BehaviorStrategyBase]] = set()
 
     for module_name in _iter_algorithm_modules():
         module = import_module(module_name)
@@ -48,10 +48,10 @@ def _discover_algorithms() -> List[Type[BehaviorStrategyBase]]:
     return discovered
 
 
-ALL_ALGORITHMS: List[Type[BehaviorStrategyBase]] = _discover_algorithms()
+ALL_ALGORITHMS: list[type[BehaviorStrategyBase]] = _discover_algorithms()
 
 
-def get_algorithm_source_map() -> Dict[str, str]:
+def get_algorithm_source_map() -> dict[str, str]:
     """Get a dictionary mapping algorithm class names to their source file paths.
 
     This mapping is used by AI agents to:
@@ -81,7 +81,7 @@ def get_algorithm_source_map() -> Dict[str, str]:
     return mapping
 
 
-def get_algorithm_id_to_source_map() -> Dict[str, str]:
+def get_algorithm_id_to_source_map() -> dict[str, str]:
     """Get a dictionary mapping algorithm IDs to their source file paths.
 
     Returns:
@@ -110,7 +110,7 @@ def get_algorithm_id_to_source_map() -> Dict[str, str]:
     return mapping
 
 
-def get_algorithm_metadata() -> Dict[str, Dict[str, str]]:
+def get_algorithm_metadata() -> dict[str, dict[str, str]]:
     """Get comprehensive metadata about all algorithms.
 
     Returns:

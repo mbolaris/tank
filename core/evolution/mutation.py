@@ -15,7 +15,7 @@ Adaptive Mutation:
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 
 @dataclass
@@ -52,7 +52,7 @@ def calculate_adaptive_mutation_rate(
     base_rate: float,
     base_strength: float,
     config: Optional[MutationConfig] = None,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Calculate mutation rate and strength with bounds applied.
 
     Args:

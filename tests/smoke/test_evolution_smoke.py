@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Sequence, TypedDict
+from typing import TypedDict
+from collections.abc import Sequence
 
 from core.genetics import Genome
 

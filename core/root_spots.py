@@ -7,7 +7,7 @@ where fractal plants can sprout and grow.
 import math
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import PLANT_ROOT_SPOT_COUNT
@@ -51,7 +51,7 @@ class RootSpot:
     # Angle in radians (for radial_inward mode), relative to dish center
     angle: Optional[float] = None
 
-    def get_anchor_topleft(self, width: float, height: float) -> Tuple[float, float]:
+    def get_anchor_topleft(self, width: float, height: float) -> tuple[float, float]:
         """Get the topleft position for a plant of given size anchored here.
 
         Args:
@@ -150,7 +150,7 @@ class RootSpotManager:
         from core.util.rng import require_rng_param
 
         self.rng = require_rng_param(rng, "__init__")
-        self.spots: List[RootSpot] = []
+        self.spots: list[RootSpot] = []
         self._initialize_spots(spot_count)
 
     def _initialize_spots(self, count: int) -> None:
@@ -327,7 +327,7 @@ class RootSpotManager:
             return 0.0
         return self.get_occupied_count() / len(available_spots)
 
-    def get_all_occupied_spots(self) -> List[RootSpot]:
+    def get_all_occupied_spots(self) -> list[RootSpot]:
         """Get all spots that have plants.
 
         Returns:
@@ -335,7 +335,7 @@ class RootSpotManager:
         """
         return [s for s in self.spots if s.occupied]
 
-    def get_all_empty_spots(self) -> List[RootSpot]:
+    def get_all_empty_spots(self) -> list[RootSpot]:
         """Get all available spots.
 
         Returns:
@@ -345,7 +345,7 @@ class RootSpotManager:
 
     def get_spots_in_range(
         self, x: float, y: float, radius: float, only_empty: bool = False
-    ) -> List[RootSpot]:
+    ) -> list[RootSpot]:
         """Get all spots within a radius of a position.
 
         Args:

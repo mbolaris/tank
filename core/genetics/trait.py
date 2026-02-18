@@ -8,7 +8,8 @@ This module provides:
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from collections.abc import Callable
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -166,7 +167,7 @@ class TraitSpec:
         else:
             raw_value = rng.uniform(self.min_val, self.max_val)
 
-        value: Union[float, int]
+        value: float | int
         if self.discrete:
             default_int = int(round((self.min_val + self.max_val) / 2))
             int_value = _coerce_int(raw_value, default_int)
@@ -210,7 +211,7 @@ class TraitSpec:
             base_mutation_strength * (trait1.mutation_strength + trait2.mutation_strength) / 2
         )
 
-        value: Union[float, int]
+        value: float | int
         if self.discrete:
             value = _inherit_discrete_trait(
                 int(trait1.value),
@@ -245,7 +246,7 @@ class TraitSpec:
 
 
 def inherit_traits_from_specs(
-    specs: List[TraitSpec],
+    specs: list[TraitSpec],
     parent1_traits: object,
     parent2_traits: object,
     *,
@@ -284,7 +285,7 @@ def inherit_traits_from_specs(
 
 
 def inherit_traits_from_specs_recombination(
-    specs: List[TraitSpec],
+    specs: list[TraitSpec],
     parent1_traits: object,
     parent2_traits: object,
     *,
@@ -315,18 +316,18 @@ def inherit_traits_from_specs_recombination(
     return inherited
 
 
-def trait_values_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Any]:
+def trait_values_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, Any]:
     """Serialize a trait container to a primitives dict using TraitSpec definitions."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for spec in specs:
         trait = getattr(traits, spec.name)
         out[spec.name] = trait.value
     return out
 
 
-def trait_meta_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Dict[str, float]]:
+def trait_meta_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, dict[str, float]]:
     """Serialize non-default GeneticTrait metadata for trait containers defined by specs."""
-    out: Dict[str, Dict[str, float]] = {}
+    out: dict[str, dict[str, float]] = {}
     for spec in specs:
         trait = getattr(traits, spec.name)
         meta = trait_meta_for_trait(trait)
@@ -336,7 +337,7 @@ def trait_meta_to_dict(specs: List[TraitSpec], traits: object) -> Dict[str, Dict
 
 
 def apply_trait_values_from_dict(
-    specs: List[TraitSpec], traits: object, data: Dict[str, Any]
+    specs: list[TraitSpec], traits: object, data: dict[str, Any]
 ) -> None:
     """Apply primitive values from *data* onto *traits* using TraitSpec definitions."""
     for spec in specs:
@@ -362,7 +363,7 @@ def apply_trait_values_from_dict(
 
 
 def apply_trait_meta_from_dict(
-    specs: List[TraitSpec], traits: object, meta_by_trait: Dict[str, Dict[str, Any]]
+    specs: list[TraitSpec], traits: object, meta_by_trait: dict[str, dict[str, Any]]
 ) -> None:
     """Apply GeneticTrait metadata from a dict produced by `trait_meta_to_dict`."""
     for spec in specs:
@@ -379,9 +380,9 @@ def trait_meta_for_trait(
     default_mutation_rate: float = 1.0,
     default_mutation_strength: float = 1.0,
     default_hgt_probability: float = 0.1,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Serialize non-default GeneticTrait metadata for a single trait."""
-    meta: Dict[str, float] = {}
+    meta: dict[str, float] = {}
     if trait.mutation_rate != default_mutation_rate:
         meta["mutation_rate"] = float(trait.mutation_rate)
     if trait.mutation_strength != default_mutation_strength:
@@ -391,7 +392,7 @@ def trait_meta_for_trait(
     return meta
 
 
-def apply_trait_meta_to_trait(trait: GeneticTrait[Any], meta: Dict[str, Any]) -> None:
+def apply_trait_meta_to_trait(trait: GeneticTrait[Any], meta: dict[str, Any]) -> None:
     """Apply GeneticTrait metadata onto a single trait instance."""
     if "mutation_rate" in meta:
         trait.mutation_rate = max(0.0, float(meta["mutation_rate"]))

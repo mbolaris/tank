@@ -4,7 +4,7 @@ This module provides a registry and factory function for getting the
 appropriate hooks implementation for a world type.
 """
 
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from backend.runner.hooks.noop_hooks import NoOpWorldHooks
 from backend.runner.hooks.petri_hooks import PetriWorldHooks
@@ -12,7 +12,7 @@ from backend.runner.hooks.protocol import WorldHooks
 from backend.runner.hooks.tank_hooks import TankWorldHooks
 
 # Registry mapping world types to their hooks factory functions
-_HOOKS_REGISTRY: Dict[str, Callable[[], WorldHooks]] = {
+_HOOKS_REGISTRY: dict[str, Callable[[], WorldHooks]] = {
     "tank": TankWorldHooks,
     "petri": PetriWorldHooks,
 }

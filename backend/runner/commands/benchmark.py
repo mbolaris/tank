@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 
@@ -15,11 +15,11 @@ class BenchmarkCommands:
         world: Any
         standard_poker_series: Any
 
-        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_standard_poker_series(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_standard_poker_series(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'standard_poker_series' command."""
         logger.info("Starting standard poker benchmark series...")
         try:
@@ -123,7 +123,7 @@ class BenchmarkCommands:
             logger.error(f"Error running benchmark series: {e}", exc_info=True)
             return self._create_error_response(f"Failed to run benchmark series: {e!s}")
 
-    def _cmd_set_plant_energy_input(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_set_plant_energy_input(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'set_plant_energy_input' command.
 
         Adjusts the runtime plant energy input rate (minimum energy gain per frame).

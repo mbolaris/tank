@@ -10,7 +10,7 @@ import json
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Counter as CounterType
+from collections import Counter as CounterType
 from urllib.request import urlopen
 
 BASE = "http://localhost:8000"

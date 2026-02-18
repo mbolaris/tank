@@ -14,7 +14,7 @@ Architecture Notes:
 import logging
 from collections import deque
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE
 from core.config.plants import PLANT_POKER_MAX_DISTANCE
@@ -265,7 +265,7 @@ class PokerSystem(BaseSystem):
                 )
             )
 
-    def get_recent_poker_events(self, max_age_frames: int) -> List[Dict[str, Any]]:
+    def get_recent_poker_events(self, max_age_frames: int) -> list[dict[str, Any]]:
         """Get recent poker events within a frame window.
 
         Args:
@@ -280,7 +280,7 @@ class PokerSystem(BaseSystem):
             if self._engine.frame_count - event["frame"] < max_age_frames
         ]
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return poker statistics for debugging.
 
         Returns:

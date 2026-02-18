@@ -13,7 +13,7 @@ Architecture Notes:
 import logging
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.food import (
@@ -230,7 +230,7 @@ class FoodSpawningSystem(BaseSystem):
 
         return 0
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return food spawning statistics for debugging.
 
         Returns:

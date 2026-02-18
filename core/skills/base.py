@@ -25,7 +25,7 @@ import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
 if TYPE_CHECKING:
     from random import Random
@@ -63,7 +63,7 @@ class SkillGameResult:
     was_optimal: bool = False  # Did the player play optimally?
 
     # Game-specific details
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -109,7 +109,7 @@ class SkillEvaluationMetrics:
     improvement_trend: float = 0.0  # Positive = getting better
 
     # Game-specific metrics
-    custom_metrics: Dict[str, float] = field(default_factory=dict)
+    custom_metrics: dict[str, float] = field(default_factory=dict)
 
     def win_rate(self) -> float:
         """Calculate win rate."""
@@ -153,7 +153,7 @@ class SkillStrategy(ABC, Generic[ActionType]):
     """
 
     @abstractmethod
-    def choose_action(self, game_state: Dict[str, Any]) -> ActionType:
+    def choose_action(self, game_state: dict[str, Any]) -> ActionType:
         """Choose an action given the current game state.
 
         Args:
@@ -176,7 +176,7 @@ class SkillStrategy(ABC, Generic[ActionType]):
         pass
 
     @abstractmethod
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Get the strategy parameters (for inheritance/mutation).
 
         Returns:
@@ -185,7 +185,7 @@ class SkillStrategy(ABC, Generic[ActionType]):
         pass
 
     @abstractmethod
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Set strategy parameters (from parent genome or mutation).
 
         Args:
@@ -288,7 +288,7 @@ class SkillGame(ABC):
         self,
         player_strategy: SkillStrategy,
         opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[Dict[str, Any]] = None,
+        game_state: Optional[dict[str, Any]] = None,
     ) -> SkillGameResult:
         """Play one round of the game.
 
@@ -355,7 +355,7 @@ class SkillGame(ABC):
     def get_evaluation_summary(
         self,
         metrics: SkillEvaluationMetrics,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get a summary of evaluation results for reporting.
 
         Args:

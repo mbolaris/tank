@@ -9,7 +9,7 @@ Uses AST-based import analysis with no external dependencies.
 
 import ast
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 import pytest
 
@@ -19,12 +19,12 @@ def get_repo_root() -> Path:
     return Path(__file__).parent.parent
 
 
-def find_python_files(directory: Path) -> List[Path]:
+def find_python_files(directory: Path) -> list[Path]:
     """Find all Python files in a directory recursively."""
     return list(directory.rglob("*.py"))
 
 
-def extract_imports(file_path: Path) -> Set[str]:
+def extract_imports(file_path: Path) -> set[str]:
     """Extract all import module names from a Python file.
 
     Returns set of module names (e.g., 'backend.world_registry', 'core.worlds.interfaces').
@@ -57,8 +57,8 @@ def extract_imports(file_path: Path) -> Set[str]:
 
 
 def check_forbidden_imports(
-    source_dir: Path, forbidden_patterns: List[str], allowed_exceptions: Optional[List[str]] = None
-) -> List[Tuple[Path, str]]:
+    source_dir: Path, forbidden_patterns: list[str], allowed_exceptions: Optional[list[str]] = None
+) -> list[tuple[Path, str]]:
     """Check for forbidden imports in a directory.
 
     Args:

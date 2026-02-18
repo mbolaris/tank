@@ -15,12 +15,13 @@ Modes may accept additional keys specific to their worlds.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, Dict, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
+from collections.abc import Callable
 
 if TYPE_CHECKING:
     from core.simulation.pipeline import EnginePipeline
 
-ModeConfig = Dict[str, Any]
+ModeConfig = dict[str, Any]
 
 CANONICAL_MODE_CONFIG_KEYS = (
     "screen_width",

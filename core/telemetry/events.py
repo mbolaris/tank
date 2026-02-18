@@ -16,7 +16,8 @@ Event Types:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Sequence, Union
+from typing import TYPE_CHECKING, Union
+from collections.abc import Sequence
 
 if TYPE_CHECKING:
     from core.genetics import Genome

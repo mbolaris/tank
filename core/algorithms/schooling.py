@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 
 
-def _get_nearby_fish(fish: "Fish", radius: float) -> List["Fish"]:
+def _get_nearby_fish(fish: "Fish", radius: float) -> list["Fish"]:
     """Get nearby fish using the fastest available spatial query method.
 
     OPTIMIZATION: Use dedicated nearby_evolving_agents method when available (faster).
@@ -64,7 +64,7 @@ class TightSchooler(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Tight schoolers stay close, so use a moderate radius
         QUERY_RADIUS = 200
@@ -107,7 +107,7 @@ class LooseSchooler(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Loose schoolers maintain distance, so use a larger radius
         QUERY_RADIUS = 300
@@ -154,7 +154,7 @@ class LeaderFollower(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Query a bit beyond max_follow_distance to find potential leaders
         QUERY_RADIUS = 250
@@ -193,7 +193,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query with alignment_radius (O(N) instead of O(N²))
         # This eliminates the double O(N²) problem: get_all + distance_filter
         allies = [
@@ -243,7 +243,7 @@ class SeparationSeeker(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query with min_distance (O(N) instead of O(N²))
         # Only check fish within separation range
         QUERY_RADIUS = int(self.parameters["min_distance"] * 1.5)
@@ -284,7 +284,7 @@ class FrontRunner(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Front runners lead from ahead, check reasonable radius
         QUERY_RADIUS = 250
@@ -334,7 +334,7 @@ class PerimeterGuard(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Query beyond orbit_radius to find the school center
         QUERY_RADIUS = int(self.parameters["orbit_radius"] * 2)
@@ -399,7 +399,7 @@ class MirrorMover(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query with mirror_distance (O(N) instead of O(N²))
         # This eliminates the double O(N²) problem: get_all + distance_filter
         allies = _get_nearby_fish(fish, int(self.parameters["mirror_distance"]))
@@ -461,7 +461,7 @@ class BoidsBehavior(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
@@ -612,7 +612,7 @@ class DynamicSchooler(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         # Check for danger with graded threat levels

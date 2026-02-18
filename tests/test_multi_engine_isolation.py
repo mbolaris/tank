@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import pytest
 
 from core.simulation.engine import SimulationEngine
@@ -116,7 +114,7 @@ def _compare_nested_dict(dict1: dict, dict2: dict, rel_tol: float, path: str = "
             assert val1 == val2, f"Value mismatch at {current_path}: {val1} vs {val2}"
 
 
-def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, dict]:
+def _run_solo(seed: int, frames: int) -> tuple[SimulationEngine, dict]:
     """Run engine solo and return (engine, stats)."""
     engine = SimulationEngine(seed=seed)
     engine.setup()
@@ -127,7 +125,7 @@ def _run_solo(seed: int, frames: int) -> Tuple[SimulationEngine, dict]:
 
 def _run_interleaved(
     seed_a: int, seed_b: int, frames_each: int
-) -> Tuple[SimulationEngine, dict, SimulationEngine, dict]:
+) -> tuple[SimulationEngine, dict, SimulationEngine, dict]:
     """Run two engines interleaved, return (engine_a, stats_a, engine_b, stats_b)."""
     engine_a = SimulationEngine(seed=seed_a)
     engine_b = SimulationEngine(seed=seed_b)

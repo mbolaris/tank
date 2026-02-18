@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (

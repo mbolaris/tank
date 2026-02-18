@@ -27,7 +27,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Protocol
+from typing import Any, Protocol
 
 from core.brains.contracts import BrainAction
 
@@ -37,7 +37,7 @@ Action = BrainAction
 logger = logging.getLogger(__name__)
 
 # Type alias for action space descriptors
-ActionSpace = Dict[str, Any]
+ActionSpace = dict[str, Any]
 """Describes valid actions for a world type.
 
 Example:

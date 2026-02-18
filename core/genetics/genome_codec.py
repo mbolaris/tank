@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import random as pyrandom
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS

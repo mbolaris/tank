@@ -5,7 +5,7 @@ used by the web UI backend and headless simulation mode.
 """
 
 import random
-from typing import List, Optional
+from typing import Optional
 
 from core import entities, environment, movement_strategy
 from core.config.fish import FISH_BASE_SPEED
@@ -20,7 +20,7 @@ def create_initial_population(
     display_config: Optional[DisplayConfig] = None,
     ecosystem_config: Optional[EcosystemConfig] = None,
     rng: Optional[random.Random] = None,
-) -> List[entities.Agent]:
+) -> list[entities.Agent]:
     """Create initial population for simulation.
 
     Creates a starting population with algorithmic fish that evolve their behavior:
@@ -41,7 +41,7 @@ def create_initial_population(
     """
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
-    population: List[entities.Agent] = []
+    population: list[entities.Agent] = []
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")
@@ -72,7 +72,7 @@ def create_initial_population(
 
     # Create initial food items to prevent startup pause
     # Spawn 8 food items at various locations so fish have immediate targets
-    initial_food: List[entities.Food] = []
+    initial_food: list[entities.Food] = []
     food_positions = [
         (display_config.screen_width * 0.25, display_config.screen_height * 0.3),  # Upper left area
         (display_config.screen_width * 0.5, display_config.screen_height * 0.25),  # Upper middle

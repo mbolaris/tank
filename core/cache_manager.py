@@ -15,7 +15,8 @@ Design Principles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from collections.abc import Callable
 
 if TYPE_CHECKING:
     from core import entities
@@ -42,7 +43,7 @@ class CachedList(Generic[T]):
         fish = fish_cache.get()  # Recomputes
     """
 
-    def __init__(self, name: str, compute_fn: Callable[[], List[T]]) -> None:
+    def __init__(self, name: str, compute_fn: Callable[[], list[T]]) -> None:
         """Initialize the cached list.
 
         Args:
@@ -51,12 +52,12 @@ class CachedList(Generic[T]):
         """
         self._name = name
         self._compute_fn = compute_fn
-        self._cached_value: Optional[List[T]] = None
+        self._cached_value: Optional[list[T]] = None
         self._is_valid = False
         self._invalidation_count = 0
         self._recompute_count = 0
 
-    def get(self) -> List[T]:
+    def get(self) -> list[T]:
         """Get the cached list, recomputing if necessary.
 
         Returns:
@@ -84,7 +85,7 @@ class CachedList(Generic[T]):
         """Check if the cache is currently valid."""
         return self._is_valid
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get cache statistics.
 
         Returns:
@@ -112,7 +113,7 @@ class CacheManager:
         fish = cache_manager.get_fish()  # Recomputed
     """
 
-    def __init__(self, get_entities_fn: Callable[[], List["entities.Agent"]]) -> None:
+    def __init__(self, get_entities_fn: Callable[[], list["entities.Agent"]]) -> None:
         """Initialize the cache manager.
 
         Args:
@@ -133,19 +134,19 @@ class CacheManager:
         # Track overall invalidation count
         self._total_invalidations = 0
 
-    def _compute_fish_list(self) -> List["entities.Fish"]:
+    def _compute_fish_list(self) -> list["entities.Fish"]:
         """Compute the fish list from entities."""
         from core import entities as entity_module
 
         return [e for e in self._get_entities() if isinstance(e, entity_module.Fish)]
 
-    def _compute_food_list(self) -> List["entities.Food"]:
+    def _compute_food_list(self) -> list["entities.Food"]:
         """Compute the food list from entities."""
         from core import entities as entity_module
 
         return [e for e in self._get_entities() if isinstance(e, entity_module.Food)]
 
-    def get_fish(self) -> List["entities.Fish"]:
+    def get_fish(self) -> list["entities.Fish"]:
         """Get cached list of fish entities.
 
         Returns:
@@ -153,7 +154,7 @@ class CacheManager:
         """
         return self._fish_cache.get()
 
-    def get_food(self) -> List["entities.Food"]:
+    def get_food(self) -> list["entities.Food"]:
         """Get cached list of food entities.
 
         Returns:
@@ -191,7 +192,7 @@ class CacheManager:
             rebuilt = True
         return rebuilt
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics for debugging.
 
         Returns:

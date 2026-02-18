@@ -8,7 +8,7 @@ needed for poker games.
 import random
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 
 class Suit(IntEnum):
@@ -70,7 +70,7 @@ class Card:
 
 # Pre-create all 52 cards once at module load - shared card cache
 # Maps (rank_int, suit_int) -> Card to avoid repeated Enum/Card construction
-_CARD_CACHE: Dict[Tuple[int, int], Card] = {
+_CARD_CACHE: dict[tuple[int, int], Card] = {
     (r, s): Card(Rank(r), Suit(s)) for r in range(2, 15) for s in range(4)
 }
 
@@ -90,7 +90,7 @@ class Deck:
     """
 
     # Pre-create all 52 cards once at module load to avoid repeated Enum construction
-    _TEMPLATE_DECK: List[Card] = list(_CARD_CACHE.values())
+    _TEMPLATE_DECK: list[Card] = list(_CARD_CACHE.values())
 
     def __init__(self, seed: Optional[int] = None, rng: Optional[random.Random] = None) -> None:
         """Initialize and shuffle a standard 52-card deck.
@@ -99,7 +99,7 @@ class Deck:
             seed: Optional RNG seed for deterministic shuffling
             rng: Optional RNG instance to use for shuffling (overrides seed)
         """
-        self.cards: List[Card] = []
+        self.cards: list[Card] = []
         self.rng: random.Random = rng if rng is not None else random.Random(seed)
         self.reset()
 
@@ -115,7 +115,7 @@ class Deck:
         self.cards = self._TEMPLATE_DECK.copy()
         self.rng.shuffle(self.cards)
 
-    def deal(self, count: int = 1) -> List[Card]:
+    def deal(self, count: int = 1) -> list[Card]:
         """Deal cards from the deck."""
         if count > len(self.cards):
             raise ValueError("Not enough cards in deck")

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from core.collision_system import default_collision_detector
 from core.config.fish import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
@@ -33,7 +33,7 @@ ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = (
     ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
 )
 
-VelocityComponents = Tuple[float, float]
+VelocityComponents = tuple[float, float]
 
 
 class MovementStrategy:

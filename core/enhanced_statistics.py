@@ -12,7 +12,7 @@ This module provides advanced population analytics including:
 import math
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -101,7 +101,7 @@ class LiveFoodStats:
         self.vision_sum += genome.vision_range
 
     @property
-    def averaged_traits(self) -> Dict[str, float]:
+    def averaged_traits(self) -> dict[str, float]:
         """Return the average traits from successful catches."""
 
         if self.captures == 0:
@@ -141,17 +141,17 @@ class EnhancedStatisticsTracker:
         self.time_series: deque = deque(maxlen=max_history_length)
 
         # Trait correlation data (trait_name -> deque of (trait_value, fitness) pairs)
-        self.trait_fitness_data: Dict[str, deque] = defaultdict(
+        self.trait_fitness_data: dict[str, deque] = defaultdict(
             lambda: deque(maxlen=self.MAX_TRAIT_SAMPLES)
         )
 
         # Extinction tracking (capped to avoid unbounded growth)
-        self.extinct_algorithms: List[ExtinctionEvent] = []
-        self.algorithm_last_seen: Dict[int, int] = {}  # algorithm_id -> last frame seen
-        self.algorithm_extinction_check: Dict[int, bool] = {}  # algorithm_id -> is_extinct
+        self.extinct_algorithms: list[ExtinctionEvent] = []
+        self.algorithm_last_seen: dict[int, int] = {}  # algorithm_id -> last frame seen
+        self.algorithm_extinction_check: dict[int, bool] = {}  # algorithm_id -> is_extinct
 
         # Evolutionary rates (trait_name -> historical values)
-        self.trait_history: Dict[str, deque] = {
+        self.trait_history: dict[str, deque] = {
             "speed": deque(maxlen=100),
             "size": deque(maxlen=100),
             "metabolism": deque(maxlen=100),
@@ -161,9 +161,9 @@ class EnhancedStatisticsTracker:
         }
 
         # Specialized tracking for live food performance (harder to catch than static food)
-        self.live_food_performance: Dict[int, LiveFoodStats] = defaultdict(LiveFoodStats)
-        self.live_food_algorithm_snapshots: Dict[int, Dict[str, Any]] = {}
-        self.live_food_trait_samples: Dict[str, deque] = defaultdict(
+        self.live_food_performance: dict[int, LiveFoodStats] = defaultdict(LiveFoodStats)
+        self.live_food_algorithm_snapshots: dict[int, dict[str, Any]] = {}
+        self.live_food_trait_samples: dict[str, deque] = defaultdict(
             lambda: deque(maxlen=self.MAX_TRAIT_SAMPLES)
         )
 
@@ -184,7 +184,7 @@ class EnhancedStatisticsTracker:
     def record_frame_snapshot(
         self,
         frame: int,
-        fish_list: List["Fish"],
+        fish_list: list["Fish"],
         births_this_frame: int = 0,
         deaths_this_frame: int = 0,
     ) -> None:
@@ -258,7 +258,7 @@ class EnhancedStatisticsTracker:
         self.trait_history["size"].append(avg_size)
         self.trait_history["metabolism"].append(avg_metabolism)
 
-    def calculate_trait_correlations(self) -> List[TraitCorrelation]:
+    def calculate_trait_correlations(self) -> list[TraitCorrelation]:
         """Calculate correlations between traits and fitness.
 
         Returns:
@@ -312,7 +312,7 @@ class EnhancedStatisticsTracker:
 
     def check_for_extinctions(
         self, frame: int, ecosystem: "EcosystemManager"
-    ) -> List[ExtinctionEvent]:
+    ) -> list[ExtinctionEvent]:
         """Check if any algorithms have gone extinct.
 
         An algorithm is considered extinct if:
@@ -375,7 +375,7 @@ class EnhancedStatisticsTracker:
 
         return new_extinctions
 
-    def calculate_evolutionary_rates(self) -> List[EvolutionaryRate]:
+    def calculate_evolutionary_rates(self) -> list[EvolutionaryRate]:
         """Calculate how fast traits are evolving.
 
         Returns:
@@ -480,10 +480,10 @@ class EnhancedStatisticsTracker:
         self.live_food_trait_samples["speed"].append((genome.speed_modifier, energy_gained))
         self.live_food_trait_samples["vision"].append((genome.vision_range, energy_gained))
 
-    def calculate_live_food_correlations(self) -> List[TraitCorrelation]:
+    def calculate_live_food_correlations(self) -> list[TraitCorrelation]:
         """Calculate correlations between traits and live food capture success."""
 
-        correlations: List[TraitCorrelation] = []
+        correlations: list[TraitCorrelation] = []
 
         for trait_name, samples_deque in self.live_food_trait_samples.items():
             if len(samples_deque) < 10:
@@ -560,7 +560,7 @@ class EnhancedStatisticsTracker:
                 self.total_death_energy_loss / self.total_deaths_tracked
             )
 
-    def get_time_series_summary(self, frames: int = 100) -> Dict[str, Any]:
+    def get_time_series_summary(self, frames: int = 100) -> dict[str, Any]:
         """Get summary of recent time series data.
 
         Args:
@@ -597,7 +597,7 @@ class EnhancedStatisticsTracker:
             "total_deaths": sum(s.death_rate for s in recent_data),
         }
 
-    def get_food_chaser_overview(self) -> Dict[str, Any]:
+    def get_food_chaser_overview(self) -> dict[str, Any]:
         """Explain which algorithms are winning the live-food chase."""
 
         if not self.live_food_performance:
@@ -630,7 +630,7 @@ class EnhancedStatisticsTracker:
             },
         }
 
-    def get_full_report(self) -> Dict[str, Any]:
+    def get_full_report(self) -> dict[str, Any]:
         """Generate a comprehensive statistics report.
 
         Returns:

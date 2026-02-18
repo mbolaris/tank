@@ -14,7 +14,7 @@ This module contains 8 algorithms focused on spatial behavior and exploration:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -45,7 +45,7 @@ class TerritorialDefender(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Fish
 
         if self.territory_center is None:
@@ -121,7 +121,7 @@ class RandomExplorer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Fish
         from core.math_utils import Vector2
 
@@ -215,7 +215,7 @@ class WallFollower(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Find nearest wall
         dist_to_left = fish.pos.x
         dist_to_right = SCREEN_WIDTH - fish.pos.x
@@ -254,7 +254,7 @@ class CornerSeeker(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Determine corner position
         corners = {
             "top_left": Vector2(50, 50),
@@ -292,7 +292,7 @@ class CenterHugger(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         distance = (center - fish.pos).length()
 
@@ -321,7 +321,7 @@ class RoutePatroller(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.waypoints: List[Vector2] = []
+        self.waypoints: list[Vector2] = []
         self.current_waypoint_idx = 0
         self.initialized = False
 
@@ -329,7 +329,7 @@ class RoutePatroller(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         if not self.initialized:
@@ -439,7 +439,7 @@ class BoundaryExplorer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         # Move toward edges
         center = Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         direction = self._safe_normalize(fish.pos - center)
@@ -471,7 +471,7 @@ class NomadicWanderer(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         # Check for threats and opportunities

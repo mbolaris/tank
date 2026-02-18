@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on avoiding and escaping from predato
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -46,7 +46,7 @@ class PanicFlee(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         predator, distance, escape_dir = self._get_predator_threat(
             fish, self.parameters["panic_distance"]
         )
@@ -87,7 +87,7 @@ class StealthyAvoider(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         predator, distance, escape_dir = self._get_predator_threat(
             fish, self.parameters["awareness_range"]
         )
@@ -133,7 +133,7 @@ class FreezeResponse(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         """Freeze when predator is near, but prioritize food when starving.
 
         AI-IMPROVED v2: Survival rate was 0%, all deaths from starvation.
@@ -217,7 +217,7 @@ class ErraticEvader(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Fish
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -292,7 +292,7 @@ class VerticalEscaper(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -330,7 +330,7 @@ class GroupDefender(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab, Fish
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -377,7 +377,7 @@ class SpiralEscape(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -424,7 +424,7 @@ class BorderHugger(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -469,7 +469,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)
@@ -520,7 +520,7 @@ class DistanceKeeper(BehaviorAlgorithm):
     def random_instance(cls, rng: Optional[random.Random] = None):
         return cls(rng=rng)
 
-    def execute(self, fish: "Fish") -> Tuple[float, float]:
+    def execute(self, fish: "Fish") -> tuple[float, float]:
         from core.entities import Crab
 
         nearest_predator = self._find_nearest(fish, Crab)

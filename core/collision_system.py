@@ -38,7 +38,7 @@ within handlers (see core/protocols.py for examples).
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -262,7 +262,7 @@ class CollisionSystem(BaseSystem):
             return
 
         # Track which fish have been removed (e.g. eaten) to avoid processing them further
-        removed_fish: Set[Fish] = set()
+        removed_fish: set[Fish] = set()
 
         # Performance: Cache environment and check_collision references
         environment = self._engine.environment
@@ -492,7 +492,7 @@ class CollisionSystem(BaseSystem):
                 self._engine.request_remove(food, reason="food_consumed")
                 self._frame_entities_removed += 1
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return collision statistics for debugging."""
         return {
             **super().get_debug_info(),

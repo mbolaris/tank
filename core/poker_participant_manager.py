@@ -17,7 +17,7 @@ The preferred approach is now:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 from core.poker.strategy.base import PokerStrategyEngine
 
@@ -93,10 +93,10 @@ class PokerParticipantManager:
 
     def __init__(self) -> None:
         """Initialize the participant manager."""
-        self._participants: Dict[Tuple[Optional[int], int], PokerParticipant] = {}
+        self._participants: dict[tuple[Optional[int], int], PokerParticipant] = {}
 
     @staticmethod
-    def _participant_key(fish: "Fish") -> Tuple[Optional[int], int]:
+    def _participant_key(fish: "Fish") -> tuple[Optional[int], int]:
         """Build a stable participant key scoped to the fish's environment."""
         environment = getattr(fish, "environment", None)
         env_key = id(environment) if environment is not None else None
@@ -139,7 +139,7 @@ class PokerParticipantManager:
         participant.sync_with_age()
         return participant
 
-    def get_ready_participants(self, fish_list: List["Fish"]) -> List["Fish"]:
+    def get_ready_participants(self, fish_list: list["Fish"]) -> list["Fish"]:
         """Get fish that are ready to play poker.
 
         Args:
@@ -204,7 +204,7 @@ def get_participant(fish: "Fish") -> PokerParticipant:
     return _global_manager.get_participant(fish)
 
 
-def get_ready_players(fish_list: List["Fish"], min_energy: float = 10.0) -> List["Fish"]:
+def get_ready_players(fish_list: list["Fish"], min_energy: float = 10.0) -> list["Fish"]:
     """Get fish that are ready to play poker (convenience function).
 
     Args:

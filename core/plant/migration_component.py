@@ -6,7 +6,8 @@ plant migration between connected tanks.
 
 import logging
 import random
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
+from collections.abc import Callable
 
 from core.state_machine import EntityState
 

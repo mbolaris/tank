@@ -1,7 +1,6 @@
 """Guardrail to keep soccer code on canonical RCSS params."""
 
 from pathlib import Path
-from typing import List
 
 ALLOWED_PATHS = {
     "core/minigames/soccer/params.py",
@@ -19,7 +18,7 @@ def _is_allowed_path(rel_path: str) -> bool:
 
 def test_soccer_only_uses_canonical_params():
     """Ensure only params.py/tests mention DEFAULT_RCSS_PARAMS."""
-    violations: List[str] = []
+    violations: list[str] = []
 
     for path in sorted(Path(".").rglob("*.py")):
         if any(part.startswith(".") for part in path.parts):

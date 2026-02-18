@@ -4,7 +4,7 @@ This module provides a mixin class that adds soccer event collection
 functionality to world hooks that support soccer gameplay.
 """
 
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from backend.state_payloads import SoccerEventPayload
 
@@ -16,7 +16,7 @@ class SoccerMixin:
     game events and league state.
     """
 
-    def collect_soccer_events(self, runner: Any) -> Optional[List[SoccerEventPayload]]:
+    def collect_soccer_events(self, runner: Any) -> Optional[list[SoccerEventPayload]]:
         """Collect soccer events from the world engine.
 
         Args:
@@ -29,7 +29,7 @@ class SoccerMixin:
         if engine is None or not hasattr(engine, "get_recent_soccer_events"):
             return None
 
-        soccer_events: List[SoccerEventPayload] = []
+        soccer_events: list[SoccerEventPayload] = []
         recent_events = engine.get_recent_soccer_events(max_age_frames=60)
         for event in recent_events:
             soccer_events.append(

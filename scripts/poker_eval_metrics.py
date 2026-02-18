@@ -8,7 +8,6 @@ useful for gauging strategy strength (bb/100, showdown win rate, etc.).
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List, Type
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -25,7 +24,7 @@ from core.poker.strategy.implementations import (
     TightPassiveStrategy,
 )
 
-STRATEGY_REGISTRY: Dict[str, Type[PokerStrategyAlgorithm]] = {
+STRATEGY_REGISTRY: dict[str, type[PokerStrategyAlgorithm]] = {
     "balanced": BalancedStrategy,
     "tight_aggressive": TightAggressiveStrategy,
     "loose_aggressive": LooseAggressiveStrategy,
@@ -35,7 +34,7 @@ STRATEGY_REGISTRY: Dict[str, Type[PokerStrategyAlgorithm]] = {
 }
 
 
-def build_players(strategy_ids: List[str]) -> List[Dict]:
+def build_players(strategy_ids: list[str]) -> list[dict]:
     players = []
     for idx, strategy_id in enumerate(strategy_ids, start=1):
         factory = STRATEGY_REGISTRY.get(strategy_id)

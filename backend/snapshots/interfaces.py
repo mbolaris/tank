@@ -7,7 +7,8 @@ serialization across different world types (Tank, Petri, etc.).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from collections.abc import Iterable
 
 if TYPE_CHECKING:
     from backend.state_payloads import EntitySnapshot

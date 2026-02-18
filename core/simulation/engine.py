@@ -29,6 +29,7 @@ import uuid
 from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
+import warnings
 
 from core.config.simulation_config import SimulationConfig
 from core.simulation import diagnostics
@@ -232,20 +233,52 @@ class SimulationEngine:
         return self.plant_manager.root_spot_manager
 
     def get_fish_list(self) -> list[entities.Fish]:
-        """Get list of all fish (compatibility method)."""
+        """Get list of all fish.
+
+        .. deprecated:: Use ``_entity_manager.get_fish()`` directly.
+        """
+        warnings.warn(
+            "get_fish_list() is deprecated, use _entity_manager.get_fish()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._entity_manager.get_fish()
 
     def get_food_list(self) -> list[entities.Food]:
-        """Get list of all food (compatibility method)."""
+        """Get list of all food.
+
+        .. deprecated:: Use ``_entity_manager.get_food()`` directly.
+        """
+        warnings.warn(
+            "get_food_list() is deprecated, use _entity_manager.get_food()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._entity_manager.get_food()
 
     def cleanup_dying_fish(self) -> None:
-        """Remove dying fish (compatibility method)."""
+        """Remove dying fish.
+
+        .. deprecated:: Use ``lifecycle_system.cleanup_dying_fish()`` directly.
+        """
+        warnings.warn(
+            "cleanup_dying_fish() is deprecated, use lifecycle_system.cleanup_dying_fish()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self.lifecycle_system:
             self.lifecycle_system.cleanup_dying_fish()
 
     def record_fish_death(self, fish: entities.Fish, cause: str | None = None) -> None:
-        """Record fish death (compatibility method)."""
+        """Record fish death.
+
+        .. deprecated:: Use ``lifecycle_system.record_fish_death()`` directly.
+        """
+        warnings.warn(
+            "record_fish_death() is deprecated, use lifecycle_system.record_fish_death()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self.lifecycle_system:
             self.lifecycle_system.record_fish_death(fish, cause)
 
@@ -668,7 +701,15 @@ class SimulationEngine:
             self._phase_hooks.on_reproduction_complete(self)
 
     def handle_reproduction(self) -> None:
-        """Orchestrate reproduction logic (compatibility method)."""
+        """Orchestrate reproduction logic.
+
+        .. deprecated:: Use ``reproduction_system.update()`` directly.
+        """
+        warnings.warn(
+            "handle_reproduction() is deprecated, use reproduction_system.update()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self.reproduction_system:
             self.reproduction_system.update(self.frame_count)
 

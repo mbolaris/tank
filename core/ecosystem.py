@@ -6,7 +6,7 @@ EcosystemManager is a facade that composes specialized trackers.
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS
 from core.ecosystem_stats import (
@@ -62,7 +62,7 @@ class EcosystemManager:
         self.frame_count: int = 0
 
         # Event logging (simple, kept inline)
-        self.events: List[EcosystemEvent] = []
+        self.events: list[EcosystemEvent] = []
         self.max_events: int = MAX_ECOSYSTEM_EVENTS
 
         # Population tracking (births, deaths, generations)
@@ -186,15 +186,15 @@ class EcosystemManager:
         self.population.total_deaths = value
 
     @property
-    def generation_stats(self) -> Dict:
+    def generation_stats(self) -> dict:
         return self.population.generation_stats
 
     @property
-    def death_causes(self) -> Dict[str, int]:
+    def death_causes(self) -> dict[str, int]:
         return self.population.death_causes
 
     @property
-    def algorithm_stats(self) -> Dict:
+    def algorithm_stats(self) -> dict:
         return self.population.algorithm_stats
 
     @property
@@ -210,11 +210,11 @@ class EcosystemManager:
         return self.population.total_extinctions
 
     @property
-    def lineage_log(self) -> List[Dict[str, Any]]:
+    def lineage_log(self) -> list[dict[str, Any]]:
         return self.lineage.lineage_log
 
     @property
-    def poker_stats(self) -> Dict[int, PokerStats]:
+    def poker_stats(self) -> dict[int, PokerStats]:
         return self.poker_manager.poker_stats
 
     @property
@@ -222,19 +222,19 @@ class EcosystemManager:
         return self.reproduction_manager.reproduction_stats
 
     @property
-    def energy_sources(self) -> Dict[str, float]:
+    def energy_sources(self) -> dict[str, float]:
         return self.energy_tracker.energy_sources
 
     @property
-    def energy_burn(self) -> Dict[str, float]:
+    def energy_burn(self) -> dict[str, float]:
         return self.energy_tracker.energy_burn
 
     @property
-    def plant_energy_sources(self) -> Dict[str, float]:
+    def plant_energy_sources(self) -> dict[str, float]:
         return self.energy_tracker.plant_energy_sources
 
     @property
-    def plant_energy_burn(self) -> Dict[str, float]:
+    def plant_energy_burn(self) -> dict[str, float]:
         return self.energy_tracker.plant_energy_burn
 
     @property
@@ -288,7 +288,7 @@ class EcosystemManager:
         """Check if reproduction is allowed based on carrying capacity."""
         return self.population.can_reproduce(current_population)
 
-    def cleanup_dead_fish(self, alive_fish_ids: Set[int]) -> int:
+    def cleanup_dead_fish(self, alive_fish_ids: set[int]) -> int:
         """Cleanup stats for dead fish."""
         return self.poker_manager.cleanup_dead_fish(alive_fish_ids)
 
@@ -302,7 +302,7 @@ class EcosystemManager:
         if len(self.events) > self.max_events:
             self.events = self.events[-self.max_events :]
 
-    def get_recent_events(self, count: int = 10) -> List[EcosystemEvent]:
+    def get_recent_events(self, count: int = 10) -> list[EcosystemEvent]:
         """Get the most recent events."""
         return self.events[-count:]
 
@@ -331,7 +331,7 @@ class EcosystemManager:
     # Energy Delta Ingestion
     # =========================================================================
 
-    def ingest_energy_deltas(self, deltas: List[Any]) -> None:
+    def ingest_energy_deltas(self, deltas: list[Any]) -> None:
         """Process a batch of energy deltas from the engine recorder.
 
         This replaces the old event-based telemetry for energy.
@@ -377,7 +377,7 @@ class EcosystemManager:
         self,
         fish_id: int,
         generation: int,
-        parent_ids: Optional[List[int]] = None,
+        parent_ids: Optional[list[int]] = None,
         algorithm_id: Optional[int] = None,
         color: Optional[str] = None,
         algorithm_name: Optional[str] = None,
@@ -436,7 +436,7 @@ class EcosystemManager:
             record_energy_burn=self.record_energy_burn,
         )
 
-    def update_population_stats(self, fish_list: List["Fish"]) -> None:
+    def update_population_stats(self, fish_list: list["Fish"]) -> None:
         """Update population statistics from current fish list."""
         self.population.update_population_stats(
             fish_list=fish_list,
@@ -445,7 +445,7 @@ class EcosystemManager:
         self._update_genetic_diversity_stats(fish_list)
         self.update_pregnant_count(0)  # No pregnancy in current system
 
-    def _update_genetic_diversity_stats(self, fish_list: List["Fish"]) -> None:
+    def _update_genetic_diversity_stats(self, fish_list: list["Fish"]) -> None:
         """Update genetic diversity statistics."""
         if not fish_list:
             self.genetic_diversity_stats = GeneticDiversityStats()
@@ -479,7 +479,7 @@ class EcosystemManager:
             mean_color = sum(color_hues) / n_fish
             color_variance = sum((h - mean_color) ** 2 for h in color_hues) / n_fish
 
-        trait_variances: Dict[str, float] = {}
+        trait_variances: dict[str, float] = {}
         if n_fish > 1:
             mean_speed = sum(speed_modifiers) / n_fish
             trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
@@ -513,7 +513,7 @@ class EcosystemManager:
     # Query Methods (delegate to trackers)
     # =========================================================================
 
-    def get_population_by_generation(self) -> Dict[int, int]:
+    def get_population_by_generation(self) -> dict[int, int]:
         """Get current population counts by generation."""
         return self.population.get_population_by_generation()
 
@@ -521,11 +521,11 @@ class EcosystemManager:
         """Get total population across all generations."""
         return self.population.get_total_population()
 
-    def get_lineage_data(self, alive_fish_ids: Optional[Set[int]] = None) -> List[Dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: Optional[set[int]] = None) -> list[dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization."""
         return self.lineage.get_lineage_data(alive_fish_ids)
 
-    def get_summary_stats(self, entities: Optional[List] = None) -> Dict[str, Any]:
+    def get_summary_stats(self, entities: Optional[list] = None) -> dict[str, Any]:
         """Get comprehensive ecosystem summary statistics."""
         from statistics import StatisticsError, median
 
@@ -634,24 +634,24 @@ class EcosystemManager:
             "diversity_stats": self.get_diversity_summary(),
         }
 
-    def get_poker_stats_summary(self) -> Dict[str, Any]:
+    def get_poker_stats_summary(self) -> dict[str, Any]:
         """Get poker statistics summary."""
         return self.poker_manager.get_poker_stats_summary()
 
     def get_poker_leaderboard(
         self,
-        fish_list: Optional[List["Fish"]] = None,
+        fish_list: Optional[list["Fish"]] = None,
         limit: int = 10,
         sort_by: str = "net_energy",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get poker leaderboard."""
         return self.poker_manager.get_poker_leaderboard(fish_list, sort_by=sort_by, limit=limit)
 
-    def get_reproduction_summary(self) -> Dict[str, Any]:
+    def get_reproduction_summary(self) -> dict[str, Any]:
         """Get reproduction statistics summary."""
         return self.reproduction_manager.get_summary()
 
-    def get_diversity_summary(self) -> Dict[str, Any]:
+    def get_diversity_summary(self) -> dict[str, Any]:
         """Get summary genetic diversity statistics.
 
         Includes convergence warnings for traits with near-zero variance,
@@ -678,7 +678,7 @@ class EcosystemManager:
             "converged_traits": converged_traits,
         }
 
-    def get_enhanced_stats_summary(self) -> Dict[str, Any]:
+    def get_enhanced_stats_summary(self) -> dict[str, Any]:
         """Get comprehensive enhanced statistics report."""
         return self.enhanced_stats.get_full_report()
 
@@ -880,35 +880,35 @@ class EcosystemManager:
         """Record a plant internal transfer."""
         self.energy_tracker.record_plant_energy_transfer(source, amount)
 
-    def get_energy_source_summary(self) -> Dict[str, float]:
+    def get_energy_source_summary(self) -> dict[str, float]:
         """Return a snapshot of accumulated energy gains."""
         return self.energy_tracker.get_energy_source_summary()
 
-    def get_plant_energy_source_summary(self) -> Dict[str, float]:
+    def get_plant_energy_source_summary(self) -> dict[str, float]:
         """Return a snapshot of accumulated plant energy gains."""
         return self.energy_tracker.get_plant_energy_source_summary()
 
     def get_recent_energy_breakdown(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get energy source breakdown over recent frames."""
         return self.energy_tracker.get_recent_energy_breakdown(window_frames=window_frames)
 
     def get_recent_plant_energy_breakdown(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get plant energy source breakdown over recent frames."""
         return self.energy_tracker.get_recent_plant_energy_breakdown(window_frames=window_frames)
 
     def get_recent_energy_burn(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get energy consumption breakdown over recent frames."""
         return self.energy_tracker.get_recent_energy_burn(window_frames=window_frames)
 
     def get_recent_plant_energy_burn(
         self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Get plant energy consumption breakdown over recent frames."""
         return self.energy_tracker.get_recent_plant_energy_burn(window_frames=window_frames)
 
@@ -916,7 +916,7 @@ class EcosystemManager:
         """Record a snapshot of total fish energy."""
         self.energy_tracker.record_energy_snapshot(total_fish_energy, fish_count)
 
-    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> Dict[str, Any]:
+    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> dict[str, Any]:
         """Calculate the true change in fish population energy over a time window."""
         return self.energy_tracker.get_energy_delta(window_frames=window_frames)
 
@@ -930,13 +930,13 @@ class EcosystemManager:
 
         return algorithm_reporter.get_algorithm_performance_report(self, min_sample_size)
 
-    def get_poker_strategy_distribution(self, fish_list: List["Fish"]) -> Dict[str, Any]:
+    def get_poker_strategy_distribution(self, fish_list: list["Fish"]) -> dict[str, Any]:
         """Get distribution of poker strategies in the population."""
         from collections import Counter
 
         strategy_counts: Counter = Counter()
-        strategy_win_rates: Dict[str, List[float]] = defaultdict(list)
-        strategy_params: Dict[str, List[Dict[str, float]]] = defaultdict(list)
+        strategy_win_rates: dict[str, list[float]] = defaultdict(list)
+        strategy_params: dict[str, list[dict[str, float]]] = defaultdict(list)
 
         for fish in fish_list:
             if not hasattr(fish, "genome") or fish.genome is None:
@@ -955,7 +955,7 @@ class EcosystemManager:
                 if ps.total_games > 0:
                     strategy_win_rates[strat.strategy_id].append(ps.get_win_rate())
 
-        avg_win_rates: Dict[str, float] = {}
+        avg_win_rates: dict[str, float] = {}
         for strat_id, rates in strategy_win_rates.items():
             if rates:
                 avg_win_rates[strat_id] = sum(rates) / len(rates)
@@ -972,7 +972,7 @@ class EcosystemManager:
 
         return result
 
-    def log_poker_evolution_status(self, fish_list: List["Fish"]) -> None:
+    def log_poker_evolution_status(self, fish_list: list["Fish"]) -> None:
         """Log current poker evolution status to console."""
         dist = self.get_poker_strategy_distribution(fish_list)
 

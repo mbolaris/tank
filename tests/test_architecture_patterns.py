@@ -4,7 +4,7 @@ These tests verify the new architectural improvements work correctly
 and provide good examples of how to use them.
 """
 
-from typing import Any, List, cast
+from typing import Any, cast
 
 from core.cache_manager import CachedList, CacheManager
 from core.systems.base import BaseSystem, SystemResult
@@ -196,13 +196,13 @@ class TestCacheManager:
             manager = CacheManager(cast(Any, lambda: entities))
 
             # Get fish
-            fish_list = cast(List[Any], manager.get_fish())
+            fish_list = cast(list[Any], manager.get_fish())
             assert len(fish_list) == 2
             assert fish1 in fish_list
             assert fish2 in fish_list
 
             # Get food
-            food_list = cast(List[Any], manager.get_food())
+            food_list = cast(list[Any], manager.get_food())
             assert len(food_list) == 1
             assert food1 in food_list
         finally:

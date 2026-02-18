@@ -5,7 +5,7 @@ and garbage collection pressure for entities like Food.
 """
 
 import random
-from typing import List, Optional
+from typing import Optional
 
 from core.entities import Food
 
@@ -25,7 +25,7 @@ class FoodPool:
             initial_size: Number of Food objects to pre-allocate
             rng: Random number generator for deterministic food type selection
         """
-        self._pool: List[Food] = []
+        self._pool: list[Food] = []
         self._active: set = set()
         from core.util.rng import require_rng_param
 

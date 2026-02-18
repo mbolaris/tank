@@ -73,7 +73,7 @@ A future narration layer will explain what's happening in plain language, like a
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 - Node 18+ (for the React frontend)
 
 ### Install

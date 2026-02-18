@@ -10,7 +10,8 @@ The shaped_pot mode is dispatched via finalize_soccer_match() to apply_shaped_so
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping, Sequence
 
 from core.minigames.soccer.selection import get_entity_id
 

@@ -23,7 +23,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from core.energy.energy_utils import apply_energy_delta
 
@@ -58,7 +58,7 @@ class EvalPlayerState:
     player_id: str
     name: str
     energy: float
-    hole_cards: List[Card] = field(default_factory=list)
+    hole_cards: list[Card] = field(default_factory=list)
     current_bet: float = 0.0
     total_bet: float = 0.0
     folded: bool = False
@@ -85,11 +85,11 @@ class AutoEvaluateStats:
 
     hands_played: int = 0
     hands_remaining: int = 1000
-    players: List[Dict[str, Any]] = field(default_factory=list)  # List of player stats
+    players: list[dict[str, Any]] = field(default_factory=list)  # List of player stats
     game_over: bool = False
     winner: Optional[str] = None
     reason: str = ""
-    performance_history: List[Dict[str, Any]] = field(default_factory=list)
+    performance_history: list[dict[str, Any]] = field(default_factory=list)
     # For heads-up benchmark evaluation
     net_bb_for_candidate: Optional[float] = None
 
@@ -105,7 +105,7 @@ class AutoEvaluatePokerGame:
     def __init__(
         self,
         game_id: str,
-        player_pool: List[Dict[str, Any]],
+        player_pool: list[dict[str, Any]],
         standard_energy: float = 500.0,
         max_hands: int = 2000,
         small_blind: float = 5.0,
@@ -142,11 +142,11 @@ class AutoEvaluatePokerGame:
         # Track current deal set for position rotation
         self._current_deal_seed = rng_seed if rng_seed is not None else 0
         self._rotation_index = 0  # Which rotation we're on for current deal
-        self._saved_hole_cards: List[List[Card]] = []  # Cards for each player in base deal
-        self._saved_community_cards: List[Card] = []  # Community cards for base deal
+        self._saved_hole_cards: list[list[Card]] = []  # Cards for each player in base deal
+        self._saved_community_cards: list[Card] = []  # Community cards for base deal
 
         # Create players list
-        self.players: List[EvalPlayerState] = []
+        self.players: list[EvalPlayerState] = []
 
         # Add fish players - ensure they have enough energy to play all hands
         # With 4 players, blinds rotate, so each player posts SB+BB every 4 hands
@@ -185,7 +185,7 @@ class AutoEvaluatePokerGame:
 
         # Game state
         self.deck = Deck(seed=rng_seed)
-        self.community_cards: List[Card] = []
+        self.community_cards: list[Card] = []
         self.pot = 0.0
         self.current_round = BettingRound.PRE_FLOP
         self.button_position = 0  # Dealer button position
@@ -193,12 +193,12 @@ class AutoEvaluatePokerGame:
         self.game_over = False
         self.winner: Optional[str] = None
         self.last_hand_message = ""
-        self.performance_history: List[Dict[str, Any]] = []
+        self.performance_history: list[dict[str, Any]] = []
 
         # Decision RNG for deterministic standard algorithm decisions
         self._decision_rng = random.Random(rng_seed)
 
-    def get_players(self) -> List[EvalPlayerState]:
+    def get_players(self) -> list[EvalPlayerState]:
         """Get list of players."""
         return self.players
 
@@ -225,7 +225,7 @@ class AutoEvaluatePokerGame:
 
             base_hole_cards = self._saved_hole_cards
             community_cards = list(self._saved_community_cards)
-            hole_cards: Dict[int, List[Card]] = {}
+            hole_cards: dict[int, list[Card]] = {}
 
             for i, player in enumerate(self.players):
                 card_position = (i + self._rotation_index) % num_players
@@ -254,7 +254,7 @@ class AutoEvaluatePokerGame:
         )
 
     @staticmethod
-    def _deal_community_cards(deck: Deck) -> List[Card]:
+    def _deal_community_cards(deck: Deck) -> list[Card]:
         """Deal a full board (flop/turn/river) from the given deck."""
         deck.deal(1)
         flop = deck.deal(3)
@@ -264,7 +264,7 @@ class AutoEvaluatePokerGame:
         river = deck.deal_one()
         return list(flop) + [turn, river]
 
-    def _apply_hand_result(self, game_state, payouts: Dict[int, float]) -> None:
+    def _apply_hand_result(self, game_state, payouts: dict[int, float]) -> None:
         """Update player stats and energies from a simulated hand."""
         self.community_cards = list(game_state.community_cards)
         self.pot = game_state.pot
@@ -351,7 +351,7 @@ class AutoEvaluatePokerGame:
 
     def _record_hand_performance(self):
         """Record net energy performance for all players after a hand."""
-        snapshot: Dict[str, Any] = {
+        snapshot: dict[str, Any] = {
             "hand": self.hands_played,
             "players": [],
         }

@@ -10,7 +10,7 @@ Architecture Notes:
 """
 
 import math
-from typing import TYPE_CHECKING, Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any
 
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -123,7 +123,7 @@ class TimeSystem(BaseSystem):
 
         return max(0.5, min(1.0, activity))
 
-    def get_screen_tint(self) -> Tuple[int, int, int]:
+    def get_screen_tint(self) -> tuple[int, int, int]:
         """Get RGB tint for the screen based on time of day.
 
         Returns:
@@ -206,7 +206,7 @@ class TimeSystem(BaseSystem):
         else:
             return "Dusk"
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Return time system statistics for debugging.
 
         Returns:

@@ -5,7 +5,8 @@ functionality for plants, including photosynthesis, compound growth, and overflo
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
+from collections.abc import Callable
 
 from core.config.plants import (
     PLANT_DAWN_DUSK_MODIFIER,

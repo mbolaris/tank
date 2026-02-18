@@ -49,7 +49,8 @@ Usage:
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Optional, Protocol
+from collections.abc import Callable
 
 # Explicit public API
 __all__ = [
@@ -106,7 +107,7 @@ class UpdatePhase(Enum):
 
 
 # Human-readable descriptions for debugging
-PHASE_DESCRIPTIONS: Dict[UpdatePhase, str] = {
+PHASE_DESCRIPTIONS: dict[UpdatePhase, str] = {
     UpdatePhase.FRAME_START: "Initializing frame, resetting counters",
     UpdatePhase.TIME_UPDATE: "Advancing day/night cycle",
     UpdatePhase.ENVIRONMENT: "Updating environmental modifiers",
@@ -179,12 +180,12 @@ class PhaseRunner:
         runner.run_phase(UpdatePhase.COLLISION, context)
     """
 
-    _systems_by_phase: Dict[UpdatePhase, List["BaseSystem"]] = field(
+    _systems_by_phase: dict[UpdatePhase, list["BaseSystem"]] = field(
         default_factory=lambda: {phase: [] for phase in UpdatePhase}
     )
     _debug_mode: bool = False
     _current_phase: Optional[UpdatePhase] = None
-    _phase_timings: Dict[UpdatePhase, float] = field(default_factory=dict)
+    _phase_timings: dict[UpdatePhase, float] = field(default_factory=dict)
 
     def register(self, system: "BaseSystem", phase: UpdatePhase) -> None:
         """Register a system to run in a specific phase.
@@ -266,7 +267,7 @@ class PhaseRunner:
 
     def run_phases(
         self,
-        phases: List[UpdatePhase],
+        phases: list[UpdatePhase],
         context: PhaseContext,
     ) -> None:
         """Run a subset of phases.
@@ -285,7 +286,7 @@ class PhaseRunner:
         """Get the currently executing phase, or None if not in update."""
         return self._current_phase
 
-    def get_systems_in_phase(self, phase: UpdatePhase) -> List["BaseSystem"]:
+    def get_systems_in_phase(self, phase: UpdatePhase) -> list["BaseSystem"]:
         """Get all systems registered for a phase."""
         return self._systems_by_phase[phase].copy()
 
@@ -293,11 +294,11 @@ class PhaseRunner:
         """Enable debug mode (tracks timing per phase)."""
         self._debug_mode = enabled
 
-    def get_phase_timings(self) -> Dict[UpdatePhase, float]:
+    def get_phase_timings(self) -> dict[UpdatePhase, float]:
         """Get timing information for each phase (requires debug mode)."""
         return self._phase_timings.copy()
 
-    def get_debug_info(self) -> Dict[str, Any]:
+    def get_debug_info(self) -> dict[str, Any]:
         """Get debug information about the runner."""
         return {
             "current_phase": self._current_phase.name if self._current_phase else None,

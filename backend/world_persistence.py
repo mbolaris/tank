@@ -14,7 +14,7 @@ import logging
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 
@@ -114,7 +114,7 @@ def ensure_world_directory(world_id: str) -> Path:
     return world_dir
 
 
-def save_snapshot_data(world_id: str, snapshot: Dict[str, Any]) -> Optional[str]:
+def save_snapshot_data(world_id: str, snapshot: dict[str, Any]) -> Optional[str]:
     """Save pre-captured snapshot data to disk.
 
     Args:
@@ -158,7 +158,7 @@ def save_snapshot_data(world_id: str, snapshot: Dict[str, Any]) -> Optional[str]
 
 
 def save_world_state(
-    world_id: str, runner: "RunnerProtocol", metadata: Optional[Dict[str, Any]] = None
+    world_id: str, runner: "RunnerProtocol", metadata: Optional[dict[str, Any]] = None
 ) -> Optional[str]:
     """Save complete world state to disk.
 
@@ -191,7 +191,7 @@ def save_world_state(
         return None
 
 
-def load_snapshot(snapshot_path: str) -> Optional[Dict[str, Any]]:
+def load_snapshot(snapshot_path: str) -> Optional[dict[str, Any]]:
     """Load a snapshot from disk.
 
     Args:
@@ -205,14 +205,14 @@ def load_snapshot(snapshot_path: str) -> Optional[Dict[str, Any]]:
             obj = json.load(f)
             if not isinstance(obj, dict):
                 return None
-            return cast(Dict[str, Any], obj)
+            return cast(dict[str, Any], obj)
     except Exception as e:
         logger.error(f"Failed to load snapshot {snapshot_path}: {e}", exc_info=True)
         return None
 
 
 def restore_world_from_snapshot(
-    snapshot: Dict[str, Any],
+    snapshot: dict[str, Any],
     target_world: Any,
 ) -> bool:
     """Restore world state from a snapshot.
@@ -282,7 +282,7 @@ def restore_world_from_snapshot(
                 spot.release()
 
         # Track restored plants for nectar association
-        plants_by_id: Dict[int, Any] = {}
+        plants_by_id: dict[int, Any] = {}
         nectar_data_list = []
         restored_count = 0
 
@@ -440,7 +440,7 @@ def _bootstrap_static_elements(engine: Any) -> None:
     engine.add_entity(castle)
 
 
-def list_world_snapshots(world_id: str) -> List[Dict[str, Any]]:
+def list_world_snapshots(world_id: str) -> list[dict[str, Any]]:
     """List all available snapshots for a world.
 
     Args:
@@ -496,7 +496,7 @@ def get_latest_snapshot(world_id: str) -> Optional[str]:
     return filepath
 
 
-def find_all_world_snapshots() -> Dict[str, str]:
+def find_all_world_snapshots() -> dict[str, str]:
     """Find the latest snapshot for each world that has saved data.
 
     Returns:

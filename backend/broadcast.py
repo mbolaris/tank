@@ -12,7 +12,7 @@ import logging
 import os
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from backend.runner.runner_protocol import RunnerProtocol
 from core.config.display import FRAME_RATE
@@ -92,7 +92,7 @@ async def broadcast_updates_for_world(
     last_sent_frame = -1
     last_sent_at = 0.0
     last_debug_log = time.perf_counter()
-    slow_send_windows: Dict[object, Tuple[int, float]] = {}
+    slow_send_windows: dict[object, tuple[int, float]] = {}
     send_time_total_ms = 0.0
     send_time_count = 0
     timeout_count = 0
@@ -314,9 +314,9 @@ async def broadcast_updates_for_world(
 # =============================================================================
 
 # Track broadcast tasks per world/stream
-_broadcast_tasks: Dict[Tuple[str, str], asyncio.Task] = {}
+_broadcast_tasks: dict[tuple[str, str], asyncio.Task] = {}
 # Locks to prevent race conditions when creating broadcast tasks
-_broadcast_locks: Dict[Tuple[str, str], asyncio.Lock] = {}
+_broadcast_locks: dict[tuple[str, str], asyncio.Lock] = {}
 
 
 async def start_broadcast_for_world(

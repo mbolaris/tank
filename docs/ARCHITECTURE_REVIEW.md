@@ -13,9 +13,11 @@ Your simulation has a **solid foundation** with good patterns in key areas. Howe
 
 ### Phase 2: Entity Hierarchy (Completed)
 - ✅ Created `Entity` base class with core attributes
-- ✅ `Agent` now extends `Entity` (adds movement/AI)
-- ✅ `Castle` now inherits from `Entity` (not Agent)
-- ✅ Castle no longer has unused velocity/AI methods
+- ✅ Created `MobileEntity` for moving objects (Food, Agent)
+- ✅ `Agent` now extends `MobileEntity` (adds AI/Behavior)
+- ✅ `Food` now extends `MobileEntity` (sinks but no AI)
+- ✅ `Plant` and `Castle` now inherit from `Entity` (static)
+- ✅ Removed unused velocity/AI methods from static entities
 
 ### Findings
 - All 14 food-seeking algorithms are **legacy code** replaced by `ComposableBehavior`

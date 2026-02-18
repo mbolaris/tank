@@ -26,7 +26,7 @@ Example Usage:
 """
 
 import random
-from typing import TYPE_CHECKING, Any, List, Protocol, Tuple, Type, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.entities.base import Agent
@@ -53,7 +53,7 @@ class World(Protocol):
 
     # --- Spatial Queries ---
 
-    def nearby_agents(self, agent: "Agent", radius: float) -> List["Agent"]:
+    def nearby_agents(self, agent: "Agent", radius: float) -> list["Agent"]:
         """Find all agents within a radius of the given agent.
 
         This is the most fundamental spatial query. Implementations should
@@ -69,8 +69,8 @@ class World(Protocol):
         ...
 
     def nearby_agents_by_type(
-        self, agent: "Agent", radius: float, agent_type: Type["Agent"]
-    ) -> List["Agent"]:
+        self, agent: "Agent", radius: float, agent_type: type["Agent"]
+    ) -> list["Agent"]:
         """Find agents of a specific type within radius.
 
         Optimized query for type-specific searches (e.g., find nearby food).
@@ -85,7 +85,7 @@ class World(Protocol):
         """
         ...
 
-    def nearby_evolving_agents(self, agent: "Agent", radius: float) -> List["Agent"]:
+    def nearby_evolving_agents(self, agent: "Agent", radius: float) -> list["Agent"]:
         """Find evolving agents (entities that can reproduce) within radius.
 
         This is a generic query for primary simulation entities.
@@ -100,7 +100,7 @@ class World(Protocol):
         """
         ...
 
-    def nearby_resources(self, agent: "Agent", radius: float) -> List["Agent"]:
+    def nearby_resources(self, agent: "Agent", radius: float) -> list["Agent"]:
         """Find consumable resources within radius.
 
         This is a generic query for resource entities.
@@ -124,7 +124,7 @@ class World(Protocol):
         """
         ...
 
-    def get_agents_of_type(self, agent_type: Type["Agent"]) -> List["Agent"]:
+    def get_agents_of_type(self, agent_type: type["Agent"]) -> list["Agent"]:
         """Get all agents of a specific type in the environment.
 
         This is a global query (not spatial). Use for iteration over
@@ -138,7 +138,7 @@ class World(Protocol):
         """
         ...
 
-    def list_policy_component_ids(self, kind: str) -> List[str]:
+    def list_policy_component_ids(self, kind: str) -> list[str]:
         """List available policy component IDs for a given kind.
 
         This is used by reproduction/mutation code to discover policy components
@@ -148,7 +148,7 @@ class World(Protocol):
 
     # --- Boundary/Position Validation ---
 
-    def get_bounds(self) -> Tuple[Any, Any]:
+    def get_bounds(self) -> tuple[Any, Any]:
         """Get the environment's boundaries.
 
         Return type is intentionally flexible to support different
@@ -176,7 +176,7 @@ class World(Protocol):
     # --- Environment Properties ---
 
     @property
-    def dimensions(self) -> Tuple[float, ...]:
+    def dimensions(self) -> tuple[float, ...]:
         """Get environment dimensions.
 
         Returns:
@@ -217,7 +217,7 @@ class World2D(World, Protocol):
         """Height of the 2D environment."""
         ...
 
-    def get_2d_bounds(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    def get_2d_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
         """Get 2D boundaries as ((min_x, min_y), (max_x, max_y))."""
         ...
 
@@ -235,7 +235,7 @@ def is_2d_world(world: World) -> bool:
     return isinstance(world, World2D)
 
 
-def get_2d_dimensions(world: World) -> Tuple[float, float]:
+def get_2d_dimensions(world: World) -> tuple[float, float]:
     """Get dimensions as (width, height) for 2D worlds.
 
     Args:

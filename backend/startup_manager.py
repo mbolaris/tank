@@ -11,7 +11,8 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional, Set
+from typing import Any, Optional
+from collections.abc import Callable
 
 from backend.auto_save_service import AutoSaveService
 from backend.connection_manager import ConnectionManager
@@ -84,7 +85,7 @@ class StartupManager:
 
         # Background tasks
         self._heartbeat_task: Optional[asyncio.Task] = None
-        self._broadcast_task_ids: Set[str] = set()  # Track which worlds have broadcast tasks
+        self._broadcast_task_ids: set[str] = set()  # Track which worlds have broadcast tasks
 
         # Parsed discovery hub info
         self._discovery_hub_info: Optional[ServerInfo] = None

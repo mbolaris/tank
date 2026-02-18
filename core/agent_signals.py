@@ -9,7 +9,7 @@ This module enables agents to signal information to nearby agents, including:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.math_utils import Vector2
 
@@ -84,7 +84,7 @@ class AgentSignalSystem:
             max_signals: Maximum active signals
             decay_rate: Signal decay rate per frame
         """
-        self.active_signals: List[Signal] = []
+        self.active_signals: list[Signal] = []
         self.max_signals = max_signals
         self.decay_rate = decay_rate
         self.current_frame = 0
@@ -131,7 +131,7 @@ class AgentSignalSystem:
         position: Vector2,
         signal_type: Optional[SignalType] = None,
         max_distance: Optional[float] = None,
-    ) -> List[Signal]:
+    ) -> list[Signal]:
         """Get signals near a position.
 
         Args:

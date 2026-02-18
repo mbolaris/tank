@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from core.ecosystem_stats import AlgorithmStats, ReproductionStats
 
@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 class ReproductionStatsManager:
     """Tracks reproduction statistics and algorithm-level reproduction counts."""
 
-    def __init__(self, algorithm_stats: Dict[int, AlgorithmStats]):
+    def __init__(self, algorithm_stats: dict[int, AlgorithmStats]):
         self.reproduction_stats: ReproductionStats = ReproductionStats()
         self._algorithm_stats = algorithm_stats
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Return aggregated reproduction statistics."""
         return {
             "total_reproductions": self.reproduction_stats.total_reproductions,

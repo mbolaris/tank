@@ -1,7 +1,7 @@
 """State publisher for simulation runner."""
 
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 import orjson
 
@@ -25,13 +25,13 @@ class StatePublisher:
         self.delta_sync_interval = delta_sync_interval
 
         # Cache state
-        self._cached_state: Optional[Union[FullStatePayload, DeltaStatePayload]] = None
+        self._cached_state: Optional[FullStatePayload | DeltaStatePayload] = None
         self._cached_state_frame: Optional[int] = None
         self._frames_since_update = 0
 
         # Delta sync state
         self._last_full_frame: Optional[int] = None
-        self._last_entities: Dict[int, EntitySnapshot] = {}
+        self._last_entities: dict[int, EntitySnapshot] = {}
 
     def invalidate_cache(self) -> None:
         """Invalidate the current cache to force a rebuild."""
@@ -43,7 +43,7 @@ class StatePublisher:
 
     def get_state(
         self, runner: Any, force_full: bool = False, allow_delta: bool = True
-    ) -> Union[FullStatePayload, DeltaStatePayload]:
+    ) -> FullStatePayload | DeltaStatePayload:
         """Get the current state payload, utilizing caching and delta compression."""
 
         current_frame = runner.world.frame_count
@@ -98,7 +98,7 @@ class StatePublisher:
         entity_snapshots = runner._collect_entities()
         self.perf_tracker.stop("snapshot")
 
-        state: Union[FullStatePayload, DeltaStatePayload]
+        state: FullStatePayload | DeltaStatePayload
         if is_full_update:
             state = self._build_full_state(
                 runner, current_frame, elapsed_time, stats, entity_snapshots
@@ -118,7 +118,7 @@ class StatePublisher:
 
         return state
 
-    def serialize_state(self, state: Union[FullStatePayload, DeltaStatePayload]) -> bytes:
+    def serialize_state(self, state: FullStatePayload | DeltaStatePayload) -> bytes:
         """Serialize state to bytes."""
         self.perf_tracker.start("serialize")
 
@@ -139,7 +139,7 @@ class StatePublisher:
         return serialized
 
     def _build_full_state(
-        self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: List[EntitySnapshot]
+        self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: list[EntitySnapshot]
     ) -> FullStatePayload:
         """Construct a FullStatePayload."""
 
@@ -178,7 +178,7 @@ class StatePublisher:
         )
 
     def _build_delta_state(
-        self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: List[EntitySnapshot]
+        self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: list[EntitySnapshot]
     ) -> DeltaStatePayload:
         """Construct a DeltaStatePayload."""
 

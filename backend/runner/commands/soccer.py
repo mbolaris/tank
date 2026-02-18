@@ -1,6 +1,6 @@
 import logging
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
 
@@ -15,11 +15,11 @@ class SoccerCommands:
         soccer_match: Any
         world: Any
 
-        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_set_soccer_league_enabled(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_set_soccer_league_enabled(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'set_soccer_league_enabled' command."""
         if not data or "enabled" not in data:
             return self._create_error_response("Missing 'enabled' parameter")
@@ -40,7 +40,7 @@ class SoccerCommands:
         self._invalidate_state_cache()
         return {"success": True, "enabled": enabled}
 
-    def _cmd_set_soccer_league_config(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_set_soccer_league_config(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'set_soccer_league_config' command."""
         if not data:
             return self._create_error_response("Missing config payload")
@@ -126,7 +126,7 @@ class SoccerCommands:
         self._invalidate_state_cache()
         return {"success": True}
 
-    def _cmd_start_soccer(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_start_soccer(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'start_soccer' command.
 
         Starts a soccer match with selected fish.
@@ -217,7 +217,7 @@ class SoccerCommands:
             logger.error(f"Error starting soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start soccer match: {e!s}")
 
-    def _cmd_soccer_step(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_soccer_step(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'soccer_step' command.
 
         Steps the ongoing soccer match.
@@ -235,7 +235,7 @@ class SoccerCommands:
             logger.error(f"Error stepping soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to step soccer match: {e!s}")
 
-    def _cmd_end_soccer(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_end_soccer(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'end_soccer' command.
 
         Ends the current match and distributes rewards.
@@ -303,7 +303,7 @@ class SoccerCommands:
             logger.error(f"Error ending soccer match: {e}", exc_info=True)
             return self._create_error_response(f"Failed to end soccer match: {e!s}")
 
-    def _cmd_set_tank_soccer_enabled(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_set_tank_soccer_enabled(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'set_tank_soccer_enabled' command.
 
         Dynamically adds/removes physical soccer ball and goals from the tank world.

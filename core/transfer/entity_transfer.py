@@ -6,11 +6,11 @@ for transferring between tanks.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol, cast
+from typing import Any, Optional, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
-SerializedEntity = Dict[str, Any]
+SerializedEntity = dict[str, Any]
 TRANSFER_SCHEMA_VERSION = 2
 
 
@@ -18,7 +18,7 @@ TRANSFER_SCHEMA_VERSION = 2
 class TransferError:
     code: str
     message: str
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 class NoRootSpotsError(Exception):
@@ -67,7 +67,7 @@ class FishTransferCodec:
 
         return isinstance(entity, Fish)
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> Dict[str, Any]:
+    def serialize(self, entity: Any, ctx: TransferContext) -> dict[str, Any]:
         return _serialize_fish(entity)
 
     def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
@@ -126,8 +126,8 @@ class TransferRegistry:
     DEFAULT_REGISTRY plus function wrappers for backward-compatible imports.
     """
 
-    codecs: List[EntityTransferCodec] = field(default_factory=list)
-    codecs_by_type: Dict[str, EntityTransferCodec] = field(default_factory=dict)
+    codecs: list[EntityTransferCodec] = field(default_factory=list)
+    codecs_by_type: dict[str, EntityTransferCodec] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.codecs_by_type and self.codecs:
@@ -296,7 +296,7 @@ DEFAULT_REGISTRY = TransferRegistry(
 )
 
 
-def _require_keys(data: SerializedEntity, keys: List[str], *, entity_type: str) -> bool:
+def _require_keys(data: SerializedEntity, keys: list[str], *, entity_type: str) -> bool:
     missing = [key for key in keys if key not in data]
     if not missing:
         return True
@@ -339,7 +339,7 @@ def _serialize_fish(fish: Any) -> SerializedEntity:
     return finalize_fish_serialization(fish, mutable_state)
 
 
-def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
+def capture_fish_mutable_state(fish: Any) -> dict[str, Any]:
     """Capture mutable state of a fish that must be read under lock."""
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
@@ -360,7 +360,7 @@ def capture_fish_mutable_state(fish: Any) -> Dict[str, Any]:
     }
 
 
-def finalize_fish_serialization(fish: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
+def finalize_fish_serialization(fish: Any, mutable_state: dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
     return {
         "type": "fish",
@@ -395,7 +395,7 @@ def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> S
 
 def capture_plant_mutable_state(
     plant: Any, migration_direction: Optional[str] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Capture mutable state of a plant that must be read under lock."""
     # Get plant ID - try both id and plant_id
     plant_id = getattr(plant, "id", getattr(plant, "plant_id", None))
@@ -422,7 +422,7 @@ def capture_plant_mutable_state(
     }
 
 
-def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> SerializedEntity:
+def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> SerializedEntity:
     """Construct full plant serialization using captured mutable state."""
     return {
         "type": "plant",
@@ -470,7 +470,7 @@ def finalize_plant_serialization(plant: Any, mutable_state: Dict[str, Any]) -> S
     }
 
 
-def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
+def deserialize_entity(data: dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize entity data and create a new entity in the target world.
 
     Args:
@@ -483,11 +483,11 @@ def deserialize_entity(data: Dict[str, Any], target_world: Any) -> Optional[Any]
     return DEFAULT_REGISTRY.deserialize_entity(data, target_world)
 
 
-def try_deserialize_entity(data: Dict[str, Any], target_world: Any) -> TransferOutcome:
+def try_deserialize_entity(data: dict[str, Any], target_world: Any) -> TransferOutcome:
     return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
-def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize and create a Fish entity."""
     try:
         from core.entities.fish import Fish
@@ -564,7 +564,7 @@ def _deserialize_fish(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
         return None
 
 
-def _deserialize_plant(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize and create a Plant entity."""
     try:
         from core.entities.plant import Plant
@@ -693,7 +693,7 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
     }
 
 
-def _deserialize_crab(data: Dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Optional[Any]:
     """Deserialize and create a Crab entity."""
     try:
         from core.entities.predators import Crab

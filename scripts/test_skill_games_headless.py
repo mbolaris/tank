@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,7 +35,7 @@ def run_skill_game_simulation(
     max_frames: int = 3000,
     seed: int = 42,
     encounter_rate: float = 0.15,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run a headless simulation with a specific skill game.
 
     Args:

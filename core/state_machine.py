@@ -62,7 +62,7 @@ Usage:
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Generic, List, TypeVar
+from typing import Generic, TypeVar
 
 from core.result import Err, Ok, Result
 
@@ -113,7 +113,7 @@ class StateMachine(Generic[S]):
     def __init__(
         self,
         initial_state: S,
-        valid_transitions: Dict[S, List[S]],
+        valid_transitions: dict[S, list[S]],
         track_history: bool = False,
         max_history: int = 100,
     ) -> None:
@@ -129,7 +129,7 @@ class StateMachine(Generic[S]):
         self._transitions = valid_transitions
         self._track_history = track_history
         self._max_history = max_history
-        self._history: List[StateTransition[S]] = []
+        self._history: list[StateTransition[S]] = []
         self._current_frame = 0
 
         # Validate that initial state is in the transition map
@@ -145,7 +145,7 @@ class StateMachine(Generic[S]):
         return self._state
 
     @property
-    def history(self) -> List[StateTransition[S]]:
+    def history(self) -> list[StateTransition[S]]:
         """Get transition history (empty if tracking disabled)."""
         return self._history.copy()
 
@@ -244,7 +244,7 @@ class StateMachine(Generic[S]):
         if len(self._history) > self._max_history:
             self._history = self._history[-self._max_history :]
 
-    def get_valid_transitions(self) -> List[S]:
+    def get_valid_transitions(self) -> list[S]:
         """Get list of valid target states from current state."""
         return list(self._transitions.get(self._state, []))
 
@@ -274,7 +274,7 @@ class LifeStage(Enum):
 
 # Valid life stage transitions (fish can only progress forward)
 # Note: Death is handled separately via is_dead() check, not as a state transition
-LIFE_STAGE_TRANSITIONS: Dict[LifeStage, List[LifeStage]] = {
+LIFE_STAGE_TRANSITIONS: dict[LifeStage, list[LifeStage]] = {
     LifeStage.BABY: [LifeStage.JUVENILE],
     LifeStage.JUVENILE: [LifeStage.ADULT],
     LifeStage.ADULT: [LifeStage.ELDER],
@@ -317,7 +317,7 @@ class EntityState(Enum):
     REMOVED = auto()  # Removed from simulation
 
 
-ENTITY_STATE_TRANSITIONS: Dict[EntityState, List[EntityState]] = {
+ENTITY_STATE_TRANSITIONS: dict[EntityState, list[EntityState]] = {
     EntityState.INITIALIZING: [EntityState.ACTIVE, EntityState.DEAD],
     EntityState.ACTIVE: [EntityState.DYING, EntityState.DEAD, EntityState.REMOVED],
     EntityState.DYING: [EntityState.DEAD],
@@ -360,7 +360,7 @@ class PokerGameState(Enum):
     COMPLETE = auto()  # Game finished
 
 
-POKER_GAME_TRANSITIONS: Dict[PokerGameState, List[PokerGameState]] = {
+POKER_GAME_TRANSITIONS: dict[PokerGameState, list[PokerGameState]] = {
     PokerGameState.WAITING_FOR_PLAYERS: [PokerGameState.DEALING],
     PokerGameState.DEALING: [PokerGameState.PREFLOP],
     PokerGameState.PREFLOP: [PokerGameState.FLOP, PokerGameState.SHOWDOWN],

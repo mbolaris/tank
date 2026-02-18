@@ -3,7 +3,7 @@
 import logging
 import threading
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class TankConnection:
             return False
         return self.source_server_id != self.destination_server_id
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         result = {
             "id": self.id,
@@ -52,7 +52,7 @@ class TankConnection:
         return result
 
     @staticmethod
-    def from_dict(data: Dict) -> "TankConnection":
+    def from_dict(data: dict) -> "TankConnection":
         """Create from dictionary (supports both snake_case and camelCase).
 
         Args:
@@ -96,7 +96,7 @@ class ConnectionManager:
 
     def __init__(self):
         """Initialize the connection manager."""
-        self._connections: Dict[str, TankConnection] = {}
+        self._connections: dict[str, TankConnection] = {}
         self._lock = threading.Lock()
         logger.info("ConnectionManager initialized")
 
@@ -165,7 +165,7 @@ class ConnectionManager:
         with self._lock:
             return self._connections.get(connection_id)
 
-    def list_connections(self) -> List[TankConnection]:
+    def list_connections(self) -> list[TankConnection]:
         """Get all connections.
 
         Returns:
@@ -176,7 +176,7 @@ class ConnectionManager:
 
     def get_connections_for_world(
         self, world_id: str, direction: Optional[str] = None
-    ) -> List[TankConnection]:
+    ) -> list[TankConnection]:
         """Get connections where the world is the source, optionally filtered by direction.
 
         Args:
@@ -220,7 +220,7 @@ class ConnectionManager:
             return len(to_remove)
 
     def validate_connections(
-        self, valid_world_ids: List[str], local_server_id: Optional[str] = None
+        self, valid_world_ids: list[str], local_server_id: Optional[str] = None
     ) -> int:
         """Remove connections that reference non-existent local worlds.
 

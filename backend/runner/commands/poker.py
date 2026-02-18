@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 from core.human_poker_game import HumanPokerGame
 
@@ -16,13 +16,13 @@ class PokerCommands:
         human_poker_game: Any
         world: Any
 
-        def _create_error_response(self, error_msg: str) -> Dict[str, Any]: ...
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
 
         def _create_fish_player_data(
             self, fish: Any, *, include_aggression: bool = False
-        ) -> Dict[str, Any]: ...
+        ) -> dict[str, Any]: ...
 
-    def _cmd_start_poker(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_start_poker(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'start_poker' command."""
         logger.info("Starting human poker game...")
         try:
@@ -103,7 +103,7 @@ class PokerCommands:
             logger.error(f"Error starting poker game: {e}", exc_info=True)
             return self._create_error_response(f"Failed to start poker game: {e!s}")
 
-    def _apply_poker_rewards(self, result: Dict[str, Any]) -> None:
+    def _apply_poker_rewards(self, result: dict[str, Any]) -> None:
         """Apply energy and reproduction rewards to the winner of a poker hand."""
         if not result or not result.get("fish_id"):
             return
@@ -181,7 +181,7 @@ class PokerCommands:
                     except Exception as e:
                         logger.error(f"Error triggering poker reproduction: {e}")
 
-    def _cmd_poker_action(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_action(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'poker_action' command."""
         if not self.human_poker_game:
             logger.warning("Poker action received but no game active")
@@ -195,7 +195,7 @@ class PokerCommands:
 
         logger.info(f"Processing poker action: {action}, amount: {amount}")
 
-        result = cast(Dict[str, Any], self.human_poker_game.handle_action("human", action, amount))
+        result = cast(dict[str, Any], self.human_poker_game.handle_action("human", action, amount))
 
         # Check for game completion and apply rewards
         if result.get("success") and self.human_poker_game.game_over:
@@ -205,13 +205,13 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_process_ai_turn(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_process_ai_turn(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'poker_process_ai_turn' command."""
         if not self.human_poker_game:
             logger.warning("AI turn processing requested but no game active")
             return self._create_error_response("No poker game active")
 
-        result = cast(Dict[str, Any], self.human_poker_game.process_single_ai_turn())
+        result = cast(dict[str, Any], self.human_poker_game.process_single_ai_turn())
 
         # Check for game completion and apply rewards
         if result.get("success") and self.human_poker_game.game_over:
@@ -221,16 +221,16 @@ class PokerCommands:
 
         return result
 
-    def _cmd_poker_new_round(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_new_round(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'poker_new_round' command."""
         if not self.human_poker_game:
             logger.warning("New round requested but no game active")
             return self._create_error_response("No poker game active")
 
         logger.info("Starting new poker hand...")
-        return cast(Dict[str, Any], self.human_poker_game.start_new_hand())
+        return cast(dict[str, Any], self.human_poker_game.start_new_hand())
 
-    def _cmd_poker_autopilot_action(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_poker_autopilot_action(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'poker_autopilot_action' command."""
         if not self.human_poker_game:
             now = time.monotonic()

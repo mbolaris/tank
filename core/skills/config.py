@@ -12,7 +12,7 @@ Configuration can be changed to:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 if TYPE_CHECKING:
     from random import Random
@@ -51,13 +51,13 @@ class SkillGameConfig:
     inherit_strategy: bool = True
 
     # Game-specific configurations
-    rps_config: Dict[str, Any] = field(
+    rps_config: dict[str, Any] = field(
         default_factory=lambda: {
             "stake": 10.0,
         }
     )
 
-    number_prediction_config: Dict[str, Any] = field(
+    number_prediction_config: dict[str, Any] = field(
         default_factory=lambda: {
             "stake": 10.0,
             "max_error_for_reward": 20.0,
@@ -66,7 +66,7 @@ class SkillGameConfig:
         }
     )
 
-    poker_config: Dict[str, Any] = field(
+    poker_config: dict[str, Any] = field(
         default_factory=lambda: {
             "small_blind": 5.0,
             "big_blind": 10.0,
@@ -80,10 +80,10 @@ _global_config: Optional[SkillGameConfig] = None
 
 # Game registry - maps game types to their implementation classes.
 # Note: concrete games have different __init__ signatures, so this is intentionally loose.
-_game_registry: Dict[SkillGameType, Type[Any]] = {}
+_game_registry: dict[SkillGameType, type[Any]] = {}
 
 
-def register_skill_game(game_type: SkillGameType, game_class: Type[Any]) -> None:
+def register_skill_game(game_type: SkillGameType, game_class: type[Any]) -> None:
     """Register a skill game implementation.
 
     Args:

@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     pass
@@ -15,19 +15,19 @@ class ControlCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
-    def _cmd_pause(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_pause(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'pause' command."""
         self.paused = True
         logger.info("Simulation paused")
         return None
 
-    def _cmd_resume(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_resume(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'resume' command."""
         self.paused = False
         logger.info("Simulation resumed")
         return None
 
-    def _cmd_reset(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_reset(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'reset' command."""
         # Reset the underlying world to a clean frame counter and entities
         if hasattr(self.world, "reset"):
@@ -41,7 +41,7 @@ class ControlCommands:
         logger.info("Simulation reset")
         return None
 
-    def _cmd_fast_forward(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def _cmd_fast_forward(self, data: dict[str, Any]) -> Optional[dict[str, Any]]:
         """Handle 'fast_forward' command."""
         enabled = data.get("enabled", False) if data else False
         self.fast_forward = enabled

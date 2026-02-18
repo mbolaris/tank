@@ -13,11 +13,12 @@ import importlib.util
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Protocol, Tuple, cast
+from typing import Any, Protocol, cast
+from collections.abc import Iterator
 
 
 class ScanAndFixFn(Protocol):
-    def __call__(self, lineage_log: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]: ...
+    def __call__(self, lineage_log: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]: ...
 
 
 def load_scan_function() -> ScanAndFixFn:

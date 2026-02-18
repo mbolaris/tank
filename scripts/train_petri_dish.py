@@ -7,7 +7,7 @@ It uses the Pluggable Policy system to control the fish.
 import math
 import random
 import time
-from typing import Any, Tuple
+from typing import Any
 
 from core.entities import Fish, Food
 from core.genetics.genome import Genome
@@ -27,7 +27,7 @@ def distance(p1, p2) -> float:
     return math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
 
 
-def heuristic_policy(obs: dict, rng: random.Random) -> Tuple[float, float]:
+def heuristic_policy(obs: dict, rng: random.Random) -> tuple[float, float]:
     """A simple heuristic policy: move towards food info in obs."""
     # Note: real observation building needs to be robust.
     # For this script we might verify what 'build_movement_observation' provides.

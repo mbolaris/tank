@@ -11,7 +11,7 @@ import os
 import time
 from collections import defaultdict
 from functools import wraps
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -36,7 +36,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_window = requests_per_window
         self.window_seconds = window_seconds
-        self.request_counts: Dict[str, list] = defaultdict(list)
+        self.request_counts: dict[str, list] = defaultdict(list)
 
     def _get_client_ip(self, request: Request) -> str:
         """Extract client IP, considering proxy headers."""
@@ -166,7 +166,7 @@ def rate_limit(max_requests: int = 10, window_seconds: int = 60):
         async def expensive_operation():
             ...
     """
-    request_counts: Dict[str, list] = defaultdict(list)
+    request_counts: dict[str, list] = defaultdict(list)
 
     def decorator(func: Callable):
         @wraps(func)
@@ -214,7 +214,7 @@ class WebSocketLimiter:
 
     def __init__(self, max_connections_per_ip: int = 5):
         self.max_connections = max_connections_per_ip
-        self.connections: Dict[str, int] = defaultdict(int)
+        self.connections: dict[str, int] = defaultdict(int)
 
     def can_connect(self, client_ip: str) -> bool:
         """Check if client can open a new WebSocket connection."""

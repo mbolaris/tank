@@ -26,7 +26,7 @@ which pattern is active and predict accordingly.
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Optional, cast
 
 from core.skills.base import (
     SkillEvaluationMetrics,
@@ -58,14 +58,14 @@ class PatternGenerator:
     """
 
     pattern_type: PatternType = PatternType.ALTERNATING
-    value_range: Tuple[float, float] = (0.0, 100.0)  # Min and max values
+    value_range: tuple[float, float] = (0.0, 100.0)  # Min and max values
     noise_level: float = 0.1  # How much noise to add (0-1)
     rng: Optional[random.Random] = field(default=None)  # RNG for determinism
 
     # Internal state
     _current_value: float = 50.0
     _step: int = 0
-    _cycle: List[float] = field(default_factory=lambda: [25.0, 75.0, 50.0])
+    _cycle: list[float] = field(default_factory=lambda: [25.0, 75.0, 50.0])
     _mean: float = 50.0
 
     def __post_init__(self):
@@ -132,7 +132,7 @@ class PatternGenerator:
         self._current_value = max(min_val, min(max_val, base_value))
         return self._current_value
 
-    def get_optimal_prediction(self, history: List[float]) -> float:
+    def get_optimal_prediction(self, history: list[float]) -> float:
         """Get the optimal prediction given the pattern type and history.
 
         This is what a perfect predictor would guess.
@@ -211,8 +211,8 @@ class NumberGuessingStrategy(SkillStrategy[float]):
     memory_length: int = 10
 
     # Internal state
-    _history: List[float] = field(default_factory=list)
-    _prediction_errors: Dict[str, List[float]] = field(default_factory=dict)
+    _history: list[float] = field(default_factory=list)
+    _prediction_errors: dict[str, list[float]] = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize prediction error tracking."""
@@ -223,7 +223,7 @@ class NumberGuessingStrategy(SkillStrategy[float]):
             "alternating": [],
         }
 
-    def choose_action(self, game_state: Dict[str, Any]) -> float:
+    def choose_action(self, game_state: dict[str, Any]) -> float:
         """Predict the next value based on observed history.
 
         Args:
@@ -232,15 +232,15 @@ class NumberGuessingStrategy(SkillStrategy[float]):
         Returns:
             Predicted value
         """
-        history = cast(List[float], game_state.get("history", []))
-        value_range = cast(Tuple[float, float], game_state.get("value_range", (0.0, 100.0)))
+        history = cast(list[float], game_state.get("history", []))
+        value_range = cast(tuple[float, float], game_state.get("value_range", (0.0, 100.0)))
         min_val, max_val = value_range
 
         if not history:
             return (min_val + max_val) / 2  # No data, guess middle
 
         # Calculate predictions from different methods
-        predictions: Dict[str, float] = {}
+        predictions: dict[str, float] = {}
 
         # 1. Predict same as last value
         predictions["last_value"] = history[-1]
@@ -263,7 +263,7 @@ class NumberGuessingStrategy(SkillStrategy[float]):
             predictions["alternating"] = mid + (mid - history[-1])
 
         # Weight predictions based on recent accuracy
-        weights: Dict[str, float] = {
+        weights: dict[str, float] = {
             "last_value": self.weight_last_value,
             "trend": self.weight_trend,
             "mean": self.weight_mean,
@@ -296,17 +296,17 @@ class NumberGuessingStrategy(SkillStrategy[float]):
         """
         details = result.details
         actual_value = details.get("actual_value")
-        history = cast(List[float], details.get("history_before", []))
+        history = cast(list[float], details.get("history_before", []))
 
         if actual_value is None or not history:
             return
         actual = float(actual_value)
 
-        value_range = cast(Tuple[float, float], details.get("value_range", (0.0, 100.0)))
+        value_range = cast(tuple[float, float], details.get("value_range", (0.0, 100.0)))
         min_val, max_val = value_range
 
         # Calculate what each method would have predicted
-        predictions: Dict[str, float] = {}
+        predictions: dict[str, float] = {}
         predictions["last_value"] = history[-1] if history else actual
 
         if len(history) >= 2:
@@ -354,7 +354,7 @@ class NumberGuessingStrategy(SkillStrategy[float]):
             self.weight_mean /= total
             self.weight_alternating /= total
 
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Get strategy parameters for inheritance."""
         return {
             "weight_last_value": self.weight_last_value,
@@ -364,7 +364,7 @@ class NumberGuessingStrategy(SkillStrategy[float]):
             "learning_rate": self.learning_rate,
         }
 
-    def set_parameters(self, params: Dict[str, float]) -> None:
+    def set_parameters(self, params: dict[str, float]) -> None:
         """Set strategy parameters."""
         self.weight_last_value = params.get("weight_last_value", 0.25)
         self.weight_trend = params.get("weight_trend", 0.25)
@@ -386,9 +386,9 @@ class OptimalNumberGuessingStrategy(NumberGuessingStrategy):
         """Set the pattern generator for optimal predictions."""
         self._generator = generator
 
-    def choose_action(self, game_state: Dict[str, Any]) -> float:
+    def choose_action(self, game_state: dict[str, Any]) -> float:
         """Make optimal prediction using knowledge of pattern."""
-        history = cast(List[float], game_state.get("history", []))
+        history = cast(list[float], game_state.get("history", []))
 
         if self._generator is not None:
             return self._generator.get_optimal_prediction(history)
@@ -436,7 +436,7 @@ class NumberGuessingGame(SkillGame):
         self.pattern_change_frequency = pattern_change_frequency
 
         self.generator = PatternGenerator(pattern_type=pattern_type, rng=rng)
-        self._history: List[float] = []
+        self._history: list[float] = []
         self._rounds_played = 0
 
     @property
@@ -527,7 +527,7 @@ class NumberGuessingGame(SkillGame):
         self,
         player_strategy: SkillStrategy,
         opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[Dict[str, Any]] = None,
+        game_state: Optional[dict[str, Any]] = None,
     ) -> SkillGameResult:
         """Play one round of the prediction game.
 
@@ -624,7 +624,7 @@ class NumberGuessingGame(SkillGame):
 
         total_error = 0.0
         optimal_total_error = 0.0
-        pattern_scores: Dict[str, List[float]] = {}
+        pattern_scores: dict[str, list[float]] = {}
 
         for _ in range(num_games):
             result = self.play_round(strategy)
@@ -677,7 +677,7 @@ class NumberGuessingGame(SkillGame):
         """Number prediction is moderately difficult."""
         return 0.4
 
-    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> Dict[str, Any]:
+    def get_evaluation_summary(self, metrics: SkillEvaluationMetrics) -> dict[str, Any]:
         """Get prediction-specific evaluation summary."""
         base = super().get_evaluation_summary(metrics)
         base.update(

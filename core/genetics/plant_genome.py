@@ -9,7 +9,7 @@ across the codebase and respect ALife principles (no explicit fitness functions)
 
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
 
@@ -68,19 +68,19 @@ class PlantGenome:
     floral_hue: float = 0.12  # Base color hue (0-1), defaults to amber/gold
     floral_saturation: float = 0.8  # Color saturation (0-1)
 
-    _production_rules: List[Tuple[str, str, float]] = field(default_factory=list)
+    _production_rules: list[tuple[str, str, float]] = field(default_factory=list)
 
     def __post_init__(self):
         if not self._production_rules:
             self._production_rules = self._generate_default_rules()
 
-    def _generate_default_rules(self) -> List[Tuple[str, str, float]]:
+    def _generate_default_rules(self) -> list[tuple[str, str, float]]:
         """Generate default L-system production rules based on axiom and fractal type.
 
         This ensures plants with 'X' axiom (like claude, gemini, cosmic_fern, etc.)
         get proper rules to expand their axiom into drawable 'F' segments.
         """
-        rules: List[Tuple[str, str, float]] = []
+        rules: list[tuple[str, str, float]] = []
 
         # If axiom contains 'X', we need rules for X to expand into F segments
         if "X" in self.axiom:
@@ -113,8 +113,8 @@ class PlantGenome:
 
         return rules
 
-    def get_production_rules(self) -> Dict[str, List[Tuple[str, float]]]:
-        rules: Dict[str, List[Tuple[str, float]]] = {}
+    def get_production_rules(self) -> dict[str, list[tuple[str, float]]]:
+        rules: dict[str, list[tuple[str, float]]] = {}
         for inp, out, prob in self._production_rules:
             rules.setdefault(inp, []).append((out, prob))
         return rules
@@ -680,7 +680,7 @@ class PlantGenome:
 
     # Note: update_fitness() removed - fitness_score deprecated
 
-    def get_color_rgb(self) -> Tuple[int, int, int]:
+    def get_color_rgb(self) -> tuple[int, int, int]:
         hue = self.color_hue
         sat = self.color_saturation
         lightness = 0.4
@@ -708,7 +708,7 @@ class PlantGenome:
             b = int(hue_to_rgb(p, q, hue - 1 / 3) * 255)
         return (r, g, b)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return {
             "axiom": self.axiom,
             "angle": self.angle,
@@ -741,7 +741,7 @@ class PlantGenome:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def from_dict(cls, data: dict, rng: Optional[random.Random] = None) -> "PlantGenome":
         rules = [(r["input"], r["output"], r["prob"]) for r in data.get("production_rules", [])]
         # Get strategy_type, assigning a random one for legacy plants without it
         # Check for both missing key AND explicitly saved null values

@@ -1,6 +1,6 @@
 """World boundary management and collision resolution."""
 
-from typing import Any, Tuple
+from typing import Any
 
 from core.entities import Agent
 
@@ -30,7 +30,7 @@ class WorldBounds:
         """Set a custom boundary handler (e.g. for Petri Dish mode)."""
         self._custom_boundary = boundary_handler
 
-    def get_dimensions(self) -> Tuple[float, float]:
+    def get_dimensions(self) -> tuple[float, float]:
         """Get the world dimensions (width, height)."""
         return (float(self.width), float(self.height))
 

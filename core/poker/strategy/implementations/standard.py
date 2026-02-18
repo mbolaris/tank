@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional
 
 from core.config.poker import (
     POKER_LAG_ENERGY_FRACTION,
@@ -46,7 +46,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
@@ -105,7 +105,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
@@ -174,7 +174,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
@@ -233,7 +233,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
@@ -318,7 +318,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
         call_amount = opponent_bet - current_bet
@@ -377,7 +377,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         player_energy: float,
         position_on_button: bool = False,
         rng: Optional[random.Random] = None,
-    ) -> Tuple[BettingAction, float]:
+    ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
