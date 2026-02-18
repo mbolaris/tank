@@ -12,7 +12,8 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
-from core.ecosystem_stats import AlgorithmStats, EcosystemEvent, GenerationStats
+from core.ecosystem_stats import (AlgorithmStats, EcosystemEvent,
+                                  GenerationStats)
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -33,6 +34,11 @@ class PopulationTracker:
         total_births: Total fish born since start
         total_deaths: Total fish died since start
     """
+
+    # Keep dead generation stats within this distance of current generation.
+    GENERATION_PRUNE_KEEP = 50
+    # How often (in frames) to prune dead generation entries.
+    GENERATION_PRUNE_INTERVAL = 1000
 
     def __init__(
         self,
@@ -298,6 +304,28 @@ class PopulationTracker:
                 births_this_frame=0,
                 deaths_this_frame=0,
             )
+
+        # Periodically prune dead generation entries to prevent unbounded growth
+        if self._get_frame() % self.GENERATION_PRUNE_INTERVAL == 0:
+            self._prune_dead_generations()
+
+    def _prune_dead_generations(self) -> None:
+        """Remove generation_stats entries for long-dead generations.
+
+        Keeps entries for generations that are still alive or within
+        GENERATION_PRUNE_KEEP of the current generation.
+        """
+        if not self.generation_stats:
+            return
+
+        cutoff = self.current_generation - self.GENERATION_PRUNE_KEEP
+        to_remove = [
+            gen
+            for gen, stats in self.generation_stats.items()
+            if stats.population == 0 and gen < cutoff
+        ]
+        for gen in to_remove:
+            del self.generation_stats[gen]
 
     def check_for_extinction(self, frame: int) -> None:
         """Check if population has gone extinct.

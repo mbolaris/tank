@@ -3,22 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any
+from typing import Any, ClassVar
 
 from core.config.simulation_config import SoccerConfig
 from core.minigames.soccer.evaluator import (
-    SoccerMinigameOutcome,
-    create_soccer_match_from_participants,
-    finalize_soccer_match,
-)
+    SoccerMinigameOutcome, create_soccer_match_from_participants,
+    finalize_soccer_match)
 from core.minigames.soccer.league.provider import LeagueTeamProvider
 from core.minigames.soccer.league.scheduler import LeagueScheduler
-from core.minigames.soccer.league.types import (
-    LeagueLeaderboardEntry,
-    LeagueMatch,
-    TeamAvailability,
-    TeamSource,
-)
+from core.minigames.soccer.league.types import (LeagueLeaderboardEntry,
+                                                LeagueMatch, TeamAvailability,
+                                                TeamSource)
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 
@@ -37,6 +32,9 @@ class BotEntity:
 @dataclass
 class SoccerLeagueRuntime:
     """Runs soccer league matches incrementally with bounded per-frame work."""
+
+    # Defensive cap to prevent unbounded leaderboard growth.
+    MAX_LEADERBOARD_SIZE: ClassVar[int] = 50
 
     config: SoccerConfig
     _match_counter: int = 0
@@ -78,6 +76,16 @@ class SoccerLeagueRuntime:
                     display_name=team.display_name,
                     source=team.source,
                 )
+
+        # Defensive: prune leaderboard if it exceeds the cap
+        if len(self._leaderboard) > self.MAX_LEADERBOARD_SIZE:
+            sorted_entries = sorted(
+                self._leaderboard.items(),
+                key=lambda item: (item[1].points, item[1].goal_difference),
+            )
+            excess = len(self._leaderboard) - self.MAX_LEADERBOARD_SIZE
+            for team_id, _ in sorted_entries[:excess]:
+                del self._leaderboard[team_id]
 
         # 2. Manage Active Match
         if self._active_match is None:

@@ -12,7 +12,7 @@ This module provides advanced population analytics including:
 import math
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -124,6 +124,11 @@ class EnhancedStatisticsTracker:
     - Energy efficiency metrics
     """
 
+    # Maximum samples to keep for trait correlation analysis.
+    MAX_TRAIT_SAMPLES = 500
+    # Maximum extinction events to keep.
+    MAX_EXTINCTIONS = 100
+
     def __init__(self, max_history_length: int = 1000):
         """Initialize the enhanced statistics tracker.
 
@@ -135,10 +140,12 @@ class EnhancedStatisticsTracker:
         # Time series data
         self.time_series: deque = deque(maxlen=max_history_length)
 
-        # Trait correlation data (trait_name -> list of (trait_value, fitness) pairs)
-        self.trait_fitness_data: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
+        # Trait correlation data (trait_name -> deque of (trait_value, fitness) pairs)
+        self.trait_fitness_data: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.MAX_TRAIT_SAMPLES)
+        )
 
-        # Extinction tracking
+        # Extinction tracking (capped to avoid unbounded growth)
         self.extinct_algorithms: List[ExtinctionEvent] = []
         self.algorithm_last_seen: Dict[int, int] = {}  # algorithm_id -> last frame seen
         self.algorithm_extinction_check: Dict[int, bool] = {}  # algorithm_id -> is_extinct
@@ -156,7 +163,9 @@ class EnhancedStatisticsTracker:
         # Specialized tracking for live food performance (harder to catch than static food)
         self.live_food_performance: Dict[int, LiveFoodStats] = defaultdict(LiveFoodStats)
         self.live_food_algorithm_snapshots: Dict[int, Dict[str, Any]] = {}
-        self.live_food_trait_samples: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
+        self.live_food_trait_samples: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=self.MAX_TRAIT_SAMPLES)
+        )
 
         # Energy efficiency tracking
         self.energy_efficiency = EnergyEfficiencyMetrics(
@@ -257,12 +266,13 @@ class EnhancedStatisticsTracker:
         """
         correlations = []
 
-        for trait_name, samples in self.trait_fitness_data.items():
-            if len(samples) < 10:
+        for trait_name, samples_deque in self.trait_fitness_data.items():
+            if len(samples_deque) < 10:
                 # Need at least 10 samples for meaningful correlation
                 continue
 
             # Calculate Pearson correlation coefficient
+            samples = list(samples_deque)
             n = len(samples)
             trait_values = [s[0] for s in samples]
             fitness_values = [s[1] for s in samples]
@@ -357,6 +367,9 @@ class EnhancedStatisticsTracker:
                     )
 
                     self.extinct_algorithms.append(extinction)
+                    # Cap extinction list to prevent unbounded growth
+                    if len(self.extinct_algorithms) > self.MAX_EXTINCTIONS:
+                        self.extinct_algorithms = self.extinct_algorithms[-self.MAX_EXTINCTIONS :]
                     self.algorithm_extinction_check[algo_id] = True
                     new_extinctions.append(extinction)
 
@@ -472,10 +485,11 @@ class EnhancedStatisticsTracker:
 
         correlations: List[TraitCorrelation] = []
 
-        for trait_name, samples in self.live_food_trait_samples.items():
-            if len(samples) < 10:
+        for trait_name, samples_deque in self.live_food_trait_samples.items():
+            if len(samples_deque) < 10:
                 continue
 
+            samples = list(samples_deque)
             n = len(samples)
             trait_values = [value for value, _ in samples]
             success_values = [score for _, score in samples]
