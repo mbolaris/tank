@@ -14,7 +14,7 @@ Betting logic is separated from the main interaction class because:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 from collections.abc import Callable
 
 from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
@@ -33,7 +33,7 @@ def decide_player_action(
     game_state: "MultiplayerGameState",
     contexts: "list[MultiplayerPlayerContext]",
     players: list[Any],
-    rng: Optional[Any] = None,
+    rng: Any | None = None,
 ) -> tuple[BettingAction, float]:
     """Decide action for a player based on hand strength and aggression.
 
@@ -137,7 +137,7 @@ def play_betting_round(
     num_players: int,
     players: list[Any],
     modify_player_energy: Callable[[Any, float], None],
-    rng: Optional[Any] = None,
+    rng: Any | None = None,
 ) -> bool:
     """Play a single betting round.
 

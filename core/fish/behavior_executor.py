@@ -23,7 +23,7 @@ Example:
     executor.execute(fish, frame_count)
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.config.fish import DIRECTION_CHANGE_ENERGY_BASE, DIRECTION_CHANGE_SIZE_MULTIPLIER
 from core.math_utils import Vector2
@@ -55,7 +55,7 @@ class BehaviorExecutor:
             movement_strategy: The movement strategy that controls fish movement
         """
         self._movement_strategy = movement_strategy
-        self._last_direction: Optional[Vector2] = None
+        self._last_direction: Vector2 | None = None
         self._poker_cooldown: int = 0
 
     @property
@@ -69,12 +69,12 @@ class BehaviorExecutor:
         self._movement_strategy = strategy
 
     @property
-    def last_direction(self) -> Optional[Vector2]:
+    def last_direction(self) -> Vector2 | None:
         """Get the last movement direction (for turn cost calculation)."""
         return self._last_direction
 
     @last_direction.setter
-    def last_direction(self, direction: Optional[Vector2]) -> None:
+    def last_direction(self, direction: Vector2 | None) -> None:
         """Set the last movement direction."""
         self._last_direction = direction
 
@@ -113,7 +113,7 @@ class BehaviorExecutor:
         if self._poker_cooldown > 0:
             self._poker_cooldown -= 1
 
-    def _apply_turn_energy_cost(self, fish: "Fish", previous_direction: Optional[Vector2]) -> None:
+    def _apply_turn_energy_cost(self, fish: "Fish", previous_direction: Vector2 | None) -> None:
         """Apply energy penalty for direction changes.
 
         The energy cost increases with:

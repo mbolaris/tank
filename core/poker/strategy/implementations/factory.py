@@ -51,7 +51,7 @@ def get_all_poker_strategies() -> list[type[PokerStrategyAlgorithm]]:
     return ALL_POKER_STRATEGIES
 
 
-def get_random_poker_strategy(rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
+def get_random_poker_strategy(rng: random.Random | None = None) -> PokerStrategyAlgorithm:
     """Get random poker strategy.
 
     Args:
@@ -88,10 +88,10 @@ POKER_EVOLUTION_CONFIG = {
 def crossover_poker_strategies(
     parent1: Optional["PokerStrategyAlgorithm"],
     parent2: Optional["PokerStrategyAlgorithm"],
-    mutation_rate: Optional[float] = None,
-    mutation_strength: Optional[float] = None,
-    winner_weight: Optional[float] = None,
-    rng: Optional[random.Random] = None,
+    mutation_rate: float | None = None,
+    mutation_strength: float | None = None,
+    winner_weight: float | None = None,
+    rng: random.Random | None = None,
 ) -> "PokerStrategyAlgorithm":
     """Crossover two poker strategies with winner-biased inheritance.
 

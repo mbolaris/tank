@@ -5,7 +5,6 @@ will be and intercept them more effectively.
 """
 
 import math
-from typing import Optional
 
 from core.config.fish import (
     MOVEMENT_DISTANCE_EPSILON,
@@ -19,7 +18,7 @@ from core.math_utils import Vector2
 
 def predict_intercept_point(
     fish_pos: Vector2, fish_speed: float, target_pos: Vector2, target_vel: Vector2
-) -> tuple[Optional[Vector2], float]:
+) -> tuple[Vector2 | None, float]:
     """Predict where to move to intercept a moving target.
 
     Uses basic ballistic prediction to calculate where the fish should

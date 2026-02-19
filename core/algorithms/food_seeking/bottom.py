@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -15,7 +15,7 @@ from core.config.display import SCREEN_HEIGHT
 class BottomFeeder(BehaviorAlgorithm):
     """Stay near bottom to catch sinking food."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -29,7 +29,7 @@ class BottomFeeder(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

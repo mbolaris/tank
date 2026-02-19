@@ -51,7 +51,7 @@ Design Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any
 
 # ============================================================================
 # Base ID Type
@@ -277,10 +277,10 @@ class IdGenerator:
 # ============================================================================
 
 # Union type for "any entity ID"
-AnyEntityId = Union[FishId, PlantId, FoodId, NectarId, CrabId]
+AnyEntityId = FishId | PlantId | FoodId | NectarId | CrabId
 
 # Type alias for poker participant (fish or plant)
-PokerParticipantId = Union[FishId, PlantId]
+PokerParticipantId = FishId | PlantId
 
 
 # ============================================================================

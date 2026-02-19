@@ -9,7 +9,7 @@ This router provides endpoints for:
 """
 
 import logging
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse

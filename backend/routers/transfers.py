@@ -1,7 +1,5 @@
 """Transfer history API endpoints."""
 
-from typing import Optional
-
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 

@@ -84,8 +84,8 @@ class FoodSpawningSystem(BaseSystem):
     def __init__(
         self,
         engine: "SimulationEngine",
-        rng: Optional[random.Random] = None,
-        spawn_rate_config: Optional[SpawnRateConfig] = None,
+        rng: random.Random | None = None,
+        spawn_rate_config: SpawnRateConfig | None = None,
         auto_food_enabled: bool = AUTO_FOOD_ENABLED,
         display_config: Optional["DisplayConfig"] = None,
     ) -> None:

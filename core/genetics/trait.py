@@ -8,7 +8,7 @@ This module provides:
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from collections.abc import Callable
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
@@ -103,7 +103,7 @@ class GeneticTrait(Generic[T]):
     mutation_strength: float = 1.0
     hgt_probability: float = 0.1
 
-    def mutate_meta(self, rng: Optional[pyrandom.Random] = None) -> None:
+    def mutate_meta(self, rng: pyrandom.Random | None = None) -> None:
         """Mutate the metadata itself (evolution of evolution).
 
         Uses dampened mutation rates to prevent runaway evolvability changes.
@@ -150,7 +150,7 @@ class TraitSpec:
     min_val: float
     max_val: float
     discrete: bool = False
-    default_factory: Optional[Callable[[pyrandom.Random], float]] = None
+    default_factory: Callable[[pyrandom.Random], float] | None = None
 
     def random_value(self, rng: pyrandom.Random) -> GeneticTrait:
         """Generate a random trait value within bounds.

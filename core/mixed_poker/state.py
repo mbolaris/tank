@@ -4,7 +4,7 @@ This module contains the runtime state tracking classes.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.mixed_poker.types import MultiplayerBettingRound, Player
 from core.poker.betting.actions import BettingAction
@@ -26,7 +26,7 @@ class MultiplayerPlayerContext:
     total_bet: float = 0.0  # Total bet across all rounds
     folded: bool = False
     is_all_in: bool = False
-    strategy: Optional[Any] = None  # PokerStrategyAlgorithm if available
+    strategy: Any | None = None  # PokerStrategyAlgorithm if available
 
 
 class MultiplayerGameState:
@@ -38,7 +38,7 @@ class MultiplayerGameState:
         small_blind: float = 2.5,
         big_blind: float = 5.0,
         button_position: int = 0,
-        rng: Optional[Any] = None,
+        rng: Any | None = None,
     ):
         self.num_players = num_players
         self.small_blind = small_blind
@@ -51,7 +51,7 @@ class MultiplayerGameState:
 
         # Per-player state
         self.player_hole_cards: list[list[Any]] = [[] for _ in range(num_players)]
-        self.player_hands: list[Optional[PokerHand]] = [None] * num_players
+        self.player_hands: list[PokerHand | None] = [None] * num_players
         self.player_current_bets: list[float] = [0.0] * num_players
         self.player_total_bets: list[float] = [0.0] * num_players
         self.player_folded: list[bool] = [False] * num_players
@@ -63,7 +63,7 @@ class MultiplayerGameState:
         # Raise tracking
         self.min_raise = big_blind
         self.last_raise_amount = big_blind
-        self.last_aggressor: Optional[int] = None  # Who made the last raise
+        self.last_aggressor: int | None = None  # Who made the last raise
 
     def deal_hole_cards(self) -> None:
         """Deal 2 hole cards to each player."""
@@ -115,7 +115,7 @@ class MultiplayerGameState:
         """Return number of players still in the hand."""
         return sum(1 for folded in self.player_folded if not folded)
 
-    def get_winner_by_fold(self) -> Optional[int]:
+    def get_winner_by_fold(self) -> int | None:
         """Return winner index if only one player remains, None otherwise."""
         active_players = [i for i, folded in enumerate(self.player_folded) if not folded]
         if len(active_players) == 1:

@@ -2,7 +2,6 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
@@ -12,7 +11,7 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 class GTOExpertStrategy(PokerStrategyAlgorithm):
     """GTO-inspired expert strategy using optimal frequencies and ranges."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         if rng is None:
             raise RuntimeError("GTOExpertStrategy: RNG is None")
         _rng = rng
@@ -30,7 +29,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -41,7 +40,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:

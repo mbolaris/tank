@@ -33,7 +33,7 @@ class TestSoccerEvolutionRunner:
 
         # Same seed should produce identical stats
         assert len(result1.generations) == len(result2.generations)
-        for s1, s2 in zip(result1.generations, result2.generations):
+        for s1, s2 in zip(result1.generations, result2.generations, strict=False):
             assert s1.best_fitness == s2.best_fitness
             assert s1.mean_fitness == s2.mean_fitness
             assert s1.goals_left == s2.goals_left

@@ -12,7 +12,7 @@ This module provides advanced population analytics including:
 import math
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -281,7 +281,8 @@ class EnhancedStatisticsTracker:
             mean_fitness = sum(fitness_values) / n
 
             numerator = sum(
-                (t - mean_trait) * (f - mean_fitness) for t, f in zip(trait_values, fitness_values)
+                (t - mean_trait) * (f - mean_fitness)
+                for t, f in zip(trait_values, fitness_values, strict=False)
             )
 
             trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)
@@ -396,7 +397,9 @@ class EnhancedStatisticsTracker:
             mean_x = sum(x_values) / n
             mean_y = sum(values) / n
 
-            numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, values))
+            numerator = sum(
+                (x - mean_x) * (y - mean_y) for x, y in zip(x_values, values, strict=False)
+            )
             denominator = sum((x - mean_x) ** 2 for x in x_values)
 
             slope = 0.0 if denominator == 0 else numerator / denominator
@@ -452,7 +455,7 @@ class EnhancedStatisticsTracker:
         algorithm_id: int,
         energy_gained: float,
         genome: "Genome",
-        generation: Optional[int] = None,
+        generation: int | None = None,
     ) -> None:
         """Record that an algorithm successfully caught live food.
 
@@ -498,7 +501,8 @@ class EnhancedStatisticsTracker:
             mean_success = sum(success_values) / n
 
             numerator = sum(
-                (t - mean_trait) * (s - mean_success) for t, s in zip(trait_values, success_values)
+                (t - mean_trait) * (s - mean_success)
+                for t, s in zip(trait_values, success_values, strict=False)
             )
 
             trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)

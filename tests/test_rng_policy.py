@@ -1,6 +1,5 @@
 import ast
 from pathlib import Path
-from typing import Optional
 
 ALLOWED_RANDOM_ATTRS = {"Random", "SystemRandom"}
 
@@ -33,7 +32,7 @@ class _RandomUsageVisitor(ast.NodeVisitor):
         visitor(node)
         self._stack.pop()
 
-    def _parent(self) -> Optional[ast.AST]:
+    def _parent(self) -> ast.AST | None:
         if len(self._stack) < 2:
             return None
         return self._stack[-2]

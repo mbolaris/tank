@@ -5,7 +5,7 @@ worlds of all types (tank, petri) through a unified API.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse

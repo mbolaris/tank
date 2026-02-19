@@ -9,7 +9,6 @@ Uses AST-based import analysis with no external dependencies.
 
 import ast
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -57,7 +56,7 @@ def extract_imports(file_path: Path) -> set[str]:
 
 
 def check_forbidden_imports(
-    source_dir: Path, forbidden_patterns: list[str], allowed_exceptions: Optional[list[str]] = None
+    source_dir: Path, forbidden_patterns: list[str], allowed_exceptions: list[str] | None = None
 ) -> list[tuple[Path, str]]:
     """Check for forbidden imports in a directory.
 

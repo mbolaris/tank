@@ -8,11 +8,11 @@ import argparse
 import json
 import sys
 import time
-from typing import Any, Optional
+from typing import Any
 
 
 def is_improvement(
-    new_result: dict[str, Any], champion_data: Optional[dict[str, Any]], tolerance: float = 1e-9
+    new_result: dict[str, Any], champion_data: dict[str, Any] | None, tolerance: float = 1e-9
 ) -> bool:
     """Check if new result is strictly better than champion."""
     if not champion_data:
@@ -30,7 +30,7 @@ def is_improvement(
 
 
 def update_champion_data(
-    champion_data: Optional[dict[str, Any]], new_result: dict[str, Any]
+    champion_data: dict[str, Any] | None, new_result: dict[str, Any]
 ) -> dict[str, Any]:
     """Create updated champion data structure."""
     version = 1
@@ -77,7 +77,7 @@ def main():
             result = json.load(f)
 
         # Check if champion exists
-        champion: Optional[dict[str, Any]] = None
+        champion: dict[str, Any] | None = None
         try:
             with open(args.champion_path) as f:
                 champion = json.load(f)

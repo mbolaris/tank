@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -16,7 +16,7 @@ from core.config.food import FOOD_PURSUIT_RANGE_CLOSE
 class ZigZagForager(BehaviorAlgorithm):
     """Move in zigzag pattern to maximize food discovery."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -32,7 +32,7 @@ class ZigZagForager(BehaviorAlgorithm):
         self.zigzag_phase = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

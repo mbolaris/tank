@@ -262,7 +262,7 @@ def test_shaped_reward_adds_to_total_reward():
     likelihood of asymmetric play, but the shaped reward mechanism works
     correctly even when the final values are close to zero.
     """
-    from typing import Optional, cast
+    from typing import cast
 
     from core.code_pool import GenomeCodePool
     from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
@@ -278,7 +278,7 @@ def test_shaped_reward_adds_to_total_reward():
     for _ in range(2):
         genome = Genome.random(use_algorithm=False, rng=None)
         genome.behavioral.soccer_policy_id = GeneticTrait(
-            cast(Optional[str], BUILTIN_CHASE_BALL_SOCCER_ID)
+            cast(str | None, BUILTIN_CHASE_BALL_SOCCER_ID)
         )
         genomes.append(genome)
 

@@ -6,7 +6,7 @@ definitions from definitions.py and opponent models from opponent.py.
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.composable.definitions import (
@@ -114,7 +114,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             }
 
     @classmethod
-    def create_random(cls, rng: Optional[random.Random] = None) -> "ComposablePokerStrategy":
+    def create_random(cls, rng: random.Random | None = None) -> "ComposablePokerStrategy":
         """Create a random composable poker strategy."""
         from core.util.rng import require_rng_param
 
@@ -136,7 +136,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
 
     # Alias for consistency with other strategy classes
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None) -> PokerStrategyAlgorithm:
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         """Create a random instance (alias for create_random)."""
         return cls.create_random(rng)
 
@@ -152,9 +152,9 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
         *,
-        opponent_id: Optional[str] = None,
+        opponent_id: str | None = None,
     ) -> tuple[BettingAction, float]:
         """Make betting decision based on composed sub-behaviors.
 
@@ -407,7 +407,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             return (BettingAction.FOLD, 0.0)
         return (BettingAction.CHECK, 0.0)
 
-    def _get_opponent_adjustment(self, opponent_id: Optional[str]) -> float:
+    def _get_opponent_adjustment(self, opponent_id: str | None) -> float:
         """Get adjustment factor based on opponent history."""
         if not opponent_id or opponent_id not in self.opponent_models:
             return 0.0
@@ -437,7 +437,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         self,
         mutation_rate: float = 0.12,
         mutation_strength: float = 0.15,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Mutate parameters for evolution (compatibility with existing interface)."""
         self.mutate(mutation_rate, mutation_strength, rng=rng)
@@ -447,7 +447,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         mutation_rate: float = 0.12,
         mutation_strength: float = 0.15,
         sub_behavior_switch_rate: float = 0.05,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Mutate the composable poker strategy.
 
@@ -520,7 +520,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         pos = "IP" if position_on_button else "OOP"
         return f"{hs_bucket}:{pr_bucket}:{pos}:{street}"
 
-    def get_regret_strategy(self, info_set: str) -> Optional[dict[str, float]]:
+    def get_regret_strategy(self, info_set: str) -> dict[str, float] | None:
         """Get action probabilities from regret matching.
 
         Returns None if no regret data exists, meaning caller should use
@@ -545,9 +545,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
 
         return {a: r / total for a, r in positive.items()}
 
-    def sample_cfr_action(
-        self, info_set: str, rng: Optional[random.Random] = None
-    ) -> Optional[str]:
+    def sample_cfr_action(self, info_set: str, rng: random.Random | None = None) -> str | None:
         """Sample an action from the regret-matched strategy.
 
         Args:
@@ -629,7 +627,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         self.strategy_sum = {k: v for k, v in self.strategy_sum.items() if k in keeps}
         self.visit_count = {k: v for k, v in self.visit_count.items() if k in keeps}
 
-    def get_average_strategy(self, info_set: str) -> Optional[dict[str, float]]:
+    def get_average_strategy(self, info_set: str) -> dict[str, float] | None:
         """Get the time-averaged strategy for an info set.
 
         This is more stable than the regret-matched strategy and better
@@ -717,7 +715,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         mutation_rate: float = 0.10,
         mutation_strength: float = 0.12,
         sub_behavior_switch_rate: float = 0.03,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> "ComposablePokerStrategy":
         """Create offspring by crossing over two parent strategies."""
         from core.util.rng import require_rng_param
@@ -801,7 +799,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         mutation_rate: float = 0.10,
         mutation_strength: float = 0.12,
         sub_behavior_switch_rate: float = 0.05,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> "ComposablePokerStrategy":
         """Create a mutated clone (for asexual reproduction)."""
         from core.util.rng import require_rng_param

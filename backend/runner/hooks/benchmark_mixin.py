@@ -4,12 +4,14 @@ This module provides a mixin class that adds evolution benchmark tracking
 functionality to world hooks.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

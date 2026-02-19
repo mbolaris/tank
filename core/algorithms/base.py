@@ -18,7 +18,7 @@ Architecture Notes:
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
@@ -415,8 +415,8 @@ class BehaviorHelpersMixin:
     """
 
     def _find_nearest(
-        self, fish: "Fish", agent_type: type, max_distance: Optional[float] = None
-    ) -> Optional[Any]:
+        self, fish: "Fish", agent_type: type, max_distance: float | None = None
+    ) -> Any | None:
         """Find nearest agent of given type within optional distance limit.
 
         PERFORMANCE: Uses spatial queries when max_distance is specified (O(k) vs O(n)).
@@ -493,7 +493,7 @@ class BehaviorHelpersMixin:
 
     def _get_predator_threat(
         self, fish: "Fish", max_distance: float = float("inf")
-    ) -> tuple[Optional[Any], float, Vector2]:
+    ) -> tuple[Any | None, float, Vector2]:
         """Get information about the nearest predator threat.
 
         This helper method consolidates the common pattern of finding the nearest
@@ -523,7 +523,7 @@ class BehaviorHelpersMixin:
         escape_direction = self._safe_normalize(fish.pos - nearest_predator.pos)
         return nearest_predator, distance, escape_direction
 
-    def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
+    def _find_nearest_food(self, fish: "Fish") -> Any | None:
         """Find nearest food within time-based detection range.
 
         PERFORMANCE: Uses dedicated spatial food query (nearby_resources) which is
@@ -705,7 +705,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
         mutation_strength: float = 0.2,
         use_parameter_specific: bool = True,
         adaptive_factor: float = 1.0,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Mutate the algorithm's parameters with parameter-specific strategies.
 
@@ -760,7 +760,7 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
             self.parameters[key] = mutated
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None) -> "BehaviorAlgorithm":
+    def random_instance(cls, rng: random.Random | None = None) -> "BehaviorAlgorithm":
         """Create a random instance of this algorithm with random parameters.
 
         Args:

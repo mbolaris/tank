@@ -18,7 +18,7 @@ Design Philosophy:
         val = get_trait_value(physical.fin_size, default=1.0)
 """
 
-from typing import Any, Optional, TypeVar, overload
+from typing import Any, TypeVar, overload
 
 T = TypeVar("T")
 
@@ -28,7 +28,7 @@ def get_trait_value(trait: Any, default: T) -> T: ...
 
 
 @overload
-def get_trait_value(trait: Any) -> Optional[Any]: ...
+def get_trait_value(trait: Any) -> Any | None: ...
 
 
 def get_trait_value(trait: Any, default: Any = None) -> Any:

@@ -2,7 +2,6 @@
 
 import copy
 import random
-from typing import Optional
 
 # Import base class and utilities
 from core.algorithms.base import (
@@ -177,9 +176,7 @@ ALL_ALGORITHMS = [
 ALGORITHM_REGISTRY = {algo_class.__name__: algo_class for algo_class in ALL_ALGORITHMS}
 
 
-def behavior_from_dict(
-    data: dict, rng: Optional[random.Random] = None
-) -> Optional[BehaviorAlgorithm]:
+def behavior_from_dict(data: dict, rng: random.Random | None = None) -> BehaviorAlgorithm | None:
     """Reconstruct a behavior algorithm from serialized data.
 
     Args:
@@ -284,7 +281,7 @@ def get_random_algorithm(rng: random.Random) -> BehaviorAlgorithm:
         return algorithm_class.random_instance()
 
 
-def get_algorithm_by_id(algorithm_id: str, rng: random.Random) -> Optional[BehaviorAlgorithm]:
+def get_algorithm_by_id(algorithm_id: str, rng: random.Random) -> BehaviorAlgorithm | None:
     """Get algorithm instance by ID.
 
     Args:
@@ -311,7 +308,7 @@ def get_algorithm_by_id(algorithm_id: str, rng: random.Random) -> Optional[Behav
 
 
 def calculate_adaptive_mutation_factor(
-    parent_fitness: Optional[float] = None, generation: Optional[int] = None
+    parent_fitness: float | None = None, generation: int | None = None
 ) -> float:
     """Calculate adaptive mutation factor based on fitness and generation.
 
@@ -355,9 +352,9 @@ def inherit_algorithm_with_mutation(
     parent_algorithm: BehaviorAlgorithm,
     mutation_rate: float = 0.15,
     mutation_strength: float = 0.2,
-    parent_fitness: Optional[float] = None,
+    parent_fitness: float | None = None,
     use_adaptive_mutation: bool = True,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> BehaviorAlgorithm:
     """Create offspring algorithm by copying parent and mutating parameters.
 
@@ -410,8 +407,8 @@ def _crossover_algorithms_base(
     mutation_strength: float,
     algorithm_switch_rate: float,
     blend_strategy: str = "weighted",
-    mutation_kwargs: Optional[dict] = None,
-    rng: Optional[random.Random] = None,
+    mutation_kwargs: dict | None = None,
+    rng: random.Random | None = None,
 ) -> BehaviorAlgorithm:
     """Base crossover function with common logic extracted.
 
@@ -524,7 +521,7 @@ def crossover_algorithms(
     mutation_rate: float = 0.15,
     mutation_strength: float = 0.2,
     algorithm_switch_rate: float = 0.1,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> BehaviorAlgorithm:
     """Create offspring algorithm by crossing over both parents' algorithms.
 
@@ -564,7 +561,7 @@ def crossover_algorithms_weighted(
     mutation_rate: float = 0.15,
     mutation_strength: float = 0.2,
     algorithm_switch_rate: float = 0.1,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> BehaviorAlgorithm:
     """Create offspring algorithm with weighted contributions from parents.
 
@@ -606,7 +603,7 @@ def crossover_poker_algorithms(
     parent2_poker_wins: int = 0,
     mutation_rate: float = 0.12,
     mutation_strength: float = 0.18,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> BehaviorAlgorithm:
     """Specialized crossover for poker algorithms with performance-based weighting.
 

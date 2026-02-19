@@ -56,8 +56,8 @@ class Crab(Agent):
         self.hunt_cooldown: int = 0
 
         # Petri mode orbit state (for perimeter movement)
-        self._orbit_theta: Optional[float] = None
-        self._orbit_dir: Optional[int] = None  # +1 or -1
+        self._orbit_theta: float | None = None
+        self._orbit_dir: int | None = None  # +1 or -1
 
     def can_hunt(self) -> bool:
         """Check if crab can hunt (cooldown expired)."""
@@ -90,7 +90,7 @@ class Crab(Agent):
         self.modify_energy(energy_gained, source="ate_food")
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         """Update the crab state.
 

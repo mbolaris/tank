@@ -8,7 +8,6 @@ needed for poker games.
 import random
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Optional
 
 
 class Suit(IntEnum):
@@ -92,7 +91,7 @@ class Deck:
     # Pre-create all 52 cards once at module load to avoid repeated Enum construction
     _TEMPLATE_DECK: list[Card] = list(_CARD_CACHE.values())
 
-    def __init__(self, seed: Optional[int] = None, rng: Optional[random.Random] = None) -> None:
+    def __init__(self, seed: int | None = None, rng: random.Random | None = None) -> None:
         """Initialize and shuffle a standard 52-card deck.
 
         Args:
@@ -103,7 +102,7 @@ class Deck:
         self.rng: random.Random = rng if rng is not None else random.Random(seed)
         self.reset()
 
-    def reset(self, seed: Optional[int] = None) -> None:
+    def reset(self, seed: int | None = None) -> None:
         """Reset and shuffle the deck.
 
         Args:

@@ -9,7 +9,7 @@ This module enables agents to signal information to nearby agents, including:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.math_utils import Vector2
 
@@ -44,7 +44,7 @@ class Signal:
 
     signal_type: SignalType
     sender_pos: Vector2
-    target_location: Optional[Vector2] = None
+    target_location: Vector2 | None = None
     strength: float = 1.0
     urgency: float = 0.5
     timestamp: int = 0
@@ -93,10 +93,10 @@ class AgentSignalSystem:
         self,
         signal_type: SignalType,
         sender_pos: Vector2,
-        target_location: Optional[Vector2] = None,
+        target_location: Vector2 | None = None,
         strength: float = 1.0,
         urgency: float = 0.5,
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ):
         """Broadcast a signal.
 
@@ -129,8 +129,8 @@ class AgentSignalSystem:
     def get_nearby_signals(
         self,
         position: Vector2,
-        signal_type: Optional[SignalType] = None,
-        max_distance: Optional[float] = None,
+        signal_type: SignalType | None = None,
+        max_distance: float | None = None,
     ) -> list[Signal]:
         """Get signals near a position.
 
@@ -161,8 +161,8 @@ class AgentSignalSystem:
         return nearby
 
     def get_strongest_signal(
-        self, position: Vector2, signal_type: Optional[SignalType] = None
-    ) -> Optional[Signal]:
+        self, position: Vector2, signal_type: SignalType | None = None
+    ) -> Signal | None:
         """Get strongest signal near a position.
 
         Args:
@@ -199,7 +199,7 @@ class AgentSignalSystem:
         # Remove expired signals
         self.active_signals = [s for s in self.active_signals if not s.is_expired()]
 
-    def clear_signals(self, signal_type: Optional[SignalType] = None):
+    def clear_signals(self, signal_type: SignalType | None = None):
         """Clear signals.
 
         Args:
@@ -210,7 +210,7 @@ class AgentSignalSystem:
         else:
             self.active_signals = []
 
-    def get_signal_count(self, signal_type: Optional[SignalType] = None) -> int:
+    def get_signal_count(self, signal_type: SignalType | None = None) -> int:
         """Get count of active signals.
 
         Args:

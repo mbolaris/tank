@@ -16,7 +16,7 @@ Event Types:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 from collections.abc import Sequence
 
 if TYPE_CHECKING:
@@ -57,8 +57,4 @@ class ReproductionEvent:
     is_asexual: bool = False
 
 
-TelemetryEvent = Union[
-    FoodEatenEvent,
-    BirthEvent,
-    ReproductionEvent,
-]
+TelemetryEvent = FoodEatenEvent | BirthEvent | ReproductionEvent

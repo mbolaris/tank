@@ -7,7 +7,7 @@ This module manages poker games between a human player and AI fish opponents.
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from core.energy.energy_utils import apply_energy_delta
 from core.poker.core import BettingAction, BettingRound, Card, Deck
@@ -36,12 +36,12 @@ class PlayerState:
     folded: bool = False
     is_human: bool = False
     # For AI players
-    fish_id: Optional[int] = None
-    generation: Optional[int] = None
-    algorithm: Optional[str] = None
-    genome_data: Optional[dict[str, Any]] = None
+    fish_id: int | None = None
+    generation: int | None = None
+    algorithm: str | None = None
+    genome_data: dict[str, Any] | None = None
     aggression: float = 0.5
-    last_action: Optional[str] = None  # Track last action (fold, check, call, raise, bet)
+    last_action: str | None = None  # Track last action (fold, check, call, raise, bet)
 
 
 @dataclass
@@ -59,7 +59,7 @@ class HumanPokerGameState:
     big_blind: float
     deck: Deck
     betting_history: list[dict[str, Any]] = field(default_factory=list)
-    winner_index: Optional[int] = None
+    winner_index: int | None = None
     game_over: bool = False  # Current hand is over
     session_over: bool = False  # Entire session is over (quit or 1 player left)
     message: str = ""
@@ -130,7 +130,7 @@ class HumanPokerGame:
         self.button_index = 0  # Dealer button position
         self.current_player_index = 0
         self.betting_history: list[dict[str, Any]] = []
-        self.winner_index: Optional[int] = None
+        self.winner_index: int | None = None
         self.game_over = False
         self.session_over = False
         self.hands_played = 0
@@ -138,14 +138,14 @@ class HumanPokerGame:
         self.actions_this_round = 0  # Track actions per betting round
         self.big_blind_index = 0  # Track big blind position for BB option
         self.big_blind_has_option = False  # BB gets option to raise if no raises pre-flop
-        self.last_move: Optional[dict[str, str]] = None  # Track the single most recent move
+        self.last_move: dict[str, str] | None = None  # Track the single most recent move
 
         # Decision RNG for deterministic AI decisions (unseeded for human game variation)
         self._decision_rng = random.Random()
-        self._hand_state: Optional[MultiplayerGameState] = None
+        self._hand_state: MultiplayerGameState | None = None
         self._hand_cache: dict[int, Any] = {}
         self._players_acted_since_raise: set[int] = set()
-        self._last_raiser: Optional[int] = None
+        self._last_raiser: int | None = None
 
         # Deal cards and post blinds
         self._start_hand()
@@ -788,7 +788,7 @@ class HumanPokerGame:
         if not self.game_over:
             self._next_player()
 
-    def get_last_hand_result(self) -> Optional[dict[str, Any]]:
+    def get_last_hand_result(self) -> dict[str, Any] | None:
         """
         Returns a summary of the last hand result for reward processing.
         Should be called immediately after a hand concludes (game_over=True)

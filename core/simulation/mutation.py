@@ -1,6 +1,6 @@
 """Mutation transaction management."""
 
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.entities import Agent
 from core.simulation.entity_manager import EntityManager
@@ -21,7 +21,7 @@ class MutationTransaction:
         entity: Agent,
         *,
         reason: str = "",
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a spawn request."""
         return self._queue.request_spawn(entity, reason=reason, metadata=metadata)
@@ -31,7 +31,7 @@ class MutationTransaction:
         entity: Agent,
         *,
         reason: str = "",
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue a removal request."""
         return self._queue.request_remove(entity, reason=reason, metadata=metadata)
@@ -51,10 +51,10 @@ class MutationTransaction:
     def commit(
         self,
         entity_manager: EntityManager,
-        frame_spawns: Optional[list["SpawnRequest"]] = None,
-        frame_removals: Optional[list["RemovalRequest"]] = None,
-        identity_provider: Optional[Any] = None,
-        pre_add_callback: Optional[Any] = None,
+        frame_spawns: list["SpawnRequest"] | None = None,
+        frame_removals: list["RemovalRequest"] | None = None,
+        identity_provider: Any | None = None,
+        pre_add_callback: Any | None = None,
     ) -> None:
         """Apply pending mutations to the entity manager and record outputs.
 
@@ -105,7 +105,7 @@ class MutationTransaction:
 
             entity_manager.add(entity)
 
-    def _get_id(self, entity: Any, provider: Optional[Any]) -> tuple[str, str]:
+    def _get_id(self, entity: Any, provider: Any | None) -> tuple[str, str]:
         """Resolve entity identity."""
         if provider is None:
             return entity.__class__.__name__.lower(), str(id(entity))

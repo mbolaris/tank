@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -66,7 +66,7 @@ def capture_solution_from_world(
     fish_list = [e for e in world.get_entities_for_snapshot() if isinstance(e, Fish)]
 
     # Find fish with most poker experience or highest energy
-    best_fish: Optional[Fish] = None
+    best_fish: Fish | None = None
     best_score = -1.0
 
     for fish in fish_list:

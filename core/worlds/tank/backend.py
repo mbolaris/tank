@@ -44,8 +44,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     def __init__(
         self,
-        seed: Optional[int] = None,
-        config: Optional[SimulationConfig | dict[str, Any]] = None,
+        seed: int | None = None,
+        config: SimulationConfig | dict[str, Any] | None = None,
         **config_overrides,
     ):
         """Initialize the Tank world backend adapter.
@@ -70,12 +70,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             merged_config.update(config_overrides)
 
         self._simulation_config = base_config.apply_flat_config(merged_config)
-        self._engine: Optional[SimulationEngine] = None
-        self._pack: Optional[SystemPack] = None
-        self._rng: Optional[random.Random] = None
+        self._engine: SimulationEngine | None = None
+        self._pack: SystemPack | None = None
+        self._rng: random.Random | None = None
         self._current_frame = 0
-        self._last_step_result: Optional[StepResult] = None
-        self._cached_brain_mode: Optional[str] = None  # Cached brain mode for hot path
+        self._last_step_result: StepResult | None = None
+        self._cached_brain_mode: str | None = None  # Cached brain mode for hot path
         self.supports_fast_step = True
 
     @property
@@ -96,8 +96,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     def reset(
         self,
-        seed: Optional[int] = None,
-        config: Optional[dict[str, Any]] = None,
+        seed: int | None = None,
+        config: dict[str, Any] | None = None,
         pack: Optional["SystemPack"] = None,
     ) -> StepResult:
         """Reset the tank world to initial state.
@@ -235,7 +235,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self._cached_brain_mode = brain_mode
         return brain_mode
 
-    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
         """Advance the tank world by one time step.
 
         The step now follows an action pipeline internally:
@@ -419,8 +419,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
         # Import soccer types
-        BallCls: Optional[type[Any]]
-        GoalZoneCls: Optional[type[Any]]
+        BallCls: type[Any] | None
+        GoalZoneCls: type[Any] | None
         try:
             from core.entities.ball import Ball as BallCls
             from core.entities.goal_zone import GoalZone as GoalZoneCls
@@ -499,7 +499,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return entities_snapshot
 
-    def _extract_genome_data(self, entity: Any) -> Optional[dict[str, Any]]:
+    def _extract_genome_data(self, entity: Any) -> dict[str, Any] | None:
         """Extract minimal genome data for rendering.
 
         Args:
@@ -585,7 +585,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     # Compatibility layer - expose engine internals for existing code
     # ========================================================================
 
-    def get_last_step_result(self) -> Optional[StepResult]:
+    def get_last_step_result(self) -> StepResult | None:
         """Get the last StepResult from reset() or step().
 
         Returns:
@@ -680,7 +680,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             return []
         return self._engine.get_recent_poker_events(max_age_frames)
 
-    def get_soccer_league_live_state(self) -> Optional[dict[str, Any]]:
+    def get_soccer_league_live_state(self) -> dict[str, Any] | None:
         """Get live league match state for rendering."""
         if self._engine is None:
             return None

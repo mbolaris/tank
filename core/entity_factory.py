@@ -5,7 +5,6 @@ used by the web UI backend and headless simulation mode.
 """
 
 import random
-from typing import Optional
 
 from core import entities, environment, movement_strategy
 from core.config.fish import FISH_BASE_SPEED
@@ -17,9 +16,9 @@ from core.genetics import Genome
 def create_initial_population(
     env: environment.Environment,
     ecosystem: EcosystemManager,
-    display_config: Optional[DisplayConfig] = None,
-    ecosystem_config: Optional[EcosystemConfig] = None,
-    rng: Optional[random.Random] = None,
+    display_config: DisplayConfig | None = None,
+    ecosystem_config: EcosystemConfig | None = None,
+    rng: random.Random | None = None,
 ) -> list[entities.Agent]:
     """Create initial population for simulation.
 

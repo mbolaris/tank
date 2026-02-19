@@ -241,7 +241,7 @@ class TestPlant:
         root_spot.get_anchor_topleft = MagicMock(return_value=(100.0, 500.0))
 
         genome = PlantGenome.create_random(rng=env.rng)
-        plant = Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
+        Plant(env, genome=genome, root_spot=root_spot, plant_id=0)
 
     def test_plant_does_not_move(self, simulation_env):
         """Test that plant stays in place."""
@@ -273,4 +273,4 @@ class TestCastle:
     def test_castle_initialization(self, simulation_env):
         """Test that castle initializes correctly."""
         env, _ = simulation_env
-        castle = Castle(env)
+        Castle(env)

@@ -168,7 +168,7 @@ class SkillGameComponent:
         # Stats for each game type
         self._stats: dict[SkillGameType, FishSkillGameStats] = {}
 
-    def get_strategy(self, game_type: SkillGameType) -> Optional[SkillStrategy]:
+    def get_strategy(self, game_type: SkillGameType) -> SkillStrategy | None:
         """Get the fish's strategy for a game type.
 
         Args:

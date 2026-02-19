@@ -5,8 +5,6 @@ characteristics from genetic traits. Separating this logic from the data storage
 (Genome) allows for easier testing, tuning, and clearer separation of concerns.
 """
 
-from typing import Optional
-
 from core.color import FISH_COLOR_SATURATION, hue_to_rgb
 from core.genetics.behavioral import (
     MATE_BEHAVIORAL_PREFERENCE_SPECS,
@@ -123,7 +121,7 @@ def calculate_mate_attraction(
     self_physical: PhysicalTraits,
     self_behavioral: BehavioralTraits,
     other_physical: PhysicalTraits,
-    other_behavioral: Optional[BehavioralTraits] = None,
+    other_behavioral: BehavioralTraits | None = None,
 ) -> float:
     """Calculate attraction score to a potential mate (0.0-1.0).
 
@@ -211,7 +209,9 @@ def calculate_mate_attraction(
     if total_weight <= 0.0:
         return 0.0
 
-    attraction = sum(score * weight for score, weight in zip(scores, weights)) / total_weight
+    attraction = (
+        sum(score * weight for score, weight in zip(scores, weights, strict=False)) / total_weight
+    )
     return min(max(attraction, 0.0), 1.0)
 
 

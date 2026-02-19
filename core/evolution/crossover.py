@@ -23,7 +23,6 @@ for testing and internal use.
 
 import random
 from enum import Enum
-from typing import Optional
 
 
 class CrossoverMode(Enum):
@@ -44,7 +43,7 @@ def blend_values(
     val2: float,
     weight1: float = 0.5,
     mode: CrossoverMode = CrossoverMode.RECOMBINATION,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> float:
     """Blend two parent values using the specified crossover mode.
 
@@ -88,7 +87,7 @@ def blend_discrete(
     val1: int,
     val2: int,
     weight1: float = 0.5,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> int:
     """Blend two discrete parent values (probabilistic selection).
 
@@ -116,7 +115,7 @@ def crossover_dict_values(
     dict2: dict[str, float],
     weight1: float = 0.5,
     mode: CrossoverMode = CrossoverMode.WEIGHTED,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> dict[str, float]:
     """Crossover two dictionaries of float values (e.g., algorithm parameters).
 

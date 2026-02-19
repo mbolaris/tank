@@ -22,7 +22,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -82,7 +82,7 @@ async def register_with_remote_server(
 async def start_with_registration(
     port: int,
     server_id: str,
-    register_with: Optional[str],
+    register_with: str | None,
     data_dir: str,
 ) -> None:
     """Start server and optionally register with another server.

@@ -1,5 +1,4 @@
 import importlib
-from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -17,7 +16,7 @@ class MockWorldStatus:
 
 # Mock WorldManager instead of defining a full Fake class
 class FakeWorldManager:
-    def __init__(self, worlds: Optional[list[dict]] = None):
+    def __init__(self, worlds: list[dict] | None = None):
         self.worlds = [MockWorldStatus(w) for w in worlds or []]
 
     def list_worlds(self):
@@ -30,20 +29,20 @@ def get_router_module(module_path: str):
 
 
 class FakeDiscoveryService:
-    def __init__(self, servers: Optional[list[ServerInfo]] = None):
+    def __init__(self, servers: list[ServerInfo] | None = None):
         self.servers: dict[str, ServerInfo] = {s.server_id: s for s in servers or []}
 
     async def register_server(self, server_info: ServerInfo) -> None:
         self.servers[server_info.server_id] = server_info
 
-    async def heartbeat(self, server_id: str, server_info: Optional[ServerInfo] = None) -> bool:
+    async def heartbeat(self, server_id: str, server_info: ServerInfo | None = None) -> bool:
         if server_id not in self.servers:
             return False
         if server_info is not None:
             self.servers[server_id] = server_info
         return True
 
-    async def list_servers(self, status_filter: Optional[str] = None, include_local: bool = True):
+    async def list_servers(self, status_filter: str | None = None, include_local: bool = True):
         servers = list(self.servers.values())
         if not include_local:
             servers = [s for s in servers if not s.is_local]
@@ -51,7 +50,7 @@ class FakeDiscoveryService:
             servers = [s for s in servers if s.status == status_filter]
         return servers
 
-    async def get_server(self, server_id: str) -> Optional[ServerInfo]:
+    async def get_server(self, server_id: str) -> ServerInfo | None:
         return self.servers.get(server_id)
 
     async def unregister_server(self, server_id: str) -> bool:
@@ -63,7 +62,7 @@ class FakeDiscoveryService:
 
 class FakeServerClient:
     def __init__(
-        self, remote_worlds: Optional[list[dict[str, object]]] = None, should_fail: bool = False
+        self, remote_worlds: list[dict[str, object]] | None = None, should_fail: bool = False
     ):
         self.remote_worlds = remote_worlds or []
         self.should_fail = should_fail

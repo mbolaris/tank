@@ -84,7 +84,7 @@ class PlantManager:
         environment: "Environment",
         ecosystem: "EcosystemManager",
         entity_adder: EntityAdder,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
         screen_width: int = SCREEN_WIDTH,
         screen_height: int = SCREEN_HEIGHT,
         root_spot_manager: Optional["RootSpotManager"] = None,
@@ -177,7 +177,7 @@ class PlantManager:
     def pick_balanced_variant(
         self,
         entities: list["Agent"],
-        preferred_type: Optional[str] = None,
+        preferred_type: str | None = None,
     ) -> str:
         """Select a variant that balances the LLM beauty contest.
 
@@ -208,7 +208,7 @@ class PlantManager:
     def create_variant_genome(
         self,
         variant: str,
-        parent_genome: Optional[PlantGenome] = None,
+        parent_genome: PlantGenome | None = None,
     ) -> PlantGenome:
         """Create a genome for the specified variant.
 

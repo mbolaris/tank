@@ -10,7 +10,6 @@ from collections import deque
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)

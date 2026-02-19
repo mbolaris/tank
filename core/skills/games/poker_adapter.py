@@ -18,7 +18,7 @@ Benefits:
 
 import random
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations import (
@@ -126,7 +126,7 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
             if key in self._strategy.parameters:
                 self._strategy.parameters[key] = value
 
-    def mutate(self, mutation_rate: float = 0.1, rng: Optional[random.Random] = None) -> None:
+    def mutate(self, mutation_rate: float = 0.1, rng: random.Random | None = None) -> None:
         """Mutate the strategy.
 
         Args:
@@ -240,7 +240,7 @@ class PokerSkillGame(SkillGame):
             "and pot-odds-based decisions."
         )
 
-    def create_default_strategy(self, rng: Optional[random.Random] = None) -> PokerSkillStrategy:
+    def create_default_strategy(self, rng: random.Random | None = None) -> PokerSkillStrategy:
         """Create a new default poker strategy.
 
         Returns:
@@ -259,8 +259,8 @@ class PokerSkillGame(SkillGame):
     def play_round(
         self,
         player_strategy: SkillStrategy,
-        opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[dict[str, Any]] = None,
+        opponent_strategy: SkillStrategy | None = None,
+        game_state: dict[str, Any] | None = None,
     ) -> SkillGameResult:
         """Play one round of simplified poker.
 
@@ -382,7 +382,7 @@ class PokerSkillGame(SkillGame):
         self,
         strategy: SkillStrategy,
         num_games: int = 1000,
-        opponent: Optional[SkillStrategy] = None,
+        opponent: SkillStrategy | None = None,
     ) -> SkillEvaluationMetrics:
         """Observe a poker strategy's performance.
 

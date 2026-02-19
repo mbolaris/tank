@@ -15,7 +15,6 @@ Adaptive Mutation:
 
 import random
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -51,7 +50,7 @@ DEFAULT_MUTATION_CONFIG = MutationConfig()
 def calculate_adaptive_mutation_rate(
     base_rate: float,
     base_strength: float,
-    config: Optional[MutationConfig] = None,
+    config: MutationConfig | None = None,
 ) -> tuple[float, float]:
     """Calculate mutation rate and strength with bounds applied.
 
@@ -75,7 +74,7 @@ def mutate_continuous_trait(
     max_val: float,
     mutation_rate: float,
     mutation_strength: float,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> float:
     """Mutate a continuous trait value with Gaussian noise.
 
@@ -106,7 +105,7 @@ def mutate_discrete_trait(
     min_val: int,
     max_val: int,
     mutation_rate: float,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> int:
     """Mutate a discrete trait value by random shift.
 
@@ -132,8 +131,8 @@ def mutate_discrete_trait(
 
 def should_switch_algorithm(
     mutation_rate: float,
-    config: Optional[MutationConfig] = None,
-    rng: Optional[random.Random] = None,
+    config: MutationConfig | None = None,
+    rng: random.Random | None = None,
 ) -> bool:
     """Determine if an algorithm should be completely replaced.
 

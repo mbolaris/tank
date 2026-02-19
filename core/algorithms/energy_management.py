@@ -14,7 +14,7 @@ This module contains 8 algorithms focused on managing energy expenditure:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -26,7 +26,7 @@ from core.algorithms.base import BehaviorAlgorithm, Vector2
 class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "EnergyConserver.__init__")
@@ -43,7 +43,7 @@ class EnergyConserver(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -111,7 +111,7 @@ class EnergyConserver(BehaviorAlgorithm):
 class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "BurstSwimmer.__init__")
@@ -128,7 +128,7 @@ class BurstSwimmer(BehaviorAlgorithm):
         self.is_bursting = True
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -204,7 +204,7 @@ class BurstSwimmer(BehaviorAlgorithm):
 class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "OpportunisticRester.__init__")
@@ -221,7 +221,7 @@ class OpportunisticRester(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -273,7 +273,7 @@ class OpportunisticRester(BehaviorAlgorithm):
 class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "EnergyBalancer.__init__")
@@ -287,7 +287,7 @@ class EnergyBalancer(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -350,7 +350,7 @@ class EnergyBalancer(BehaviorAlgorithm):
 class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "SustainableCruiser.__init__")
@@ -364,7 +364,7 @@ class SustainableCruiser(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -384,7 +384,7 @@ class SustainableCruiser(BehaviorAlgorithm):
 class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "StarvationPreventer.__init__")
@@ -398,7 +398,7 @@ class StarvationPreventer(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -463,7 +463,7 @@ class StarvationPreventer(BehaviorAlgorithm):
 class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "MetabolicOptimizer.__init__")
@@ -478,7 +478,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -505,7 +505,7 @@ class MetabolicOptimizer(BehaviorAlgorithm):
 class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "AdaptivePacer.__init__")
@@ -519,7 +519,7 @@ class AdaptivePacer(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

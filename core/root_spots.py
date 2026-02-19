@@ -49,7 +49,7 @@ class RootSpot:
     # Anchor mode determines how a plant attaches to this spot
     anchor_mode: str = "bottom"  # "bottom", "center", or "radial_inward"
     # Angle in radians (for radial_inward mode), relative to dish center
-    angle: Optional[float] = None
+    angle: float | None = None
 
     def get_anchor_topleft(self, width: float, height: float) -> tuple[float, float]:
         """Get the topleft position for a plant of given size anchored here.
@@ -135,7 +135,7 @@ class RootSpotManager:
         screen_width: int = SCREEN_WIDTH,
         screen_height: int = SCREEN_HEIGHT,
         spot_count: int = ROOT_SPOT_COUNT,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ):
         """Initialize root spot manager.
 
@@ -175,7 +175,7 @@ class RootSpotManager:
             spot.manager = self
             self.spots.append(spot)
 
-    def get_random_empty_spot(self, rng: Optional[random.Random] = None) -> Optional[RootSpot]:
+    def get_random_empty_spot(self, rng: random.Random | None = None) -> RootSpot | None:
         """Get a random unoccupied spot.
 
         Args:
@@ -190,7 +190,7 @@ class RootSpotManager:
         _rng = rng if rng is not None else self.rng
         return _rng.choice(empty_spots)
 
-    def get_nearest_empty_spot(self, x: float, y: float) -> Optional[RootSpot]:
+    def get_nearest_empty_spot(self, x: float, y: float) -> RootSpot | None:
         """Get the nearest unoccupied spot to a position.
 
         Args:
@@ -211,7 +211,7 @@ class RootSpotManager:
 
         return min(empty_spots, key=distance_sq)
 
-    def get_spot_by_id(self, spot_id: int) -> Optional[RootSpot]:
+    def get_spot_by_id(self, spot_id: int) -> RootSpot | None:
         """Get a spot by its ID.
 
         Args:
@@ -377,8 +377,8 @@ class RootSpotManager:
         parent_x: float,
         parent_y: float,
         max_distance: float = 200.0,
-        rng: Optional[random.Random] = None,
-    ) -> Optional[RootSpot]:
+        rng: random.Random | None = None,
+    ) -> RootSpot | None:
         """Find a suitable spot for a new plant to sprout.
 
         Prefers spots near the parent plant but not too close.
@@ -419,8 +419,8 @@ class RootSpotManager:
         return self.get_random_empty_spot(rng=_rng)
 
     def get_edge_empty_spot(
-        self, direction: str, rng: Optional[random.Random] = None
-    ) -> Optional[RootSpot]:
+        self, direction: str, rng: random.Random | None = None
+    ) -> RootSpot | None:
         """Get an empty spot at the specified edge of the tank.
 
         Used for plant migration - plants migrating from the left should appear

@@ -377,11 +377,11 @@ class EcosystemManager:
         self,
         fish_id: int,
         generation: int,
-        parent_ids: Optional[list[int]] = None,
-        algorithm_id: Optional[int] = None,
-        color: Optional[str] = None,
-        algorithm_name: Optional[str] = None,
-        tank_name: Optional[str] = None,
+        parent_ids: list[int] | None = None,
+        algorithm_id: int | None = None,
+        color: str | None = None,
+        algorithm_name: str | None = None,
+        tank_name: str | None = None,
     ) -> None:
         """Record a fish birth."""
         # Use provided algorithm_name if available, otherwise try lookup
@@ -420,7 +420,7 @@ class EcosystemManager:
         age: int,
         cause: str = "unknown",
         genome: Optional["Genome"] = None,
-        algorithm_id: Optional[int] = None,
+        algorithm_id: int | None = None,
         remaining_energy: float = 0.0,
     ) -> None:
         """Record a fish death."""
@@ -521,11 +521,11 @@ class EcosystemManager:
         """Get total population across all generations."""
         return self.population.get_total_population()
 
-    def get_lineage_data(self, alive_fish_ids: Optional[set[int]] = None) -> list[dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: set[int] | None = None) -> list[dict[str, Any]]:
         """Get complete lineage data for phylogenetic tree visualization."""
         return self.lineage.get_lineage_data(alive_fish_ids)
 
-    def get_summary_stats(self, entities: Optional[list] = None) -> dict[str, Any]:
+    def get_summary_stats(self, entities: list | None = None) -> dict[str, Any]:
         """Get comprehensive ecosystem summary statistics."""
         from statistics import StatisticsError, median
 
@@ -640,7 +640,7 @@ class EcosystemManager:
 
     def get_poker_leaderboard(
         self,
-        fish_list: Optional[list["Fish"]] = None,
+        fish_list: list["Fish"] | None = None,
         limit: int = 10,
         sort_by: str = "net_energy",
     ) -> list[dict[str, Any]]:
@@ -714,7 +714,7 @@ class EcosystemManager:
         algorithm_id: int,
         energy_gained: float = 10.0,
         genome: Optional["Genome"] = None,
-        generation: Optional[int] = None,
+        generation: int | None = None,
     ) -> None:
         """Record live food consumption."""
         if algorithm_id in self.algorithm_stats:
@@ -753,7 +753,7 @@ class EcosystemManager:
 
         winner_hand = cast(PokerHand, record.winner_hand)
         loser_hand = cast(PokerHand, record.loser_hand)
-        result = cast(Optional[MixedPokerResult], record.result)
+        result = cast(MixedPokerResult | None, record.result)
         self.poker_manager.record_poker_outcome(
             record.winner_id,
             record.loser_id,
@@ -851,7 +851,7 @@ class EcosystemManager:
         self.energy_tracker.record_energy_burn(source, amount)
 
     def record_energy_delta(
-        self, source: str, delta: float, *, negative_source: Optional[str] = None
+        self, source: str, delta: float, *, negative_source: str | None = None
     ) -> None:
         """Record a signed energy delta."""
         self.energy_tracker.record_energy_delta(source, delta, negative_source=negative_source)
@@ -869,7 +869,7 @@ class EcosystemManager:
         self.energy_tracker.record_plant_energy_burn(source, amount)
 
     def record_plant_energy_delta(
-        self, source: str, delta: float, *, negative_source: Optional[str] = None
+        self, source: str, delta: float, *, negative_source: str | None = None
     ) -> None:
         """Record a signed plant energy delta."""
         self.energy_tracker.record_plant_energy_delta(

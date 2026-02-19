@@ -62,7 +62,7 @@ operations more explicit and debuggable.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, NoReturn, TypeVar, Union
+from typing import Generic, NoReturn, TypeVar
 from collections.abc import Callable
 
 # Type variables for Result
@@ -205,7 +205,7 @@ class Err(Generic[E]):
 
 
 # Result is a union of Ok and Err
-Result = Union[Ok[T], Err[E]]
+Result = Ok[T] | Err[E]
 
 
 # ============================================================================

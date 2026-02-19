@@ -143,7 +143,7 @@ def run_policy(
     code_source: Optional["GenomeCodePool"],
     genome: Optional["Genome"],
     observation: dict[str, Any],
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
     dt: float = 0.1,
 ) -> dict[str, Any]:
     """Execute a genome's soccer policy using GenomeCodePool.execute_policy().
@@ -219,7 +219,7 @@ def run_policy(
         return default_policy_action(observation)
 
 
-def _get_policy_id(genome: "Genome") -> Optional[str]:
+def _get_policy_id(genome: "Genome") -> str | None:
     """Extract soccer_policy_id from genome behavioral traits."""
     try:
         if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_id"):
@@ -231,7 +231,7 @@ def _get_policy_id(genome: "Genome") -> Optional[str]:
     return None
 
 
-def _get_policy_params(genome: "Genome") -> Optional[dict[str, float]]:
+def _get_policy_params(genome: "Genome") -> dict[str, float] | None:
     """Extract soccer_policy_params from genome behavioral traits."""
     try:
         if hasattr(genome, "behavioral") and hasattr(genome.behavioral, "soccer_policy_params"):
@@ -357,7 +357,7 @@ def default_policy_action(obs: dict[str, Any]) -> dict[str, Any]:
 
 def action_to_command(
     action: dict[str, Any], config: RCSSParams = SOCCER_CANONICAL_PARAMS
-) -> Optional[RCSSCommand]:
+) -> RCSSCommand | None:
     """Translate abstract action dict to RCSSCommand with strict clamping."""
     if not action:
         return None

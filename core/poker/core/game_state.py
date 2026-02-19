@@ -6,7 +6,6 @@ state of a multi-round Texas Hold'em poker game.
 """
 
 import random
-from typing import Optional
 
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
@@ -27,8 +26,8 @@ class PokerGameState:
     player1_hole_cards: list[Card] = []
     player2_hole_cards: list[Card] = []
     community_cards: list[Card] = []  # 0 pre-flop, 3 after flop, 4 after turn, 5 after river
-    player1_hand: Optional[PokerHand] = None  # Evaluated at showdown
-    player2_hand: Optional[PokerHand] = None  # Evaluated at showdown
+    player1_hand: PokerHand | None = None  # Evaluated at showdown
+    player2_hand: PokerHand | None = None  # Evaluated at showdown
     betting_history: list[tuple[int, int, float]] = []  # (player, action, amount)
     button_position: int = 1  # Which player is on the button (1 or 2)
     small_blind: float = 0.0
@@ -42,7 +41,7 @@ class PokerGameState:
         small_blind: float = 2.5,
         big_blind: float = 5.0,
         button_position: int = 1,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ):
         self.current_round = BettingRound.PRE_FLOP
         self.pot = 0.0
@@ -145,7 +144,7 @@ class PokerGameState:
         # outer loop enforces the "both have acted" rule.
         return True
 
-    def get_winner_by_fold(self) -> Optional[int]:
+    def get_winner_by_fold(self) -> int | None:
         """Return winner if someone folded, None otherwise."""
         if self.player1_folded:
             return 2

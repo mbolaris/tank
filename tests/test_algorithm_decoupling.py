@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional, cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from core.algorithms.base import BehaviorAlgorithm
@@ -112,7 +112,7 @@ def test_find_nearest_helper_works_with_mock_world():
             return (0.0, 0.0)
 
         @classmethod
-        def random_instance(cls, rng: Optional[random.Random] = None) -> "BehaviorAlgorithm":
+        def random_instance(cls, rng: random.Random | None = None) -> "BehaviorAlgorithm":
             return cls("test_id")
 
     algo = TestAlgo("test_id")

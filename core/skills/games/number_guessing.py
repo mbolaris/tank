@@ -26,7 +26,7 @@ which pattern is active and predict accordingly.
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from core.skills.base import (
     SkillEvaluationMetrics,
@@ -60,7 +60,7 @@ class PatternGenerator:
     pattern_type: PatternType = PatternType.ALTERNATING
     value_range: tuple[float, float] = (0.0, 100.0)  # Min and max values
     noise_level: float = 0.1  # How much noise to add (0-1)
-    rng: Optional[random.Random] = field(default=None)  # RNG for determinism
+    rng: random.Random | None = field(default=None)  # RNG for determinism
 
     # Internal state
     _current_value: float = 50.0
@@ -72,7 +72,7 @@ class PatternGenerator:
         # RNG is required for deterministic pattern generation
         self.rng = require_rng_param(self.rng, "PatternGenerator.__post_init__")
 
-    def reset(self, pattern_type: Optional[PatternType] = None) -> None:
+    def reset(self, pattern_type: PatternType | None = None) -> None:
         """Reset the generator, optionally with a new pattern."""
         if pattern_type is not None:
             self.pattern_type = pattern_type
@@ -380,7 +380,7 @@ class OptimalNumberGuessingStrategy(NumberGuessingStrategy):
     Used as a benchmark for observation purposes.
     """
 
-    _generator: Optional[PatternGenerator] = None
+    _generator: PatternGenerator | None = None
 
     def set_generator(self, generator: PatternGenerator) -> None:
         """Set the pattern generator for optimal predictions."""
@@ -418,7 +418,7 @@ class NumberGuessingGame(SkillGame):
         history_length: int = 5,
         pattern_type: PatternType = PatternType.ALTERNATING,
         pattern_change_frequency: int = 50,  # Change pattern every N rounds
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ):
         """Initialize the game.
 
@@ -472,9 +472,7 @@ class NumberGuessingGame(SkillGame):
             "predictor has perfect pattern recognition."
         )
 
-    def create_default_strategy(
-        self, rng: Optional[random.Random] = None
-    ) -> NumberGuessingStrategy:
+    def create_default_strategy(self, rng: random.Random | None = None) -> NumberGuessingStrategy:
         """Create a new strategy with random initial weights.
 
         Args:
@@ -507,7 +505,7 @@ class NumberGuessingGame(SkillGame):
         strategy.set_generator(self.generator)
         return strategy
 
-    def _maybe_change_pattern(self, rng: Optional[random.Random] = None) -> None:
+    def _maybe_change_pattern(self, rng: random.Random | None = None) -> None:
         """Possibly change the pattern to test adaptation."""
         if self.pattern_change_frequency <= 0:
             return
@@ -526,8 +524,8 @@ class NumberGuessingGame(SkillGame):
     def play_round(
         self,
         player_strategy: SkillStrategy,
-        opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[dict[str, Any]] = None,
+        opponent_strategy: SkillStrategy | None = None,
+        game_state: dict[str, Any] | None = None,
     ) -> SkillGameResult:
         """Play one round of the prediction game.
 
@@ -608,7 +606,7 @@ class NumberGuessingGame(SkillGame):
         self,
         strategy: SkillStrategy,
         num_games: int = 1000,
-        opponent: Optional[SkillStrategy] = None,
+        opponent: SkillStrategy | None = None,
     ) -> SkillEvaluationMetrics:
         """Observe a strategy's prediction performance.
 

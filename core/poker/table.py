@@ -17,7 +17,7 @@ class PokerTable:
         if len(self.players) < 2:
             raise ValueError("PokerTable requires at least two players")
 
-    def play_hand(self, bet_amount: Optional[float] = None) -> Optional["PokerResult"]:
+    def play_hand(self, bet_amount: float | None = None) -> Optional["PokerResult"]:
         """Play a poker hand among the configured players."""
 
         from core.poker_interaction import PokerInteraction

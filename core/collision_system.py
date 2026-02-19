@@ -38,7 +38,7 @@ within handlers (see core/protocols.py for examples).
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -100,7 +100,7 @@ class RectCollisionDetector(CollisionDetector):
 class CircleCollisionDetector(CollisionDetector):
     """Circle-based collision detection (distance-based)."""
 
-    def collides(self, agent1: "Agent", agent2: "Agent", threshold: Optional[float] = None) -> bool:
+    def collides(self, agent1: "Agent", agent2: "Agent", threshold: float | None = None) -> bool:
         """Check if two agents collide based on distance.
 
         Args:
@@ -174,7 +174,7 @@ class CollisionSystem(BaseSystem):
         self._frame_entities_removed: int = 0
         self._frame_fish_deaths: int = 0
 
-    def _do_update(self, frame: int) -> Optional[SystemResult]:
+    def _do_update(self, frame: int) -> SystemResult | None:
         """Process all collisions for this frame.
 
         This is now the main collision processing method. It handles:
@@ -385,7 +385,7 @@ class CollisionSystem(BaseSystem):
             return True
         return False
 
-    def _record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
+    def _record_fish_death(self, fish: "Fish", cause: str | None = None) -> None:
         """Record a fish death by delegating to the lifecycle system.
 
         Args:

@@ -6,7 +6,7 @@ between Tank World Net servers in a distributed deployment.
 
 import asyncio
 import logging
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import httpx
 

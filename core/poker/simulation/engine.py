@@ -57,7 +57,7 @@ def _hand_state_to_poker_game_state(
     return game_state
 
 
-def _resolve_aggression(value: Optional[float]) -> float:
+def _resolve_aggression(value: float | None) -> float:
     if value is None:
         return AGGRESSION_MEDIUM
     return value
@@ -67,12 +67,12 @@ def simulate_multi_round_game(
     initial_bet: float,
     player1_energy: float,
     player2_energy: float,
-    player1_aggression: Optional[float] = None,
-    player2_aggression: Optional[float] = None,
+    player1_aggression: float | None = None,
+    player2_aggression: float | None = None,
     button_position: int = 1,
     player1_strategy: Optional["PokerStrategyAlgorithm"] = None,
     player2_strategy: Optional["PokerStrategyAlgorithm"] = None,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> PokerGameState:
     """Simulate a complete multi-round Texas Hold'em poker game with blinds.
 

@@ -1,0 +1,23 @@
+backend\broadcast.py:202:39: B905 `zip()` without an explicit `strict=` parameter
+backend\routers\connections.py:6:4: UP036 Version block is outdated for minimum Python version
+core\enhanced_statistics.py:284:67: B905 `zip()` without an explicit `strict=` parameter
+core\enhanced_statistics.py:399:69: B905 `zip()` without an explicit `strict=` parameter
+core\enhanced_statistics.py:501:67: B905 `zip()` without an explicit `strict=` parameter
+core\entity_ids.py:280:15: UP007 Use `X | Y` for type annotations
+core\entity_ids.py:283:22: UP007 Use `X | Y` for type annotations
+core\genetics\expression.py:213:58: B905 `zip()` without an explicit `strict=` parameter
+core\mixed_poker\interaction.py:342:43: B905 `zip()` without an explicit `strict=` parameter
+core\poker\core\hand.py:44:36: B905 `zip()` without an explicit `strict=` parameter
+core\poker\core\hand.py:48:40: B905 `zip()` without an explicit `strict=` parameter
+core\poker\evaluation\hand_evaluator.py:206:41: B905 `zip()` without an explicit `strict=` parameter
+core\result.py:208:10: UP007 Use `X | Y` for type annotations
+core\telemetry\events.py:60:18: UP007 Use `X | Y` for type annotations
+tests\integration\test_live_food_persistence.py:95:46: B905 `zip()` without an explicit `strict=` parameter
+tests\test_agents.py:244:9: F841 Local variable `plant` is assigned to but never used
+tests\test_agents.py:276:9: F841 Local variable `castle` is assigned to but never used
+tests\test_rcss_lite.py:40:38: B905 `zip()` without an explicit `strict=` parameter
+tests\test_soccer_evolution_runner.py:36:23: B905 `zip()` without an explicit `strict=` parameter
+tests\test_soccer_world.py:229:23: B905 `zip()` without an explicit `strict=` parameter
+tests\test_static_vs_fish_comparison.py:91:39: B905 `zip()` without an explicit `strict=` parameter
+Found 21 errors.
+No fixes available (17 hidden fixes can be enabled with the `--unsafe-fixes` option).

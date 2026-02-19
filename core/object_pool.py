@@ -5,7 +5,6 @@ and garbage collection pressure for entities like Food.
 """
 
 import random
-from typing import Optional
 
 from core.entities import Food
 
@@ -18,7 +17,7 @@ class FoodPool:
     reuses Food objects instead of creating new ones.
     """
 
-    def __init__(self, initial_size: int = 50, rng: Optional[random.Random] = None):
+    def __init__(self, initial_size: int = 50, rng: random.Random | None = None):
         """Initialize the food pool.
 
         Args:

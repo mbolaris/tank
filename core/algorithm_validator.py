@@ -28,7 +28,6 @@ import os
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,7 @@ class ValidationResult:
 
     # Detailed results
     metrics_improved: dict[str, bool] = field(default_factory=dict)
-    simulation_error: Optional[str] = None
+    simulation_error: str | None = None
 
 
 class AlgorithmValidator:

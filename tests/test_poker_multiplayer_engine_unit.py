@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import pytest
 
@@ -24,7 +24,7 @@ class DummyStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         self.last_kwargs = {
             "hand_strength": hand_strength,

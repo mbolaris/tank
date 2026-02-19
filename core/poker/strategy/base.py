@@ -12,7 +12,7 @@ These strategies evolve over time as fish learn from poker outcomes.
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.evaluation.strength import evaluate_starting_hand_strength as _evaluate_strength
@@ -206,7 +206,7 @@ class PokerStrategyEngine:
         self,
         hole_cards: list[tuple[str, str]],
         position_on_button: bool,
-        opponent_id: Optional[int] = None,
+        opponent_id: int | None = None,
     ) -> bool:
         """Decide whether to play this starting hand."""
         hand_strength = self.evaluate_starting_hand_strength(hole_cards)
@@ -244,7 +244,7 @@ class PokerStrategyEngine:
         self,
         base_aggression: float,
         position_on_button: bool,
-        opponent_id: Optional[int] = None,
+        opponent_id: int | None = None,
         hand_strength: float = 0.5,
     ) -> float:
         """Calculate aggression level adjusted for position and opponent."""
@@ -277,10 +277,10 @@ class PokerStrategyEngine:
     def should_bluff(
         self,
         position_on_button: bool,
-        opponent_id: Optional[int] = None,
+        opponent_id: int | None = None,
         pot_size: float = 0.0,
         hand_strength: float = 0.0,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> bool:
         """Decide whether to bluff in this situation."""
         # Use provided RNG or create a fallback
@@ -321,7 +321,7 @@ class PokerStrategyEngine:
         hand_strength: float,
         position_on_button: bool,
         bluffed: bool,
-        opponent_id: Optional[int] = None,
+        opponent_id: int | None = None,
     ) -> None:
         """Update strategy based on poker game outcome."""
         learning_rate = 0.05

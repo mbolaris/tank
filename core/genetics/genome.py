@@ -8,7 +8,7 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
@@ -46,8 +46,8 @@ class Genome:
     # =========================================================================
 
     # OPTIMIZATION: Cache for computed properties to avoid repeated calculations
-    _speed_modifier_cache: Optional[float] = field(default=None, repr=False, compare=False)
-    _metabolism_rate_cache: Optional[float] = field(default=None, repr=False, compare=False)
+    _speed_modifier_cache: float | None = field(default=None, repr=False, compare=False)
+    _metabolism_rate_cache: float | None = field(default=None, repr=False, compare=False)
 
     @property
     def speed_modifier(self) -> float:
@@ -96,7 +96,7 @@ class Genome:
         cls,
         data: dict[str, Any],
         *,
-        rng: Optional[pyrandom.Random] = None,
+        rng: pyrandom.Random | None = None,
         use_algorithm: bool = True,
     ) -> "Genome":
         """Deserialize a genome from JSON-compatible primitives.
@@ -170,7 +170,7 @@ class Genome:
     # =========================================================================
 
     @classmethod
-    def random(cls, use_algorithm: bool = True, rng: Optional[pyrandom.Random] = None) -> "Genome":
+    def random(cls, use_algorithm: bool = True, rng: pyrandom.Random | None = None) -> "Genome":
         """Create a random genome."""
         from core.util.rng import require_rng_param
 
@@ -189,8 +189,8 @@ class Genome:
         parent1_weight: float = 0.5,
         *,
         params: ReproductionParams,
-        rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[list[str]] = None,
+        rng: pyrandom.Random | None = None,
+        available_policies: list[str] | None = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -211,8 +211,8 @@ class Genome:
         parent1_weight: float = 0.5,
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
-        rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[list[str]] = None,
+        rng: pyrandom.Random | None = None,
+        available_policies: list[str] | None = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -260,8 +260,8 @@ class Genome:
     def clone_with_mutation(
         cls,
         parent: "Genome",
-        rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[list[str]] = None,
+        rng: pyrandom.Random | None = None,
+        available_policies: list[str] | None = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -281,8 +281,8 @@ class Genome:
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
-        rng: Optional[pyrandom.Random] = None,
-        available_policies: Optional[list[str]] = None,
+        rng: pyrandom.Random | None = None,
+        available_policies: list[str] | None = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         from core.util.rng import require_rng_param
@@ -342,7 +342,7 @@ class Genome:
         mate: "Genome",
         mutation_rate: float = 0.15,  # Increased from 0.1
         mutation_strength: float = 0.15,  # Increased from 0.1
-        rng: Optional[pyrandom.Random] = None,
+        rng: pyrandom.Random | None = None,
     ) -> "Genome":
         """Create offspring where winner selectively borrows mate traits.
 

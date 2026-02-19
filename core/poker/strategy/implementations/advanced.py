@@ -2,7 +2,6 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional
 
 from core.poker.betting.actions import BettingAction
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
@@ -12,7 +11,7 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 class AdaptiveStrategy(PokerStrategyAlgorithm):
     """Adapts play style based on pot size and stack depth."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -30,7 +29,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -41,7 +40,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -80,7 +79,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
 class PositionalExploiter(PokerStrategyAlgorithm):
     """Heavily exploits positional advantage."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -97,7 +96,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -108,7 +107,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -149,7 +148,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
 class TrapSetterStrategy(PokerStrategyAlgorithm):
     """Slowplays strong hands to trap opponents."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -166,7 +165,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -177,7 +176,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -217,7 +216,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
 class MathematicalStrategy(PokerStrategyAlgorithm):
     """Pure pot odds and equity-based decisions."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -236,7 +235,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -247,7 +246,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:

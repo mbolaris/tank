@@ -2,7 +2,6 @@
 
 import random
 from dataclasses import dataclass
-from typing import Optional
 
 from core.config.poker import (
     POKER_LAG_ENERGY_FRACTION,
@@ -17,7 +16,7 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 class TightAggressiveStrategy(PokerStrategyAlgorithm):
     """TAG: Plays few hands aggressively."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         if rng is None:
             raise RuntimeError("TightAggressiveStrategy: RNG is None")
         _rng = rng
@@ -34,7 +33,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -45,7 +44,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
@@ -76,7 +75,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
 class LooseAggressiveStrategy(PokerStrategyAlgorithm):
     """LAG: Plays many hands aggressively."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         if rng is None:
             raise RuntimeError("LooseAggressiveStrategy: RNG is None")
         _rng = rng
@@ -93,7 +92,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -104,7 +103,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
@@ -144,7 +143,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
 class TightPassiveStrategy(PokerStrategyAlgorithm):
     """Rock: Plays few hands, rarely raises."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         # Inline RNG check
         if rng is None:
             raise RuntimeError("TightPassiveStrategy: RNG is None")
@@ -162,7 +161,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -173,7 +172,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:
@@ -201,7 +200,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
 class BalancedStrategy(PokerStrategyAlgorithm):
     """Balanced/GTO-inspired strategy."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         if rng is None:
             raise RuntimeError("BalancedStrategy: RNG is None")
         _rng = rng
@@ -221,7 +220,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -232,7 +231,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
@@ -289,7 +288,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
 class ManiacStrategy(PokerStrategyAlgorithm):
     """Ultra-aggressive strategy."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         if rng is None:
             raise RuntimeError("ManiacStrategy: RNG is None")
         _rng = rng
@@ -306,7 +305,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -317,7 +316,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         _rng = rng or self._rng
 
@@ -347,7 +346,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
 class LoosePassiveStrategy(PokerStrategyAlgorithm):
     """Calling station: plays many hands passively."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         # Inline RNG check
         if rng is None:
             raise RuntimeError("LoosePassiveStrategy: RNG is None")
@@ -365,7 +364,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
@@ -376,7 +375,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         call_amount = opponent_bet - current_bet
         if call_amount > player_energy:

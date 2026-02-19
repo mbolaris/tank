@@ -4,7 +4,7 @@ This module handles the transformation of complex entity objects into
 simple dictionaries suitable for JSON serialization and network transmission.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from core.entities.fish import Fish
 from core.entities.plant import Plant
@@ -47,7 +47,7 @@ class FishSerializer:
         return player_data
 
     @staticmethod
-    def to_genome_data(fish: Fish) -> Optional[dict[str, Any]]:
+    def to_genome_data(fish: Fish) -> dict[str, Any] | None:
         """Extract visual genome data for a fish to mirror tank rendering.
 
         Returns:

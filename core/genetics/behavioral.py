@@ -85,8 +85,8 @@ MATE_BEHAVIORAL_PREFERENCE_SPECS: dict[str, TraitSpec] = {
 
 
 def _inherit_trait_meta(
-    parent1_trait: Optional[GeneticTrait],
-    parent2_trait: Optional[GeneticTrait],
+    parent1_trait: GeneticTrait | None,
+    parent2_trait: GeneticTrait | None,
     value: Any,
     rng: pyrandom.Random,
 ) -> GeneticTrait:
@@ -159,7 +159,7 @@ def normalize_mate_preferences(
     prefs: dict[str, float],
     *,
     physical: Optional["PhysicalTraits"] = None,
-    rng: Optional[pyrandom.Random] = None,
+    rng: pyrandom.Random | None = None,
 ) -> dict[str, float]:
     """Normalize mate preferences by filling defaults and clamping to valid ranges."""
     normalized: dict[str, float] = {str(k): v for k, v in (prefs or {}).items()}
@@ -209,13 +209,13 @@ class BehavioralTraits:
     # This single field encodes: threat response, food approach, energy style,
     # social mode, and poker engagement - each with tunable parameters.
     # Optional; None means no algorithm assigned.
-    behavior: Optional[GeneticTrait[Optional["ComposableBehavior"]]] = None
+    behavior: GeneticTrait[Optional["ComposableBehavior"]] | None = None
 
     # Poker strategy for in-game betting decisions (separate from movement)
-    poker_strategy: Optional[GeneticTrait[Optional["PokerStrategyAlgorithm"]]] = None
+    poker_strategy: GeneticTrait[Optional["PokerStrategyAlgorithm"]] | None = None
 
     # Mate preferences (dictionary trait; preferred mate trait values + legacy weights)
-    mate_preferences: Optional[GeneticTrait[dict[str, float]]] = None
+    mate_preferences: GeneticTrait[dict[str, float]] | None = None
 
     # ==========================================================================
     # Multi-Policy Traits (for linking to CodePool components by kind)
@@ -225,16 +225,16 @@ class BehavioralTraits:
     # has its own component_id and params fields.
 
     # Movement policy (tank fish navigation, foraging behavior)
-    movement_policy_id: Optional[GeneticTrait[Optional[str]]] = None
-    movement_policy_params: Optional[GeneticTrait[Optional[dict[str, float]]]] = None
+    movement_policy_id: GeneticTrait[str | None] | None = None
+    movement_policy_params: GeneticTrait[dict[str, float] | None] | None = None
 
     # Poker policy (in-game poker decisions, betting behavior)
-    poker_policy_id: Optional[GeneticTrait[Optional[str]]] = None
-    poker_policy_params: Optional[GeneticTrait[Optional[dict[str, float]]]] = None
+    poker_policy_id: GeneticTrait[str | None] | None = None
+    poker_policy_params: GeneticTrait[dict[str, float] | None] | None = None
 
     # Soccer policy (soccer training world behavior)
-    soccer_policy_id: Optional[GeneticTrait[Optional[str]]] = None
-    soccer_policy_params: Optional[GeneticTrait[Optional[dict[str, float]]]] = None
+    soccer_policy_id: GeneticTrait[str | None] | None = None
+    soccer_policy_params: GeneticTrait[dict[str, float] | None] | None = None
 
     @classmethod
     def random(
@@ -284,7 +284,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
-        available_policies: Optional[list[str]] = None,
+        available_policies: list[str] | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits from two parents.
 
@@ -392,7 +392,7 @@ class BehavioralTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
-        available_policies: Optional[list[str]] = None,
+        available_policies: list[str] | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = inherit_traits_from_specs_recombination(
@@ -674,11 +674,11 @@ CODE_POLICY_PARAM_MAX: float = 10.0  # Maximum allowed param value
 
 
 def _mutate_code_policy_params(
-    params: Optional[dict[str, float]],
+    params: dict[str, float] | None,
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
-) -> Optional[dict[str, float]]:
+) -> dict[str, float] | None:
     """Mutate code policy parameters slightly.
 
     Each parameter has a chance to be mutated using Gaussian noise.
@@ -704,16 +704,16 @@ def _mutate_code_policy_params(
 
 
 def _inherit_single_policy(
-    id_trait1: Optional[GeneticTrait[Optional[str]]],
-    id_trait2: Optional[GeneticTrait[Optional[str]]],
-    params_trait1: Optional[GeneticTrait[Optional[dict[str, float]]]],
-    params_trait2: Optional[GeneticTrait[Optional[dict[str, float]]]],
+    id_trait1: GeneticTrait[str | None] | None,
+    id_trait2: GeneticTrait[str | None] | None,
+    params_trait1: GeneticTrait[dict[str, float] | None] | None,
+    params_trait2: GeneticTrait[dict[str, float] | None] | None,
     weight1: float,
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
-    available_policies: Optional[list[str]] = None,
-) -> tuple[Optional[str], Optional[dict[str, float]]]:
+    available_policies: list[str] | None = None,
+) -> tuple[str | None, dict[str, float] | None]:
     """Inherit a single policy kind (id and params) from two parents.
 
     Args:
@@ -780,8 +780,8 @@ def _inherit_single_policy(
 
 
 def validate_policy_fields(
-    policy_id: Optional[str],
-    params: Optional[dict[str, float]],
+    policy_id: str | None,
+    params: dict[str, float] | None,
     policy_kind: str = "policy",
 ) -> list[str]:
     """Validate policy id/params fields and return a list of issues.
@@ -821,9 +821,9 @@ def validate_policy_fields(
 
 # Alias for migration support during transition
 def validate_code_policy(
-    kind: Optional[str],
-    component_id: Optional[str],
-    params: Optional[dict[str, float]],
+    kind: str | None,
+    component_id: str | None,
+    params: dict[str, float] | None,
 ) -> list[str]:
     """Validate code policy fields - migration alias for validate_policy_fields."""
     return validate_policy_fields(component_id, params, policy_kind=kind or "code_policy")

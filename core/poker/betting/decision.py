@@ -6,7 +6,6 @@ hand strength-based action selection and betting amounts.
 """
 
 import random
-from typing import Optional
 
 from core.config.poker import (
     POKER_AGGRESSION_HIGH,
@@ -135,11 +134,11 @@ def decide_action(
     opponent_bet: float,
     pot: float,
     player_energy: float,
-    aggression: Optional[float] = None,
-    hole_cards: Optional[list[Card]] = None,
-    community_cards: Optional[list[Card]] = None,
+    aggression: float | None = None,
+    hole_cards: list[Card] | None = None,
+    community_cards: list[Card] | None = None,
     position_on_button: bool = False,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> tuple[BettingAction, float]:
     """
     Decide what action to take based on hand strength and game state.

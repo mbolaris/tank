@@ -1,13 +1,7 @@
 """Connection management API endpoints."""
 
 import logging
-import sys
-
-if sys.version_info >= (3, 9):
-    from typing import Annotated
-else:
-    from typing import Annotated
-from typing import Any, Optional
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Query
 from fastapi.responses import JSONResponse

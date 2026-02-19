@@ -23,7 +23,7 @@ import logging
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from core.energy.energy_utils import apply_energy_delta
 
@@ -65,10 +65,10 @@ class EvalPlayerState:
     is_standard: bool = False  # True if this is the standard algorithm player
     starting_energy: float = 0.0
     # For fish player
-    poker_strategy: Optional[PokerStrategyAlgorithm] = None
-    fish_id: Optional[int] = None
-    fish_generation: Optional[int] = None
-    plant_id: Optional[int] = None
+    poker_strategy: PokerStrategyAlgorithm | None = None
+    fish_id: int | None = None
+    fish_generation: int | None = None
+    plant_id: int | None = None
     species: str = "fish"
     # Stats tracking
     hands_won: int = 0
@@ -87,11 +87,11 @@ class AutoEvaluateStats:
     hands_remaining: int = 1000
     players: list[dict[str, Any]] = field(default_factory=list)  # List of player stats
     game_over: bool = False
-    winner: Optional[str] = None
+    winner: str | None = None
     reason: str = ""
     performance_history: list[dict[str, Any]] = field(default_factory=list)
     # For heads-up benchmark evaluation
-    net_bb_for_candidate: Optional[float] = None
+    net_bb_for_candidate: float | None = None
 
 
 class AutoEvaluatePokerGame:
@@ -110,7 +110,7 @@ class AutoEvaluatePokerGame:
         max_hands: int = 2000,
         small_blind: float = 5.0,
         big_blind: float = 10.0,
-        rng_seed: Optional[int] = None,
+        rng_seed: int | None = None,
         include_standard_player: bool = True,
         position_rotation: bool = True,
     ) -> None:
@@ -191,7 +191,7 @@ class AutoEvaluatePokerGame:
         self.button_position = 0  # Dealer button position
         self.current_player_index = 0
         self.game_over = False
-        self.winner: Optional[str] = None
+        self.winner: str | None = None
         self.last_hand_message = ""
         self.performance_history: list[dict[str, Any]] = []
 
@@ -505,7 +505,7 @@ class AutoEvaluatePokerGame:
         small_blind: float = 50.0,
         big_blind: float = 100.0,
         starting_stack: float = 10_000.0,
-        rng_seed: Optional[int] = None,
+        rng_seed: int | None = None,
     ) -> "AutoEvaluateStats":
         """Run a heads-up match between two algorithms.
 

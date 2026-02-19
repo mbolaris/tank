@@ -31,7 +31,7 @@ def inherit_trait(
     weight1: float = 0.5,
     mutation_rate: float = 0.1,
     mutation_strength: float = 0.1,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> float:
     """Inherit a continuous trait from two parents.
 
@@ -73,7 +73,7 @@ def inherit_discrete_trait(
     max_val: int,
     weight1: float = 0.5,
     mutation_rate: float = 0.1,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> int:
     """Inherit a discrete trait from two parents.
 
@@ -109,7 +109,7 @@ def inherit_algorithm(
     mutation_rate: float = 0.15,
     mutation_strength: float = 0.2,
     algorithm_switch_rate: float = 0.05,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> Optional["BehaviorAlgorithm"]:
     """Inherit a behavior algorithm from two parents.
 

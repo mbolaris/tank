@@ -76,7 +76,7 @@ class SkillGameConfig:
 
 
 # Global configuration instance
-_global_config: Optional[SkillGameConfig] = None
+_global_config: SkillGameConfig | None = None
 
 # Game registry - maps game types to their implementation classes.
 # Note: concrete games have different __init__ signatures, so this is intentionally loose.
@@ -115,7 +115,7 @@ def set_skill_game_config(config: SkillGameConfig) -> None:
     _global_config = config
 
 
-def get_active_skill_game(rng: Optional["Random"] = None) -> Optional[SkillGame]:
+def get_active_skill_game(rng: Optional["Random"] = None) -> SkillGame | None:
     """Get an instance of the currently active skill game.
 
     Args:

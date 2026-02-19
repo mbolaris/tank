@@ -227,7 +227,7 @@ class BaseSystem(ABC):
         return result
 
     @abstractmethod
-    def _do_update(self, frame: int) -> Optional[SystemResult]:
+    def _do_update(self, frame: int) -> SystemResult | None:
         """Implement system-specific update logic.
 
         This is called by update() if the system is enabled.

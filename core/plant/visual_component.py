@@ -4,7 +4,7 @@ This module provides the PlantVisualComponent class which handles
 size calculations and rendering-related state for plants.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
 from core.config.plants import (
@@ -132,7 +132,7 @@ class PlantVisualComponent:
         width: float,
         height: float,
         age: int,
-        poker_effect_state: Optional[dict[str, Any]],
+        poker_effect_state: dict[str, Any] | None,
     ) -> dict[str, Any]:
         """Serialize plant state for frontend rendering.
 

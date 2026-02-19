@@ -19,7 +19,7 @@ mixing physical collision handling with game logic. This separation:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.entities import Fish
@@ -63,7 +63,7 @@ class PokerProximitySystem(BaseSystem):
         self._frame_groups: int = 0
         self._frame_games: int = 0
 
-    def _do_update(self, frame: int) -> Optional[SystemResult]:
+    def _do_update(self, frame: int) -> SystemResult | None:
         """Detect poker-eligible fish groups and trigger games.
 
         Returns:

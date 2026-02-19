@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -47,7 +47,7 @@ def _get_nearby_fish(fish: "Fish", radius: float) -> list["Fish"]:
 class TightSchooler(BehaviorAlgorithm):
     """Stay very close to school members."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -61,7 +61,7 @@ class TightSchooler(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -90,7 +90,7 @@ class TightSchooler(BehaviorAlgorithm):
 class LooseSchooler(BehaviorAlgorithm):
     """Maintain loose association with school."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -104,7 +104,7 @@ class LooseSchooler(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -137,7 +137,7 @@ class LooseSchooler(BehaviorAlgorithm):
 class LeaderFollower(BehaviorAlgorithm):
     """Follow the fastest/strongest fish."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -151,7 +151,7 @@ class LeaderFollower(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -176,7 +176,7 @@ class LeaderFollower(BehaviorAlgorithm):
 class AlignmentMatcher(BehaviorAlgorithm):
     """Match velocity with nearby fish."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -190,7 +190,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -226,7 +226,7 @@ class AlignmentMatcher(BehaviorAlgorithm):
 class SeparationSeeker(BehaviorAlgorithm):
     """Avoid crowding neighbors."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -240,7 +240,7 @@ class SeparationSeeker(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -267,7 +267,7 @@ class SeparationSeeker(BehaviorAlgorithm):
 class FrontRunner(BehaviorAlgorithm):
     """Lead the school from the front."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -281,7 +281,7 @@ class FrontRunner(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -317,7 +317,7 @@ class FrontRunner(BehaviorAlgorithm):
 class PerimeterGuard(BehaviorAlgorithm):
     """Stay on the outside of the school."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -331,7 +331,7 @@ class PerimeterGuard(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -382,7 +382,7 @@ class PerimeterGuard(BehaviorAlgorithm):
 class MirrorMover(BehaviorAlgorithm):
     """Mirror the movements of nearby fish."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -396,7 +396,7 @@ class MirrorMover(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -443,7 +443,7 @@ class MirrorMover(BehaviorAlgorithm):
 class BoidsBehavior(BehaviorAlgorithm):
     """Classic boids algorithm (separation, alignment, cohesion)."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -458,7 +458,7 @@ class BoidsBehavior(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -594,7 +594,7 @@ class BoidsBehavior(BehaviorAlgorithm):
 class DynamicSchooler(BehaviorAlgorithm):
     """Switch between tight and loose schooling based on conditions."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -609,7 +609,7 @@ class DynamicSchooler(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

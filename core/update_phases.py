@@ -49,7 +49,7 @@ Usage:
 
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Optional, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 from collections.abc import Callable
 
 # Explicit public API
@@ -184,7 +184,7 @@ class PhaseRunner:
         default_factory=lambda: {phase: [] for phase in UpdatePhase}
     )
     _debug_mode: bool = False
-    _current_phase: Optional[UpdatePhase] = None
+    _current_phase: UpdatePhase | None = None
     _phase_timings: dict[UpdatePhase, float] = field(default_factory=dict)
 
     def register(self, system: "BaseSystem", phase: UpdatePhase) -> None:
@@ -282,7 +282,7 @@ class PhaseRunner:
             self.run_phase(phase, context)
 
     @property
-    def current_phase(self) -> Optional[UpdatePhase]:
+    def current_phase(self) -> UpdatePhase | None:
         """Get the currently executing phase, or None if not in update."""
         return self._current_phase
 
@@ -340,7 +340,7 @@ def runs_in_phase(phase: UpdatePhase) -> Callable:
     return decorator
 
 
-def get_system_phase(system: "BaseSystem") -> Optional[UpdatePhase]:
+def get_system_phase(system: "BaseSystem") -> UpdatePhase | None:
     """Get the phase a system is declared to run in."""
     phase = getattr(system, "_phase", None)
     return phase if isinstance(phase, UpdatePhase) else None

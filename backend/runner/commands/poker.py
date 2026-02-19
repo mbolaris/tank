@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.human_poker_game import HumanPokerGame
 

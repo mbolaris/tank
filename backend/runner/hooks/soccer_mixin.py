@@ -4,7 +4,7 @@ This module provides a mixin class that adds soccer event collection
 functionality to world hooks that support soccer gameplay.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from backend.state_payloads import SoccerEventPayload
 

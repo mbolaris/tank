@@ -50,7 +50,7 @@ class SkillGameResult:
 
     # Core outcome
     player_id: str
-    opponent_id: Optional[str]  # None for single-player games
+    opponent_id: str | None  # None for single-player games
     won: bool
     tied: bool = False
 
@@ -58,8 +58,8 @@ class SkillGameResult:
     score_change: float = 0.0  # Positive = gained, negative = lost
 
     # For evaluation purposes
-    optimal_action: Optional[Any] = None  # What optimal strategy would have done
-    actual_action: Optional[Any] = None  # What the player actually did
+    optimal_action: Any | None = None  # What optimal strategy would have done
+    actual_action: Any | None = None  # What the player actually did
     was_optimal: bool = False  # Did the player play optimally?
 
     # Game-specific details
@@ -262,7 +262,7 @@ class SkillGame(ABC):
         return "Unknown"
 
     @abstractmethod
-    def create_default_strategy(self, rng: Optional[random.Random] = None) -> SkillStrategy:
+    def create_default_strategy(self, rng: random.Random | None = None) -> SkillStrategy:
         """Create a new default strategy for this game.
 
         This is used when a fish is born and needs a starting strategy.
@@ -287,8 +287,8 @@ class SkillGame(ABC):
     def play_round(
         self,
         player_strategy: SkillStrategy,
-        opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[dict[str, Any]] = None,
+        opponent_strategy: SkillStrategy | None = None,
+        game_state: dict[str, Any] | None = None,
     ) -> SkillGameResult:
         """Play one round of the game.
 
@@ -307,7 +307,7 @@ class SkillGame(ABC):
         self,
         strategy: SkillStrategy,
         num_games: int = 1000,
-        opponent: Optional[SkillStrategy] = None,
+        opponent: SkillStrategy | None = None,
     ) -> SkillEvaluationMetrics:
         """Observe a strategy's performance for reporting purposes.
 

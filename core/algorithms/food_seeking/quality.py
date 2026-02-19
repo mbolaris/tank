@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -31,7 +31,7 @@ from core.predictive_movement import predict_falling_intercept, predict_intercep
 class FoodQualityOptimizer(BehaviorAlgorithm):
     """Prefer high-value food types."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -45,7 +45,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -81,7 +81,7 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         # Use World Protocol
         env: World = fish.environment
         foods = [f for f in env.get_agents_of_type(Food) if isinstance(f, Food)]
-        best_food: Optional[Food] = None
+        best_food: Food | None = None
         best_score = -float("inf")
 
         # IMPROVEMENT: Also consider remembered food locations if no food visible

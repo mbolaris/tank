@@ -6,7 +6,7 @@ These interfaces are implemented by specific world backends (Tank, Petri).
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
@@ -46,7 +46,7 @@ class StepResult:
     spawns: list["SpawnRequest"] = field(default_factory=list)
     removals: list["RemovalRequest"] = field(default_factory=list)
     energy_deltas: list["EnergyDeltaRecord"] = field(default_factory=list)
-    render_hint: Optional[dict[str, Any]] = None
+    render_hint: dict[str, Any] | None = None
 
 
 class MultiAgentWorldBackend(ABC):
@@ -62,9 +62,7 @@ class MultiAgentWorldBackend(ABC):
     """
 
     @abstractmethod
-    def reset(
-        self, seed: Optional[int] = None, config: Optional[dict[str, Any]] = None
-    ) -> StepResult:
+    def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         """Reset the world to initial state.
 
         Args:
@@ -77,7 +75,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def step(self, actions_by_agent: Optional[dict[str, Any]] = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
         """Advance the world by one time step.
 
         Args:

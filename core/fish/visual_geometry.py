@@ -18,7 +18,6 @@ geometry calculations pure functions that don't depend on entity state.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -79,7 +78,7 @@ def extract_traits_from_genome(genome) -> FishTraits:
 def calculate_visual_bounds(
     base_size: float,
     size_multiplier: float,
-    traits: Optional[FishTraits] = None,
+    traits: FishTraits | None = None,
 ) -> tuple[float, float, float, float]:
     """Calculate visual bounds offsets for a fish.
 

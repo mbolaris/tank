@@ -36,8 +36,8 @@ class SkillGameEvent:
     frame: int
     game_type: str
     player1_id: int
-    player2_id: Optional[int]  # None for single-player games
-    winner_id: Optional[int]  # None for tie or single-player
+    player2_id: int | None  # None for single-player games
+    winner_id: int | None  # None for tie or single-player
     energy_transferred: float
     player1_was_optimal: bool
     player2_was_optimal: bool = False
@@ -73,7 +73,7 @@ class SkillGameSystem:
         self,
         engine: "SimulationEngine",
         max_events: int = 100,
-        config: Optional[SkillGameConfig] = None,
+        config: SkillGameConfig | None = None,
     ):
         """Initialize the skill game system.
 
@@ -87,8 +87,8 @@ class SkillGameSystem:
         self.events: deque[SkillGameEvent] = deque(maxlen=max_events)
 
         # Cache the active game instance
-        self._active_game: Optional[SkillGame] = None
-        self._game_type: Optional[SkillGameType] = None
+        self._active_game: SkillGame | None = None
+        self._game_type: SkillGameType | None = None
 
         # Track cooldowns to prevent spam (fish_id -> frame when can play again)
         self._cooldowns: dict[int, int] = {}
@@ -98,7 +98,7 @@ class SkillGameSystem:
         self._total_games_played = 0
         self._total_energy_transferred = 0.0
 
-    def get_active_game(self) -> Optional[SkillGame]:
+    def get_active_game(self) -> SkillGame | None:
         """Get the currently active skill game instance.
 
         Caches the game instance for efficiency.
@@ -180,7 +180,7 @@ class SkillGameSystem:
         fish1: "Fish",
         fish2: Optional["Fish"],
         current_frame: int,
-    ) -> Optional[SkillGameEvent]:
+    ) -> SkillGameEvent | None:
         """Play a skill game between fish.
 
         For two-player games (RPS), both fish compete.
@@ -297,7 +297,7 @@ class SkillGameSystem:
         fish1: "Fish",
         fish2: Optional["Fish"],
         result1: SkillGameResult,
-        result2: Optional[SkillGameResult],
+        result2: SkillGameResult | None,
     ) -> float:
         """Apply energy changes from game results.
 

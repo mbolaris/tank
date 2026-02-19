@@ -15,7 +15,7 @@ Design Principles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from collections.abc import Callable
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ class CachedList(Generic[T]):
         """
         self._name = name
         self._compute_fn = compute_fn
-        self._cached_value: Optional[list[T]] = None
+        self._cached_value: list[T] | None = None
         self._is_valid = False
         self._invalidation_count = 0
         self._recompute_count = 0

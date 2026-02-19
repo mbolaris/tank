@@ -5,7 +5,7 @@ entity collection mid-phase. The engine decides when to apply mutations.
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.entities import Agent
@@ -34,7 +34,7 @@ class EntityMutationQueue:
         entity: "Agent",
         *,
         reason: str = "",
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue an entity spawn request.
 
@@ -54,7 +54,7 @@ class EntityMutationQueue:
         entity: "Agent",
         *,
         reason: str = "",
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Queue an entity removal request.
 

@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class PatrolFeeder(BehaviorAlgorithm):
     """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -33,11 +33,11 @@ class PatrolFeeder(BehaviorAlgorithm):
             },
             rng=_rng,
         )
-        self.patrol_center: Optional[Vector2] = None
+        self.patrol_center: Vector2 | None = None
         self.patrol_angle = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

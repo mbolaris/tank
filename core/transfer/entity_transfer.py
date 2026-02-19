@@ -6,7 +6,7 @@ for transferring between tanks.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Optional, Protocol, cast
+from typing import Any, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,8 @@ class NoRootSpotsError(Exception):
 
 @dataclass(frozen=True)
 class TransferOutcome:
-    value: Optional[Any] = None
-    error: Optional[TransferError] = None
+    value: Any | None = None
+    error: TransferError | None = None
 
     @property
     def ok(self) -> bool:
@@ -41,7 +41,7 @@ class TransferOutcome:
 class TransferContext:
     """Optional contextual information for transfers."""
 
-    migration_direction: Optional[str] = None  # For plants: "left" or "right"
+    migration_direction: str | None = None  # For plants: "left" or "right"
 
 
 class EntityTransferCodec(Protocol):
@@ -55,7 +55,7 @@ class EntityTransferCodec(Protocol):
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         """Serialize *entity* into a JSON-compatible dict."""
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
         """Deserialize *data* into an entity in *target_world*."""
 
 
@@ -70,7 +70,7 @@ class FishTransferCodec:
     def serialize(self, entity: Any, ctx: TransferContext) -> dict[str, Any]:
         return _serialize_fish(entity)
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
         return _deserialize_fish(data, target_world)
 
 
@@ -85,7 +85,7 @@ class PlantTransferCodec:
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         return _serialize_plant(entity, ctx.migration_direction)
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
         return _deserialize_plant(data, target_world)
 
 
@@ -102,11 +102,11 @@ class CrabTransferCodec:
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
         return _serialize_crab(entity)
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
         return _deserialize_crab(data, target_world)
 
 
-def _normalize_migration_direction(direction: Optional[str]) -> Optional[str]:
+def _normalize_migration_direction(direction: str | None) -> str | None:
     if direction is None:
         return None
     if direction in {"left", "right"}:
@@ -145,7 +145,7 @@ class TransferRegistry:
         self.codecs.append(codec)
         self.codecs_by_type[codec.type_name] = codec
 
-    def codec_for_entity(self, entity: Any) -> Optional[EntityTransferCodec]:
+    def codec_for_entity(self, entity: Any) -> EntityTransferCodec | None:
         for codec in self.codecs:
             try:
                 if codec.can_serialize(entity):
@@ -202,7 +202,7 @@ class TransferRegistry:
         payload.setdefault("schema_version", TRANSFER_SCHEMA_VERSION)
         return TransferOutcome(value=payload)
 
-    def serialize_entity(self, entity: Any, ctx: TransferContext) -> Optional[SerializedEntity]:
+    def serialize_entity(self, entity: Any, ctx: TransferContext) -> SerializedEntity | None:
         outcome = self.try_serialize_entity(entity, ctx)
         if not outcome.ok:
             logger.warning(
@@ -273,7 +273,7 @@ class TransferRegistry:
             )
         return TransferOutcome(value=entity)
 
-    def deserialize_entity(self, data: SerializedEntity, target_world: Any) -> Optional[Any]:
+    def deserialize_entity(self, data: SerializedEntity, target_world: Any) -> Any | None:
         outcome = self.try_deserialize_entity(data, target_world)
         if not outcome.ok:
             if outcome.error and outcome.error.code == "no_root_spots":
@@ -311,8 +311,8 @@ def register_transfer_codec(codec: EntityTransferCodec) -> None:
 
 
 def serialize_entity_for_transfer(
-    entity: Any, migration_direction: Optional[str] = None
-) -> Optional[SerializedEntity]:
+    entity: Any, migration_direction: str | None = None
+) -> SerializedEntity | None:
     """Serialize an entity for transfer to another tank.
 
     Args:
@@ -327,7 +327,7 @@ def serialize_entity_for_transfer(
 
 
 def try_serialize_entity_for_transfer(
-    entity: Any, migration_direction: Optional[str] = None
+    entity: Any, migration_direction: str | None = None
 ) -> TransferOutcome:
     ctx = TransferContext(migration_direction=_normalize_migration_direction(migration_direction))
     return DEFAULT_REGISTRY.try_serialize_entity(entity, ctx)
@@ -387,14 +387,14 @@ def finalize_fish_serialization(fish: Any, mutable_state: dict[str, Any]) -> Ser
     }
 
 
-def _serialize_plant(plant: Any, migration_direction: Optional[str] = None) -> SerializedEntity:
+def _serialize_plant(plant: Any, migration_direction: str | None = None) -> SerializedEntity:
     """Serialize a Plant entity."""
     mutable_state = capture_plant_mutable_state(plant, migration_direction)
     return finalize_plant_serialization(plant, mutable_state)
 
 
 def capture_plant_mutable_state(
-    plant: Any, migration_direction: Optional[str] = None
+    plant: Any, migration_direction: str | None = None
 ) -> dict[str, Any]:
     """Capture mutable state of a plant that must be read under lock."""
     # Get plant ID - try both id and plant_id
@@ -470,7 +470,7 @@ def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> S
     }
 
 
-def deserialize_entity(data: dict[str, Any], target_world: Any) -> Optional[Any]:
+def deserialize_entity(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize entity data and create a new entity in the target world.
 
     Args:
@@ -487,7 +487,7 @@ def try_deserialize_entity(data: dict[str, Any], target_world: Any) -> TransferO
     return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
-def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Fish entity."""
     try:
         from core.entities.fish import Fish
@@ -564,7 +564,7 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Optional[Any]:
         return None
 
 
-def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Plant entity."""
     try:
         from core.entities.plant import Plant
@@ -693,7 +693,7 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
     }
 
 
-def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Optional[Any]:
+def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Crab entity."""
     try:
         from core.entities.predators import Crab

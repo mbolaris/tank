@@ -9,7 +9,7 @@ import random
 
 def test_match_runner_deterministic_with_code_pool():
     """Same seed + same genomes => identical fitness outputs."""
-    from typing import Optional, cast
+    from typing import cast
 
     from core.code_pool import GenomeCodePool
     from core.code_pool.pool import BUILTIN_CHASE_BALL_SOCCER_ID, chase_ball_soccer_policy
@@ -25,7 +25,7 @@ def test_match_runner_deterministic_with_code_pool():
         population = [Genome.random(use_algorithm=False, rng=rng) for _ in range(4)]
         for genome in population:
             genome.behavioral.soccer_policy_id = GeneticTrait(
-                cast(Optional[str], BUILTIN_CHASE_BALL_SOCCER_ID)
+                cast(str | None, BUILTIN_CHASE_BALL_SOCCER_ID)
             )
         return population
 

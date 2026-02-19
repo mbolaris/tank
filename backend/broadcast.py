@@ -12,7 +12,7 @@ import logging
 import os
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from backend.runner.runner_protocol import RunnerProtocol
 from core.config.display import FRAME_RATE
@@ -199,7 +199,7 @@ async def broadcast_updates_for_world(
                 last_sent_at = time.perf_counter()
 
                 now = time.perf_counter()
-                for client, result in zip(clients_snapshot, send_results):
+                for client, result in zip(clients_snapshot, send_results, strict=False):
                     if result is None:
                         if client in slow_send_windows:
                             strikes, window_start = slow_send_windows[client]

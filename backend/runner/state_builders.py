@@ -4,7 +4,7 @@ This module contains functions for building state payloads for WebSocket broadca
 Extracted from SimulationRunner to reduce class size.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from backend.state_payloads import PokerStatsPayload
 

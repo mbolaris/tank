@@ -11,7 +11,7 @@ It can be restored if real rcssserver integration is needed later.
 
 import logging
 from collections import deque
-from typing import Optional, Protocol
+from typing import Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class FakeRCSSServer:
     RCSSServerAdapter.
     """
 
-    def __init__(self, script: Optional[list[tuple[str, str]]] = None):
+    def __init__(self, script: list[tuple[str, str]] | None = None):
         """Initialize the fake server.
 
         Args:
@@ -104,10 +104,10 @@ class FakeRCSSServer:
     def queue_sense_body(self, time: int, stamina: float = 4000) -> None:
         self._response_queue.append(self._build_sense_body(time, stamina))
 
-    def queue_see(self, time: int, objects: Optional[list[str]] = None) -> None:
+    def queue_see(self, time: int, objects: list[str] | None = None) -> None:
         self._response_queue.append(self._build_see(time, objects))
 
-    def get_last_command(self) -> Optional[str]:
+    def get_last_command(self) -> str | None:
         return self._sent_commands[-1] if self._sent_commands else None
 
     # --- Response Builders ---
@@ -131,7 +131,7 @@ class FakeRCSSServer:
             f"(turn_neck 0) (catch 0) (move 0) (change_view 0))"
         )
 
-    def _build_see(self, time: int, objects: Optional[list[str]] = None) -> str:
+    def _build_see(self, time: int, objects: list[str] | None = None) -> str:
         if objects is None:
             # Default: ball + goal
             objects = ["((b) 10 0)", "((g r) 50 0)"]

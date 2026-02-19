@@ -9,7 +9,6 @@ across the codebase and respect ALife principles (no explicit fitness functions)
 
 import random
 from dataclasses import dataclass, field
-from typing import Optional
 
 from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
 
@@ -56,7 +55,7 @@ class PlantGenome:
 
     # Poker strategy type (baseline algorithm) - None means use genome-based traits
     # When set, this determines the poker strategy directly via PlantStrategyType
-    strategy_type: Optional[str] = None
+    strategy_type: str | None = None
 
     # Floral/nectar fractal traits - determines how nectar looks
     floral_type: str = (
@@ -119,7 +118,7 @@ class PlantGenome:
             rules.setdefault(inp, []).append((out, prob))
         return rules
 
-    def apply_production(self, input_str: str, rng: Optional[random.Random] = None) -> str:
+    def apply_production(self, input_str: str, rng: random.Random | None = None) -> str:
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -149,7 +148,7 @@ class PlantGenome:
         return s
 
     @classmethod
-    def create_random(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_random(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a random L-system plant genome."""
         from core.util.rng import require_rng_param
 
@@ -216,7 +215,7 @@ class PlantGenome:
     def create_from_strategy_type(
         cls,
         strategy_type_str: str,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> "PlantGenome":
         """Create a genome configured for a specific poker strategy type.
 
@@ -282,7 +281,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_cosmic_fern_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_cosmic_fern_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Cosmic Fern plant - deep space colors with complex fern structure."""
         from core.util.rng import require_rng_param
 
@@ -314,7 +313,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_claude_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_claude_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Claude variant - Radiant helix with sunburst whorls."""
         from core.util.rng import require_rng_param
 
@@ -346,7 +345,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_antigravity_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_antigravity_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create an Antigravity variant - Floating vines with aerial roots."""
         from core.util.rng import require_rng_param
 
@@ -378,7 +377,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_gpt_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_gpt_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a GPT variant - Lattice bush with mirrored logic branches."""
         from core.util.rng import require_rng_param
 
@@ -410,7 +409,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_gpt_codex_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_gpt_codex_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a GPT-5.1 Codex banyan with aerial roots and jade bark."""
         from core.util.rng import require_rng_param
 
@@ -443,7 +442,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_gemini_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_gemini_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Gemini 3Pro plant - cosmic botanical with deep indigo/violet hues.
 
         This variant features highly complex, "multimodal" branching patterns that
@@ -481,7 +480,7 @@ class PlantGenome:
         return g
 
     @classmethod
-    def create_sonnet_variant(cls, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def create_sonnet_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Sonnet 4.5 plant - elegant botanical fern with coral/terracotta hues.
 
         This variant uses proper L-system rules that produce actual plant-like
@@ -530,7 +529,7 @@ class PlantGenome:
         parent: "PlantGenome",
         mutation_rate: float = 0.15,
         mutation_strength: float = 0.15,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> "PlantGenome":
         """Create offspring genome with mutations while preserving variant identity.
 
@@ -741,7 +740,7 @@ class PlantGenome:
         }
 
     @classmethod
-    def from_dict(cls, data: dict, rng: Optional[random.Random] = None) -> "PlantGenome":
+    def from_dict(cls, data: dict, rng: random.Random | None = None) -> "PlantGenome":
         rules = [(r["input"], r["output"], r["prob"]) for r in data.get("production_rules", [])]
         # Get strategy_type, assigning a random one for legacy plants without it
         # Check for both missing key AND explicitly saved null values

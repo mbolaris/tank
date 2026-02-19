@@ -7,7 +7,6 @@ Reference: https://rcsoccersim.readthedocs.io/en/latest/soccerserver.html
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -87,7 +86,7 @@ class RCSSParams:
     # Noise (optional, disabled by default for deterministic training)
     # =========================================================================
     noise_enabled: bool = False
-    noise_seed: Optional[int] = None
+    noise_seed: int | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""

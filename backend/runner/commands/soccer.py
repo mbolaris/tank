@@ -1,6 +1,6 @@
 import logging
 from dataclasses import asdict
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
 

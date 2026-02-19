@@ -21,10 +21,10 @@ def simulate_multiplayer_game(
     num_players: int,
     initial_bet: float,
     player_energies: list[float],
-    player_aggressions: Optional[list[float]] = None,
-    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
+    player_aggressions: list[float] | None = None,
+    player_strategies: list[Optional["PokerStrategyAlgorithm"]] | None = None,
     button_position: int = 0,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> MultiplayerGameState:
     """Simulate a complete multiplayer Texas Hold'em poker game with blinds."""
     if num_players < 3:

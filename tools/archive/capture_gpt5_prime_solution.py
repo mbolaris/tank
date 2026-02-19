@@ -5,7 +5,6 @@ import argparse
 import logging
 import os
 import sys
-from typing import Optional
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -105,7 +104,7 @@ def evaluate_candidates(
             }
         ]
 
-    best_record: Optional[SolutionRecord] = None
+    best_record: SolutionRecord | None = None
     best_result = None
     best_stats = None
     best_entry = None
@@ -184,7 +183,7 @@ def main():
     logger.info("RUNNING GPT-5.2 EXTENDED POKER SIMULATION")
     logger.info("=" * 60)
 
-    best_overall: Optional[tuple[SolutionRecord, SolutionBenchmark, str, int]] = None
+    best_overall: tuple[SolutionRecord, SolutionBenchmark, str, int] | None = None
 
     for seed in seeds:
         logger.info("=== Seed %s | Frames %s ===", seed, max_frames)

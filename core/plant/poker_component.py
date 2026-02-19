@@ -5,7 +5,7 @@ functionality for plants.
 """
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 from core.config.plants import PLANT_MIN_POKER_ENERGY
@@ -70,7 +70,7 @@ class PlantPokerComponent:
         self.poker_wins = 0
         self.poker_losses = 0
         self.last_button_position = 2
-        self.poker_effect_state: Optional[dict] = None
+        self.poker_effect_state: dict | None = None
         self.poker_effect_timer = 0
         self._get_energy = get_energy
         self._get_genome = get_genome
@@ -155,8 +155,8 @@ class PlantPokerComponent:
         status: str,
         amount: float = 0.0,
         duration: int = 15,
-        target_id: Optional[int] = None,
-        target_type: Optional[str] = None,
+        target_id: int | None = None,
+        target_type: str | None = None,
     ) -> None:
         """Set a visual effect for poker status.
 

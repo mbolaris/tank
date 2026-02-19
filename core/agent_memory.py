@@ -9,7 +9,6 @@ This module provides advanced memory capabilities including:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from core.math_utils import Vector2
 
@@ -83,7 +82,7 @@ class AgentMemorySystem:
         memory_type: MemoryType,
         location: Vector2,
         strength: float = 1.0,
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ):
         """Add a new memory or reinforce existing one nearby.
 
@@ -125,7 +124,7 @@ class AgentMemorySystem:
         current_pos: Vector2,
         max_distance: float = float("inf"),
         min_strength: float = 0.1,
-    ) -> Optional[Memory]:
+    ) -> Memory | None:
         """Find nearest memory of given type.
 
         Args:
@@ -194,7 +193,7 @@ class AgentMemorySystem:
                 memory.failure_count += 1
                 memory.strength *= 0.5  # Weaken failed memories
 
-    def get_best_memory(self, memory_type: MemoryType) -> Optional[Memory]:
+    def get_best_memory(self, memory_type: MemoryType) -> Memory | None:
         """Get the best memory based on success rate and strength.
 
         Args:
@@ -243,7 +242,7 @@ class AgentMemorySystem:
                 if not m.is_expired(self.current_frame, max_age=1800)  # 60 seconds at 30fps
             ]
 
-    def clear_memories(self, memory_type: Optional[MemoryType] = None):
+    def clear_memories(self, memory_type: MemoryType | None = None):
         """Clear all memories of a type, or all memories.
 
         Args:

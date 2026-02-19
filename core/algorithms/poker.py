@@ -115,7 +115,7 @@ def _flee_from_predator(
     fish_y: float,
     danger_dist_sq: float = 14400,
     flee_speed: float = 1.2,
-) -> Optional[tuple[float, float]]:
+) -> tuple[float, float] | None:
     """Check for nearby predator and return flee velocity if threatened.
 
     This consolidates the predator-evasion pattern used by all poker algorithms.
@@ -171,7 +171,7 @@ def _seek_food_or_idle(
 
 def _seek_fish_or_none(
     algo: BehaviorAlgorithm, fish: "Fish", radius: float, speed: float = 1.0
-) -> Optional[tuple[float, float]]:
+) -> tuple[float, float] | None:
     """Seek nearest other fish within radius. Returns direction or None.
 
     Args:
@@ -194,7 +194,7 @@ def _seek_fish_or_none(
 class PokerChallenger(BehaviorAlgorithm):
     """Actively seeks out other fish for poker games."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -210,7 +210,7 @@ class PokerChallenger(BehaviorAlgorithm):
         self.rng = rng
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -239,7 +239,7 @@ class PokerChallenger(BehaviorAlgorithm):
 class PokerDodger(BehaviorAlgorithm):
     """Avoids other fish to prevent poker games."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -255,7 +255,7 @@ class PokerDodger(BehaviorAlgorithm):
         self.rng = rng
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -321,7 +321,7 @@ class PokerDodger(BehaviorAlgorithm):
 class PokerGambler(BehaviorAlgorithm):
     """Seeks poker aggressively when high energy."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -337,7 +337,7 @@ class PokerGambler(BehaviorAlgorithm):
         self.rng = rng
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -370,7 +370,7 @@ class PokerGambler(BehaviorAlgorithm):
 class SelectivePoker(BehaviorAlgorithm):
     """Only engages in poker when conditions are favorable."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -387,7 +387,7 @@ class SelectivePoker(BehaviorAlgorithm):
         self.rng = rng
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -413,7 +413,7 @@ class SelectivePoker(BehaviorAlgorithm):
 class PokerOpportunist(BehaviorAlgorithm):
     """Balances food seeking with poker opportunities."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -428,7 +428,7 @@ class PokerOpportunist(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -486,7 +486,7 @@ class PokerOpportunist(BehaviorAlgorithm):
 class PokerStrategist(BehaviorAlgorithm):
     """Uses opponent modeling and strategic positioning for poker."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -506,7 +506,7 @@ class PokerStrategist(BehaviorAlgorithm):
         self.max_memory = 5
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -574,7 +574,7 @@ class PokerStrategist(BehaviorAlgorithm):
 class PokerBluffer(BehaviorAlgorithm):
     """Varies behavior unpredictably to confuse opponents."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -595,7 +595,7 @@ class PokerBluffer(BehaviorAlgorithm):
         self.rng = rng
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -673,7 +673,7 @@ class PokerBluffer(BehaviorAlgorithm):
 class PokerConservative(BehaviorAlgorithm):
     """Risk-averse poker player that only engages in highly favorable conditions."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -690,7 +690,7 @@ class PokerConservative(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

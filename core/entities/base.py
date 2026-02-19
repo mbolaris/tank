@@ -15,7 +15,7 @@ movement methods.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
@@ -130,7 +130,7 @@ class Entity:
         self.rect.height = height
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         """Update the entity state (pure logic, no rendering).
 
@@ -303,7 +303,7 @@ class MobileEntity(Entity):
         self.vel.y += random_y_direction / divisor
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         """Update the mobile entity state.
 

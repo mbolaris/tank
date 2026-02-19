@@ -17,7 +17,7 @@ The preferred approach is now:
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.poker.strategy.base import PokerStrategyEngine
 
@@ -93,10 +93,10 @@ class PokerParticipantManager:
 
     def __init__(self) -> None:
         """Initialize the participant manager."""
-        self._participants: dict[tuple[Optional[int], int], PokerParticipant] = {}
+        self._participants: dict[tuple[int | None, int], PokerParticipant] = {}
 
     @staticmethod
-    def _participant_key(fish: "Fish") -> tuple[Optional[int], int]:
+    def _participant_key(fish: "Fish") -> tuple[int | None, int]:
         """Build a stable participant key scoped to the fish's environment."""
         environment = getattr(fish, "environment", None)
         env_key = id(environment) if environment is not None else None

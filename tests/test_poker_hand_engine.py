@@ -1,5 +1,4 @@
 import random
-from typing import Optional
 
 import pytest
 
@@ -18,7 +17,7 @@ class AlwaysCallStrategy(PokerStrategyAlgorithm):
         pot: float,
         player_energy: float,
         position_on_button: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         if opponent_bet > current_bet:
             return BettingAction.CALL, opponent_bet - current_bet

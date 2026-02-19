@@ -2,7 +2,6 @@
 
 import math
 from collections import defaultdict
-from typing import Optional
 
 from core.entities.base import Agent, Entity
 from core.entities.resources import Food
@@ -363,7 +362,7 @@ class SpatialGrid:
 
         return result
 
-    def closest_fish(self, agent: Agent, radius: float) -> Optional[Agent]:
+    def closest_fish(self, agent: Agent, radius: float) -> Agent | None:
         """Find the single closest fish within radius.
 
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.
@@ -416,7 +415,7 @@ class SpatialGrid:
 
         return nearest_agent
 
-    def closest_food(self, agent: Agent, radius: float) -> Optional[Agent]:
+    def closest_food(self, agent: Agent, radius: float) -> Agent | None:
         """Find the single closest food within radius.
 
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.

@@ -82,7 +82,7 @@ class ReproductionComponent:
         self.repro_credits -= required
         return True
 
-    def bank_overflow_energy(self, amount: float, max_bank: Optional[float] = None) -> float:
+    def bank_overflow_energy(self, amount: float, max_bank: float | None = None) -> float:
         """Bank overflow energy for future reproduction.
 
         Returns the amount actually banked (may be less than requested if max_bank is provided).
@@ -151,7 +151,7 @@ class ReproductionComponent:
         self,
         own_genome: "Genome",
         rng: Optional["Random"] = None,
-        available_policies: Optional[list[str]] = None,
+        available_policies: list[str] | None = None,
     ) -> tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 

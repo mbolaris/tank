@@ -5,7 +5,6 @@ Extracted from ecosystem.py to improve code organization and maintainability.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT, TOTAL_SPECIES_COUNT
 
@@ -252,8 +251,8 @@ class PokerOutcomeRecord:
     house_cut: float = 0.0
 
     # Algorithm IDs for tracking performance by behavior
-    winner_algo_id: Optional[int] = None
-    loser_algo_id: Optional[int] = None
+    winner_algo_id: int | None = None
+    loser_algo_id: int | None = None
 
     # Hand information (imported types would create circular deps, use Any)
     winner_hand: object = None  # PokerHand
@@ -263,8 +262,8 @@ class PokerOutcomeRecord:
     result: object = None  # PokerResult
 
     # Player algorithm IDs for positional stats (for multiplayer)
-    player1_algo_id: Optional[int] = None
-    player2_algo_id: Optional[int] = None
+    player1_algo_id: int | None = None
+    player2_algo_id: int | None = None
 
     @property
     def is_tie(self) -> bool:

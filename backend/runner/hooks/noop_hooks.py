@@ -4,7 +4,7 @@ This module provides a default no-op hooks class for worlds that don't
 need special features.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class NoOpWorldHooks:

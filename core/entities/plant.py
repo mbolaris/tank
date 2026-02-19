@@ -16,7 +16,7 @@ The Plant class now delegates to specialized components for better modularity:
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from core.entities.base import Agent, Entity, EntityUpdateResult
+from core.entities.base import Entity, EntityUpdateResult
 from core.entities.resources import Food
 from core.entity_ids import PlantId
 from core.genetics import PlantGenome
@@ -115,7 +115,7 @@ class Plant(Entity):
         self.age = 0
 
         # Type-safe ID wrapper (cached to avoid repeated object creation)
-        self._typed_id: Optional[PlantId] = None
+        self._typed_id: PlantId | None = None
 
         # Get RNG for components
         rng = getattr(environment, "rng", None)
@@ -242,12 +242,12 @@ class Plant(Entity):
         self._poker_comp.last_button_position = value
 
     @property
-    def poker_effect_state(self) -> Optional[dict]:
+    def poker_effect_state(self) -> dict | None:
         """Current poker effect state."""
         return self._poker_comp.poker_effect_state
 
     @poker_effect_state.setter
-    def poker_effect_state(self, value: Optional[dict]) -> None:
+    def poker_effect_state(self, value: dict | None) -> None:
         """Set poker effect state."""
         self._poker_comp.poker_effect_state = value
 
@@ -316,7 +316,7 @@ class Plant(Entity):
             self._typed_id = PlantId(self.plant_id)
         return self._typed_id
 
-    def get_entity_id(self) -> Optional[int]:
+    def get_entity_id(self) -> int | None:
         """Get the unique identifier for this plant (Identifiable protocol).
 
         Returns:
@@ -341,7 +341,7 @@ class Plant(Entity):
         self,
         frame_count: int,
         time_modifier: float = 1.0,
-        time_of_day: Optional[float] = None,
+        time_of_day: float | None = None,
     ) -> "EntityUpdateResult":
         """Update the plant state.
 
@@ -381,7 +381,7 @@ class Plant(Entity):
 
         return result
 
-    def _collect_energy(self, time_of_day: Optional[float] = None) -> float:
+    def _collect_energy(self, time_of_day: float | None = None) -> float:
         """Collect passive energy through photosynthesis.
 
         This method delegates to the energy component but is kept for
@@ -395,7 +395,7 @@ class Plant(Entity):
         """
         return self._energy_comp.collect_energy(time_of_day)
 
-    def _try_produce_nectar(self, time_of_day: Optional[float]) -> Optional["PlantNectar"]:
+    def _try_produce_nectar(self, time_of_day: float | None) -> Optional["PlantNectar"]:
         """Try to produce nectar if conditions are met.
 
         Args:
@@ -628,8 +628,8 @@ class Plant(Entity):
         status: str,
         amount: float = 0.0,
         duration: int = 15,
-        target_id: Optional[int] = None,
-        target_type: Optional[str] = None,
+        target_id: int | None = None,
+        target_type: str | None = None,
     ) -> None:
         """Set a visual effect for poker status.
 
@@ -749,7 +749,7 @@ class PlantNectar(Food):
         y: float,
         source_plant: Plant,
         relative_y_offset_pct: float = 0.20,
-        floral_visuals: Optional[dict] = None,
+        floral_visuals: dict | None = None,
     ) -> None:
         """Initialize plant nectar.
 
@@ -801,7 +801,7 @@ class PlantNectar(Food):
             )
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         """Update nectar state."""
         from core.entities.base import EntityUpdateResult

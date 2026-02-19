@@ -64,7 +64,7 @@ class PlantEnergyComponent:
         self._get_root_spot = get_root_spot
         self._get_environment = get_environment
 
-    def collect_energy(self, time_of_day: Optional[float] = None) -> float:
+    def collect_energy(self, time_of_day: float | None = None) -> float:
         """Collect passive energy through photosynthesis.
 
         Energy collection rate increases with current energy (compound growth).
@@ -115,7 +115,7 @@ class PlantEnergyComponent:
         self.energy = min(self.max_energy, self.energy + energy_gain)
         return energy_gain
 
-    def _get_photosynthesis_modifier(self, time_of_day: Optional[float]) -> float:
+    def _get_photosynthesis_modifier(self, time_of_day: float | None) -> float:
         """Get the photosynthesis modifier based on time of day.
 
         Args:

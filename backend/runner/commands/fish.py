@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core import entities, movement_strategy
 from core.config.display import FILES, SCREEN_HEIGHT, SCREEN_WIDTH

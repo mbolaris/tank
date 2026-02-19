@@ -267,7 +267,7 @@ class Predator(Protocol):
 class Identifiable(Protocol):
     """Any entity with a unique identifier for tracking and lineage."""
 
-    def get_entity_id(self) -> Optional[int]:
+    def get_entity_id(self) -> int | None:
         """Get the unique identifier for this entity, or None if unassigned."""
         ...
 
@@ -327,7 +327,7 @@ class PokerPlayer(EnergyHolder, Positionable, Protocol):
         """Get aggression level for poker decisions (0.0-1.0)."""
         ...
 
-    def get_poker_strategy(self) -> Optional[Any]:
+    def get_poker_strategy(self) -> Any | None:
         """Get poker strategy algorithm, or None to use aggression-based play."""
         ...
 
@@ -413,7 +413,7 @@ class SimulationStats(Protocol):
         age: int,
         cause: str,
         genome: "Genome",
-        algorithm_id: Optional[int] = None,
+        algorithm_id: int | None = None,
         remaining_energy: float = 0.0,
     ) -> None:
         """Record a fish death event.
@@ -442,15 +442,15 @@ class SimulationStats(Protocol):
         self,
         winner_id: int,
         loser_id: int,
-        winner_algo_id: Optional[int],
-        loser_algo_id: Optional[int],
+        winner_algo_id: int | None,
+        loser_algo_id: int | None,
         amount: float,
         winner_hand: Optional["PokerHand"],
         loser_hand: Optional["PokerHand"],
         house_cut: float,
         result: Any,
-        player1_algo_id: Optional[int],
-        player2_algo_id: Optional[int],
+        player1_algo_id: int | None,
+        player2_algo_id: int | None,
     ) -> None:
         """Record a poker game outcome.
 
@@ -552,7 +552,7 @@ class PokerCoordinator(Protocol):
         """Find groups of entities eligible for poker games."""
         ...
 
-    def play_game(self, players: list[Any]) -> Optional[Any]:
+    def play_game(self, players: list[Any]) -> Any | None:
         """
         Play a poker game between the given players.
 
@@ -729,11 +729,11 @@ class MigrationCapable(Protocol):
     """
 
     @property
-    def migration_handler(self) -> Optional[MigrationHandler]:
+    def migration_handler(self) -> MigrationHandler | None:
         """Get the migration handler if available."""
         ...
 
     @property
-    def world_id(self) -> Optional[str]:
+    def world_id(self) -> str | None:
         """Get the world identifier for migration tracking."""
         ...

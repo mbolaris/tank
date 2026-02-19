@@ -2,7 +2,7 @@
 
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import FOOD_PURSUIT_RANGE_EXTENDED, PREDATOR_FLEE_DISTANCE_SAFE
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -32,7 +32,7 @@ class SpiralForager(BehaviorAlgorithm):
         self.spiral_radius = 10.0
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

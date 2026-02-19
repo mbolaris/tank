@@ -5,9 +5,7 @@ from typing import TYPE_CHECKING, Optional
 
 from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
 from core.energy.energy_utils import apply_energy_delta
-from core.config.food import FOOD_SINK_ACCELERATION, FOOD_TYPES
-from core.energy.energy_utils import apply_energy_delta
-from core.entities.base import Agent, Entity, MobileEntity, EntityUpdateResult
+from core.entities.base import MobileEntity, EntityUpdateResult
 from core.entities.fish import Fish
 from core.math_utils import Vector2
 
@@ -32,7 +30,7 @@ class Food(MobileEntity):
         """Check if food is dead (it's not)."""
         return False
 
-    def get_entity_id(self) -> Optional[int]:
+    def get_entity_id(self) -> int | None:
         """Get the unique identifier for this food (Identifiable protocol).
 
         Food has no intrinsic ID - identity provider will use python id mapping.
@@ -57,10 +55,10 @@ class Food(MobileEntity):
         x: float,
         y: float,
         source_plant: Optional["Plant"] = None,
-        food_type: Optional[str] = None,
+        food_type: str | None = None,
         allow_stationary_types: bool = True,
         speed: float = 0.0,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Initialize a food item.
 
@@ -90,7 +88,7 @@ class Food(MobileEntity):
         self.is_stationary = bool(self.food_properties.get("stationary", False))
 
         super().__init__(environment, x, y, speed)
-        self.source_plant: Optional[Plant] = source_plant
+        self.source_plant: Plant | None = source_plant
 
         # Energy tracking for partial consumption
         energy_value = self.food_properties.get("energy", 0.0)
@@ -103,7 +101,7 @@ class Food(MobileEntity):
     def _select_random_food_type(
         include_stationary: bool = True,
         include_live: bool = False,
-        rng: Optional[random.Random] = None,
+        rng: random.Random | None = None,
     ) -> str:
         """Select a random food type based on rarity weights.
 
@@ -168,7 +166,7 @@ class Food(MobileEntity):
         return self.energy <= 0.1  # Small threshold for float comparison
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         """Update the food state."""
         if self.is_stationary:
@@ -251,7 +249,7 @@ class LiveFood(Food):
         return self.age >= self.max_lifespan
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
         self.age += 1
         self._apply_wander()

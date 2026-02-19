@@ -226,7 +226,7 @@ class TestSoccerMatchRunner:
         _, results1 = runner.run_episode(genomes=pop1, seed=100, frames=50)
         _, results2 = runner.run_episode(genomes=pop2, seed=100, frames=50)
 
-        for r1, r2 in zip(results1, results2):
+        for r1, r2 in zip(results1, results2, strict=False):
             assert r1.fitness == r2.fitness
 
 

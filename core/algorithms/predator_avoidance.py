@@ -16,7 +16,7 @@ This module contains 10 algorithms focused on avoiding and escaping from predato
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -29,7 +29,7 @@ from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 class PanicFlee(BehaviorAlgorithm):
     """Flee directly away from predators at maximum speed."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -43,7 +43,7 @@ class PanicFlee(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -70,7 +70,7 @@ class PanicFlee(BehaviorAlgorithm):
 class StealthyAvoider(BehaviorAlgorithm):
     """Move slowly and carefully away from predators."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -84,7 +84,7 @@ class StealthyAvoider(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -113,7 +113,7 @@ class StealthyAvoider(BehaviorAlgorithm):
 class FreezeResponse(BehaviorAlgorithm):
     """Freeze when predator is near, but prioritize survival over safety when starving."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -130,7 +130,7 @@ class FreezeResponse(BehaviorAlgorithm):
         self.search_angle = rng.uniform(0, 6.28)  # For systematic food search
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -199,7 +199,7 @@ class FreezeResponse(BehaviorAlgorithm):
 class ErraticEvader(BehaviorAlgorithm):
     """Make unpredictable movements when threatened."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -214,7 +214,7 @@ class ErraticEvader(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -275,7 +275,7 @@ class ErraticEvader(BehaviorAlgorithm):
 class VerticalEscaper(BehaviorAlgorithm):
     """Escape vertically when threatened."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -289,7 +289,7 @@ class VerticalEscaper(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -313,7 +313,7 @@ class VerticalEscaper(BehaviorAlgorithm):
 class GroupDefender(BehaviorAlgorithm):
     """Stay close to group for safety."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -327,7 +327,7 @@ class GroupDefender(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -359,7 +359,7 @@ class GroupDefender(BehaviorAlgorithm):
 class SpiralEscape(BehaviorAlgorithm):
     """Spiral away from predators."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -374,7 +374,7 @@ class SpiralEscape(BehaviorAlgorithm):
         self.spiral_angle = 0.0
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -407,7 +407,7 @@ class SpiralEscape(BehaviorAlgorithm):
 class BorderHugger(BehaviorAlgorithm):
     """Move to tank edges when threatened."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -421,7 +421,7 @@ class BorderHugger(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -452,7 +452,7 @@ class BorderHugger(BehaviorAlgorithm):
 class PerpendicularEscape(BehaviorAlgorithm):
     """Escape perpendicular to predator's approach."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -466,7 +466,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
@@ -502,7 +502,7 @@ class PerpendicularEscape(BehaviorAlgorithm):
 class DistanceKeeper(BehaviorAlgorithm):
     """Maintain safe distance from predators."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
@@ -517,7 +517,7 @@ class DistanceKeeper(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

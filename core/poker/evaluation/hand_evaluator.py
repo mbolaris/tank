@@ -203,7 +203,7 @@ def _evaluate_five_cards_cached(five_cards_key: tuple[int, int, int, int, int]) 
     hand_type, rank_value, description, primary_ranks, kickers = _evaluate_five_cards_core(
         ranks, suits
     )
-    cards = [get_card(r, s) for r, s in zip(ranks, suits)]
+    cards = [get_card(r, s) for r, s in zip(ranks, suits, strict=False)]
     return PokerHand(
         hand_type=hand_type,
         rank_value=rank_value,

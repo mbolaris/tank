@@ -37,7 +37,7 @@ class TestRCSSLiteDeterminism:
         positions2 = run_simulation(42)
 
         # Should be identical
-        for i, (p1, p2) in enumerate(zip(positions1, positions2)):
+        for i, (p1, p2) in enumerate(zip(positions1, positions2, strict=False)):
             assert p1[0] == p2[0], f"Cycle {i}: x mismatch {p1[0]} != {p2[0]}"
             assert p1[1] == p2[1], f"Cycle {i}: y mismatch {p1[1]} != {p2[1]}"
 

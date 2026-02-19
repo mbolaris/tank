@@ -14,7 +14,7 @@ import logging
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 

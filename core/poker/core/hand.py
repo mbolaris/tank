@@ -41,11 +41,11 @@ class PokerHand:
         if self.rank_value != other.rank_value:
             return self.rank_value > other.rank_value
 
-        for my_rank, their_rank in zip(self.primary_ranks, other.primary_ranks):
+        for my_rank, their_rank in zip(self.primary_ranks, other.primary_ranks, strict=False):
             if my_rank != their_rank:
                 return my_rank > their_rank
 
-        for my_kicker, their_kicker in zip(self.kickers, other.kickers):
+        for my_kicker, their_kicker in zip(self.kickers, other.kickers, strict=False):
             if my_kicker != their_kicker:
                 return my_kicker > their_kicker
 

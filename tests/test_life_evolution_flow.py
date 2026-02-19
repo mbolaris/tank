@@ -12,7 +12,7 @@ immediately when reproduction conditions are met.
 
 import random
 from types import SimpleNamespace
-from typing import Optional, cast
+from typing import cast
 
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.ecosystem import EcosystemManager
@@ -27,7 +27,7 @@ class MiniEcosystem:
 
     def __init__(self) -> None:
         self._next_fish_id = 1
-        self.births: list[tuple[int, int, Optional[list[int]], Optional[int]]] = []
+        self.births: list[tuple[int, int, list[int] | None, int | None]] = []
         self.reproductions = 0
         self.recent_death_rate = 0.0
 

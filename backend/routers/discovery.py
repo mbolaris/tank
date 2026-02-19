@@ -2,7 +2,6 @@
 
 import ipaddress
 import os
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse

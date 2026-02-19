@@ -1,5 +1,5 @@
 import math
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.config.food import FOOD_SINK_ACCELERATION
 from core.math_utils import Vector2
@@ -38,14 +38,14 @@ class BehaviorActionsMixin:
 
     # Required helpers (provided by BehaviorHelpersMixin)
     def _find_nearest(
-        self, fish: "Fish", agent_type: type[Any], max_distance: Optional[float] = None
-    ) -> Optional[Any]:
+        self, fish: "Fish", agent_type: type[Any], max_distance: float | None = None
+    ) -> Any | None:
         raise NotImplementedError
 
     def _safe_normalize(self, vector: Vector2) -> Vector2:
         raise NotImplementedError
 
-    def _find_nearest_food(self, fish: "Fish") -> Optional[Any]:
+    def _find_nearest_food(self, fish: "Fish") -> Any | None:
         raise NotImplementedError
 
     def _execute_threat_response(self, fish: "Fish") -> tuple[float, float, bool]:

@@ -5,7 +5,7 @@ must satisfy. It allows the SimulationRunner to be extended with world-specific
 features without embedding assumptions into the core runner.
 """
 
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 
 class WorldHooks(Protocol):

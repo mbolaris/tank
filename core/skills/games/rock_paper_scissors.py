@@ -16,7 +16,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from core.skills.base import (
     SkillEvaluationMetrics,
@@ -94,7 +94,7 @@ class RPSStrategy(SkillStrategy[RPSAction]):
             self.prob_rock = self.prob_paper = self.prob_scissors = 1.0 / 3.0
 
     def choose_action(
-        self, game_state: dict[str, Any], rng: Optional[random.Random] = None
+        self, game_state: dict[str, Any], rng: random.Random | None = None
     ) -> RPSAction:
         """Choose an action based on current probabilities.
 
@@ -269,7 +269,7 @@ class ExploitingRPSStrategy(RPSStrategy):
     """
 
     def choose_action(
-        self, game_state: dict[str, Any], rng: Optional[random.Random] = None
+        self, game_state: dict[str, Any], rng: random.Random | None = None
     ) -> RPSAction:
         """Choose the counter to opponent's most frequent action."""
         if len(self.opponent_history) < 5:
@@ -300,7 +300,7 @@ class RockPaperScissorsGame(SkillGame):
     # Energy/score stakes for each game
     stake: float = 10.0
 
-    def __init__(self, stake: float = 10.0, rng: Optional[random.Random] = None):
+    def __init__(self, stake: float = 10.0, rng: random.Random | None = None):
         """Initialize the game with configurable stakes.
 
         Args:
@@ -342,7 +342,7 @@ class RockPaperScissorsGame(SkillGame):
             "can achieve better than 0 expected value against it."
         )
 
-    def create_default_strategy(self, rng: Optional[random.Random] = None) -> RPSStrategy:
+    def create_default_strategy(self, rng: random.Random | None = None) -> RPSStrategy:
         """Create a new strategy with slight random bias.
 
         Fish start with slightly non-optimal strategies so evolution
@@ -375,8 +375,8 @@ class RockPaperScissorsGame(SkillGame):
     def play_round(
         self,
         player_strategy: SkillStrategy,
-        opponent_strategy: Optional[SkillStrategy] = None,
-        game_state: Optional[dict[str, Any]] = None,
+        opponent_strategy: SkillStrategy | None = None,
+        game_state: dict[str, Any] | None = None,
     ) -> SkillGameResult:
         """Play one round of Rock-Paper-Scissors.
 
@@ -432,7 +432,7 @@ class RockPaperScissorsGame(SkillGame):
         self,
         strategy: SkillStrategy,
         num_games: int = 1000,
-        opponent: Optional[SkillStrategy] = None,
+        opponent: SkillStrategy | None = None,
     ) -> SkillEvaluationMetrics:
         """Observe a strategy's performance for reporting.
 

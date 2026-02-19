@@ -209,7 +209,7 @@ class PokerStatsManager:
         }
 
     def get_poker_leaderboard(
-        self, fish_list: Optional[list["Fish"]], sort_by: str = "net_energy", limit: int = 10
+        self, fish_list: list["Fish"] | None, sort_by: str = "net_energy", limit: int = 10
     ) -> list[dict[str, Any]]:
         """Get poker leaderboard of top-performing fish."""
         if fish_list is None:
@@ -296,15 +296,15 @@ class PokerStatsManager:
         self,
         winner_id: int,
         loser_id: int,
-        winner_algo_id: Optional[int],
-        loser_algo_id: Optional[int],
+        winner_algo_id: int | None,
+        loser_algo_id: int | None,
         amount: float,
         winner_hand: "PokerHand",
         loser_hand: "PokerHand",
         house_cut: float = 0.0,
         result: Optional["PokerResult"] = None,
-        player1_algo_id: Optional[int] = None,
-        player2_algo_id: Optional[int] = None,
+        player1_algo_id: int | None = None,
+        player2_algo_id: int | None = None,
     ) -> None:
         """Record a poker game outcome with detailed statistics."""
         if winner_id == -1:
@@ -411,7 +411,7 @@ class PokerStatsManager:
             except Exception as error:  # pragma: no cover - defensive logging
                 logger.error(f"Failed to save poker totals: {error}", exc_info=True)
 
-    def _update_tie_stats(self, algo_id: Optional[int], hand: "PokerHand") -> None:
+    def _update_tie_stats(self, algo_id: int | None, hand: "PokerHand") -> None:
         if algo_id is not None and algo_id in self.poker_stats:
             stats = self.poker_stats[algo_id]
             stats.total_games += 1
@@ -423,13 +423,13 @@ class PokerStatsManager:
     def _update_winner_stats(
         self,
         winner_id: int,
-        winner_algo_id: Optional[int],
+        winner_algo_id: int | None,
         amount: float,
         winner_hand: "PokerHand",
         house_cut: float,
         result: Optional["PokerResult"],
-        player1_algo_id: Optional[int],
-        player2_algo_id: Optional[int],
+        player1_algo_id: int | None,
+        player2_algo_id: int | None,
     ) -> None:
         from core.poker.core import BettingAction
 
@@ -481,13 +481,13 @@ class PokerStatsManager:
 
     def _update_loser_stats(
         self,
-        loser_algo_id: Optional[int],
+        loser_algo_id: int | None,
         amount: float,
         loser_hand: "PokerHand",
         house_cut: float,
         result: Optional["PokerResult"],
-        player1_algo_id: Optional[int],
-        player2_algo_id: Optional[int],
+        player1_algo_id: int | None,
+        player2_algo_id: int | None,
     ) -> None:
         from core.poker.core import BettingAction
 

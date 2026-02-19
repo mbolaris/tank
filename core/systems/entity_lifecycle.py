@@ -31,7 +31,7 @@ between phases to prevent mid-iteration mutations.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from core.systems.base import BaseSystem
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -190,7 +190,7 @@ class EntityLifecycleSystem(BaseSystem):
         self._births_this_frame += 1
         self._total_births += 1
 
-    def record_fish_death(self, fish: "Fish", cause: Optional[str] = None) -> None:
+    def record_fish_death(self, fish: "Fish", cause: str | None = None) -> None:
         """Record a fish death in the ecosystem and mark for delayed removal.
 
         The fish remains in the simulation briefly so its death effect icon

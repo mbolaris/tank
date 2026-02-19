@@ -10,7 +10,7 @@ Physics Model:
 This enables realistic ball mechanics while being deterministic and predictable.
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.entities.base import Agent
 from core.math_utils import Vector2
@@ -82,9 +82,9 @@ class Ball(Agent):
         self.kick_power_rate = kick_power_rate
 
         # Collision and interaction tracking
-        self.last_kicker: Optional[object] = None  # Last entity that kicked the ball
+        self.last_kicker: object | None = None  # Last entity that kicked the ball
         self.last_kick_time: int = 0  # Frame number of last kick
-        self.goal_event: Optional[dict] = None  # Current goal event if scored
+        self.goal_event: dict | None = None  # Current goal event if scored
 
         # Set visual size for rendering
         pixel_radius = self.DEFAULT_PIXEL_RADIUS
@@ -95,7 +95,7 @@ class Ball(Agent):
         """Return entity type for snapshot serialization."""
         return "ball"
 
-    def kick(self, power: float, direction: Vector2, kicker: Optional[object] = None) -> None:
+    def kick(self, power: float, direction: Vector2, kicker: object | None = None) -> None:
         """Apply force to the ball from a kick.
 
         Args:
@@ -109,7 +109,7 @@ class Ball(Agent):
         self.last_kicker = kicker
 
     def update(
-        self, frame_count: int, time_modifier: float = 1.0, time_of_day: Optional[float] = None
+        self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ):
         """Update ball physics (RCSS-Lite: accel→vel→pos→decay).
 

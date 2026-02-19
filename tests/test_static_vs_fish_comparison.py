@@ -12,7 +12,6 @@ with their own aggression parameters and decision-making logic.
 
 import random
 import sys
-from typing import Optional
 
 from core.algorithms.poker import PokerChallenger, PokerConservative, PokerGambler
 from core.auto_evaluate_poker import AutoEvaluatePokerGame, AutoEvaluateStats
@@ -89,7 +88,9 @@ class PokerComparisonResults:
         print(f"    Average win rate: {self.average_fish_win_rate:.1f}%")
         print()
         print("  Individual Fish:")
-        for i, (net, wr) in enumerate(zip(self.fish_net_energies, self.fish_win_rates), 1):
+        for i, (net, wr) in enumerate(
+            zip(self.fish_net_energies, self.fish_win_rates, strict=False), 1
+        ):
             print(f"    Fish {i}: Net {net:+.1f}, Win Rate {wr:.1f}%")
         print()
 
@@ -106,7 +107,7 @@ def create_fish_player_config(
     behavior_class,
     fish_id: int,
     poker_strategy_class=None,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> dict:
     """Create a fish player configuration for auto-evaluation.
 

@@ -9,7 +9,7 @@ Tests RCSS-Lite style ball physics including:
 """
 
 import random
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -23,9 +23,7 @@ from core.math_utils import Vector2
 class MockWorld:
     """Mock world for testing."""
 
-    def __init__(
-        self, width: float = 800, height: float = 600, rng: Optional[random.Random] = None
-    ):
+    def __init__(self, width: float = 800, height: float = 600, rng: random.Random | None = None):
         self.min_x = 0.0
         self.min_y = 0.0
         self.max_x = float(width)

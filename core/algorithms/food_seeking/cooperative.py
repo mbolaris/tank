@@ -3,7 +3,7 @@
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
-    def __init__(self, rng: Optional[random.Random] = None):
+    def __init__(self, rng: random.Random | None = None):
         from core.util.rng import require_rng_param
 
         _rng = require_rng_param(rng, "__init__")
@@ -38,7 +38,7 @@ class CooperativeForager(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: Optional[random.Random] = None):
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

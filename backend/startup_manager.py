@@ -11,7 +11,7 @@ import platform
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Callable
 
 from backend.auto_save_service import AutoSaveService

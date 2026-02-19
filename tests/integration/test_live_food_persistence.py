@@ -3,7 +3,7 @@
 
 import sys
 from pathlib import Path
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -17,7 +17,7 @@ class _SavedFood(TypedDict):
     x: float
     y: float
     energy: float
-    food_type: Optional[str]
+    food_type: str | None
 
 
 def _run_live_food_persistence():
@@ -92,7 +92,7 @@ def _run_live_food_persistence():
     print("\n5. Verifying restored entities...")
     success = True
 
-    for i, (original, restored) in enumerate(zip(entities, restored_entities)):
+    for i, (original, restored) in enumerate(zip(entities, restored_entities, strict=False)):
         original_type = type(original).__name__
         restored_type = type(restored).__name__
 

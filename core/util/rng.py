@@ -6,7 +6,7 @@ silently creating an unseeded fallback.
 """
 
 import random
-from typing import Any, Optional
+from typing import Any
 
 
 class MissingRNGError(RuntimeError):
@@ -48,7 +48,7 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
         offspring_x = rng.uniform(-10, 10)
     """
     if environment is not None:
-        rng: Optional[random.Random] = getattr(environment, "rng", None)
+        rng: random.Random | None = getattr(environment, "rng", None)
         if rng is not None:
             return rng
 
@@ -69,7 +69,7 @@ def require_rng(environment: Any, context: str = "unknown") -> random.Random:
     )
 
 
-def require_rng_param(rng: Optional[random.Random], context: str) -> random.Random:
+def require_rng_param(rng: random.Random | None, context: str) -> random.Random:
     """Validate that an RNG parameter was provided, failing loudly if not.
 
     Use this in constructors and methods that require an RNG to be passed in,
@@ -103,7 +103,7 @@ def require_rng_param(rng: Optional[random.Random], context: str) -> random.Rand
 
 def get_rng_or_default(
     environment: Any,
-    fallback_rng: Optional[random.Random] = None,
+    fallback_rng: random.Random | None = None,
     context: str = "unknown",
 ) -> random.Random:
     """Get environment RNG, with explicit fallback for non-simulation contexts.
@@ -123,7 +123,7 @@ def get_rng_or_default(
         MissingRNGError: If environment has no RNG and no fallback was provided
     """
     if environment is not None:
-        rng: Optional[random.Random] = getattr(environment, "rng", None)
+        rng: random.Random | None = getattr(environment, "rng", None)
         if rng is not None:
             return rng
 

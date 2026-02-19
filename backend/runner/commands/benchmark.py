@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.auto_evaluate_poker import AutoEvaluatePokerGame
 

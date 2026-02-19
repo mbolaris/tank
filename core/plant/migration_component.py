@@ -47,7 +47,7 @@ class PlantMigrationComponent:
         get_root_spot: Callable[[], Optional["RootSpot"]],
         get_environment: Callable[[], "World"],
         transition_state: Callable[[EntityState, str], None],
-        rng: Optional[random.Random],
+        rng: random.Random | None,
     ) -> None:
         """Initialize the migration component.
 

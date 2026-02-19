@@ -11,7 +11,7 @@ Core betting logic and learning logic have been moved to separate modules:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from collections.abc import Sequence
 
 from core.config.poker import (
@@ -90,7 +90,7 @@ class MixedPokerInteraction:
             and hasattr(player, "lose_energy")
         )
 
-    def __init__(self, players: Sequence[Player], rng: Optional[Any] = None):
+    def __init__(self, players: Sequence[Player], rng: Any | None = None):
         """Initialize a mixed poker interaction.
 
         Args:
@@ -115,8 +115,8 @@ class MixedPokerInteraction:
         self.players = list(players)
         self.rng = rng
         self.num_players = len(self.players)
-        self.player_hands: list[Optional[PokerHand]] = [None] * self.num_players
-        self.result: Optional[MixedPokerResult] = None
+        self.player_hands: list[PokerHand | None] = [None] * self.num_players
+        self.result: MixedPokerResult | None = None
 
         # Categorize players
         self.fish_players = [p for p in self.players if self._is_fish_player(p)]
@@ -153,7 +153,7 @@ class MixedPokerInteraction:
         """Get the size of a player."""
         return getattr(player, "size", 1.0)
 
-    def _get_player_strategy(self, player: Player) -> Optional[Any]:
+    def _get_player_strategy(self, player: Player) -> Any | None:
         """Get the poker strategy algorithm of a player.
 
         Uses the PokerPlayer protocol's get_poker_strategy() method.
@@ -186,8 +186,8 @@ class MixedPokerInteraction:
         player: Player,
         won: bool,
         amount: float = 0.0,
-        target_id: Optional[int] = None,
-        target_type: Optional[str] = None,
+        target_id: int | None = None,
+        target_type: str | None = None,
     ) -> None:
         """Set visual poker effect on a player."""
         from core.entities import Fish
@@ -267,7 +267,7 @@ class MixedPokerInteraction:
         max_bet = min_energy * 0.3  # Max 30% of poorest player's energy
         return min(base_bet, max_bet, 20.0)  # Also cap at 20
 
-    def play_poker(self, bet_amount: Optional[float] = None) -> bool:
+    def play_poker(self, bet_amount: float | None = None) -> bool:
         """Play a full Texas Hold'em poker game between all players.
 
         Uses multi-round betting for all game sizes (2-6 players).
@@ -339,7 +339,7 @@ class MixedPokerInteraction:
         # Collect antes from ALL players
         # This prevents "always fold" strategies from dominating by ensuring
         # every player has some skin in the game before cards are dealt
-        for i, (player, ctx) in enumerate(zip(self.players, contexts)):
+        for i, (player, ctx) in enumerate(zip(self.players, contexts, strict=False)):
             ante_amount = min(POKER_ANTE_AMOUNT, ctx.remaining_energy)
             if ante_amount > 0:
                 game_state.player_bet(i, ante_amount)

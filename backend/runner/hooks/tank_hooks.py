@@ -5,7 +5,7 @@ features like poker, benchmarking, and tank-specific commands.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from backend.runner.hooks.benchmark_mixin import BenchmarkMixin
 from backend.runner.hooks.poker_mixin import PokerMixin

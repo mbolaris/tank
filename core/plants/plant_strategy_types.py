@@ -11,7 +11,6 @@ forcing fish to evolve strategies to beat them. Successful plants
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class PlantStrategyType(Enum):
@@ -61,7 +60,7 @@ class PlantVisualConfig:
     leaf_density_range: tuple[float, float]
 
     # Production rules template (optional override)
-    production_rules: Optional[list[tuple[str, str, float]]] = None
+    production_rules: list[tuple[str, str, float]] | None = None
 
     # Display name for UI
     display_name: str = ""
@@ -383,7 +382,7 @@ def get_strategy_visual_config(strategy_type: PlantStrategyType) -> PlantVisualC
     return PLANT_STRATEGY_VISUALS[strategy_type]
 
 
-def get_random_strategy_type(rng: Optional[random.Random] = None) -> PlantStrategyType:
+def get_random_strategy_type(rng: random.Random | None = None) -> PlantStrategyType:
     """Get a random strategy type for spawning new plants."""
     from core.util.rng import require_rng_param
 
@@ -396,9 +395,7 @@ def get_all_strategy_types() -> list[PlantStrategyType]:
     return list(PlantStrategyType)
 
 
-def get_poker_strategy_for_type(
-    strategy_type: PlantStrategyType, rng: Optional[random.Random] = None
-):
+def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: random.Random | None = None):
     """Get the corresponding poker strategy implementation for a plant strategy type.
 
     Returns:

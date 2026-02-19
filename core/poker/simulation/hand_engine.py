@@ -55,13 +55,13 @@ class MultiplayerGameState:
     deck: Deck = field(default_factory=Deck)
     min_raise: float = 5.0
     last_raise_amount: float = 5.0
-    player_hands: dict[int, Optional[PokerHand]] = field(default_factory=dict)
+    player_hands: dict[int, PokerHand | None] = field(default_factory=dict)
 
     def get_active_players(self) -> list[int]:
         """Return list of player IDs who haven't folded."""
         return [pid for pid, player in self.players.items() if not player.folded]
 
-    def get_winner_by_fold(self) -> Optional[int]:
+    def get_winner_by_fold(self) -> int | None:
         """Return winner if all but one player has folded."""
         active = self.get_active_players()
         if len(active) == 1:
@@ -113,10 +113,10 @@ def simulate_hand(
     num_players: int,
     initial_bet: float,
     player_energies: list[float],
-    player_aggressions: Optional[list[float]] = None,
-    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
+    player_aggressions: list[float] | None = None,
+    player_strategies: list[Optional["PokerStrategyAlgorithm"]] | None = None,
     button_position: int = 0,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> MultiplayerGameState:
     """Simulate a complete Texas Hold'em hand for 2+ players."""
     if num_players < 2:
@@ -150,10 +150,10 @@ def simulate_hand_from_deal(
     deal: Deal,
     initial_bet: float,
     player_energies: list[float],
-    player_aggressions: Optional[list[float]] = None,
-    player_strategies: Optional[list[Optional["PokerStrategyAlgorithm"]]] = None,
-    small_blind: Optional[float] = None,
-    rng: Optional[random.Random] = None,
+    player_aggressions: list[float] | None = None,
+    player_strategies: list[Optional["PokerStrategyAlgorithm"]] | None = None,
+    small_blind: float | None = None,
+    rng: random.Random | None = None,
 ) -> MultiplayerGameState:
     """Simulate a complete Texas Hold'em hand using a pre-dealt setup."""
     num_players = len(player_energies)
@@ -192,7 +192,7 @@ def _create_multiplayer_game_state(
     player_aggressions: list[float],
     player_strategies: list[Optional["PokerStrategyAlgorithm"]],
     button_position: int,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> MultiplayerGameState:
     """Create and initialize a multiplayer game state."""
     min_energy = min(player_energies)
@@ -236,7 +236,7 @@ def _create_multiplayer_game_state_from_deal(
     player_aggressions: list[float],
     player_strategies: list[Optional["PokerStrategyAlgorithm"]],
     deal: Deal,
-    small_blind_override: Optional[float] = None,
+    small_blind_override: float | None = None,
 ) -> MultiplayerGameState:
     """Create and initialize a multiplayer game state from a pre-dealt hand."""
     min_energy = min(player_energies)
@@ -341,7 +341,7 @@ def _starting_player_for_round(num_players: int, button_position: int, round_num
 
 
 def _play_multiplayer_betting_rounds(
-    game_state: MultiplayerGameState, rng: Optional[random.Random] = None
+    game_state: MultiplayerGameState, rng: random.Random | None = None
 ) -> None:
     """Play all betting rounds of the game."""
     hand_cache: dict[int, PokerHand] = {}
@@ -372,7 +372,7 @@ def _play_single_betting_round(
     game_state: MultiplayerGameState,
     hand_cache: dict[int, PokerHand],
     round_num: int,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> None:
     """Play a single betting round."""
     num_players = game_state.num_players
@@ -381,7 +381,7 @@ def _play_single_betting_round(
     start_pos = _starting_player_for_round(num_players, button, round_num)
     current_player = start_pos
     actions_this_round = 0
-    last_raiser: Optional[int] = None
+    last_raiser: int | None = None
     players_acted_since_raise: set[int] = set()
 
     if round_num == 0:
@@ -430,7 +430,7 @@ def _play_single_betting_round(
 
 def _is_round_complete(
     game_state: MultiplayerGameState,
-    last_raiser: Optional[int],
+    last_raiser: int | None,
     players_acted_since_raise: set[int],
     round_num: int,
 ) -> bool:
@@ -458,7 +458,7 @@ def _decide_multiplayer_action(
     player_id: int,
     game_state: MultiplayerGameState,
     hand_cache: dict[int, PokerHand],
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> tuple[BettingAction, float]:
     """Decide what action a player should take."""
     player = game_state.players[player_id]
@@ -604,7 +604,7 @@ def determine_payouts(game_state: MultiplayerGameState) -> dict[int, float]:
     if not active_players:
         return {}
 
-    best_hand: Optional[PokerHand] = None
+    best_hand: PokerHand | None = None
     winners: list[int] = []
 
     for player_id in active_players:
@@ -698,7 +698,7 @@ def decide_action_for_player(
     game_state: MultiplayerGameState,
     player_id: int,
     hand_cache: dict[int, PokerHand],
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> tuple[BettingAction, float]:
     """Decide what action an AI player should take.
 
