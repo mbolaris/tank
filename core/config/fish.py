@@ -24,9 +24,9 @@ ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy
 # =============================================================================
 
 # 1. Existence cost - just being alive each frame
-# Reduced from 0.06 to 0.05 based on experiment showing 98.9% starvation deaths.
-# This gives fish a better baseline survival chance while still creating selection pressure.
-EXISTENCE_ENERGY_COST = 0.05  # Per-frame cost (tuned for balance)
+# Reduced from 0.06 to 0.05 to 0.04 to further improve survival while keeping selection pressure.
+# Combined with higher food energy (food.py), this creates healthier baseline ecosystem.
+EXISTENCE_ENERGY_COST = 0.04  # Per-frame cost (tuned for balance)
 EXISTENCE_SIZE_EXPONENT = 1.0  # Linear with size (bigger fish pay more)
 
 # 2. Movement cost - swimming around

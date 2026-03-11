@@ -11,10 +11,10 @@ Design Principles:
 - Functions are pure and side-effect free
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
 from typing import Any
-from collections.abc import Sequence
 
 
 @dataclass(frozen=True)

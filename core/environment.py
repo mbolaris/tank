@@ -7,8 +7,8 @@ for agents in the simulation.
 from __future__ import annotations
 
 import random
-from typing import Any
 from collections.abc import Callable, Iterable
+from typing import Any
 
 from core.entities import Agent, Entity
 from core.interfaces import MigrationHandler

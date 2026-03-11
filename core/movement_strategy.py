@@ -24,10 +24,11 @@ from core.actions.action_registry import translate_action
 logger = logging.getLogger(__name__)
 
 # Movement smoothing constants (lower = smoother, higher = more responsive)
-# INCREASED from 0.02 to 0.10 - fish were too sluggish to catch food
+# INCREASED from 0.02 to 0.10 to 0.25 - fish need to respond faster to food
 # At 2% per frame, it took ~150 frames (5s) to reach target velocity
-# At 10% per frame, it takes ~30 frames (1s) - much better for food pursuit
-ALGORITHMIC_MOVEMENT_SMOOTHING = 0.10
+# At 10% per frame, it takes ~30 frames (1s)
+# At 25% per frame, it takes ~12 frames (0.4s) - fast enough to not miss sinking food
+ALGORITHMIC_MOVEMENT_SMOOTHING = 0.25
 ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
 ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = (
     ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER

@@ -28,10 +28,10 @@ import os
 import platform
 import socket
 import time
+from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
-from collections.abc import Callable, Coroutine
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -57,11 +57,11 @@ class TestMovementActions(unittest.TestCase):
         # Assert: Fish velocity reflects the TRANSLATED action
         # Note: AlgorithmicMovement applies smoothing, but target should push velocity towards (0, 1)
         # Initial vel is (0,0), target is (0, 2.0) [0.0*speed, 1.0*speed]
-        # Smoothing is 0.1. So new vel should be approx (0, 0.2)
-        # vel.y += (2.0 - 0) * 0.1 = 0.2
+        # Smoothing is 0.25. So new vel should be approx (0, 0.5)
+        # vel.y += (2.0 - 0) * 0.25 = 0.5
 
         self.assertAlmostEqual(self.fish.vel.x, 0.0)
-        self.assertAlmostEqual(self.fish.vel.y, 0.2)
+        self.assertAlmostEqual(self.fish.vel.y, 0.5)
 
     @patch("core.movement_strategy.build_movement_observation")
     @patch("core.movement_strategy.translate_action")
@@ -81,5 +81,5 @@ class TestMovementActions(unittest.TestCase):
 
         # Assert: Should fall back to raw decision
         # target_vx = 1.0 * 2.0 = 2.0
-        # vel.x += (2.0 - 0) * 0.1 = 0.2
-        self.assertAlmostEqual(self.fish.vel.x, 0.2)
+        # vel.x += (2.0 - 0) * 0.25 = 0.5
+        self.assertAlmostEqual(self.fish.vel.x, 0.5)

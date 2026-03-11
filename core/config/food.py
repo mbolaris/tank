@@ -60,7 +60,7 @@ FOOD_TYPES = {
     "algae": {
         "name": "Algae Flake",
         "files": ["food_algae1.png", "food_algae2.png"],
-        "energy": 50.0,  # Low energy: common but inefficient food source
+        "energy": 65.0,  # Low energy: common but inefficient food source (was 50)
         "rarity": 0.35,  # Most common: baseline food, available even to weak foragers
         "sink_multiplier": 0.5,  # Slow sink: stays in upper water longer
         "stationary": False,
@@ -68,7 +68,7 @@ FOOD_TYPES = {
     "protein": {
         "name": "Protein Flake",
         "files": ["food_protein1.png", "food_protein2.png"],
-        "energy": 100.0,  # Good energy: worth chasing
+        "energy": 125.0,  # Good energy: worth chasing (was 100)
         "rarity": 0.25,  # Common: reliable food source for capable hunters
         "sink_multiplier": 1.2,  # Fast sink: rewards bottom-feeders
         "stationary": False,
@@ -76,7 +76,7 @@ FOOD_TYPES = {
     "vitamin": {
         "name": "Vitamin Flake",
         "files": ["food_vitamin1.png", "food_vitamin2.png"],
-        "energy": 120.0,  # High energy: valuable target
+        "energy": 150.0,  # High energy: valuable target (was 120)
         "rarity": 0.20,  # Moderate: competition creates selection pressure
         "sink_multiplier": 0.9,  # Slightly slow: more time to intercept
         "stationary": False,
@@ -84,7 +84,7 @@ FOOD_TYPES = {
     "energy": {
         "name": "Energy Flake",
         "files": ["food_energy1.png", "food_energy2.png"],
-        "energy": 100.0,  # Good energy: standard nutritious food
+        "energy": 125.0,  # Good energy: standard nutritious food (was 100)
         "rarity": 0.15,  # Less common: rewards active searching
         "sink_multiplier": 1.0,  # Normal sink: baseline physics
         "stationary": False,
@@ -92,7 +92,7 @@ FOOD_TYPES = {
     "rare": {
         "name": "Rainbow Flake",
         "files": ["food_rare1.png", "food_rare2.png"],
-        "energy": 150.0,  # Highest energy: jackpot food
+        "energy": 185.0,  # Highest energy: jackpot food (was 150)
         "rarity": 0.05,  # Very rare: creates high-value targets worth competing for
         "sink_multiplier": 1.1,  # Slightly fast: time pressure to catch
         "stationary": False,
@@ -138,7 +138,7 @@ URGENCY_BOOST_LOW = 0.15  # 15% speed boost when hungry
 # =============================================================================
 # Vision range creates day/night gameplay difference.
 # Night hunting is harder, rewarding memory-based foraging and schooling.
-BASE_FOOD_DETECTION_RANGE = 450.0  # Daytime: full visibility (pixels)
+BASE_FOOD_DETECTION_RANGE = 550.0  # Daytime: full visibility (pixels) - increased from 450
 # Actual range = BASE * time_modifier:
 #   Night (40%):     180px - forces close-range hunting, rewards memory
 #   Dawn/Dusk (75%): 337px - transitional

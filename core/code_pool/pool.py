@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import math
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Callable
 
 from .models import CodeComponent, CompilationError, ComponentNotFoundError
 from .sandbox import build_restricted_globals, parse_and_validate

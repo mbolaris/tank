@@ -1,22 +1,22 @@
 {
   "benchmark_id": "tank/ecosystem_health_10k",
   "seed": 42,
-  "score": 5.745941508143737,
-  "runtime_seconds": 55.41005563735962,
+  "score": 6.1302189040994195,
+  "runtime_seconds": 65.34829521179199,
   "metadata": {
     "frames": 10000,
-    "max_generation": 6,
-    "generation_rate": 6.0,
-    "starvation_rate": 0.9532,
-    "starvation_deaths": 163,
-    "total_deaths": 171,
-    "unique_algorithms": 8,
-    "diversity_score": 0.1824,
-    "diversity_bonus": 2.0824,
-    "stability_bonus": 0.8787,
-    "starvation_penalty": 0.4766,
-    "mean_population": 381.19,
-    "final_population": 403
+    "max_generation": 7,
+    "generation_rate": 7.0,
+    "starvation_rate": 0.9698,
+    "starvation_deaths": 225,
+    "total_deaths": 232,
+    "unique_algorithms": 6,
+    "diversity_score": 0.1625,
+    "diversity_bonus": 1.9379,
+    "stability_bonus": 0.8773,
+    "starvation_penalty": 0.4849,
+    "mean_population": 386.36,
+    "final_population": 408
   },
-  "timestamp": 1770591525.19369
+  "timestamp": 1773212838.8307998
 }

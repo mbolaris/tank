@@ -12,9 +12,9 @@ Run with: python scripts/batch_fix_lineage.py
 import importlib.util
 import json
 import logging
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Protocol, cast
-from collections.abc import Iterator
 
 
 class ScanAndFixFn(Protocol):

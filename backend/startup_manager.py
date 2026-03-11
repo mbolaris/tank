@@ -10,9 +10,9 @@ import logging
 import platform
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 from backend.auto_save_service import AutoSaveService
 from backend.connection_manager import ConnectionManager
