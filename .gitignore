@@ -16,6 +16,10 @@
 /SCHOOL2.DAT
 /tank.png
 
+# Autoresearch local data (experiment logs, not committed per Karpathy pattern)
+results.tsv
+.autoresearch_stats.json
+
 # Python cache
 # Python
 __pycache__/

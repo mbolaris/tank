@@ -26,6 +26,11 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 # Run headless simulation with stats export
 python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 
+# Autoresearch: autonomous experiment loop (Karpathy-style)
+python scripts/autoresearch.py --provider anthropic          # AI-driven, runs forever
+python scripts/autoresearch.py --manual                       # Human edits, auto-benchmark
+python scripts/autoresearch.py --max-iterations 20            # Run 20 experiments then stop
+
 # Format and lint
 black core/ tests/ tools/ backend/ --config pyproject.toml
 ruff check --fix core/ tests/ tools/ backend/
@@ -114,6 +119,36 @@ CI runs on push to main/master/develop and claude/** branches:
 5. **nightly-full**: Full test suite (nightly or on 'full-test' label)
 
 Benchmark CI (`bench.yml`): Verifies champions and runs determinism checks on PRs touching benchmarks/champions/core/tools.
+
+## Autoresearch (Autonomous Experiment Loop)
+
+Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch). The key insight:
+**the human writes the prompt (`scripts/program.md`), the AI agent writes the code.**
+
+How it works:
+1. Fixed-budget benchmark per experiment (deterministic, comparable)
+2. Single metric for keep/discard (ecosystem health score)
+3. Git commit per experiment (full traceability)
+4. `results.tsv` cumulative log (append-only, never overwritten)
+5. Runs until interrupted (~12 experiments/hour)
+
+```bash
+# Start autonomous loop
+python scripts/autoresearch.py --provider anthropic
+
+# Check progress
+cat results.tsv | column -t -s $'\t'
+
+# Tune the agent's behavior
+vim scripts/program.md  # Edit directives, restart loop
+```
+
+Editable scope (constrained like Karpathy's single-file pattern):
+- `core/algorithms/composable/definitions.py` — Parameter bounds
+- `core/algorithms/composable/behavior.py` — Behavior logic
+- `core/algorithms/composable/actions.py` — Sub-behaviors
+- `core/config/fish.py` — Energy/lifecycle params
+- `core/config/food.py` — Food detection/spawning
 
 ## Working on Improvements
 
