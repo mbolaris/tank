@@ -7,9 +7,9 @@ It creates worlds via core WorldRegistry and pairs them with snapshot builders.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 from core.worlds.registry import WorldRegistry
 

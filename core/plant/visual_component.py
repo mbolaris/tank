@@ -4,8 +4,8 @@ This module provides the PlantVisualComponent class which handles
 size calculations and rendering-related state for plants.
 """
 
-from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from core.config.plants import (
     PLANT_BASE_HEIGHT,

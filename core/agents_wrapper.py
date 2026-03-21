@@ -5,8 +5,8 @@ supporting both raw lists (for testing) and engine-aware management
 that keeps spatial grids and caches in sync.
 """
 
-from typing import Any
 from collections.abc import Iterator
+from typing import Any
 
 
 class AgentsWrapper:

@@ -13,9 +13,9 @@ import ast
 import math
 import random as pyrandom
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Callable
 
 from .models import ValidationError
 

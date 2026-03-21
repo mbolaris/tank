@@ -47,10 +47,10 @@ Usage:
     runner.run_all(frame=1)  # Runs in phase order regardless of registration order
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING, Any, Protocol
-from collections.abc import Callable
 
 # Explicit public API
 __all__ = [

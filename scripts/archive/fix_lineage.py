@@ -13,7 +13,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def save_snapshot(path: Path, data: Any) -> None:
         json.dump(data, f, indent=2)
 
 
-def _as_lineage_log(value: Any) -> Optional[list[dict[str, Any]]]:
+def _as_lineage_log(value: Any) -> list[dict[str, Any]] | None:
     if not isinstance(value, list):
         return None
     if not all(isinstance(rec, dict) for rec in value):
@@ -74,7 +74,7 @@ def main():
     # 1) Top-level list (the /api/lineage endpoint returns a list)
     # 2) dict with key 'lineage_log'
     # 3) dict with 'ecosystem': {'lineage_log': [...]}
-    lineage_log: Optional[list[dict[str, Any]]] = None
+    lineage_log: list[dict[str, Any]] | None = None
     data_is_list = False
     if isinstance(data, list):
         lineage_log = _as_lineage_log(data)

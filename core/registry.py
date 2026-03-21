@@ -10,8 +10,8 @@ For runtime algorithm operations (crossover, mutation, instantiation), see:
 import inspect
 import os
 import pkgutil
-from importlib import import_module
 from collections.abc import Iterable
+from importlib import import_module
 
 from core import algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase

@@ -1,8 +1,8 @@
 import json
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Optional
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import EcosystemEvent, FishOpponentPokerStats, PokerStats

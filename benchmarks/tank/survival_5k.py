@@ -6,7 +6,7 @@ Score is calculated based on integral energy and population stability.
 
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
 
 from core.worlds import WorldRegistry
 
@@ -15,7 +15,7 @@ FRAMES = 5000
 METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
 
 
-def run(seed: int) -> Dict[str, Any]:
+def run(seed: int) -> dict[str, Any]:
     """Run the benchmark deterministically.
 
     Args:

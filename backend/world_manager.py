@@ -12,10 +12,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable, Coroutine
 
 from fastapi import WebSocket
 

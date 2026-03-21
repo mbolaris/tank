@@ -16,11 +16,11 @@ from __future__ import annotations
 import json
 import logging
 import statistics
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 if TYPE_CHECKING:
     from core.entities import Fish
