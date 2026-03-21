@@ -24,18 +24,21 @@ ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy
 # =============================================================================
 
 # 1. Existence cost - just being alive each frame
-# Reduced from 0.06 to 0.05 based on experiment showing 98.9% starvation deaths.
-# This gives fish a better baseline survival chance while still creating selection pressure.
-EXISTENCE_ENERGY_COST = 0.05  # Per-frame cost (tuned for balance)
+# Reduced from 0.06 -> 0.05 -> 0.04 based on experiments showing 99% starvation deaths.
+# At 0.05 fish still starve en masse; 0.04 preserves selection pressure while giving
+# fish enough energy budget to reach food sources before dying.
+EXISTENCE_ENERGY_COST = 0.04  # Per-frame cost (tuned for balance)
 EXISTENCE_SIZE_EXPONENT = 1.0  # Linear with size (bigger fish pay more)
 
 # 2. Movement cost - swimming around
-MOVEMENT_ENERGY_COST = 0.10  # Base rate per frame when moving
+# Reduced from 0.10 to 0.08: the previous cost punished food-seeking behavior,
+# creating a paradox where swimming to food cost more energy than it returned.
+MOVEMENT_ENERGY_COST = 0.08  # Base rate per frame when moving
 MOVEMENT_SIZE_EXPONENT = 1.5  # Size^1.5 scaling (moderate penalty for large fish)
 
 # 3. Sprint penalty - going above cruise threshold
-SPRINT_THRESHOLD = 0.70  # Above 70% speed incurs sprint penalty
-SPRINT_ENERGY_COST = 0.25  # Quadratic penalty rate above threshold
+SPRINT_THRESHOLD = 0.75  # Above 75% speed incurs sprint penalty (was 0.70)
+SPRINT_ENERGY_COST = 0.20  # Quadratic penalty rate above threshold (was 0.25)
 # (uses same size exponent as movement)
 
 # 4. Direction change cost - turning uses energy (applied separately in fish.py)

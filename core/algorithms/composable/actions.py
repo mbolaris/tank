@@ -248,11 +248,13 @@ class BehaviorActionsMixin:
                 strike_speed = base_speed * 1.5 * (1.0 + pursuit_aggression * 0.3)
                 return direction.x * strike_speed, direction.y * strike_speed
             elif predicted_distance < strike_dist * 3:
-                # Wait patiently (move very slowly toward predicted position)
-                return direction.x * 0.1 * patience, direction.y * 0.1 * patience
+                # Creep toward predicted position (was 0.1, too passive for survival)
+                creep_speed = 0.3 * patience * stamina_boost
+                return direction.x * creep_speed, direction.y * creep_speed
             else:
-                # Too far, reposition toward predicted position
-                return direction.x * 0.4, direction.y * 0.4
+                # Too far, reposition toward predicted position more aggressively
+                speed = base_speed * 0.6 * stamina_boost
+                return direction.x * speed, direction.y * speed
 
         elif self.food_approach == FoodApproach.ZIGZAG_SEARCH:
             amplitude = self.parameters.get("zigzag_amplitude", 0.6)
@@ -271,18 +273,19 @@ class BehaviorActionsMixin:
             # pursuit_aggression affects how quickly fish divert to food
             food_priority = self.parameters.get("food_priority", 0.7) + pursuit_aggression * 0.2
 
-            # If food is close, divert from patrol toward predicted position
-            if predicted_distance < patrol_radius * 0.5:
+            # If food is within patrol radius, divert toward predicted position
+            if predicted_distance < patrol_radius:
                 speed = base_speed * stamina_boost
                 return direction.x * speed, direction.y * speed
 
             # Otherwise, blend patrol with predicted food direction
+            # Increase food_priority weighting so patrol doesn't ignore visible food
             self._patrol_angle += 0.02
             patrol_dir = Vector2(math.cos(self._patrol_angle), math.sin(self._patrol_angle))
             blend = min(1.0, food_priority)  # Clamp to avoid > 1.0
             vx = direction.x * blend + patrol_dir.x * (1 - blend)
             vy = direction.y * blend + patrol_dir.y * (1 - blend)
-            speed = base_speed * 0.7 * stamina_boost
+            speed = base_speed * 0.8 * stamina_boost
             return vx * speed, vy * speed
 
         # Default fallback - apply genomic boosts

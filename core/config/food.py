@@ -35,8 +35,10 @@ AUTO_FOOD_ENABLED = True
 #
 # Energy thresholds are based on total ecosystem energy (sum of all fish energy).
 # A healthy ecosystem of 80 fish at 50 energy each = 4000 total energy.
-AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = 2200  # Crisis: 4x spawn rate (population near collapse)
-AUTO_FOOD_LOW_ENERGY_THRESHOLD = 4200  # Struggling: 3x spawn rate
+AUTO_FOOD_ULTRA_LOW_ENERGY_THRESHOLD = (
+    2800  # Crisis: 4x spawn rate (was 2200, detect crisis earlier)
+)
+AUTO_FOOD_LOW_ENERGY_THRESHOLD = 5000  # Struggling: 3x spawn rate (was 4200, react sooner)
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_1 = 5200  # Comfortable: reduce spawn rate
 AUTO_FOOD_HIGH_ENERGY_THRESHOLD_2 = 7500  # Thriving: further reduce (prevent overpopulation)
 AUTO_FOOD_HIGH_POP_THRESHOLD_1 = 80  # 80 fish: reduce spawning
@@ -123,22 +125,22 @@ FOOD_TYPES = {
 #
 # Trade-off: Longer chase = higher catch rate but more energy burned.
 #            Tuned so desperate fish can recover, but wasteful chasing is punished.
-CHASE_DISTANCE_CRITICAL = 400  # Desperate: will chase almost anything
-CHASE_DISTANCE_LOW = 250  # Hungry: extends range moderately
-CHASE_DISTANCE_SAFE_BASE = 150  # Comfortable: only chases nearby food (efficient)
+CHASE_DISTANCE_CRITICAL = 450  # Desperate: will chase almost anything (was 400)
+CHASE_DISTANCE_LOW = 300  # Hungry: extends range moderately (was 250)
+CHASE_DISTANCE_SAFE_BASE = 180  # Comfortable: only chases nearby food (was 150)
 
 # Speed boost mechanics when closing on food
 PROXIMITY_BOOST_DIVISOR = 100  # Normalizes distance for boost calculation
 PROXIMITY_BOOST_MULTIPLIER = 0.5  # Max 50% speed boost when very close
-URGENCY_BOOST_CRITICAL = 0.3  # 30% speed boost when starving
-URGENCY_BOOST_LOW = 0.15  # 15% speed boost when hungry
+URGENCY_BOOST_CRITICAL = 0.4  # 40% speed boost when starving (was 0.3)
+URGENCY_BOOST_LOW = 0.2  # 20% speed boost when hungry (was 0.15)
 
 # =============================================================================
 # FOOD DETECTION RANGE
 # =============================================================================
 # Vision range creates day/night gameplay difference.
 # Night hunting is harder, rewarding memory-based foraging and schooling.
-BASE_FOOD_DETECTION_RANGE = 450.0  # Daytime: full visibility (pixels)
+BASE_FOOD_DETECTION_RANGE = 520.0  # Daytime: full visibility (pixels, was 450)
 # Actual range = BASE * time_modifier:
 #   Night (40%):     180px - forces close-range hunting, rewards memory
 #   Dawn/Dusk (75%): 337px - transitional
@@ -178,10 +180,10 @@ FOOD_VELOCITY_THRESHOLD = 0.1  # Food moving <0.1 px/frame = "stationary"
 FOOD_SPEED_BOOST_DISTANCE = 100  # Sprint when within 100px of food
 FOOD_STRIKE_DISTANCE = 80  # Final lunge distance
 FOOD_CIRCLING_APPROACH_DISTANCE = 200  # CircularHunter starts orbiting at 200px
-FOOD_PURSUIT_RANGE_DESPERATE = 200  # Starving: detect food from 200px
-FOOD_PURSUIT_RANGE_NORMAL = 150  # Normal: 150px detection
-FOOD_PURSUIT_RANGE_CLOSE = 80  # Close range: guaranteed detection
-FOOD_PURSUIT_RANGE_EXTENDED = 250  # Extended range for special algorithms
+FOOD_PURSUIT_RANGE_DESPERATE = 260  # Starving: detect food from 260px (was 200)
+FOOD_PURSUIT_RANGE_NORMAL = 180  # Normal: 180px detection (was 150)
+FOOD_PURSUIT_RANGE_CLOSE = 100  # Close range: guaranteed detection (was 80)
+FOOD_PURSUIT_RANGE_EXTENDED = 300  # Extended range for special algorithms (was 250)
 
 # =============================================================================
 # FOOD QUALITY SCORING
