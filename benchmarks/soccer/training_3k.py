@@ -9,7 +9,7 @@ Reduced from 5k to 3k frames for faster evolution iteration.
 
 import sys
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 from core.code_pool import create_default_genome_code_pool
 from core.genetics import Genome
@@ -25,12 +25,12 @@ def _create_default_population(
     seed: int,
     population_size: int,
     genome_code_pool: Any,
-) -> List[Genome]:
+) -> list[Genome]:
     import random
 
     rng = random.Random(seed)
 
-    population: List[Genome] = []
+    population: list[Genome] = []
     default_id = genome_code_pool.get_default("soccer_policy")
     if default_id:
         from core.genetics.trait import GeneticTrait
@@ -46,10 +46,10 @@ def _create_default_population(
 
 def _run_episode(
     runner: SoccerMatchRunner,
-    population: List[Genome],
+    population: list[Genome],
     seed: int,
     frames: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     episode_result, agent_results = runner.run_episode(
         genomes=population,
         seed=seed,
@@ -103,7 +103,7 @@ def run(
     n_seeds: int = DEFAULT_N_SEEDS,
     frames: int = FRAMES,
     team_size: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the benchmark deterministically.
 
     Args:
@@ -129,10 +129,10 @@ def run(
     population_size = team_size * 2
     seeds = [seed + i for i in range(n_seeds)]
 
-    per_seed_results: List[Dict[str, Any]] = []
-    per_seed_scores: List[float] = []
+    per_seed_results: list[dict[str, Any]] = []
+    per_seed_scores: list[float] = []
 
-    base_seed_normal: Dict[str, Any] = {}
+    base_seed_normal: dict[str, Any] = {}
 
     for eval_seed in seeds:
         population = _create_default_population(

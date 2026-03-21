@@ -15,8 +15,8 @@ Design Principles:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from core import entities

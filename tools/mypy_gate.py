@@ -14,10 +14,10 @@ import re
 import subprocess
 import sys
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-from collections.abc import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_PATH = ROOT / "tools" / "mypy_baseline.txt"

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 from collections.abc import Iterable
+from typing import Any
 
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY

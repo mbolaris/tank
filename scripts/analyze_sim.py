@@ -8,9 +8,10 @@ lineage/clade stats for poker-related algorithms.
 import csv
 import json
 import sys
-from collections import Counter, defaultdict
-from pathlib import Path
+from collections import Counter
 from collections import Counter as CounterType
+from collections import defaultdict
+from pathlib import Path
 from urllib.request import urlopen
 
 BASE = "http://localhost:8000"

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 from enum import Enum
 from typing import Any
-from collections.abc import Sequence
 
 
 class SelectionStrategy(Enum):

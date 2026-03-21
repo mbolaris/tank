@@ -20,8 +20,8 @@ Usage:
 from __future__ import annotations
 
 import random
-from typing import Protocol
 from collections.abc import Sequence
+from typing import Protocol
 
 from core.config.fish import (
     POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
