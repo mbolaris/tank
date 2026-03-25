@@ -444,13 +444,15 @@ class BehaviorActionsMixin:
         self._patrol_angle += (rng.random() - 0.5) * 0.3
 
         # Scale exploration speed by energy urgency
+        # Raised thresholds and speeds to help fish find food before starvation.
+        # Previous speeds (0.3-0.6) were insufficient to cover the tank area.
         energy_ratio = fish.energy / max(fish.max_energy, 1.0)
-        if energy_ratio < 0.15:
-            speed = 0.6  # Desperate: explore fast to find food before starvation
-        elif energy_ratio < 0.30:
-            speed = 0.45  # Hungry: move with purpose
+        if energy_ratio < 0.20:
+            speed = 0.7  # Desperate: explore fast to find food before starvation
+        elif energy_ratio < 0.35:
+            speed = 0.55  # Hungry: move with purpose
         else:
-            speed = 0.3  # Comfortable: gentle exploration
+            speed = 0.35  # Comfortable: gentle exploration
 
         vx = math.cos(self._patrol_angle) * speed
         vy = math.sin(self._patrol_angle) * speed

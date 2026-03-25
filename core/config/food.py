@@ -62,7 +62,7 @@ FOOD_TYPES = {
     "algae": {
         "name": "Algae Flake",
         "files": ["food_algae1.png", "food_algae2.png"],
-        "energy": 50.0,  # Low energy: common but inefficient food source
+        "energy": 65.0,  # Base energy: common food needs to pay its own chase cost
         "rarity": 0.35,  # Most common: baseline food, available even to weak foragers
         "sink_multiplier": 0.5,  # Slow sink: stays in upper water longer
         "stationary": False,
@@ -140,7 +140,7 @@ URGENCY_BOOST_LOW = 0.2  # 20% speed boost when hungry (was 0.15)
 # =============================================================================
 # Vision range creates day/night gameplay difference.
 # Night hunting is harder, rewarding memory-based foraging and schooling.
-BASE_FOOD_DETECTION_RANGE = 520.0  # Daytime: full visibility (pixels, was 450)
+BASE_FOOD_DETECTION_RANGE = 580.0  # Daytime: full visibility (pixels, was 520)
 # Actual range = BASE * time_modifier:
 #   Night (40%):     180px - forces close-range hunting, rewards memory
 #   Dawn/Dusk (75%): 337px - transitional
@@ -180,10 +180,10 @@ FOOD_VELOCITY_THRESHOLD = 0.1  # Food moving <0.1 px/frame = "stationary"
 FOOD_SPEED_BOOST_DISTANCE = 100  # Sprint when within 100px of food
 FOOD_STRIKE_DISTANCE = 80  # Final lunge distance
 FOOD_CIRCLING_APPROACH_DISTANCE = 200  # CircularHunter starts orbiting at 200px
-FOOD_PURSUIT_RANGE_DESPERATE = 260  # Starving: detect food from 260px (was 200)
-FOOD_PURSUIT_RANGE_NORMAL = 180  # Normal: 180px detection (was 150)
-FOOD_PURSUIT_RANGE_CLOSE = 100  # Close range: guaranteed detection (was 80)
-FOOD_PURSUIT_RANGE_EXTENDED = 300  # Extended range for special algorithms (was 250)
+FOOD_PURSUIT_RANGE_DESPERATE = 300  # Starving: detect food from 300px (was 260)
+FOOD_PURSUIT_RANGE_NORMAL = 200  # Normal: 200px detection (was 180)
+FOOD_PURSUIT_RANGE_CLOSE = 120  # Close range: guaranteed detection (was 100)
+FOOD_PURSUIT_RANGE_EXTENDED = 340  # Extended range for special algorithms (was 300)
 
 # =============================================================================
 # FOOD QUALITY SCORING

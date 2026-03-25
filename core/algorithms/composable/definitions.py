@@ -72,9 +72,9 @@ SUB_BEHAVIOR_PARAMS = {
     "freeze_distance": (40.0, 100.0),
     "erratic_amplitude": (0.3, 0.8),
     # Food approach parameters
-    # Increased pursuit_speed from (0.8, 1.2) to (0.9, 1.4) based on experiment
-    # showing 98.9% starvation - fish need to catch food faster
-    "pursuit_speed": (0.9, 1.4),
+    # Increased pursuit_speed from (0.9, 1.4) to (0.9, 1.6) to give evolution
+    # room to discover faster hunters. Upper bound is capped by energy costs.
+    "pursuit_speed": (0.9, 1.6),
     "intercept_skill": (0.3, 0.9),
     "circle_radius": (30.0, 80.0),
     "circle_speed": (0.05, 0.15),
@@ -85,7 +85,7 @@ SUB_BEHAVIOR_PARAMS = {
     "patrol_radius": (60.0, 150.0),
     # Energy style parameters
     "base_speed_multiplier": (0.5, 1.0),
-    "burst_speed": (1.1, 1.5),
+    "burst_speed": (1.1, 1.7),
     "burst_duration": (30.0, 90.0),
     "rest_duration": (40.0, 100.0),
     "energy_urgency_threshold": (0.3, 0.6),
