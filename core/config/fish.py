@@ -24,10 +24,10 @@ ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy
 # =============================================================================
 
 # 1. Existence cost - just being alive each frame
-# Reduced from 0.06 -> 0.05 -> 0.04 based on experiments showing 99% starvation deaths.
-# At 0.05 fish still starve en masse; 0.04 preserves selection pressure while giving
+# Reduced from 0.06 -> 0.05 -> 0.04 -> 0.035 based on experiments showing 98.5% starvation deaths.
+# At 0.04 fish still starve heavily; 0.035 preserves selection pressure while giving
 # fish enough energy budget to reach food sources before dying.
-EXISTENCE_ENERGY_COST = 0.04  # Per-frame cost (tuned for balance)
+EXISTENCE_ENERGY_COST = 0.035  # Per-frame cost (tuned for balance)
 EXISTENCE_SIZE_EXPONENT = 1.0  # Linear with size (bigger fish pay more)
 
 # 2. Movement cost - swimming around
@@ -37,8 +37,8 @@ MOVEMENT_ENERGY_COST = 0.08  # Base rate per frame when moving
 MOVEMENT_SIZE_EXPONENT = 1.5  # Size^1.5 scaling (moderate penalty for large fish)
 
 # 3. Sprint penalty - going above cruise threshold
-SPRINT_THRESHOLD = 0.75  # Above 75% speed incurs sprint penalty (was 0.70)
-SPRINT_ENERGY_COST = 0.20  # Quadratic penalty rate above threshold (was 0.25)
+SPRINT_THRESHOLD = 0.70  # Above 70% speed incurs sprint penalty
+SPRINT_ENERGY_COST = 0.18  # Quadratic penalty rate above threshold (was 0.20)
 # (uses same size exponent as movement)
 
 # 4. Direction change cost - turning uses energy (applied separately in fish.py)
@@ -48,9 +48,9 @@ DIRECTION_CHANGE_SIZE_MULTIPLIER = 1.5  # Uses same exponent as movement
 # Energy Thresholds as RATIOS (0.0 to 1.0 of max_energy)
 # Using ratios ensures consistent behavior regardless of fish size.
 # A large fish at 10% energy is just as desperate as a small fish at 10%.
-STARVATION_THRESHOLD_RATIO = 0.10  # Below 10%, fish dies from starvation
-CRITICAL_ENERGY_THRESHOLD_RATIO = 0.10  # Emergency survival mode (same as starvation)
-LOW_ENERGY_THRESHOLD_RATIO = 0.20  # Below 20%, fish should prioritize finding food
+STARVATION_THRESHOLD_RATIO = 0.08  # Below 8%, fish dies from starvation (was 10%)
+CRITICAL_ENERGY_THRESHOLD_RATIO = 0.12  # Emergency survival mode starts at 12%
+LOW_ENERGY_THRESHOLD_RATIO = 0.25  # Below 25%, fish should prioritize finding food (was 20%)
 SAFE_ENERGY_THRESHOLD_RATIO = 0.40  # Above 40%, comfortable for exploration and breeding
 
 # Fish Life Stage Age Thresholds (in frames at 30fps)

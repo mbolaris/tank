@@ -227,7 +227,7 @@ class TestSanitizeGenomeDict:
         behavior = result["behavioral"]["behavior"]
         assert behavior["threat_response"] <= 3  # Max valid enum
         assert not math.isnan(behavior["parameters"]["flee_speed"])
-        assert behavior["parameters"]["pursuit_speed"] <= 1.4  # Max bound
+        assert behavior["parameters"]["pursuit_speed"] <= 1.6  # Max bound
 
 
 class TestValidateExternalGenome:

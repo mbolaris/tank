@@ -165,29 +165,37 @@ class TimeSystem(BaseSystem):
         """Get detection range modifier based on time of day.
 
         Fish have reduced ability to detect food at night due to lower visibility.
+        Uses smooth interpolation to avoid sudden behavioral shifts.
 
         Returns:
             Float multiplier for detection range:
-            - Night (0.0-0.25, 0.75-1.0): 0.40 (40% range) - increased from 0.25
-            - Dawn (0.25-0.35): 0.75 (75% range)
-            - Dusk (0.65-0.75): 0.75 (75% range)
-            - Day (0.35-0.65): 1.0 (100% range)
+            - Night core (0.0-0.20, 0.80-1.0): 0.55 (55% range)
+            - Dawn/Dusk transitions: smooth linear ramp
+            - Day core (0.35-0.65): 1.0 (100% range)
         """
         time_of_day = self.get_time_of_day()
 
-        # Night: limited detection - increased from 0.25 to 0.40 based on
-        # experiment showing 98.9% starvation deaths. Night was too punishing.
-        if time_of_day < 0.25 or time_of_day > 0.75:
-            return 0.40
-        # Dawn: transitioning to full visibility
+        # Use smooth interpolation instead of hard steps.
+        # Night floor raised from 0.40 -> 0.55 based on experiments showing
+        # 98.5% starvation deaths. Night was too punishing given fish need
+        # to find food ~50% of the simulation cycle.
+        night_floor = 0.55
+        day_ceiling = 1.0
+
+        if time_of_day < 0.20 or time_of_day > 0.80:
+            # Deep night: reduced but survivable detection
+            return night_floor
         elif time_of_day < 0.35:
-            return 0.75
-        # Day: full detection range
-        elif time_of_day < 0.65:
-            return 1.0
-        # Dusk: transitioning to limited visibility
+            # Dawn transition: smooth ramp from night_floor to day_ceiling
+            progress = (time_of_day - 0.20) / 0.15
+            return night_floor + (day_ceiling - night_floor) * progress
+        elif time_of_day <= 0.65:
+            # Full day: maximum detection
+            return day_ceiling
         else:
-            return 0.75
+            # Dusk transition: smooth ramp from day_ceiling to night_floor
+            progress = (time_of_day - 0.65) / 0.15
+            return day_ceiling - (day_ceiling - night_floor) * progress
 
     def get_time_string(self) -> str:
         """Get a human-readable time string.
