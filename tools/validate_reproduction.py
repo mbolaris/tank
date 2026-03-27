@@ -27,6 +27,19 @@ def validate_reproduction(
         print(f"  Diff:     {score_diff:.12f}")
         return False
 
+    def _deep_equal(v1: Any, v2: Any, tol: float) -> bool:
+        if isinstance(v1, (int, float)) and isinstance(v2, (int, float)):
+            return abs(v1 - v2) <= tol
+        elif isinstance(v1, dict) and isinstance(v2, dict):
+            if set(v1.keys()) != set(v2.keys()):
+                return False
+            return all(_deep_equal(v1[k], v2[k], tol) for k in v1)
+        elif isinstance(v1, list) and isinstance(v2, list):
+            if len(v1) != len(v2):
+                return False
+            return all(_deep_equal(i1, i2, tol) for i1, i2 in zip(v1, v2))
+        return v1 == v2
+
     # Check metadata keys
     # We define a set of keys that MUST match for reproduction.
     # If not specified in the benchmark, we check all keys present in the champion's metadata.
@@ -40,14 +53,10 @@ def validate_reproduction(
         if key not in new_meta:
             mismatches.append(f"Missing key: {key}")
             continue
-
         val_old = old_meta[key]
         val_new = new_meta[key]
 
-        if isinstance(val_old, (int, float)) and isinstance(val_new, (int, float)):
-            if abs(val_old - val_new) > tolerance:
-                mismatches.append(f"Value mismatch for '{key}': expected {val_old}, got {val_new}")
-        elif val_old != val_new:
+        if not _deep_equal(val_old, val_new, tolerance):
             mismatches.append(f"Value mismatch for '{key}': expected {val_old}, got {val_new}")
 
     if mismatches:
