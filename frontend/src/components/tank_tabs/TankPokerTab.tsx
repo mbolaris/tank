@@ -97,8 +97,14 @@ export function TankPokerTab({
                 }
             }
         } catch (error) {
-            handlePokerError('Failed to start poker game', error);
-            setShowPokerGame(false);
+            // Suppress ghost-mount errors in StrictMode and allow retry
+            if (error instanceof Error && error.message === 'WebSocket not connected') {
+                hasStartedRef.current = false;
+                setShowPokerGame(false);
+            } else {
+                handlePokerError('Failed to start poker game', error);
+                setShowPokerGame(false);
+            }
         } finally {
             setPokerLoading(false);
         }
