@@ -202,6 +202,9 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 python tools/validate_improvement.py results.json champions/tank/survival_5k.json
 ```
 
+**IMPORTANT (Benchmark Score Mismatches):** If you make an algorithm improvement that affects deterministic execution (e.g., fixing an in-world behavior or physics bug), `tools/verify_all_champions.py` and the CI will fail with a "Score mismatch!" because the new correct behavior no longer yields the outdated baseline score. 
+When this happens, you MUST update the affected `champions/**/*.json` files by overwriting them with the newly generated `verify_*.json` outputs before committing to establish the new baseline.
+
 ---
 
 ## Step 5: Commit and Submit

@@ -283,6 +283,16 @@ python tools/run_bench.py benchmarks/tank/diversity_30k.py --seed 42
 3. Verify no system time or network dependencies
 4. Run locally multiple times to confirm determinism
 
+### Issue: "CI couldn't reproduce my result (Score mismatch) after an intentional algorithm fix"
+
+**Cause**: Your code improvement (like a physics bug fix or a behavior repair) legitimately changes the deterministic outcomes across the board, so old benchmark champion baselines no longer match exactly.
+
+**Solutions**:
+1. This is expected! An algorithm improvement establishes a new deterministic lineage.
+2. Run `python tools/verify_all_champions.py` locally to generate the new baseline JSON files (labeled `verify_*.json`).
+3. Manually overwrite the affected champion files in the `champions/**/*.json` directory using the newly generated outputs.
+4. Commit these updated champions to your branch so the CI accepts your new deterministic baseline!
+
 ### Issue: "My improvement was rejected due to regression"
 
 **Cause**: Your change improved one benchmark but degraded another

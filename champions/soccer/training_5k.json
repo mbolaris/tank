@@ -1,25 +1,129 @@
 {
-    "benchmark_id": "soccer/training_5k",
-    "version": 1,
-    "champion": {
+  "benchmark_id": "soccer/training_5k",
+  "seed": 42,
+  "score": 12.638321569225077,
+  "runtime_seconds": 2.7109458446502686,
+  "metadata": {
+    "frames": 5000,
+    "score_left": 4,
+    "score_right": 1,
+    "total_goals": 5,
+    "goal_diff": 3,
+    "possession_left": 47,
+    "possession_right": 31,
+    "total_possession": 78,
+    "possession_diff": 0.26666666666666666,
+    "avg_fitness": 126.38321569225077,
+    "team_fitness_left": 484.70000000000005,
+    "team_fitness_right": 273.5992941535047,
+    "team_size": 3,
+    "population_size": 6,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      43,
+      44
+    ],
+    "score_mode": "avg_fitness*0.1 (side-invariant)",
+    "score_scale": 0.1,
+    "per_seed_results": [
+      {
         "seed": 42,
-        "score": 0.02666666666666667,
-        "runtime_seconds": 0.88,
-        "metadata": {
-            "frames": 5000,
-            "score_left": 0,
-            "score_right": 0,
-            "total_goals": 0,
-            "goal_diff": 0,
-            "possession_left": 7,
-            "possession_right": 7,
-            "total_possession": 14,
-            "possession_diff": 0.0,
-            "avg_fitness": 0.26666666666666666,
-            "team_fitness_left": 0.7000000000000001,
-            "team_fitness_right": 0.9000000000000001
+        "per_seed_score": 12.638321569225077,
+        "normal": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
         },
-        "timestamp": 1768265500.0
-    },
-    "history": []
+        "swapped": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
+        }
+      },
+      {
+        "seed": 43,
+        "per_seed_score": 12.638321569225077,
+        "normal": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
+        },
+        "swapped": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
+        }
+      },
+      {
+        "seed": 44,
+        "per_seed_score": 12.638321569225077,
+        "normal": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
+        },
+        "swapped": {
+          "score": 12.638321569225077,
+          "avg_fitness": 126.38321569225077,
+          "team_fitness_left": 484.70000000000005,
+          "team_fitness_right": 273.5992941535047,
+          "score_left": 4,
+          "score_right": 1,
+          "total_goals": 5,
+          "goal_diff": 3,
+          "possession_left": 47,
+          "possession_right": 31,
+          "total_possession": 78,
+          "possession_diff": 0.26666666666666666
+        }
+      }
+    ]
+  },
+  "timestamp": 1774639170.605641
 }
