@@ -37,7 +37,7 @@ def validate_reproduction(
         elif isinstance(v1, list) and isinstance(v2, list):
             if len(v1) != len(v2):
                 return False
-            return all(_deep_equal(i1, i2, tol) for i1, i2 in zip(v1, v2))
+            return all(_deep_equal(i1, i2, tol) for i1, i2 in zip(v1, v2, strict=True))
         return v1 == v2
 
     # Check metadata keys
