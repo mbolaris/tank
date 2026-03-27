@@ -54,6 +54,8 @@ export function useWebSocket(worldId?: string) {
             wsRef.current = null;
         }
 
+        setIsConnected(false);
+
         try {
             // Use worldId if provided, otherwise fetch default world ID
             let wsUrl = worldId ? config.getWsUrlForWorld(worldId) : config.wsUrl;

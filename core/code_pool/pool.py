@@ -255,8 +255,11 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         while angle_delta < -math.pi:
             angle_delta += 2 * math.pi
 
-        # Scale turn to be more responsive
-        turn = max(-1.0, min(1.0, angle_delta / 0.3))
+        # Scale turn to be more responsive, map radians to [-1, 1] appropriately
+        if abs(angle_delta) < 0.2:
+            turn = 0.0
+        else:
+            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
         # Dash toward ball if not too close
         dash = 1.0 if dist > 0.4 else 0.0
@@ -264,7 +267,8 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         # Kick if close to ball
         kick_power = 0.0
         kick_angle = 0.0
-        if dist < 2.0:
+        is_kickable = observation.get("is_kickable", 0.0) > 0.5
+        if is_kickable or dist < 1.0:
             # Kick toward opponent goal
             goal_rel = observation.get("goal_direction", {})
             grx = float(goal_rel.get("x", 0.0))
@@ -325,7 +329,11 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
             angle_delta -= 2 * math.pi
         while angle_delta < -math.pi:
             angle_delta += 2 * math.pi
-        turn = max(-1.0, min(1.0, angle_delta / 0.35))
+
+        if abs(angle_delta) < 0.2:
+            turn = 0.0
+        else:
+            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
         dash = 1.0 if dist > 0.5 else 0.0
 
@@ -337,7 +345,8 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
 
         kick_power = 0.0
         kick_angle = 0.0
-        if ball_dist < 2.0:
+        is_kickable = observation.get("is_kickable", 0.0) > 0.5
+        if is_kickable or ball_dist < 1.0:
             # Clear it forward
             kick_angle = -facing_angle  # Kick toward positive X (assuming left team)
             kick_power = 1.0
@@ -391,14 +400,19 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
             angle_delta -= 2 * math.pi
         while angle_delta < -math.pi:
             angle_delta += 2 * math.pi
-        turn = max(-1.0, min(1.0, angle_delta / 0.3))
+
+        if abs(angle_delta) < 0.2:
+            turn = 0.0
+        else:
+            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
         dash = 1.0 if dist > 0.4 else 0.0
 
         # Shoot on goal if close to ball
         kick_power = 0.0
         kick_angle = 0.0
-        if ball_dist < 2.0:
+        is_kickable = observation.get("is_kickable", 0.0) > 0.5
+        if is_kickable or ball_dist < 1.0:
             # Aim for goal
             kick_angle = math.atan2(gry, grx) - facing_angle
             kick_power = 1.0
