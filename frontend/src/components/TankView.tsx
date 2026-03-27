@@ -36,12 +36,15 @@ export function TankView({ worldId }: TankViewProps) {
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
 
-    // Sync showSoccer state from server on initial load
+    // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
         if (state?.tank_soccer_enabled !== undefined && !userToggledSoccer.current) {
             setShowSoccer(state.tank_soccer_enabled);
         }
     }, [state?.tank_soccer_enabled]);
+
+    // Derive effective showSoccer: null (unknown) defaults to false until server confirms
+    const effectiveShowSoccer = showSoccer ?? false;
 
     // Plant energy input control
     const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
@@ -118,10 +121,10 @@ export function TankView({ worldId }: TankViewProps) {
                     fastForwardEnabled={state?.stats?.fast_forward}
                     showEffects={showEffects}
                     onToggleEffects={() => setShowEffects(!showEffects)}
-                    showSoccer={showSoccer ?? true}
+                    showSoccer={effectiveShowSoccer}
                     onToggleSoccer={() => {
                         userToggledSoccer.current = true;  // Mark as user-initiated
-                        const newValue = !(showSoccer ?? true);
+                        const newValue = !effectiveShowSoccer;
                         setShowSoccer(newValue);
                         sendCommand({
                             command: 'set_tank_soccer_enabled',
@@ -345,7 +348,7 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityClick={handleEntityClick}
                         selectedEntityId={selectedEntityId}
                         showEffects={showEffects}
-                        showSoccer={showSoccer ?? true}
+                        showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
