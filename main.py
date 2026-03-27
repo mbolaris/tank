@@ -56,7 +56,7 @@ def run_web_server():
         uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)
     except ImportError as e:
         logger.error("Error: Required dependencies not installed: %s", e)
-        logger.error("Install with: pip install -e .[backend]")
+        logger.error("Install with: pip install -e .")
         sys.exit(1)
 
 

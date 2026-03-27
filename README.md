@@ -74,7 +74,7 @@ A future narration layer will explain what's happening in plain language, like a
 ### Prerequisites
 
 - Python 3.10+
-- Node 18+ (for the React frontend)
+- Node 20+ (matches the frontend CI environment)
 
 ### Install
 
@@ -88,9 +88,10 @@ python3 -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 # .\.venv\Scripts\Activate.ps1  # Windows PowerShell
 pip install -e .[dev]
+pre-commit install
 
 # Frontend setup
-cd frontend && npm install && cd ..
+cd frontend && npm ci && cd ..
 ```
 
 ### Run the Web UI
@@ -105,6 +106,8 @@ cd frontend && npm run dev
 # Open http://localhost:3000
 ```
 
+On Windows PowerShell, you can also use [`start.ps1`](start.ps1) after the environment is set up to launch the backend, frontend, and browser together.
+
 ### Run Headless (10-300x Faster)
 
 ```bash
@@ -112,10 +115,16 @@ cd frontend && npm run dev
 python main.py --headless --max-frames 5000 --seed 42
 
 # Full experiment with stats export
-python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+python main.py --headless --max-frames 30000 --stats-interval 10000 --export-stats results.json --seed 42
 
-# Run a benchmark
-python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+# Record a deterministic replay
+python main.py --headless --max-frames 500 --seed 42 --record out.replay.jsonl
+
+# Replay and verify fingerprints
+python main.py --headless --replay out.replay.jsonl
+
+# Run a benchmark and save the result
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --out results.json
 ```
 
 See [SETUP.md](SETUP.md) for detailed setup instructions and troubleshooting.
@@ -143,23 +152,24 @@ The repository maintains a formal registry of champion solutions:
 
 ```
 benchmarks/          # Evaluation harnesses (deterministic, reproducible)
-  tank/              # Tank world benchmarks
-  soccer/            # Soccer mode benchmarks
+  tank/              # Tank benchmarks (for example survival_5k, ecosystem_health_10k)
+  soccer/            # Soccer benchmarks (for example training_3k, training_5k)
 champions/           # Best-known solutions per benchmark
-  tank/              # Current tank champions with scores, genomes, repro commands
+  tank/              # Current tank champions
   soccer/            # Current soccer champions
 ```
 
-Each champion entry includes the score, algorithm, genome, Git commit, seed, and exact reproduction command. Anyone can verify any claimed improvement.
+Champion files are benchmark result snapshots. They store the benchmark id, seed, score, metadata payload, and timestamp; when updated through the validation tooling they can also keep a nested `champion` record plus history. Anyone can verify a claimed result by re-running the benchmark and comparing the score and metadata.
 
 ### Evolutionary PR Protocol
 
 When you discover an improvement (human or AI):
 
-1. Run the benchmark: `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42`
+1. Run the benchmark: `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --out results.json`
 2. Compare vs champion: `python tools/validate_improvement.py results.json champions/tank/survival_5k.json`
-3. If better, update the champion file and open a PR with evidence
-4. CI re-runs the benchmark and confirms the score before merge
+3. If better, update the champion file: `python tools/validate_improvement.py results.json champions/tank/survival_5k.json --update-champion`
+4. Run `python tools/verify_all_champions.py` if deterministic behavior changed and you need to refresh baseline files
+5. Open a PR with benchmark evidence; CI re-runs the relevant checks before merge
 
 See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the complete protocol.
 
@@ -173,14 +183,17 @@ AI agents can autonomously improve the simulation:
 # 1. Run simulation and export data
 python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 
-# 2. AI agent analyzes results, identifies underperformers, and improves code
+# 2. Install optional AI provider dependencies
+pip install -e .[ai]
+
+# 3. AI agent analyzes results, identifies underperformers, and improves code
 python scripts/ai_code_evolution_agent.py results.json --provider anthropic --validate
 
-# 3. Run AI tournament to evaluate poker strategies
+# 4. Run AI tournament to evaluate poker strategies
 python scripts/run_ai_tournament.py --write-back
 ```
 
-The AI agent reads simulation data, identifies the worst-performing algorithms, reads their source code, implements improvements, validates with benchmarks, and creates a Git branch with the changes. See [AGENTS.md](AGENTS.md) for the complete AI agent guide.
+The AI code evolution agent currently supports `anthropic` and `openai` providers and expects the matching API key in `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. It reads simulation data, identifies the worst-performing algorithms, reads their source code, implements improvements, validates with benchmarks, and creates a Git branch with the changes. See [AGENTS.md](AGENTS.md) for the complete AI agent guide.
 
 ---
 
@@ -214,7 +227,7 @@ pre-commit run --all-files
 
 ---
 
-## Architecture
+## Project Structure
 
 Tank World uses a clean, modular architecture designed for extensibility:
 
@@ -224,8 +237,9 @@ tank/
 |-- backend/                 # FastAPI + WebSocket server
 |-- core/                    # Pure Python simulation engine
 |   |-- algorithms/          # 58 behavior algorithms (composable library)
-|   |-- worlds/              # Multi-world backend (Tank, Petri, Soccer)
+|   |-- worlds/              # Tank/Petri backends and shared world abstractions
 |   |-- modes/               # Game rulesets (energy models, scoring)
+|   |-- minigames/           # Soccer training and league runtime
 |   |-- agents/components/   # Reusable agent building blocks
 |   |-- entities/            # Fish, Plant, Crab, Food, PlantNectar
 |   |-- poker/               # Full poker engine with evolving strategies
@@ -261,8 +275,11 @@ pytest -m "not slow and not integration"
 pytest
 
 # Formatting and linting
-black core/ tests/ tools/ backend/
-ruff check --fix core/ tests/ tools/
+black --config pyproject.toml core/ tests/ tools/ backend/
+ruff check --fix core/ tests/ tools/ backend/
+
+# Type-check only for new mypy regressions in core/
+python tools/mypy_gate.py
 
 # Pre-commit (runs all checks)
 pre-commit run --all-files
@@ -271,7 +288,7 @@ pre-commit run --all-files
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
 ```
 
-CI runs 5 parallel jobs: fast-gate (core tests + linting), integration tests, headless smoke test, frontend build/lint/test, and nightly full suite.
+CI currently runs `fast-gate`, `integration-gate`, `test-headless`, `frontend-ci`, and `nightly-full`, with champion verification and benchmark determinism checks defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
 
 ---
 
@@ -308,7 +325,7 @@ Environment -> Fractal Plants -> Nectar -> Fish -> Predators (Crabs)
 
 ## Project Status & Roadmap
 
-**Current**: Phase 1 (Evolution Loop MVP) - establishing BKS registry, evolutionary PR protocol, and CI validation.
+**Current focus**: expanding the benchmark/champion workflow, keeping deterministic validation healthy, and hardening the multi-world architecture.
 
 | Phase | Goal | Status |
 |-------|------|--------|
