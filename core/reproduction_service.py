@@ -50,7 +50,7 @@ class ReproductionService:
 
     def update_frame(self, frame: int) -> ReproductionFrameStats:
         """Run reproduction logic for the current frame."""
-        fish_list = self._get_fish_list()
+        fish_list = self._get_fish_entities()
         self._update_cooldowns(fish_list)
 
         fish_count = len(fish_list)
@@ -191,18 +191,11 @@ class ReproductionService:
             "plant_asexual_reproductions": self._plant_asexual_reproductions,
         }
 
-    def _get_fish_list(self) -> list[Fish]:
+    def _get_fish_entities(self) -> list[Fish]:
         entity_manager = getattr(self._engine, "entity_manager", None)
         get_fish = getattr(entity_manager, "get_fish", None)
         if callable(get_fish):
             return cast("list[Fish]", get_fish())
-
-        get_fish_list = getattr(self._engine, "get_fish_list", None)
-        if callable(get_fish_list):
-            try:
-                return cast("list[Fish]", get_fish_list())
-            except RuntimeError:
-                pass
 
         from core.entities import Fish
 
@@ -341,7 +334,7 @@ class ReproductionService:
             return False
 
         # Try to clone from a surviving fish, using diversity-aware selection
-        fish_list = self._get_fish_list()
+        fish_list = self._get_fish_entities()
         if fish_list:
             parent = self._select_diverse_parent(fish_list)
             # Clone with light mutation to maintain diversity

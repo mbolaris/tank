@@ -41,9 +41,10 @@ class DummyEngine:
 
     def __init__(self, fish: Sequence[DummyFish]) -> None:
         self._fish = list(fish)
+        self.entity_manager = self
         self.genome_code_pool = None
 
-    def get_fish_list(self) -> list[DummyFish]:
+    def get_fish(self) -> list[DummyFish]:
         return list(self._fish)
 
 

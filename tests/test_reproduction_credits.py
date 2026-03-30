@@ -51,6 +51,7 @@ class _DummyBaby:
 class _DummyEngine:
     def __init__(self, fish_list: list[_DummyFish]) -> None:
         self._fish_list = list(fish_list)
+        self.entity_manager = self
         self.rng = random.Random(1)
         self.config = SimulationConfig.headless_fast()
         self.config.soccer.enabled = True
@@ -60,7 +61,7 @@ class _DummyEngine:
         self.lifecycle_system = None
         self.spawned: list[object] = []
 
-    def get_fish_list(self):
+    def get_fish(self):
         return list(self._fish_list)
 
     def request_spawn(self, entity, **_):
