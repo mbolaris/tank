@@ -85,11 +85,7 @@ class TestSoccerSystemEnergyAccounting:
         fish = MockFish(fish_id=42, x=100, y=100, team="A")
 
         mock_engine.entities_list = [fish]
-
-        def get_fish_list():
-            return [fish]
-
-        mock_engine.get_fish_list = get_fish_list
+        mock_engine.entity_manager.get_fish.return_value = [fish]
 
         system = SoccerSystem(mock_engine)
         system.ball = ball

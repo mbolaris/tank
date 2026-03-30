@@ -84,8 +84,6 @@ class LeagueTeamProvider:
             entity_manager = getattr(world_state, "entity_manager", None)
             if entity_manager is not None and hasattr(entity_manager, "get_fish"):
                 entities = list(entity_manager.get_fish())
-            elif hasattr(world_state, "get_fish_list"):
-                entities = list(world_state.get_fish_list())
 
             # Try to get world_id from state
             source_id = getattr(world_state, "world_id", "Tank")
@@ -144,11 +142,6 @@ class LeagueTeamProvider:
             entity_manager = getattr(world_state, "entity_manager", None)
             if entity_manager is not None and hasattr(entity_manager, "get_fish"):
                 for e in entity_manager.get_fish():
-                    eid = get_entity_id(e)
-                    if eid in entity_ids:
-                        found[eid] = e
-            elif hasattr(world_state, "get_fish_list"):
-                for e in world_state.get_fish_list():
                     eid = get_entity_id(e)
                     if eid in entity_ids:
                         found[eid] = e
