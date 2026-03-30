@@ -237,26 +237,6 @@ class SimulationEngine:
             return None
         return self.plant_manager.root_spot_manager
 
-    def get_fish_list(self) -> list[entities.Fish]:
-        """Removed helper.
-
-        Use ``engine.entity_manager.get_fish()``.
-        """
-        raise RuntimeError(
-            "SimulationEngine.get_fish_list() was removed; "
-            "use engine.entity_manager.get_fish() instead."
-        )
-
-    def get_food_list(self) -> list[entities.Food]:
-        """Removed helper.
-
-        Use ``engine.entity_manager.get_food()``.
-        """
-        raise RuntimeError(
-            "SimulationEngine.get_food_list() was removed; "
-            "use engine.entity_manager.get_food() instead."
-        )
-
     def cleanup_dying_fish(self) -> None:
         """Remove dying fish.
 

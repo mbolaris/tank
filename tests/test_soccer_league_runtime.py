@@ -32,10 +32,11 @@ class DummyFish:
 class DummyWorld:
     def __init__(self, fish: list[DummyFish]) -> None:
         self._fish = fish
+        self.entity_manager = self
         self.genome_code_pool = None
         self.world_id = "Tank1"
 
-    def get_fish_list(self) -> list[DummyFish]:
+    def get_fish(self) -> list[DummyFish]:
         return list(self._fish)
 
 

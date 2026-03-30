@@ -114,3 +114,43 @@ def test_no_tank_id_in_world_agnostic_code():
                     print(f"Skipping {file_path}: {e}")
 
     assert not violations, "Found tank_id in world-agnostic code:\n" + "\n".join(violations)
+
+
+def test_no_deprecated_engine_entity_list_apis() -> None:
+    """Ensure removed engine entity-list helper APIs do not reappear."""
+    import os
+
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    search_dirs = ["backend", "core", "frontend/src", "scripts", "tests", "tools"]
+    forbidden_terms = [f"get_{name}_list(" for name in ("fish", "food")]
+
+    violations = []
+
+    for search_dir in search_dirs:
+        abs_search_dir = os.path.join(root_dir, search_dir)
+        if not os.path.exists(abs_search_dir):
+            continue
+
+        for root, dirs, files in os.walk(abs_search_dir):
+            if "__pycache__" in root or "node_modules" in root:
+                continue
+
+            for file in files:
+                if not (file.endswith(".py") or file.endswith(".ts") or file.endswith(".tsx")):
+                    continue
+
+                file_path = os.path.join(root, file)
+                rel_path = os.path.relpath(file_path, root_dir)
+
+                try:
+                    with open(file_path, encoding="utf-8") as f:
+                        content = f.read()
+                except Exception as e:
+                    print(f"Skipping {file_path}: {e}")
+                    continue
+
+                for term in forbidden_terms:
+                    if term in content:
+                        violations.append(f"{rel_path}: Contains removed API '{term}'")
+
+    assert not violations, "Found removed engine entity-list APIs:\n" + "\n".join(violations)
