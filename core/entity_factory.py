@@ -19,7 +19,7 @@ def create_initial_population(
     display_config: DisplayConfig | None = None,
     ecosystem_config: EcosystemConfig | None = None,
     rng: random.Random | None = None,
-) -> list[entities.Agent]:
+) -> list[entities.Entity]:
     """Create initial population for simulation.
 
     Creates a starting population with algorithmic fish that evolve their behavior:
@@ -40,7 +40,7 @@ def create_initial_population(
     """
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
-    population: list[entities.Agent] = []
+    population: list[entities.Entity] = []
     from core.util.rng import require_rng_param
 
     rng = require_rng_param(rng, "__init__")

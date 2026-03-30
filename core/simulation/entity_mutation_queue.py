@@ -8,14 +8,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from core.entities import Agent
+    from core.entities import Entity
 
 
 @dataclass(frozen=True)
 class EntityMutation:
     """Record a requested entity mutation."""
 
-    entity: "Agent"
+    entity: "Entity"
     reason: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -31,7 +31,7 @@ class EntityMutationQueue:
 
     def request_spawn(
         self,
-        entity: "Agent",
+        entity: "Entity",
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -51,7 +51,7 @@ class EntityMutationQueue:
 
     def request_remove(
         self,
-        entity: "Agent",
+        entity: "Entity",
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -94,7 +94,7 @@ class EntityMutationQueue:
         self._removal_ids.clear()
         return removals
 
-    def is_pending_removal(self, entity: "Agent") -> bool:
+    def is_pending_removal(self, entity: "Entity") -> bool:
         """Check if entity is queued for removal."""
         return id(entity) in self._removal_ids
 

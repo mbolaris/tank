@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, cast
 
 from core.entities import Agent, Entity
 from core.interfaces import MigrationHandler
@@ -17,7 +17,7 @@ from core.spatial.grid import SpatialGrid
 
 # Type alias for energy delta recorder callback
 # Signature: (entity, delta, source, metadata) -> None
-EnergyDeltaRecorder = Callable[["Agent", float, str, dict[str, Any]], None]
+EnergyDeltaRecorder = Callable[["Entity", float, str, dict[str, Any]], None]
 
 
 class Environment:
@@ -32,7 +32,7 @@ class Environment:
 
     def __init__(
         self,
-        agents: Iterable[Agent] | None = None,
+        agents: Iterable[Entity] | None = None,
         width: int = 800,
         height: int = 600,
         time_system: Any | None = None,
@@ -52,7 +52,7 @@ class Environment:
             event_bus: Optional EventBus for domain event dispatch
             simulation_config: Optional SimulationConfig for runtime parameters
         """
-        agents_list: list[Agent] | None
+        agents_list: list[Entity] | None
         if agents is None:
             agents_list = None
         elif isinstance(agents, list):
@@ -112,7 +112,7 @@ class Environment:
         if self.agents is not None:
             self.spatial_grid.rebuild(self.agents)
 
-        self._type_cache: dict[type[Agent], list[Agent]] = {}
+        self._type_cache: dict[type[Entity], list[Entity]] = {}
 
         # NEW: Initialize communication system for fish
         from core.agent_signals import AgentSignalSystem
@@ -156,7 +156,7 @@ class Environment:
 
     def record_energy_delta(
         self,
-        entity: Agent,
+        entity: Entity,
         delta: float,
         source: str,
         meta: dict[str, Any] | None = None,
@@ -179,7 +179,7 @@ class Environment:
             recorder(entity, delta, source, meta or {})
 
     def request_spawn(
-        self, entity: Agent, *, reason: str = "", metadata: dict[str, Any] | None = None
+        self, entity: Entity, *, reason: str = "", metadata: dict[str, Any] | None = None
     ) -> bool:
         """Request an entity spawn via the engine's mutation queue.
 
@@ -192,7 +192,7 @@ class Environment:
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
     def request_remove(
-        self, entity: Agent, *, reason: str = "", metadata: dict[str, Any] | None = None
+        self, entity: Entity, *, reason: str = "", metadata: dict[str, Any] | None = None
     ) -> bool:
         """Request an entity removal via the engine's mutation queue.
 
@@ -264,7 +264,7 @@ class Environment:
         """
         return self.bounds.resolve_collision(agent)
 
-    def nearby_agents(self, agent: Agent, radius: float) -> list[Agent]:
+    def nearby_agents(self, agent: Entity, radius: float) -> list[Entity]:
         """
         Return a list of agents within a certain radius of the given agent.
 
@@ -272,7 +272,7 @@ class Environment:
         """
         return self.spatial_grid.query_radius(agent, float(radius))
 
-    def get_agents_of_type(self, agent_type: type[Agent]) -> list[Agent]:
+    def get_agents_of_type(self, agent_type: type[Entity]) -> list[Entity]:
         """
         Get all agents of the given class.
 
@@ -286,26 +286,28 @@ class Environment:
         if self.agents is None:
             return []
 
-        result = [agent for agent in self.agents if isinstance(agent, agent_type)]
+        result = cast(
+            list[Entity], [agent for agent in self.agents if isinstance(agent, agent_type)]
+        )
         self._type_cache[agent_type] = result
         return result
 
-    def closest_fish(self, agent: Agent, radius: float) -> Agent | None:
+    def closest_fish(self, agent: Entity, radius: float) -> Entity | None:
         """Find closest fish efficiently."""
         return self.spatial_grid.closest_fish(agent, radius)
 
-    def closest_food(self, agent: Agent, radius: float) -> Agent | None:
+    def closest_food(self, agent: Entity, radius: float) -> Entity | None:
         """Find closest food efficiently."""
         return self.spatial_grid.closest_food(agent, radius)
 
     def nearby_agents_by_type(
         self,
-        agent: Agent,
+        agent: Entity,
         radius: float,
-        agent_type: type[Agent] | None = None,
+        agent_type: type[Entity] | None = None,
         *,
-        agent_class: type[Agent] | None = None,
-    ) -> list[Agent]:
+        agent_class: type[Entity] | None = None,
+    ) -> list[Entity]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
         """
@@ -316,25 +318,25 @@ class Environment:
             )
         return self.spatial_grid.query_type(agent, float(radius), resolved_type)
 
-    def nearby_evolving_agents(self, agent: Agent, radius: float) -> list[Agent]:
+    def nearby_evolving_agents(self, agent: Entity, radius: float) -> list[Entity]:
         """Get nearby evolving agents (entities that can reproduce)."""
         # Currently just fish
         return self.spatial_grid.query_fish(agent, float(radius))
 
-    def nearby_resources(self, agent: Agent, radius: float) -> list[Agent]:
+    def nearby_resources(self, agent: Entity, radius: float) -> list[Entity]:
         """Get nearby consumable resources."""
         # Currently just food
         return self.spatial_grid.query_food(agent, float(radius))
 
     def nearby_interaction_candidates(
-        self, agent: Agent, radius: float, crab_type: type[Agent]
-    ) -> list[Agent]:
+        self, agent: Entity, radius: float, crab_type: type[Entity]
+    ) -> list[Entity]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
         return self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
 
-    def nearby_poker_entities(self, agent: Agent, radius: float) -> list[Agent]:
+    def nearby_poker_entities(self, agent: Entity, radius: float) -> list[Entity]:
         """
         Optimized method to get nearby fish and Plant entities for poker.
         """

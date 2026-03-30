@@ -573,7 +573,7 @@ class AdaptivePacer(BehaviorAlgorithm):
             allies = [
                 f
                 for f in fish.environment.get_agents_of_type(Fish)
-                if f != fish and (f.pos - fish.pos).length() < 100
+                if isinstance(f, Fish) and f != fish and (f.pos - fish.pos).length() < 100
             ]
             if allies:
                 avg_vel = sum((f.vel for f in allies), Vector2()) / len(allies)

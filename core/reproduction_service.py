@@ -199,7 +199,10 @@ class ReproductionService:
 
         get_fish_list = getattr(self._engine, "get_fish_list", None)
         if callable(get_fish_list):
-            return cast("list[Fish]", get_fish_list())
+            try:
+                return cast("list[Fish]", get_fish_list())
+            except RuntimeError:
+                pass
 
         from core.entities import Fish
 

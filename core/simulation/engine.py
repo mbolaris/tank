@@ -216,7 +216,7 @@ class SimulationEngine:
     # =========================================================================
 
     @property
-    def entities_list(self) -> list[entities.Agent]:
+    def entities_list(self) -> list[entities.Entity]:
         """All entities in the simulation (delegates to EntityManager)."""
         return self._entity_manager.entities_list
 
@@ -505,21 +505,21 @@ class SimulationEngine:
     # Utility Methods
     # =========================================================================
 
-    def get_all_entities(self) -> list[entities.Agent]:
+    def get_all_entities(self) -> list[entities.Entity]:
         """Get all entities in the simulation."""
         return self._entity_manager.entities_list
 
-    def _add_entity(self, entity: entities.Agent) -> None:
+    def _add_entity(self, entity: entities.Entity) -> None:
         """Add an entity to the simulation (INTERNAL USE ONLY)."""
         if hasattr(entity, "add_internal"):
             entity.add_internal(self.agents)
         self._entity_manager.add(entity)
 
-    def _remove_entity(self, entity: entities.Agent) -> None:
+    def _remove_entity(self, entity: entities.Entity) -> None:
         """Remove an entity from the simulation (INTERNAL USE ONLY)."""
         self._entity_manager.remove(entity)
 
-    def add_entity(self, entity: entities.Agent) -> None:
+    def add_entity(self, entity: entities.Entity) -> None:
         """Add an entity to the simulation (PRIVILEGED API)."""
         if self._current_phase is not None:
             raise RuntimeError(
@@ -528,7 +528,7 @@ class SimulationEngine:
             )
         self._add_entity(entity)
 
-    def remove_entity(self, entity: entities.Agent) -> None:
+    def remove_entity(self, entity: entities.Entity) -> None:
         """Remove an entity from the simulation (PRIVILEGED API)."""
         if self._current_phase is not None:
             raise RuntimeError(
@@ -539,7 +539,7 @@ class SimulationEngine:
 
     def request_spawn(
         self,
-        entity: entities.Agent,
+        entity: entities.Entity,
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -549,7 +549,7 @@ class SimulationEngine:
 
     def request_remove(
         self,
-        entity: entities.Agent,
+        entity: entities.Entity,
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -557,7 +557,7 @@ class SimulationEngine:
         """Queue a removal request to be applied by the engine."""
         return self.mutations.request_remove(entity, reason=reason, metadata=metadata)
 
-    def is_pending_removal(self, entity: entities.Agent) -> bool:
+    def is_pending_removal(self, entity: entities.Entity) -> bool:
         """Check if an entity is queued for removal."""
         return self.mutations.is_pending_removal(entity)
 

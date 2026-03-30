@@ -3,7 +3,7 @@
 import math
 from collections import defaultdict
 
-from core.entities.base import Agent, Entity
+from core.entities.base import Entity
 from core.entities.resources import Food
 
 
@@ -44,11 +44,11 @@ class SpatialGrid:
 
         # Dedicated grids for high-frequency types to avoid dictionary lookups and issubclass checks
         # These contain the SAME agent objects as self.grid, just indexed differently for speed
-        self.fish_grid: dict[tuple[int, int], list[Agent]] = defaultdict(list)
-        self.food_grid: dict[tuple[int, int], list[Agent]] = defaultdict(list)
+        self.fish_grid: dict[tuple[int, int], list[Entity]] = defaultdict(list)
+        self.food_grid: dict[tuple[int, int], list[Entity]] = defaultdict(list)
 
         # Agent to cell mapping for quick updates
-        self.agent_cells: dict[Agent, tuple[int, int]] = {}
+        self.agent_cells: dict[Entity, tuple[int, int]] = {}
 
     def _get_cell(self, x: float, y: float) -> tuple[int, int]:
         """Get the grid cell coordinates for a position."""
@@ -94,7 +94,7 @@ class SpatialGrid:
             max_row = rows_m1
         return (min_col, max_col, min_row, max_row)
 
-    def add_agent(self, agent: Entity):
+    def add_agent(self, agent: Entity) -> None:
         """Add an agent to the spatial grid."""
         if not hasattr(agent, "pos"):
             return
@@ -121,7 +121,7 @@ class SpatialGrid:
 
         self.agent_cells[agent] = cell
 
-    def remove_agent(self, agent: Entity):
+    def remove_agent(self, agent: Entity) -> None:
         """Remove an agent from the spatial grid."""
         if agent in self.agent_cells:
             cell = self.agent_cells[agent]
@@ -152,7 +152,7 @@ class SpatialGrid:
 
             del self.agent_cells[agent]
 
-    def update_agent(self, agent: Entity):
+    def update_agent(self, agent: Entity) -> None:
         """Update an agent's position in the grid (call when agent moves)."""
         if not hasattr(agent, "pos"):
             return
@@ -219,7 +219,7 @@ class SpatialGrid:
             (col, row) for col in range(min_col, max_col + 1) for row in range(min_row, max_row + 1)
         ]
 
-    def query_radius(self, agent: Agent, radius: float) -> list[Agent]:
+    def query_radius(self, agent: Entity, radius: float) -> list[Entity]:
         """
         Get all agents within a radius of the given agent.
 
@@ -257,7 +257,7 @@ class SpatialGrid:
         if max_row > rows_m1:
             max_row = rows_m1
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append  # OPTIMIZATION: Local reference to append
         grid = self.grid
 
@@ -278,7 +278,7 @@ class SpatialGrid:
 
         return result
 
-    def query_fish(self, agent: Agent, radius: float) -> list[Agent]:
+    def query_fish(self, agent: Entity, radius: float) -> list[Entity]:
         """Optimized query for nearby fish.
 
         PERFORMANCE: Avoids intermediate list creation by directly filtering
@@ -303,7 +303,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cs))
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
 
@@ -322,7 +322,7 @@ class SpatialGrid:
 
         return result
 
-    def query_food(self, agent: Agent, radius: float) -> list[Agent]:
+    def query_food(self, agent: Entity, radius: float) -> list[Entity]:
         """Optimized query for nearby food.
 
         PERFORMANCE: Avoids intermediate list creation by directly filtering
@@ -343,7 +343,7 @@ class SpatialGrid:
         min_row = max(0, int((agent_y - radius) / cs))
         max_row = min(rows_m1, int((agent_y + radius) / cs))
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         food_grid = self.food_grid
 
@@ -362,7 +362,7 @@ class SpatialGrid:
 
         return result
 
-    def closest_fish(self, agent: Agent, radius: float) -> Agent | None:
+    def closest_fish(self, agent: Entity, radius: float) -> Entity | None:
         """Find the single closest fish within radius.
 
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.
@@ -415,7 +415,7 @@ class SpatialGrid:
 
         return nearest_agent
 
-    def closest_food(self, agent: Agent, radius: float) -> Agent | None:
+    def closest_food(self, agent: Entity, radius: float) -> Entity | None:
         """Find the single closest food within radius.
 
         PERFORMANCE: Avoids list allocation by tracking best match during iteration.
@@ -469,8 +469,8 @@ class SpatialGrid:
         return nearest_agent
 
     def query_interaction_candidates(
-        self, agent: Agent, radius: float, crab_type: type[Agent]
-    ) -> list[Agent]:
+        self, agent: Entity, radius: float, crab_type: type[Entity]
+    ) -> list[Entity]:
         """
         Optimized query for collision candidates (Fish, Food, Crabs).
         Performs a single grid traversal to collect all relevant entities.
@@ -504,7 +504,7 @@ class SpatialGrid:
         if max_row > rows - 1:
             max_row = rows - 1
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         food_grid = self.food_grid
@@ -549,7 +549,7 @@ class SpatialGrid:
 
         return result
 
-    def query_poker_entities(self, agent: Agent, radius: float) -> list[Agent]:
+    def query_poker_entities(self, agent: Entity, radius: float) -> list[Entity]:
         """
         Optimized query for poker-eligible entities (Fish and Plant).
 
@@ -583,7 +583,7 @@ class SpatialGrid:
         if max_row > self.rows - 1:
             max_row = self.rows - 1
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append  # OPTIMIZATION: Local reference
         fish_grid = self.fish_grid
         grid = self.grid
@@ -625,7 +625,7 @@ class SpatialGrid:
         self.food_grid.clear()
         self.agent_cells.clear()
 
-    def rebuild(self, agents: list[Agent]):
+    def rebuild(self, agents: list[Entity]) -> None:
         """Rebuild the entire grid from scratch."""
         self.clear()
         for agent in agents:
@@ -633,9 +633,9 @@ class SpatialGrid:
 
     # Cache for issubclass results to avoid repeated checks
     # Key: (type_key, agent_class), Value: bool
-    _subclass_cache: dict[tuple[type, type], bool] = {}
+    _subclass_cache: dict[tuple[type[Entity], type[Entity]], bool] = {}
 
-    def query_type(self, agent: Agent, radius: float, agent_class: type[Agent]) -> list[Agent]:
+    def query_type(self, agent: Entity, radius: float, agent_class: type[Entity]) -> list[Entity]:
         """
         Return a list of agents of a given type within a certain radius of the given agent.
 
@@ -681,7 +681,7 @@ class SpatialGrid:
         if max_row > rows_m1:
             max_row = rows_m1
 
-        result: list[Agent] = []
+        result: list[Entity] = []
         result_append = result.append
         grid_dict = self.grid
         subclass_cache = self._subclass_cache
@@ -695,7 +695,7 @@ class SpatialGrid:
                     continue
 
                 # Iterate over type buckets
-                for type_key, agents in cell_buckets.items():
+                for type_key, bucket in cell_buckets.items():
                     # OPTIMIZATION: Use cached issubclass check
                     cache_key = (type_key, agent_class)
                     is_match = subclass_cache.get(cache_key)
@@ -704,7 +704,7 @@ class SpatialGrid:
                         subclass_cache[cache_key] = is_match
 
                     if is_match:
-                        for other in agents:
+                        for other in bucket:
                             if other is agent:
                                 continue
 

@@ -113,7 +113,7 @@ class CacheManager:
         fish = cache_manager.get_fish()  # Recomputed
     """
 
-    def __init__(self, get_entities_fn: Callable[[], list["entities.Agent"]]) -> None:
+    def __init__(self, get_entities_fn: Callable[[], list["entities.Entity"]]) -> None:
         """Initialize the cache manager.
 
         Args:
