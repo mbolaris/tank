@@ -238,7 +238,7 @@ class SimulationEngine:
         return self.plant_manager.root_spot_manager
 
     def get_fish_list(self) -> list[entities.Fish]:
-        """Removed compatibility shim.
+        """Removed helper.
 
         Use ``engine.entity_manager.get_fish()``.
         """
@@ -248,7 +248,7 @@ class SimulationEngine:
         )
 
     def get_food_list(self) -> list[entities.Food]:
-        """Removed compatibility shim.
+        """Removed helper.
 
         Use ``engine.entity_manager.get_food()``.
         """
