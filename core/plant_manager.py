@@ -36,7 +36,7 @@ from core.root_spots import RootSpotManager
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
-    from core.entities import Agent
+    from core.entities import Entity
     from core.environment import Environment
 
 logger = logging.getLogger(__name__)
@@ -45,11 +45,11 @@ logger = logging.getLogger(__name__)
 class EntityAdder(Protocol):
     """Protocol for adding entities to the simulation."""
 
-    def add_entity(self, entity: "Agent") -> None:
+    def add_entity(self, entity: "Entity") -> None:
         """Add an entity to the simulation."""
         ...
 
-    def remove_entity(self, entity: "Agent") -> None:
+    def remove_entity(self, entity: "Entity") -> None:
         """Remove an entity from the simulation."""
         ...
 
@@ -126,7 +126,7 @@ class PlantManager:
         self._next_plant_id += 1
         return pid
 
-    def _request_spawn(self, entity: "Agent", *, reason: str) -> bool:
+    def _request_spawn(self, entity: "Entity", *, reason: str) -> bool:
         """Request a spawn via the engine mutation queue when available."""
         requester = getattr(self._entity_adder, "request_spawn", None)
         if callable(requester):
@@ -134,7 +134,7 @@ class PlantManager:
         self._entity_adder.add_entity(entity)
         return True
 
-    def _request_remove(self, entity: "Agent", *, reason: str) -> bool:
+    def _request_remove(self, entity: "Entity", *, reason: str) -> bool:
         """Request a removal via the engine mutation queue when available."""
         requester = getattr(self._entity_adder, "request_remove", None)
         if callable(requester):
@@ -147,7 +147,7 @@ class PlantManager:
         """Whether plants are enabled in the simulation."""
         return PLANTS_ENABLED
 
-    def block_spots_for_entity(self, entity: "Agent", padding: float = 10.0) -> None:
+    def block_spots_for_entity(self, entity: "Entity", padding: float = 10.0) -> None:
         """Block root spots near an entity to prevent plant overlap.
 
         Args:
@@ -156,7 +156,7 @@ class PlantManager:
         """
         self.root_spot_manager.block_spots_for_entity(entity, padding=padding)
 
-    def get_variant_counts(self, entities: list["Agent"]) -> dict[str, int]:
+    def get_variant_counts(self, entities: list["Entity"]) -> dict[str, int]:
         """Count plants by variant type.
 
         Args:
@@ -176,7 +176,7 @@ class PlantManager:
 
     def pick_balanced_variant(
         self,
-        entities: list["Agent"],
+        entities: list["Entity"],
         preferred_type: str | None = None,
     ) -> str:
         """Select a variant that balances the LLM beauty contest.
@@ -242,7 +242,7 @@ class PlantManager:
         factory = variant_factories.get(variant, PlantGenome.create_random)
         return factory(rng=self.rng)
 
-    def create_initial_plants(self, entities: list["Agent"]) -> int:
+    def create_initial_plants(self, entities: list["Entity"]) -> int:
         """Create the initial plant population.
 
         Creates plants with random baseline poker strategy types. Each plant
@@ -289,7 +289,7 @@ class PlantManager:
 
     def respawn_if_low(
         self,
-        entities: list["Agent"],
+        entities: list["Entity"],
         frame_count: int,
     ) -> bool:
         """Respawn a plant if the population is below minimum.
@@ -351,7 +351,7 @@ class PlantManager:
         parent_genome: PlantGenome,
         parent_x: float,
         parent_y: float,
-        entities: list["Agent"],
+        entities: list["Entity"],
     ) -> Result[Plant, str]:
         """Sprout a new plant from a parent.
 
@@ -405,7 +405,7 @@ class PlantManager:
 
     def reconcile_plants(
         self,
-        entities: list["Agent"],
+        entities: list["Entity"],
         frame_count: int,
     ) -> int:
         """Remove orphaned plants that don't own their root spot.

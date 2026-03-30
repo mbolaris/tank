@@ -85,7 +85,7 @@ if TYPE_CHECKING:
         PlantPokerOutcomeRecord,
         PokerOutcomeRecord,
     )
-    from core.entities import Agent
+    from core.entities import Agent, Entity
     from core.entities.base import EntityState, LifeStage
     from core.fish.skill_game_component import SkillGameComponent
     from core.genetics import Genome
@@ -495,15 +495,15 @@ class SimulationStats(Protocol):
 class EntityManager(Protocol):
     """Interface for managing entities in the simulation."""
 
-    def add_entity(self, entity: "Agent") -> None:
+    def add_entity(self, entity: "Entity") -> None:
         """Add an entity to the simulation."""
         ...
 
-    def remove_entity(self, entity: "Agent") -> None:
+    def remove_entity(self, entity: "Entity") -> None:
         """Remove an entity from the simulation."""
         ...
 
-    def get_all_entities(self) -> list["Agent"]:
+    def get_all_entities(self) -> list["Entity"]:
         """Get all entities in the simulation."""
         ...
 

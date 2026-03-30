@@ -48,7 +48,7 @@ from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
-    from core.entities import Agent, Crab, Fish
+    from core.entities import Crab, Entity, Fish
     from core.entities.resources import Food
     from core.simulation import SimulationEngine
 
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 class CollisionDetector:
     """Base class for collision detection strategies."""
 
-    def collides(self, agent1: "Agent", agent2: "Agent") -> bool:
+    def collides(self, agent1: "Entity", agent2: "Entity") -> bool:
         """Check if two agents collide.
 
         Args:
@@ -74,7 +74,7 @@ class CollisionDetector:
 class RectCollisionDetector(CollisionDetector):
     """Rectangle-based collision detection (AABB)."""
 
-    def collides(self, agent1: "Agent", agent2: "Agent") -> bool:
+    def collides(self, agent1: "Entity", agent2: "Entity") -> bool:
         """Check if two agents' bounding boxes collide.
 
         Args:
@@ -100,7 +100,7 @@ class RectCollisionDetector(CollisionDetector):
 class CircleCollisionDetector(CollisionDetector):
     """Circle-based collision detection (distance-based)."""
 
-    def collides(self, agent1: "Agent", agent2: "Agent", threshold: float | None = None) -> bool:
+    def collides(self, agent1: "Entity", agent2: "Entity", threshold: float | None = None) -> bool:
         """Check if two agents collide based on distance.
 
         Args:
@@ -211,7 +211,7 @@ class CollisionSystem(BaseSystem):
 
         return result
 
-    def check_collision(self, e1: "Agent", e2: "Agent") -> bool:
+    def check_collision(self, e1: "Entity", e2: "Entity") -> bool:
         """Check if two entities collide using bounding box collision.
 
         Args:
@@ -275,7 +275,7 @@ class CollisionSystem(BaseSystem):
         Food_type = Food
         Crab_type = Crab
 
-        def collision_sort_key(entity: "Agent") -> tuple:
+        def collision_sort_key(entity: "Entity") -> tuple:
             # Fast type ranking using identity comparison
             e_type = type(entity)
             if e_type is Fish_type:

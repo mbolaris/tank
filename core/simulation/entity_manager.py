@@ -64,7 +64,7 @@ class EntityManager:
             get_ecosystem: Callable returning the EcosystemManager (deferred access)
             get_root_spot_manager: Callable returning the RootSpotManager (deferred access)
         """
-        self._entities: list[entities.Agent] = []
+        self._entities: list[entities.Entity] = []
         self._cache_manager = CacheManager(lambda: self._entities)
         self._food_pool = FoodPool(rng=rng)
 
@@ -74,7 +74,7 @@ class EntityManager:
         self._get_root_spot_manager = get_root_spot_manager
 
     @property
-    def entities_list(self) -> list[entities.Agent]:
+    def entities_list(self) -> list[entities.Entity]:
         """Get the master entities list.
 
         Note: This returns the actual list, not a copy. This is intentional
@@ -92,7 +92,7 @@ class EntityManager:
         """Check if caches need rebuilding."""
         return self._cache_manager.is_dirty
 
-    def add(self, entity: entities.Agent) -> bool:
+    def add(self, entity: entities.Entity) -> bool:
         """Add an entity to the simulation.
 
         For Fish entities, this respects population limits (max_population).
@@ -138,7 +138,7 @@ class EntityManager:
         self._cache_manager.invalidate_entity_caches("entity added")
         return True
 
-    def remove(self, entity: entities.Agent) -> None:
+    def remove(self, entity: entities.Entity) -> None:
         """Remove an entity from the simulation.
 
         Handles cleanup for different entity types:
@@ -201,7 +201,7 @@ class EntityManager:
         """
         self._cache_manager.invalidate_entity_caches(reason)
 
-    def get_all(self) -> list[entities.Agent]:
+    def get_all(self) -> list[entities.Entity]:
         """Get all entities in the simulation.
 
         Returns:

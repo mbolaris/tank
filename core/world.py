@@ -29,7 +29,7 @@ import random
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from core.entities.base import Agent
+    from core.entities.base import Entity
 
 
 @runtime_checkable
@@ -53,7 +53,7 @@ class World(Protocol):
 
     # --- Spatial Queries ---
 
-    def nearby_agents(self, agent: "Agent", radius: float) -> list["Agent"]:
+    def nearby_agents(self, agent: "Entity", radius: float) -> list["Entity"]:
         """Find all agents within a radius of the given agent.
 
         This is the most fundamental spatial query. Implementations should
@@ -69,8 +69,8 @@ class World(Protocol):
         ...
 
     def nearby_agents_by_type(
-        self, agent: "Agent", radius: float, agent_type: type["Agent"]
-    ) -> list["Agent"]:
+        self, agent: "Entity", radius: float, agent_type: type["Entity"]
+    ) -> list["Entity"]:
         """Find agents of a specific type within radius.
 
         Optimized query for type-specific searches (e.g., find nearby food).
@@ -85,7 +85,7 @@ class World(Protocol):
         """
         ...
 
-    def nearby_evolving_agents(self, agent: "Agent", radius: float) -> list["Agent"]:
+    def nearby_evolving_agents(self, agent: "Entity", radius: float) -> list["Entity"]:
         """Find evolving agents (entities that can reproduce) within radius.
 
         This is a generic query for primary simulation entities.
@@ -100,7 +100,7 @@ class World(Protocol):
         """
         ...
 
-    def nearby_resources(self, agent: "Agent", radius: float) -> list["Agent"]:
+    def nearby_resources(self, agent: "Entity", radius: float) -> list["Entity"]:
         """Find consumable resources within radius.
 
         This is a generic query for resource entities.
@@ -115,7 +115,7 @@ class World(Protocol):
         """
         ...
 
-    def update_agent_position(self, agent: "Agent") -> None:
+    def update_agent_position(self, agent: "Entity") -> None:
         """Update an agent's position in any spatial index.
 
         Implementations that maintain a spatial grid should update the agent's
@@ -124,7 +124,7 @@ class World(Protocol):
         """
         ...
 
-    def get_agents_of_type(self, agent_type: type["Agent"]) -> list["Agent"]:
+    def get_agents_of_type(self, agent_type: type["Entity"]) -> list["Entity"]:
         """Get all agents of a specific type in the environment.
 
         This is a global query (not spatial). Use for iteration over

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, cast
 
-from core.entities import Agent
+from core.entities import Entity
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue
 
@@ -18,7 +18,7 @@ class MutationTransaction:
 
     def request_spawn(
         self,
-        entity: Agent,
+        entity: Entity,
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -28,7 +28,7 @@ class MutationTransaction:
 
     def request_remove(
         self,
-        entity: Agent,
+        entity: Entity,
         *,
         reason: str = "",
         metadata: dict[str, Any] | None = None,
@@ -36,7 +36,7 @@ class MutationTransaction:
         """Queue a removal request."""
         return self._queue.request_remove(entity, reason=reason, metadata=metadata)
 
-    def is_pending_removal(self, entity: Agent) -> bool:
+    def is_pending_removal(self, entity: Entity) -> bool:
         """Check if entity is queued for removal."""
         return self._queue.is_pending_removal(entity)
 

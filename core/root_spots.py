@@ -13,7 +13,7 @@ from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import PLANT_ROOT_SPOT_COUNT
 
 if TYPE_CHECKING:
-    from core.entities.base import Agent
+    from core.entities.base import Entity
     from core.entities.plant import Plant
 
 
@@ -269,7 +269,7 @@ class RootSpotManager:
                 blocked += 1
         return blocked
 
-    def block_spots_for_entity(self, entity: "Agent", padding: float = 0.0) -> int:
+    def block_spots_for_entity(self, entity: "Entity", padding: float = 0.0) -> int:
         """Block spots underneath an entity that shouldn't allow plants.
 
         Only entities that explicitly opt-in via ``blocks_root_spots`` will

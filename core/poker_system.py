@@ -335,8 +335,10 @@ class PokerSystem(BaseSystem):
         if len(all_entities) < 2:
             return
 
-        fish_list = [e for e in all_entities if isinstance(e, Fish) and not e.is_dead()]
-        plant_list = [e for e in all_entities if isinstance(e, Plant) and not e.is_dead()]
+        fish_list: list[Fish] = [e for e in all_entities if isinstance(e, Fish) and not e.is_dead()]
+        plant_list: list[Plant] = [
+            e for e in all_entities if isinstance(e, Plant) and not e.is_dead()
+        ]
 
         if len(fish_list) < 1:
             return
@@ -363,7 +365,7 @@ class PokerSystem(BaseSystem):
             return
 
         # Track entities for death checking
-        all_entities_set = set(all_entities)
+        all_entities_set: set[object] = set(all_entities)
 
         # Play games at each table
         for table in tables:
