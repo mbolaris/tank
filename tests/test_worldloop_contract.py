@@ -427,7 +427,7 @@ class TestNoMutationsOutsideCommit:
         engine.setup()
 
         # Get an existing fish to use as a template
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         if not fish_list:
             pytest.skip("No fish available for test")
 
@@ -474,7 +474,7 @@ class TestNoMutationsOutsideCommit:
         engine.setup()
 
         # Get an existing fish to test spawn request
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         if not fish_list:
             pytest.skip("No fish available for test")
 

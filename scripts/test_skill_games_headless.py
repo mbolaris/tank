@@ -90,7 +90,7 @@ def run_skill_game_simulation(
         engine.update()
 
         # Run skill game encounters
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         events = skill_system.check_and_run_encounters(
             fish_list,
             current_frame=frame,
@@ -112,7 +112,7 @@ def run_skill_game_simulation(
     elapsed = time.time() - start_time
 
     # Collect final statistics
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
 
     # Analyze skill game performance across population
     optimality_rates = []

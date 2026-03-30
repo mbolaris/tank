@@ -51,7 +51,7 @@ def test_petri_energy_deltas_reference_real_entities():
     engine.setup(pack)
 
     # Get a fish (Petri inherits Tank entities for now)
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     if len(fish_list) == 0:
         pytest.skip("No fish in Petri mode to test energy deltas")
 

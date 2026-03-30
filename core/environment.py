@@ -348,7 +348,7 @@ class Environment:
     #
     # 1. CacheManager (in EntityManager): Caches fish_list and food_list for
     #    engine-level access (systems, stats calculation, etc.)
-    #    Access via: engine.get_fish_list(), engine.get_food_list()
+    #    Access via: engine.entity_manager.get_fish(), engine.entity_manager.get_food()
     #
     # 2. Environment._type_cache: Caches get_agents_of_type() results for
     #    behavior algorithms that run per-fish per-frame.

@@ -37,7 +37,7 @@ def test_fish_energy_burn_loop():
     if engine.ecosystem:
         engine.ecosystem.ingest_energy_deltas(engine._frame_energy_deltas)
 
-    assert fish in engine.get_fish_list()
+    assert fish in engine.entity_manager.get_fish()
     # Energy burns during the first update too (Act -> Consume -> Resolve)
     assert fish.energy < 100.0
 
@@ -162,7 +162,7 @@ def test_starvation_via_ledger():
     engine.update()
 
     # Filter list to avoid noise from other fish if initial_fish_count failed
-    my_fish_list = [f for f in engine.get_fish_list() if f is fish]
+    my_fish_list = [f for f in engine.entity_manager.get_fish() if f is fish]
     # NOTE: Removal seems to stick in test harness for some reason, despite is_dead=True.
     # The primary goal of validating EnergyLedger causing death is met by assertions above.
     # assert not my_fish_list, "Fish should be removed from simulation"

@@ -4,7 +4,7 @@ from core.entities import Food
 
 def test_collision_removal_is_queued(simulation_engine):
     engine = simulation_engine
-    fish = engine.get_fish_list()[0]
+    fish = engine.entity_manager.get_fish()[0]
     fish.energy = fish.max_energy * 0.2
 
     food = Food(engine.environment, fish.pos.x, fish.pos.y, food_type="energy")
@@ -33,7 +33,7 @@ def test_overflow_energy_spawns_food_via_queue(simulation_engine):
     _resolve_energy step is needed.
     """
     engine = simulation_engine
-    fish = engine.get_fish_list()[0]
+    fish = engine.entity_manager.get_fish()[0]
 
     # Set fish to max capacity in both main energy and overflow bank
     fish.energy = fish.max_energy

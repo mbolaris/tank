@@ -132,7 +132,9 @@ class ReproductionService:
         mate = self._engine.rng.choice(eligible_mates)
 
         if self._engine.ecosystem is not None:
-            if not self._engine.ecosystem.can_reproduce(len(self._engine.get_fish_list())):
+            if not self._engine.ecosystem.can_reproduce(
+                len(self._engine.entity_manager.get_fish())
+            ):
                 return None
 
         baby = self._create_post_poker_offspring(winner, mate)
@@ -190,8 +192,13 @@ class ReproductionService:
         }
 
     def _get_fish_list(self) -> list[Fish]:
-        if hasattr(self._engine, "get_fish_list"):
-            return self._engine.get_fish_list()
+        entity_manager = getattr(self._engine, "entity_manager", None)
+        if entity_manager is not None and hasattr(entity_manager, "get_fish"):
+            return entity_manager.get_fish()
+
+        get_fish_list = getattr(self._engine, "get_fish_list", None)
+        if callable(get_fish_list):
+            return get_fish_list()
 
         from core.entities import Fish
 

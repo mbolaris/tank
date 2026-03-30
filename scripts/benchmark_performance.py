@@ -16,11 +16,31 @@ import pstats
 import statistics
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+from core.worlds.interfaces import FAST_STEP_ACTION
+
+
+def _get_advance_frame(world) -> Callable[[], None]:
+    """Return the cheapest safe way to advance a world by one frame."""
+    world_update = getattr(world, "update", None)
+    if callable(world_update):
+        return world_update
+
+    if getattr(world, "supports_fast_step", False):
+        fast_step_action = {FAST_STEP_ACTION: True}
+
+        def advance_frame() -> None:
+            world.step(fast_step_action)
+
+        return advance_frame
+
+    return world.step
 
 
 def run_benchmark(num_frames: int = 1000, warmup_frames: int = 100) -> dict:
@@ -38,17 +58,18 @@ def run_benchmark(num_frames: int = 1000, warmup_frames: int = 100) -> dict:
     # Create headless simulation
     world = WorldRegistry.create_world("tank", seed=42, headless=True)
     world.reset(seed=42)
+    advance_frame = _get_advance_frame(world)
 
     frame_times = []
 
     print(f"Warming up for {warmup_frames} frames...")
     for _ in range(warmup_frames):
-        world.step()
+        advance_frame()
 
     print(f"Benchmarking {num_frames} frames...")
     for i in range(num_frames):
         start = time.perf_counter()
-        world.step()
+        advance_frame()
         elapsed = time.perf_counter() - start
         frame_times.append(elapsed * 1000)  # Convert to ms
 
@@ -85,10 +106,11 @@ def run_profiled_benchmark(num_frames: int = 500) -> None:
     # Create headless simulation
     world = WorldRegistry.create_world("tank", seed=42, headless=True)
     world.reset(seed=42)
+    advance_frame = _get_advance_frame(world)
 
     # Warmup
     for _ in range(50):
-        world.step()
+        advance_frame()
 
     # Profile
     profiler = cProfile.Profile()
@@ -96,7 +118,7 @@ def run_profiled_benchmark(num_frames: int = 500) -> None:
 
     profiler.enable()
     for _ in range(num_frames):
-        world.step()
+        advance_frame()
     profiler.disable()
 
     # Print stats

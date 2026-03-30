@@ -139,7 +139,7 @@ def test_energy_delta_ids_use_stable_format():
     engine.setup()
 
     # Get initial fish
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     assert len(fish_list) > 0, "Need at least one fish for this test"
     fish = fish_list[0]
 

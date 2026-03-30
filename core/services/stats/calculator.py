@@ -80,5 +80,5 @@ class StatsCalculator:
         """Get genetic trait distribution statistics with histograms."""
         from core.services.stats.genetic_stats import get_genetic_distribution_stats
 
-        fish_list = self._engine.get_fish_list()
+        fish_list = self._engine.entity_manager.get_fish()
         return get_genetic_distribution_stats(fish_list)

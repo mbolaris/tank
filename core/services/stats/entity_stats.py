@@ -41,8 +41,8 @@ def get_entity_stats(engine: "SimulationEngine") -> dict[str, Any]:
     from core import entities
     from core.entities.plant import Plant
 
-    fish_list = engine.get_fish_list()
-    all_food_list = engine.get_food_list()
+    fish_list = engine.entity_manager.get_fish()
+    all_food_list = engine.entity_manager.get_food()
 
     # Separate food types
     live_food_list = [e for e in all_food_list if isinstance(e, entities.LiveFood)]
@@ -71,7 +71,7 @@ def get_fish_health_stats(engine: "SimulationEngine") -> dict[str, Any]:
     Returns:
         Dictionary with fish health stats (critical, low, healthy, full)
     """
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
 
     if not fish_list:
         return {
