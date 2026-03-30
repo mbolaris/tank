@@ -163,7 +163,7 @@ class FoodSpawningSystem(BaseSystem):
         if ecosystem is None:
             return base_rate
 
-        fish_list = self._engine.get_fish_list()
+        fish_list = self._engine.entity_manager.get_fish()
         fish_count = len(fish_list)
 
         # Calculate total fish energy

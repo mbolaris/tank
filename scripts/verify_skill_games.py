@@ -183,7 +183,7 @@ def test_game_swapping():
     rps_games = 0
     for frame in range(500):
         engine.update()
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         events = skill_system.check_and_run_encounters(fish_list, frame, 60.0)
         rps_games += len(events)
 
@@ -204,14 +204,14 @@ def test_game_swapping():
     num_games = 0
     for frame in range(500, 1000):
         engine.update()
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         events = skill_system.check_and_run_encounters(fish_list, frame, 60.0)
         num_games += len(events)
 
     logger.info(f"  Number Guessing phase (500 frames): {num_games} games played")
 
     # Verify fish have stats for both games
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     fish_with_both = 0
     for fish in fish_list:
         if hasattr(fish, "_skill_game_component"):
@@ -247,7 +247,7 @@ def test_inheritance_in_simulation():
     engine.skill_game_system = skill_system
 
     # Track generations
-    initial_fish = engine.get_fish_list()
+    initial_fish = engine.entity_manager.get_fish()
     initial_gen = max(f.generation for f in initial_fish) if initial_fish else 0
     logger.info(f"  Starting generation: {initial_gen}")
 
@@ -261,7 +261,7 @@ def test_inheritance_in_simulation():
         engine.update()
 
         # Run skill games
-        fish_list = engine.get_fish_list()
+        fish_list = engine.entity_manager.get_fish()
         skill_system.check_and_run_encounters(fish_list, frame, 60.0)
 
         # Check for new generations
@@ -283,7 +283,7 @@ def test_inheritance_in_simulation():
         if highest_gen >= initial_gen + 2 and total_babies >= 10:
             break
 
-    final_fish = engine.get_fish_list()
+    final_fish = engine.entity_manager.get_fish()
     logger.info(f"  Final generation: {highest_gen}")
     logger.info(f"  Total babies born: {total_babies}")
     logger.info(f"  Babies with inherited strategies: {babies_with_inherited_strategies}")
@@ -336,7 +336,7 @@ def test_both_games_functional():
 
         for frame in range(1500):
             engine.update()
-            fish_list = engine.get_fish_list()
+            fish_list = engine.entity_manager.get_fish()
             events = skill_system.check_and_run_encounters(fish_list, frame, 60.0)
             games_played += len(events)
             for e in events:
@@ -345,7 +345,7 @@ def test_both_games_functional():
         results[game_type] = {
             "games": games_played,
             "energy": energy_transferred,
-            "fish": len(engine.get_fish_list()),
+            "fish": len(engine.entity_manager.get_fish()),
         }
 
         logger.info(

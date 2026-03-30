@@ -34,6 +34,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _fish_sort_key(fish: Fish) -> int:
+    """Stable ordering helper for deterministic traversal."""
+    return fish.fish_id
+
+
 @runs_in_phase(UpdatePhase.INTERACTION)
 class PokerProximitySystem(BaseSystem):
     """System for detecting fish groups and triggering poker games.
@@ -73,8 +78,8 @@ class PokerProximitySystem(BaseSystem):
         if poker_system is None or not poker_system.enabled:
             return SystemResult.empty()
 
-        # Get all fish
-        fish_list = self._engine.get_fish_list()
+        # Get all fish in a stable order once per frame.
+        fish_list = sorted(self._engine._entity_manager.get_fish(), key=_fish_sort_key)
         if len(fish_list) < 2:
             return SystemResult.empty()
 
@@ -99,7 +104,7 @@ class PokerProximitySystem(BaseSystem):
 
         return result
 
-    def _build_proximity_graph(self, fish_list: list["Fish"]) -> dict["Fish", set["Fish"]]:
+    def _build_proximity_graph(self, fish_list: list["Fish"]) -> dict["Fish", list["Fish"]]:
         """Build a graph of fish within poker proximity of each other.
 
         Args:
@@ -110,58 +115,58 @@ class PokerProximitySystem(BaseSystem):
             fish within poker range
         """
 
-        fish_poker_contacts: dict[Fish, set[Fish]] = {fish: set() for fish in fish_list}
+        fish_poker_contacts: dict[Fish, list[Fish]] = {fish: [] for fish in fish_list}
 
         # Pre-compute squared distance constants
         poker_min_sq = FISH_POKER_MIN_DISTANCE * FISH_POKER_MIN_DISTANCE
         poker_max_sq = FISH_POKER_MAX_DISTANCE * FISH_POKER_MAX_DISTANCE
 
-        fish_set = set(fish_list)
         environment = self._engine.environment
+        centers = {
+            fish: (fish.pos.x + fish.width * 0.5, fish.pos.y + fish.height * 0.5)
+            for fish in fish_list
+        }
 
         for fish in fish_list:
             if fish.is_dead():
                 continue
 
-            # Get nearby fish using spatial grid
+            fish_id = fish.fish_id
+            fish_cx, fish_cy = centers[fish]
+
+            # Get nearby fish using spatial grid.
             if environment is not None and hasattr(environment, "nearby_evolving_agents"):
                 nearby = environment.nearby_evolving_agents(fish, radius=FISH_POKER_MAX_DISTANCE)
             else:
-                nearby = [f for f in fish_list if f is not fish]
+                nearby = fish_list
 
-            # Cache fish center position
-            fish_cx = fish.pos.x + fish.width * 0.5
-            fish_cy = fish.pos.y + fish.height * 0.5
-
-            for other in fish_set.intersection(nearby):
-                if other is fish:
+            contacts = fish_poker_contacts[fish]
+            for other in nearby:
+                if other is fish or other.fish_id <= fish_id:
                     continue
                 if other.is_dead():
                     continue
 
                 # Calculate center-to-center distance squared
-                o_cx = other.pos.x + other.width * 0.5
-                o_cy = other.pos.y + other.height * 0.5
+                o_cx, o_cy = centers[other]
                 dx = fish_cx - o_cx
                 dy = fish_cy - o_cy
                 dist_sq = dx * dx + dy * dy
 
                 # Must be within max distance but farther than min distance
                 if poker_min_sq < dist_sq <= poker_max_sq:
-                    fish_poker_contacts[fish].add(other)
+                    contacts.append(other)
+                    fish_poker_contacts[other].append(fish)
 
-        # Make graph symmetric
-        for fish, contacts in fish_poker_contacts.items():
-            for contact in contacts:
-                if contact in fish_poker_contacts:
-                    fish_poker_contacts[contact].add(fish)
+        for contacts in fish_poker_contacts.values():
+            contacts.sort(key=_fish_sort_key)
 
         return fish_poker_contacts
 
     def _process_poker_groups(
         self,
         fish_list: list["Fish"],
-        fish_poker_contacts: dict["Fish", set["Fish"]],
+        fish_poker_contacts: dict["Fish", list["Fish"]],
     ) -> int:
         """Find connected components and trigger poker games.
 
@@ -174,17 +179,12 @@ class PokerProximitySystem(BaseSystem):
         """
         games_triggered = 0
         visited: set[Fish] = set()
-        processed_fish: set[Fish] = set()
 
         # PERF: Limit to 1 game per frame to prevent CPU spikes
         # (poker.play_poker() is expensive - can take 10-50ms)
         MAX_GAMES_PER_FRAME = 1
 
-        # Sort key for deterministic processing
-        def fish_key(f: "Fish") -> int:
-            return f.fish_id
-
-        for fish in sorted(fish_list, key=fish_key):
+        for fish in fish_list:
             if fish in visited or fish.is_dead():
                 continue
 
@@ -202,10 +202,11 @@ class PokerProximitySystem(BaseSystem):
                     group.append(current)
 
                 # Add connected fish
-                contacts = fish_poker_contacts.get(current, set())
-                for neighbor in sorted(contacts, key=fish_key):
-                    if neighbor not in visited:
-                        stack.append(neighbor)
+                contacts = fish_poker_contacts.get(current)
+                if contacts:
+                    for neighbor in contacts:
+                        if neighbor not in visited:
+                            stack.append(neighbor)
 
             # Process group if large enough
             if len(group) >= 2:
@@ -221,7 +222,7 @@ class PokerProximitySystem(BaseSystem):
                 ready_set = set(ready_fish)
                 ready_visited: set[Fish] = set()
 
-                for start in sorted(ready_fish, key=fish_key):
+                for start in sorted(ready_fish, key=_fish_sort_key):
                     if start in ready_visited:
                         continue
 
@@ -240,12 +241,11 @@ class PokerProximitySystem(BaseSystem):
                         ready_visited.add(current)
                         sub_group.append(current)
 
-                        for neighbor in sorted(
-                            fish_poker_contacts.get(current, set()),
-                            key=fish_key,
-                        ):
-                            if neighbor in ready_set and neighbor not in ready_visited:
-                                sub_stack.append(neighbor)
+                        contacts = fish_poker_contacts.get(current)
+                        if contacts:
+                            for neighbor in contacts:
+                                if neighbor in ready_set and neighbor not in ready_visited:
+                                    sub_stack.append(neighbor)
 
                     if len(sub_group) < 2:
                         continue
@@ -269,9 +269,9 @@ class PokerProximitySystem(BaseSystem):
                         # Handle deaths from poker
                         for f in sub_group:
                             if f.is_dead():
-                                self._engine.record_fish_death(f)
-
-                        processed_fish.update(sub_group)
+                                lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                                if lifecycle_system is not None:
+                                    lifecycle_system.record_fish_death(f)
 
             # PERF: Early exit if game limit reached
             if games_triggered >= MAX_GAMES_PER_FRAME:

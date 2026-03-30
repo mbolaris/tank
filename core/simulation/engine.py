@@ -226,6 +226,11 @@ class SimulationEngine:
         return self._entity_manager.food_pool
 
     @property
+    def entity_manager(self) -> EntityManager:
+        """Public access to entity storage and cached typed views."""
+        return self._entity_manager
+
+    @property
     def root_spot_manager(self) -> RootSpotManager | None:
         """Access to root spot manager via PlantManager."""
         if self.plant_manager is None:
@@ -233,28 +238,24 @@ class SimulationEngine:
         return self.plant_manager.root_spot_manager
 
     def get_fish_list(self) -> list[entities.Fish]:
-        """Get list of all fish.
+        """Removed compatibility shim.
 
-        .. deprecated:: Use ``_entity_manager.get_fish()`` directly.
+        Use ``engine.entity_manager.get_fish()``.
         """
-        warnings.warn(
-            "get_fish_list() is deprecated, use _entity_manager.get_fish()",
-            DeprecationWarning,
-            stacklevel=2,
+        raise RuntimeError(
+            "SimulationEngine.get_fish_list() was removed; "
+            "use engine.entity_manager.get_fish() instead."
         )
-        return self._entity_manager.get_fish()
 
     def get_food_list(self) -> list[entities.Food]:
-        """Get list of all food.
+        """Removed compatibility shim.
 
-        .. deprecated:: Use ``_entity_manager.get_food()`` directly.
+        Use ``engine.entity_manager.get_food()``.
         """
-        warnings.warn(
-            "get_food_list() is deprecated, use _entity_manager.get_food()",
-            DeprecationWarning,
-            stacklevel=2,
+        raise RuntimeError(
+            "SimulationEngine.get_food_list() was removed; "
+            "use engine.entity_manager.get_food() instead."
         )
-        return self._entity_manager.get_food()
 
     def cleanup_dying_fish(self) -> None:
         """Remove dying fish.

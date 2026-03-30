@@ -109,7 +109,7 @@ def test_tank_phase_hooks_spawn_decision_respects_population():
     hooks = TankPhaseHooks()
 
     # Create a mock Fish entity
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     if len(fish_list) == 0:
         pytest.skip("No fish to test spawn decision")
 
@@ -135,7 +135,7 @@ def test_tank_phase_hooks_death_handling():
     hooks = TankPhaseHooks()
 
     # Test with Fish - should NOT return True (fish death is recorded, not immediate removal)
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     if len(fish_list) > 0:
         fish = fish_list[0]
         # Simulate death

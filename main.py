@@ -75,14 +75,27 @@ def run_headless(
     import json
 
     from core.worlds import WorldRegistry
+    from core.worlds.interfaces import FAST_STEP_ACTION
 
     # Create world via the canonical WorldRegistry path
     world = WorldRegistry.create_world("tank", seed=seed, headless=True)
     world.reset(seed=seed)
 
+    world_update = getattr(world, "update", None)
+    if callable(world_update):
+        advance_frame = world_update
+    elif getattr(world, "supports_fast_step", False):
+        fast_step_action = {FAST_STEP_ACTION: True}
+
+        def advance_frame() -> None:
+            world.step(fast_step_action)
+
+    else:
+        advance_frame = world.step
+
     # Run simulation loop
     for frame in range(max_frames):
-        world.step()
+        advance_frame()
 
         if stats_interval and (frame + 1) % stats_interval == 0:
             stats = world.get_current_metrics(include_distributions=False)

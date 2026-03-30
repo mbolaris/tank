@@ -20,6 +20,7 @@ import time
 from typing import Any
 
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,10 +57,22 @@ def run_headless_world(
     world = WorldRegistry.create_world(mode_id, seed=seed, config=effective_config)
     world.reset(seed=seed, config=effective_config)
 
+    world_update = getattr(world, "update", None)
+    if callable(world_update):
+        advance_frame = world_update
+    elif getattr(world, "supports_fast_step", False):
+        fast_step_action = {FAST_STEP_ACTION: True}
+
+        def advance_frame() -> None:
+            world.step(fast_step_action)
+
+    else:
+        advance_frame = world.step
+
     start_time = time.time()
 
     for i in range(steps):
-        world.step()
+        advance_frame()
 
         if stats_interval and (i + 1) % stats_interval == 0 and not quiet:
             elapsed = time.time() - start_time

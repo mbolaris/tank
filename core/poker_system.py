@@ -379,7 +379,9 @@ class PokerSystem(BaseSystem):
                 for player in table.players:
                     if isinstance(player, Fish) and player.is_dead():
                         if player in all_entities_set:
-                            self._engine.record_fish_death(player)
+                            lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                            if lifecycle_system is not None:
+                                lifecycle_system.record_fish_death(player)
                             all_entities_set.discard(player)
                     elif isinstance(player, Plant) and player.is_dead():
                         if player in all_entities_set:

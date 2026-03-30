@@ -178,7 +178,10 @@ class SoccerMinigameScheduler:
 
     def _get_candidates(self, world_state: Any) -> list[Any]:
         fish_list = []
-        if hasattr(world_state, "get_fish_list"):
+        entity_manager = getattr(world_state, "entity_manager", None)
+        if entity_manager is not None and hasattr(entity_manager, "get_fish"):
+            fish_list = list(entity_manager.get_fish())
+        elif hasattr(world_state, "get_fish_list"):
             fish_list = list(world_state.get_fish_list())
         alive = []
         for fish in fish_list:

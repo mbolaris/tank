@@ -44,7 +44,7 @@ def _state_fingerprint(engine: SimulationEngine) -> str:
     Deterministic-ish digest of sim state.
     Intentionally ignores run_id / object ids; focuses on sim-relevant state.
     """
-    fish = sorted(engine.get_fish_list(), key=lambda f: f.fish_id)
+    fish = sorted(engine.entity_manager.get_fish(), key=lambda f: f.fish_id)
     parts = []
     parts.append(f"frame={engine.frame_count}")
     parts.append(f"fish_count={len(fish)}")

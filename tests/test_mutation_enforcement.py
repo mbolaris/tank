@@ -261,7 +261,7 @@ def test_late_removal_raises_with_invariant_enforcement(simulation_engine):
     engine.update()
 
     # Get a fish to queue for removal
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     if not fish_list:
         pytest.skip("No fish in simulation to test removal")
 

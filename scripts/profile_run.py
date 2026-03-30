@@ -2,6 +2,7 @@ import cProfile
 import pstats
 
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 FRAMES = 1000
 
@@ -23,8 +24,20 @@ def run_profile(seed: int = 42):
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)
 
+    world_update = getattr(world, "update", None)
+    if callable(world_update):
+        advance_frame = world_update
+    elif getattr(world, "supports_fast_step", False):
+        fast_step_action = {FAST_STEP_ACTION: True}
+
+        def advance_frame() -> None:
+            world.step(fast_step_action)
+
+    else:
+        advance_frame = world.step
+
     for i in range(FRAMES):
-        world.step()
+        advance_frame()
         if (i + 1) % 100 == 0:
             print(f"Frame {i+1}/{FRAMES}")
 

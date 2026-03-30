@@ -199,9 +199,19 @@ class SoccerSystem(BaseSystem):
         if not self.engine.environment:
             return
 
+        fish_list = None
+        entity_manager = getattr(self.engine, "entity_manager", None)
+        get_fish = getattr(entity_manager, "get_fish", None)
+        if callable(get_fish):
+            candidate_fish = get_fish()
+            if isinstance(candidate_fish, list):
+                fish_list = candidate_fish
+        if fish_list is None:
+            fish_list = list(getattr(self.engine, "entities_list", []))
+
         # Find the scorer and award energy
         scorer_found = False
-        for fish in self.engine.get_fish_list():
+        for fish in fish_list:
             # Use snapshot_type instead of isinstance for loose coupling
             if getattr(fish, "snapshot_type", None) != "fish" or fish.is_dead():
                 continue

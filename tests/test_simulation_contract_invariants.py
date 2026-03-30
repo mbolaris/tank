@@ -60,7 +60,7 @@ def test_engine_energy_delta_tracking(simulation_engine):
     engine = simulation_engine
 
     # Ensure we have at least one fish
-    fish_list = engine.get_fish_list()
+    fish_list = engine.entity_manager.get_fish()
     if not fish_list:
         from core.entities.fish import Fish
         from core.movement_strategy import AlgorithmicMovement

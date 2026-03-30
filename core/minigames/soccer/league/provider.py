@@ -81,7 +81,10 @@ class LeagueTeamProvider:
             # Fallback for tests or single-instance without manager
             # Treat world_state as the only source
             entities = []
-            if hasattr(world_state, "get_fish_list"):
+            entity_manager = getattr(world_state, "entity_manager", None)
+            if entity_manager is not None and hasattr(entity_manager, "get_fish"):
+                entities = list(entity_manager.get_fish())
+            elif hasattr(world_state, "get_fish_list"):
                 entities = list(world_state.get_fish_list())
 
             # Try to get world_id from state
@@ -138,7 +141,13 @@ class LeagueTeamProvider:
                             found[eid] = e
         else:
             # Fallback local
-            if hasattr(world_state, "get_fish_list"):
+            entity_manager = getattr(world_state, "entity_manager", None)
+            if entity_manager is not None and hasattr(entity_manager, "get_fish"):
+                for e in entity_manager.get_fish():
+                    eid = get_entity_id(e)
+                    if eid in entity_ids:
+                        found[eid] = e
+            elif hasattr(world_state, "get_fish_list"):
                 for e in world_state.get_fish_list():
                     eid = get_entity_id(e)
                     if eid in entity_ids:
@@ -148,16 +157,20 @@ class LeagueTeamProvider:
 
     def _get_world_entities_safe(self, instance: Any, is_current_world: bool) -> list[Any] | None:
         runner = instance.runner
-        if not hasattr(runner, "engine") or not hasattr(runner.engine, "get_fish_list"):
+        if not hasattr(runner, "engine"):
+            return None
+
+        entity_manager = getattr(runner.engine, "entity_manager", None)
+        if entity_manager is None or not hasattr(entity_manager, "get_fish"):
             return None
 
         if is_current_world:
-            return list(runner.engine.get_fish_list())
+            return list(entity_manager.get_fish())
 
         if hasattr(runner, "lock"):
             if runner.lock.acquire(blocking=False):
                 try:
-                    return list(runner.engine.get_fish_list())
+                    return list(entity_manager.get_fish())
                 finally:
                     runner.lock.release()
         return None
