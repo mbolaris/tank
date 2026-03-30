@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from core.energy.energy_utils import apply_energy_delta
 
@@ -193,12 +193,13 @@ class ReproductionService:
 
     def _get_fish_list(self) -> list[Fish]:
         entity_manager = getattr(self._engine, "entity_manager", None)
-        if entity_manager is not None and hasattr(entity_manager, "get_fish"):
-            return entity_manager.get_fish()
+        get_fish = getattr(entity_manager, "get_fish", None)
+        if callable(get_fish):
+            return cast("list[Fish]", get_fish())
 
         get_fish_list = getattr(self._engine, "get_fish_list", None)
         if callable(get_fish_list):
-            return get_fish_list()
+            return cast("list[Fish]", get_fish_list())
 
         from core.entities import Fish
 
