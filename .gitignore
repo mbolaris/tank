@@ -118,3 +118,4 @@ verify_*.json
 
 # Generated tournament/experiment results
 results/
+runs/

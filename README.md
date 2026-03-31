@@ -127,6 +127,22 @@ python main.py --headless --replay out.replay.jsonl
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --out results.json
 ```
 
+### Run the Demo
+
+```bash
+# One command: short tank sim + replay + soccer episode + 3k benchmark bundle
+python tools/demo.py --seed 42
+```
+
+That creates `runs/demo_<timestamp>/` with:
+
+- `manifest.json` containing seed, parameters, git metadata, and headline scores
+- `demo.log` with step-level execution notes
+- `summary.md` with a quick human-readable recap
+- `tank_results.json` and `tank.replay.jsonl`
+- `soccer_episode.json`
+- `benchmark_result.json`
+
 See [SETUP.md](SETUP.md) for detailed setup instructions and troubleshooting.
 
 ---
@@ -278,8 +294,8 @@ pytest
 black --config pyproject.toml core/ tests/ tools/ backend/
 ruff check --fix core/ tests/ tools/ backend/
 
-# Type-check only for new mypy regressions in core/
-python tools/mypy_gate.py
+# Type-check core strictly
+python -m mypy core/
 
 # Pre-commit (runs all checks)
 pre-commit run --all-files
