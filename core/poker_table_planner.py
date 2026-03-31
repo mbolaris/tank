@@ -233,9 +233,7 @@ class MixedPokerTablePlanner:
 
         # Filter to eligible and not-assigned
         return [
-            e
-            for e in nearby
-            if self._is_available_poker_player(e, all_eligible, assigned, fish)
+            e for e in nearby if self._is_available_poker_player(e, all_eligible, assigned, fish)
         ]
 
     def _is_available_poker_player(
