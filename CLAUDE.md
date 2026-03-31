@@ -71,7 +71,7 @@ tank/
     soccer/                  # training_5k.py, training_3k.py, etc.
   champions/                 # Best Known Solutions registry (JSON)
   scripts/                   # AI evolution agent, tournaments, automation
-  tools/                     # run_bench.py, validate_improvement.py, mypy_gate.py
+  tools/                     # run_bench.py, validate_improvement.py, demo.py
   docs/                      # Architecture, vision, guides, ADRs
 ```
 
@@ -80,7 +80,7 @@ tank/
 - **Python 3.10+**: Modern type hints (`X | Y`, `list[str]`) used natively
 - **Formatting**: black (100 char line length), isort (black profile)
 - **Linting**: ruff with select rules (see pyproject.toml)
-- **Type checking**: mypy on core/ (baseline mode via tools/mypy_gate.py)
+- **Type checking**: mypy on core/ via `python -m mypy core/`
 - **Tests**: pytest with markers: `slow`, `integration`, `manual`, `core`
 - **Line length**: 100 characters (both black and ruff)
 - **No __pycache__**: Pre-commit hook prevents committing compiled artifacts
