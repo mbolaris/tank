@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from backend.security import websocket_limiter
+
 if TYPE_CHECKING:
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
     from backend.world_manager import WorldManager
@@ -17,11 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(websocket: WebSocket) -> str:
-    """Extract client IP from WebSocket connection."""
+    """Extract client IP from WebSocket connection (host only, no port)."""
     client = websocket.client
-    if client:
-        return f"{client.host}:{client.port}"
-    return "unknown"
+    return client.host if client else "unknown"
 
 
 async def _handle_websocket_for_adapter(
@@ -157,6 +157,17 @@ async def _handle_websocket_for_world(
         await websocket.close(code=4004)
         return
 
+    # Enforce per-IP WebSocket connection limit before accepting.
+    client_ip = _get_client_ip(websocket)
+    if not websocket_limiter.connect(client_ip):
+        logger.warning(
+            "World %s: WebSocket connection limit reached for %s, rejecting",
+            world_id[:8],
+            client_ip,
+        )
+        await websocket.close(code=4029)  # 4029 = Too Many Connections (app-defined)
+        return
+
     # Register client with world manager for tracking
     world_manager.add_client(world_id, websocket)
 
@@ -164,6 +175,7 @@ async def _handle_websocket_for_world(
         await _handle_websocket_for_adapter(websocket, adapter, world_id)
     finally:
         world_manager.remove_client(world_id, websocket)
+        websocket_limiter.disconnect(client_ip)
 
 
 def setup_router(
