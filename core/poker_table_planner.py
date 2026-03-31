@@ -16,7 +16,7 @@ Table Formation:
 """
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional, Union, cast
+from typing import TYPE_CHECKING, Optional, TypeGuard, Union
 
 from core.config.server import POKER_ACTIVITY_ENABLED
 
@@ -233,10 +233,20 @@ class MixedPokerTablePlanner:
 
         # Filter to eligible and not-assigned
         return [
-            cast(PokerPlayer, e)
+            e
             for e in nearby
-            if e in all_eligible and e not in assigned and e is not fish
+            if self._is_available_poker_player(e, all_eligible, assigned, fish)
         ]
+
+    def _is_available_poker_player(
+        self,
+        entity: object,
+        all_eligible: set[PokerPlayer],
+        assigned: set[PokerPlayer],
+        initiator: "Fish",
+    ) -> TypeGuard[PokerPlayer]:
+        """Narrow generic nearby entities to playable poker participants."""
+        return entity in all_eligible and entity not in assigned and entity is not initiator
 
     def _is_mutually_proximate(
         self,
