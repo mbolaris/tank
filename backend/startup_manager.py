@@ -398,6 +398,10 @@ class StartupManager:
         logger.info("Starting auto-save service...")
         try:
             self.auto_save_service = AutoSaveService(self.world_manager)
+            self.world_manager.set_world_lifecycle_callbacks(
+                created_callback=self.auto_save_service.register_world,
+                deleted_callback=self.auto_save_service.unregister_world,
+            )
             await self.auto_save_service.start()
             logger.info("Auto-save service started")
         except Exception as e:

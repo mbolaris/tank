@@ -115,6 +115,8 @@ class WorldManager:
         self._default_world_id: str | None = None
         self._start_broadcast_callback: BroadcastCallback | None = None
         self._stop_broadcast_callback: BroadcastCallback | None = None
+        self._world_created_callback: Callable[[WorldInstance], None] | None = None
+        self._world_deleted_callback: Callable[[str], None] | None = None
         self.connection_manager: Any = None
 
     def set_connection_manager(self, connection_manager: Any) -> None:
@@ -134,6 +136,16 @@ class WorldManager:
         """Set callbacks for starting/stopping broadcasts."""
         self._start_broadcast_callback = start_callback
         self._stop_broadcast_callback = stop_callback
+
+    def set_world_lifecycle_callbacks(
+        self,
+        *,
+        created_callback: Callable[[WorldInstance], None] | None = None,
+        deleted_callback: Callable[[str], None] | None = None,
+    ) -> None:
+        """Set callbacks for world creation and deletion events."""
+        self._world_created_callback = created_callback
+        self._world_deleted_callback = deleted_callback
 
     def create_world(
         self,
@@ -256,38 +268,7 @@ class WorldManager:
             description=description,
         )
 
-        # Store in unified worlds dict
-        self._worlds[world_id] = instance
-
-        # Set as default if first world
-        if self._default_world_id is None:
-            self._default_world_id = world_id
-
-        logger.info(
-            "Created %s world: %s (%s)",
-            world_type,
-            world_id[:8],
-            name,
-        )
-
-        # Start broadcast task for newly created tank worlds
-        if self._start_broadcast_callback:
-            adapter = self.get_broadcast_adapter(world_id)
-            if adapter:
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        self._start_broadcast_callback(adapter, world_id),
-                        name=f"broadcast_start_{world_id[:8]}",
-                    )
-                    logger.info("Scheduled broadcast task for world %s", world_id[:8])
-                except RuntimeError:
-                    # No running event loop - broadcast will be started when first client connects
-                    logger.debug(
-                        "No event loop available, broadcast task for %s will start on connection",
-                        world_id[:8],
-                    )
-
+        self._finalize_world_creation(instance)
         return instance
 
     def _create_generic_world(
@@ -334,6 +315,13 @@ class WorldManager:
             description=description,
         )
 
+        self._finalize_world_creation(instance)
+        return instance
+
+    def _finalize_world_creation(self, instance: WorldInstance) -> None:
+        """Store a new world instance and trigger lifecycle callbacks."""
+        world_id = instance.world_id
+
         # Store in unified worlds dict
         self._worlds[world_id] = instance
 
@@ -343,12 +331,12 @@ class WorldManager:
 
         logger.info(
             "Created %s world: %s (%s)",
-            world_type,
+            instance.world_type,
             world_id[:8],
-            name,
+            instance.name,
         )
 
-        # Start broadcast task for newly created generic worlds
+        # Start broadcast task for newly created worlds
         if self._start_broadcast_callback:
             adapter = self.get_broadcast_adapter(world_id)
             if adapter:
@@ -358,7 +346,7 @@ class WorldManager:
                         self._start_broadcast_callback(adapter, world_id),
                         name=f"broadcast_start_{world_id[:8]}",
                     )
-                    logger.info("Scheduled broadcast task for generic world %s", world_id[:8])
+                    logger.info("Scheduled broadcast task for world %s", world_id[:8])
                 except RuntimeError:
                     # No running event loop - broadcast will be started when first client connects
                     logger.debug(
@@ -366,7 +354,8 @@ class WorldManager:
                         world_id[:8],
                     )
 
-        return instance
+        if self._world_created_callback:
+            self._world_created_callback(instance)
 
     def get_world(self, world_id: str) -> WorldInstance | None:
         """Get a world instance by ID.
@@ -474,6 +463,9 @@ class WorldManager:
             # Cleanup connections
             if self.connection_manager:
                 self.connection_manager.validate_connections(list(self._worlds.keys()))
+
+            if self._world_deleted_callback:
+                self._world_deleted_callback(world_id)
 
             logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
             return True

@@ -7,6 +7,7 @@ server restarts.
 
 import asyncio
 import logging
+from collections.abc import Coroutine
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -34,6 +35,34 @@ class AutoSaveService:
         self._world_manager = world_manager
         self._tasks: dict[str, asyncio.Task] = {}
         self._running = False
+
+    def register_world(self, instance: "WorldInstance") -> None:
+        """Enroll a newly created persistent world in auto-save.
+
+        Args:
+            instance: The created world instance
+        """
+        if not self._running or not instance.persistent:
+            return
+
+        self._schedule_task(
+            self._start_world_autosave(instance),
+            name=f"autosave_start_{instance.world_id[:8]}",
+        )
+
+    def unregister_world(self, world_id: str) -> None:
+        """Remove a deleted world from auto-save tracking.
+
+        Args:
+            world_id: The deleted world ID
+        """
+        if not self._running:
+            return
+
+        self._schedule_task(
+            self.stop_world_autosave(world_id),
+            name=f"autosave_stop_{world_id[:8]}",
+        )
 
     async def start(self) -> None:
         """Start the auto-save service."""
@@ -87,6 +116,32 @@ class AutoSaveService:
             f"Started auto-save for world {world_id[:8]} "
             f"(interval: {DEFAULT_AUTO_SAVE_INTERVAL}s)"
         )
+
+    def _schedule_task(self, coro: Coroutine[object, object, object], *, name: str) -> None:
+        """Schedule a background auto-save operation on the active loop."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            logger.debug("No running event loop available for task %s", name)
+            return
+
+        task = loop.create_task(coro, name=name)
+        task.add_done_callback(self._handle_background_task)
+
+    @staticmethod
+    def _handle_background_task(task: asyncio.Task) -> None:
+        """Log unhandled exceptions from background enrollment tasks."""
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            logger.debug("Background auto-save task %s was cancelled", task.get_name())
+        except Exception as exc:
+            logger.error(
+                "Unhandled exception in auto-save task %s: %s",
+                task.get_name(),
+                exc,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
 
     async def stop_world_autosave(self, world_id: str) -> None:
         """Stop auto-save task for a specific world.
