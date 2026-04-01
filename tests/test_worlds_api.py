@@ -4,10 +4,14 @@ This module tests the /api/worlds and /api/world_types endpoints
 for creating and managing worlds of different types.
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.app_factory import AppContext, create_app
+from backend.routers.worlds import setup_worlds_router
 from backend.world_manager import WorldManager
 
 
@@ -174,6 +178,21 @@ class TestWorldOperations:
         # Verify it's gone
         get_response = test_client.get(f"/api/worlds/{world_id}")
         assert get_response.status_code == 404
+
+    def test_delete_world_endpoint_awaits_async_cleanup(self):
+        """The delete endpoint should await world cleanup before returning."""
+        world_manager = MagicMock(spec=WorldManager)
+        world_manager.delete_world_async = AsyncMock(return_value=True)
+
+        app = FastAPI()
+        app.include_router(setup_worlds_router(world_manager))
+
+        with TestClient(app) as client:
+            response = client.delete("/api/worlds/test-world")
+
+        assert response.status_code == 200
+        world_manager.delete_world_async.assert_awaited_once_with("test-world")
+        world_manager.delete_world.assert_not_called()
 
     def test_get_nonexistent_world_returns_404(self, test_client):
         """Test that getting a nonexistent world returns 404."""

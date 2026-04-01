@@ -1,6 +1,9 @@
 """Tests for WorldManager broadcast scheduling."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestWorldManagerBroadcastScheduling:
@@ -77,3 +80,32 @@ class TestWorldManagerBroadcastScheduling:
 
         assert instance is not None
         assert instance.world_type == "petri"
+
+    @pytest.mark.asyncio
+    async def test_delete_world_async_waits_for_broadcast_shutdown(self) -> None:
+        """Async deletion should not return until broadcast shutdown finishes."""
+        from backend.world_manager import WorldManager
+
+        manager = WorldManager()
+        mock_start = AsyncMock()
+        stop_started = asyncio.Event()
+        allow_stop = asyncio.Event()
+
+        async def mock_stop(_world_id: str) -> None:
+            stop_started.set()
+            await allow_stop.wait()
+
+        manager.set_broadcast_callbacks(mock_start, mock_stop)
+        instance = manager.create_world(
+            world_type="petri",
+            name="Delete Test Petri",
+            seed=42,
+        )
+
+        delete_task = asyncio.create_task(manager.delete_world_async(instance.world_id))
+        await stop_started.wait()
+
+        assert not delete_task.done()
+
+        allow_stop.set()
+        assert await delete_task is True

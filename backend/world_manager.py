@@ -10,9 +10,10 @@ WorldManager → WorldInstance → SimulationRunner → Broadcast
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import uuid
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -31,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 # Type alias for broadcast callbacks
 BroadcastCallback = Callable[..., Coroutine[Any, Any, Any]]
+LifecycleWorldCreatedCallback = Callable[["WorldInstance"], object]
+LifecycleWorldDeletedCallback = Callable[[str], object]
 
 
 @dataclass
@@ -115,8 +118,8 @@ class WorldManager:
         self._default_world_id: str | None = None
         self._start_broadcast_callback: BroadcastCallback | None = None
         self._stop_broadcast_callback: BroadcastCallback | None = None
-        self._world_created_callback: Callable[[WorldInstance], None] | None = None
-        self._world_deleted_callback: Callable[[str], None] | None = None
+        self._world_created_callback: LifecycleWorldCreatedCallback | None = None
+        self._world_deleted_callback: LifecycleWorldDeletedCallback | None = None
         self.connection_manager: Any = None
 
     def set_connection_manager(self, connection_manager: Any) -> None:
@@ -140,12 +143,76 @@ class WorldManager:
     def set_world_lifecycle_callbacks(
         self,
         *,
-        created_callback: Callable[[WorldInstance], None] | None = None,
-        deleted_callback: Callable[[str], None] | None = None,
+        created_callback: LifecycleWorldCreatedCallback | None = None,
+        deleted_callback: LifecycleWorldDeletedCallback | None = None,
     ) -> None:
         """Set callbacks for world creation and deletion events."""
         self._world_created_callback = created_callback
         self._world_deleted_callback = deleted_callback
+
+    @staticmethod
+    def _handle_background_task(task: asyncio.Task[Any]) -> None:
+        """Log unhandled exceptions from scheduled lifecycle tasks."""
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            logger.debug("Background world lifecycle task %s was cancelled", task.get_name())
+        except Exception as exc:
+            logger.error(
+                "Unhandled exception in world lifecycle task %s: %s",
+                task.get_name(),
+                exc,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+
+    def _schedule_awaitable(self, result: object, *, task_name: str) -> None:
+        """Schedule an awaitable lifecycle result on the current event loop."""
+        if not inspect.isawaitable(result):
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            logger.debug("No running event loop available for task %s", task_name)
+            close = getattr(result, "close", None)
+            if callable(close):
+                close()
+            return
+
+        task = loop.create_task(result, name=task_name)
+        task.add_done_callback(self._handle_background_task)
+
+    def _collect_world_cleanup(
+        self,
+        instance: WorldInstance,
+    ) -> list[Awaitable[object]]:
+        """Stop the runner and collect any async cleanup operations for a world."""
+        cleanup_tasks: list[Awaitable[object]] = []
+
+        if hasattr(instance.runner, "stop"):
+            instance.runner.stop()
+
+        if self._stop_broadcast_callback:
+            cleanup_tasks.append(self._stop_broadcast_callback(instance.world_id))
+
+        if self._world_deleted_callback:
+            callback_result = self._world_deleted_callback(instance.world_id)
+            if inspect.isawaitable(callback_result):
+                cleanup_tasks.append(callback_result)
+
+        return cleanup_tasks
+
+    def _finalize_world_deletion(self, instance: WorldInstance) -> None:
+        """Apply in-memory cleanup after a world has been removed."""
+        world_id = instance.world_id
+
+        if self._default_world_id == world_id:
+            self._default_world_id = next(iter(self._worlds), None)
+
+        if self.connection_manager:
+            self.connection_manager.validate_connections(list(self._worlds.keys()))
+
+        logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
 
     def create_world(
         self,
@@ -355,7 +422,11 @@ class WorldManager:
                     )
 
         if self._world_created_callback:
-            self._world_created_callback(instance)
+            callback_result = self._world_created_callback(instance)
+            self._schedule_awaitable(
+                callback_result,
+                task_name=f"world_created_{world_id[:8]}",
+            )
 
     def get_world(self, world_id: str) -> WorldInstance | None:
         """Get a world instance by ID.
@@ -440,8 +511,8 @@ class WorldManager:
 
         return statuses
 
-    def delete_world(self, world_id: str) -> bool:
-        """Delete a world instance.
+    async def delete_world_async(self, world_id: str) -> bool:
+        """Delete a world instance and await per-world background cleanup.
 
         Args:
             world_id: The world ID to delete
@@ -450,41 +521,43 @@ class WorldManager:
             True if deleted, False if not found
         """
         instance = self._worlds.pop(world_id, None)
+        if instance is None:
+            return False
 
-        if instance is not None:
-            # Stop the runner if it's a SimulationRunner
-            if hasattr(instance.runner, "stop"):
-                instance.runner.stop()
+        cleanup_tasks = self._collect_world_cleanup(instance)
+        self._finalize_world_deletion(instance)
 
-            # Stop the broadcast task for this world
-            if self._stop_broadcast_callback:
-                try:
-                    loop = asyncio.get_running_loop()
-                    loop.create_task(
-                        self._stop_broadcast_callback(world_id),
-                        name=f"broadcast_stop_{world_id[:8]}",
-                    )
-                except RuntimeError:
-                    logger.debug(
-                        "No event loop available, broadcast task for %s may not be stopped",
-                        world_id[:8],
-                    )
+        for cleanup_task in cleanup_tasks:
+            await cleanup_task
 
-            # Update default world if needed
-            if self._default_world_id == world_id:
-                self._default_world_id = next(iter(self._worlds), None)
+        return True
 
-            # Cleanup connections
-            if self.connection_manager:
-                self.connection_manager.validate_connections(list(self._worlds.keys()))
+    def delete_world(self, world_id: str) -> bool:
+        """Delete a world instance.
 
-            if self._world_deleted_callback:
-                self._world_deleted_callback(world_id)
+        This synchronous compatibility wrapper performs immediate in-memory
+        deletion and schedules any async cleanup on the active event loop.
 
-            logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
-            return True
+        Args:
+            world_id: The world ID to delete
 
-        return False
+        Returns:
+            True if deleted, False if not found
+        """
+        instance = self._worlds.pop(world_id, None)
+        if instance is None:
+            return False
+
+        cleanup_tasks = self._collect_world_cleanup(instance)
+        self._finalize_world_deletion(instance)
+
+        for index, cleanup_task in enumerate(cleanup_tasks):
+            self._schedule_awaitable(
+                cleanup_task,
+                task_name=f"world_delete_{world_id[:8]}_{index}",
+            )
+
+        return True
 
     def step_world(self, world_id: str, actions: dict[str, Any] | None = None) -> bool:
         """Step a world by one frame.
