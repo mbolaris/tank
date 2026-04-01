@@ -114,14 +114,14 @@ async def test_deleted_world_broadcast_task_is_stopped() -> None:
         world_id = instance.world_id
 
         await asyncio.sleep(0.05)
-        assert any(k[0] == world_id for k in _broadcast_tasks), (
-            "broadcast task should exist after world creation"
-        )
+        assert any(
+            k[0] == world_id for k in _broadcast_tasks
+        ), "broadcast task should exist after world creation"
 
         assert await sm.world_manager.delete_world_async(world_id) is True
 
-        assert not any(k[0] == world_id for k in _broadcast_tasks), (
-            "broadcast task should be gone after world deletion"
-        )
+        assert not any(
+            k[0] == world_id for k in _broadcast_tasks
+        ), "broadcast task should be gone after world deletion"
     finally:
         await sm.shutdown()
