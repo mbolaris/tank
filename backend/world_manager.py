@@ -456,6 +456,20 @@ class WorldManager:
             if hasattr(instance.runner, "stop"):
                 instance.runner.stop()
 
+            # Stop the broadcast task for this world
+            if self._stop_broadcast_callback:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
+                        self._stop_broadcast_callback(world_id),
+                        name=f"broadcast_stop_{world_id[:8]}",
+                    )
+                except RuntimeError:
+                    logger.debug(
+                        "No event loop available, broadcast task for %s may not be stopped",
+                        world_id[:8],
+                    )
+
             # Update default world if needed
             if self._default_world_id == world_id:
                 self._default_world_id = next(iter(self._worlds), None)
