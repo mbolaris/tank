@@ -423,13 +423,23 @@ class StartupManager:
                 logger.error(f"Error stopping auto-save service: {e}", exc_info=True)
 
     async def _stop_broadcast_tasks(self) -> None:
-        """Stop all broadcast tasks."""
+        """Stop all broadcast tasks.
+
+        Uses the current world_manager state as the source of truth so that
+        worlds created after startup (which are not in _broadcast_task_ids)
+        are also stopped cleanly.
+        """
         logger.info("Stopping broadcast tasks...")
         if not self._stop_broadcast_callback:
             logger.warning("No broadcast stop callback configured")
             return
 
-        for world_id in list(self._broadcast_task_ids):
+        # Build the union of tracked IDs and all currently known worlds so we
+        # never miss a broadcast loop regardless of when the world was created.
+        live_world_ids = {instance.world_id for instance in self.world_manager}
+        all_world_ids = self._broadcast_task_ids | live_world_ids
+
+        for world_id in all_world_ids:
             try:
                 await self._stop_broadcast_callback(world_id)
                 logger.info(f"Broadcast task stopped for world {world_id[:8]}")
