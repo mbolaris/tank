@@ -139,11 +139,26 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Check content length
         content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > self.MAX_CONTENT_LENGTH:
-            return JSONResponse(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                content={"error": "Request too large", "max_size": self.MAX_CONTENT_LENGTH},
-            )
+        if content_length:
+            try:
+                parsed_content_length = int(content_length)
+            except ValueError:
+                return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={"error": "Invalid Content-Length header"},
+                )
+
+            if parsed_content_length < 0:
+                return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content={"error": "Invalid Content-Length header"},
+                )
+
+            if parsed_content_length > self.MAX_CONTENT_LENGTH:
+                return JSONResponse(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    content={"error": "Request too large", "max_size": self.MAX_CONTENT_LENGTH},
+                )
 
         return await call_next(request)
 
