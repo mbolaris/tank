@@ -213,7 +213,6 @@ class WorldManager:
             self.connection_manager.validate_connections(list(self._worlds.keys()))
 
         logger.info("Deleted world: %s (%s)", world_id[:8], instance.world_type)
-
     def create_world(
         self,
         world_type: str,

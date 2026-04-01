@@ -45,8 +45,6 @@ def _make_startup_manager(*, with_broadcast: bool = False) -> StartupManager:
 def startup_manager() -> StartupManager:
     """Create a startup manager with mocked external services."""
     return _make_startup_manager()
-
-
 @pytest.mark.asyncio
 async def test_new_persistent_world_is_enrolled_in_autosave(
     startup_manager: StartupManager,
