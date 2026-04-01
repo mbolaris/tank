@@ -225,7 +225,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
         Returns:
             Success message or 404 if not found
         """
-        if world_manager.delete_world(world_id):
+        if await world_manager.delete_world_async(world_id):
             return JSONResponse({"message": f"World {world_id} deleted"})
         else:
             raise HTTPException(status_code=404, detail=f"World not found: {world_id}")

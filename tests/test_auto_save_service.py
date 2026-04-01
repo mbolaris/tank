@@ -90,8 +90,7 @@ async def test_deleted_world_is_removed_from_autosave(startup_manager: StartupMa
         await asyncio.sleep(0.05)
         assert instance.world_id in startup_manager.auto_save_service._tasks
 
-        assert startup_manager.world_manager.delete_world(instance.world_id) is True
-        await asyncio.sleep(0.05)
+        assert await startup_manager.world_manager.delete_world_async(instance.world_id) is True
 
         assert instance.world_id not in startup_manager.auto_save_service._tasks
     finally:
@@ -119,8 +118,7 @@ async def test_deleted_world_broadcast_task_is_stopped() -> None:
             "broadcast task should exist after world creation"
         )
 
-        assert sm.world_manager.delete_world(world_id) is True
-        await asyncio.sleep(0.05)
+        assert await sm.world_manager.delete_world_async(world_id) is True
 
         assert not any(k[0] == world_id for k in _broadcast_tasks), (
             "broadcast task should be gone after world deletion"
