@@ -399,8 +399,8 @@ class StartupManager:
         try:
             self.auto_save_service = AutoSaveService(self.world_manager)
             self.world_manager.set_world_lifecycle_callbacks(
-                created_callback=self.auto_save_service.register_world,
-                deleted_callback=self.auto_save_service.stop_world_autosave,
+                created_callback=self._on_world_created,
+                deleted_callback=self._on_world_deleted,
             )
             await self.auto_save_service.start()
             logger.info("Auto-save service started")
@@ -423,13 +423,24 @@ class StartupManager:
                 logger.error(f"Error stopping auto-save service: {e}", exc_info=True)
 
     async def _stop_broadcast_tasks(self) -> None:
-        """Stop all broadcast tasks."""
+        """Stop all broadcast tasks.
+
+        Stops broadcasts for every world known to the world_manager as well as
+        any world IDs still tracked in ``_broadcast_task_ids``.  This ensures
+        worlds created after startup are cleaned up during shutdown.
+        """
         logger.info("Stopping broadcast tasks...")
         if not self._stop_broadcast_callback:
             logger.warning("No broadcast stop callback configured")
             return
 
-        for world_id in list(self._broadcast_task_ids):
+        # Collect world IDs from both the manager and our tracking set so we
+        # never miss a runtime-created world.
+        all_world_ids = set(self._broadcast_task_ids)
+        for instance in self.world_manager:
+            all_world_ids.add(instance.world_id)
+
+        for world_id in all_world_ids:
             try:
                 await self._stop_broadcast_callback(world_id)
                 logger.info(f"Broadcast task stopped for world {world_id[:8]}")
@@ -487,6 +498,35 @@ class StartupManager:
             logger.info("Server client stopped")
         except Exception as e:
             logger.error(f"Error stopping server client: {e}", exc_info=True)
+
+    # =========================================================================
+    # World lifecycle callbacks
+    # =========================================================================
+
+    def _on_world_created(self, instance: Any) -> None:
+        """Handle a newly created world instance.
+
+        Registers the world's broadcast task for shutdown tracking and
+        delegates to the auto-save service if available.
+        """
+        world_id = instance.world_id
+        self._broadcast_task_ids.add(world_id)
+        logger.info(f"Registered broadcast tracking for world {world_id[:8]}")
+
+        if self.auto_save_service:
+            self.auto_save_service.register_world(instance)
+
+    async def _on_world_deleted(self, world_id: str) -> None:
+        """Handle a deleted world instance.
+
+        Unregisters the world from broadcast shutdown tracking and
+        delegates to the auto-save service if available.
+        """
+        self._broadcast_task_ids.discard(world_id)
+        logger.info(f"Unregistered broadcast tracking for world {world_id[:8]}")
+
+        if self.auto_save_service:
+            await self.auto_save_service.stop_world_autosave(world_id)
 
     # =========================================================================
     # Helper Methods
