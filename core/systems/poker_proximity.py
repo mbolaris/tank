@@ -136,13 +136,17 @@ class PokerProximitySystem(BaseSystem):
 
             # Get nearby fish using spatial grid.
             if environment is not None and hasattr(environment, "nearby_evolving_agents"):
-                nearby_fish = [
-                    other
-                    for other in environment.nearby_evolving_agents(
-                        fish, radius=FISH_POKER_MAX_DISTANCE
-                    )
-                    if isinstance(other, Fish)
-                ]
+                # Use snapshot_type instead of isinstance for loose coupling
+                nearby_fish = cast(
+                    "list[Fish]",
+                    [
+                        other
+                        for other in environment.nearby_evolving_agents(
+                            fish, radius=FISH_POKER_MAX_DISTANCE
+                        )
+                        if getattr(other, "snapshot_type", None) == "fish"
+                    ],
+                )
             else:
                 nearby_fish = fish_list
 

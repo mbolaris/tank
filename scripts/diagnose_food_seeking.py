@@ -133,13 +133,10 @@ def main():
     }
 
     world = WorldRegistry.create_world("tank", seed=42, config=config)
-    world.reset(seed=42)
+    world.reset(seed=42, config=config)
 
-    # Spawn initial population
-    for _ in range(20):
-        # Access engine directly for emergency spawn
-        world.engine.spawn_emergency_fish()
-
+    # The world seeds its own initial population on reset; no manual spawning
+    # needed (the old engine.spawn_emergency_fish API no longer exists).
     fish_count = len([e for e in world.entities_list if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
     print("\nRunning 33 seconds of simulation (1000 frames)...")

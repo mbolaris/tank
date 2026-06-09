@@ -148,6 +148,19 @@ The standard evolution loop:
 ## Common Gotchas
 
 - Always use `--seed 42` for reproducible benchmarks
+- **Ball pursuit pre-empts food seeking**: in `core/movement_strategy.py`, soccer-ball
+  pursuit (priority 2) runs before the composable behavior's food pursuit (priority 4),
+  and the ball exists even in benchmark configs (`tank_practice_enabled` defaults to True
+  even when `soccer_enabled` is False). When diagnosing starvation, first check whether
+  fish are clustering around the ball at tank center instead of foraging
+  (`scripts/diagnose_food_seeking.py` helps).
+- **Benchmark "population" counts all entities, not fish**: `avg_pop`/`mean_population`
+  in tank benchmarks use `len(world.entities_list)`, which includes food items. A
+  "population" of ~380 may be ~40 fish + ~340 food. Use `stats["fish_count"]` for fish.
+- **Reproduction is funded by overflow energy**: fish bank energy gained above
+  `max_energy` and spend it on offspring. Changes that burn the surplus energy of
+  well-fed fish (e.g. ball play, poker) directly suppress birth rate and generation
+  turnover, which the ecosystem_health benchmark penalizes.
 - Run `pre-commit run --all-files` before committing (or `pre-commit install` to auto-run)
 - CI uses Python 3.10; `requires-python = ">=3.10"` in pyproject.toml
 - Frontend is excluded from Python linting (separate ESLint config)

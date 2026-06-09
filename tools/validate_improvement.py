@@ -11,6 +11,17 @@ import time
 from typing import Any
 
 
+def get_champion_record(champion_data: dict[str, Any]) -> dict[str, Any]:
+    """Extract the champion record, supporting both formats.
+
+    Standard format nests the record under a "champion" key; legacy format
+    stores score/seed/metadata at the top level (as written by run_bench.py).
+    """
+    if "champion" in champion_data:
+        return champion_data["champion"]
+    return champion_data
+
+
 def is_improvement(
     new_result: dict[str, Any], champion_data: dict[str, Any] | None, tolerance: float = 1e-9
 ) -> bool:
@@ -21,7 +32,7 @@ def is_improvement(
 
     try:
         new_score = float(new_result["score"])
-        old_score = float(champion_data["champion"]["score"])
+        old_score = float(get_champion_record(champion_data)["score"])
     except (KeyError, TypeError, ValueError):
         return False
 
@@ -40,8 +51,8 @@ def update_champion_data(
         version = champion_data.get("version", 1) + 1
         history = champion_data.get("history", [])
 
-        # Archive current champion to history
-        old_record = champion_data["champion"]
+        # Archive current champion to history (handles legacy flat format too)
+        old_record = dict(get_champion_record(champion_data))
         old_record["retired_at"] = time.time()
         old_record["version"] = champion_data.get("version", 1)
         history.append(old_record)
@@ -89,7 +100,7 @@ def main():
         new_score = float(result["score"])
 
         if champion:
-            old_score = champion["champion"]["score"]
+            old_score = get_champion_record(champion)["score"]
             diff = new_score - float(old_score)
 
             print(f"New Score: {new_score:.6f}")

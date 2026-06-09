@@ -264,14 +264,20 @@ class AlgorithmicMovement(MovementStrategy):
     def _get_ball_pursuit_velocity(self, fish: Fish) -> VelocityComponents | None:
         """Check if fish should pursue the soccer ball.
 
-        All fish have some interest in the ball, with hungrier fish
-        being more motivated to score goals for energy.
+        Only fish with an energy surplus play ball. Hungry fish skip the
+        ball entirely so the composable behavior's food pursuit can run.
+
+        The previous version *increased* ball interest with hunger (up to
+        80% per frame for starving fish). Because ball pursuit pre-empts
+        food seeking, the whole population converged on the ball at tank
+        center and starved next to uneaten food (98% starvation deaths).
 
         Returns:
             Velocity toward ball if pursuing, None otherwise
         """
         import math
 
+        from core.config.fish import SAFE_ENERGY_THRESHOLD_RATIO
         from core.entities.ball import Ball
 
         # Prefer the primary ball reference provided by the environment
@@ -287,16 +293,20 @@ class AlgorithmicMovement(MovementStrategy):
         if ball is None:
             return None  # No ball = no soccer
 
-        # Calculate pursuit probability based on energy
-        # Base: 35% chance for all fish (makes soccer very active!)
-        # Bonus: Hungrier fish chase more aggressively (up to +45%)
+        # Pursuit probability scales with energy surplus above the safe
+        # threshold: just-safe fish rarely play, full-energy fish play often.
+        # Below the safe threshold fish never play - survival comes first.
         max_energy = getattr(fish, "max_energy", 100.0)
         current_energy = getattr(fish, "energy", max_energy)
         energy_ratio = current_energy / max_energy if max_energy > 0 else 1.0
 
-        base_prob = 0.35  # High base interest - soccer is fun!
-        hunger_bonus = max(0, (0.7 - energy_ratio)) * 0.65  # Up to +45% when very hungry
-        pursuit_prob = min(base_prob + hunger_bonus, 0.80)  # Cap at 80%
+        if energy_ratio <= SAFE_ENERGY_THRESHOLD_RATIO:
+            return None  # Hungry: forage instead of playing
+
+        # Cap kept low: surplus energy banked via overflow funds reproduction,
+        # so heavy ball play by full-energy fish directly suppresses births.
+        surplus = (energy_ratio - SAFE_ENERGY_THRESHOLD_RATIO) / (1.0 - SAFE_ENERGY_THRESHOLD_RATIO)
+        pursuit_prob = 0.25 * surplus  # 0% at safe threshold -> 25% at full energy
 
         rng = fish.environment.rng
         if rng.random() > pursuit_prob:
