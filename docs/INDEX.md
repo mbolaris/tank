@@ -19,6 +19,7 @@ This index provides a guide to all documentation in the Tank World project.
 |----------|-------------|
 | [VISION.md](VISION.md) | Long-term goals and the multi-layer evolution paradigm |
 | [ROADMAP.md](ROADMAP.md) | Development roadmap and milestones |
+| [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md) | Prioritized engineering backlog with implementation plans |
 | [MULTILEVEL_EVOLUTION_STRATEGY.md](MULTILEVEL_EVOLUTION_STRATEGY.md) | Multi-level evolutionary optimization strategy |
 
 ### Architecture

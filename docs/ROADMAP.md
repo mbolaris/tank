@@ -79,21 +79,21 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
   - [x] Runs headless simulation
   - [x] Outputs standardized `results.json` with metrics
   - [x] Includes reproduction metadata
-- [ ] Implement `tools/validate_improvement.py`:
-  - [ ] Compares new results against current champion
-  - [ ] Returns clear "better/worse/equal" verdict
-  - [ ] Outputs diff for PRs
+- [x] Implement `tools/validate_improvement.py`:
+  - [x] Compares new results against current champion
+  - [x] Returns clear "better/worse/equal" verdict
+  - [x] Outputs diff for PRs
 
 ### 3. CI Validation
 
 **Goal**: Automated validation of evolutionary PRs.
 
-- [ ] Create `.github/workflows/bench.yml`:
-  - [ ] Detects changes to `champions/` directory
-  - [ ] Re-runs claimed benchmarks with deterministic seeds
-  - [ ] Confirms score improvements
+- [x] Create `.github/workflows/bench.yml`:
+  - [x] Runs on changes to `benchmarks/`, `champions/`, `core/`, `tools/`
+  - [x] Verifies all champions reproduce (`tools/verify_all_champions.py`)
+  - [x] Re-runs tank + soccer benchmarks with deterministic seeds
+  - [ ] Auto-confirms score improvements vs. champion on champion-file changes
   - [ ] Checks for regressions on other benchmarks
-  - [ ] Only allows merge if validation passes
 
 ### 4. Documentation
 
@@ -106,6 +106,11 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
   - [x] CI validation process explanation
 - [ ] Update `CONTRIBUTING.md` to reference evolutionary PRs
 - [ ] Add benchmark documentation to each benchmark file
+
+> **Note (June 2026):** `survival_5k` and `ecosystem_health_10k` are the live tank
+> benchmarks with recorded champions; `survival_30k`, `reproduction_30k`, and
+> `diversity_30k` remain planned. See [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md)
+> for the prioritized plan to expand the suite.
 
 ### 5. First Champions
 
@@ -251,4 +256,4 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 ---
 
-*Last updated: February 2026*
+*Last updated: June 2026*
