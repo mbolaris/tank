@@ -39,13 +39,13 @@ A **behavior algorithm** is a decision-making strategy that controls how a fish 
 
 ### Current Algorithm Count
 
-**48 algorithms** across 5 categories:
-- Food Seeking (12)
+**58 algorithms** across 6 categories (see `core/algorithms/registry.py` for the authoritative list):
+- Food Seeking (14)
 - Predator Avoidance (10)
 - Schooling/Social (10)
 - Energy Management (8)
 - Territory/Exploration (8)
-- Poker Interactions (5)
+- Poker Interactions (8)
 
 ---
 

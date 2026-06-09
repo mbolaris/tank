@@ -38,6 +38,8 @@ This index provides a guide to all documentation in the Tank World project.
 | [SOCCER_INTEGRATION_GUIDE.md](SOCCER_INTEGRATION_GUIDE.md) | Soccer minigame integration guide |
 | [soccer_training.md](soccer_training.md) | Soccer training documentation |
 | [persistence.md](persistence.md) | State persistence and save/load |
+| [REPLAY.md](REPLAY.md) | Deterministic record/replay for debugging and verification |
+| [UI_SPEC.md](UI_SPEC.md) | Web UI/UX specification |
 
 ### AI Tournament
 
