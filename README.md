@@ -36,7 +36,7 @@ Tank World is not "a sim with evolution." It is an **evolution engine whose own 
 ```mermaid
 flowchart TB
     subgraph L2["Layer 2 · Meta-Evolution"]
-        M[AI improves the benchmarks,<br/>fitness functions & instructions]
+        M[AI improves the benchmarks,<br/>fitness functions and instructions]
     end
     subgraph L1["Layer 1 · AI Code Evolution"]
         A[AI agents benchmark, compare vs BKS,<br/>and open PRs that CI validates]
@@ -45,8 +45,8 @@ flowchart TB
         F[Fish evolve via natural selection<br/>across 58 behavior algorithms]
     end
     M -->|better ways to discover improvements| A
-    A -->|better algorithms & parameters| F
-    F -->|telemetry & champion genomes| A
+    A -->|better algorithms and parameters| F
+    F -->|telemetry and champion genomes| A
     A -->|what's hard to improve| M
 ```
 
