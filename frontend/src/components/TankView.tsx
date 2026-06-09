@@ -395,6 +395,7 @@ export function TankView({ worldId }: TankViewProps) {
                                 pokerStats={state?.stats?.poker_stats}
                                 currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
                                 sendCommandWithResponse={sendCommandWithResponse}
+                                worldType={effectiveWorldType}
                             />
                         </CollapsiblePanel>
                     )}

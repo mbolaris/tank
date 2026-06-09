@@ -22,6 +22,7 @@ interface TankPokerTabProps {
     pokerStats: PokerStatsData | undefined;
     currentFrame: number;
     sendCommandWithResponse: (command: Command) => Promise<PokerCommandResponse>;
+    worldType?: string;
 }
 
 type PokerCommandResponse = CommandResponse & {
@@ -37,6 +38,7 @@ export function TankPokerTab({
     pokerStats,
     currentFrame,
     sendCommandWithResponse,
+    worldType,
 }: TankPokerTabProps) {
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
     const [showPokerGame, setShowPokerGame] = useState(true);
@@ -160,7 +162,7 @@ export function TankPokerTab({
                 data: { action, amount: amount || 0 },
             });
             if (response.success === false) {
-                alert(response.error || 'Invalid action');
+                handlePokerError(response.error || 'Invalid action');
             } else if (response.state) {
                 setPokerGameState(response.state);
                 processAiTurnsWithDelay();
@@ -185,7 +187,7 @@ export function TankPokerTab({
                 data: {},
             });
             if (response.success === false) {
-                alert(response.error || 'Failed to start new round');
+                handlePokerError(response.error || 'Failed to start new round');
             } else if (response.state) {
                 setPokerGameState(response.state);
                 if (!response.state.is_your_turn && !response.state.game_over) {
@@ -248,6 +250,7 @@ export function TankPokerTab({
                                 onGetAutopilotAction={handleGetAutopilotAction}
                                 gameState={pokerGameState}
                                 loading={pokerLoading}
+                                worldType={worldType}
                             />
                             {restartCountdown !== null && (
                                 <div style={{
@@ -305,7 +308,7 @@ export function TankPokerTab({
                     {/* Leaderboard and Activity Grid */}
                     <div className={styles.dashboardGrid}>
                         <div className={styles.dashboardCard}>
-                            <PokerLeaderboard leaderboard={pokerLeaderboard} />
+                            <PokerLeaderboard leaderboard={pokerLeaderboard} worldType={worldType} />
                         </div>
                         <div className={styles.dashboardCard}>
                             <PokerEvents events={pokerEvents} currentFrame={currentFrame} />

@@ -4,9 +4,10 @@ import styles from './PokerLeaderboard.module.css';
 
 interface PokerLeaderboardProps {
     leaderboard: PokerLeaderboardEntry[];
+    worldType?: string;
 }
 
-export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard }) => {
+export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard, worldType }) => {
     if (!leaderboard || leaderboard.length === 0) {
         return null;
     }
@@ -19,7 +20,7 @@ export const PokerLeaderboard: React.FC<PokerLeaderboardProps> = ({ leaderboard 
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Fish</th>
+                            <th>{worldType === 'petri' ? 'Microbe' : 'Fish'}</th>
                             <th>Games</th>
                             <th>Win%</th>
                             <th>Trend</th>
