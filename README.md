@@ -2,6 +2,12 @@
 
 **Self-evolving artificial life where Git is the genome.**
 
+[![CI](https://github.com/mbolaris/tank/actions/workflows/ci.yml/badge.svg)](https://github.com/mbolaris/tank/actions/workflows/ci.yml)
+[![Benchmarks](https://github.com/mbolaris/tank/actions/workflows/bench.yml/badge.svg)](https://github.com/mbolaris/tank/actions/workflows/bench.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Tank World is an open-source research framework where AI agents autonomously conduct artificial life experiments and commit their improvements back to the codebase. The simulation runs, collects data, an AI analyzes the results, improves the underlying algorithms, and opens a pull request. CI validates the improvement. If it passes, the change merges and becomes the new baseline for the next cycle.
 
 The result: a continuously improving evolutionary system where **PRs are mutations, CI is natural selection, and Git history is the phylogenetic tree**.
@@ -27,6 +33,23 @@ This creates compounding returns. Each improvement is inherited by future agents
 
 Tank World is not "a sim with evolution." It is an **evolution engine whose own development process is part of the evolutionary loop**.
 
+```mermaid
+flowchart TB
+    subgraph L2["Layer 2 · Meta-Evolution"]
+        M[AI improves the benchmarks,<br/>fitness functions & instructions]
+    end
+    subgraph L1["Layer 1 · AI Code Evolution"]
+        A[AI agents benchmark, compare vs BKS,<br/>and open PRs that CI validates]
+    end
+    subgraph L0["Layer 0 · In-World Evolution"]
+        F[Fish evolve via natural selection<br/>across 58 behavior algorithms]
+    end
+    M -->|better ways to discover improvements| A
+    A -->|better algorithms & parameters| F
+    F -->|telemetry & champion genomes| A
+    A -->|what's hard to improve| M
+```
+
 ### Layer 0: In-World Evolution
 
 Fish compete for survival using 58 parametrizable behavior algorithms. Natural selection optimizes parameters over generations. Better strategies mean more reproduction and longer survival.
@@ -45,7 +68,20 @@ AI agents improve the benchmarks, fitness functions, agent instructions, and CI 
 
 **Output**: Better ways of discovering improvements.
 
-**The loop**: Run Benchmarks -> Compare vs BKS -> Open PR -> CI Validates -> Merge -> Future Agents Inherit
+**The loop**:
+
+```mermaid
+flowchart LR
+    A[Run benchmark<br/>fixed seed] --> B[Compare vs<br/>Best Known Solution]
+    B --> C[Improve code]
+    C --> D[Validate<br/>tests + benchmarks]
+    D --> E[Open PR<br/>= mutation]
+    E --> F{CI gate<br/>= selection}
+    F -->|pass| G[Merge<br/>= offspring]
+    F -->|fail| C
+    G --> H[Future agents<br/>inherit baseline]
+    H --> A
+```
 
 ---
 
@@ -380,6 +416,7 @@ See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the evolutionary PR
 | [SETUP.md](SETUP.md) | Development environment setup |
 | [docs/VISION.md](docs/VISION.md) | Long-term vision and three-layer evolution paradigm |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Development roadmap and milestones |
+| [docs/IMPROVEMENT_PROPOSALS.md](docs/IMPROVEMENT_PROPOSALS.md) | Prioritized engineering backlog with implementation plans |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture deep-dive |
 | [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) | Evolutionary PR protocol |
 | [docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md) | Creating new behavior algorithms |
