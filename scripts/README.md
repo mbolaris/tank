@@ -10,6 +10,15 @@ Run any Python script with `PYTHONPATH=.` if you hit import errors:
 PYTHONPATH=. python scripts/<name>.py --help
 ```
 
+## Start here
+
+- `diagnose.py`: **Environment health check.** Prints a green/red checklist over
+  the Python toolchain, core modules, the algorithm registry, a live short
+  simulation, and the frontend toolchain — each failure comes with an actionable
+  hint. Run it first whenever something won't start. Exits non-zero on failure,
+  so it doubles as a CI/setup gate. (To launch the app itself, use `python
+  start.py` from the repo root.)
+
 ## Evolution loop
 
 - `ai_code_evolution_agent.py`: End-to-end AI agent — reads simulation stats,

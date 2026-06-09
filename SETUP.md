@@ -120,6 +120,16 @@ Visit http://localhost:3000 in your browser. You should now see the Tank World U
 
 ## Troubleshooting
 
+### First step: run the health check
+
+Before digging into a specific symptom, run the diagnostic — it pinpoints which
+layer is broken (Python deps, core modules, the simulation, or the frontend
+toolchain) and prints a fix hint for each failure:
+
+```bash
+python scripts/diagnose.py
+```
+
 ### Extensive Logs / High CPU on Startup
 - **Cause**: The server is restoring many old simulations found in `data/tanks`. This often happens if test runs created persistent snapshots.
 - **Fix**: Stop the server and delete the `data/tanks` directory to start fresh:

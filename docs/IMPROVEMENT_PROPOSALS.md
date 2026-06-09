@@ -150,15 +150,13 @@ never silently leave their design range.
 
 This is where "fun to use" and "excellent example of software design" are won.
 
-### 4.1 One-command startup — `S` · ★★★
-Add `python start.py` (or a `tank` console-script entry point) that launches
-backend + frontend together with sane defaults and a single Ctrl-C shutdown.
-Two-terminal setup is the #1 onboarding friction point.
+### 4.1 One-command startup — ✅ shipped
+`python start.py` launches backend + frontend together with a single Ctrl-C
+shutdown (see Shipped). Remaining nice-to-have: a `tank` console-script entry
+point in `pyproject.toml`.
 
-### 4.2 `scripts/diagnose.py` health check — `S` · ★★★
-One command that verifies the environment and prints a green/red checklist:
-Python deps importable, core modules load, a 100-frame sim initializes, frontend
-deps installed. Turns "it's broken somewhere" into a precise pointer.
+### 4.2 `scripts/diagnose.py` health check — ✅ shipped
+Shipped — see Shipped section below.
 
 ### 4.3 Algorithm catalog doc — `S` · ★★
 Generate `docs/ALGORITHM_CATALOG.md` from the registry: each algorithm's file,
@@ -206,6 +204,14 @@ algorithm-count bug is exactly the failure this prevents.
   `REPLAY.md` / `UI_SPEC.md` entries. (commit `380a6c0`)
 - **Docs: refreshed ROADMAP status** — marked `validate_improvement.py` and
   `bench.yml` as shipped, clarified which tank benchmarks actually exist.
+- **DX: one-command startup (`start.py`)** (proposal 4.1) — cross-platform
+  launcher that runs backend + frontend together, streams prefixed logs, opens
+  the browser, and shuts both down cleanly on Ctrl-C. `--backend-only` skips
+  Node entirely. Verified end-to-end including graceful SIGINT shutdown.
+- **DX: environment health check (`scripts/diagnose.py`)** (proposal 4.2) — a
+  green/red checklist over the Python toolchain, core modules, the algorithm
+  registry, a live short simulation, and the frontend toolchain. Each failure
+  prints an actionable hint. Covered by `tests/smoke/test_diagnose.py`.
 
 ---
 
