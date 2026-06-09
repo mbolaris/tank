@@ -19,11 +19,12 @@ interface PokerTableProps {
     currentPlayer?: string;
     isYourTurn?: boolean;
     phase?: string;
+    worldType?: string;
 }
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
-export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, currentPlayer, isYourTurn, phase }: PokerTableProps) {
+export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, currentPlayer, isYourTurn, phase, worldType }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
     const prevCardsRef = useRef<string[]>([]);
@@ -152,6 +153,7 @@ export function PokerTable({ pot, communityCards, resultBanner, players, lastMov
                                                 genomeData={lastMovePlayer.genome_data}
                                                 size="medium"
                                                 isHuman={isHumanPlayer}
+                                                worldType={worldType}
                                             />
                                         )}
                                         <span className={styles.lastMovePlayer}>
@@ -172,6 +174,7 @@ export function PokerTable({ pot, communityCards, resultBanner, players, lastMov
                                                 genomeData={waitingPlayer.genome_data}
                                                 size="medium"
                                                 isHuman={waitingPlayer.is_human}
+                                                worldType={worldType}
                                             />
                                         )}
                                         <span>Waiting for <strong>{currentPlayer}</strong>...</span>

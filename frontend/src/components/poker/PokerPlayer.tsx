@@ -2,13 +2,15 @@
  * Poker player card component
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PlayingCard } from './PlayingCard';
 import { ChipStack } from './PokerChip';
 import styles from './PokerPlayer.module.css';
 import cardStyles from './PlayingCard.module.css';
 import type { FishGenomeData } from '../../types/simulation';
-import { getFishPath, getFishFrontPath, getFishFrontEyePositions, getPatternOpacity, type FishParams } from '../../utils/fishTemplates';
+import { getFishFrontPath, getFishFrontEyePositions, getPatternOpacity } from '../../utils/fishTemplates';
+import { buildFishParams, renderPattern } from './fishAvatarParts';
+import { MicrobeAvatarCanvas } from './MicrobeAvatar';
 
 const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 
@@ -24,98 +26,25 @@ interface PokerPlayerProps {
     generation?: number;
     genomeData?: FishGenomeData;
     cards?: string[];
+    worldType?: string;
 }
 
 const DEFAULT_FISH_IMAGE = '/images/george1.png';
-
-function buildFishParams(genomeData?: FishGenomeData): FishParams | null {
-    if (!genomeData) return null;
-
-    return {
-        template_id: genomeData.template_id ?? 0,
-        fin_size: genomeData.fin_size ?? 1,
-        tail_size: genomeData.tail_size ?? 1,
-        body_aspect: genomeData.body_aspect ?? 1,
-        eye_size: genomeData.eye_size ?? 1,
-        pattern_intensity: genomeData.pattern_intensity ?? 0,
-        pattern_type: genomeData.pattern_type ?? 0,
-        color_hue: genomeData.color_hue ?? 0,
-        size: genomeData.size ?? 1,
-    };
-}
-
-function renderPattern(
-    params: FishParams,
-    patternColor: string,
-    baseSize: number,
-    gradientId: string,
-    patternOpacity: number
-): React.ReactNode {
-    if (patternOpacity <= 0) {
-        return null;
-    }
-    const commonProps = {
-        opacity: patternOpacity,
-        stroke: patternColor,
-        fill: 'none',
-        strokeWidth: 2,
-    } as const;
-
-    switch (params.pattern_type) {
-        case 0: // Stripes
-            return (
-                <g {...commonProps}>
-                    <line x1={baseSize * 0.3} y1={baseSize * 0.2} x2={baseSize * 0.3} y2={baseSize * 0.8} />
-                    <line x1={baseSize * 0.5} y1={baseSize * 0.2} x2={baseSize * 0.5} y2={baseSize * 0.8} />
-                    <line x1={baseSize * 0.7} y1={baseSize * 0.2} x2={baseSize * 0.7} y2={baseSize * 0.8} />
-                </g>
-            );
-        case 1: // Spots
-            return (
-                <g fill={patternColor} opacity={patternOpacity}>
-                    <circle cx={baseSize * 0.4} cy={baseSize * 0.35} r={3} />
-                    <circle cx={baseSize * 0.6} cy={baseSize * 0.4} r={3} />
-                    <circle cx={baseSize * 0.5} cy={baseSize * 0.6} r={3} />
-                    <circle cx={baseSize * 0.7} cy={baseSize * 0.65} r={3} />
-                </g>
-            );
-        case 2: // Solid overlay
-            return (
-                <path
-                    d={getFishPath(params, baseSize)}
-                    fill={patternColor}
-                    opacity={patternOpacity * 0.5}
-                />
-            );
-        case 3: // Gradient
-            return (
-                <>
-                    <defs>
-                        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor={patternColor} stopOpacity={patternOpacity} />
-                            <stop offset="100%" stopColor="transparent" stopOpacity={0} />
-                        </linearGradient>
-                    </defs>
-                    <path d={getFishPath(params, baseSize)} fill={`url(#${gradientId})`} />
-                </>
-            );
-        default:
-            return null;
-    }
-}
 
 function FishAvatar({
     fishId,
     genomeData,
     isHuman,
     isAutopilot,
-    size = 'small'
+    size = 'small',
+    worldType,
 }: {
     fishId?: number;
     genomeData?: FishGenomeData;
     isHuman?: boolean;
     isAutopilot?: boolean;
     size?: 'small' | 'medium';
+    worldType?: string;
 }) {
     // 1. Human/Robot Override
     if (isHuman) {
@@ -130,9 +59,19 @@ function FishAvatar({
         );
     }
 
-    // 2. Fish Avatar
+    // 2. Fish/Microbe Avatar
     const fishParams = buildFishParams(genomeData);
-    const label = fishId ? `Fish #${fishId}` : 'AI Fish';
+    const creature = worldType === 'petri' ? 'Microbe' : 'Fish';
+    const label = fishId ? `${creature} #${fishId}` : `AI ${creature}`;
+
+    // Petri dish mode: render the genome as a microbe (matches the dish visuals)
+    if (worldType === 'petri') {
+        return (
+            <div className={styles.avatarCircle} title={label} role="img" aria-label={label}>
+                <MicrobeAvatarCanvas fishId={fishId} genomeData={genomeData ?? {}} />
+            </div>
+        );
+    }
 
     if (!fishParams) {
         return (
@@ -190,6 +129,7 @@ export function PokerPlayer({
     fishId,
     genomeData,
     cards = [],
+    worldType,
 }: PokerPlayerProps) {
     // All hooks must be called at the top level, before any conditional returns
     // Card flipping state for opponent cards
@@ -286,7 +226,7 @@ export function PokerPlayer({
 
     return (
         <div className={playerClass} title={name}>
-            <FishAvatar fishId={fishId} genomeData={genomeData} />
+            <FishAvatar fishId={fishId} genomeData={genomeData} worldType={worldType} />
             <div className={styles.opponentInfo}>
                 <div className={styles.opponentCards}>
                     {showActualCards ? (

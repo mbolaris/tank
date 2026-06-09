@@ -16,13 +16,14 @@ interface PokerGameProps {
     onGetAutopilotAction: () => Promise<{ success: boolean; action: string; amount: number }>;
     gameState: PokerGameState | null;
     loading: boolean;
+    worldType?: string;
 }
 
 const AUTOPILOT_POLL_INTERVAL = 1000; // ms between autopilot checks
 const AUTOPILOT_NEW_ROUND_DELAY = 1500; // ms before starting new hand
 const AUTOPILOT_ACTION_DELAY = 1000; // ms before executing automatic action
 
-export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading }: PokerGameProps) {
+export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction, gameState, loading, worldType }: PokerGameProps) {
     const [autopilot, setAutopilot] = useState(true);
     const isProcessingRef = useRef(false);
     const lastActionTimeRef = useRef(0);
@@ -106,7 +107,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                     <button onClick={onClose} className={styles.closeButton}>×</button>
                 </div>
                 <div className={styles.loading}>
-                    <p>Setting up your poker game with the top 3 fish...</p>
+                    <p>Setting up your poker game with the top 3 {worldType === 'petri' ? 'microbes' : 'fish'}...</p>
                 </div>
             </div>
         );
@@ -164,6 +165,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 currentPlayer={gameState.current_player}
                 isYourTurn={gameState.is_your_turn}
                 phase={gameState.current_round?.replace('_', '-') || 'Starting'}
+                worldType={worldType}
                 resultBanner={gameState.game_over && !gameState.session_over ? (
                     <div className={`${styles.resultBanner} ${gameState.winner === 'You' ? styles.winBanner : styles.loseBanner}`}>
                         {gameState.winner === 'You' ? (
@@ -176,6 +178,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                                 fishId={winnerPlayer?.fish_id}
                                 genomeData={winnerPlayer?.genome_data}
                                 size="medium"
+                                worldType={worldType}
                             />
                         )}
                         <span className={styles.resultText}>
@@ -201,6 +204,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                         isActive={!gameState.game_over && !player.folded && player.energy > 0 && player.name === gameState.current_player}
                         isHuman={false}
                         cards={player.hole_cards}
+                        worldType={worldType}
                     />
                 ))}
             </div>
