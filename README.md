@@ -128,21 +128,32 @@ pre-commit install
 
 # Frontend setup
 cd frontend && npm ci && cd ..
+
+# Verify the setup (prints a green/red health checklist)
+python scripts/diagnose.py
 ```
 
 ### Run the Web UI
 
-```bash
-# Terminal 1: Backend
-python main.py
+One command launches the backend (:8000) and frontend (:3000) together, streams
+both logs, opens your browser, and shuts everything down on Ctrl-C:
 
-# Terminal 2: Frontend
-cd frontend && npm run dev
+```bash
+python start.py
+# python start.py --no-browser     # skip opening a browser tab
+# python start.py --backend-only   # backend only (no Node required)
 
 # Open http://localhost:3000
 ```
 
-On Windows PowerShell, you can also use [`start.ps1`](start.ps1) after the environment is set up to launch the backend, frontend, and browser together.
+Prefer two terminals (or need to debug one side in isolation)? Run them separately:
+
+```bash
+python main.py                 # Terminal 1: backend
+cd frontend && npm run dev     # Terminal 2: frontend
+```
+
+On Windows PowerShell, [`start.ps1`](start.ps1) does the same as `start.py`.
 
 ### Run Headless (10-300x Faster)
 
