@@ -20,6 +20,15 @@ FRAMES = 3000
 DEFAULT_N_SEEDS = 5
 SCORE_SCALE = 0.1
 
+# Effective configuration captured by the champion config hash
+# (core/solutions/config_hash.py). Anything that changes the score belongs here.
+CONFIG: dict[str, Any] = {
+    "frames": FRAMES,
+    "n_seeds": DEFAULT_N_SEEDS,
+    "score_scale": SCORE_SCALE,
+    "team_size": 3,
+}
+
 
 def _create_default_population(
     seed: int,

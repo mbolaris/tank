@@ -31,6 +31,27 @@ BENCHMARK_ID = "tank/ecosystem_health_10k"
 FRAMES = 10000
 SAMPLE_INTERVAL = 100  # Sample every 100 frames for population stability tracking
 
+WORLD_CONFIG: dict[str, Any] = {
+    "headless": True,
+    "screen_width": 2000,
+    "screen_height": 2000,
+    "max_population": 60,
+    "critical_population_threshold": 5,
+    "emergency_spawn_cooldown": 90,
+    "poker_activity_enabled": False,
+    "plants_enabled": False,
+    "auto_food_spawn_rate": 9,
+    "soccer_enabled": False,
+}
+
+# Effective configuration captured by the champion config hash
+# (core/solutions/config_hash.py). Anything that changes the score belongs here.
+CONFIG: dict[str, Any] = {
+    "frames": FRAMES,
+    "sample_interval": SAMPLE_INTERVAL,
+    "world_config": WORLD_CONFIG,
+}
+
 
 def run(seed: int) -> dict[str, Any]:
     """Run the benchmark deterministically.
@@ -43,18 +64,7 @@ def run(seed: int) -> dict[str, Any]:
     """
     start_time = time.time()
 
-    config = {
-        "headless": True,
-        "screen_width": 2000,
-        "screen_height": 2000,
-        "max_population": 60,
-        "critical_population_threshold": 5,
-        "emergency_spawn_cooldown": 90,
-        "poker_activity_enabled": False,
-        "plants_enabled": False,
-        "auto_food_spawn_rate": 9,
-        "soccer_enabled": False,
-    }
+    config = dict(WORLD_CONFIG)
 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)

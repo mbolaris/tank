@@ -19,7 +19,8 @@
       "starvation_penalty": 0.4583,
       "mean_population": 349.59,
       "final_population": 328
-    }
+    },
+    "config_hash": "639b000657fc86cd"
   },
   "history": [
     {
