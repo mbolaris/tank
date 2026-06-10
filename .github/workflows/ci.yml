@@ -5,6 +5,9 @@ on:
     branches: [ main, master, develop, claude/** ]
   pull_request:
     branches: [ main, master, develop ]
+  schedule:
+    # Nightly full suite (see nightly-full job) at 08:00 UTC
+    - cron: '0 8 * * *'
 
 jobs:
   fast-gate:
@@ -44,6 +47,7 @@ jobs:
         pytest \
           tests/smoke \
           tests/test_determinism.py \
+          tests/test_replay_golden.py \
           tests/test_phase_determinism_and_mutation_invariants.py \
           tests/test_mutation_queue.py \
           tests/test_ball_physics.py \
@@ -169,3 +173,7 @@ jobs:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: |
         pytest tests/ -m "not slow and not manual" -v --tb=short
+
+    - name: Benchmark-harness integrity (champions reproduce)
+      run: |
+        pytest tests/test_benchmark_integrity.py -m slow -v --tb=short
