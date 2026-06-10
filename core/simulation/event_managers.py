@@ -12,7 +12,10 @@ event management from the engine, we:
 from __future__ import annotations
 
 from collections import deque
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from core.minigames.soccer.evaluator import SoccerMinigameOutcome
 
 
 class SoccerEventManager:
@@ -29,6 +32,37 @@ class SoccerEventManager:
     def add_event(self, event: dict[str, Any]) -> None:
         """Record a soccer match outcome event."""
         self._events.append(event)
+
+    def add_outcome(self, frame: int, outcome: SoccerMinigameOutcome) -> None:
+        """Build and record an event dict from a soccer minigame outcome."""
+
+        def stringify_keys(values: dict[Any, Any]) -> dict[str, Any]:
+            return {str(key): value for key, value in values.items()}
+
+        event = {
+            "frame": frame,
+            "match_id": outcome.match_id,
+            "match_counter": outcome.match_counter,
+            "winner_team": outcome.winner_team,
+            "score_left": outcome.score_left,
+            "score_right": outcome.score_right,
+            "frames": outcome.frames,
+            "seed": outcome.seed,
+            "selection_seed": outcome.selection_seed,
+            "message": outcome.message,
+            "rewarded": stringify_keys(dict(outcome.rewarded)),
+            "entry_fees": stringify_keys(dict(outcome.entry_fees)),
+            "energy_deltas": stringify_keys(dict(outcome.energy_deltas)),
+            "repro_credit_deltas": stringify_keys(dict(outcome.repro_credit_deltas)),
+            "teams": {
+                "left": list(outcome.teams.get("left", [])),
+                "right": list(outcome.teams.get("right", [])),
+            },
+            "last_goal": outcome.last_goal,
+            "skipped": outcome.skipped,
+            "skip_reason": outcome.skip_reason,
+        }
+        self.add_event(event)
 
     def get_recent(self, current_frame: int, max_age_frames: int = 1800) -> list[dict[str, Any]]:
         """Get events within max_age_frames of current_frame."""
