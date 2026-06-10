@@ -41,5 +41,9 @@ Fingerprints are computed over a canonicalized snapshot:
 ## Tests
 
 The repo includes a small golden replay fixture used as a determinism regression test:
-- `tests/fixtures/replays/tank_petri_seed42_v1.jsonl`
-- `tests/test_replay_golden.py`
+- `tests/fixtures/replays/tank_petri_seed42_v2.jsonl` (includes a tank → petri mode switch)
+- `tests/test_replay_golden.py` (runs in the CI fast gate)
+
+If an *intentional* behavior change breaks the golden replay, regenerate the
+fixture with `backend.replay.record_file` (same seed/steps/switch plan) and
+commit it alongside the change, noting why in the commit message.
