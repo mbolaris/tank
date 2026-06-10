@@ -65,6 +65,15 @@ jobs:
           tests/test_arch_soccer_params_canonical.py \
           -v --tb=short
 
+    # The curated list above fails fast on core invariants; this runs the
+    # complete non-slow suite (~2.5 min) so the bulk of the tests gate every
+    # push, not just nightly.
+    - name: Run full fast test suite
+      env:
+        TANK_ENFORCE_MUTATION_INVARIANTS: "1"
+      run: |
+        pytest -m "not slow and not integration and not manual" -q --tb=short
+
     - name: Run deterministic soccer benchmark (fast-gate)
       env:
         PYTHONPATH: .
@@ -168,11 +177,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .[dev]
 
-    - name: Run full test suite
+    - name: Run full test suite (with coverage floor)
       env:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
+      # Coverage floor: fast suite measured 73.9% on core+backend (2026-06).
+      # The floor only ratchets up - raise it when coverage improves.
       run: |
-        pytest tests/ -m "not slow and not manual" -v --tb=short
+        pytest tests/ -m "not slow and not manual" -v --tb=short \
+          --cov=core --cov=backend --cov-fail-under=70
 
     - name: Benchmark-harness integrity (champions reproduce)
       run: |
