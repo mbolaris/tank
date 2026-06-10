@@ -552,20 +552,26 @@ class SimulationRunner(CommandHandlerMixin):
                     next_frame_start_time += self.frame_time
                     loop_iteration_count += 1
 
+                    stepped = False
                     with self.lock:
-                        try:
-                            self.perf_tracker.start("update")
-                            if getattr(self.world, "supports_fast_step", False):
-                                self.world.step({FAST_STEP_ACTION: True})
-                            else:
-                                self.world.step()
-                            self.perf_tracker.stop("update")
-                        except Exception as e:
-                            logger.error(
-                                f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
-                                exc_info=True,
-                            )
-                            # Continue running even if update fails
+                        # Pause gate: a paused world must not advance. API-driven
+                        # stepping still works because SimulationRunner.step()
+                        # temporarily unpauses under this same lock.
+                        if not self.world.is_paused:
+                            try:
+                                self.perf_tracker.start("update")
+                                if getattr(self.world, "supports_fast_step", False):
+                                    self.world.step({FAST_STEP_ACTION: True})
+                                else:
+                                    self.world.step()
+                                self.perf_tracker.stop("update")
+                                stepped = True
+                            except Exception as e:
+                                logger.error(
+                                    f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
+                                    exc_info=True,
+                                )
+                                # Continue running even if update fails
 
                     self._start_auto_evaluation_if_needed()
 
@@ -574,7 +580,8 @@ class SimulationRunner(CommandHandlerMixin):
                     time.sleep(0)
 
                     # FPS Calculation
-                    self.fps_frame_count += 1
+                    if stepped:
+                        self.fps_frame_count += 1
                     current_time = time.time()
                     if current_time - self.last_fps_time >= 5.0:
                         self.current_actual_fps = self.fps_frame_count / (

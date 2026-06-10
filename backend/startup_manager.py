@@ -259,8 +259,15 @@ class StartupManager:
                                     logger.error(f"Failed to rename corrupt snapshot: {rename_err}")
 
                                 # Reset instance to fresh (factory defaults)
-                                # This ensures we don't start with a half-broken state
-                                instance.runner.world.reset(seed=instance.runner.world._seed)
+                                # This ensures we don't start with a half-broken state.
+                                # The seed lives on the runner; not every world backend
+                                # stores one (petri's adapter does not).
+                                instance.runner.world.reset(
+                                    seed=getattr(instance.runner, "_seed", None)
+                                )
+                                # The instance was created paused for restoration;
+                                # a fresh fallback world should run like any other.
+                                instance.runner.paused = False
                                 logger.info(f"Reset world {world_id[:8]} to fresh state")
                 except Exception as e:
                     logger.error(f"Failed to restore world {world_id[:8]}: {e}", exc_info=True)

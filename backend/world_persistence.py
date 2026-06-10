@@ -407,12 +407,16 @@ def _validate_restored_world(engine: Any) -> bool:
     """
     from core.entities.base import Castle
 
-    # Check for presence of Castle (required static entity)
-    # If missing, it means the snapshot is from an old version or corrupted
-    has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
-    if not has_castle:
-        logger.error("Validation Failed: Missing required entity 'Castle'")
-        return False
+    # The Castle is a tank-mode static entity (and is what
+    # _bootstrap_static_elements recreates). Other world types (petri) have no
+    # castle, so requiring one would reject every valid snapshot.
+    env = getattr(engine, "environment", None)
+    world_type = getattr(env, "world_type", None) if env is not None else None
+    if world_type in (None, "tank"):
+        has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
+        if not has_castle:
+            logger.error("Validation Failed: Missing required entity 'Castle'")
+            return False
 
     return True
 
