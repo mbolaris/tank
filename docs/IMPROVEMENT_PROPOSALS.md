@@ -56,23 +56,6 @@ Keep these legible and they remain the project's best advertisement.
 
 The loop is the crown jewel; these harden it.
 
-### 1.1 Config-hash guarding for champions — `M` · ★★★
-**Problem.** Champion scores are only meaningful against the config they were
-recorded with. Changing core config (population caps, energy costs) silently
-invalidates every champion, and nothing warns you.
-
-**Plan.**
-- Add a `config_hash` field to champion records: a stable hash of
-  `(seed, benchmark_id, normalized_config_snapshot)`.
-- Compute it in `tools/run_bench.py` and write it into results.
-- In `tools/validate_improvement.py`, refuse to compare scores across
-  mismatched `config_hash` values; emit a clear "config changed — re-baseline"
-  message instead of a misleading better/worse verdict.
-- Backfill the hash into existing `champions/**/*.json` via a one-shot script.
-
-**Done when** a config change that would alter scores produces a loud,
-actionable error in CI rather than a silent regression.
-
 ### 1.2 Score decomposition in benchmark output — `S` · ★★
 **Problem.** `survival_5k` reports a single opaque scalar
 (`avg_energy * avg_pop / 1000`). Agents can't tell whether to optimize energy or
@@ -82,14 +65,6 @@ population.
 (e.g. `{"energy": ..., "population": ..., "stability": ...}`), and surface the
 weakest component in `validate_improvement.py` output. No scoring change — just
 visibility.
-
-### 1.3 Benchmark-harness integrity test — `S` · ★★
-**Problem.** If `run_bench.py` or a benchmark changes, we have no automated
-proof the existing champions are still reproducible.
-
-**Plan.** Add `tests/test_benchmark_integrity.py` that re-runs each recorded
-champion benchmark at its seed and asserts the score matches within tolerance.
-Mark it `@pytest.mark.slow` so it runs in the nightly gate, not the fast gate.
 
 ### 1.4 Multi-seed validation for the AI agent — `M` · ★★
 **Problem.** `scripts/ai_code_evolution_agent.py` validates a proposed change on
@@ -200,6 +175,17 @@ algorithm-count bug is exactly the failure this prevents.
 ---
 
 ## Shipped
+
+- **1.1 Config-hash guarding for champions.** `run_bench.py` stamps every result
+  with a stable hash of (seed, benchmark id, benchmark CONFIG, core config) via
+  `core/solutions/config_hash.py`; `validate_improvement.py` and
+  `validate_reproduction.py` refuse to compare scores across mismatched hashes
+  with a "config changed — re-baseline" message. Existing champions backfilled
+  with `tools/backfill_config_hash.py`.
+- **1.3 Benchmark-harness integrity test.** `tests/test_benchmark_integrity.py`
+  re-runs every champion at its recorded seed (marked `slow`); wired into the
+  nightly gate, and the CI `schedule` trigger that nightly-full expected now
+  actually exists.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing
