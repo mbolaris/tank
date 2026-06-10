@@ -14,6 +14,28 @@ BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000
 METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
 
+# World configuration, replicating SimulationConfig.headless_fast() parameters.
+WORLD_CONFIG: dict[str, Any] = {
+    "headless": True,
+    "screen_width": 2000,
+    "screen_height": 2000,
+    "max_population": 60,
+    "critical_population_threshold": 5,
+    "emergency_spawn_cooldown": 90,
+    "poker_activity_enabled": False,
+    "plants_enabled": False,
+    "auto_food_spawn_rate": 9,
+    # Pin soccer league off so default-config changes cannot shift the score.
+    # Ball+goals remain (tank_practice_enabled defaults to True) for the
+    # SoccerSystem kick/goal energy path, but the league never schedules
+    # matches and therefore never injects refill-to-max rewards.
+    "soccer_enabled": False,
+}
+
+# Effective configuration captured by the champion config hash
+# (core/solutions/config_hash.py). Anything that changes the score belongs here.
+CONFIG: dict[str, Any] = {"frames": FRAMES, "world_config": WORLD_CONFIG}
+
 
 def run(seed: int) -> dict[str, Any]:
     """Run the benchmark deterministically.
@@ -26,24 +48,7 @@ def run(seed: int) -> dict[str, Any]:
     """
     start_time = time.time()
 
-    # Configure via WorldRegistry with custom config
-    # Replicates SimulationConfig.headless_fast() parameters
-    config = {
-        "headless": True,
-        "screen_width": 2000,
-        "screen_height": 2000,
-        "max_population": 60,
-        "critical_population_threshold": 5,
-        "emergency_spawn_cooldown": 90,
-        "poker_activity_enabled": False,
-        "plants_enabled": False,
-        "auto_food_spawn_rate": 9,
-        # Pin soccer league off so default-config changes cannot shift the score.
-        # Ball+goals remain (tank_practice_enabled defaults to True) for the
-        # SoccerSystem kick/goal energy path, but the league never schedules
-        # matches and therefore never injects refill-to-max rewards.
-        "soccer_enabled": False,
-    }
+    config = dict(WORLD_CONFIG)
 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)

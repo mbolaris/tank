@@ -22,6 +22,38 @@ def get_champion_record(champion_data: dict[str, Any]) -> dict[str, Any]:
     return champion_data
 
 
+def check_config_compatibility(
+    new_result: dict[str, Any], champion_data: dict[str, Any] | None
+) -> str | None:
+    """Return an error message if the result and champion configs are incomparable.
+
+    Scores are only comparable when both runs used the same effective
+    configuration (same benchmark config, same core config, same seed).
+    Returns None when comparison is allowed; a legacy champion without a
+    config_hash is allowed through (the backfill script adds hashes).
+    """
+    if not champion_data:
+        return None
+
+    new_hash = new_result.get("config_hash")
+    old_hash = get_champion_record(champion_data).get("config_hash")
+
+    if old_hash is None or new_hash is None:
+        return None
+
+    if new_hash != old_hash:
+        return (
+            f"CONFIG MISMATCH: result config_hash={new_hash} but champion "
+            f"config_hash={old_hash}.\n"
+            "The benchmark/core configuration (or seed) changed since the champion "
+            "was recorded, so a score comparison would be meaningless.\n"
+            "Config changed - re-baseline: re-run the benchmark on the champion's "
+            "code to record a new champion, then compare against that."
+        )
+
+    return None
+
+
 def is_improvement(
     new_result: dict[str, Any], champion_data: dict[str, Any] | None, tolerance: float = 1e-9
 ) -> bool:
@@ -57,15 +89,19 @@ def update_champion_data(
         old_record["version"] = champion_data.get("version", 1)
         history.append(old_record)
 
+    new_champion: dict[str, Any] = {
+        "score": new_result["score"],
+        "seed": new_result["seed"],
+        "timestamp": new_result.get("timestamp", time.time()),
+        "metadata": new_result.get("metadata", {}),
+    }
+    if "config_hash" in new_result:
+        new_champion["config_hash"] = new_result["config_hash"]
+
     return {
         "benchmark_id": new_result.get("benchmark_id", "unknown"),
         "version": version,
-        "champion": {
-            "score": new_result["score"],
-            "seed": new_result["seed"],
-            "timestamp": new_result.get("timestamp", time.time()),
-            "metadata": new_result.get("metadata", {}),
-        },
+        "champion": new_champion,
         "history": history,
     }
 
@@ -96,6 +132,11 @@ def main():
             print(
                 f"No existing champion found at {args.champion_path}. Treating result as new champion."
             )
+
+        config_error = check_config_compatibility(result, champion)
+        if config_error:
+            print(config_error)
+            sys.exit(1)
 
         new_score = float(result["score"])
 

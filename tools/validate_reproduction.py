@@ -15,6 +15,18 @@ def validate_reproduction(
 ) -> bool:
     """Check if new result exactly reproduces champion."""
 
+    # A config-hash mismatch explains a score mismatch before it happens:
+    # the champion was recorded under a different effective configuration.
+    new_hash = new_result.get("config_hash")
+    old_hash = champion_record.get("config_hash")
+    if new_hash is not None and old_hash is not None and new_hash != old_hash:
+        print("FAILURE: Config mismatch!")
+        print(f"  Champion config_hash: {old_hash}")
+        print(f"  Current config_hash:  {new_hash}")
+        print("  The benchmark/core configuration changed since this champion was")
+        print("  recorded. Config changed - re-baseline the champion.")
+        return False
+
     new_score = new_result["score"]
     old_score = champion_record["score"]
 

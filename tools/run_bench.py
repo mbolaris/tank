@@ -72,6 +72,15 @@ def main():
         # Add environment info
         result1["timestamp"] = __import__("time").time()
 
+        # Stamp the effective-config hash so validators can refuse to compare
+        # scores recorded under different configurations (see
+        # core/solutions/config_hash.py).
+        from core.solutions.config_hash import compute_config_hash
+
+        result1["config_hash"] = compute_config_hash(
+            bench_module.BENCHMARK_ID, args.seed, getattr(bench_module, "CONFIG", None)
+        )
+
         # Output
         if args.out:
             with open(args.out, "w") as f:
