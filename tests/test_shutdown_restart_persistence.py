@@ -75,6 +75,10 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     assert default_world_instance is not None
     default_world = default_world_instance.runner.world
     default_world.paused = True
+    # Barrier: the runner steps under its lock, so acquiring it guarantees any
+    # in-flight frame has finished before we touch engine state.
+    with default_world_instance.runner.lock:
+        pass
     existing_castles = [e for e in default_world.engine.entities_list if isinstance(e, Castle)]
     if existing_castles:
         castle = existing_castles[0]
@@ -89,10 +93,9 @@ async def test_full_shutdown_restart_cycle(mock_data_dir, mock_managers):
     petri_world = petri_world_instance.runner.world
     petri_world.paused = True
 
-    # Give the simulation thread time to process the pause flag to avoid race conditions
-    import time
-
-    time.sleep(0.1)
+    # Barrier: wait for any in-flight frame to complete (see above)
+    with petri_world_instance.runner.lock:
+        pass
 
     # Reset phase so we can add entities directly (test setup privilege)
     petri_world.engine._current_phase = None
