@@ -2,12 +2,22 @@
 
 This module manages population dynamics, statistics, and ecosystem health.
 EcosystemManager is a facade that composes specialized trackers.
+
+The heavier bodies live in focused collaborators; the facade keeps thin
+delegating methods so the public API and test monkeypatch points stay
+unchanged:
+
+- core/ecosystem_telemetry.py: EventBus subscriptions, telemetry event
+  routing, energy delta ingestion, food-consumption recording
+- core/poker_outcome_recorder.py: poker outcome -> stats/energy recording
+- core/genetic_diversity_tracker.py: genetic diversity stats + summary
+- core/ecosystem_reporting.py: summary-stats building, poker strategy
+  distribution reports
 """
 
-import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Optional
 
+from core import ecosystem_reporting
 from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS
 from core.ecosystem_stats import (
     EcosystemEvent,
@@ -17,20 +27,20 @@ from core.ecosystem_stats import (
     PokerOutcomeRecord,
     PokerStats,
 )
+from core.ecosystem_telemetry import EcosystemTelemetryRouter
+from core.genetic_diversity_tracker import GeneticDiversityTracker
 from core.lineage_tracker import LineageTracker
+from core.poker_outcome_recorder import PokerOutcomeRecorder
 from core.poker_stats_manager import PokerStatsManager
 from core.population_tracker import PopulationTracker
 from core.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
-from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.events import EventBus
     from core.genetics import Genome
-
-
-logger = logging.getLogger(__name__)
+    from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 
 class EcosystemManager:
@@ -43,6 +53,9 @@ class EcosystemManager:
     - ReproductionStatsManager: reproduction statistics
     - EnergyTracker: energy flow tracking
     - EnhancedStatisticsTracker: time series and correlations
+    - GeneticDiversityTracker: genetic diversity statistics
+    - EcosystemTelemetryRouter: event/energy-delta ingestion
+    - PokerOutcomeRecorder: poker outcome recording
 
     Attributes:
         max_population: Maximum number of fish allowed (carrying capacity)
@@ -84,7 +97,7 @@ class EcosystemManager:
         self.reproduction_manager = ReproductionStatsManager(self.population.algorithm_stats)
 
         # Genetic diversity statistics tracking
-        self.genetic_diversity_stats: GeneticDiversityStats = GeneticDiversityStats()
+        self.diversity = GeneticDiversityTracker()
 
         # Enhanced statistics tracker (time series, correlations, extinctions)
         from core.enhanced_statistics import EnhancedStatisticsTracker
@@ -96,58 +109,32 @@ class EcosystemManager:
         # Energy tracking
         self.energy_tracker = EnergyTracker()
 
+        # Telemetry routing (EventBus handlers, energy delta ingestion)
+        self.telemetry = EcosystemTelemetryRouter(self)
+
+        # Poker outcome recording (stats + energy ledger updates)
+        self.poker_recorder = PokerOutcomeRecorder(self)
+
         # Subscribe to domain events if EventBus is provided
         self.event_bus = event_bus
         if event_bus is not None:
             self._subscribe_to_events(event_bus)
 
     def _subscribe_to_events(self, event_bus: "EventBus") -> None:
-        """Subscribe handlers to domain events on the EventBus.
-
-        This enables decoupled telemetry where entities emit events and
-        EcosystemManager receives them without direct coupling.
-
-        Note: Energy accounting now uses EnergyDeltaRecord via ingest_energy_deltas().
-        EnergyGainEvent/EnergyBurnEvent handlers are no-ops to avoid double-counting.
-        """
-        # Non-energy events still active
-        event_bus.subscribe(FoodEatenEvent, self._on_food_eaten_event)
-        event_bus.subscribe(BirthEvent, self._on_birth_event)
-        event_bus.subscribe(ReproductionEvent, self._on_reproduction_event)
+        """Subscribe handlers to domain events on the EventBus."""
+        self.telemetry.subscribe(event_bus)
 
     def _on_food_eaten_event(self, event: "FoodEatenEvent") -> None:
         """Handle food consumption events."""
-        if event.food_type == "nectar":
-            self.record_nectar_eaten(event.algorithm_id, event.energy_gained)
-        elif event.food_type == "live_food":
-            self.record_live_food_eaten(
-                event.algorithm_id,
-                event.energy_gained,
-                genome=event.genome,
-                generation=event.generation,
-            )
-        elif event.food_type == "falling_food":
-            self.record_falling_food_eaten(event.algorithm_id, event.energy_gained)
-        else:
-            self.record_food_eaten(event.algorithm_id, event.energy_gained)
+        self.telemetry.on_food_eaten(event)
 
     def _on_birth_event(self, event: "BirthEvent") -> None:
         """Handle entity birth events."""
-        self.record_birth(
-            event.fish_id,
-            event.generation,
-            parent_ids=list(event.parent_ids) if event.parent_ids else None,
-            algorithm_id=event.algorithm_id,
-            color=event.color_hex,
-            algorithm_name=event.algorithm_name,
-            tank_name=event.tank_name,
-        )
-        if event.is_soup_spawn:
-            self.record_energy_gain("soup_spawn", event.energy)
+        self.telemetry.on_birth(event)
 
     def _on_reproduction_event(self, event: "ReproductionEvent") -> None:
         """Handle reproduction events."""
-        self.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
+        self.telemetry.on_reproduction(event)
 
     # =========================================================================
     # Backward-compatible property aliases (delegate to PopulationTracker)
@@ -220,6 +207,14 @@ class EcosystemManager:
     @property
     def reproduction_stats(self):
         return self.reproduction_manager.reproduction_stats
+
+    @property
+    def genetic_diversity_stats(self) -> GeneticDiversityStats:
+        return self.diversity.stats
+
+    @genetic_diversity_stats.setter
+    def genetic_diversity_stats(self, value: GeneticDiversityStats) -> None:
+        self.diversity.stats = value
 
     @property
     def energy_sources(self) -> dict[str, float]:
@@ -307,67 +302,16 @@ class EcosystemManager:
         return self.events[-count:]
 
     # =========================================================================
-    # Telemetry Event Recording
+    # Telemetry Event Recording (delegate to EcosystemTelemetryRouter)
     # =========================================================================
 
     def record_event(self, event: Any) -> None:
-        """Record a telemetry event emitted by domain entities.
-
-        This delegates to the specific event handlers to ensure consistent logic
-        between manual recording and EventBus subscriptions.
-
-        Note: Energy accounting now uses EnergyDeltaRecord via ingest_energy_deltas().
-        EnergyGainEvent/EnergyBurnEvent are no-ops to avoid double-counting.
-        """
-        # Energy events are no-ops (accounting now via ingest_energy_deltas)
-        if isinstance(event, FoodEatenEvent):
-            self._on_food_eaten_event(event)
-        elif isinstance(event, BirthEvent):
-            self._on_birth_event(event)
-        elif isinstance(event, ReproductionEvent):
-            self._on_reproduction_event(event)
-
-    # =========================================================================
-    # Energy Delta Ingestion
-    # =========================================================================
+        """Record a telemetry event emitted by domain entities."""
+        self.telemetry.record_event(event)
 
     def ingest_energy_deltas(self, deltas: list[Any]) -> None:
-        """Process a batch of energy deltas from the engine recorder.
-
-        This replaces the old event-based telemetry for energy.
-        Args:
-            deltas: List of EnergyDeltaRecord objects
-        """
-        for delta in deltas:
-            if delta.delta > 0:
-                # Energy Gain
-                source = delta.source
-                amount = delta.delta
-
-                # Map source names if needed for consistency
-                if source == "ate_food":
-                    # Try to get detailed info from metadata if available
-                    food_type = "food"
-                    if delta.metadata and "food_type" in delta.metadata:
-                        food_type = delta.metadata["food_type"]
-                    self.record_energy_gain(food_type, amount)
-                elif source == "poker_win":
-                    self.record_energy_gain("poker", amount)
-                else:
-                    self.record_energy_gain(source, amount)
-
-            elif delta.delta < 0:
-                # Energy Burn
-                source = delta.source
-                amount = -delta.delta
-
-                if source == "metabolism":
-                    # Metabolism is now aggregated, but we can log it
-                    self.record_energy_burn("metabolism", amount)
-                elif source == "poker_loss":
-                    self.record_energy_burn("poker", amount)
-                else:
-                    self.record_energy_burn(source, amount)
+        """Process a batch of energy deltas from the engine recorder."""
+        self.telemetry.ingest_energy_deltas(deltas)
 
     # =========================================================================
     # Population Recording (delegate to PopulationTracker)
@@ -447,67 +391,7 @@ class EcosystemManager:
 
     def _update_genetic_diversity_stats(self, fish_list: list["Fish"]) -> None:
         """Update genetic diversity statistics."""
-        if not fish_list:
-            self.genetic_diversity_stats = GeneticDiversityStats()
-            return
-
-        algorithms = set()
-        species = set()
-        color_hues = []
-        speed_modifiers = []
-        size_modifiers = []
-        vision_ranges = []
-
-        for fish in fish_list:
-            genome = fish.genome
-
-            composable = genome.behavioral.behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
-                algorithms.add(hash(behavior_id) % 1000)
-
-            species.add(fish.species)
-            color_hues.append(genome.physical.color_hue.value)
-            speed_modifiers.append(genome.speed_modifier)
-            size_modifiers.append(genome.physical.size_modifier.value)
-            vision_ranges.append(genome.vision_range)
-
-        n_fish = len(fish_list)
-
-        color_variance = 0.0
-        if n_fish > 1:
-            mean_color = sum(color_hues) / n_fish
-            color_variance = sum((h - mean_color) ** 2 for h in color_hues) / n_fish
-
-        trait_variances: dict[str, float] = {}
-        if n_fish > 1:
-            mean_speed = sum(speed_modifiers) / n_fish
-            trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
-
-            mean_size = sum(size_modifiers) / n_fish
-            trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
-
-            mean_vision = sum(vision_ranges) / n_fish
-            trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
-
-        # Track behavioral trait variances for convergence detection.
-        # Low variance in a trait means the population has converged on it,
-        # which may indicate a convergence trap (stuck at suboptimal value).
-        behavioral_traits = ["prediction_skill", "pursuit_aggression", "hunting_stamina"]
-        for trait_name in behavioral_traits:
-            values = []
-            for fish in fish_list:
-                trait = getattr(fish.genome.behavioral, trait_name, None)
-                if trait is not None and hasattr(trait, "value"):
-                    values.append(float(trait.value))
-            if len(values) > 1:
-                mean_val = sum(values) / len(values)
-                trait_variances[trait_name] = sum((v - mean_val) ** 2 for v in values) / len(values)
-
-        self.genetic_diversity_stats.unique_algorithms = len(algorithms)
-        self.genetic_diversity_stats.unique_species = len(species)
-        self.genetic_diversity_stats.color_variance = color_variance
-        self.genetic_diversity_stats.trait_variances = trait_variances
+        self.diversity.update(fish_list)
 
     # =========================================================================
     # Query Methods (delegate to trackers)
@@ -527,112 +411,7 @@ class EcosystemManager:
 
     def get_summary_stats(self, entities: list | None = None) -> dict[str, Any]:
         """Get comprehensive ecosystem summary statistics."""
-        from statistics import StatisticsError, median
-
-        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
-
-        total_pop = self.get_total_population()
-        poker_summary = self.get_poker_stats_summary()
-
-        energy_summary = self.get_energy_source_summary()
-        recent_energy = self.get_recent_energy_breakdown(window_frames=ENERGY_STATS_WINDOW_FRAMES)
-        recent_energy_burn = self.get_recent_energy_burn(window_frames=ENERGY_STATS_WINDOW_FRAMES)
-        energy_delta = self.get_energy_delta(window_frames=ENERGY_STATS_WINDOW_FRAMES)
-
-        recent_energy_total = sum(recent_energy.values())
-        recent_energy_burn_total = sum(recent_energy_burn.values())
-        recent_energy_net = recent_energy_total - recent_energy_burn_total
-        energy_accounting_discrepancy = recent_energy_net - energy_delta.get("energy_delta", 0.0)
-
-        plant_energy_summary = self.get_plant_energy_source_summary()
-        recent_plant_energy = self.get_recent_plant_energy_breakdown(
-            window_frames=ENERGY_STATS_WINDOW_FRAMES
-        )
-        recent_plant_energy_burn = self.get_recent_plant_energy_burn(
-            window_frames=ENERGY_STATS_WINDOW_FRAMES
-        )
-
-        total_energy = 0.0
-        fish_list = []
-        if entities is not None:
-            from core.entities import Fish
-
-            fish_list = [e for e in entities if isinstance(e, Fish)]
-            total_energy = sum(
-                e.energy + e._reproduction_component.overflow_energy_bank for e in fish_list
-            )
-
-        alive_generations = [
-            g for g, stats in self.generation_stats.items() if stats.population > 0
-        ]
-
-        # Calculate adult size stats if we have fish
-        adult_size_min = 0.0
-        adult_size_max = 0.0
-        adult_size_median = 0.0
-        adult_size_range = "0.0-0.0"
-        if fish_list:
-            adult_sizes = [
-                FISH_ADULT_SIZE
-                * (f.genome.physical.size_modifier.value if hasattr(f, "genome") else 1.0)
-                for f in fish_list
-            ]
-            adult_size_min = min(adult_sizes)
-            adult_size_max = max(adult_sizes)
-            try:
-                adult_size_median = median(adult_sizes)
-            except StatisticsError:
-                adult_size_median = 0.0
-            adult_size_range = f"{adult_size_min:.2f}-{adult_size_max:.2f}"
-
-        return {
-            "total_population": total_pop,
-            "current_generation": self.current_generation,
-            "max_generation": max(alive_generations) if alive_generations else 0,
-            "total_births": self.total_births,
-            "total_deaths": self.total_deaths,
-            "total_extinctions": self.total_extinctions,
-            "carrying_capacity": self.max_population,
-            "capacity_usage": (
-                f"{int(100 * total_pop / self.max_population)}%"
-                if self.max_population > 0
-                else "0%"
-            ),
-            "death_causes": dict(self.death_causes),
-            "generations_alive": len(alive_generations),
-            "poker_stats": poker_summary,
-            "total_energy": total_energy,
-            "energy_sources": energy_summary,
-            "energy_from_nectar": recent_energy.get("nectar", 0.0),
-            "energy_from_live_food": recent_energy.get("live_food", 0.0),
-            "energy_from_falling_food": recent_energy.get("falling_food", 0.0),
-            "energy_from_poker": recent_energy.get("poker_fish", 0.0),
-            "energy_from_poker_plant": recent_energy.get("poker_plant", 0.0),
-            "energy_from_auto_eval": recent_energy.get("auto_eval", 0.0),
-            "energy_from_birth": recent_energy.get("birth", 0.0),
-            "energy_from_soup_spawn": recent_energy.get("soup_spawn", 0.0),
-            "energy_from_migration_in": recent_energy.get("migration_in", 0.0),
-            "energy_burn_recent": recent_energy_burn,
-            "energy_burn_total": recent_energy_burn_total,
-            "energy_sources_recent": recent_energy,
-            "energy_gains_recent_total": recent_energy_total,
-            "energy_net_recent": recent_energy_net,
-            "energy_accounting_discrepancy": energy_accounting_discrepancy,
-            "energy_delta": energy_delta,
-            "plant_energy_sources": plant_energy_summary,
-            "plant_energy_sources_recent": recent_plant_energy,
-            "plant_energy_from_photosynthesis": recent_plant_energy.get("photosynthesis", 0.0),
-            "plant_energy_burn_recent": recent_plant_energy_burn,
-            "plant_energy_burn_total": sum(recent_plant_energy_burn.values()),
-            "adult_size_min": adult_size_min,
-            "adult_size_max": adult_size_max,
-            "adult_size_median": adult_size_median,
-            "adult_size_range": adult_size_range,
-            "allowed_adult_size_min": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN,
-            "allowed_adult_size_max": FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX,
-            "reproduction_stats": self.get_reproduction_summary(),
-            "diversity_stats": self.get_diversity_summary(),
-        }
+        return ecosystem_reporting.build_summary_stats(self, entities)
 
     def get_poker_stats_summary(self) -> dict[str, Any]:
         """Get poker statistics summary."""
@@ -652,31 +431,8 @@ class EcosystemManager:
         return self.reproduction_manager.get_summary()
 
     def get_diversity_summary(self) -> dict[str, Any]:
-        """Get summary genetic diversity statistics.
-
-        Includes convergence warnings for traits with near-zero variance,
-        which may indicate convergence traps where evolution has stalled.
-        """
-        diversity_score = self.genetic_diversity_stats.get_diversity_score()
-        trait_vars = self.genetic_diversity_stats.trait_variances
-
-        # Detect converged traits (variance < 0.001 = essentially fixed)
-        converged_traits = [name for name, var in trait_vars.items() if var < 0.001]
-
-        return {
-            "unique_algorithms": self.genetic_diversity_stats.unique_algorithms,
-            "unique_species": self.genetic_diversity_stats.unique_species,
-            "color_variance": self.genetic_diversity_stats.color_variance,
-            "speed_variance": trait_vars.get("speed", 0.0),
-            "size_variance": trait_vars.get("size", 0.0),
-            "vision_variance": trait_vars.get("vision", 0.0),
-            "prediction_skill_variance": trait_vars.get("prediction_skill", 0.0),
-            "pursuit_aggression_variance": trait_vars.get("pursuit_aggression", 0.0),
-            "hunting_stamina_variance": trait_vars.get("hunting_stamina", 0.0),
-            "diversity_score": diversity_score,
-            "diversity_score_pct": f"{diversity_score:.1%}",
-            "converged_traits": converged_traits,
-        }
+        """Get summary genetic diversity statistics."""
+        return self.diversity.get_summary()
 
     def get_enhanced_stats_summary(self) -> dict[str, Any]:
         """Get comprehensive enhanced statistics report."""
@@ -699,15 +455,12 @@ class EcosystemManager:
         self.reproduction_manager.update_pregnant_count(count)
 
     # =========================================================================
-    # Food Recording
+    # Food Recording (delegate to EcosystemTelemetryRouter)
     # =========================================================================
 
     def record_nectar_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record nectar consumption."""
-        if algorithm_id in self.algorithm_stats:
-            self.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self.enhanced_stats.record_energy_from_food(energy_gained)
-        self.record_energy_gain("nectar", energy_gained)
+        self.telemetry.record_nectar_eaten(algorithm_id, energy_gained)
 
     def record_live_food_eaten(
         self,
@@ -717,70 +470,29 @@ class EcosystemManager:
         generation: int | None = None,
     ) -> None:
         """Record live food consumption."""
-        if algorithm_id in self.algorithm_stats:
-            self.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self.enhanced_stats.record_energy_from_food(energy_gained)
-        if genome is not None:
-            self.enhanced_stats.record_live_food_capture(
-                algorithm_id, energy_gained, genome, generation
-            )
-        self.record_energy_gain("live_food", energy_gained)
+        self.telemetry.record_live_food_eaten(
+            algorithm_id, energy_gained, genome=genome, generation=generation
+        )
 
     def record_falling_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record falling food consumption."""
-        if algorithm_id in self.algorithm_stats:
-            self.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self.enhanced_stats.record_energy_from_food(energy_gained)
-        self.record_energy_gain("falling_food", energy_gained)
+        self.telemetry.record_falling_food_eaten(algorithm_id, energy_gained)
 
     def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record generic food consumption."""
-        if algorithm_id in self.algorithm_stats:
-            self.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self.enhanced_stats.record_energy_from_food(energy_gained)
-        self.record_energy_gain("food", energy_gained)
+        self.telemetry.record_food_eaten(algorithm_id, energy_gained)
 
     # =========================================================================
-    # Poker Recording
+    # Poker Recording (delegate to PokerOutcomeRecorder)
     # =========================================================================
 
     def record_poker_outcome_record(self, record: PokerOutcomeRecord) -> None:
         """Record a poker game outcome from a value object."""
-        from typing import cast
-
-        from core.mixed_poker.types import MixedPokerResult
-        from core.poker.core import PokerHand
-
-        winner_hand = cast(PokerHand, record.winner_hand)
-        loser_hand = cast(PokerHand, record.loser_hand)
-        result = cast(MixedPokerResult | None, record.result)
-        self.poker_manager.record_poker_outcome(
-            record.winner_id,
-            record.loser_id,
-            record.winner_algo_id,
-            record.loser_algo_id,
-            record.amount,
-            winner_hand,
-            loser_hand,
-            record.house_cut,
-            result,
-            record.player1_algo_id,
-            record.player2_algo_id,
-        )
+        self.poker_recorder.record_poker_outcome_record(record)
 
     def record_plant_poker_game_record(self, record: PlantPokerOutcomeRecord) -> None:
         """Record a plant poker outcome from a value object."""
-        self.poker_manager.record_plant_poker_game(
-            record.fish_id,
-            record.plant_id,
-            record.fish_won,
-            record.energy_transferred,
-            record.fish_hand_rank,
-            record.plant_hand_rank,
-            record.won_by_fold,
-        )
-        net_amount = record.energy_transferred if record.fish_won else -record.energy_transferred
-        self.record_plant_poker_energy_gain(net_amount)
+        self.poker_recorder.record_plant_poker_game_record(record)
 
     def record_mixed_poker_energy_transfer(
         self,
@@ -788,55 +500,26 @@ class EcosystemManager:
         is_plant_game: bool = True,
         winner_type: str = "",
     ) -> None:
-        """Record energy transfer from a mixed poker game.
-
-        Args:
-            energy_to_fish: Net energy transferred to fish
-            is_plant_game: Whether this game involved plants
-            winner_type: "fish" or "plant" - who won the game
-        """
-        self.poker_manager.record_mixed_poker_energy_transfer(
-            energy_to_fish, winner_type=winner_type, is_plant_game=is_plant_game
+        """Record energy transfer from a mixed poker game."""
+        self.poker_recorder.record_mixed_poker_energy_transfer(
+            energy_to_fish, is_plant_game=is_plant_game, winner_type=winner_type
         )
-        self.record_plant_poker_energy_gain(energy_to_fish)
 
     def record_mixed_poker_outcome_record(self, record: MixedPokerOutcomeRecord) -> None:
         """Record mixed poker outcome with correct per-economy house cut attribution."""
-        self.poker_manager.record_mixed_poker_energy_transfer(
-            record.fish_delta,
-            winner_type=record.winner_type,
-            is_plant_game=True,
-        )
-
-        winner_is_fish = record.winner_type == "fish"
-        house_cut = float(record.house_cut or 0.0)
-
-        if record.fish_delta > 0:
-            gross = record.fish_delta + (house_cut if winner_is_fish else 0.0)
-            self.record_energy_gain("poker_plant", gross)
-            if winner_is_fish and house_cut > 0:
-                self.record_energy_burn("poker_house_cut", house_cut)
-        elif record.fish_delta < 0:
-            self.record_energy_burn("poker_plant_loss", -record.fish_delta)
-
-        if (not winner_is_fish) and house_cut > 0:
-            self.record_plant_energy_gain("poker", house_cut)
-            self.record_plant_energy_burn("poker_house_cut", house_cut)
+        self.poker_recorder.record_mixed_poker_outcome_record(record)
 
     def record_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-fish poker."""
-        self.record_energy_gain("poker_fish", amount)
+        self.poker_recorder.record_poker_energy_gain(amount)
 
     def record_plant_poker_energy_gain(self, amount: float) -> None:
         """Track net energy fish gained from fish-vs-plant poker."""
-        if amount >= 0:
-            self.record_energy_gain("poker_plant", amount)
-        else:
-            self.record_energy_burn("poker_plant_loss", -amount)
+        self.poker_recorder.record_plant_poker_energy_gain(amount)
 
     def record_auto_eval_energy_gain(self, amount: float) -> None:
         """Track energy awarded through auto-evaluation benchmarks."""
-        self.record_energy_gain("auto_eval", amount)
+        self.poker_recorder.record_auto_eval_energy_gain(amount)
 
     # =========================================================================
     # Energy Recording (delegate to EnergyTracker)
@@ -932,63 +615,8 @@ class EcosystemManager:
 
     def get_poker_strategy_distribution(self, fish_list: list["Fish"]) -> dict[str, Any]:
         """Get distribution of poker strategies in the population."""
-        from collections import Counter
-
-        strategy_counts: Counter = Counter()
-        strategy_win_rates: dict[str, list[float]] = defaultdict(list)
-        strategy_params: dict[str, list[dict[str, float]]] = defaultdict(list)
-
-        for fish in fish_list:
-            if not hasattr(fish, "genome") or fish.genome is None:
-                continue
-
-            trait = fish.genome.behavioral.poker_strategy
-            strat = trait.value if trait else None
-            if strat is None:
-                continue
-
-            strategy_counts[strat.strategy_id] += 1
-            strategy_params[strat.strategy_id].append(strat.parameters.copy())
-
-            if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
-                ps = fish.poker_stats
-                if ps.total_games > 0:
-                    strategy_win_rates[strat.strategy_id].append(ps.get_win_rate())
-
-        avg_win_rates: dict[str, float] = {}
-        for strat_id, rates in strategy_win_rates.items():
-            if rates:
-                avg_win_rates[strat_id] = sum(rates) / len(rates)
-
-        result = {
-            "total_fish": len(fish_list),
-            "strategy_counts": dict(strategy_counts),
-            "dominant_strategy": (
-                strategy_counts.most_common(1)[0][0] if strategy_counts else None
-            ),
-            "diversity": len(strategy_counts),
-            "strategy_avg_win_rates": avg_win_rates,
-        }
-
-        return result
+        return ecosystem_reporting.get_poker_strategy_distribution(fish_list)
 
     def log_poker_evolution_status(self, fish_list: list["Fish"]) -> None:
         """Log current poker evolution status to console."""
-        dist = self.get_poker_strategy_distribution(fish_list)
-
-        if not dist["strategy_counts"]:
-            logger.info("Poker Evolution: No fish with poker strategies")
-            return
-
-        sorted_strats = sorted(dist["strategy_counts"].items(), key=lambda x: x[1], reverse=True)
-
-        strat_str = ", ".join(f"{s}:{c}" for s, c in sorted_strats[:5])
-        dominant = dist["dominant_strategy"]
-        diversity = dist["diversity"]
-        dom_win_rate = dist["strategy_avg_win_rates"].get(dominant, 0)
-
-        logger.info(
-            f"Poker Evolution [Gen {self.current_generation}]: "
-            f"Dominant={dominant} ({dom_win_rate:.1%} win rate), "
-            f"Diversity={diversity}, Distribution=[{strat_str}]"
-        )
+        ecosystem_reporting.log_poker_evolution_status(self, fish_list)
