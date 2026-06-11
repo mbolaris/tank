@@ -7,28 +7,28 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from backend.world_manager import WorldManager
     from core.entities import Fish
 
-from backend.runner import CommandHandlerMixin
-from backend.runner.perf_tracker import PerfTracker
-from backend.runner.state_builders import (
-    build_base_stats,
-    build_energy_stats,
-    build_meta_stats,
-    build_physical_stats,
-    collect_poker_stats_payload,
+from backend.runner import (
+    CommandHandlerMixin,
+    evolution_benchmark,
+    loop,
+    stats_collector,
+    world_switch,
 )
+from backend.runner.perf_tracker import PerfTracker
+from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
-from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
+from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend
 
 logger = logging.getLogger(__name__)
 
@@ -196,9 +196,9 @@ class SimulationRunner(CommandHandlerMixin):
     def switch_world_type(self, new_world_type: str) -> None:
         """Switch to a different world type while preserving entities.
 
-        This method hot-swaps between tank and petri modes without resetting
-        the simulation. Both modes share the same underlying engine, so we
-        wrap/unwrap the adapter and update metadata - never reset.
+        This hot-swaps between tank and petri modes without resetting the
+        simulation. Delegates to ``backend.runner.world_switch`` (extracted
+        verbatim); the swap happens entirely under ``self.lock``.
 
         Args:
             new_world_type: Target world type ("tank" or "petri")
@@ -206,147 +206,14 @@ class SimulationRunner(CommandHandlerMixin):
         Raises:
             ValueError: If switching between incompatible world types
         """
-        with self.lock:
-            if new_world_type == self.world_type:
-                return
-
-            # Only tank <-> petri switching is supported (they share the same engine)
-            if {self.world_type, new_world_type} != {"tank", "petri"}:
-                raise ValueError(
-                    f"Cannot hot-swap between {self.world_type} and {new_world_type}. "
-                    f"Only tank <-> petri switching is supported."
-                )
-
-            was_paused = self.world.is_paused
-
-            # Capture old world type BEFORE any mutation for correct hook sequencing
-            old_world_type = self.world_type
-            old_hooks = self.world_hooks
-
-            logger.info(
-                "Hot-swapping world type from %s to %s (preserving entities)",
-                old_world_type,
-                new_world_type,
-            )
-
-            # Get the underlying tank backend (the "base" backend)
-            from core.worlds.petri.backend import PetriWorldBackendAdapter
-
-            tank_backend: MultiAgentWorldBackend
-            if isinstance(self.world, PetriWorldBackendAdapter):
-                tank_backend = self.world._tank_backend
-            else:
-                tank_backend = self.world
-
-            # 1) Cleanup OLD physics/resources using current hooks BEFORE switching
-            cleanup_physics = getattr(old_hooks, "cleanup_physics", None)
-            if callable(cleanup_physics):
-                cleanup_physics(self)
-
-            cleanup = getattr(old_hooks, "cleanup", None)
-            if callable(cleanup):
-                cleanup(self)
-
-            # 2) Swap the world backend (preserve underlying engine/entities)
-            new_world: MultiAgentWorldBackend
-            if new_world_type == "petri":
-                new_world = PetriWorldBackendAdapter(tank_backend=cast(Any, tank_backend))
-            else:
-                # Switching to tank - just use the tank backend directly
-                new_world = tank_backend
-
-            self.world = new_world
-            self.world_type = new_world_type
-
-            # Update metadata from registry
-            metadata = get_world_metadata(new_world_type)
-            self.mode_id = metadata.mode_id if metadata else new_world_type
-            self.view_mode = metadata.view_mode if metadata else "side"
-
-            # Propagate view mode to engine (for soccer avatars/rendering hints)
-            if hasattr(self.world, "engine"):
-                self.world.engine.view_mode = self.view_mode
-
-            # Update snapshot builder for the new world type
-            from backend.world_registry import _SNAPSHOT_BUILDERS
-
-            builder_factory = _SNAPSHOT_BUILDERS.get(new_world_type)
-            if builder_factory:
-                self._entity_snapshot_builder = builder_factory()
-
-            # Clear cached state to force full rebuild on next get_state()
-            self.state_publisher.invalidate_cache()
-
-            # 3) Install NEW hooks and apply NEW constraints/lifecycle
-            self.world_hooks = get_hooks_for_world(new_world_type)
-
-            warmup = getattr(self.world_hooks, "warmup", None)
-            if callable(warmup):
-                warmup(self)
-
-            apply_constraints = getattr(self.world_hooks, "apply_physics_constraints", None)
-            if callable(apply_constraints):
-                apply_constraints(self)
-
-            on_switch = getattr(self.world_hooks, "on_world_type_switch", None)
-            if callable(on_switch):
-                on_switch(self, old_world_type, new_world_type)
-
-            # Restore paused state to what it was at entry
-            self.world.set_paused(was_paused)
-            if hasattr(self.world, "paused"):
-                self.world.paused = was_paused
-
-            logger.info(
-                "World type switch complete: now %s (mode_id=%s, view_mode=%s)",
-                new_world_type,
-                self.mode_id,
-                self.view_mode,
-            )
+        world_switch.switch_world_type(self, new_world_type)
 
     # Removed: _apply_petri_physics, _remove_petri_physics, _relocate_plants_to_spots, _clamp_entities_to_dish
     # These are now handled by WorldHooks (PetriWorldHooks).
 
     def _update_environment_migration_context(self) -> None:
         """Update the environment with current migration context."""
-        if hasattr(self.world, "engine") and hasattr(self.world.engine, "environment"):
-            env = self.world.engine.environment
-            if env:
-                env.connection_manager = self.connection_manager
-                env.world_manager = self.world_manager
-                env.world_id = self.world_id
-                env.world_name = self.world_name
-
-                # Create (or clear) a migration handler based on available dependencies.
-                # Core entities depend only on the MigrationHandler protocol, while the backend
-                # provides the concrete implementation.
-                if self.connection_manager is not None and self.world_manager is not None:
-                    deps = (self.connection_manager, self.world_manager)
-                    if self._migration_handler is None or self._migration_handler_deps != deps:
-                        from backend.migration_handler import MigrationHandler
-
-                        self._migration_handler = MigrationHandler(
-                            connection_manager=self.connection_manager,
-                            world_manager=self.world_manager,
-                        )
-                        self._migration_handler_deps = deps
-                    env.migration_handler = self._migration_handler
-                else:
-                    self._migration_handler = None
-                    self._migration_handler_deps = (None, None)
-                    env.migration_handler = None
-
-                logger.info(
-                    f"Migration context updated for world {self.world_id[:8] if self.world_id else 'None'}: "
-                    f"conn_mgr={'SET' if self.connection_manager else 'NULL'}, "
-                    f"manager={'SET' if self.world_manager else 'NULL'}"
-                )
-            else:
-                logger.warning("Cannot update migration context: environment is None")
-        else:
-            logger.warning(
-                "Cannot update migration context: world.engine or world.engine.environment not found"
-            )
+        world_switch.update_environment_migration_context(self)
 
     def _create_error_response(self, error_msg: str) -> dict[str, Any]:
         """Create a standardized error response.
@@ -537,138 +404,13 @@ class SimulationRunner(CommandHandlerMixin):
             self.state_publisher.invalidate_cache()
 
     def _run_loop(self):
-        """Main simulation loop."""
-        logger.info("Simulation loop: Starting")
-        loop_iteration_count = 0
+        """Main simulation loop (thread target).
 
-        # Drift correction: Track when the next frame *should* start
-        next_frame_start_time = time.time()
-        was_fast_forward = self.fast_forward
-
-        try:
-            while self.running:
-                try:
-                    # Advance target time by one frame duration
-                    next_frame_start_time += self.frame_time
-                    loop_iteration_count += 1
-
-                    stepped = False
-                    with self.lock:
-                        # Pause gate: a paused world must not advance. API-driven
-                        # stepping still works because SimulationRunner.step()
-                        # temporarily unpauses under this same lock.
-                        if not self.world.is_paused:
-                            try:
-                                self.perf_tracker.start("update")
-                                if getattr(self.world, "supports_fast_step", False):
-                                    self.world.step({FAST_STEP_ACTION: True})
-                                else:
-                                    self.world.step()
-                                self.perf_tracker.stop("update")
-                                stepped = True
-                            except Exception as e:
-                                logger.error(
-                                    f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",
-                                    exc_info=True,
-                                )
-                                # Continue running even if update fails
-
-                    self._start_auto_evaluation_if_needed()
-
-                    # Yield to keep the main server thread/event loop responsive
-                    # (important for Ctrl+C handling under heavy simulation load).
-                    time.sleep(0)
-
-                    # FPS Calculation
-                    if stepped:
-                        self.fps_frame_count += 1
-                    current_time = time.time()
-                    if current_time - self.last_fps_time >= 5.0:
-                        self.current_actual_fps = self.fps_frame_count / (
-                            current_time - self.last_fps_time
-                        )
-                        self.fps_frame_count = 0
-                        self.last_fps_time = current_time
-                        # Log stats periodically
-                        stats = self.world.get_stats(include_distributions=False)
-
-                        # Format perf stats if enabled
-                        perf_log = self.perf_tracker.get_summary_and_reset()
-
-                        world_label = self.world_name or self.world_id or "Unknown World"
-
-                        # Get migration counts since last report
-                        from backend.transfer_history import get_and_reset_migration_counts
-
-                        migrations_in, migrations_out = get_and_reset_migration_counts(
-                            self.world_id
-                        )
-                        migration_str = ""
-                        if migrations_in > 0 or migrations_out > 0:
-                            migration_str = f", Migrations=+{migrations_in}/-{migrations_out}"
-
-                        # Get poker skill snapshot; show Elo + vs-expert bb/100 to avoid saturated 99% confidence
-                        poker_str = ""
-                        if self.evolution_benchmark_tracker is not None:
-                            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
-                            if latest is not None:
-                                mean_elo = getattr(latest, "pop_mean_elo", None)
-                                best_elo = getattr(latest, "best_elo", None)
-                                vs_expert_bb = getattr(latest, "pop_bb_vs_expert", None)
-
-                                if mean_elo is not None and best_elo is not None:
-                                    poker_str = f", Poker(Elo)={mean_elo:.0f}/{best_elo:.0f}"
-                                if vs_expert_bb is not None:
-                                    poker_str += f", vsExp={vs_expert_bb:.1f}bb/100"
-
-                        logger.info(
-                            f"{world_label} Simulation Status "
-                            f"FPS={self.current_actual_fps:.1f}, "
-                            f"Fish={stats.get('fish_count', 0)}, "
-                            f"Plants={stats.get('plant_count', 0)}, "
-                            f"Gen={stats.get('max_generation', 0)}, "
-                            f"Energy={stats.get('total_energy', 0.0):.0f}"
-                            f"{migration_str}{poker_str}{perf_log}"
-                        )
-
-                    # Check for mode switch that happened during step() or async
-                    # If we switched from Fast Forward -> Normal, we must reset the clock
-                    # to "now" to avoid sleeping for the accumulated drift.
-                    if was_fast_forward and not self.fast_forward:
-                        logger.info("Simulation loop: Fast forward disabled, resetting clock sync")
-                        next_frame_start_time = time.time()
-
-                    was_fast_forward = self.fast_forward
-
-                    # Maintain frame rate with drift correction
-                    if not self.fast_forward:
-                        now = time.time()
-                        sleep_time = next_frame_start_time - now
-
-                        if sleep_time > 0:
-                            time.sleep(sleep_time)
-                        elif sleep_time < -0.1:  # Lagging by > 100ms
-                            # We are falling too far behind, reset target to avoid "spiral of death"
-                            # where we try to execute 0-delay frames forever to catch up
-                            next_frame_start_time = now
-                    else:
-                        # Even in fast-forward mode, yield occasionally so signals/shutdown remain responsive.
-                        time.sleep(0)
-
-                except Exception as e:
-                    logger.error(
-                        f"Simulation loop: Unexpected error at frame {loop_iteration_count}: {e}",
-                        exc_info=True,
-                    )
-                    # Use simple sleep on error to prevent tight loops
-                    time.sleep(self.frame_time)
-                    # Reset timing target after error recovery
-                    next_frame_start_time = time.time()
-
-        except Exception as e:
-            logger.error(f"Simulation loop: Fatal error, loop exiting: {e}", exc_info=True)
-        finally:
-            logger.info(f"Simulation loop: Ended after {loop_iteration_count} frames")
+        Delegates to ``backend.runner.loop`` (extracted verbatim). The pause
+        gate (a paused world must not advance) and the lock discipline (all
+        stepping happens under ``self.lock``) live there unchanged.
+        """
+        loop.run_simulation_loop(self)
 
     def _start_auto_evaluation_if_needed(self) -> None:
         """Periodically benchmark top fish against the static evaluator."""
@@ -680,82 +422,11 @@ class SimulationRunner(CommandHandlerMixin):
     def _run_evolution_benchmark_if_needed(self) -> None:
         """Run evolution benchmark if interval has passed.
 
-        The benchmark runs in a background thread to avoid blocking the main loop.
-        Results are used to track poker skill evolution over generations.
+        Delegates to ``backend.runner.evolution_benchmark`` (extracted
+        verbatim); the benchmark runs in a background thread and applies
+        rewards under ``self.lock``.
         """
-        tracker = getattr(self, "evolution_benchmark_tracker", None)
-        if tracker is None:
-            return
-        current_frame = self.world.frame_count
-
-        paused_only = os.getenv("TANK_EVOLUTION_BENCHMARK_PAUSED_ONLY", "0").strip().lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        )
-        if paused_only and not getattr(self.world, "paused", False):
-            return
-
-        interval_seconds = float(os.getenv("TANK_EVOLUTION_BENCHMARK_INTERVAL_SECONDS", "900"))
-        now = time.time()
-        last_completed = float(
-            getattr(self, "_evolution_benchmark_last_completed_time", 0.0) or 0.0
-        )
-        if now - last_completed < interval_seconds:
-            return
-
-        guard = getattr(self, "_evolution_benchmark_guard", None)
-        if guard is None:
-            return
-
-        if guard.acquire(blocking=False):
-            # Run benchmark in background thread to avoid blocking
-            import threading
-
-            def run_benchmark():
-                try:
-                    with self.lock:
-                        # Use snapshot_type for generic entity classification
-                        fish_list = [
-                            e
-                            for e in self.world.entities_list
-                            if getattr(e, "snapshot_type", None) == "fish"
-                        ]
-
-                    def apply_reward(fish, amount: float) -> None:
-                        with self.lock:
-                            # Ensure fish is still valid/alive in the simulation
-                            if fish in self.world.entities_list:
-                                actual_gain = fish.modify_energy(amount)
-                                if actual_gain > 0 and fish.ecosystem is not None:
-                                    # We reuse the auto_eval metric for tracking
-                                    fish.ecosystem.record_auto_eval_energy_gain(actual_gain)
-                                logger.info(
-                                    f"Benchmark Reward: Fish #{fish.fish_id} ({getattr(fish, 'generation', 0)}) gained {actual_gain:.1f} energy"
-                                )
-
-                    tracker.run_and_record(
-                        fish_population=fish_list,
-                        current_frame=current_frame,
-                        force=True,
-                        reward_callback=apply_reward,
-                    )
-                except Exception as e:
-                    logger.error(f"Evolution benchmark failed: {e}", exc_info=True)
-                finally:
-                    self._evolution_benchmark_last_completed_time = time.time()
-                    try:
-                        guard.release()
-                    except Exception:
-                        pass
-
-            thread = threading.Thread(
-                target=run_benchmark,
-                name="evolution_benchmark_thread",
-                daemon=True,
-            )
-            thread.start()
+        evolution_benchmark.run_evolution_benchmark_if_needed(self)
 
     # Original _run_auto_evaluation and _reward_auto_eval_winners are removed
     # as they are now handled by the AutoEvalService.
@@ -785,125 +456,23 @@ class SimulationRunner(CommandHandlerMixin):
     # Note: StatePublisher has its own _build_full_state.
 
     def _collect_entities(self) -> list[EntitySnapshot]:
-        # Optimization: Use fast path if available (e.g. from C++ backend or optimized step result)
-        get_step_result = getattr(self.world, "get_last_step_result", None)
-        if callable(get_step_result):
-            step_result = get_step_result()
-            if step_result is not None:
-                return self._entity_snapshot_builder.build(step_result, self.world)
-
-        # Prefer the builder's world-aware build() path so it can use the engine's
-        # identity provider (canonical source for stable IDs).
-        snapshots = self._entity_snapshot_builder.build(
-            StepResult(snapshot=self.world.get_current_snapshot()),
-            self.world,
-        )
-
-        # OPTIMIZATION: Post-process snapshots to strip heavy fields not needed for WebSocket visualization
-        # This bypasses potential hot-reload issues with the snapshot builder itself
-        for s in snapshots:
-            gd = s.genome_data
-            if gd:
-                if "trait_meta" in gd:
-                    del gd["trait_meta"]
-                if "poker_strategy" in gd:
-                    del gd["poker_strategy"]
-                if (
-                    "behavior" in gd
-                    and isinstance(gd["behavior"], dict)
-                    and "parameters" in gd["behavior"]
-                ):
-                    del gd["behavior"]["parameters"]
-
-        return snapshots
+        """Collect entity snapshots (delegates to stats_collector module)."""
+        return stats_collector.collect_entities(self)
 
     def _collect_poker_stats_payload(self, stats: dict[str, Any]) -> PokerStatsPayload:
         """Delegate to state_builders module."""
         return collect_poker_stats_payload(stats)
 
     def _collect_stats(self, frame: int, include_distributions: bool = True) -> StatsPayload:
-        """Collect and organize simulation statistics."""
-        # Use getattr/call to handle potential interface mismatches if world hasn't been updated
-        get_stats = self.world.get_stats
-        compute_distributions = include_distributions
-        if include_distributions and self._distribution_interval_seconds > 0:
-            now = time.perf_counter()
-            if (now - self._last_distribution_time) < self._distribution_interval_seconds:
-                compute_distributions = False
-        else:
-            now = time.perf_counter()
-        try:
-            stats = get_stats(include_distributions=compute_distributions)
-        except TypeError:
-            # Fallback for worlds that don't support include_distributions yet
-            stats = get_stats()
-            compute_distributions = True
-
-        if compute_distributions:
-            self._cached_gene_distributions = stats.get("gene_distributions", {})
-            self._last_distribution_time = now
-        elif self._cached_gene_distributions:
-            stats["gene_distributions"] = self._cached_gene_distributions
-
-        # Get Poker Score from evolution benchmark tracker
-        poker_score = None
-        poker_score_history: list[float] = []
-        if self.evolution_benchmark_tracker is not None:
-            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
-            if latest is not None and latest.confidence_vs_strong is not None:
-                poker_score = latest.confidence_vs_strong
-            history = self.evolution_benchmark_tracker.get_history()
-            if history:
-                valid_scores = [
-                    s.confidence_vs_strong for s in history if s.confidence_vs_strong is not None
-                ]
-                poker_score_history = valid_scores[-20:]
-
-        # Get Poker Elo from evolution benchmark tracker
-        poker_elo = None
-        poker_elo_history: list[float] = []
-        if self.evolution_benchmark_tracker is not None:
-            latest = self.evolution_benchmark_tracker.get_latest_snapshot()
-            if latest is not None and latest.pop_mean_elo is not None:
-                poker_elo = latest.pop_mean_elo
-            history = self.evolution_benchmark_tracker.get_history()
-            if history:
-                valid_elos = [s.pop_mean_elo for s in history if s.pop_mean_elo is not None]
-                poker_elo_history = valid_elos[-20:]
-
-        # Build stat components using helper functions
-        base_stats = build_base_stats(stats, frame, self.current_actual_fps, self.fast_forward)
-        energy_stats = build_energy_stats(
-            stats,
-            poker_score,
-            poker_score_history,
-            poker_elo,
-            poker_elo_history,
-        )
-        physical_stats = build_physical_stats(stats)
-        meta_stats = build_meta_stats(stats)
-        poker_stats = collect_poker_stats_payload(stats)
-
-        return StatsPayload(
-            **base_stats,
-            **energy_stats,
-            **physical_stats,
-            poker_stats=poker_stats,
-            meta_stats=meta_stats,
-        )
+        """Collect and organize simulation statistics (delegates to stats_collector)."""
+        return stats_collector.collect_stats(self, frame, include_distributions)
 
     # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
     # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)
 
     def get_full_evaluation_history(self) -> list[dict[str, Any]]:
         """Return the full auto-evaluation history."""
-        # Delegates to world hooks or manager if available
-        tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
-        if tracker:
-            history = getattr(tracker, "history", None)
-            if isinstance(history, list):
-                return cast(list[dict[str, Any]], history)
-        return []
+        return evolution_benchmark.get_full_evaluation_history(self)
 
     def get_evolution_benchmark_data(self) -> dict[str, Any]:
         """Return the evolution benchmark tracking data.
@@ -912,26 +481,7 @@ class SimulationRunner(CommandHandlerMixin):
             Dictionary with benchmark history, improvement metrics, and latest snapshot.
             Returns empty dict with status if tracker not available.
         """
-        tracker = getattr(self.world_hooks, "evolution_benchmark_tracker", None)
-        if tracker is not None:
-            data = tracker.get_api_data()
-            if isinstance(data, dict):
-                return cast(dict[str, Any], data)
-            return {}
-
-        status = "disabled"
-        # Check if it was meant to be enabled
-        import os
-
-        if os.getenv("TANK_EVOLUTION_BENCHMARK_ENABLED", "1").strip().lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-        ):
-            status = "initializing_or_failed"
-
-        return {"status": status}
+        return evolution_benchmark.get_evolution_benchmark_data(self)
 
     def _entity_to_data(self, entity: entities.Agent) -> EntitySnapshot | None:
         """Convert an entity to a lightweight snapshot for serialization.
