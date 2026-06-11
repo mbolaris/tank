@@ -759,6 +759,19 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
 
             self.parameters[key] = mutated
 
+        # Bounds enforcement: clamp every bounded parameter, not just the ones
+        # mutated above, so values arriving out of range (e.g. via crossover or
+        # deserialization) cannot silently stay outside their design range.
+        # Deterministic: consumes no RNG and leaves in-range values unchanged.
+        for key, (lower, upper) in self.parameter_bounds.items():
+            value = self.parameters.get(key)
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                continue
+            if value < lower:
+                self.parameters[key] = lower
+            elif value > upper:
+                self.parameters[key] = upper
+
     @classmethod
     def random_instance(cls, rng: random.Random | None = None) -> "BehaviorAlgorithm":
         """Create a random instance of this algorithm with random parameters.

@@ -98,11 +98,20 @@ across two systems, and bug fixes diverge.
   `DEPRECATED_ALGORITHMS` list with a one-release removal window.
 - Document the decision in an ADR so the history is legible.
 
-### 3.2 Unify parameter bounds — `M` · ★
-Today bounds live in three places (`SUB_BEHAVIOR_PARAMS`,
-`ALGORITHM_PARAMETER_BOUNDS`, poker `definitions.py`). Introduce a single
-`ParameterRegistry` and add runtime clamping so evolved/mutated parameters can
-never silently leave their design range.
+### 3.2 Bounds-table drift: 11 algorithms mutate unbounded parameters — `S` · ★★
+**Found while shipping the ParameterRegistry** (see Shipped): 11 algorithms have
+runtime parameters with no (or mismatched) entries in
+`ALGORITHM_PARAMETER_BOUNDS`, so those parameters mutate via the unbounded
+fallback (floor 0.0 only) and have no design range to clamp to. Worst cases:
+`AggressiveHunter` and `SpiralForager` (no table entry at all),
+`CircularHunter` (table names don't match its actual params). Partial misses:
+CooperativeForager, EnergyConserver, FreezeResponse, OpportunisticFeeder,
+OpportunisticRester, PerpendicularEscape, SurfaceSkimmer, VerticalEscaper.
+
+**Decision needed**: declaring bounds changes the mutation math (span-based vs
+scale-based) and therefore seed-42 trajectories - champions must be
+re-baselined in the same change. Bundle this with 3.1's algorithm
+consolidation so the ecosystem only pays the re-baseline cost once.
 
 ---
 
@@ -160,6 +169,16 @@ algorithm-count bug is exactly the failure this prevents.
 ---
 
 ## Shipped
+
+- **3.2 Unified ParameterRegistry with runtime clamping.**
+  `core/parameters/registry.py` composes the three existing bounds tables
+  (behavior sub-params, poker sub-params, per-algorithm bounds - source
+  modules stay authoritative). Closed a real enforcement gap: out-of-range
+  values entering via crossover blending or from_dict deserialization could
+  persist indefinitely (mutation only clamped keys whose mutation roll fired);
+  every mutate path now ends with an RNG-free full clamp over declared keys.
+  All four champions reproduce exactly (clamping is a no-op on their
+  trajectories). 25 new tests in tests/core/test_parameter_registry.py.
 
 - **Theme 2 (all): god files split into focused collaborators.** Five splits,
   each behavior-preserving (full fast gate matches baseline; champions

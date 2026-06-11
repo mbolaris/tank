@@ -187,6 +187,20 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
                 new_value = max(bounds[0], min(bounds[1], value + delta))
                 self.parameters[key] = new_value
 
+        # Bounds enforcement: clamp every declared parameter, not just the
+        # mutated ones, so values arriving out of range (e.g. via crossover
+        # blending or from_dict) cannot silently stay outside their design
+        # range. Deterministic: consumes no RNG and leaves in-range values
+        # unchanged. Undeclared keys are never modified here.
+        for key, value in self.parameters.items():
+            known_bounds = SUB_BEHAVIOR_PARAMS.get(key)
+            if known_bounds is None or not isinstance(value, (int, float)):
+                continue
+            if value < known_bounds[0]:
+                self.parameters[key] = known_bounds[0]
+            elif value > known_bounds[1]:
+                self.parameters[key] = known_bounds[1]
+
     # -------------------------------------------------------------------------
     # Serialization
     # -------------------------------------------------------------------------

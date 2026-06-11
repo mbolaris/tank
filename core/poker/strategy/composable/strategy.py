@@ -453,6 +453,15 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
                 delta = rng.gauss(0, mutation_strength * span)
                 self.parameters[key] = PokerStrategyValidator.clamp(key, value + delta)
 
+        # Bounds enforcement: clamp every declared parameter, not just the
+        # mutated ones, so values arriving out of range (e.g. via crossover
+        # blending or deserialization) cannot silently stay outside their
+        # design range. Deterministic: consumes no RNG and leaves in-range
+        # values unchanged. Undeclared keys are never modified here.
+        for key, value in self.parameters.items():
+            if isinstance(value, (int, float)):
+                self.parameters[key] = PokerStrategyValidator.clamp_known(key, value)
+
     # -------------------------------------------------------------------------
     # CFR Learning Methods (Lamarckian-inheritable)
     # -------------------------------------------------------------------------

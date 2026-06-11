@@ -31,6 +31,24 @@ class PokerStrategyValidator:
         low, high = cls.parameter_bounds(key)
         return max(low, min(high, value))
 
+    @classmethod
+    def clamp_known(cls, key: str, value: float) -> float:
+        """Clamp only parameters declared in POKER_SUB_BEHAVIOR_PARAMS.
+
+        Unknown keys pass through unchanged (no fallback bounds), and in-range
+        values are returned bit-identical. Never consumes RNG. This is the
+        bounds-enforcement primitive used at mutation/crossover boundaries.
+        """
+        bounds = POKER_SUB_BEHAVIOR_PARAMS.get(key)
+        if bounds is None:
+            return value
+        low, high = bounds
+        if value < low:
+            return low
+        if value > high:
+            return high
+        return value
+
     @staticmethod
     def default_parameters() -> dict[str, float]:
         """Midpoint defaults for every known parameter."""
