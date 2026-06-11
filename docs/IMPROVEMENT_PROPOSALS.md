@@ -79,26 +79,11 @@ break.
 
 ## Theme 2 — Tame the god files
 
-Three files carry too much and make safe change hard. Each extraction must keep
-determinism (verify with `pytest -m core` + a benchmark re-run).
-
-### 2.1 Split `core/simulation/engine.py` (~950 LOC) — `L` · ★★
-Extract `PhaseExecutor` (ordered phase loop + timing), `MutationExecutor`
-(drain the mutation queue in its own post-update phase), and `FrameAggregator`
-(collect metrics/events at frame end). The public `Engine.update()` becomes a
-short orchestration method.
-
-### 2.2 Split `core/genetics/behavioral.py` (~830 LOC) — `M` · ★★
-Separate `BehavioralInheritanceLogic`, `MatePreferenceSystem`, and
-`BehavioralTraitCodec`. Trait *specs* stay declarative; the *logic* moves into
-named, individually-testable units.
-
-### 2.3 Split `core/poker/strategy/composable/strategy.py` (~845 LOC) — `M` · ★
-Pull CFR table blending into `CFRInheritance`, validation into
-`PokerStrategyValidator`, and (de)serialization into a codec. Document the
-blend math and add an explicit `CFRInheritanceMode` enum.
-
----
+All three planned splits shipped (see the Shipped section), plus two more that
+turned out to be the worst offenders: `core/ecosystem.py` and
+`backend/simulation_runner.py`. Future splits should follow the same pattern:
+extracted collaborators + thin delegating facades, verified by the full fast
+gate and exact champion reproduction.
 
 ## Theme 3 — Consolidate the algorithm library
 
@@ -175,6 +160,23 @@ algorithm-count bug is exactly the failure this prevents.
 ---
 
 ## Shipped
+
+- **Theme 2 (all): god files split into focused collaborators.** Five splits,
+  each behavior-preserving (full fast gate matches baseline; champions
+  reproduce exactly): `core/simulation/engine.py` 951→~700 (PhaseExecutor,
+  MutationExecutor, FrameAggregator, engine_setup, headless_runner);
+  `core/ecosystem.py` 995→622 (telemetry router, poker outcome recorder,
+  diversity tracker, reporting); `backend/simulation_runner.py` 1020→577
+  (loop, world_switch, evolution_benchmark, stats_collector);
+  `core/genetics/behavioral.py` 830→270 (behavioral_inheritance,
+  mate_preferences, policy_inheritance); poker `strategy.py` 846→770
+  (CFRInheritance with documented blend math + CFRInheritanceMode enum,
+  PokerStrategyValidator, PokerStrategyCodec).
+- **Pause actually pauses now.** The paused flag was set/saved/restored but
+  never gated stepping, so "paused" worlds simulated at ~30fps since the repo
+  import. Fixed in the runner loop; also fixed petri restore validation
+  (demanded a tank-only Castle) and the restore-failure fallback (`_seed`
+  AttributeError on petri).
 
 - **1.1 Config-hash guarding for champions.** `run_bench.py` stamps every result
   with a stable hash of (seed, benchmark id, benchmark CONFIG, core config) via
