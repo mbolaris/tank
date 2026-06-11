@@ -1,4 +1,8 @@
-"""ZigZagForager food-seeking behavior."""
+"""ZigZagForager food-seeking behavior.
+
+DEPRECATED: slated for removal; benchmarked at-or-below the composable
+baseline. See docs/adr/006-deprecate-monolithic-food-seekers.md.
+"""
 
 import math
 import random

@@ -1,4 +1,8 @@
-"""SurfaceSkimmer food-seeking behavior."""
+"""SurfaceSkimmer food-seeking behavior.
+
+DEPRECATED: slated for removal; benchmarked at-or-below the composable
+baseline. See docs/adr/006-deprecate-monolithic-food-seekers.md.
+"""
 
 import random
 from dataclasses import dataclass
