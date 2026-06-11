@@ -87,16 +87,14 @@ gate and exact champion reproduction.
 
 ## Theme 3 — Consolidate the algorithm library
 
-### 3.1 Decide the fate of the 15 monolithic food-seekers — `M` · ★★
-**Problem.** `core/algorithms/food_seeking/` holds 15 standalone strategies that
-predate the composable framework. Evolution's search space is now fractured
-across two systems, and bug fixes diverge.
-
-**Plan.**
-- Benchmark which monoliths are still evolutionary winners.
-- Reimplement winners as composable configs; deprecate the rest behind a
-  `DEPRECATED_ALGORITHMS` list with a one-release removal window.
-- Document the decision in an ADR so the history is legible.
+### 3.1 Stage 2: remove deprecated food-seekers + re-baseline — `M` · ★★
+Stage 1 shipped (see Shipped + ADR-006): benchmark data collected, KEEP/
+DEPRECATE decided, `DEPRECATED_ALGORITHMS` metadata added. Stage 2, one
+bundled change: port the three winners' tactics (quality-weighted targeting,
+opportunistic switching, shared-target avoidance) into the composable
+framework, remove the 11 deprecated modules, drop monoliths from
+`ALL_ALGORITHMS`, fix the 3.2 bounds-table drift for survivors, and
+re-baseline all champions in the same PR.
 
 ### 3.2 Bounds-table drift: 11 algorithms mutate unbounded parameters — `S` · ★★
 **Found while shipping the ParameterRegistry** (see Shipped): 11 algorithms have
@@ -169,6 +167,16 @@ algorithm-count bug is exactly the failure this prevents.
 ---
 
 ## Shipped
+
+- **3.1 stage 1: monolithic food-seekers benchmarked and triaged (ADR-006).**
+  `tools/benchmark_algorithms.py` pins every fish to one algorithm and runs
+  seeded headless worlds; 14 monoliths + composable baseline x 3 seeds.
+  Headline findings: the live sim never selects monoliths for movement (they
+  are vestigial), and only food_quality_optimizer (+23%), opportunistic_feeder
+  (+11%), and cooperative_forager (+8%) beat the composable baseline on every
+  seed - the best concrete lead on the chronic starvation rate. KEEP those
+  three (port to composable); DEPRECATE the other 11 via metadata-only
+  `DEPRECATED_ALGORITHMS` (selection untouched; champions still reproduce).
 
 - **3.2 Unified ParameterRegistry with runtime clamping.**
   `core/parameters/registry.py` composes the three existing bounds tables

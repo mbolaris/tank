@@ -104,6 +104,28 @@ from core.algorithms.territory import (
     WallFollower,
 )
 
+# Monolithic food-seekers slated for removal (metadata only - selection is
+# untouched because excluding entries from ALL_ALGORITHMS changes rng.choice
+# outcomes and invalidates every recorded champion). Removal + champion
+# re-baselining happen together in a future release.
+# See docs/adr/006-deprecate-monolithic-food-seekers.md for the benchmark
+# data behind this list.
+DEPRECATED_ALGORITHMS: frozenset[str] = frozenset(
+    {
+        "aggressive_hunter",
+        "ambush_feeder",
+        "bottom_feeder",
+        "circular_hunter",
+        "energy_aware_food_seeker",
+        "food_memory_seeker",
+        "greedy_food_seeker",
+        "patrol_feeder",
+        "spiral_forager",
+        "surface_skimmer",
+        "zigzag_forager",
+    }
+)
+
 # All available algorithms (stable ordering for deterministic indexing)
 ALL_ALGORITHMS = [
     # Food seeking
@@ -759,6 +781,7 @@ __all__ = [
     "PokerConservative",
     # Utilities
     "ALL_ALGORITHMS",
+    "DEPRECATED_ALGORITHMS",
     "get_algorithm_index",
     "get_algorithm_name",
     "get_random_algorithm",
