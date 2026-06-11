@@ -4,6 +4,8 @@ This package provides a composable approach to poker strategies where the genome
 encodes selections from multiple sub-behavior categories plus continuous parameters.
 """
 
+from core.poker.strategy.composable.cfr_inheritance import CFRInheritance, CFRInheritanceMode
+from core.poker.strategy.composable.codec import PokerStrategyCodec
 from core.poker.strategy.composable.definitions import (
     CFR_ACTIONS,
     CFR_HAND_STRENGTH_BUCKETS,
@@ -21,6 +23,7 @@ from core.poker.strategy.composable.definitions import (
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
 from core.poker.strategy.composable.strategy import ComposablePokerStrategy
+from core.poker.strategy.composable.validator import PokerStrategyValidator
 
 __all__ = [
     "CFR_ACTIONS",
@@ -33,8 +36,12 @@ __all__ = [
     "SUB_BEHAVIOR_COUNTS",
     "BettingStyle",
     "BluffingApproach",
+    "CFRInheritance",
+    "CFRInheritanceMode",
     "ComposablePokerStrategy",
     "HandSelection",
+    "PokerStrategyCodec",
+    "PokerStrategyValidator",
     "PositionAwareness",
     "ShowdownTendency",
     "SimpleOpponentModel",

@@ -2,6 +2,12 @@
 
 This module contains the ComposablePokerStrategy class which uses
 definitions from definitions.py and opponent models from opponent.py.
+
+Collaborators (extracted for focus, public behavior unchanged):
+
+- cfr_inheritance.py: CFR table blending/filtering across generations
+- validator.py: parameter bounds, clamping, defaults, random sampling
+- codec.py: dict (de)serialization
 """
 
 import random
@@ -9,14 +15,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.poker.betting.actions import BettingAction
+from core.poker.strategy.composable.cfr_inheritance import CFRInheritance, CFRInheritanceMode
+from core.poker.strategy.composable.codec import PokerStrategyCodec
 from core.poker.strategy.composable.definitions import (
     CFR_ACTIONS,
     CFR_HAND_STRENGTH_BUCKETS,
-    CFR_INHERITANCE_DECAY,
     CFR_MAX_INFO_SETS,
-    CFR_MIN_VISITS_FOR_INHERITANCE,
     CFR_POT_RATIO_BUCKETS,
-    POKER_SUB_BEHAVIOR_PARAMS,
     BettingStyle,
     BluffingApproach,
     HandSelection,
@@ -24,50 +29,13 @@ from core.poker.strategy.composable.definitions import (
     ShowdownTendency,
 )
 from core.poker.strategy.composable.opponent import SimpleOpponentModel
+from core.poker.strategy.composable.validator import PokerStrategyValidator
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 
-
-def _random_params(rng: random.Random) -> dict[str, float]:
-    """Generate random parameters within bounds."""
-    return {key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()}
-
-
-def _blend_regret_tables(
-    table1: dict[str, dict[str, float]],
-    table2: dict[str, dict[str, float]],
-    weight1: float,
-    decay: float,
-    min_visits: int,
-    visit_count1: dict[str, int],
-    visit_count2: dict[str, int],
-) -> dict[str, dict[str, float]]:
-    """Blend two regret/strategy_sum tables with weighting and decay."""
-    blended: dict[str, dict[str, float]] = {}
-
-    # Collect all info sets from both parents that meet minimum visits
-    all_info_sets: set[str] = set()
-    for k in table1:
-        if visit_count1.get(k, 0) >= min_visits:
-            all_info_sets.add(k)
-    for k in table2:
-        if visit_count2.get(k, 0) >= min_visits:
-            all_info_sets.add(k)
-
-    for info_set in sorted(all_info_sets):
-        actions1 = table1.get(info_set, {})
-        actions2 = table2.get(info_set, {})
-        all_actions = sorted(set(actions1.keys()) | set(actions2.keys()))
-
-        blended[info_set] = {}
-        for action in all_actions:
-            val1 = actions1.get(action, 0.0)
-            val2 = actions2.get(action, 0.0)
-            # Weighted blend with decay
-            blended_val = (val1 * weight1 + val2 * (1 - weight1)) * decay
-            blended[info_set][action] = blended_val
-
-    return blended
+# Backwards-compatible aliases for the pre-split module-level helpers.
+_random_params = PokerStrategyValidator.random_parameters
+_blend_regret_tables = CFRInheritance.blend_tables
 
 
 @dataclass
@@ -109,9 +77,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     def __post_init__(self):
         """Initialize default parameters if not provided."""
         if not self.parameters:
-            self.parameters = {
-                key: (low + high) / 2 for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()
-            }
+            self.parameters = PokerStrategyValidator.default_parameters()
 
     @classmethod
     def create_random(cls, rng: random.Random | None = None) -> "ComposablePokerStrategy":
@@ -131,7 +97,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             showdown_tendency=coerce_enum(
                 ShowdownTendency, rng.randint(0, len(ShowdownTendency) - 1)
             ),
-            parameters=_random_params(rng),
+            parameters=PokerStrategyValidator.random_parameters(rng),
         )
 
     # Alias for consistency with other strategy classes
@@ -482,11 +448,10 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         # Mutate continuous parameters
         for key, value in sorted(self.parameters.items()):
             if rng.random() < mutation_rate:
-                bounds = POKER_SUB_BEHAVIOR_PARAMS.get(key, (0.0, 1.0))
+                bounds = PokerStrategyValidator.parameter_bounds(key)
                 span = bounds[1] - bounds[0]
                 delta = rng.gauss(0, mutation_strength * span)
-                new_value = max(bounds[0], min(bounds[1], value + delta))
-                self.parameters[key] = new_value
+                self.parameters[key] = PokerStrategyValidator.clamp(key, value + delta)
 
     # -------------------------------------------------------------------------
     # CFR Learning Methods (Lamarckian-inheritable)
@@ -656,51 +621,12 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary for storage/transmission."""
-        # Only include well-visited info sets in serialization
-        inheritable_regret = {
-            k: v
-            for k, v in self.regret.items()
-            if self.visit_count.get(k, 0) >= CFR_MIN_VISITS_FOR_INHERITANCE
-        }
-        inheritable_strategy_sum = {
-            k: v for k, v in self.strategy_sum.items() if k in inheritable_regret
-        }
-        inheritable_visit_count = {
-            k: v for k, v in self.visit_count.items() if k in inheritable_regret
-        }
-
-        return {
-            "type": "ComposablePokerStrategy",
-            "strategy_id": self.strategy_id,
-            "hand_selection": int(self.hand_selection),
-            "betting_style": int(self.betting_style),
-            "bluffing_approach": int(self.bluffing_approach),
-            "position_awareness": int(self.position_awareness),
-            "showdown_tendency": int(self.showdown_tendency),
-            "parameters": dict(self.parameters),
-            "learning_rate": self.learning_rate,
-            # CFR learned state (Lamarckian-inheritable)
-            "regret": inheritable_regret,
-            "strategy_sum": inheritable_strategy_sum,
-            "visit_count": inheritable_visit_count,
-        }
+        return PokerStrategyCodec.encode(self)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ComposablePokerStrategy":
         """Deserialize from dictionary."""
-        return cls(
-            strategy_id=data.get("strategy_id", "composable"),
-            hand_selection=coerce_enum(HandSelection, data.get("hand_selection", 2)),
-            betting_style=coerce_enum(BettingStyle, data.get("betting_style", 1)),
-            bluffing_approach=coerce_enum(BluffingApproach, data.get("bluffing_approach", 1)),
-            position_awareness=coerce_enum(PositionAwareness, data.get("position_awareness", 1)),
-            showdown_tendency=coerce_enum(ShowdownTendency, data.get("showdown_tendency", 1)),
-            parameters=data.get("parameters", {}),
-            learning_rate=data.get("learning_rate", 1.0),
-            regret=data.get("regret", {}),
-            strategy_sum=data.get("strategy_sum", {}),
-            visit_count=data.get("visit_count", {}),
-        )
+        return PokerStrategyCodec.decode(data, cls)
 
     # -------------------------------------------------------------------------
     # Inheritance / Crossover
@@ -741,34 +667,19 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         all_keys = sorted(set(parent1.parameters.keys()) | set(parent2.parameters.keys()))
         blended_params = {}
         for key in all_keys:
-            default = POKER_SUB_BEHAVIOR_PARAMS.get(key, (0.5, 0.5))
-            default_val = (default[0] + default[1]) / 2
+            default_val = PokerStrategyValidator.parameter_default(key)
             val1 = parent1.parameters.get(key, default_val)
             val2 = parent2.parameters.get(key, default_val)
             blended_params[key] = val1 * weight1 + val2 * (1 - weight1)
 
-        # Lamarckian inheritance: blend and decay regret tables
-        inherited_regret = _blend_regret_tables(
-            parent1.regret,
-            parent2.regret,
-            weight1=weight1,
-            decay=CFR_INHERITANCE_DECAY,
-            min_visits=CFR_MIN_VISITS_FOR_INHERITANCE,
-            visit_count1=parent1.visit_count,
-            visit_count2=parent2.visit_count,
-        )
-        inherited_strategy_sum = _blend_regret_tables(
-            parent1.strategy_sum,
-            parent2.strategy_sum,
-            weight1=weight1,
-            decay=CFR_INHERITANCE_DECAY,
-            min_visits=CFR_MIN_VISITS_FOR_INHERITANCE,
-            visit_count1=parent1.visit_count,
-            visit_count2=parent2.visit_count,
-        )
-        # Blend learning rates
-        inherited_learning_rate = parent1.learning_rate * weight1 + parent2.learning_rate * (
-            1 - weight1
+        # Lamarckian inheritance: blend and decay CFR tables, blend learning rates
+        # (see cfr_inheritance.py for the documented blend math)
+        (
+            inherited_regret,
+            inherited_strategy_sum,
+            inherited_learning_rate,
+        ) = CFRInheritance.inherit(
+            parent1, parent2, weight1=weight1, mode=CFRInheritanceMode.BLEND_DECAY
         )
 
         # Create offspring with inherited regret
@@ -801,10 +712,17 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         sub_behavior_switch_rate: float = 0.05,
         rng: random.Random | None = None,
     ) -> "ComposablePokerStrategy":
-        """Create a mutated clone (for asexual reproduction)."""
+        """Create a mutated clone (for asexual reproduction).
+
+        CFR learning state is not copied: clones start as fresh learners
+        (CFRInheritanceMode.RESET).
+        """
         from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
+        regret, strategy_sum, learning_rate = CFRInheritance.inherit(
+            self, self, mode=CFRInheritanceMode.RESET
+        )
         clone = ComposablePokerStrategy(
             hand_selection=self.hand_selection,
             betting_style=self.betting_style,
@@ -812,6 +730,9 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             position_awareness=self.position_awareness,
             showdown_tendency=self.showdown_tendency,
             parameters=dict(self.parameters),
+            regret=regret,
+            strategy_sum=strategy_sum,
+            learning_rate=learning_rate,
         )
         clone.mutate(
             mutation_rate=mutation_rate,
