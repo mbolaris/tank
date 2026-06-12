@@ -255,6 +255,7 @@ Tank World is designed for AI-first development. The repository includes infrast
 
 - **[CLAUDE.md](CLAUDE.md)**: Project intelligence file loaded automatically by Claude Code
 - **[AGENTS.md](AGENTS.md)**: Comprehensive guide for AI agents entering the evolution loop
+- **[docs/AGENT_FIELD_GUIDE.md](docs/AGENT_FIELD_GUIDE.md)**: Foolproof on-ramp for agents of any capability — decision tree, difficulty-rated starter tasks, and copy-paste recipes
 - **[docs/AGENT_QUICKSTART.md](docs/AGENT_QUICKSTART.md)**: Clear quickstart guide for contributors and agents
 - **Pre-commit hooks**: Automated formatting, linting, and type checking
 - **Deterministic benchmarks**: Reproducible evaluation with fixed seeds
@@ -413,6 +414,7 @@ See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the evolutionary PR
 |----------|---------|
 | [CLAUDE.md](CLAUDE.md) | Claude Code project intelligence (auto-loaded) |
 | [AGENTS.md](AGENTS.md) | AI agent guide for entering the evolution loop |
+| [docs/AGENT_FIELD_GUIDE.md](docs/AGENT_FIELD_GUIDE.md) | Foolproof, recipe-driven starter-task menu for agents of any capability |
 | [SETUP.md](SETUP.md) | Development environment setup |
 | [docs/VISION.md](docs/VISION.md) | Long-term vision and three-layer evolution paradigm |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Development roadmap and milestones |

@@ -10,6 +10,7 @@ Tank World is a research framework where AI agents autonomously run experiments,
 
 If you were given a vague prompt (e.g. "improve this project" or "fix some issues"), follow these strict instructions:
 - **Run `python tools/smoke_gate.py` first** to verify the current state of the repository.
+- **Read `docs/AGENT_FIELD_GUIDE.md`** for a foolproof, recipe-driven menu of safe starter tasks (especially if you are a smaller or less certain model — start with task T1 or T2).
 - **Read `docs/AGENT_QUICKSTART.md`** to understand the repository structure and gate tiers.
 - **Pick exactly one small improvement** to implement.
 - **Prefer documentation/test/tooling cleanup** unless explicitly asked to optimize behavior algorithms.
@@ -382,6 +383,7 @@ pre-commit run --all-files  # Run before committing
 | `CLAUDE.md` | Claude Code project intelligence (auto-loaded) |
 | `AGENTS.md` | This file |
 | `README.md` | Project overview |
+| `docs/AGENT_FIELD_GUIDE.md` | Foolproof recipe-driven starter-task menu for agents of any capability |
 | `SETUP.md` | Environment setup |
 | `docs/VISION.md` | Long-term goals |
 | `docs/ARCHITECTURE.md` | Technical architecture |
