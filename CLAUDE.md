@@ -14,7 +14,10 @@ The project operates at three layers:
 ## Quick Commands
 
 ```bash
-# Run tests (fast gate - what CI checks first)
+# Run the fast gate (validates ruff, black, and quick tests in under 40s)
+python tools/fast_gate.py
+
+# Run tests individually (fast gate - what CI checks first)
 pytest -m "not slow and not integration"
 
 # Run full test suite
@@ -119,13 +122,16 @@ Benchmark CI (`bench.yml`): Verifies champions and runs determinism checks on PR
 
 The standard evolution loop:
 
-1. **Baseline**: Run `python main.py --headless --max-frames 30000 --export-stats results.json --seed 42`
-2. **Evaluate**: Check `results.json` for underperforming algorithms (high starvation rate, low reproduction)
-3. **Benchmark**: Run `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42`
-4. **Improve**: Modify code in `core/algorithms/` or `core/config/`
-5. **Validate**: Run `pytest -m "not slow and not integration"` and `pre-commit run --all-files`
-6. **Compare**: Run benchmark again and compare against `champions/` registry
-7. **Commit**: Clear message with metrics, reproduction command, and evidence
+1. **Fast Gate**: Run `python tools/fast_gate.py` to verify environment and format/lint/tests
+2. **Baseline**: Run `python main.py --headless --max-frames 30000 --export-stats results.json --seed 42`
+3. **Evaluate**: Check `results.json` for underperforming algorithms (high starvation rate, low reproduction)
+4. **Benchmark**: Run `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42`
+5. **Improve**: Modify code in `core/algorithms/` or `core/config/`
+6. **Validate**: Run `python tools/fast_gate.py`
+7. **Compare**: Run benchmark again and compare against `champions/` registry
+8. **Commit**: Clear message with metrics, reproduction command, and evidence
+
+*Note: Never claim benchmark improvement without reproduction command, seed, score, and metadata. Layer 2 changes (CI, benchmarks, prompts, scoring) require extra scrutiny.*
 
 ### Key Files for Algorithm Improvements
 

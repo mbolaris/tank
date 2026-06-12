@@ -16,7 +16,7 @@ jobs:
   verify-champions:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -26,22 +26,7 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
       - name: Verify Champions
-        run: |
-          if ! python3 tools/verify_all_champions.py; then
-            echo "Verification failed. Auto-rebaselining champions to CI-canonical values..."
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            if [ -f verify_survival_5k.json ]; then
-              python3 -c "import json; v=json.load(open('verify_survival_5k.json')); c=json.load(open('champions/tank/survival_5k.json')); c['champion']['score']=v['score']; c['champion']['metadata']=v['metadata']; c['champion']['config_hash']=v['config_hash']; json.dump(c, open('champions/tank/survival_5k.json', 'w'), indent=2)"
-            fi
-            if [ -f verify_ecosystem_health_10k.json ]; then
-              python3 -c "import json; v=json.load(open('verify_ecosystem_health_10k.json')); c=json.load(open('champions/tank/ecosystem_health_10k.json')); c['champion']['score']=v['score']; c['champion']['metadata']=v['metadata']; c['champion']['config_hash']=v['config_hash']; json.dump(c, open('champions/tank/ecosystem_health_10k.json', 'w'), indent=2)"
-            fi
-            git add champions/
-            git commit -m "ci: auto-rebaseline tank champions to CI-canonical values"
-            git push origin HEAD:meta/benchmark-fixes-and-cors-hardening
-            exit 1
-          fi
+        run: python3 tools/verify_all_champions.py
       - name: Upload verification results
         # The fresh verify_*.json results are the only record of what THIS
         # environment computed - essential when a champion fails to reproduce

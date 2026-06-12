@@ -13,14 +13,14 @@ Tank World is a research framework where AI agents autonomously run experiments,
 pip install -e .[dev]
 pre-commit install
 
-# 2. Run a benchmark
-python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
+# 2. Run the fast gate (validates ruff, black, and quick tests in under 40s)
+python tools/fast_gate.py
 
 # 3. Run a baseline simulation with stats export
 python main.py --headless --max-frames 30000 --stats-interval 10000 --export-stats results.json --seed 42
 
-# 4. Run tests (fast gate)
-pytest -m "not slow and not integration"
+# 4. Run a benchmark
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # 5. Identify what needs improvement, make changes, validate, commit
 ```
@@ -165,35 +165,17 @@ python scripts/ai_code_evolution_agent.py results.json --provider anthropic --dr
 
 ## Step 4: Validate Changes
 
-### Run Tests
+### The Agent Fast Gate (Run This First!)
 
+Before running slow simulations or committing code, run the unified fast gate:
 ```bash
-# Quick gate (fast, what CI runs first)
-pytest -m "not slow and not integration"
-
-# Full test suite
-pytest
-
-# Specific test files
-pytest tests/test_determinism.py
-pytest tests/test_energy_integration.py
+python tools/fast_gate.py
 ```
+This runs `ruff`, `black`, focused contract and determinism tests, and unit tests in under 40 seconds.
 
-### Run Code Quality Checks
+### Run Full Benchmarks (Only After Candidate Improvements)
 
-```bash
-# Format code
-black core/ tests/ tools/ backend/ --config pyproject.toml
-
-# Fix linting errors
-ruff check --fix core/ tests/ tools/ backend/
-
-# Or run all checks at once
-pre-commit run --all-files
-```
-
-### Validate Benchmark Improvement
-
+Only run full benchmarks after you have confirmed that the fast gate passes and you have a candidate algorithm/config improvement:
 ```bash
 # Run benchmark
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
@@ -204,6 +186,15 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 
 **IMPORTANT (Benchmark Score Mismatches):** If you make an algorithm improvement that affects deterministic execution (e.g., fixing an in-world behavior or physics bug), `tools/verify_all_champions.py` and the CI will fail with a "Score mismatch!" because the new correct behavior no longer yields the outdated baseline score. 
 When this happens, you MUST update the affected `champions/**/*.json` files by overwriting them with the newly generated `verify_*.json` outputs before committing to establish the new baseline.
+
+### Run Tests Individually
+
+If you need to run specific tests during local debugging:
+```bash
+# Run specific test files
+pytest tests/test_determinism.py
+pytest tests/test_energy_integration.py
+```
 
 ---
 
@@ -246,6 +237,11 @@ git push -u origin [branch-name]
 ```
 
 PR must include: benchmark results, reproduction command, explanation, evidence of no regressions.
+
+### Strict Contribution Rules
+
+1. **Reproduction Contract**: Never claim benchmark improvement without documenting the exact reproduction command, seed, score, and all metadata.
+2. **Layer 2 Scrutiny**: Layer 2 changes (e.g., updates to benchmarks, CI, system prompts, or scoring logic) require extra scrutiny and manual audits to prevent weakening evaluation safety. Keep Layer 2 changes separated from Layer 1 algorithm changes.
 
 ---
 
@@ -402,17 +398,19 @@ Current task: [CHOOSE ONE]
 - Fix issue with [component]
 
 Workflow:
-1. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
-2. Analyze: Review results.json for underperformers
-3. Improve: Modify relevant code in core/
-4. Validate: pytest && python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
-5. Commit: Clear message with metrics
-6. Push: git push -u origin [branch]
+1. Setup/Validate: python tools/fast_gate.py
+2. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+3. Analyze: Review results.json for underperformers
+4. Improve: Modify relevant code in core/
+5. Validate: Run fast gate (python tools/fast_gate.py) and benchmark (python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42)
+6. Commit: Clear message with metrics and reproduction command
+7. Push: git push -u origin [branch]
 
 Rules:
 - Always use deterministic seeds
-- Run pre-commit before committing
-- Include benchmark results in PR
+- Run the fast gate (python tools/fast_gate.py) before committing
+- Never claim benchmark improvement without reproduction command, seed, score, and metadata
+- Layer 2 changes (benchmarks, CI, prompts, scoring) require extra scrutiny
 - One focused improvement per PR
 ```
 
