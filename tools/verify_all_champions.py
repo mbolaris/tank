@@ -88,6 +88,14 @@ def main():
 
         except Exception as e:
             print(f"  FAILED: {e}")
+            if os.path.exists(out_file):
+                try:
+                    with open(out_file) as vf:
+                        print(f"--- CANONICAL CI RESULT FOR {bench_id} ---")
+                        print(vf.read())
+                        print("------------------------------------------")
+                except Exception as print_err:
+                    print(f"Could not read verify file: {print_err}")
             failed = True
 
     if failed:
