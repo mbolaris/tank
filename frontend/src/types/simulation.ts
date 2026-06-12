@@ -509,6 +509,7 @@ export interface SimulationUpdate {
         poker_leaderboard: PokerLeaderboardEntry[];
         auto_evaluation?: AutoEvaluateStats;
         render_hint?: Record<string, unknown>;
+        metrics_history?: MetricsHistory | null;
     };
 
     // Convenience fields (populated by useWebSocket from snapshot)
@@ -521,6 +522,7 @@ export interface SimulationUpdate {
     soccer_league_live?: SoccerLeagueLiveState | null;
     poker_leaderboard?: PokerLeaderboardEntry[];
     auto_evaluation?: AutoEvaluateStats;
+    metrics_history?: MetricsHistory | null;
 }
 
 export interface DeltaUpdate {
@@ -555,6 +557,7 @@ export interface DeltaUpdate {
         soccer_league_live?: SoccerLeagueLiveState | null;
         stats?: StatsData;
         render_hint?: Record<string, unknown>;
+        new_metrics_sample?: MetricsSample | null;
     };
 }
 
@@ -766,4 +769,38 @@ export interface EvolutionBenchmarkData {
     history: BenchmarkSnapshot[];
     improvement: BenchmarkImprovementMetrics | Record<string, never>;
     latest: BenchmarkSnapshot | null;
+}
+
+export interface MetricsPokerSample {
+    auto_eval_elo: number;
+    total_games: number;
+    showdown_win_rate: number;
+    net_energy_total: number;
+}
+
+export interface MetricsSoccerSample {
+    goals_total: number;
+    goals_per_1k_frames: number;
+    matches_completed: number;
+    matches_skipped: number;
+    baseline_match_score_diff: number | null;
+}
+
+export interface MetricsSample {
+    frame: number;
+    max_generation: number;
+    population: number;
+    births_total: number;
+    deaths_total: number;
+    fish_energy: number;
+    poker: MetricsPokerSample;
+    soccer: MetricsSoccerSample;
+}
+
+export interface MetricsHistory {
+    schema_version: number;
+    world_id: string;
+    sample_interval_frames: number;
+    max_samples: number;
+    samples: MetricsSample[];
 }

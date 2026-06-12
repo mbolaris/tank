@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 
-export type PanelId = 'soccer' | 'poker' | 'ecosystem' | 'genetics';
+export type PanelId = 'soccer' | 'poker' | 'ecosystem' | 'genetics' | 'trends';
 
 const STORAGE_KEY = 'tankview.visiblePanels.v1';
-const ALL_PANELS: PanelId[] = ['soccer', 'poker', 'ecosystem', 'genetics'];
+const ALL_PANELS: PanelId[] = ['soccer', 'poker', 'ecosystem', 'genetics', 'trends'];
 
 function sanitizePanels(value: unknown, fallback: PanelId[]): PanelId[] {
     if (!Array.isArray(value)) return fallback;

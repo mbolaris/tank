@@ -125,10 +125,37 @@ def collect_stats(
     meta_stats = build_meta_stats(stats)
     poker_stats = collect_poker_stats_payload(stats)
 
-    return StatsPayload(
+    stats_payload = StatsPayload(
         **base_stats,
         **energy_stats,
         **physical_stats,
         poker_stats=poker_stats,
         meta_stats=meta_stats,
     )
+
+    if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
+        # Collect soccer events if hooks are present
+        soccer_events = []
+        if hasattr(runner.world_hooks, "collect_soccer_events"):
+            try:
+                soccer_events = runner.world_hooks.collect_soccer_events(runner) or []
+            except Exception:
+                pass
+
+        # Collect auto-eval if hooks are present
+        auto_eval = None
+        if hasattr(runner.world_hooks, "collect_auto_eval"):
+            try:
+                auto_eval = runner.world_hooks.collect_auto_eval(runner)
+            except Exception:
+                pass
+
+        runner.metrics_history.maybe_sample(
+            frame=frame,
+            stats=stats_payload,
+            poker=poker_stats,
+            soccer=soccer_events,
+            auto_eval=auto_eval,
+        )
+
+    return stats_payload

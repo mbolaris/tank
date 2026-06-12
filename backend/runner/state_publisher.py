@@ -160,6 +160,39 @@ class StatePublisher:
         # Get tank soccer enabled state from config
         tank_soccer_enabled = self._get_tank_soccer_enabled(runner)
 
+        # Build metrics history payload if available
+        metrics_history_payload = None
+        if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
+            from backend.state_payloads import (
+                MetricsHistoryPayload,
+                MetricsPokerSamplePayload,
+                MetricsSamplePayload,
+                MetricsSoccerSamplePayload,
+            )
+
+            samples = []
+            for s in runner.metrics_history.samples:
+                samples.append(
+                    MetricsSamplePayload(
+                        frame=s["frame"],
+                        max_generation=s["max_generation"],
+                        population=s["population"],
+                        births_total=s["births_total"],
+                        deaths_total=s["deaths_total"],
+                        fish_energy=s["fish_energy"],
+                        poker=MetricsPokerSamplePayload(**s["poker"]),
+                        soccer=MetricsSoccerSamplePayload(**s["soccer"]),
+                    )
+                )
+
+            metrics_history_payload = MetricsHistoryPayload(
+                schema_version=runner.metrics_history.schema_version,
+                world_id=runner.metrics_history.world_id,
+                sample_interval_frames=runner.metrics_history.sample_interval_frames,
+                max_samples=runner.metrics_history.max_samples,
+                samples=samples,
+            )
+
         return FullStatePayload(
             frame=frame,
             elapsed_time=elapsed_time,
@@ -175,6 +208,7 @@ class StatePublisher:
             world_type=runner.world_type,
             view_mode=runner.view_mode,
             tank_soccer_enabled=tank_soccer_enabled,
+            metrics_history=metrics_history_payload,
         )
 
     def _build_delta_state(
@@ -223,6 +257,31 @@ class StatePublisher:
         # Get tank soccer enabled state from config
         tank_soccer_enabled = self._get_tank_soccer_enabled(runner)
 
+        # Build new metrics sample if taken on this frame
+        new_metrics_sample_payload = None
+        if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
+            if (
+                runner.metrics_history.samples
+                and runner.metrics_history.samples[-1]["frame"] == frame
+            ):
+                from backend.state_payloads import (
+                    MetricsPokerSamplePayload,
+                    MetricsSamplePayload,
+                    MetricsSoccerSamplePayload,
+                )
+
+                s = runner.metrics_history.samples[-1]
+                new_metrics_sample_payload = MetricsSamplePayload(
+                    frame=s["frame"],
+                    max_generation=s["max_generation"],
+                    population=s["population"],
+                    births_total=s["births_total"],
+                    deaths_total=s["deaths_total"],
+                    fish_energy=s["fish_energy"],
+                    poker=MetricsPokerSamplePayload(**s["poker"]),
+                    soccer=MetricsSoccerSamplePayload(**s["soccer"]),
+                )
+
         return DeltaStatePayload(
             frame=frame,
             elapsed_time=elapsed_time,
@@ -237,6 +296,7 @@ class StatePublisher:
             world_type=runner.world_type,
             view_mode=runner.view_mode,
             tank_soccer_enabled=tank_soccer_enabled,
+            new_metrics_sample=new_metrics_sample_payload,
         )
 
     def _get_tank_soccer_enabled(self, runner: Any) -> bool | None:

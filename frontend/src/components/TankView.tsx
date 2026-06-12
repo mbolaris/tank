@@ -14,6 +14,7 @@ import {
     TankPokerTab,
     TankEcosystemTab,
     TankGeneticsTab,
+    TankTrendsTab,
 } from './tank_tabs';
 import styles from './TankView.module.css';
 
@@ -24,6 +25,7 @@ interface TankViewProps {
 const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
     { id: 'soccer', label: 'Soccer', icon: '⚽' },
     { id: 'poker', label: 'Poker', icon: '♠' },
+    { id: 'trends', label: 'Trends', icon: '📈' },
     { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
     { id: 'genetics', label: 'Genetics', icon: '🧬' },
 ];
@@ -397,6 +399,12 @@ export function TankView({ worldId }: TankViewProps) {
                                 sendCommandWithResponse={sendCommandWithResponse}
                                 worldType={effectiveWorldType}
                             />
+                        </CollapsiblePanel>
+                    )}
+
+                    {isVisible('trends') && (
+                        <CollapsiblePanel title="Trends" icon="📈">
+                            <TankTrendsTab history={state?.metrics_history ?? null} />
                         </CollapsiblePanel>
                     )}
 
