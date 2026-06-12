@@ -24,6 +24,17 @@ jobs:
         run: pip install -e .
       - name: Verify Champions
         run: python3 tools/verify_all_champions.py
+      - name: Upload verification results
+        # The fresh verify_*.json results are the only record of what THIS
+        # environment computed - essential when a champion fails to reproduce
+        # (e.g. cross-environment float divergence) and the recorded champion
+        # needs to be re-baselined to the CI-canonical values.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: champion-verification-results
+          path: verify_*.json
+          if-no-files-found: ignore
 
   benchmark-gate:
     runs-on: ubuntu-latest
