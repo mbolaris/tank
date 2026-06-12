@@ -9,6 +9,7 @@ from core.simulation.engine import SimulationEngine
 @pytest.mark.xfail(
     reason="Simulation has non-deterministic behavior - tracked for Phase 1 RNG cleanup"
 )
+@pytest.mark.slow
 def test_simulation_determinism():
     """Verify two runs with the same seed produce identical results.
 

@@ -1,16 +1,9 @@
 name: Evolution Benchmarks
 
 on:
-  pull_request:
-    paths:
-      - 'benchmarks/**'
-      - 'champions/**'
-      - 'core/**'
-      - 'tools/**'
-  push:
-    branches:
-      - master
-      - meta/*
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * *'
 
 jobs:
   verify-champions:
@@ -25,6 +18,8 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: pip install -e .
+      - name: Validate Champion Provenance
+        run: python3 tools/validate_champion_provenance.py
       - name: Verify Champions
         run: python3 tools/verify_all_champions.py
       - name: Upload verification results

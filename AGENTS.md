@@ -13,8 +13,8 @@ Tank World is a research framework where AI agents autonomously run experiments,
 pip install -e .[dev]
 pre-commit install
 
-# 2. Run the fast gate (validates ruff, black, and quick tests in under 40s)
-python tools/fast_gate.py
+# 2. Before coding, run the smoke gate (under 30 seconds)
+python tools/smoke_gate.py
 
 # 3. Run a baseline simulation with stats export
 python main.py --headless --max-frames 30000 --stats-interval 10000 --export-stats results.json --seed 42
@@ -22,7 +22,7 @@ python main.py --headless --max-frames 30000 --stats-interval 10000 --export-sta
 # 4. Run a benchmark
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-# 5. Identify what needs improvement, make changes, validate, commit
+# 5. Identify what needs improvement, make changes, run the fast gate, commit
 ```
 
 ---
@@ -92,6 +92,12 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 ## Step 2: Evaluate Performance
 
 ### Key Metrics from `results.json`
+
+**Tank Population Semantics**
+- Tank benchmark population fields such as `avg_pop`, `mean_population`, and
+  `final_population` mean **fish population**, not all entities.
+- `final_total_entities` includes food and other world objects. It is diagnostic
+  only and must never be treated as the population score.
 
 **Death Causes (Most Critical)**
 - `starvation`: Fish couldn't find food. >90% = food-seeking needs improvement.
@@ -165,15 +171,35 @@ python scripts/ai_code_evolution_agent.py results.json --provider anthropic --dr
 
 ## Step 4: Validate Changes
 
-### The Agent Fast Gate (Run This First!)
+### Tier 1: Smoke Gate (Before Coding)
 
-Before running slow simulations or committing code, run the unified fast gate:
+Run the smoke gate before making changes:
+```bash
+python tools/smoke_gate.py
+```
+It targets under 30 seconds and runs quick format/lint checks plus a curated
+correctness suite. It excludes the broad pytest suite, integration/slow/manual
+tests, champion reproduction, and 5k/10k benchmarks.
+
+### Tier 2: Fast Gate (Before PR)
+
+Run the fast gate before opening or updating a PR:
 ```bash
 python tools/fast_gate.py
 ```
-This runs `ruff`, `black`, focused contract and determinism tests, and unit tests in under 40 seconds.
+It runs the smoke gate plus the broad non-slow test suite. It targets under
+2-3 minutes and excludes integration/slow/manual tests and full benchmarks.
 
-### Run Full Benchmarks (Only After Candidate Improvements)
+### Tier 3: Full Validation (Maintainers/Nightly)
+
+```bash
+python tools/full_gate.py
+```
+
+This runs slow and integration tests plus strict champion reproduction. It is
+for nightly or explicit maintainer use, not routine agent iteration.
+
+### Run Full Benchmarks (Only for Candidate Improvements)
 
 Only run full benchmarks after you have confirmed that the fast gate passes and you have a candidate algorithm/config improvement:
 ```bash
@@ -184,8 +210,9 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 python tools/validate_improvement.py results.json champions/tank/survival_5k.json
 ```
 
-**IMPORTANT (Benchmark Score Mismatches):** If you make an algorithm improvement that affects deterministic execution (e.g., fixing an in-world behavior or physics bug), `tools/verify_all_champions.py` and the CI will fail with a "Score mismatch!" because the new correct behavior no longer yields the outdated baseline score. 
-When this happens, you MUST update the affected `champions/**/*.json` files by overwriting them with the newly generated `verify_*.json` outputs before committing to establish the new baseline.
+**IMPORTANT:** Champion mismatches require review. Never copy `verify_*.json`
+outputs over champions automatically. Any justified champion metadata or
+baseline update must be explicit, auditable, and separated from unrelated work.
 
 ### Run Tests Individually
 
@@ -241,7 +268,9 @@ PR must include: benchmark results, reproduction command, explanation, evidence 
 ### Strict Contribution Rules
 
 1. **Reproduction Contract**: Never claim benchmark improvement without documenting the exact reproduction command, seed, score, and all metadata.
-2. **Layer 2 Scrutiny**: Layer 2 changes (e.g., updates to benchmarks, CI, system prompts, or scoring logic) require extra scrutiny and manual audits to prevent weakening evaluation safety. Keep Layer 2 changes separated from Layer 1 algorithm changes.
+2. **Layer 2 Separation**: Changes to benchmarks, CI, scoring, prompts, gates,
+   or champion metadata require extra scrutiny and must be separate from Layer 1
+   algorithm improvements.
 
 ---
 
@@ -258,10 +287,10 @@ Tank World has built-in support for Claude Code agentic development:
 ### Recommended Session Flow
 
 1. Read CLAUDE.md (automatic) to understand the project
-2. Run `pytest -m "not slow and not integration"` to verify everything works
+2. Run `python tools/smoke_gate.py` before coding
 3. Run a benchmark to understand current baseline
 4. Analyze results and identify improvement targets
-5. Make changes, validate with tests and benchmarks
+5. Make changes and run `python tools/fast_gate.py` before PR
 6. Commit with clear metrics in the message
 
 ### What Claude Code Can Do Here
@@ -398,11 +427,11 @@ Current task: [CHOOSE ONE]
 - Fix issue with [component]
 
 Workflow:
-1. Setup/Validate: python tools/fast_gate.py
+1. Setup/Validate: python tools/smoke_gate.py
 2. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 3. Analyze: Review results.json for underperformers
 4. Improve: Modify relevant code in core/
-5. Validate: Run fast gate (python tools/fast_gate.py) and benchmark (python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42)
+5. Validate: Run fast gate (python tools/fast_gate.py); run full benchmarks only for a candidate improvement
 6. Commit: Clear message with metrics and reproduction command
 7. Push: git push -u origin [branch]
 
@@ -410,7 +439,7 @@ Rules:
 - Always use deterministic seeds
 - Run the fast gate (python tools/fast_gate.py) before committing
 - Never claim benchmark improvement without reproduction command, seed, score, and metadata
-- Layer 2 changes (benchmarks, CI, prompts, scoring) require extra scrutiny
+- Layer 2 changes (benchmarks, CI, scoring, prompts, gates, champion metadata) must be separate from Layer 1 improvements
 - One focused improvement per PR
 ```
 

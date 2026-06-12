@@ -71,9 +71,9 @@ addopts = [
     "not slow and not integration and not manual",
 ]
 markers = [
-    "slow: long-running tests (excluded by default in quick runs with -m 'not slow')",
-    "integration: tests requiring external resources or multiple components",
-    "manual: verification scripts with verbose output (run manually, not in CI)",
+    "slow: long-running tests reserved for the full validation gate",
+    "integration: multi-component tests reserved for the full validation gate",
+    "manual: operator-driven verification excluded from automated gates",
     "core: critical correctness tests (determinism, energy, ball physics, mutation queue)",
     "asyncio: mark test as async",
 ]

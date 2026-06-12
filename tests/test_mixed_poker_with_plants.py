@@ -442,6 +442,7 @@ class TestProximityCheck:
             assert in_range is False, f"Entities at {dist:.1f}px should not be in 50px range"
 
 
+@pytest.mark.integration
 class TestMutualProximityFiltering:
     """Tests for verifying all poker players are mutually within max distance."""
 
@@ -498,6 +499,7 @@ class TestMutualProximityFiltering:
 class TestPokerEffectState:
     """Tests for poker effect state handling on plants."""
 
+    @pytest.mark.integration
     def test_plant_poker_effect_state_format(self, engine):
         """Verify poker effect state is properly formatted dict."""
         # Run simulation until we get a poker game
@@ -521,6 +523,7 @@ class TestPokerEffectState:
         # If no poker effect state found, that's okay - games might have finished
 
 
+@pytest.mark.integration
 class TestSimulationIntegration:
     """Integration tests for the full simulation with plants."""
 
@@ -599,6 +602,7 @@ class TestEnergyTransferTracking:
         assert hasattr(result, "energy_transferred"), "Result should have energy_transferred"
         assert isinstance(result.energy_transferred, (int, float))
 
+    @pytest.mark.integration
     def test_plant_fish_energy_tracking_in_simulation(self, engine):
         """Verify plant-fish energy transfers are tracked during simulation."""
         if not hasattr(engine, "ecosystem") or engine.ecosystem is None:
