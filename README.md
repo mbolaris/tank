@@ -255,6 +255,7 @@ Tank World is designed for AI-first development. The repository includes infrast
 
 - **[CLAUDE.md](CLAUDE.md)**: Project intelligence file loaded automatically by Claude Code
 - **[AGENTS.md](AGENTS.md)**: Comprehensive guide for AI agents entering the evolution loop
+- **[docs/AGENT_QUICKSTART.md](docs/AGENT_QUICKSTART.md)**: Clear quickstart guide for contributors and agents
 - **Pre-commit hooks**: Automated formatting, linting, and type checking
 - **Deterministic benchmarks**: Reproducible evaluation with fixed seeds
 - **CI validation**: Automated verification of all improvements
@@ -266,14 +267,14 @@ To start an agentic development session:
 pip install -e .[dev]
 pre-commit install
 
-# Run baseline to understand current state
-python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
+# Run the smoke gate to ensure the baseline is healthy
+python tools/smoke_gate.py
 
-# Run benchmarks
+# Run a baseline benchmark (5k frames is faster for verification)
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-# Make improvements, validate, commit
-pytest -m "not slow and not integration"
+# Make improvements, validate with the fast gate before opening a PR
+python tools/fast_gate.py
 pre-commit run --all-files
 ```
 
@@ -320,15 +321,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical deep-dive and [doc
 ## Testing & Code Quality
 
 ```bash
-# Quick gate (what CI runs first)
-pytest -m "not slow and not integration"
+# Smoke gate (runs in under 30 seconds)
+python tools/smoke_gate.py
 
-# Full test suite
-pytest
+# Fast gate (pre-PR check, runs in under 3 minutes)
+python tools/fast_gate.py
 
-# Formatting and linting
-black --config pyproject.toml core/ tests/ tools/ backend/
-ruff check --fix core/ tests/ tools/ backend/
+# Full validation gate (nightly/maintainers only)
+python tools/full_gate.py
 
 # Type-check core strictly
 python -m mypy core/
@@ -340,7 +340,7 @@ pre-commit run --all-files
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
 ```
 
-CI currently runs `fast-gate`, `integration-gate`, `test-headless`, `frontend-ci`, and `nightly-full`, with champion verification and benchmark determinism checks defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
+CI currently runs `smoke-gate`, `fast-gate`, `frontend-ci`, and `nightly-full` under [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with `verify-champions` and `benchmark-gate` defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
 
 ---
 

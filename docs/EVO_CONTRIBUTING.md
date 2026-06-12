@@ -43,7 +43,7 @@ Choose a benchmark from `benchmarks/` and run it with a deterministic seed:
 
 ```bash
 # Example: Run the Tank survival benchmark
-python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # Output: results.json with your score and artifacts
 ```
@@ -56,7 +56,7 @@ Check if your result beats the current Best Known Solution:
 
 ```bash
 # Compare your results against the current champion
-python tools/validate_improvement.py results.json champions/tank/survival_30k.json
+python tools/validate_improvement.py results.json champions/tank/survival_5k.json
 
 # Output: "IMPROVEMENT: +45.7 points (1247.3 vs 1201.6)"
 #         or "NO IMPROVEMENT: -12.3 points"
@@ -72,17 +72,17 @@ If you have an improvement, update the champion file with your new result:
 # Create a branch for your improvement
 git checkout -b improve/survival-energy-conserver
 
-# Edit champions/tank/survival_30k.json with your new champion data
+# Edit champions/tank/survival_5k.json with your new champion data
 # (tools/validate_improvement.py can generate this for you)
 
 # Commit with a descriptive message
-git add champions/tank/survival_30k.json
+git add champions/tank/survival_5k.json
 git commit -m "Improve Tank survival: EnergyConserver parameter optimization
 
 New score: 1247.3 (previous: 1201.6, +45.7)
 Algorithm: EnergyConserver with adjusted rest_threshold
 Seed: 42
-Reproduction: python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+Reproduction: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 - Reduced rest_threshold from 0.3 to 0.25
 - Allows fish to conserve energy more aggressively
@@ -116,11 +116,11 @@ The CI system will automatically:
 
 ## Champion Registry Format
 
-Each champion file (e.g., `champions/tank/survival_30k.json`) follows this schema:
+Each champion file (e.g., `champions/tank/survival_5k.json`) follows this schema:
 
 ```json
 {
-  "benchmark_id": "tank/survival_30k",
+  "benchmark_id": "tank/survival_5k",
   "version": "1.0",
   "champion": {
     "score": 1247.3,
@@ -141,7 +141,7 @@ Each champion file (e.g., `champions/tank/survival_30k.json`) follows this schem
     "seed": 42
   },
   "reproduction": {
-    "command": "python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42",
+    "command": "python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42",
     "runtime_seconds": 45.2,
     "deterministic": true
   },
@@ -180,13 +180,13 @@ All benchmarks must satisfy these requirements:
 def run_benchmark(seed: int) -> float:
     rng = random.Random(seed)
     sim = create_simulation(seed=seed)
-    return sim.run(frames=30000)
+    return sim.run(frames=5000)
 
 # Bad: Uses system time or global random
 def run_benchmark() -> float:
     start_time = time.time()  # Non-deterministic!
     sim = create_simulation()
-    return sim.run(frames=30000)
+    return sim.run(frames=5000)
 ```
 
 ### 2. Reproducibility
@@ -195,7 +195,7 @@ def run_benchmark() -> float:
 
 ```json
 "reproduction": {
-  "command": "python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42",
+  "command": "python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42",
   "runtime_seconds": 45.2,
   "deterministic": true
 }
@@ -220,8 +220,8 @@ def compute_fitness(results: SimulationResults) -> dict:
 **Recommended**: Benchmarks should complete in under 5 minutes for CI validation.
 
 ```python
-# Good: 30k frames (~1-2 minutes in headless mode)
-BENCHMARK_FRAMES = 30_000
+# Good: 5k frames (~30-60 seconds in headless mode)
+BENCHMARK_FRAMES = 5_000
 
 # Bad: 1M frames (~30 minutes)
 BENCHMARK_FRAMES = 1_000_000  # Too slow for CI
@@ -242,7 +242,7 @@ if: contains(github.event.pull_request.changed_files, 'champions/')
 
 ```bash
 # CI extracts reproduction command from champion file
-python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 ```
 
 ### 3. Verify Score
@@ -260,8 +260,8 @@ else:
 
 ```bash
 # CI runs other benchmarks to ensure no regressions
-python tools/run_bench.py benchmarks/tank/reproduction_30k.py --seed 42
-python tools/run_bench.py benchmarks/tank/diversity_30k.py --seed 42
+python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py --seed 42
+python tools/run_bench.py benchmarks/soccer/training_5k.py --seed 42
 
 # If any benchmark regresses significantly, PR is rejected
 ```
@@ -366,7 +366,7 @@ Here's a full example of a successful evolutionary PR:
 ### Before: Current Champion
 
 ```json
-// champions/tank/survival_30k.json
+// champions/tank/survival_5k.json
 {
   "champion": {
     "score": 1201.6,
@@ -382,7 +382,7 @@ Here's a full example of a successful evolutionary PR:
 ### After: Improved Champion
 
 ```json
-// champions/tank/survival_30k.json
+// champions/tank/survival_5k.json
 {
   "champion": {
     "score": 1247.3,
@@ -396,7 +396,7 @@ Here's a full example of a successful evolutionary PR:
     "seed": 42
   },
   "reproduction": {
-    "command": "python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42",
+    "command": "python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42",
     "runtime_seconds": 45.2,
     "deterministic": true
   },
@@ -422,7 +422,7 @@ improving average fish lifespan by 12%.
 
 ## Benchmark Results
 
-- **Benchmark**: tank/survival_30k
+- **Benchmark**: tank/survival_5k
 - **Previous BKS**: 1201.6 (commit def456abc789)
 - **New Score**: 1247.3
 - **Improvement**: +45.7 points (+3.8%)
@@ -438,13 +438,13 @@ Reduced `rest_threshold` from 0.3 to 0.25:
 ## Reproduction
 
 ```bash
-python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
+python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 ```
 
 ## Other Benchmarks (No Regressions)
 
-- `tank/reproduction_30k`: 842.1 (previous: 845.3, -0.4% acceptable)
-- `tank/diversity_30k`: 2.34 (previous: 2.31, +1.3%)
+- `tank/ecosystem_health_10k`: 842.1 (previous: 845.3, -0.4% acceptable)
+- `soccer/training_5k`: 2.34 (previous: 2.31, +1.3%)
 
 ## Type
 
@@ -458,6 +458,10 @@ python tools/run_bench.py benchmarks/tank/survival_30k.py --seed 42
 ✅ No significant regressions
 ✅ Automatic merge approved
 ✅ New champion becomes baseline for future PRs
+
+## Note on Planned Benchmarks
+
+Planned benchmarks belong in `docs/ROADMAP.md`. Do not add references to nonexistent benchmark files or upcoming benchmarks in active contribution instructions or guides. Only refer to benchmarks that are physically present under `benchmarks/`.
 
 ## Getting Help
 
