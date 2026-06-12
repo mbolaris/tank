@@ -30,3 +30,4 @@ python scripts/submit_solution.py report --print
 ## Files
 
 - **ai_tournament_results.json**: Sample AI poker tournament results from Dec 2025. Shows tournament structure with Elo ratings, skill tiers, and head-to-head matchup data between different AI models.
+- **ui_trends_worker_task.md**: Hand-off sample for a worker agent implementing the soccer/poker skill-over-time Trends tab ([UI_IMPROVEMENTS.md](../UI_IMPROVEMENTS.md) item 1): task prompt, data contracts, change map, acceptance checklist.
