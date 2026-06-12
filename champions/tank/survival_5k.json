@@ -1,20 +1,52 @@
 {
   "benchmark_id": "tank/survival_5k",
-  "version": 2,
+  "version": 3,
   "champion": {
-    "score": 1299.1263652835248,
+    "score": 125.16065711139964,
     "seed": 42,
-    "timestamp": 1781029721.9865282,
+    "timestamp": 1749740358.9001634,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 3599.7230374925666,
-      "avg_pop": 360.8962,
+      "avg_energy": 3630.075788931159,
+      "avg_pop": 34.4788,
       "extinct": false,
-      "samples": 5000
+      "samples": 5000,
+      "max_generation": 4,
+      "extinction_frames": 0,
+      "starvation_rate": 0.9032,
+      "starvation_deaths": 84,
+      "total_deaths": 93,
+      "death_causes": {
+        "starvation": 84,
+        "old_age": 7,
+        "predation": 2
+      },
+      "diversity_score": 0.2139,
+      "unique_algorithms": 14,
+      "final_fish_count": 27,
+      "final_food_count": 123,
+      "final_total_entities": 338
     },
     "config_hash": "50bf23dff76135a3"
   },
   "history": [
+    {
+      "benchmark_id": "tank/survival_5k",
+      "seed": 42,
+      "score": 1299.1263652835248,
+      "runtime_seconds": 35.05,
+      "metadata": {
+        "frames": 5000,
+        "avg_energy": 3599.7230374925666,
+        "avg_pop": 360.8962,
+        "extinct": false,
+        "samples": 5000
+      },
+      "timestamp": 1781029721.9865282,
+      "retired_at": 1749740358.9001634,
+      "retired_reason": "Bug fix: population was counting all entities (food, crabs, etc.) not just fish",
+      "version": 2
+    },
     {
       "benchmark_id": "tank/survival_5k",
       "seed": 42,

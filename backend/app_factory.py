@@ -214,6 +214,15 @@ def create_app(
 
     context.logger = logger
 
+    # --- Production security hardening ---
+    if context.production_mode and context.allowed_origins == ["*"]:
+        raise RuntimeError(
+            "SECURITY ERROR: ALLOWED_ORIGINS=* is not permitted in production mode. "
+            "Set ALLOWED_ORIGINS to your actual frontend domain(s), e.g. "
+            "'ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com'. "
+            "Wildcard CORS with credentials enabled is a security vulnerability."
+        )
+
     # Create lifespan with context closure
     @asynccontextmanager
     async def lifespan(app: FastAPI):

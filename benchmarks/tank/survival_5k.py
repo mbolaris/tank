@@ -1,7 +1,11 @@
 """Tank Survival Benchmark (5k frames).
 
 Measures the stability and robustness of the ecosystem over a medium duration.
-Score is calculated based on integral energy and population stability.
+Score is calculated based on integral **fish** energy and **fish** population
+stability.
+
+IMPORTANT: Population is measured as the number of *fish* entities only, not
+all entities in the world (which would include food, crabs, balls, etc.).
 """
 
 import sys
@@ -54,40 +58,58 @@ def run(seed: int) -> dict[str, Any]:
     world.reset(seed=seed, config=config)
 
     # Metrics accumulators
-    total_energy_integral = 0.0
-    total_pop_integral = 0
+    total_fish_energy_integral = 0.0
+    total_fish_pop_integral = 0
     extinctions = 0
     samples = 0
+    max_generation = 0
 
     # Run loop
     for i in range(FRAMES):
         world.step()
 
-        # Sample metrics every frame for score consistency with champions
-        # Original formula: population = len(entities_list), energy = total_energy from ecosystem
+        # Sample metrics every frame for accuracy
         stats = world.get_stats(include_distributions=False)
 
-        current_pop = len(world.entities_list)
-        current_energy = stats.get("total_energy", 0)
+        # BUG FIX: Use fish_count from stats, NOT len(world.entities_list).
+        # entities_list includes Food, LiveFood, Crab, Ball, GoalZone, Castle,
+        # etc. — inflating the population count and corrupting the score.
+        current_fish_pop = stats.get("fish_count", 0)
+        current_fish_energy = stats.get("fish_energy", 0)
 
-        total_energy_integral += current_energy
-        total_pop_integral += current_pop
+        total_fish_energy_integral += current_fish_energy
+        total_fish_pop_integral += current_fish_pop
         samples += 1
 
+        if current_fish_pop == 0:
+            extinctions += 1
+
+        gen = stats.get("max_generation", 0)
+        if gen > max_generation:
+            max_generation = gen
+
         if (i + 1) % 1000 == 0:
-            print(f"  Frame {i+1}/{FRAMES}...", file=sys.stderr)
+            print(f"  Frame {i+1}/{FRAMES} (fish={current_fish_pop})...", file=sys.stderr)
 
     runtime = time.time() - start_time
 
-    # Calculate Score
-    # Simple metric: Average energy per frame * Average population per frame
-    # (Penalizing early extinction heavily since integrals will be small)
-    avg_energy = total_energy_integral / FRAMES
-    avg_pop = total_pop_integral / FRAMES
+    # Final stats snapshot for score breakdown
+    final_stats = world.get_stats(include_distributions=False)
+    death_causes = final_stats.get("death_causes", {})
+    total_deaths = sum(death_causes.values())
+    starvation_deaths = death_causes.get("starvation", 0)
+    starvation_rate = starvation_deaths / max(total_deaths, 1)
+    diversity_stats = final_stats.get("diversity_stats", {})
 
-    # Score definition: (Avg Energy * Avg Pop) / 1000
+    # Calculate Score
+    # Average fish energy per frame * Average fish population per frame / 1000
+    # (Penalizing early extinction heavily since integrals will be small)
+    avg_fish_energy = total_fish_energy_integral / FRAMES
+    avg_fish_pop = total_fish_pop_integral / FRAMES
+
+    # Score definition: (Avg Fish Energy * Avg Fish Pop) / 1000
     # Higher is better.
-    score = (avg_energy * avg_pop) / 1000.0
+    score = (avg_fish_energy * avg_fish_pop) / 1000.0
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -96,10 +118,22 @@ def run(seed: int) -> dict[str, Any]:
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,
-            "avg_energy": avg_energy,
-            "avg_pop": avg_pop,
+            "avg_energy": avg_fish_energy,
+            "avg_pop": avg_fish_pop,
             "extinct": extinctions > 0,
             "samples": samples,
+            # --- Score breakdown (new) ---
+            "max_generation": max_generation,
+            "extinction_frames": extinctions,
+            "starvation_rate": round(starvation_rate, 4),
+            "starvation_deaths": starvation_deaths,
+            "total_deaths": total_deaths,
+            "death_causes": death_causes,
+            "diversity_score": round(diversity_stats.get("diversity_score", 0.0), 4),
+            "unique_algorithms": diversity_stats.get("unique_algorithms", 0),
+            "final_fish_count": final_stats.get("fish_count", 0),
+            "final_food_count": final_stats.get("food_count", 0),
+            "final_total_entities": len(world.entities_list),
         },
     }
 
