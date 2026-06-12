@@ -1,24 +1,24 @@
 {
   "benchmark_id": "tank/ecosystem_health_10k",
-  "version": 3,
+  "version": 2,
   "champion": {
-    "score": 9.09825206399739,
+    "score": 6.909949639908923,
     "seed": 42,
-    "timestamp": 1781240181.0585928,
+    "timestamp": 1781029781.0886834,
     "metadata": {
       "frames": 10000,
       "max_generation": 8,
       "generation_rate": 8.0,
-      "starvation_rate": 0.9242,
-      "starvation_deaths": 183,
-      "total_deaths": 198,
-      "unique_algorithms": 17,
-      "diversity_score": 0.2556,
-      "diversity_bonus": 2.4818,
-      "stability_bonus": 0.852,
-      "starvation_penalty": 0.4621,
-      "mean_population": 346.67,
-      "final_population": 316
+      "starvation_rate": 0.9167,
+      "starvation_deaths": 176,
+      "total_deaths": 192,
+      "unique_algorithms": 5,
+      "diversity_score": 0.1504,
+      "diversity_bonus": 1.8469,
+      "stability_bonus": 0.8634,
+      "starvation_penalty": 0.4583,
+      "mean_population": 349.59,
+      "final_population": 328
     },
     "config_hash": "639b000657fc86cd"
   },
@@ -46,29 +46,6 @@
       "timestamp": 1774458174.7170029,
       "retired_at": 1781029790.7007217,
       "version": 1
-    },
-    {
-      "score": 6.909949639908923,
-      "seed": 42,
-      "timestamp": 1781029781.0886834,
-      "metadata": {
-        "frames": 10000,
-        "max_generation": 8,
-        "generation_rate": 8.0,
-        "starvation_rate": 0.9167,
-        "starvation_deaths": 176,
-        "total_deaths": 192,
-        "unique_algorithms": 5,
-        "diversity_score": 0.1504,
-        "diversity_bonus": 1.8469,
-        "stability_bonus": 0.8634,
-        "starvation_penalty": 0.4583,
-        "mean_population": 349.59,
-        "final_population": 328
-      },
-      "config_hash": "639b000657fc86cd",
-      "retired_at": 1781240197.0740483,
-      "version": 2
     }
   ]
 }

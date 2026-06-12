@@ -1,14 +1,14 @@
 {
   "benchmark_id": "tank/survival_5k",
-  "version": 3,
+  "version": 2,
   "champion": {
-    "score": 1326.4115810652427,
+    "score": 1299.1263652835248,
     "seed": 42,
-    "timestamp": 1781240091.708692,
+    "timestamp": 1781029721.9865282,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 3587.624699069083,
-      "avg_pop": 369.7186,
+      "avg_energy": 3599.7230374925666,
+      "avg_pop": 360.8962,
       "extinct": false,
       "samples": 5000
     },
@@ -30,21 +30,6 @@
       "timestamp": 1774447839.4186227,
       "retired_at": 1781029737.4882524,
       "version": 1
-    },
-    {
-      "score": 1299.1263652835248,
-      "seed": 42,
-      "timestamp": 1781029721.9865282,
-      "metadata": {
-        "frames": 5000,
-        "avg_energy": 3599.7230374925666,
-        "avg_pop": 360.8962,
-        "extinct": false,
-        "samples": 5000
-      },
-      "config_hash": "50bf23dff76135a3",
-      "retired_at": 1781240197.036628,
-      "version": 2
     }
   ]
 }

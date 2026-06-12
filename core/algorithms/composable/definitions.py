@@ -75,15 +75,6 @@ SUB_BEHAVIOR_PARAMS = {
     # Increased pursuit_speed from (0.9, 1.4) to (0.9, 1.6) to give evolution
     # room to discover faster hunters. Upper bound is capped by energy costs.
     "pursuit_speed": (0.9, 1.6),
-    # Quality-weighted food targeting (ported from the food_quality_optimizer
-    # monolith, ADR-006). Targets are scored as
-    #   quality * food_quality_weight - distance * food_distance_weight
-    # and pursuit is gated by the FOOD_SCORE_THRESHOLD_* selectivity rule, so
-    # fish trade extra travel distance for higher-energy food and skip chases
-    # that cost more than the meal is worth. With food_quality_weight near 0
-    # this degenerates to nearest-food selection.
-    "food_quality_weight": (0.0, 1.0),
-    "food_distance_weight": (0.3, 0.7),
     "intercept_skill": (0.3, 0.9),
     "circle_radius": (30.0, 80.0),
     "circle_speed": (0.05, 0.15),
