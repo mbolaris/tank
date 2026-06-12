@@ -139,6 +139,7 @@ export function useWebSocket(worldId?: string) {
                         update.soccer_league_live = update.snapshot.soccer_league_live;
                         update.poker_leaderboard = update.snapshot.poker_leaderboard;
                         update.auto_evaluation = update.snapshot.auto_evaluation;
+                        update.metrics_history = update.snapshot.metrics_history;
                         // Preserve mode fields from server
                         update.view_mode = update.view_mode ?? 'side';
                         update.mode_id = update.mode_id ?? 'tank';
@@ -279,6 +280,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         poker_events: deltaEvents,
         soccer_events: deltaSoccerEvents,
         soccer_league_live: deltaSoccerLeagueLive,
+        new_metrics_sample: deltaNewMetricsSample,
     } = deltaSnapshot;
     const hasSoccerLeagueLive = Object.prototype.hasOwnProperty.call(
         deltaSnapshot,
@@ -339,6 +341,27 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         ? deltaSoccerEvents.slice(-100)
         : currentSoccerEvents;
 
+    // Handle metrics history
+    let nextMetricsHistory = currentSnapshot.metrics_history;
+    if (deltaNewMetricsSample) {
+        if (nextMetricsHistory) {
+            const maxSamples = nextMetricsHistory.max_samples || 2000;
+            const alreadyExists = nextMetricsHistory.samples.some(
+                s => s.frame === deltaNewMetricsSample.frame
+            );
+            if (!alreadyExists) {
+                const samples = [...nextMetricsHistory.samples, deltaNewMetricsSample];
+                if (samples.length > maxSamples) {
+                    samples.shift();
+                }
+                nextMetricsHistory = {
+                    ...nextMetricsHistory,
+                    samples,
+                };
+            }
+        }
+    }
+
     // Construct new snapshot
     const nextSnapshot = {
         ...currentSnapshot,
@@ -351,6 +374,7 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         soccer_league_live: hasSoccerLeagueLive
             ? deltaSoccerLeagueLive
             : currentSnapshot.soccer_league_live,
+        metrics_history: nextMetricsHistory,
     };
 
     return {
@@ -372,5 +396,6 @@ function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpda
         soccer_league_live: nextSnapshot.soccer_league_live,
         stats: nextStats,
         poker_leaderboard: state.poker_leaderboard,
+        metrics_history: nextMetricsHistory,
     };
 }

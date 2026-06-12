@@ -15,7 +15,7 @@ except ImportError:
     pass
 
 
-STATE_SCHEMA_VERSION = 1
+STATE_SCHEMA_VERSION = 2
 
 
 def _compact_dict(data: dict[str, Any]) -> dict[str, Any]:
@@ -32,6 +32,61 @@ def _to_dict(dataclass_obj: Any) -> dict[str, Any]:
         field.name: getattr(dataclass_obj, field.name)
         for field in dataclass_obj.__dataclass_fields__.values()
     }
+
+
+@dataclass
+class MetricsPokerSamplePayload:
+    auto_eval_elo: float
+    total_games: int
+    showdown_win_rate: float
+    net_energy_total: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return _to_dict(self)
+
+
+@dataclass
+class MetricsSoccerSamplePayload:
+    goals_total: int
+    goals_per_1k_frames: float
+    matches_completed: int
+    matches_skipped: int
+    baseline_match_score_diff: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return _to_dict(self)
+
+
+@dataclass
+class MetricsSamplePayload:
+    frame: int
+    max_generation: int
+    population: int
+    births_total: int
+    deaths_total: int
+    fish_energy: float
+    poker: MetricsPokerSamplePayload
+    soccer: MetricsSoccerSamplePayload
+
+    def to_dict(self) -> dict[str, Any]:
+        data = _to_dict(self)
+        data["poker"] = self.poker.to_dict()
+        data["soccer"] = self.soccer.to_dict()
+        return data
+
+
+@dataclass
+class MetricsHistoryPayload:
+    schema_version: int
+    world_id: str
+    sample_interval_frames: int
+    max_samples: int
+    samples: list[MetricsSamplePayload]
+
+    def to_dict(self) -> dict[str, Any]:
+        data = _to_dict(self)
+        data["samples"] = [s.to_dict() for s in self.samples]
+        return data
 
 
 @dataclass
@@ -625,6 +680,7 @@ class FullStatePayload:
     world_type: str | None = "tank"
     view_mode: str | None = "side"
     tank_soccer_enabled: bool | None = None  # Whether tank practice soccer (ball/goals) is enabled
+    metrics_history: MetricsHistoryPayload | None = None
 
     def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing all simulation state
@@ -640,6 +696,8 @@ class FullStatePayload:
         }
         if self.auto_evaluation:
             snapshot["auto_evaluation"] = self.auto_evaluation.to_dict()
+        if self.metrics_history is not None:
+            snapshot["metrics_history"] = self.metrics_history.to_dict()
 
         # Top-level payload with metadata and nested snapshot
         data: dict[str, Any] = {
@@ -686,6 +744,7 @@ class DeltaStatePayload:
     world_type: str | None = "tank"
     view_mode: str | None = "side"
     tank_soccer_enabled: bool | None = None  # Whether tank practice soccer (ball/goals) is enabled
+    new_metrics_sample: MetricsSamplePayload | None = None
 
     def to_dict(self) -> dict[str, Any]:
         # Build snapshot containing delta simulation state
@@ -703,6 +762,8 @@ class DeltaStatePayload:
         snapshot["soccer_league_live"] = self.soccer_league_live
         if self.stats:
             snapshot["stats"] = self.stats.to_dict()
+        if self.new_metrics_sample is not None:
+            snapshot["new_metrics_sample"] = self.new_metrics_sample.to_dict()
 
         # Top-level payload with metadata and nested snapshot
         data: dict[str, Any] = {

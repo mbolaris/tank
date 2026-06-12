@@ -298,7 +298,14 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.routers import connections, discovery, servers, transfers, websocket
+    from backend.routers import (
+        connections,
+        discovery,
+        metrics,
+        servers,
+        transfers,
+        websocket,
+    )
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
 
@@ -338,5 +345,9 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup worlds router (world-agnostic API)
     worlds_router = setup_worlds_router(ctx.world_manager)
     app.include_router(worlds_router)
+
+    # Setup metrics history router
+    metrics_router = metrics.setup_router(ctx.world_manager)
+    app.include_router(metrics_router)
 
     ctx.logger.info("All API routers configured successfully")

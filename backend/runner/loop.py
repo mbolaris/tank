@@ -54,6 +54,7 @@ def run_simulation_loop(runner: SimulationRunner) -> None:
                                 runner.world.step()
                             runner.perf_tracker.stop("update")
                             stepped = True
+                            runner._sample_metrics_if_due()
                         except Exception as e:
                             logger.error(
                                 f"Simulation loop: Error updating world at frame {loop_iteration_count}: {e}",

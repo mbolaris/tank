@@ -181,6 +181,9 @@ def save_world_state(
                 # Merge provided metadata
                 if metadata:
                     snapshot.update(metadata)
+                # Persist metrics history if available
+                if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
+                    snapshot["metrics_history"] = runner.metrics_history.to_payload()
                 return save_snapshot_data(world_id, snapshot)
 
         logger.warning(f"World {world_id[:8]} does not support state capture")
@@ -268,6 +271,16 @@ def restore_world_from_snapshot(
         # Restore frame count on the engine
         if "frame" in snapshot:
             engine.frame_count = snapshot["frame"]
+
+        # Restore metrics history if present on snapshot and target has runner/metrics_history
+        runner = getattr(target_world, "runner", None)
+        if (
+            runner is not None
+            and hasattr(runner, "metrics_history")
+            and runner.metrics_history is not None
+        ):
+            if "metrics_history" in snapshot:
+                runner.metrics_history.load(snapshot["metrics_history"])
 
         # Clear existing entities via EntityManager (authoritative path)
         engine._entity_manager.clear()

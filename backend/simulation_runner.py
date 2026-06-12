@@ -24,6 +24,7 @@ from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
+from backend.metrics_history import MetricsHistory
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
@@ -60,6 +61,7 @@ class SimulationRunner(CommandHandlerMixin):
         self.world, self._entity_snapshot_builder = create_world(
             world_type, seed=seed, config=self._config
         )
+        self.world.runner = self
 
         # Store world metadata for payloads
         metadata = get_world_metadata(world_type)
@@ -125,6 +127,9 @@ class SimulationRunner(CommandHandlerMixin):
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
 
+        # Initialize metrics history tracking
+        self.metrics_history = MetricsHistory(world_id=self.world_id)
+
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
         if not hasattr(self.world_hooks, attr):
@@ -186,6 +191,10 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_id = world_id
         if world_name is not None:
             self.world_name = world_name
+
+        # Update metrics history world_id
+        if hasattr(self, "metrics_history") and self.metrics_history is not None:
+            self.metrics_history.world_id = world_id
 
         # Update hooks with new world identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
@@ -375,6 +384,7 @@ class SimulationRunner(CommandHandlerMixin):
                     self.world.set_paused(True)
 
             self._start_auto_evaluation_if_needed()
+            self._sample_metrics_if_due()
             self.fps_frame_count += 1
             self.state_publisher.invalidate_cache()
 
@@ -398,6 +408,8 @@ class SimulationRunner(CommandHandlerMixin):
             self.world, self._entity_snapshot_builder = create_world(
                 self.world_type, seed=self.seed, config=self._config
             )
+            self.world.runner = self
+            self.metrics_history = MetricsHistory(world_id=self.world_id)
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
@@ -466,6 +478,12 @@ class SimulationRunner(CommandHandlerMixin):
     def _collect_stats(self, frame: int, include_distributions: bool = True) -> StatsPayload:
         """Collect and organize simulation statistics (delegates to stats_collector)."""
         return stats_collector.collect_stats(self, frame, include_distributions)
+
+    def _sample_metrics_if_due(self) -> None:
+        """Collect a history sample even when no client is requesting state."""
+        frame = self.world.frame_count
+        if frame > 0 and frame % self.metrics_history.sample_interval_frames == 0:
+            self._collect_stats(frame, include_distributions=False)
 
     # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
     # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)

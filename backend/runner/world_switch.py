@@ -86,6 +86,7 @@ def switch_world_type(runner: SimulationRunner, new_world_type: str) -> None:
             new_world = tank_backend
 
         runner.world = new_world
+        runner.world.runner = runner
         runner.world_type = new_world_type
 
         # Update metadata from registry
