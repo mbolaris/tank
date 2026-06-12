@@ -74,6 +74,11 @@ If every fish gets better at poker at the same rate, internal win rates stay fla
 tab and see, in one glance, whether poker ELO vs. baseline and soccer scoring rate
 went up, down, or flat — and the data survives a page refresh.
 
+**Ready-to-hand-off task brief**: a complete worker-agent sample for this item —
+task prompt, data contracts, file-by-file change map, component skeleton, and
+acceptance checklist — lives at
+[examples/ui_trends_worker_task.md](examples/ui_trends_worker_task.md).
+
 ---
 
 ## 2. Ecosystem Time-Series Charts ★★★
