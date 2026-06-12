@@ -69,6 +69,17 @@ def main():
                 "--out",
                 out_file,
             ]
+            if bench_id.startswith("tank/"):
+                cmd.extend(
+                    [
+                        "--fingerprint-out",
+                        f"verify_{os.path.basename(bench_id)}.fingerprints.jsonl",
+                        "--fingerprint-every",
+                        "100",
+                    ]
+                )
+            if bench_id == "tank/ecosystem_health_10k":
+                cmd.append("--verify-determinism")
 
             subprocess.check_call(cmd)
 

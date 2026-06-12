@@ -47,3 +47,22 @@ The repo includes a small golden replay fixture used as a determinism regression
 If an *intentional* behavior change breaks the golden replay, regenerate the
 fixture with `backend.replay.record_file` (same seed/steps/switch plan) and
 commit it alongside the change, noting why in the commit message.
+
+## Benchmark fingerprint streams
+
+Tank benchmarks can emit periodic diagnostic fingerprints without changing
+their scoring:
+
+```bash
+python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py \
+  --seed 42 --verify-determinism \
+  --fingerprint-out local.jsonl --fingerprint-every 100
+python tools/compare_fingerprint_streams.py local.jsonl ci.jsonl
+```
+
+Each checkpoint contains exact-float and 6-decimal-rounded snapshot hashes,
+plus hashes and counts grouped by entity type. Exact divergence identifies
+numerical jitter; rounded divergence identifies the first meaningful
+trajectory split. With `--verify-determinism`, the second stream is written
+beside the first as `local.run2.jsonl` and compared automatically. Champion
+verification emits both ecosystem streams as CI artifacts.
