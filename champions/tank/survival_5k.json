@@ -2,30 +2,30 @@
   "benchmark_id": "tank/survival_5k",
   "version": 3,
   "champion": {
-    "score": 125.16065711139964,
+    "score": 126.96655120000781,
     "seed": 42,
     "timestamp": 1749740358.9001634,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 3630.075788931159,
-      "avg_pop": 34.4788,
+      "avg_energy": 3599.7230374925666,
+      "avg_pop": 35.2712,
       "extinct": false,
       "samples": 5000,
       "max_generation": 4,
       "extinction_frames": 0,
-      "starvation_rate": 0.9032,
-      "starvation_deaths": 84,
-      "total_deaths": 93,
+      "starvation_rate": 0.9062,
+      "starvation_deaths": 87,
+      "total_deaths": 96,
       "death_causes": {
-        "starvation": 84,
+        "starvation": 87,
         "old_age": 7,
         "predation": 2
       },
-      "diversity_score": 0.2139,
-      "unique_algorithms": 14,
-      "final_fish_count": 27,
-      "final_food_count": 123,
-      "final_total_entities": 338
+      "diversity_score": 0.2098,
+      "unique_algorithms": 11,
+      "final_fish_count": 29,
+      "final_food_count": 128,
+      "final_total_entities": 351
     },
     "config_hash": "50bf23dff76135a3"
   },
