@@ -56,6 +56,36 @@ Keep these legible and they remain the project's best advertisement.
 
 The loop is the crown jewel; these harden it.
 
+### 1.0 Cross-machine trajectory divergence in ecosystem_health_10k — `M` · ★★★
+**The most important open determinism problem.** A reverted improvement
+(quality-weighted food targeting, see PR #589) produced trajectories that were
+bit-stable locally but diverged on CI - and CI diverged run-to-run (9.098252
+locally on Python 3.10 AND 3.11 and under both glibc SIMD/non-SIMD libm
+variants; 8.977621 and 8.850779 on two consecutive CI runs of identical code).
+Current master's trajectories are robust (champions reproduce exactly locally
+under both libm variants and on CI repeatedly), so the registry is safe today -
+but the property is fragile: some trajectories sit near knife-edges that
+machine-dependent float details flip.
+
+**Evidence gathered so far** (PR #589 investigation):
+- Not interpreter version (3.10 == 3.11 locally, bit-exact).
+- Not numpy (core/ uses no numpy at all).
+- Not glibc ifunc/SIMD libm dispatch alone (GLIBC_TUNABLES hwcaps off:
+  raw sin/cos/exp digests change, but the benchmark score does not).
+- CI run-to-run instability on identical code means a per-machine or
+  per-run environment input reaches the trajectory. Suspects to bisect:
+  wall-clock leakage (e.g. core/minigames/soccer/league/provider.py caches
+  by time.time(); engine.start_time), runner CPU model differences, glibc
+  version differences between runner images.
+
+**Plan.** Add a fingerprint-dump mode to the replay harness that records a
+per-frame (or every-100-frames) fingerprint stream as a CI artifact; run it on
+CI twice and locally, diff to find the first divergent frame, inspect that
+frame's code path, eliminate the environment input. Then re-land the
+food-targeting improvement (the revert preserved it in git history at
+e1fed26; it beat both tank champions on every local environment).
+
+
 ### 1.2 Score decomposition in benchmark output — `S` · ★★
 **Problem.** `survival_5k` reports a single opaque scalar
 (`avg_energy * avg_pop / 1000`). Agents can't tell whether to optimize energy or
