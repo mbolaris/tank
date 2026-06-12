@@ -1,5 +1,21 @@
 # Tank World - Setup Instructions
 
+## Agent & Contributor Quickstart (Recommended for AI Agents / Devs)
+
+If you are an AI agent or a developer preparing to contribute improvements:
+
+```bash
+# 1. Setup dev dependencies
+pip install -e .[dev]
+
+# 2. Run the smoke gate to verify everything is working
+python tools/smoke_gate.py
+```
+
+For detailed setup or troubleshooting, follow the normal setup paths below.
+
+---
+
 ## macOS Quick Install (Sonoma / Apple Silicon)
 
 1. **Install Command Line Tools (once per machine)**

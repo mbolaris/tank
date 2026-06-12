@@ -51,7 +51,7 @@ def main():
                 continue
 
             # Find benchmark file
-            # benchmark_id "tank/survival_30k" -> benchmarks/tank/survival_30k.py
+            # benchmark_id "tank/survival_5k" -> benchmarks/tank/survival_5k.py
             bench_path = os.path.join(benchmarks_dir, f"{bench_id}.py")
             if not os.path.exists(bench_path):
                 print(f"  ERROR: Benchmark file {bench_path} not found")

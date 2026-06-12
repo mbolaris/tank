@@ -39,6 +39,7 @@ def main() -> None:
                 "tests/test_benchmark_determinism.py",
                 "tests/test_champion_provenance.py",
                 "tests/test_validation_tiers.py",
+                "tests/test_docs_agent_onboarding.py",
                 "-q",
             ),
             "Curated smoke correctness suite",

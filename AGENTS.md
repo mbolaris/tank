@@ -6,6 +6,19 @@ Tank World is a research framework where AI agents autonomously run experiments,
 
 ---
 
+## If you were given a vague prompt
+
+If you were given a vague prompt (e.g. "improve this project" or "fix some issues"), follow these strict instructions:
+- **Run `python tools/smoke_gate.py` first** to verify the current state of the repository.
+- **Read `docs/AGENT_QUICKSTART.md`** to understand the repository structure and gate tiers.
+- **Pick exactly one small improvement** to implement.
+- **Prefer documentation/test/tooling cleanup** unless explicitly asked to optimize behavior algorithms.
+- **Do not touch champion files** unless running and reproducing the relevant full benchmark.
+- **Do not mix Layer 1 algorithm changes with Layer 2 benchmark/CI/docs changes** in a single PR.
+- **End with the exact commands run and results** in your final response/PR.
+
+---
+
 ## TL;DR - Start Here
 
 ```bash
