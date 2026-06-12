@@ -111,93 +111,6 @@ class BehaviorActionsMixin:
 
         return 0.0, 0.0, False
 
-    def _select_food_target(self, fish: "Fish") -> Any | None:
-        """Select a food target using quality-weighted scoring.
-
-        Ported from the food_quality_optimizer monolith (ADR-006): instead of
-        always chasing the nearest food, every detectable food item is scored
-
-            score = quality * food_quality_weight - distance * food_distance_weight
-
-        where quality is the food's energy value. Hungry fish weight quality
-        higher (a bigger meal matters more) and starving fish weight distance
-        higher (they cannot afford long chases) - mirroring the monolith's
-        energy-state modifiers.
-
-        Pursuit is gated by the monolith's score thresholds
-        (FOOD_SCORE_THRESHOLD_*): if even the best candidate scores below the
-        energy-state threshold, no target is returned. This selectivity tactic
-        is shared by all three ADR-006 winners - it stops comfortable fish
-        from burning energy on long chases (effectively capping pursuit range
-        at roughly 200-400px depending on quality and hunger) instead of
-        committing to anything visible within the full 580px detection range.
-
-        Returns:
-            Best-scoring food worth pursuing, or None.
-        """
-        from core.config.food import (
-            BASE_FOOD_DETECTION_RANGE,
-            FOOD_SCORE_THRESHOLD_CRITICAL,
-            FOOD_SCORE_THRESHOLD_LOW,
-            FOOD_SCORE_THRESHOLD_NORMAL,
-        )
-
-        env = fish.environment
-
-        # Same time-of-day detection range as _find_nearest_food
-        detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
-        max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
-        max_distance_sq = max_distance * max_distance
-
-        if hasattr(env, "nearby_resources"):
-            nearby = env.nearby_resources(fish, int(max_distance) + 1)
-        else:
-            from core.entities import Food
-
-            nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, Food)
-
-        if not nearby:
-            return None
-
-        quality_weight = self.parameters.get("food_quality_weight", 0.5)
-        distance_weight = self.parameters.get("food_distance_weight", 0.5)
-
-        # Energy-state modifiers (from food_quality_optimizer): hungry fish
-        # value quality more; starving fish penalize distance more, and the
-        # pursuit threshold loosens as energy drops.
-        is_low = fish.is_low_energy()
-        is_critical = fish.is_critical_energy()
-        if is_low:
-            quality_weight *= 1.5
-        if is_critical:
-            distance_weight *= 1.3
-            min_score = FOOD_SCORE_THRESHOLD_CRITICAL
-        elif is_low:
-            min_score = FOOD_SCORE_THRESHOLD_LOW
-        else:
-            min_score = FOOD_SCORE_THRESHOLD_NORMAL
-
-        fish_x = fish.pos.x
-        fish_y = fish.pos.y
-        best_food: Any | None = None
-        best_score = -float("inf")
-
-        for food in nearby:
-            dx = food.pos.x - fish_x
-            dy = food.pos.y - fish_y
-            dist_sq = dx * dx + dy * dy
-            if dist_sq > max_distance_sq:
-                continue
-            quality = food.get_energy_value() if hasattr(food, "get_energy_value") else 0.0
-            score = quality * quality_weight - math.sqrt(dist_sq) * distance_weight
-            if score > best_score:
-                best_score = score
-                best_food = food
-
-        if best_food is None or best_score <= min_score:
-            return None
-        return best_food
-
     def _execute_food_approach(self, fish: "Fish") -> tuple[float, float]:
         """Execute the selected food approach sub-behavior.
 
@@ -210,12 +123,8 @@ class BehaviorActionsMixin:
             - prediction_skill: improves interception accuracy
             - hunting_stamina: sustains high-speed pursuit
             This enables natural selection to favor better hunters.
-
-            Target selection is quality-weighted (see _select_food_target):
-            the approach mode controls HOW the fish closes on the target,
-            while the quality/distance trade-off controls WHICH food it picks.
         """
-        nearest_food = self._select_food_target(fish)
+        nearest_food = self._find_nearest_food(fish)
         if not nearest_food:
             return 0.0, 0.0
 

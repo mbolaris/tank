@@ -19,24 +19,6 @@ if TYPE_CHECKING:
 
 Observation = dict[str, Any]
 
-# Quality-weighted food targeting weights, ported from the
-# food_quality_optimizer monolith (ADR-006): targets are scored as
-#   quality * FOOD_QUALITY_WEIGHT - distance * FOOD_DISTANCE_WEIGHT
-# so fish trade extra travel for higher-energy food. Values are the midpoints
-# of the monolith's evolved parameter ranges (quality 0.5-1.0, distance
-# 0.3-0.7 in ALGORITHM_PARAMETER_BOUNDS).
-#
-# These live here, not in core/config: champion comparisons are only valid
-# across identical config (core/solutions/config_hash.py snapshots core.config
-# constants), and these weights are algorithm-internal tuning that evolves
-# WITH the code - exactly what champion scores are meant to measure.
-FOOD_QUALITY_WEIGHT = 0.75
-FOOD_DISTANCE_WEIGHT = 0.5
-# Hungry fish value a bigger meal more; starving fish penalize distance more
-# (cannot afford long chases). Same modifiers as the monolith.
-FOOD_QUALITY_WEIGHT_LOW_ENERGY_BOOST = 1.5
-FOOD_DISTANCE_WEIGHT_CRITICAL_BOOST = 1.3
-
 
 class TankLikeMovementObservationBuilder:
     """Observation builder for tank-like world movement policies.
@@ -81,7 +63,9 @@ class TankLikeMovementObservationBuilder:
         max_food_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
 
         nearest_food_vector = (
-            _best_food_vector(fish, self.food_type, max_distance=max_food_distance)
+            _nearest_vector(
+                fish, self.food_type, max_distance=max_food_distance, use_resources=True
+            )
             if self.food_type is not None
             else {"x": 0.0, "y": 0.0}
         )
@@ -99,100 +83,12 @@ class TankLikeMovementObservationBuilder:
         return {
             "position": {"x": fish.pos.x, "y": fish.pos.y},
             "velocity": {"x": fish.vel.x, "y": fish.vel.y},
-            # NOTE: despite the historical name, this is the vector to the
-            # fish's best food *target*: quality-weighted scoring (ADR-006
-            # food_quality_optimizer port), not necessarily the nearest item.
             "nearest_food_vector": nearest_food_vector,
             "nearest_threat_vector": nearest_threat_vector,
             "energy": fish.energy,
             "age": fish.age or 0,
             "can_play_poker": getattr(fish, "can_play_skill_games", False),
         }
-
-
-def _best_food_vector(
-    fish: Fish,
-    food_type: type,
-    *,
-    max_distance: float,
-) -> dict[str, float]:
-    """Pick a food target using quality-weighted scoring and return vector to it.
-
-    Ported from the food_quality_optimizer monolith (ADR-006, the only
-    food-seeking algorithm that beat the production baseline on every
-    benchmark seed): each detectable food item is scored as
-
-        score = quality * FOOD_QUALITY_WEIGHT - distance * FOOD_DISTANCE_WEIGHT
-
-    where quality is the food's current energy value. Hungry fish weight
-    quality higher (a bigger meal matters more) and starving fish weight
-    distance higher (they cannot afford long chases). Items without an energy
-    value (exotic worlds) score quality 0, which degenerates to nearest-food
-    selection - the pre-port behavior.
-
-    Deterministic: consumes no RNG; ties resolve to the first item in the
-    spatial query's stable iteration order.
-
-    Args:
-        fish: The fish looking for food
-        food_type: Entity type to search for when no resource query exists
-        max_distance: Maximum search distance (detection range)
-
-    Returns:
-        Vector {x, y} from fish to the chosen food, or {0, 0} if none found
-    """
-    import math
-
-    environment = fish.environment
-
-    if hasattr(environment, "nearby_resources"):
-        agents = environment.nearby_resources(fish, max_distance)
-    else:
-        agents = environment.nearby_agents_by_type(fish, max_distance, food_type)
-
-    if not agents:
-        return {"x": 0.0, "y": 0.0}
-
-    quality_weight = FOOD_QUALITY_WEIGHT
-    distance_weight = FOOD_DISTANCE_WEIGHT
-
-    # Energy-state modifiers (same shape as the monolith's): duck-typed so
-    # non-fish agents in exotic worlds simply use the base weights.
-    is_low = getattr(fish, "is_low_energy", lambda: False)()
-    is_critical = getattr(fish, "is_critical_energy", lambda: False)()
-    if is_low:
-        quality_weight *= FOOD_QUALITY_WEIGHT_LOW_ENERGY_BOOST
-    if is_critical:
-        distance_weight *= FOOD_DISTANCE_WEIGHT_CRITICAL_BOOST
-
-    fish_x = fish.pos.x
-    fish_y = fish.pos.y
-    max_distance_sq = max_distance * max_distance
-
-    best_dx = 0.0
-    best_dy = 0.0
-    best_score = -float("inf")
-    found = False
-
-    for agent in agents:
-        dx = agent.pos.x - fish_x
-        dy = agent.pos.y - fish_y
-        dist_sq = dx * dx + dy * dy
-        if dist_sq > max_distance_sq:
-            continue
-        get_quality = getattr(agent, "get_energy_value", None)
-        quality = float(get_quality()) if get_quality is not None else 0.0
-        score = quality * quality_weight - math.sqrt(dist_sq) * distance_weight
-        if score > best_score:
-            best_score = score
-            best_dx = dx
-            best_dy = dy
-            found = True
-
-    if not found:
-        return {"x": 0.0, "y": 0.0}
-
-    return {"x": best_dx, "y": best_dy}
 
 
 def _nearest_vector(
