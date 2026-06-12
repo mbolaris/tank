@@ -6,12 +6,15 @@ This package provides:
 """
 
 from core.replay.fingerprint import SnapshotFingerprinter, fingerprint_snapshot
+from core.replay.fingerprint_stream import FingerprintStreamRecorder, compare_fingerprint_streams
 from core.replay.jsonl import JsonlReplayReader, JsonlReplayWriter, ReplayFormatError
 
 __all__ = [
+    "FingerprintStreamRecorder",
     "JsonlReplayReader",
     "JsonlReplayWriter",
     "ReplayFormatError",
     "SnapshotFingerprinter",
+    "compare_fingerprint_streams",
     "fingerprint_snapshot",
 ]

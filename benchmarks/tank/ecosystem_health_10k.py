@@ -23,6 +23,7 @@ from __future__ import annotations
 import math
 import sys
 import time
+from collections.abc import Callable
 from typing import Any
 
 from core.worlds import WorldRegistry
@@ -53,7 +54,9 @@ CONFIG: dict[str, Any] = {
 }
 
 
-def run(seed: int) -> dict[str, Any]:
+def run(
+    seed: int, fingerprint_callback: Callable[[Any, int], None] | None = None
+) -> dict[str, Any]:
     """Run the benchmark deterministically.
 
     Args:
@@ -68,6 +71,8 @@ def run(seed: int) -> dict[str, Any]:
 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)
+    if fingerprint_callback is not None:
+        fingerprint_callback(world, 0)
 
     # Accumulators
     population_samples = []
@@ -77,6 +82,8 @@ def run(seed: int) -> dict[str, Any]:
 
     for i in range(FRAMES):
         world.step()
+        if fingerprint_callback is not None:
+            fingerprint_callback(world, i + 1)
 
         if (i + 1) % SAMPLE_INTERVAL == 0:
             stats = world.get_stats(include_distributions=False)

@@ -85,6 +85,13 @@ frame's code path, eliminate the environment input. Then re-land the
 food-targeting improvement (the revert preserved it in git history at
 e1fed26; it beat both tank champions on every local environment).
 
+**Instrumentation status.** Benchmark fingerprint streams now record exact and
+6-decimal-rounded snapshot hashes, entity-type component hashes/counts, and an
+environment manifest every 100 frames. Ecosystem champion verification runs
+twice, compares the streams within CI, and uploads both streams for comparison
+with local runs. Use `tools/compare_fingerprint_streams.py` to report the first
+exact and rounded divergent frames.
+
 
 ### 1.2 Score decomposition in benchmark output — `S` · ★★
 **Problem.** `survival_5k` reports a single opaque scalar

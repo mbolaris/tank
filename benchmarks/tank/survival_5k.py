@@ -10,6 +10,7 @@ all entities in the world (which would include food, crabs, balls, etc.).
 
 import sys
 import time
+from collections.abc import Callable
 from typing import Any
 
 from core.worlds import WorldRegistry
@@ -41,7 +42,9 @@ WORLD_CONFIG: dict[str, Any] = {
 CONFIG: dict[str, Any] = {"frames": FRAMES, "world_config": WORLD_CONFIG}
 
 
-def run(seed: int) -> dict[str, Any]:
+def run(
+    seed: int, fingerprint_callback: Callable[[Any, int], None] | None = None
+) -> dict[str, Any]:
     """Run the benchmark deterministically.
 
     Args:
@@ -56,6 +59,8 @@ def run(seed: int) -> dict[str, Any]:
 
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)
+    if fingerprint_callback is not None:
+        fingerprint_callback(world, 0)
 
     # Metrics accumulators
     total_fish_energy_integral = 0.0
@@ -67,6 +72,8 @@ def run(seed: int) -> dict[str, Any]:
     # Run loop
     for i in range(FRAMES):
         world.step()
+        if fingerprint_callback is not None:
+            fingerprint_callback(world, i + 1)
 
         # Sample metrics every frame for accuracy
         stats = world.get_stats(include_distributions=False)
