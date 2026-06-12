@@ -31,17 +31,14 @@ Quick sanity checks to verify basic functionality:
 ## Running Tests
 
 ```bash
-# Run all unit tests
-pytest tests/ -v
+# Before coding: quick curated checks
+python tools/smoke_gate.py
 
-# Run only fast tests (skip integration)
-pytest tests/ -v -m "not integration"
+# Before PR: smoke gate plus broad non-slow suite
+python tools/fast_gate.py
 
-# Run integration tests
-pytest tests/integration/ -v
-
-# Run smoke tests (quick sanity check)
-pytest tests/smoke/ -v
+# Nightly or explicit maintainer validation
+python tools/full_gate.py
 
 # Run with coverage
 pytest tests/ --cov=core --cov-report=html

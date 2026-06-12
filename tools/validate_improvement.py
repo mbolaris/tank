@@ -85,7 +85,11 @@ def update_champion_data(
 
         # Archive current champion to history (handles legacy flat format too)
         old_record = dict(get_champion_record(champion_data))
+        old_record["benchmark_id"] = champion_data.get(
+            "benchmark_id", new_result.get("benchmark_id", "unknown")
+        )
         old_record["retired_at"] = time.time()
+        old_record["retired_reason"] = "Superseded by a higher-scoring champion."
         old_record["version"] = champion_data.get("version", 1)
         history.append(old_record)
 

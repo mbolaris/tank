@@ -141,6 +141,8 @@ def run(
             "final_fish_count": final_stats.get("fish_count", 0),
             "final_food_count": final_stats.get("food_count", 0),
             "final_total_entities": len(world.entities_list),
+            "population_scope": "fish",
+            "final_total_entities_role": "diagnostic_only",
         },
     }
 

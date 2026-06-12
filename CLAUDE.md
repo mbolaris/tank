@@ -14,11 +14,14 @@ The project operates at three layers:
 ## Quick Commands
 
 ```bash
-# Run the fast gate (validates ruff, black, and quick tests in under 40s)
+# Run before coding (under 30 seconds)
+python tools/smoke_gate.py
+
+# Run before PR (smoke gate + broad non-slow tests)
 python tools/fast_gate.py
 
-# Run tests individually (fast gate - what CI checks first)
-pytest -m "not slow and not integration"
+# Run full validation only for nightly or explicit maintainer review
+python tools/full_gate.py
 
 # Run full test suite
 pytest
@@ -108,30 +111,32 @@ tank/
 
 ## CI Pipeline
 
-CI runs on push to main/master/develop and claude/** branches:
+CI runs named validation tiers:
 
-1. **fast-gate**: Core tests + smoke tests + black + ruff + mypy + soccer benchmark determinism
-2. **integration-gate**: Tests marked `@pytest.mark.integration`
-3. **test-headless**: Headless simulation smoke test
-4. **frontend-ci**: npm install, lint, build, test
-5. **nightly-full**: Full test suite (nightly or on 'full-test' label)
+1. **smoke-gate**: `python tools/smoke_gate.py`
+2. **fast-gate**: `python tools/fast_gate.py` plus mypy
+3. **frontend-ci**: npm install, lint, build, test
+4. **nightly-full**: `python tools/full_gate.py` (nightly or on `full-test`)
 
-Benchmark CI (`bench.yml`): Verifies champions and runs determinism checks on PRs touching benchmarks/champions/core/tools.
+Benchmark CI (`bench.yml`): Verifies champions and runs full determinism checks
+nightly or when a maintainer dispatches it explicitly.
 
 ## Working on Improvements
 
 The standard evolution loop:
 
-1. **Fast Gate**: Run `python tools/fast_gate.py` to verify environment and format/lint/tests
+1. **Smoke Gate**: Run `python tools/smoke_gate.py` before coding
 2. **Baseline**: Run `python main.py --headless --max-frames 30000 --export-stats results.json --seed 42`
 3. **Evaluate**: Check `results.json` for underperforming algorithms (high starvation rate, low reproduction)
-4. **Benchmark**: Run `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42`
-5. **Improve**: Modify code in `core/algorithms/` or `core/config/`
-6. **Validate**: Run `python tools/fast_gate.py`
-7. **Compare**: Run benchmark again and compare against `champions/` registry
+4. **Improve**: Modify code in `core/algorithms/` or `core/config/`
+5. **Validate**: Run `python tools/fast_gate.py` before PR
+6. **Benchmark**: Run full benchmarks only after a candidate improvement exists
+7. **Compare**: Compare candidate results against the `champions/` registry
 8. **Commit**: Clear message with metrics, reproduction command, and evidence
 
-*Note: Never claim benchmark improvement without reproduction command, seed, score, and metadata. Layer 2 changes (CI, benchmarks, prompts, scoring) require extra scrutiny.*
+*Note: Never claim benchmark improvement without reproduction command, seed,
+score, and metadata. Layer 2 changes to benchmarks, CI, scoring, prompts, gates,
+or champion metadata must be separate from Layer 1 algorithm improvements.*
 
 ### Key Files for Algorithm Improvements
 
@@ -160,9 +165,9 @@ The standard evolution loop:
   even when `soccer_enabled` is False). When diagnosing starvation, first check whether
   fish are clustering around the ball at tank center instead of foraging
   (`scripts/diagnose_food_seeking.py` helps).
-- **Benchmark "population" counts all entities, not fish**: `avg_pop`/`mean_population`
-  in tank benchmarks use `len(world.entities_list)`, which includes food items. A
-  "population" of ~380 may be ~40 fish + ~340 food. Use `stats["fish_count"]` for fish.
+- **Tank benchmark population means fish**: `avg_pop`, `mean_population`, and
+  `final_population` are fish population fields. `final_total_entities` includes
+  food and other world objects and is diagnostic only, never the population score.
 - **Reproduction is funded by overflow energy**: fish bank energy gained above
   `max_energy` and spend it on offspring. Changes that burn the surplus energy of
   well-fed fish (e.g. ball play, poker) directly suppress birth rate and generation

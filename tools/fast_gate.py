@@ -1,71 +1,31 @@
 #!/usr/bin/env python3
-"""Tank World Fast Gate.
+"""Run the contributor pre-PR fast gate."""
 
-Runs ruff, black, and fast/focused unit and contract tests.
-Does not run slow benchmarks.
-"""
-
-import subprocess
-import sys
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+from gate_common import exit_for_gate, print_gate_header, python_command, run_steps
 
 
-def run_command(args, cwd=REPO_ROOT, name=""):
-    print(f"=== Running {name or ' '.join(args)} ===")
-    result = subprocess.run(args, cwd=str(cwd))
-    if result.returncode != 0:
-        print(f"[FAIL] {name or 'Command'} failed with exit code {result.returncode}")
-        return False
-    print(f"[PASS] {name or 'Command'} passed.\n")
-    return True
-
-
-def main():
-    python_exe = sys.executable
-
+def main() -> None:
+    print_gate_header(
+        name="FAST",
+        target="under 2-3 minutes on normal developer/CI hardware",
+        includes="the smoke gate, then the broad non-slow test suite",
+        excludes="integration/manual/slow tests, champion reproduction, and 5k/10k benchmarks",
+    )
     steps = [
-        ([python_exe, "-m", "ruff", "check", "."], "Ruff Linter"),
+        (python_command("tools/smoke_gate.py"), "Tier 1: smoke gate"),
         (
-            [
-                python_exe,
-                "-m",
-                "black",
-                "--check",
-                "core",
-                "tests",
-                "tools",
-                "backend",
-                "main.py",
-            ],
-            "Black Formatter Check",
-        ),
-        (
-            [
-                python_exe,
+            python_command(
                 "-m",
                 "pytest",
-                "tests/test_fingerprint_stream.py",
-                "tests/test_benchmark_determinism.py",
-                "tests/test_run_bench.py",
+                "tests",
+                "-m",
+                "not slow and not integration and not manual",
                 "-q",
-            ],
-            "Focused Determinism & Contract Tests",
-        ),
-        (
-            [python_exe, "-m", "pytest", "-m", "not slow and not integration", "-q"],
-            "General Unit Tests",
+            ),
+            "Tier 2: broad non-slow tests",
         ),
     ]
-
-    for args, name in steps:
-        if not run_command(args, name=name):
-            print("[FAIL] Fast gate FAILED!")
-            sys.exit(1)
-
-    print("Success: All fast gate checks PASSED!")
-    sys.exit(0)
+    exit_for_gate("FAST", run_steps(steps))
 
 
 if __name__ == "__main__":

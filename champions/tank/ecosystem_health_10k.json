@@ -4,7 +4,7 @@
   "champion": {
     "score": 5.329927046510063,
     "seed": 42,
-    "timestamp": 1749740737.2068589,
+    "timestamp": 1781278217,
     "metadata": {
       "frames": 10000,
       "max_generation": 8,
@@ -19,7 +19,9 @@
       "starvation_penalty": 0.4583,
       "mean_population": 26.44,
       "final_population": 13,
-      "final_total_entities": 328
+      "final_total_entities": 328,
+      "population_scope": "fish",
+      "final_total_entities_role": "diagnostic_only"
     },
     "config_hash": "639b000657fc86cd"
   },
@@ -45,7 +47,7 @@
         "final_population": 328
       },
       "timestamp": 1781029781.0886834,
-      "retired_at": 1749740737.2068589,
+      "retired_at": 1781275151,
       "retired_reason": "Bug fix: population was counting all entities (food, crabs, etc.) not just fish. Score unchanged (stability CV is scale-invariant).",
       "version": 2
     },
@@ -71,6 +73,7 @@
       },
       "timestamp": 1774458174.7170029,
       "retired_at": 1781029790.7007217,
+      "retired_reason": "Superseded by the version 2 champion.",
       "version": 1
     }
   ]

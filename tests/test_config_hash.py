@@ -72,3 +72,19 @@ class TestChampionUpdateCarriesHash:
         result = {"score": 3.0, "seed": 42, "benchmark_id": "tank/x"}
         updated = update_champion_data(None, result)
         assert "config_hash" not in updated["champion"]
+
+    def test_update_archives_required_provenance(self):
+        current = {
+            "benchmark_id": "tank/x",
+            "version": 1,
+            "champion": {"score": 1.0, "seed": 42, "timestamp": 1_700_000_000},
+            "history": [],
+        }
+        result = {"score": 2.0, "seed": 42, "benchmark_id": "tank/x"}
+
+        archived = update_champion_data(current, result)["history"][0]
+
+        assert archived["benchmark_id"] == "tank/x"
+        assert archived["version"] == 1
+        assert archived["retired_at"]
+        assert archived["retired_reason"]

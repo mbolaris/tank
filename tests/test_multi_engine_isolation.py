@@ -151,6 +151,7 @@ def _run_interleaved(
     "order-of-operations differences. Tracked as known technical debt.",
     strict=False,  # Don't fail if the test passes (flaky)
 )
+@pytest.mark.slow
 def test_multi_engine_isolation_interleaved_vs_solo():
     """Verify two engines produce identical results whether run solo or interleaved."""
     frames = 200

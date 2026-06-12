@@ -7,11 +7,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_BENCH = REPO_ROOT / "tools" / "run_bench.py"
-TANK_BENCHMARK = REPO_ROOT / "benchmarks" / "tank" / "survival_5k.py"
 
 
 def create_fake_benchmark(tmp_path: Path) -> Path:
@@ -108,7 +105,6 @@ class TestRunBench:
 
         Path(out_path).unlink()
 
-    @pytest.mark.slow
     def test_verify_determinism_flag(self, tmp_path):
         """Test --verify-determinism flag works."""
         fake_bench = create_fake_benchmark(tmp_path)

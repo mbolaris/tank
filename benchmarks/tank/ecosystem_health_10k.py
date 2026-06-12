@@ -172,6 +172,8 @@ def run(
             "mean_population": round(mean_pop, 2) if population_samples else 0,
             "final_population": stats.get("fish_count", 0),
             "final_total_entities": len(world.entities_list),
+            "population_scope": "fish",
+            "final_total_entities_role": "diagnostic_only",
         },
     }
 
