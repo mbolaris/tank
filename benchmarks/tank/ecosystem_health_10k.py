@@ -80,7 +80,9 @@ def run(seed: int) -> dict[str, Any]:
 
         if (i + 1) % SAMPLE_INTERVAL == 0:
             stats = world.get_stats(include_distributions=False)
-            pop = len(world.entities_list)
+            # BUG FIX: Use fish_count, NOT len(world.entities_list) which
+            # includes food, crabs, balls, goal zones, etc.
+            pop = stats.get("fish_count", 0)
             population_samples.append(pop)
 
             # Track death causes
@@ -161,7 +163,8 @@ def run(seed: int) -> dict[str, Any]:
             "stability_bonus": round(stability_bonus, 4),
             "starvation_penalty": round(starvation_penalty, 4),
             "mean_population": round(mean_pop, 2) if population_samples else 0,
-            "final_population": len(world.entities_list),
+            "final_population": stats.get("fish_count", 0),
+            "final_total_entities": len(world.entities_list),
         },
     }
 

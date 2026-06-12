@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     environment:
       - TANK_SERVER_ID=${TANK_SERVER_ID:-docker-tankworld}
-      - PRODUCTION=${PRODUCTION:-true}
+      - PRODUCTION=${PRODUCTION:-false}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
       - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-60}
