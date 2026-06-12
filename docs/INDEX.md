@@ -10,6 +10,7 @@ This index provides a guide to all documentation in the Tank World project.
 | [../CLAUDE.md](../CLAUDE.md) | Claude Code project intelligence (auto-loaded each session) |
 | [../SETUP.md](../SETUP.md) | Development environment setup instructions |
 | [../AGENTS.md](../AGENTS.md) | Guide for AI agents working on the codebase |
+| [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) | Foolproof on-ramp for agents of any capability: decision tree, difficulty-rated starter tasks, copy-paste recipes |
 
 ## Core Documentation
 
