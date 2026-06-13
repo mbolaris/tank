@@ -46,13 +46,13 @@ For detailed setup or troubleshooting, follow the normal setup paths below.
    ```
 6. **Run everything**
    ```bash
-   # From repo root
-   python3 main.py
-   ```
-   - Backend API → http://localhost:8000 (docs at `/docs`)
-   - Frontend (Vite) → http://localhost:3000
+    # From repo root
+    python start.py
+    ```
+    - Web UI → http://localhost:3000
+    - Backend API → http://localhost:8000 (docs at `/docs`)
 
-Keeping a dedicated terminal tab running `python3 main.py` and another running `npm run dev` helps catch log output quickly.
+    This starts both the backend and frontend dev servers in parallel, streaming their logs. Press `Ctrl+C` to stop both.
 
 ## Problem: Blank UI
 
@@ -73,24 +73,15 @@ This will install all required packages including React, Vite, and other depende
 
 ### Step 2: Start the Application
 
-You need to run the backend and frontend in separate terminals.
+You can launch both the FastAPI backend and the Vite React frontend with a single command:
 
-**Terminal 1 (Backend):**
 ```bash
-# From the root tank/ directory
-python3 main.py
+python start.py
 ```
 
-**Terminal 2 (Frontend):**
-```bash
-# From the root tank/ directory
-cd frontend
-npm run dev
-```
+This will run pre-flight checks, install dependencies if missing, start both servers in parallel with colored output logging, and open your browser automatically.
 
-### Step 3: Open Browser
-
-Visit http://localhost:3000 in your browser. You should now see the Tank World UI.
+*(Alternatively, you can run them in separate terminals: run `python main.py` for the backend, and run `cd frontend && npm run dev` to start the frontend).*
 
 ## Full Setup Steps (First Time)
 
@@ -120,19 +111,10 @@ Visit http://localhost:3000 in your browser. You should now see the Tank World U
 
 4. **Run the application**
 
-   **Terminal 1:**
    ```bash
-   python3 main.py
+   python start.py
    ```
-
-   **Terminal 2:**
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-5. **Open browser**
-   - Visit http://localhost:3000
+   This single command handles pre-flight verification, runs both the backend and frontend dev servers, and launches the browser at http://localhost:3000.
 
 ## Troubleshooting
 
