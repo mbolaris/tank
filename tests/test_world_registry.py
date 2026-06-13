@@ -7,6 +7,7 @@ including the WorldRegistry and TankWorldBackendAdapter.
 import pytest
 
 from core.config.display import FRAME_RATE, SCREEN_WIDTH
+from core.exceptions import ConfigurationError
 from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
 from core.worlds.petri.backend import PetriWorldBackendAdapter
 from core.worlds.tank.backend import TankWorldBackendAdapter
@@ -49,7 +50,7 @@ class TestWorldRegistry:
 
     def test_create_unknown_world(self):
         """Test that unknown world type raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown mode 'unknown'"):
+        with pytest.raises(ConfigurationError, match="Unknown mode 'unknown'"):
             WorldRegistry.create_world("unknown")
 
     def test_list_world_types(self):

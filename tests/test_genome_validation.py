@@ -2,6 +2,7 @@ import random
 
 import pytest
 
+from core.exceptions import GeneticsError
 from core.genetics import Genome
 
 
@@ -20,7 +21,7 @@ def test_assert_valid_raises_on_out_of_range_trait() -> None:
     # Break a spec-bounded trait.
     g.physical.size_modifier.value = 999.0
 
-    with pytest.raises(ValueError, match="Invalid genome"):
+    with pytest.raises(GeneticsError, match="Invalid genome"):
         g.assert_valid()
 
 
@@ -29,5 +30,5 @@ def test_assert_valid_raises_on_nan_trait() -> None:
     g = Genome.random(use_algorithm=False, rng=rng)
     g.behavioral.aggression.value = float("nan")
 
-    with pytest.raises(ValueError, match="not finite"):
+    with pytest.raises(GeneticsError, match="not finite"):
         g.assert_valid()
