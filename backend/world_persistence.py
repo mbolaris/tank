@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
+from core.exceptions import PersistenceError
 
 if TYPE_CHECKING:
     from backend.runner.runner_protocol import RunnerProtocol
@@ -304,7 +305,7 @@ def restore_world_from_snapshot(
 
             # Strict schema: type field is required (no legacy inference)
             if not entity_type:
-                raise ValueError(
+                raise PersistenceError(
                     f"Missing required 'type' field in entity data: {list(entity_data.keys())}"
                 )
 
