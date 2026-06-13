@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from core.exceptions import PersistenceError
+
 """Contract version constants for TankWorld.
 
 This module defines the single source of truth for all schema versions
@@ -27,8 +29,13 @@ WS_PAYLOAD_VERSION = "1.0"
 ENTITY_TRANSFER_VERSION = "1.0"
 
 
-class VersionMismatchError(Exception):
-    """Raised when a schema version mismatch is detected."""
+class VersionMismatchError(PersistenceError):
+    """Raised when a schema version mismatch is detected.
+
+    Subclasses PersistenceError so it is catchable as part of the TankError
+    hierarchy (e.g. ``except PersistenceError``) per ADR-007, while remaining
+    catchable as VersionMismatchError for existing handlers.
+    """
 
     def __init__(self, expected: str, actual: str, context: str = ""):
         self.expected = expected

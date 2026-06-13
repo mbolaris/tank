@@ -73,10 +73,17 @@ intentionally retained for now. Do not remove ad hoc.
 
 ### 3. Error-handling migration (incremental, per ADR-007)
 ADR-007 defines the convention (exceptions for exceptional/propagating failures;
-`Result` for expected/inline-handled ones). ~90 generic `raise ValueError`/
-`RuntimeError` sites remain. Migrate **opportunistically** when touching a
-module — no big-bang rewrite. Do not delete the currently-unused `TankError`
-subclasses; the ADR gives them a job.
+`Result` for expected/inline-handled ones). Migrate **opportunistically** when
+touching a module — no big-bang rewrite. Do not delete the currently-unused
+`TankError` subclasses; the ADR gives them a job.
+
+Adopted so far (reference examples to copy): `ConfigurationError`
+(`SimulationConfig.validate`, every unknown-world/mode lookup), `GeneticsError`
+(`Genome.assert_valid`), and `PersistenceError` (snapshot restore;
+`VersionMismatchError` now subclasses it). Many generic `raise ValueError`/
+`RuntimeError` sites remain — note that genuine *argument-type* misuse (e.g.
+`"interval must be >= 1"`) correctly stays `ValueError`; only domain failures
+move to the hierarchy.
 
 ### 4. Module dependency cycles (watch item — large effort)
 There are ~750 function-level (in-function) imports in `core/`, used to route
