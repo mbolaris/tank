@@ -118,6 +118,7 @@ class MetricsHistory:
                         "matches_skipped": self.soccer_matches_skipped,
                         "baseline_match_score_diff": None,
                     },
+                    "diversity_score": round(get_val(stats, "diversity_score", 0.0), 4),
                 }
 
                 self.samples.append(sample)

@@ -795,6 +795,7 @@ export interface MetricsSample {
     fish_energy: number;
     poker: MetricsPokerSample;
     soccer: MetricsSoccerSample;
+    diversity_score: number;
 }
 
 export interface MetricsHistory {
