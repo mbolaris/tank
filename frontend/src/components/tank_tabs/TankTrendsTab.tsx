@@ -29,6 +29,7 @@ interface AggregatedPoint {
     soccer: {
         goals_per_1k_frames: number;
     };
+    diversity_score: number;
 }
 
 // Helper to calculate trend delta and percentage change between first and last quartiles
@@ -193,6 +194,7 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
             fishEnergySum: number;
             birthsSum: number;
             deathsSum: number;
+            diversitySum: number;
         }> = {};
 
         samples.forEach(s => {
@@ -206,6 +208,7 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     fishEnergySum: 0,
                     birthsSum: 0,
                     deathsSum: 0,
+                    diversitySum: 0,
                 };
             }
             const g = genMap[gen];
@@ -216,6 +219,7 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
             g.fishEnergySum += s.fish_energy;
             g.birthsSum += s.births_total;
             g.deathsSum += s.deaths_total;
+            g.diversitySum += s.diversity_score ?? 0;
         });
 
         data = Object.keys(genMap)
@@ -235,12 +239,34 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     fish_energy: Number((g.fishEnergySum / g.count).toFixed(2)),
                     births_total: Number((g.birthsSum / g.count).toFixed(2)),
                     deaths_total: Number((g.deathsSum / g.count).toFixed(2)),
+                    diversity_score: Number((g.diversitySum / g.count).toFixed(4)),
                 };
             });
     }
 
+    // Process interval calculations (deltas) and mean energy
+    const processedData = data.map((d, idx) => {
+        const prev = data[idx - 1];
+        let birthsInterval = 0;
+        let deathsInterval = 0;
+
+        if (prev) {
+            birthsInterval = Math.max(0, d.births_total - prev.births_total);
+            deathsInterval = Math.max(0, d.deaths_total - prev.deaths_total);
+        }
+
+        const meanEnergy = d.population > 0 ? Number((d.fish_energy / d.population).toFixed(1)) : 0;
+
+        return {
+            ...d,
+            births_interval: birthsInterval,
+            deaths_interval: deathsInterval,
+            mean_energy: meanEnergy
+        };
+    });
+
     // Determine the starting Elo reference line
-    const startingElo = data[0]?.poker?.auto_eval_elo ?? 1200;
+    const startingElo = processedData[0]?.poker?.auto_eval_elo ?? 1200;
 
     // Identify generation boundary markers for vertical reference lines (only in frames mode)
     const genMarkers: { frame: number; gen: number }[] = [];
@@ -343,14 +369,14 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     <div style={cardHeaderStyle}>
                         <span style={cardTitleStyle}>♠ Poker ELO (vs Baseline)</span>
                         <TrendBadge
-                            values={data.map(d => d.poker?.auto_eval_elo ?? 1200)}
+                            values={processedData.map(d => d.poker?.auto_eval_elo ?? 1200)}
                             formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
                         />
                     </div>
                     <div style={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
-                                data={data}
+                                data={processedData}
                                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
                                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -405,14 +431,14 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     <div style={cardHeaderStyle}>
                         <span style={cardTitleStyle}>⚽ Soccer Goals per 1k Frames</span>
                         <TrendBadge
-                            values={data.map(d => d.soccer?.goals_per_1k_frames ?? 0)}
+                            values={processedData.map(d => d.soccer?.goals_per_1k_frames ?? 0)}
                             formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}`}
                         />
                     </div>
                     <div style={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
-                                data={data}
+                                data={processedData}
                                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
                                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -456,14 +482,14 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     <div style={cardHeaderStyle}>
                         <span style={cardTitleStyle}>🐟 Population & Generation</span>
                         <TrendBadge
-                            values={data.map(d => d.population)}
+                            values={processedData.map(d => d.population)}
                             formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
                         />
                     </div>
                     <div style={{ flex: 1, minHeight: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
-                                data={data}
+                                data={processedData}
                                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                             >
                                 <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -519,6 +545,168 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                                         dot={false}
                                     />
                                 )}
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 4. Ecosystem Diversity */}
+                <div style={cardStyle}>
+                    <div style={cardHeaderStyle}>
+                        <span style={cardTitleStyle}>🧬 Genetic/Algorithm Diversity</span>
+                        <TrendBadge
+                            values={processedData.map(d => d.diversity_score ?? 0)}
+                            formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(3)}`}
+                        />
+                    </div>
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={processedData}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
+                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis
+                                    dataKey={xAxisMode === 'frames' ? 'frame' : 'max_generation'}
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    tickFormatter={(v) => xAxisMode === 'frames' ? `${(v/1000).toFixed(0)}k` : `${v}`}
+                                />
+                                <YAxis
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    domain={[0, 1]}
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip xAxisMode={xAxisMode} />}
+                                />
+                                {xAxisMode === 'frames' && genMarkers.map((m, idx) => (
+                                    <ReferenceLine
+                                        key={idx}
+                                        x={m.frame}
+                                        stroke="rgba(255,255,255,0.15)"
+                                        strokeDasharray="2 2"
+                                    />
+                                ))}
+                                <Line
+                                    type="monotone"
+                                    dataKey="diversity_score"
+                                    stroke="var(--color-warning)"
+                                    strokeWidth={2}
+                                    name="Diversity Score"
+                                    dot={false}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 5. Births & Deaths per Interval */}
+                <div style={cardStyle}>
+                    <div style={cardHeaderStyle}>
+                        <span style={cardTitleStyle}>🐣 Births & Deaths (per Interval)</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <span style={{ color: 'var(--color-success)', fontSize: '10px', fontWeight: 600 }}>Births</span>
+                            <span style={{ color: 'var(--color-text-dim)', fontSize: '10px' }}>/</span>
+                            <span style={{ color: 'var(--color-danger)', fontSize: '10px', fontWeight: 600 }}>Deaths</span>
+                        </div>
+                    </div>
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={processedData}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
+                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis
+                                    dataKey={xAxisMode === 'frames' ? 'frame' : 'max_generation'}
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    tickFormatter={(v) => xAxisMode === 'frames' ? `${(v/1000).toFixed(0)}k` : `${v}`}
+                                />
+                                <YAxis
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    domain={[0, 'auto']}
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip xAxisMode={xAxisMode} />}
+                                />
+                                {xAxisMode === 'frames' && genMarkers.map((m, idx) => (
+                                    <ReferenceLine
+                                        key={idx}
+                                        x={m.frame}
+                                        stroke="rgba(255,255,255,0.15)"
+                                        strokeDasharray="2 2"
+                                    />
+                                ))}
+                                <Line
+                                    type="monotone"
+                                    dataKey="births_interval"
+                                    stroke="var(--color-success)"
+                                    strokeWidth={1.5}
+                                    name="Births"
+                                    dot={false}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="deaths_interval"
+                                    stroke="var(--color-danger)"
+                                    strokeWidth={1.5}
+                                    name="Deaths"
+                                    dot={false}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 6. Average Fish Energy */}
+                <div style={cardStyle}>
+                    <div style={cardHeaderStyle}>
+                        <span style={cardTitleStyle}>⚡ Average Fish Energy</span>
+                        <TrendBadge
+                            values={processedData.map(d => d.mean_energy)}
+                            formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}⚡`}
+                        />
+                    </div>
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={processedData}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
+                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis
+                                    dataKey={xAxisMode === 'frames' ? 'frame' : 'max_generation'}
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    tickFormatter={(v) => xAxisMode === 'frames' ? `${(v/1000).toFixed(0)}k` : `${v}`}
+                                />
+                                <YAxis
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    domain={['auto', 'auto']}
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip xAxisMode={xAxisMode} />}
+                                />
+                                {xAxisMode === 'frames' && genMarkers.map((m, idx) => (
+                                    <ReferenceLine
+                                        key={idx}
+                                        x={m.frame}
+                                        stroke="rgba(255,255,255,0.15)"
+                                        strokeDasharray="2 2"
+                                    />
+                                ))}
+                                <Line
+                                    type="monotone"
+                                    dataKey="mean_energy"
+                                    stroke="var(--color-primary)"
+                                    strokeWidth={2}
+                                    name="Avg Energy"
+                                    dot={false}
+                                />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>

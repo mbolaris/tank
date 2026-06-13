@@ -67,6 +67,7 @@ class MetricsSamplePayload:
     fish_energy: float
     poker: MetricsPokerSamplePayload
     soccer: MetricsSoccerSamplePayload
+    diversity_score: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         data = _to_dict(self)
@@ -432,6 +433,7 @@ class StatsPayload:
     total_asexual_births: int = 0
     fps: float = 0.0
     fast_forward: bool = False
+    diversity_score: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -560,6 +562,7 @@ class StatsPayload:
             "total_asexual_births": self.total_asexual_births,
             "fps": self.fps,
             "fast_forward": self.fast_forward,
+            "diversity_score": self.diversity_score,
         }
 
         data["poker_stats"] = self.poker_stats.to_dict()

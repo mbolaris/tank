@@ -131,6 +131,7 @@ def collect_stats(
         **physical_stats,
         poker_stats=poker_stats,
         meta_stats=meta_stats,
+        diversity_score=stats.get("diversity_stats", {}).get("diversity_score", 0.0),
     )
 
     if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
