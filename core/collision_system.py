@@ -174,7 +174,7 @@ class CollisionSystem(BaseSystem):
         self._frame_entities_removed: int = 0
         self._frame_fish_deaths: int = 0
 
-    def _do_update(self, frame: int) -> SystemResult | None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Process all collisions for this frame.
 
         This is now the main collision processing method. It handles:

@@ -9,7 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.energy.energy_utils import apply_energy_delta
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class SoccerSystem(BaseSystem):
         if self.engine.environment and hasattr(self.engine.environment, "goal_manager"):
             self.goal_manager = self.engine.environment.goal_manager
 
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Update ball physics and check for goals.
 
         Args:
@@ -76,7 +76,7 @@ class SoccerSystem(BaseSystem):
                 self.goal_manager = self.engine.environment.goal_manager
 
         if not self.enabled or not self.ball:
-            return
+            return SystemResult.empty()
 
         # 1. Auto-kick: Process kicks BEFORE ball physics (RCSS-style)
         # This ensures kicks affect the same frame's physics step
@@ -91,6 +91,8 @@ class SoccerSystem(BaseSystem):
 
             if goal_event:
                 self._handle_goal_scored(goal_event)
+
+        return SystemResult.empty()
 
     def _process_auto_kicks(self, frame: int) -> None:
         """Auto-kick: Fish near the ball will automatically kick it.

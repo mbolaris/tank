@@ -155,9 +155,9 @@ class BaseSystem(ABC):
                 super().__init__(engine, "Weather")
                 self.current_weather = "sunny"
 
-            def _do_update(self, frame: int) -> None:
+            def _do_update(self, frame: int) -> SystemResult:
                 # Weather logic here
-                pass
+                return SystemResult.empty()
 
             def get_debug_info(self) -> Dict[str, Any]:
                 return {"weather": self.current_weather}
@@ -221,13 +221,14 @@ class BaseSystem(ABC):
         result = self._do_update(frame)
         self._update_count += 1
 
-        # Handle legacy systems that return None
+        # Defensive: _do_update is typed to return SystemResult, but normalize a
+        # stray None so a mis-implemented system can't leak None into the loop.
         if result is None:
             return SystemResult.empty()
         return result
 
     @abstractmethod
-    def _do_update(self, frame: int) -> SystemResult | None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Implement system-specific update logic.
 
         This is called by update() if the system is enabled.
@@ -236,7 +237,8 @@ class BaseSystem(ABC):
             frame: Current simulation frame number
 
         Returns:
-            SystemResult describing what the system did, or None for legacy compatibility
+            SystemResult describing what the system did. Return
+            ``SystemResult.empty()`` when the system did nothing this frame.
         """
         pass
 
