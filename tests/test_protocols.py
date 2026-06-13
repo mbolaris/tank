@@ -12,7 +12,7 @@ isinstance checks on concrete types.
 
 import pytest
 
-from core.protocols import (
+from core.interfaces import (
     Consumable,
     EnergyHolder,
     Identifiable,

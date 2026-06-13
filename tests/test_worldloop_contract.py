@@ -397,15 +397,6 @@ class TestActionRegistry:
         with pytest.raises(ValueError, match="No action translator"):
             translate_action("nonexistent_world_type_xyz", "agent_1", {})
 
-    def test_translate_action_or_default(self) -> None:
-        """translate_action_or_default falls back gracefully."""
-        from core.actions.action_registry import translate_action_or_default
-        from core.brains.contracts import BrainAction as Action
-
-        action = translate_action_or_default("nonexistent", "agent_1", (1.0, 2.0))
-        assert isinstance(action, Action)
-        assert action.target_velocity == (1.0, 2.0)
-
     def test_list_registered_translators(self) -> None:
         """list_registered_translators returns world types."""
         import core.worlds.tank.tank_actions  # noqa: F401

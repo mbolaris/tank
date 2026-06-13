@@ -160,8 +160,8 @@ class AlgorithmicMovement(MovementStrategy):
         world_type = getattr(sprite_entity.environment, "world_type", None) or "tank"
 
         # Translate to standardized Action
-        # Note: desired_velocity is a tuple (vx, vy), which calls DefaultActionTranslator
-        # to handle it correctly if no specific translator, or TankActionTranslator checks types.
+        # Note: desired_velocity is a tuple (vx, vy); the world's registered
+        # translator (e.g. TankActionTranslator) converts it to a canonical Action.
         try:
             action = translate_action(
                 world_type, str(getattr(sprite_entity, "fish_id", "unknown")), desired_velocity
