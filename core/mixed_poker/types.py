@@ -4,8 +4,9 @@ This module contains the data structures used by the mixed poker system.
 """
 
 from dataclasses import dataclass, field
-from enum import IntEnum
 from typing import TYPE_CHECKING, Optional, Union
+
+from core.poker.betting.actions import BettingRound
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -16,14 +17,9 @@ if TYPE_CHECKING:
 Player = Union["Fish", "Plant"]
 
 
-class MultiplayerBettingRound(IntEnum):
-    """Betting rounds in Texas Hold'em."""
-
-    PRE_FLOP = 0
-    FLOP = 1
-    TURN = 2
-    RIVER = 3
-    SHOWDOWN = 4
+# Backwards-compatible alias. The canonical betting-round enum lives in
+# core.poker.betting.actions; mixed poker reuses it rather than redefining it.
+MultiplayerBettingRound = BettingRound
 
 
 @dataclass
