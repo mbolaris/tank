@@ -91,7 +91,10 @@ def update_champion_data(
         old_record["retired_at"] = time.time()
         old_record["retired_reason"] = "Superseded by a higher-scoring champion."
         old_record["version"] = champion_data.get("version", 1)
-        history.append(old_record)
+        # Prepend so history stays newest-first; test_champion_provenance
+        # enforces strictly descending versions. Appending broke that ordering
+        # whenever existing history was already newest-first.
+        history.insert(0, old_record)
 
     new_champion: dict[str, Any] = {
         "score": new_result["score"],

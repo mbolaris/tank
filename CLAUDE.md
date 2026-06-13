@@ -171,7 +171,17 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
 - **Reproduction is funded by overflow energy**: fish bank energy gained above
   `max_energy` and spend it on offspring. Changes that burn the surplus energy of
   well-fed fish (e.g. ball play, poker) directly suppress birth rate and generation
-  turnover, which the ecosystem_health benchmark penalizes.
+  turnover, which the ecosystem_health benchmark penalizes. Corollary: "surplus"
+  means energy above `max_energy`, not merely above the 40% safe threshold - a fish
+  below max is still climbing toward its next birth.
+- **ecosystem_health scores are trajectory-sensitive on a single seed**: the score
+  is linear in `max_generation` (a small integer), so any behavior change that
+  perturbs trajectories can swing the seed-42 score several percent up or down for
+  reasons unrelated to its average effect. Before trusting a candidate, run it on a
+  few extra seeds (e.g. 7, 123) against the same-seed baseline. A real improvement
+  wins or stays neutral across seeds; a single-seed win that regresses elsewhere is
+  likely noise. Use `scripts/diagnose_evolution.py` to confirm selection is actually
+  occurring (trait drift), not just generation churn.
 - Run `pre-commit run --all-files` before committing (or `pre-commit install` to auto-run)
 - CI uses Python 3.10; `requires-python = ">=3.10"` in pyproject.toml
 - Frontend is excluded from Python linting (separate ESLint config)
