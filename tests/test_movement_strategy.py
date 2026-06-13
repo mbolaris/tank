@@ -116,6 +116,9 @@ class TestAlgorithmicMovement:
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
         fish = Fish(env, strategy, "george1.png", 10, 10, 3)
+        # Only fish with genuine surplus energy (near max) play ball, so top the
+        # fish up - this test is about ball *selection*, not the energy gate.
+        fish.energy = fish.max_energy
         agents.add(fish)
 
         ball = Ball(env, 500, 500)
