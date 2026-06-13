@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from backend.world_manager import WorldManager
 from backend.world_registry import get_all_world_metadata
+from core.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ def setup_worlds_router(world_manager: WorldManager) -> APIRouter:
                 },
                 status_code=201,
             )
-        except ValueError as e:
+        except (ConfigurationError, ValueError) as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             logger.error(f"Error creating world: {e}", exc_info=True)

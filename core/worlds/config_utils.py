@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.exceptions import ConfigurationError
 from core.worlds.registry import WorldRegistry
 
 
@@ -26,11 +27,11 @@ def normalize_config(mode_id: str, config: dict[str, Any] | None = None) -> dict
         Normalized config dict with defaults applied
 
     Raises:
-        ValueError: If mode_id is not registered
+        ConfigurationError: If mode_id is not registered
     """
     mode_pack = WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         available = list(WorldRegistry.list_mode_packs().keys())
-        raise ValueError(f"Unknown mode '{mode_id}'. Available modes: {available}")
+        raise ConfigurationError(f"Unknown mode '{mode_id}'. Available modes: {available}")
 
     return mode_pack.configure(config or {})

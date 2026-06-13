@@ -35,11 +35,13 @@ class TestWorldTypeFirstClass:
         """WorldManager cannot create soccer world instances (soccer is a minigame)."""
         import pytest
 
+        from core.exceptions import ConfigurationError
+
         # Soccer is no longer a world mode - it's a minigame
         # This test documents that behavior
         manager = WorldManager()
         try:
-            with pytest.raises(ValueError, match="Unknown world type 'soccer'"):
+            with pytest.raises(ConfigurationError, match="Unknown world type 'soccer'"):
                 manager.create_world(name="Soccer Test", world_type="soccer")
         finally:
             manager.stop_all_worlds()

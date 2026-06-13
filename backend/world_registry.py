@@ -11,6 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from core.exceptions import ConfigurationError
 from core.worlds.registry import WorldRegistry
 
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ def register_snapshot_builder(
     mode_pack = WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         available = list(WorldRegistry.list_mode_packs().keys())
-        raise ValueError(f"Unknown world type '{mode_id}'. Available types: {available}")
+        raise ConfigurationError(f"Unknown world type '{mode_id}'. Available types: {available}")
 
     if (
         mode_pack.snapshot_builder_factory is not None
@@ -84,7 +85,7 @@ def create_world(
     mode_pack = WorldRegistry.get_mode_pack(mode_id)
     if mode_pack is None:
         available = list(WorldRegistry.list_mode_packs().keys())
-        raise ValueError(f"Unknown world type '{mode_id}'. Available modes: {available}")
+        raise ConfigurationError(f"Unknown world type '{mode_id}'. Available modes: {available}")
 
     combined: dict[str, Any] = {}
     if config:

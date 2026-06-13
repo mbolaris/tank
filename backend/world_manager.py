@@ -24,6 +24,7 @@ from backend.runner.runner_protocol import RunnerProtocol
 from backend.simulation_runner import SimulationRunner
 from backend.world_registry import create_world, get_all_world_metadata, get_world_metadata
 from backend.world_runner import WorldRunner
+from core.exceptions import ConfigurationError
 
 if TYPE_CHECKING:
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
@@ -249,7 +250,7 @@ class WorldManager:
         metadata = get_world_metadata(world_type)
         if metadata is None:
             available = [m.mode_id for m in get_all_world_metadata()]
-            raise ValueError(f"Unknown world type '{world_type}'. Available: {available}")
+            raise ConfigurationError(f"Unknown world type '{world_type}'. Available: {available}")
 
         # Check persistence capability
         if persistent and not metadata.supports_persistence:
