@@ -132,17 +132,15 @@ cd frontend && npm ci && cd ..
 
 ### Run the Web UI
 
+You can launch both the FastAPI backend and the Vite React frontend with a single command:
+
 ```bash
-# Terminal 1: Backend
-python main.py
-
-# Terminal 2: Frontend
-cd frontend && npm run dev
-
-# Open http://localhost:3000
+python start.py
 ```
 
-On Windows PowerShell, you can also use [`start.ps1`](start.ps1) after the environment is set up to launch the backend, frontend, and browser together.
+This will run pre-flight checks, install frontend dependencies if missing, start both servers in parallel with colored output logging, open http://localhost:3000 in your default browser, and cleanly shut down all processes upon pressing `Ctrl+C`.
+
+*(Alternatively, you can run them in separate terminals: run `python main.py` from the root, and run `cd frontend && npm run dev` to start the frontend).*
 
 ### Run Headless (10-300x Faster)
 
