@@ -14,6 +14,7 @@ import pytest
 from backend.snapshots import TankSnapshotBuilder
 from backend.world_registry import create_world, get_registered_world_types, get_world_metadata
 from backend.world_runner import WorldRunner
+from core.exceptions import ConfigurationError
 from core.worlds.interfaces import MultiAgentWorldBackend, StepResult
 
 
@@ -156,7 +157,7 @@ def test_world_runner_get_stats() -> None:
 
 def test_unknown_world_type_raises() -> None:
     """create_world should raise ValueError for unknown world type."""
-    with pytest.raises(ValueError, match="Unknown world type"):
+    with pytest.raises(ConfigurationError, match="Unknown world type"):
         create_world("nonexistent_world")
 
 

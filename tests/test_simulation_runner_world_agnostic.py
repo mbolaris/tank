@@ -9,6 +9,7 @@ These tests verify that:
 import pytest
 
 from backend.simulation_runner import SimulationRunner
+from core.exceptions import ConfigurationError
 
 
 class TestTankBackwardCompatibility:
@@ -81,7 +82,7 @@ class TestNonTankWorldAgnosticism:
 
     def test_soccer_is_not_a_world_type(self):
         """Soccer is a minigame; SimulationRunner should reject it."""
-        with pytest.raises(ValueError, match="Unknown world type 'soccer'"):
+        with pytest.raises(ConfigurationError, match="Unknown world type 'soccer'"):
             SimulationRunner(world_type="soccer", seed=42)
 
     def test_petri_initializes(self):
