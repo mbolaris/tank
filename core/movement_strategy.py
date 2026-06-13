@@ -277,7 +277,6 @@ class AlgorithmicMovement(MovementStrategy):
         """
         import math
 
-        from core.config.fish import SAFE_ENERGY_THRESHOLD_RATIO
         from core.entities.ball import Ball
 
         # Prefer the primary ball reference provided by the environment
@@ -293,20 +292,25 @@ class AlgorithmicMovement(MovementStrategy):
         if ball is None:
             return None  # No ball = no soccer
 
-        # Pursuit probability scales with energy surplus above the safe
-        # threshold: just-safe fish rarely play, full-energy fish play often.
-        # Below the safe threshold fish never play - survival comes first.
+        # Ball play is only worthwhile once a fish is genuinely topped up.
+        # Reproduction is funded by energy banked *above* max_energy (overflow),
+        # so a fish anywhere below max is still climbing toward its next birth -
+        # diverting it to the ball burns the very energy that would fund offspring.
+        # The previous gate let merely-"safe" fish (>40% energy) play, taxing the
+        # exact population that should be breeding. Gate on near-max energy so only
+        # fish at the overflow boundary spend the genuine surplus on play.
+        PLAY_ENERGY_THRESHOLD_RATIO = 0.90
         max_energy = getattr(fish, "max_energy", 100.0)
         current_energy = getattr(fish, "energy", max_energy)
         energy_ratio = current_energy / max_energy if max_energy > 0 else 1.0
 
-        if energy_ratio <= SAFE_ENERGY_THRESHOLD_RATIO:
-            return None  # Hungry: forage instead of playing
+        if energy_ratio <= PLAY_ENERGY_THRESHOLD_RATIO:
+            return None  # Still building toward reproduction: forage, don't play
 
         # Cap kept low: surplus energy banked via overflow funds reproduction,
         # so heavy ball play by full-energy fish directly suppresses births.
-        surplus = (energy_ratio - SAFE_ENERGY_THRESHOLD_RATIO) / (1.0 - SAFE_ENERGY_THRESHOLD_RATIO)
-        pursuit_prob = 0.25 * surplus  # 0% at safe threshold -> 25% at full energy
+        surplus = (energy_ratio - PLAY_ENERGY_THRESHOLD_RATIO) / (1.0 - PLAY_ENERGY_THRESHOLD_RATIO)
+        pursuit_prob = 0.25 * surplus  # 0% at play threshold -> 25% at full energy
 
         rng = fish.environment.rng
         if rng.random() > pursuit_prob:
