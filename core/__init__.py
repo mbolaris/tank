@@ -10,8 +10,7 @@ with no UI dependencies. Key modules include:
 - genetics: Genome and trait systems
 - algorithms: Behavior algorithms for fish AI
 - interfaces: Protocol interfaces for type safety
-- poker_participant_manager: Centralized poker state management
-- food_spawning_system: Dynamic food spawning with rate adjustment
+- systems.food_spawning: Dynamic food spawning with rate adjustment
 
 Design note: this module exposes a small, explicit public API via ``__all__``.
 Use direct imports from subpackages for internal helpers to avoid coupling to

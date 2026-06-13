@@ -31,7 +31,6 @@ import logging
 import random
 import time
 import uuid
-import warnings
 from collections import deque
 from typing import TYPE_CHECKING, Any
 
@@ -268,32 +267,6 @@ class SimulationEngine:
     @property
     def _entity_mutations(self):
         return self.mutations._queue
-
-    def cleanup_dying_fish(self) -> None:
-        """Remove dying fish.
-
-        .. deprecated:: Use ``lifecycle_system.cleanup_dying_fish()`` directly.
-        """
-        warnings.warn(
-            "cleanup_dying_fish() is deprecated, use lifecycle_system.cleanup_dying_fish()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.lifecycle_system:
-            self.lifecycle_system.cleanup_dying_fish()
-
-    def record_fish_death(self, fish: entities.Fish, cause: str | None = None) -> None:
-        """Record fish death.
-
-        .. deprecated:: Use ``lifecycle_system.record_fish_death()`` directly.
-        """
-        warnings.warn(
-            "record_fish_death() is deprecated, use lifecycle_system.record_fish_death()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.lifecycle_system:
-            self.lifecycle_system.record_fish_death(fish, cause)
 
     # =========================================================================
     # Setup (assembly sequence lives in core.simulation.engine_setup)
@@ -532,19 +505,6 @@ class SimulationEngine:
         but kept here for API compatibility if needed."""
         if self.poker_system:
             self.poker_system.handle_mixed_poker_games()
-
-    def handle_reproduction(self) -> None:
-        """Orchestrate reproduction logic.
-
-        .. deprecated:: Use ``reproduction_system.update()`` directly.
-        """
-        warnings.warn(
-            "handle_reproduction() is deprecated, use reproduction_system.update()",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self.reproduction_system:
-            self.reproduction_system.update(self.frame_count)
 
     # =========================================================================
     # Identity Provider Helpers
