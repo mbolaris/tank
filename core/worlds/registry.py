@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 
+from core.exceptions import ConfigurationError
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
 from core.modes.petri import create_petri_mode_pack
 from core.modes.tank import create_tank_mode_pack
@@ -81,7 +82,7 @@ class WorldRegistry:
         """
         mode_pack = _MODE_PACKS.get(mode_id)
         if mode_pack is None:
-            raise ValueError(
+            raise ConfigurationError(
                 f"Unknown mode '{mode_id}'. Available modes: {list(_MODE_PACKS.keys())}"
             )
 
