@@ -33,7 +33,7 @@ between phases to prevent mid-iteration mutations.
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
-from core.systems.base import BaseSystem
+from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
@@ -83,7 +83,7 @@ class EntityLifecycleSystem(BaseSystem):
         self._food_removed: int = 0
         self._plants_died: int = 0
 
-    def _do_update(self, frame: int) -> None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Reset per-frame counters at start of each frame.
 
         The actual lifecycle processing is done via explicit method calls
@@ -95,6 +95,7 @@ class EntityLifecycleSystem(BaseSystem):
         # Reset per-frame counters
         self._deaths_this_frame = 0
         self._births_this_frame = 0
+        return SystemResult.empty()
 
     def process_entity_death(self, entity: "Agent") -> bool:
         """Process an entity's death with proper cleanup.

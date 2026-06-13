@@ -68,7 +68,7 @@ class PokerProximitySystem(BaseSystem):
         self._frame_groups: int = 0
         self._frame_games: int = 0
 
-    def _do_update(self, frame: int) -> SystemResult | None:
+    def _do_update(self, frame: int) -> SystemResult:
         """Detect poker-eligible fish groups and trigger games.
 
         Returns:
