@@ -32,12 +32,12 @@ BOLD = "\033[1m"
 def print_banner():
     """Print the startup banner."""
     width = 60
-    print(f"{CYAN}╔{═ * (width - 2)}╗{RESET}")
+    print(f"{CYAN}╔{'═' * (width - 2)}╗{RESET}")
     print(f"{CYAN}║{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}║{RESET}")
-    print(f"{CYAN}╠{═ * (width - 2)}╣{RESET}")
+    print(f"{CYAN}╠{'═' * (width - 2)}╣{RESET}")
     print(f"{CYAN}║{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}║{RESET}")
     print(f"{CYAN}║{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}║{RESET}")
-    print(f"{CYAN}╚{═ * (width - 2)}╝{RESET}")
+    print(f"{CYAN}╚{'═' * (width - 2)}╝{RESET}")
     print()
 
 
