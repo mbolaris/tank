@@ -12,6 +12,8 @@ architectural choices made during development.
 | [ADR-003](003-phase-based-execution.md) | Phase-Based Execution | Accepted | 2024-12 |
 | [ADR-004](004-component-composition.md) | Component Composition | Accepted | 2024-12 |
 | [ADR-005](005-energy-state-pattern.md) | Energy State Pattern | Accepted | 2024-12 |
+| [ADR-006](006-deprecate-monolithic-food-seekers.md) | Deprecate Monolithic Food-Seekers | Accepted | 2026-06 |
+| [ADR-007](007-error-handling-strategy.md) | Error Handling Strategy | Accepted | 2026-06 |
 
 ## What is an ADR?
 

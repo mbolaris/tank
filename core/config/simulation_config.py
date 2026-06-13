@@ -67,6 +67,7 @@ from core.config.soccer import (
     SOCCER_LEAGUE_TEAM_SIZE,
     SOCCER_MAX_EVENTS,
 )
+from core.exceptions import ConfigurationError
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig
 
 
@@ -219,7 +220,9 @@ class SimulationConfig:
             errors.append("Poker benchmarks require poker activity to be enabled.")
 
         if errors:
-            raise ValueError("; ".join(errors))
+            # Invalid configuration is a fail-fast startup condition; raise a
+            # narrow domain exception (see docs/adr/007-error-handling-strategy.md).
+            raise ConfigurationError("; ".join(errors))
 
     @classmethod
     def production(cls, *, headless: bool = False) -> SimulationConfig:
