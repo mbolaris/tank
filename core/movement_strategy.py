@@ -69,6 +69,9 @@ class MovementStrategy:
 
             # Use the collision detector for consistent collision detection
             if default_collision_detector.collides(sprite_entity, food_entity):
+                # Only stop if the fish can actually consume food
+                if hasattr(sprite_entity, "can_eat") and not sprite_entity.can_eat():
+                    continue
                 sprite.vel = Vector2(0, 0)  # Set velocity to 0
 
 

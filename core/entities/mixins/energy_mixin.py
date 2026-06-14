@@ -92,6 +92,14 @@ class EnergyManagementMixin:
             max_energy=self._energy_component.max_energy,
         )
 
+    def can_eat(self) -> bool:
+        """Check if the fish can consume food.
+
+        Returns:
+            True if the fish has room for energy in its main reserves (not saturated).
+        """
+        return not self.get_energy_state().is_saturated
+
     def gain_energy(self, amount: float) -> float:
         """Gain energy from consuming food.
 
