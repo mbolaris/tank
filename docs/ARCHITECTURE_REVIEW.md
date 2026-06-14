@@ -55,6 +55,8 @@ the code, 2026-06):
 | `SystemResult` contract made uniform | every `_do_update` now returns `SystemResult` |
 | Duplicate betting-round enum collapsed | `MultiplayerBettingRound` is now an alias of `BettingRound` |
 | `core/protocols.py` re-export shim removed | import `core.interfaces` directly |
+| `core/` module-load import graph is a verified DAG (was: 3 latent facade cycles) | cycles broken; `tests/test_import_acyclic.py` guards it; ADR-008 |
+| Unused `PhaseRunner` execution model removed (finish-or-delete) | `core/update_phases.py` keeps only the `UpdatePhase` taxonomy the engine uses |
 
 ## Open items
 
@@ -85,11 +87,16 @@ Adopted so far (reference examples to copy): `ConfigurationError`
 `"interval must be >= 1"`) correctly stays `ValueError`; only domain failures
 move to the hierarchy.
 
-### 4. Module dependency cycles (watch item — large effort)
-There are ~750 function-level (in-function) imports in `core/`, used to route
-around circular dependencies. This is real debt, but untangling it is a *large,
-risky* refactor, not a small safe change. **Measure before acting**; prefer
-breaking cycles opportunistically when a module is already being restructured.
+### 4. In-function import debt (now measured & guarded, per ADR-008)
+`core/` carries hundreds of function-level (in-function) imports originally
+added to route around circular dependencies. Measurement (ADR-008) showed the
+module-load graph was only *accidentally* tangled — three sibling-via-facade
+cycles — now broken and locked acyclic by `tests/test_import_acyclic.py`. With
+cycles unable to reappear silently, the remaining in-function imports are mostly
+*defensive* rather than load-bearing: promote them to module scope
+**opportunistically** when you already touch a module, leaning on the acyclicity
+test to prove nothing re-tangles. Still no big-bang rewrite — the value is
+incremental and the test is the safety net.
 
 ## Design principles to maintain
 

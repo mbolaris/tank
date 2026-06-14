@@ -288,6 +288,30 @@ class TestCoreInterfacesBoundaries:
             pytest.fail(f"core/interfaces.py must not import backend: {backend_imports}")
 
 
+class TestCorePurity:
+    """The whole of core/ is pure domain logic with no infrastructure deps.
+
+    ARCHITECTURE.md states the layering rule plainly: "core/ must never import
+    backend/". TestCoreWorldsBoundaries enforces that for core/worlds; this
+    widens it to every module under core/, so no file anywhere re-tangles the
+    boundary between the simulation core and the web/IO layer.
+    """
+
+    def test_core_does_not_import_backend_or_frontend(self):
+        """No module under core/ may import backend/* or frontend/*."""
+        repo_root = get_repo_root()
+        core_dir = repo_root / "core"
+
+        violations = check_forbidden_imports(core_dir, forbidden_patterns=["backend", "frontend"])
+
+        if violations:
+            msg = "core/ is pure domain logic and must not import backend/frontend:\n"
+            for path, imp in violations:
+                msg += f"  {path.relative_to(repo_root)}: imports '{imp}'\n"
+            msg += "\nInvert the dependency: have the backend adapt core, not the reverse."
+            pytest.fail(msg)
+
+
 # Utility function for local testing
 def main():
     """Run boundary checks and report violations."""

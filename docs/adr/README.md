@@ -14,6 +14,7 @@ architectural choices made during development.
 | [ADR-005](005-energy-state-pattern.md) | Energy State Pattern | Accepted | 2024-12 |
 | [ADR-006](006-deprecate-monolithic-food-seekers.md) | Deprecate Monolithic Food-Seekers | Accepted | 2026-06 |
 | [ADR-007](007-error-handling-strategy.md) | Error Handling Strategy | Accepted | 2026-06 |
+| [ADR-008](008-acyclic-core-imports.md) | Acyclic Core Module Graph | Accepted | 2026-06 |
 
 ## What is an ADR?
 

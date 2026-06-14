@@ -18,7 +18,7 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from core import entities
+import core.entities as entities
 from core.cache_manager import CacheManager
 from core.object_pool import FoodPool
 

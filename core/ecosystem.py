@@ -17,7 +17,7 @@ unchanged:
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from core import ecosystem_reporting
+import core.ecosystem_reporting as ecosystem_reporting
 from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES, MAX_ECOSYSTEM_EVENTS
 from core.ecosystem_stats import (
     EcosystemEvent,

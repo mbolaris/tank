@@ -6,7 +6,9 @@ used by the web UI backend and headless simulation mode.
 
 import random
 
-from core import entities, environment, movement_strategy
+import core.entities as entities
+import core.environment as environment
+import core.movement_strategy as movement_strategy
 from core.config.fish import FISH_BASE_SPEED
 from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.ecosystem import EcosystemManager

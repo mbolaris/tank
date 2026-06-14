@@ -8,7 +8,7 @@ statistics from specialized sub-modules:
 
 from typing import TYPE_CHECKING, Any
 
-from core.services.stats import entity_stats
+import core.services.stats.entity_stats as entity_stats
 from core.services.stats.utils import calculate_meta_stats, humanize_gene_label
 
 if TYPE_CHECKING:
