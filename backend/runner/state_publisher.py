@@ -182,6 +182,8 @@ class StatePublisher:
                         fish_energy=s["fish_energy"],
                         poker=MetricsPokerSamplePayload(**s["poker"]),
                         soccer=MetricsSoccerSamplePayload(**s["soccer"]),
+                        diversity_score=s.get("diversity_score", 0.0),
+                        traits=s.get("traits", {}),
                     )
                 )
 
@@ -280,6 +282,8 @@ class StatePublisher:
                     fish_energy=s["fish_energy"],
                     poker=MetricsPokerSamplePayload(**s["poker"]),
                     soccer=MetricsSoccerSamplePayload(**s["soccer"]),
+                    diversity_score=s.get("diversity_score", 0.0),
+                    traits=s.get("traits", {}),
                 )
 
         return DeltaStatePayload(

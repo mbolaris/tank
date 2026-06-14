@@ -796,6 +796,9 @@ export interface MetricsSample {
     poker: MetricsPokerSample;
     soccer: MetricsSoccerSample;
     diversity_score: number;
+    // Population mean of tracked heritable traits at this sample (schema v2+).
+    // Optional so pre-trait history (older schemas) still type-checks.
+    traits?: Record<string, number>;
 }
 
 export interface MetricsHistory {

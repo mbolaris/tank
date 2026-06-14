@@ -151,12 +151,39 @@ def collect_stats(
             except Exception:
                 pass
 
+        # Trait means are only meaningful (and only worth iterating fish for) on
+        # frames that will actually be recorded as a sample.
+        trait_means = None
+        if runner.metrics_history.is_sample_due(frame):
+            trait_means = _collect_trait_means(runner)
+
         runner.metrics_history.maybe_sample(
             frame=frame,
             stats=stats_payload,
             poker=poker_stats,
             soccer=soccer_events,
             auto_eval=auto_eval,
+            trait_means=trait_means,
         )
 
     return stats_payload
+
+
+def _collect_trait_means(runner: SimulationRunner) -> dict[str, float]:
+    """Population mean of the tracked heritable traits across living fish.
+
+    Read-only and defensive: any failure (e.g. a non-tank world without an
+    ``entities_list``) yields an empty mapping rather than disturbing the step
+    loop or stats collection.
+    """
+    try:
+        from core.entities import Fish
+        from core.services.stats.trait_trends import compute_trait_means
+
+        entities = getattr(runner.world, "entities_list", None)
+        if not entities:
+            return {}
+        living = [e for e in entities if isinstance(e, Fish) and not e.is_dead()]
+        return compute_trait_means(living)
+    except Exception:
+        return {}
