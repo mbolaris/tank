@@ -768,20 +768,15 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         - Learning events only created every 5th food eaten
         - Cached algorithm_id lookup
         """
-        # Calculate how much room we have for more energy
-        available_capacity = self.max_energy - self.energy
-
-        # Don't eat if we're already full (prevents wasting food)
-        if self.get_energy_state().is_saturated:
+        # Check if we can eat at all
+        if not self.can_eat():
             return
 
-        # Limit bite size to what we can actually use
-        effective_bite_size = min(self.bite_size, available_capacity)
-
-        # Take a bite from the food (only what we can hold)
+        # Take a full bite from the food
+        effective_bite_size = self.bite_size
         potential_energy = food.take_bite(effective_bite_size)
         # Apply energy immediately (modify_energy handles overflow banking)
-        actual_energy = self.modify_energy(potential_energy)
+        actual_energy = self.modify_energy(potential_energy, source="ate_food")
 
         # Record food location in memory (MemoryType imported at module level)
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)

@@ -124,6 +124,9 @@ class BehaviorActionsMixin:
             - hunting_stamina: sustains high-speed pursuit
             This enables natural selection to favor better hunters.
         """
+        if hasattr(fish, "can_eat") and not fish.can_eat():
+            return 0.0, 0.0
+
         nearest_food = self._find_nearest_food(fish)
         if not nearest_food:
             return 0.0, 0.0
@@ -368,9 +371,11 @@ class BehaviorActionsMixin:
             (vx, vy, is_active) - velocity and whether poker behavior is active
         """
         aggression = fish.genome.behavioral.aggression.value
-        min_energy = self.parameters.get("min_energy_for_poker", 0.4)
-        # Aggression lowers the energy threshold for poker (more risk-taking)
-        min_energy *= 1.2 - aggression * 0.4  # 0.8x to 1.2x threshold
+        min_energy = self.parameters.get("min_energy_for_poker", 0.65)
+        # Aggression lowers the energy threshold for poker *slightly*.
+        # Previously 0.4 spread let aggressive fish gamble near starvation;
+        # capped to 0.1 so even the most aggressive fish must be well-fed.
+        min_energy *= 1.05 - aggression * 0.1  # 0.95x to 1.05x threshold
 
         if self.poker_engagement == PokerEngagement.AVOID:
             avoid_radius = self.parameters.get("poker_avoid_radius", 100.0)
@@ -400,7 +405,7 @@ class BehaviorActionsMixin:
             return 0.0, 0.0, False
 
         elif self.poker_engagement == PokerEngagement.AGGRESSIVE:
-            if energy_ratio < min_energy * 0.7:  # Lower threshold for aggressive
+            if energy_ratio < min_energy * 0.90:  # Slightly lower threshold for aggressive
                 return 0.0, 0.0, False
             seek_radius = self.parameters.get("poker_seek_radius", 150.0)
             nearby = self._find_nearby_fish(fish, seek_radius)

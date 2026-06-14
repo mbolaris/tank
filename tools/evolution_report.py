@@ -76,6 +76,23 @@ def _first_present(obj: dict[str, Any], *keys: str) -> Any:
     return None
 
 
+def _unwrap_snapshot(obj: dict[str, Any]) -> dict[str, Any]:
+    """Unwrap the snapshot API envelope if present.
+
+    The live snapshot endpoint returns ``{"type": "update", "snapshot": {...}}``
+    where the inner dict contains ``stats``, ``metrics_history``, ``entities``,
+    etc.  Other data sources (exported stats, metrics-history payload) do not
+    have this wrapper.  This helper transparently peels it so the extract
+    helpers always see the inner dict.
+    """
+    inner = obj.get("snapshot")
+    if isinstance(inner, dict) and (
+        "stats" in inner or "metrics_history" in inner or "entities" in inner
+    ):
+        return inner
+    return obj
+
+
 def extract_history_samples(payload: Any) -> list[dict[str, Any]]:
     """Pull the ordered list of metric samples out of any supported container."""
     if payload is None:
@@ -83,6 +100,8 @@ def extract_history_samples(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [s for s in payload if isinstance(s, dict)]
     if isinstance(payload, dict):
+        # Unwrap the snapshot API envelope if present.
+        payload = _unwrap_snapshot(payload)
         # Metrics-history payload, or a full snapshot embedding one.
         if isinstance(payload.get("samples"), list):
             return [s for s in payload["samples"] if isinstance(s, dict)]
@@ -96,6 +115,8 @@ def extract_stats(obj: Any) -> dict[str, Any]:
     """Pull the instantaneous stats block out of any supported container."""
     if not isinstance(obj, dict):
         return {}
+    # Unwrap the snapshot API envelope if present.
+    obj = _unwrap_snapshot(obj)
     # A full snapshot nests the curated stats under "stats".
     if isinstance(obj.get("stats"), dict):
         return obj["stats"]
