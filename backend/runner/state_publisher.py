@@ -17,7 +17,7 @@ class StatePublisher:
     def __init__(
         self,
         perf_tracker: PerfTracker,
-        websocket_update_interval: int = 2,
+        websocket_update_interval: int = 1,
         delta_sync_interval: int = 90,
     ):
         self.perf_tracker = perf_tracker
@@ -101,7 +101,12 @@ class StatePublisher:
         state: FullStatePayload | DeltaStatePayload
         if is_full_update:
             state = self._build_full_state(
-                runner, current_frame, elapsed_time, stats, entity_snapshots
+                runner,
+                current_frame,
+                elapsed_time,
+                stats,
+                entity_snapshots,
+                include_metrics_history=force_full or not allow_delta,
             )
             self._last_full_frame = current_frame
             self._last_entities = {e.id: e for e in entity_snapshots}
@@ -139,7 +144,13 @@ class StatePublisher:
         return serialized
 
     def _build_full_state(
-        self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: list[EntitySnapshot]
+        self,
+        runner: Any,
+        frame: int,
+        elapsed_time: Any,
+        stats: Any,
+        entities: list[EntitySnapshot],
+        include_metrics_history: bool = True,
     ) -> FullStatePayload:
         """Construct a FullStatePayload."""
 
@@ -162,7 +173,11 @@ class StatePublisher:
 
         # Build metrics history payload if available
         metrics_history_payload = None
-        if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
+        if (
+            include_metrics_history
+            and hasattr(runner, "metrics_history")
+            and runner.metrics_history is not None
+        ):
             from backend.state_payloads import (
                 MetricsHistoryPayload,
                 MetricsPokerSamplePayload,

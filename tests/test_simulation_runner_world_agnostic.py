@@ -49,6 +49,36 @@ class TestTankBackwardCompatibility:
         assert hasattr(state, "poker_events")
         assert hasattr(state, "poker_leaderboard")
 
+    def test_running_tank_publishes_each_requested_new_frame(self):
+        """The broadcaster already controls cadence, so publisher polls must not be halved."""
+        runner = SimulationRunner(world_type="tank", seed=42)
+        runner.running = True
+        try:
+            runner.world.step()
+            first = runner.get_state(force_full=True)
+
+            runner.world.step()
+            second = runner.get_state()
+
+            assert second.frame == first.frame + 1
+        finally:
+            runner.running = False
+
+    def test_periodic_full_state_omits_already_streamed_metrics_history(self):
+        """Recovery snapshots should not repeatedly resend the complete history."""
+        runner = SimulationRunner(world_type="tank", seed=42)
+        runner.metrics_history.sample_interval_frames = 1
+        runner.state_publisher.delta_sync_interval = 1
+
+        runner.world.step()
+        initial = runner.get_state(force_full=True)
+        assert initial.metrics_history is not None
+
+        runner.world.step()
+        periodic = runner.get_state(force_full=False, allow_delta=True)
+        assert periodic.type == "update"
+        assert periodic.metrics_history is None
+
     def test_tank_command_handling_backward_compatible(self):
         """Tank should still handle tank-specific commands."""
         runner = SimulationRunner(world_type="tank", seed=42)

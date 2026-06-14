@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { SimulationUpdate, StatsData } from '../types/simulation';
+import { applyFullUpdate } from './useWebSocket';
 
 /**
  * Pure function to normalize a WorldUpdatePayload into SimulationUpdate format.
@@ -135,6 +136,52 @@ describe('WebSocket Update Normalization', () => {
         expect(result.elapsed_time).toBe(3.14);
         expect(result.entities).toHaveLength(1);
         expect(result.entities![0].id).toBe(1);
+    });
+
+    it('preserves metrics history when a periodic full update omits it', () => {
+        const history = {
+            schema_version: 2,
+            world_id: 'test-world',
+            sample_interval_frames: 500,
+            max_samples: 2000,
+            samples: [],
+        };
+        const current = normalizeWorldUpdate({
+            type: 'update',
+            schema_version: 1,
+            world_id: 'test-world',
+            snapshot: {
+                frame: 1,
+                elapsed_time: 0,
+                entities: [],
+                stats: {} as StatsData,
+                poker_events: [],
+                soccer_events: [],
+                soccer_league_live: null,
+                poker_leaderboard: [],
+                metrics_history: history,
+            },
+        });
+        const periodic = {
+            type: 'update',
+            schema_version: 1,
+            world_id: 'test-world',
+            snapshot: {
+                frame: 91,
+                elapsed_time: 3,
+                entities: [],
+                stats: {} as StatsData,
+                poker_events: [],
+                soccer_events: [],
+                soccer_league_live: null,
+                poker_leaderboard: [],
+            },
+        } as SimulationUpdate;
+
+        const result = applyFullUpdate(current, periodic);
+
+        expect(result.snapshot.metrics_history).toBe(history);
+        expect(result.metrics_history).toBe(history);
     });
 
 });
