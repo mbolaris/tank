@@ -57,6 +57,7 @@ the code, 2026-06):
 | `core/protocols.py` re-export shim removed | import `core.interfaces` directly |
 | `core/` module-load import graph is a verified DAG (was: 3 latent facade cycles) | cycles broken; `tests/test_import_acyclic.py` guards it; ADR-008 |
 | Unused `PhaseRunner` execution model removed (finish-or-delete) | `core/update_phases.py` keeps only the `UpdatePhase` taxonomy the engine uses |
+| `core/worlds` mode registration made lazy (was: eager at import → `core.worlds`↔`core.simulation` import-time cycle) | `core/worlds/registry.py`; de-poisons `core.worlds.*` imports; ADR-008 |
 
 ## Open items
 
