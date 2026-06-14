@@ -13,7 +13,7 @@ import pkgutil
 from collections.abc import Iterable
 from importlib import import_module
 
-from core import algorithms
+import core.algorithms as algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase
 
 

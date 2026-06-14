@@ -34,8 +34,9 @@ import uuid
 from collections import deque
 from typing import TYPE_CHECKING, Any
 
+import core.simulation.diagnostics as diagnostics
+import core.simulation.headless_runner as headless_runner
 from core.config.simulation_config import SimulationConfig
-from core.simulation import diagnostics, headless_runner
 from core.simulation.coordinator import SystemCoordinator
 from core.simulation.engine_setup import setup_engine
 from core.simulation.entity_manager import EntityManager

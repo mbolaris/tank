@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, cast
 
+import core.genetics.expression as expression
 from core.exceptions import GeneticsError
-from core.genetics import expression
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
