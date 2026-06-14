@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
     LineChart,
     Line,
@@ -166,7 +166,7 @@ const CustomTooltip = ({ active, payload, label, xAxisMode }: CustomTooltipProps
     return null;
 };
 
-export function TankTrendsTab({ history }: TankTrendsTabProps) {
+function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
     const [xAxisMode, setXAxisMode] = useState<XAxisMode>('frames');
 
     // Handle null or empty history state
@@ -792,6 +792,7 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                                             name={t.label}
                                             dot={false}
                                             connectNulls
+                                            isAnimationActive={false}
                                         />
                                     ))}
                                 </LineChart>
@@ -803,3 +804,9 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
         </div>
     );
 }
+
+// Memoized: the Trends tab is a pure function of `history`, whose reference only
+// changes when a new sample is appended (every sample_interval_frames). Without
+// this it re-renders and rebuilds every chart over the full sample buffer on
+// every WebSocket frame, which drags the whole UI.
+export const TankTrendsTab = memo(TankTrendsTabComponent);
