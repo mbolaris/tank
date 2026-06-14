@@ -90,12 +90,14 @@ architectural invariant.
   (`from . import x`) are fully resolved so the graph stays sound.
 - **The test is necessary, not sufficient.** The graph captures *static*
   module-load imports; it does not trace functions that execute *at* import
-  time (e.g. `core/worlds/registry.py` eagerly self-registers built-in modes at
-  module load, so its function-local backend imports run eagerly and reach back
-  into `core.simulation`). Such a path can form a real runtime cycle the static
-  graph cannot see. Therefore promoting a deferred import to module scope must
-  be validated by actually importing the module and running the suite -- not by
-  the acyclicity test alone.
+  time. Such a function can form a runtime cycle the static graph cannot see.
+  (This bit us once: `core/worlds/registry.py` used to register built-in modes
+  at module load, so its function-local backend imports ran eagerly and reached
+  back into `core.simulation`; registration is now **lazy** precisely to remove
+  that import-time cycle, which is also what lets `core.worlds.contracts` be
+  imported at module scope.) So promoting a deferred import to module scope must
+  be validated by importing the module and running the suite -- not by the
+  acyclicity test alone.
 
 ## Related
 - ADR-002: Protocol-Based Design (loose coupling reduces the pressure toward cycles)

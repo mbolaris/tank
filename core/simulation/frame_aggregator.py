@@ -10,10 +10,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
+from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
 
 
 @dataclass(frozen=True)
@@ -61,10 +60,6 @@ class FrameAggregator:
         environment.set_energy_delta_recorder(). The recorder forwards energy
         deltas into this aggregator, resolving stable IDs via ``get_identity``.
         """
-        # Deferred (load-bearing): importing core.worlds runs the registry's
-        # eager mode registration, which pulls world backends -> core.simulation.
-        # Keep this inside the function to avoid that import-time cycle (ADR-008).
-        from core.worlds.contracts import EnergyDeltaRecord
 
         def recorder(entity: Any, delta: float, source: str, meta: dict[str, Any]) -> None:
             entity_type, stable_id = get_identity(entity)

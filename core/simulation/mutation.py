@@ -1,13 +1,11 @@
 """Mutation transaction management."""
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 from core.entities import Entity
 from core.simulation.entity_manager import EntityManager
 from core.simulation.entity_mutation_queue import EntityMutationQueue
-
-if TYPE_CHECKING:
-    from core.worlds.contracts import RemovalRequest, SpawnRequest
+from core.worlds.contracts import RemovalRequest, SpawnRequest
 
 
 class MutationTransaction:
@@ -66,11 +64,6 @@ class MutationTransaction:
             pre_add_callback: Optional callback(entity) run before adding to manager
                               (used for legacy add_internal support)
         """
-        # Deferred (load-bearing): importing core.worlds runs the registry's
-        # eager mode registration, which pulls world backends -> core.simulation.
-        # Keep this inside the function to avoid that import-time cycle (ADR-008).
-        from core.worlds.contracts import RemovalRequest, SpawnRequest
-
         # Process removals
         removals = self._queue.drain_removals()
         for mutation in removals:

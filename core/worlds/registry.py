@@ -7,6 +7,7 @@ and associating them with high-level mode packs.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 
 from core.exceptions import ConfigurationError
@@ -80,6 +81,7 @@ class WorldRegistry:
             config: Optional config dict (normalized by the mode pack)
             **kwargs: Config overrides (merged into config)
         """
+        _ensure_builtin_modes()
         mode_pack = _MODE_PACKS.get(mode_id)
         if mode_pack is None:
             raise ConfigurationError(
@@ -103,16 +105,19 @@ class WorldRegistry:
     @staticmethod
     def get_mode_pack(mode_id: str) -> ModePack | None:
         """Return a registered mode pack by id."""
+        _ensure_builtin_modes()
         return _MODE_PACKS.get(mode_id)
 
     @staticmethod
     def list_mode_packs() -> dict[str, ModePack]:
         """Return all registered mode packs."""
+        _ensure_builtin_modes()
         return dict(_MODE_PACKS)
 
     @staticmethod
     def list_modes() -> dict[str, str]:
         """List all available modes and their status."""
+        _ensure_builtin_modes()
         statuses: dict[str, str] = {}
         for mode_id, mode_pack in _MODE_PACKS.items():
             status = (
@@ -124,6 +129,7 @@ class WorldRegistry:
     @staticmethod
     def list_world_types() -> dict[str, str]:
         """List world types (legacy compatibility)."""
+        _ensure_builtin_modes()
         statuses: dict[str, str] = {}
         for mode_pack in _MODE_PACKS.values():
             status = (
@@ -135,8 +141,33 @@ class WorldRegistry:
 
 
 # =============================================================================
-# Built-in mode pack registrations
+# Built-in mode pack registrations (lazy)
 # =============================================================================
+
+_builtins_registered = False
+_registration_lock = threading.Lock()
+
+
+def _ensure_builtin_modes() -> None:
+    """Register built-in mode packs on first use (thread-safe, idempotent).
+
+    Registration is deferred (rather than run at import time) so that importing
+    ``core.worlds`` does not eagerly pull in the Tank/Petri world backends,
+    which depend on ``core.simulation`` and would otherwise form an import-time
+    cycle. The registry's read methods call this before serving. See ADR-008.
+
+    Double-checked locking keeps concurrent first reads (the backend drives
+    simulations on worker threads) from registering twice or observing a
+    half-populated registry.
+    """
+    global _builtins_registered
+    if _builtins_registered:
+        return
+    with _registration_lock:
+        if _builtins_registered:
+            return
+        _register_builtin_modes()
+        _builtins_registered = True
 
 
 def _register_builtin_modes() -> None:
@@ -162,6 +193,3 @@ def _register_builtin_modes() -> None:
     # Note: Soccer is NOT registered as a world mode.
     # It is a minigame accessible via the "start_soccer" command handler.
     # See core/minigames/soccer/ for the RCSS-Lite engine.
-
-
-_register_builtin_modes()
