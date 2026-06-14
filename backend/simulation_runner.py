@@ -109,7 +109,7 @@ class SimulationRunner(CommandHandlerMixin):
 
         # State publishing
         self.state_publisher = StatePublisher(
-            perf_tracker=self.perf_tracker, websocket_update_interval=2, delta_sync_interval=90
+            perf_tracker=self.perf_tracker, websocket_update_interval=1, delta_sync_interval=90
         )
 
         # Initialize world-specific hooks and features

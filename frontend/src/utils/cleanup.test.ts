@@ -1,7 +1,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearAvatarPathCache, getAvatarPathCacheSize, drawAvatar } from '../renderers/avatar_renderer';
-import { clearAllPlantCaches, getPlantCacheSizes, renderPlant, type PlantGenomeData } from './plant';
+import {
+    clearAllPlantCaches,
+    getPlantCacheSizes,
+    renderPlant,
+    renderPlantNectar,
+    type PlantGenomeData,
+} from './plant';
 
 // Mock browser APIs
 const mockContext = {
@@ -54,6 +60,9 @@ class MockCanvas {
 class MockPath2D {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     constructor(_path?: string | Path2D) { }
+    moveTo() { }
+    lineTo() { }
+    ellipse() { }
 }
 
 describe('Memory Cleanup Utilities', () => {
@@ -153,6 +162,26 @@ describe('Memory Cleanup Utilities', () => {
 
             const finalSizes = getPlantCacheSizes();
             expect(finalSizes.plantCache).toBe(0);
+        });
+
+        it('should batch cached plant geometry into a small number of draw calls', () => {
+            renderPlant(mockContext, 123, mockGenome, 0, 0, 1, 2, 0);
+            vi.clearAllMocks();
+
+            renderPlant(mockContext, 123, mockGenome, 0, 0, 1, 2, 16);
+
+            expect(mockContext.stroke).toHaveBeenCalledTimes(10);
+            expect(mockContext.fill).toHaveBeenCalledTimes(1);
+        });
+
+        it('should reuse cached spiral nectar paths', () => {
+            renderPlantNectar(mockContext, 20, 20, 10, 10, 0);
+            vi.clearAllMocks();
+
+            renderPlantNectar(mockContext, 20, 20, 10, 10, 16);
+
+            expect(mockContext.lineTo).not.toHaveBeenCalled();
+            expect(getPlantCacheSizes().spiralFlowerPathCache).toBe(1);
         });
     });
 });

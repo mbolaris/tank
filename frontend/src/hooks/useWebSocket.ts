@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate, EntityData } from '../types/simulation';
+import type { SimulationUpdate, Command, CommandResponse, DeltaUpdate } from '../types/simulation';
 import { config, EXPECTED_SCHEMA_VERSION } from '../config';
 
 // Reuse a single TextDecoder to avoid GC pressure from allocating one per frame.
@@ -18,6 +18,7 @@ export function useWebSocket(worldId?: string) {
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const connectRef = useRef<(() => void) | null>(null);
+    const connectAttemptRef = useRef(0);
     const schemaMismatchRef = useRef(false);
     const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
     const unmountedRef = useRef(false);  // Track if component is unmounted
@@ -44,6 +45,7 @@ export function useWebSocket(worldId?: string) {
     const connect = useCallback(async () => {
         // Don't connect if component is unmounted
         if (unmountedRef.current || schemaMismatchRef.current) return;
+        const connectAttempt = ++connectAttemptRef.current;
 
         // Close any existing connection before creating a new one
         if (wsRef.current) {
@@ -78,6 +80,12 @@ export function useWebSocket(worldId?: string) {
                 }
             }
 
+            // Strict Mode can restart this effect while the default-world
+            // request is in flight. Do not let that stale attempt open a socket.
+            if (unmountedRef.current || connectAttempt !== connectAttemptRef.current) {
+                return;
+            }
+
             // Store the resolved world ID so components can use it immediately
             if (resolvedWorldId) {
                 setConnectedWorldId(resolvedWorldId);
@@ -92,10 +100,15 @@ export function useWebSocket(worldId?: string) {
             ws.binaryType = 'arraybuffer';
 
             ws.onopen = () => {
+                if (connectAttempt !== connectAttemptRef.current) {
+                    ws.close();
+                    return;
+                }
                 setIsConnected(true);
             };
 
             ws.onmessage = (event) => {
+                if (connectAttempt !== connectAttemptRef.current) return;
                 try {
                     // Handle binary data (ArrayBuffer) from orjson
                     let jsonString: string;
@@ -114,36 +127,7 @@ export function useWebSocket(worldId?: string) {
                     }
 
                     if (data.type === 'update') {
-                        console.log('FULL UPDATE RECEIVED!');  // DEBUG
-                        const update = data as SimulationUpdate;
-                        // DEBUG: Check if any entities have soccer_effect_state
-                        const fishWithSoccer = update.snapshot?.entities?.filter(
-                            (e: EntityData) => e.soccer_effect_state
-                        );
-                        if (fishWithSoccer && fishWithSoccer.length > 0) {
-                            console.log(
-                                'FULL UPDATE - Fish with soccer_effect_state:',
-                                fishWithSoccer.map((e: EntityData) => ({
-                                    id: e.id,
-                                    state: e.soccer_effect_state
-                                }))
-                            );
-                        }
-                        // V1 schema: Populate convenience fields from snapshot for component access
-                        update.frame = update.snapshot.frame;
-                        update.elapsed_time = update.snapshot.elapsed_time;
-                        update.entities = update.snapshot.entities;
-                        update.stats = update.snapshot.stats;
-                        update.poker_events = update.snapshot.poker_events;
-                        update.soccer_events = update.snapshot.soccer_events;
-                        update.soccer_league_live = update.snapshot.soccer_league_live;
-                        update.poker_leaderboard = update.snapshot.poker_leaderboard;
-                        update.auto_evaluation = update.snapshot.auto_evaluation;
-                        update.metrics_history = update.snapshot.metrics_history;
-                        // Preserve mode fields from server
-                        update.view_mode = update.view_mode ?? 'side';
-                        update.mode_id = update.mode_id ?? 'tank';
-                        setState(update);
+                        setState((current) => applyFullUpdate(current, data as SimulationUpdate));
                     } else if (data.type === 'delta') {
                         setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
                     } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
@@ -162,6 +146,7 @@ export function useWebSocket(worldId?: string) {
             };
 
             ws.onclose = () => {
+                if (connectAttempt !== connectAttemptRef.current) return;
                 setIsConnected(false);
                 wsRef.current = null;
 
@@ -197,6 +182,7 @@ export function useWebSocket(worldId?: string) {
         return () => {
             // Mark as unmounted to prevent reconnection
             unmountedRef.current = true;
+            connectAttemptRef.current += 1;
 
             // Cleanup on unmount
             if (reconnectTimeoutRef.current) {
@@ -256,6 +242,35 @@ export function useWebSocket(worldId?: string) {
         /** Connected world ID (available immediately after connection, before first update) */
         connectedWorldId,
     };
+}
+
+export function applyFullUpdate(
+    current: SimulationUpdate | null,
+    update: SimulationUpdate
+): SimulationUpdate {
+    // Deltas append new samples, so periodic recovery snapshots can omit the
+    // large history. Initial and explicit snapshots still include it.
+    if (
+        update.snapshot.metrics_history === undefined
+        && current?.snapshot.metrics_history !== undefined
+    ) {
+        update.snapshot.metrics_history = current.snapshot.metrics_history;
+    }
+
+    // V1 schema: Populate convenience fields from snapshot for component access
+    update.frame = update.snapshot.frame;
+    update.elapsed_time = update.snapshot.elapsed_time;
+    update.entities = update.snapshot.entities;
+    update.stats = update.snapshot.stats;
+    update.poker_events = update.snapshot.poker_events;
+    update.soccer_events = update.snapshot.soccer_events;
+    update.soccer_league_live = update.snapshot.soccer_league_live;
+    update.poker_leaderboard = update.snapshot.poker_leaderboard;
+    update.auto_evaluation = update.snapshot.auto_evaluation;
+    update.metrics_history = update.snapshot.metrics_history;
+    update.view_mode = update.view_mode ?? 'side';
+    update.mode_id = update.mode_id ?? 'tank';
+    return update;
 }
 
 function applyDelta(state: SimulationUpdate, delta: DeltaUpdate): SimulationUpdate {

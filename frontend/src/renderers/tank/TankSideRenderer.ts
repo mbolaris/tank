@@ -1,12 +1,21 @@
 
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
+import { EntityPositionInterpolator } from '../../rendering/entityPositionInterpolator';
 import { Renderer as TankRenderer } from '../../utils/renderer';
 import type { EntityData, SimulationUpdate } from '../../types/simulation';
+
+const PLANT_LAYER_FRAME_MS = 1000 / 15;
 
 export class TankSideRenderer implements Renderer {
     id = "tank-side";
     private tankRenderer: TankRenderer | null = null;
+    private plantLayerRenderer: TankRenderer | null = null;
+    private plantLayerCanvas: HTMLCanvasElement | null = null;
+    private plantLayerCtx: CanvasRenderingContext2D | null = null;
+    private lastPlantLayerRenderMs = -Infinity;
     private currentCtx: CanvasRenderingContext2D | null = null;
+    private lastPrunedEntities: EntityData[] | null = null;
+    private positionInterpolator = new EntityPositionInterpolator();
 
     // Tank world dimensions (from core/constants.py & Canvas.tsx)
     private readonly WORLD_WIDTH = 1088;
@@ -17,7 +26,20 @@ export class TankSideRenderer implements Renderer {
             this.tankRenderer.dispose();
             this.tankRenderer = null;
         }
+        if (this.plantLayerRenderer) {
+            this.plantLayerRenderer.dispose();
+            this.plantLayerRenderer = null;
+        }
+        if (this.plantLayerCanvas) {
+            this.plantLayerCanvas.width = 0;
+            this.plantLayerCanvas.height = 0;
+            this.plantLayerCanvas = null;
+        }
+        this.plantLayerCtx = null;
+        this.lastPlantLayerRenderMs = -Infinity;
         this.currentCtx = null;
+        this.lastPrunedEntities = null;
+        this.positionInterpolator.reset();
     }
 
     render(frame: RenderFrame, rc: RenderContext) {
@@ -44,28 +66,40 @@ export class TankSideRenderer implements Renderer {
         }
 
         const r = this.tankRenderer;
+        const renderedEntities = this.positionInterpolator.interpolate(entities, rc.nowMs);
+        const plantLayer = this.updatePlantLayer(
+            renderedEntities,
+            elapsedTime,
+            frame.options?.showEffects ?? true,
+            rc.nowMs
+        );
 
         // Calculate scale to fit world in canvas
         // This logic matches Canvas.tsx
         const scaleX = canvas.width / this.WORLD_WIDTH;
         const scaleY = canvas.height / this.WORLD_HEIGHT;
 
-        // Collect active poker effect IDs for cleanup
-        // Matches Canvas.tsx logic
-        const pokerActiveIds = new Set<number>();
-        entities.forEach((e: EntityData) => {
-            if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
-                pokerActiveIds.add(e.id);
-            }
-        });
+        // Cache maintenance only needs to run when a new entity snapshot arrives,
+        // not on every requestAnimationFrame that redraws the same snapshot.
+        if (entities !== this.lastPrunedEntities) {
+            const activeEntityIds = new Set<number>();
+            const activePlantIds = new Set<number>();
+            const pokerActiveIds = new Set<number>();
 
-        // Prune caches
-        r.pruneEntityFacingCache(entities.map((e: EntityData) => e.id), pokerActiveIds);
-        r.prunePlantCaches(
-            entities
-                .filter((e: EntityData) => e.type === 'plant')
-                .map((e: EntityData) => e.id)
-        );
+            entities.forEach((e: EntityData) => {
+                activeEntityIds.add(e.id);
+                if (e.type === 'plant') {
+                    activePlantIds.add(e.id);
+                }
+                if (e.poker_effect_state && (e.poker_effect_state.status === 'lost' || e.poker_effect_state.status === 'won')) {
+                    pokerActiveIds.add(e.id);
+                }
+            });
+
+            r.pruneEntityFacingCache(activeEntityIds, pokerActiveIds);
+            r.prunePlantCaches(activePlantIds);
+            this.lastPrunedEntities = entities;
+        }
 
         ctx.save();
         try {
@@ -77,14 +111,63 @@ export class TankSideRenderer implements Renderer {
             r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, stats?.time, showEffects);
 
             // Render entities
-            entities.forEach((entity: EntityData) => {
-                r.renderEntity(entity, elapsedTime, entities, showEffects);
+            let plantLayerDrawn = false;
+            renderedEntities.forEach((entity: EntityData) => {
+                if (entity.type === 'plant' && plantLayer) {
+                    if (!plantLayerDrawn) {
+                        ctx.drawImage(plantLayer, 0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+                        plantLayerDrawn = true;
+                    }
+                    return;
+                }
+                r.renderEntity(entity, elapsedTime, renderedEntities, showEffects);
                 this.drawSoccerEffect(ctx, entity);
             });
 
         } finally {
             ctx.restore();
         }
+    }
+
+    private updatePlantLayer(
+        entities: EntityData[],
+        elapsedTime: number,
+        showEffects: boolean,
+        nowMs: number
+    ): HTMLCanvasElement | null {
+        if (typeof document === 'undefined') return null;
+
+        if (!this.plantLayerCanvas) {
+            const canvas = document.createElement('canvas');
+            canvas.width = this.WORLD_WIDTH;
+            canvas.height = this.WORLD_HEIGHT;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return null;
+            this.plantLayerCanvas = canvas;
+            this.plantLayerCtx = ctx;
+            this.plantLayerRenderer = new TankRenderer(ctx);
+        }
+
+        if (
+            this.plantLayerCtx
+            && this.plantLayerRenderer
+            && nowMs - this.lastPlantLayerRenderMs >= PLANT_LAYER_FRAME_MS
+        ) {
+            this.plantLayerCtx.clearRect(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+            for (const entity of entities) {
+                if (entity.type === 'plant') {
+                    this.plantLayerRenderer.renderEntity(
+                        entity,
+                        elapsedTime,
+                        entities,
+                        showEffects
+                    );
+                }
+            }
+            this.lastPlantLayerRenderMs = nowMs;
+        }
+
+        return this.plantLayerCanvas;
     }
 
     private drawSoccerEffect(ctx: CanvasRenderingContext2D, entity: EntityData) {

@@ -74,6 +74,9 @@ interface PlantRenderCache {
     segments: FractalSegment[];
     leaves: FractalLeaf[];
     sortedSegments: FractalSegment[];
+    segmentGroups?: Array<{ thickness: number; segments: FractalSegment[]; path?: Path2D }>;
+    leafPath?: Path2D;
+    veinPath?: Path2D;
 }
 
 // Module-level cache keyed by plant id to avoid flickering when plants drift
@@ -84,6 +87,7 @@ const antigravityCache = new Map<number, MandelbrotCacheEntry>();
 const gptCache = new Map<number, MandelbrotCacheEntry>();
 const sonnetCache = new Map<number, PlantRenderCache>();
 const gptCodexCache = new Map<number, PlantRenderCache>();
+const spiralFlowerPathCache = new Map<string, Path2D[]>();
 
 /**
  * Remove cached plant geometry/texture entries for plants that no longer exist.
@@ -143,6 +147,7 @@ export function getPlantCacheSizes(): Record<string, number> {
         gptCache: gptCache.size,
         sonnetCache: sonnetCache.size,
         gptCodexCache: gptCodexCache.size,
+        spiralFlowerPathCache: spiralFlowerPathCache.size,
     };
 }
 
@@ -183,6 +188,7 @@ export function clearAllPlantCaches(): void {
         }
         cache.clear();
     }
+    spiralFlowerPathCache.clear();
 }
 
 /**
@@ -208,6 +214,67 @@ function getGenomeSignature(genome: PlantGenomeData): string {
         genome.leaf_density,
         ruleSignature,
     ].join(';');
+}
+
+function groupSegmentsByThickness(
+    segments: FractalSegment[]
+): Array<{ thickness: number; segments: FractalSegment[]; path?: Path2D }> {
+    const groups = new Map<number, FractalSegment[]>();
+    for (const segment of segments) {
+        const group = groups.get(segment.thickness);
+        if (group) {
+            group.push(segment);
+        } else {
+            groups.set(segment.thickness, [segment]);
+        }
+    }
+    return Array.from(groups, ([thickness, groupedSegments]) => {
+        const path = createSegmentPath(groupedSegments);
+        return { thickness, segments: groupedSegments, ...(path ? { path } : {}) };
+    });
+}
+
+function appendSegments(ctx: CanvasRenderingContext2D, segments: FractalSegment[]): void {
+    for (const segment of segments) {
+        ctx.moveTo(segment.x1, segment.y1);
+        ctx.lineTo(segment.x2, segment.y2);
+    }
+}
+
+function createSegmentPath(segments: FractalSegment[]): Path2D | undefined {
+    if (typeof Path2D === 'undefined') return undefined;
+    const path = new Path2D();
+    for (const segment of segments) {
+        path.moveTo(segment.x1, segment.y1);
+        path.lineTo(segment.x2, segment.y2);
+    }
+    return path;
+}
+
+function createLeafPaths(leaves: FractalLeaf[]): { leafPath?: Path2D; veinPath?: Path2D } {
+    if (typeof Path2D === 'undefined') return {};
+    const leafPath = new Path2D();
+    const veinPath = new Path2D();
+    for (const leaf of leaves) {
+        const rotation = (leaf.angle * Math.PI) / 180 + Math.PI / 2;
+        const centerX = leaf.x + Math.sin(rotation) * leaf.size / 2;
+        const centerY = leaf.y - Math.cos(rotation) * leaf.size / 2;
+        leafPath.ellipse(
+            centerX,
+            centerY,
+            leaf.size * 0.4,
+            leaf.size,
+            rotation,
+            0,
+            Math.PI * 2
+        );
+        veinPath.moveTo(leaf.x, leaf.y);
+        veinPath.lineTo(
+            leaf.x + Math.sin(rotation) * leaf.size,
+            leaf.y - Math.cos(rotation) * leaf.size
+        );
+    }
+    return { leafPath, veinPath };
 }
 
 /**
@@ -1032,6 +1099,9 @@ export function renderPlant(
     let segments: FractalSegment[];
     let leaves: FractalLeaf[];
     let sortedSegments: FractalSegment[];
+    let segmentGroups: Array<{ thickness: number; segments: FractalSegment[]; path?: Path2D }>;
+    let leafPath: Path2D | undefined;
+    let veinPath: Path2D | undefined;
 
     // Only regenerate geometry when iterations change (size is handled by scaling)
     const needsRegeneration = !cached || cached.signature !== genomeSignature;
@@ -1066,6 +1136,8 @@ export function renderPlant(
         segments = result.segments;
         leaves = result.leaves;
         sortedSegments = [...segments].sort((a, b) => a.depth - b.depth);
+        segmentGroups = groupSegmentsByThickness(sortedSegments);
+        ({ leafPath, veinPath } = createLeafPaths(leaves));
 
         plantCache.set(cacheKey, {
             iterations,
@@ -1073,11 +1145,17 @@ export function renderPlant(
             segments,
             leaves,
             sortedSegments,
+            segmentGroups,
+            leafPath,
+            veinPath,
         });
     } else {
         segments = cached!.segments;
         leaves = cached!.leaves;
         sortedSegments = cached!.sortedSegments;
+        segmentGroups = cached!.segmentGroups ?? groupSegmentsByThickness(sortedSegments);
+        leafPath = cached!.leafPath;
+        veinPath = cached!.veinPath;
     }
 
     // Apply organic multi-frequency swaying similar to raster plant sprites
@@ -1137,59 +1215,84 @@ export function renderPlant(
     ctx.globalAlpha = 0.15;
     ctx.translate(3, 3);
 
-    for (const seg of segments) {
-        ctx.beginPath();
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(seg.x2, seg.y2);
+    for (const group of segmentGroups) {
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = seg.thickness + 1;
+        ctx.lineWidth = group.thickness + 1;
         ctx.lineCap = 'round';
-        ctx.stroke();
+        if (group.path) {
+            ctx.stroke(group.path);
+        } else {
+            ctx.beginPath();
+            appendSegments(ctx, group.segments);
+            ctx.stroke();
+        }
     }
     ctx.restore();
 
     // Draw stem segments (back to front by depth)
-    for (const seg of sortedSegments) {
+    for (const group of segmentGroups) {
         // Main stem stroke
-        ctx.beginPath();
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(seg.x2, seg.y2);
         ctx.strokeStyle = stemColor;
-        ctx.lineWidth = seg.thickness;
+        ctx.lineWidth = group.thickness;
         ctx.lineCap = 'round';
-        ctx.stroke();
+        if (group.path) {
+            ctx.stroke(group.path);
+        } else {
+            ctx.beginPath();
+            appendSegments(ctx, group.segments);
+            ctx.stroke();
+        }
 
         // Highlight stroke
-        ctx.beginPath();
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(seg.x2, seg.y2);
         ctx.strokeStyle = highlightColor;
-        ctx.lineWidth = seg.thickness * 0.4;
+        ctx.lineWidth = group.thickness * 0.4;
         ctx.lineCap = 'round';
-        ctx.stroke();
+        if (group.path) {
+            ctx.stroke(group.path);
+        } else {
+            ctx.beginPath();
+            appendSegments(ctx, group.segments);
+            ctx.stroke();
+        }
     }
 
-    // Draw leaves
-    for (const leaf of leaves) {
-        ctx.save();
-        ctx.translate(leaf.x, leaf.y);
-        ctx.rotate((leaf.angle * Math.PI) / 180 + Math.PI / 2);
-
-        // Leaf shape (ellipse)
+    // Draw leaves and veins in consolidated paths.
+    ctx.fillStyle = leafColor;
+    if (leafPath) {
+        ctx.fill(leafPath);
+    } else {
         ctx.beginPath();
-        ctx.ellipse(0, -leaf.size / 2, leaf.size * 0.4, leaf.size, 0, 0, Math.PI * 2);
-        ctx.fillStyle = leafColor;
+        for (const leaf of leaves) {
+            const rotation = (leaf.angle * Math.PI) / 180 + Math.PI / 2;
+            const centerX = leaf.x + Math.sin(rotation) * leaf.size / 2;
+            const centerY = leaf.y - Math.cos(rotation) * leaf.size / 2;
+            ctx.ellipse(
+                centerX,
+                centerY,
+                leaf.size * 0.4,
+                leaf.size,
+                rotation,
+                0,
+                Math.PI * 2
+            );
+        }
         ctx.fill();
-
-        // Leaf vein
+    }
+    ctx.strokeStyle = highlightColor;
+    ctx.lineWidth = 0.5;
+    if (veinPath) {
+        ctx.stroke(veinPath);
+    } else {
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(0, -leaf.size);
-        ctx.strokeStyle = highlightColor;
-        ctx.lineWidth = 0.5;
+        for (const leaf of leaves) {
+            const rotation = (leaf.angle * Math.PI) / 180 + Math.PI / 2;
+            ctx.moveTo(leaf.x, leaf.y);
+            ctx.lineTo(
+                leaf.x + Math.sin(rotation) * leaf.size,
+                leaf.y - Math.cos(rotation) * leaf.size
+            );
+        }
         ctx.stroke();
-
-        ctx.restore();
     }
 
     // Draw nectar glow if ready
@@ -2619,30 +2722,64 @@ function drawSpiralFractal(
 ): void {
     const rotation = elapsedTime * 0.001 * spin;
     const numArms = Math.max(2, arms);
+    const pathKey = `${numArms}:${layers}`;
+    let armPaths = spiralFlowerPathCache.get(pathKey);
+
+    if (!armPaths && typeof Path2D !== 'undefined') {
+        armPaths = [];
+        for (let arm = 0; arm < numArms; arm++) {
+            const armAngle = (arm / numArms) * Math.PI * 2;
+            const path = new Path2D();
+            for (let t = 0; t < layers * 2; t += 0.05) {
+                const angle = armAngle + t * 1.5;
+                const r = 0.1 * t;
+                const px = Math.cos(angle) * r;
+                const py = Math.sin(angle) * r;
+                if (t === 0) path.moveTo(px, py);
+                else path.lineTo(px, py);
+            }
+            armPaths.push(path);
+        }
+        if (spiralFlowerPathCache.size >= 100) {
+            spiralFlowerPathCache.clear();
+        }
+        spiralFlowerPathCache.set(pathKey, armPaths);
+    }
 
     // Draw spiral arms
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.scale(size, size);
     for (let arm = 0; arm < numArms; arm++) {
         const armAngle = (arm / numArms) * Math.PI * 2;
 
-        ctx.beginPath();
-        for (let t = 0; t < layers * 2; t += 0.05) {
-            const angle = armAngle + t * 1.5 + rotation;
-            const r = size * 0.1 * t;
-            const px = x + Math.cos(angle) * r;
-            const py = y + Math.sin(angle) * r;
+        if (!armPaths) {
+            ctx.beginPath();
+            for (let t = 0; t < layers * 2; t += 0.05) {
+                const angle = armAngle + t * 1.5;
+                const r = 0.1 * t;
+                const px = Math.cos(angle) * r;
+                const py = Math.sin(angle) * r;
 
-            if (t === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
+                if (t === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
         }
 
         // Rainbow shift along each arm
         const armHue = (hue + arm * 0.1) % 1;
         ctx.strokeStyle = hslToRgb(armHue, saturation, 0.5);
-        ctx.lineWidth = size * 0.06;
+        ctx.lineWidth = 0.06;
         ctx.lineCap = 'round';
         ctx.globalAlpha = 0.8;
-        ctx.stroke();
+        if (armPaths) {
+            ctx.stroke(armPaths[arm]);
+        } else {
+            ctx.stroke();
+        }
     }
+    ctx.restore();
 
     // Glowing center
     const centerGrad = ctx.createRadialGradient(x, y, 0, x, y, size * 0.15);
