@@ -61,6 +61,9 @@ class FrameAggregator:
         environment.set_energy_delta_recorder(). The recorder forwards energy
         deltas into this aggregator, resolving stable IDs via ``get_identity``.
         """
+        # Deferred (load-bearing): importing core.worlds runs the registry's
+        # eager mode registration, which pulls world backends -> core.simulation.
+        # Keep this inside the function to avoid that import-time cycle (ADR-008).
         from core.worlds.contracts import EnergyDeltaRecord
 
         def recorder(entity: Any, delta: float, source: str, meta: dict[str, Any]) -> None:

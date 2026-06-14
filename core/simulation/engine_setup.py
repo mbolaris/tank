@@ -11,6 +11,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
+from core.environment import Environment
+from core.simulation.phase_hooks import NoOpPhaseHooks
+from core.simulation.pipeline import default_pipeline
 from core.update_phases import UpdatePhase
 
 if TYPE_CHECKING:
@@ -22,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> None:
     """Set up the simulation engine using the provided SystemPack."""
-    # Fallback to TankPack if no pack provided
+    # Fallback to TankPack if no pack provided. Deferred on purpose: generic
+    # engine assembly must not statically depend on a specific world (Tank).
     if pack is None:
         from core.worlds.tank.pack import TankPack
 
@@ -34,8 +38,6 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
         setattr(engine, attr, system)
 
     # 2. Let the pack build the environment
-    from core.environment import Environment
-
     engine.environment = cast(Environment, pack.build_environment(engine))
 
     # Wire up energy delta recorder for immediate tracking
@@ -66,8 +68,6 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
     engine.coordinator.ecosystem = engine.ecosystem
 
     # 5. Wire up the pipeline (pack can override or use default)
-    from core.simulation.pipeline import default_pipeline
-
     custom_pipeline = pack.get_pipeline()
     engine.pipeline = custom_pipeline if custom_pipeline is not None else default_pipeline()
 
@@ -78,8 +78,6 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
     engine._identity_provider = pack.get_identity_provider()
 
     # 8. Store phase hooks from pack
-    from core.simulation.phase_hooks import NoOpPhaseHooks
-
     hooks = pack.get_phase_hooks()
     engine._phase_hooks = hooks if hooks is not None else NoOpPhaseHooks()
 
