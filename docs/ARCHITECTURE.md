@@ -394,7 +394,9 @@ class BaseSystem(ABC):
 - `_phase_frame_end()`: Stats updates and cache rebuilds
 Note: Entity spawns/removals are routed through the engine mutation queue (systems use `SimulationEngine.request_spawn/request_remove`; entities use `core.util.mutations.request_spawn/request_remove`).
 
-`core/update_phases.py` defines an enum and a `PhaseRunner`, but the engine currently uses explicit phase methods for clarity.
+`core/update_phases.py` defines the `UpdatePhase` enum and the `runs_in_phase`
+annotation; the engine executes phases via explicit, named `_phase_*` methods
+(in `core/simulation/phase_executor.py`) for clarity.
 
 ### Strategy Pattern
 Different movement strategies for entities:
