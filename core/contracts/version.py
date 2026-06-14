@@ -1,32 +1,28 @@
+"""Schema version constant and validation for TankWorld persistence.
+
+This module is the single source of truth for the **snapshot/persistence**
+schema version -- the one cross-cutting contract that decides whether a saved
+world can be loaded. Other subsystems version their own payloads independently
+and validate them at their own boundaries:
+
+    - Genome serialization: ``GENOME_SCHEMA_VERSION`` (``core.genetics``)
+    - WebSocket state payloads: ``STATE_SCHEMA_VERSION`` (``backend``)
+
+Version Mismatch Policy:
+    - Any version mismatch raises a clear error -- no silent inference or
+      fallback behaviour.
+    - Pre-release policy: old saves are not migrated and will not load.
+"""
+
 from __future__ import annotations
 
 from core.exceptions import PersistenceError
 
-"""Contract version constants for TankWorld.
-
-This module defines the single source of truth for all schema versions
-used in persistence, WebSocket payloads, and entity transfer.
-
-Version Mismatch Policy:
-    - Any version mismatch should raise a clear error
-    - No silent inference or fallback behavior
-    - Pre-release policy: old saves may not load
-"""
-
-# Snapshot/persistence schema version
-# v3.0: Strict schema, no legacy compatibility
-#   - All entities must have explicit "type" field
-#   - No entity type inference
-#   - No legacy ID restoration
+# Snapshot/persistence schema version.
+# v3.0: Strict schema with explicit contracts.
+#   - Every entity carries an explicit "type" field (no type inference).
+#   - No legacy id restoration and no field-level migration of old saves.
 SNAPSHOT_VERSION = "3.0"
-
-# WebSocket world update payload version
-# v1.0: WorldUpdateV1 unified contract
-WS_PAYLOAD_VERSION = "1.0"
-
-# Entity transfer/serialization version
-# v1.0: Full genome_data, explicit type, motion state
-ENTITY_TRANSFER_VERSION = "1.0"
 
 
 class VersionMismatchError(PersistenceError):

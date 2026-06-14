@@ -742,14 +742,11 @@ class PlantGenome:
     @classmethod
     def from_dict(cls, data: dict, rng: random.Random | None = None) -> "PlantGenome":
         rules = [(r["input"], r["output"], r["prob"]) for r in data.get("production_rules", [])]
-        # Get strategy_type, assigning a random one for legacy plants without it
-        # Check for both missing key AND explicitly saved null values
-        strategy_type = data.get("strategy_type")
-        if not strategy_type:  # Handles None, empty string, and missing key
-            # Migration: assign a random baseline strategy to legacy plants
-            from core.plants.plant_strategy_types import get_random_strategy_type
+        # strategy_type is part of the genome contract and is always serialized;
+        # fall back to a deterministic baseline only for partial/hand-built data.
+        from core.plants.plant_strategy_types import PlantStrategyType
 
-            strategy_type = get_random_strategy_type(rng=rng).value
+        strategy_type = data.get("strategy_type") or PlantStrategyType.BALANCED.value
 
         g = cls(
             axiom=data.get("axiom", "F"),
@@ -767,7 +764,7 @@ class PlantGenome:
             base_energy_rate=data.get("base_energy_rate", 0.02),
             growth_efficiency=data.get("growth_efficiency", 1.0),
             nectar_threshold_ratio=data.get("nectar_threshold_ratio", 0.95),
-            type=data.get("type") or data.get("fractal_type", "lsystem"),
+            type=data.get("type", "lsystem"),
             strategy_type=strategy_type,
             # Floral traits
             floral_type=data.get("floral_type", "spiral"),
