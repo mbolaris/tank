@@ -11,7 +11,6 @@ from typing import Any, Protocol, cast
 logger = logging.getLogger(__name__)
 
 SerializedEntity = dict[str, Any]
-TRANSFER_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -199,7 +198,6 @@ class TransferRegistry:
                 )
             )
         payload["type"] = codec.type_name
-        payload.setdefault("schema_version", TRANSFER_SCHEMA_VERSION)
         return TransferOutcome(value=payload)
 
     def serialize_entity(self, entity: Any, ctx: TransferContext) -> SerializedEntity | None:
@@ -510,18 +508,6 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
             rng = getattr(target_world.engine, "rng", None)
         genome = Genome.from_dict(genome_data, rng=rng, use_algorithm=True)
 
-        # Migration: Ensure legacy fish have a default movement policy
-        # If movement_policy_id is missing/None, assign BUILTIN_SEEK_NEAREST_FOOD_ID
-        if (
-            genome.behavioral.movement_policy_id is None
-            or genome.behavioral.movement_policy_id.value is None
-        ):
-            from core.code_pool import BUILTIN_SEEK_NEAREST_FOOD_ID
-            from core.genetics.trait import GeneticTrait
-
-            genome.behavioral.movement_policy_id = GeneticTrait(BUILTIN_SEEK_NEAREST_FOOD_ID)
-            # Leave params as None/empty
-
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()
 
@@ -544,8 +530,7 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
         if "max_age" in data:
             fish.max_age = data["max_age"]
         fish.age = data.get("age", 0)
-        # max_energy is computed from size, so we don't restore it directly
-        # Old saves may have max_energy, but it's ignored
+        # max_energy is derived from size, so it is never restored directly.
         fish.vel.x = data.get("vel_x", 0.0)
         fish.vel.y = data.get("vel_y", 0.0)
         fish._reproduction_component.reproduction_cooldown = data.get("reproduction_cooldown", 0)
@@ -613,7 +598,6 @@ def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
         if root_spot is None:
             raise NoRootSpotsError("No available root spots")
 
-        # Recreate genome using from_dict to enable migration logic (assigns strategy_type to legacy plants)
         genome_data = data["genome_data"]
         if not isinstance(genome_data, dict):
             logger.error("Cannot deserialize plant: genome_data must be an object")

@@ -101,6 +101,22 @@ def _bootstrap_transient_elements(engine: Any) -> None:
         logger.warning(f"Failed to bootstrap transient elements: {e}")
 
 
+def _resolve_engine(target_world: Any) -> Any:
+    """Resolve the SimulationEngine from a world adapter.
+
+    Tank-style adapters expose the engine directly as ``.engine``; nested
+    adapters (e.g. Petri) expose it via ``.world.engine``. Returns ``None``
+    when no engine can be found.
+    """
+    engine = getattr(target_world, "engine", None)
+    if engine is not None:
+        return engine
+    inner = getattr(target_world, "world", None)
+    if inner is not None:
+        return getattr(inner, "engine", None)
+    return None
+
+
 def ensure_world_directory(world_id: str) -> Path:
     """Ensure the data directory for a world exists.
 
@@ -241,26 +257,8 @@ def restore_world_from_snapshot(
             logger.error(f"Cannot restore snapshot: {e}")
             return False
 
-        # Resolve engine from target_world (which might be an adapter)
-        # Try multiple resolution paths for cross-Python-version compatibility
-        engine = None
-
-        # Path 1: Direct engine attribute (most common)
-        try:
-            if hasattr(target_world, "engine") and target_world.engine is not None:
-                engine = target_world.engine
-        except Exception:
-            pass
-
-        # Path 2: Through .world.engine (for backend adapters like PetriWorldBackendAdapter)
-        if engine is None:
-            try:
-                world_attr = getattr(target_world, "world", None)
-                if world_attr is not None:
-                    engine = getattr(world_attr, "engine", None)
-            except Exception:
-                pass
-
+        # Resolve the engine from the target world adapter.
+        engine = _resolve_engine(target_world)
         if engine is None:
             logger.error("Failed to resolve engine for restoration")
             return False
@@ -396,7 +394,7 @@ def restore_world_from_snapshot(
         # These are never persisted and must be re-created on restore
         _bootstrap_transient_elements(engine)
 
-        # Ensure required static elements exist (older snapshots/tests may omit them).
+        # Ensure required static elements exist (tests/partial snapshots may omit them).
         _bootstrap_static_elements(engine)
 
         if not _validate_restored_world(engine):
@@ -438,8 +436,8 @@ def _validate_restored_world(engine: Any) -> bool:
 def _bootstrap_static_elements(engine: Any) -> None:
     """Ensure required static entities exist after restore.
 
-    Some snapshots (tests, old versions, partial exports) omit static entities
-    that are expected to always exist in Tank mode. We recreate them here.
+    Tests and partial exports may omit static entities that always exist in a
+    normal Tank-mode world. We recreate them here so restored worlds validate.
     """
     env = getattr(engine, "environment", None)
     if env is None:
