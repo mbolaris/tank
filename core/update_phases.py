@@ -1,66 +1,56 @@
 """Update phase definitions for explicit execution ordering.
 
-This module defines the phases of a simulation update tick and provides
-tools for organizing system execution in a predictable order.
+This module defines the phases of a simulation update tick. The phases give the
+engine a single, ordered vocabulary for "what happens when" during a frame.
 
 Why Explicit Phases?
 --------------------
 Before (implicit ordering):
     def update(self):
         self.time_system.update(self.frame)
-        self.handle_collisions()  # Wait, should this be before or after entities?
+        self.handle_collisions()  # before or after entities?
         for entity in entities:
             entity.update()
-        self.handle_reproduction()  # What about deaths? Before or after?
+        self.handle_reproduction()  # before or after deaths?
         self.spawn_food()
 
-After (explicit phases):
+After (explicit, named phases):
     def update(self):
-        for phase in UpdatePhase:
-            self._run_phase(phase)
-
-    def _run_phase(self, phase: UpdatePhase):
-        for system in self.systems_by_phase[phase]:
-            system.update(self.frame)
+        self._phase_frame_start()
+        self._phase_time_update()
+        self._phase_environment()
+        ...                        # one ordered, named method per phase
 
 Benefits:
 - Execution order is explicit and documented
-- Easy to add new systems to correct phase
+- Easy to add new systems to the correct phase
 - Debugging: "what phase are we in?"
-- Testing: can run phases in isolation
+- Testing: phases can be reasoned about in isolation
 - Self-documenting code
 
-Note: The current SimulationEngine uses explicit phase methods instead of
-PhaseRunner. PhaseRunner remains as an optional utility for tests or future
-refactors.
+How phases are executed
+-----------------------
+``SimulationEngine`` drives the loop with explicit, named ``_phase_*`` methods
+(see ``core/simulation/phase_executor.py``). ``UpdatePhase`` is the shared
+vocabulary those methods, the pipeline, and debugging tools agree on; systems
+annotate the phase they belong to with :func:`runs_in_phase` for documentation
+and introspection.
 
 Usage:
 ------
-    # Systems declare which phase they run in
+    @runs_in_phase(UpdatePhase.COLLISION)
     class CollisionSystem(BaseSystem):
-        phase = UpdatePhase.COLLISION
-
-    # Runner executes in order
-    runner = PhaseRunner()
-    runner.register(collision_system)
-    runner.register(time_system)
-    runner.run_all(frame=1)  # Runs in phase order regardless of registration order
+        def _do_update(self, frame: int) -> SystemResult:
+            ...
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING
 
 # Explicit public API
 __all__ = [
-    # Core types
     "UpdatePhase",
-    "PhaseContext",
-    "PhaseRunner",
-    # Protocol
-    "PhaseAware",
-    # Helpers
     "PHASE_DESCRIPTIONS",
     "runs_in_phase",
     "get_system_phase",
@@ -123,208 +113,17 @@ PHASE_DESCRIPTIONS: dict[UpdatePhase, str] = {
 }
 
 
-@dataclass
-class PhaseContext:
-    """Context passed to systems during phase execution.
-
-    This provides systems with information about the current update
-    without requiring them to query global state.
-
-    Attributes:
-        frame: Current simulation frame number
-        phase: Current update phase
-        time_modifier: Activity modifier from time system (0.0-1.0)
-        time_of_day: Current time of day (0.0-1.0, 0=midnight, 0.5=noon)
-        delta_time: Time since last frame (for frame-rate independent updates)
-    """
-
-    frame: int
-    phase: UpdatePhase
-    time_modifier: float = 1.0
-    time_of_day: float = 0.5
-    delta_time: float = 1.0 / 30.0  # Assume 30 FPS default
-
-
-class PhaseAware(Protocol):
-    """Protocol for systems that run in specific phases."""
-
-    @property
-    def phase(self) -> UpdatePhase:
-        """The phase this system runs in."""
-        ...
-
-    def update_in_phase(self, context: PhaseContext) -> None:
-        """Execute the system's update for this phase."""
-        ...
-
-
-@dataclass
-class PhaseRunner:
-    """Executes systems in their designated phases.
-
-    The PhaseRunner organizes systems by phase and executes them in
-    order. Within a phase, systems run in registration order.
-
-    Example:
-        runner = PhaseRunner()
-
-        # Register systems (order doesn't matter - sorted by phase)
-        runner.register(collision_system, UpdatePhase.COLLISION)
-        runner.register(time_system, UpdatePhase.TIME_UPDATE)
-        runner.register(lifecycle_system, UpdatePhase.LIFECYCLE)
-
-        # Run all phases in order
-        context = runner.run_all(frame=100)
-
-        # Or run specific phases
-        runner.run_phase(UpdatePhase.COLLISION, context)
-    """
-
-    _systems_by_phase: dict[UpdatePhase, list["BaseSystem"]] = field(
-        default_factory=lambda: {phase: [] for phase in UpdatePhase}
-    )
-    _debug_mode: bool = False
-    _current_phase: UpdatePhase | None = None
-    _phase_timings: dict[UpdatePhase, float] = field(default_factory=dict)
-
-    def register(self, system: "BaseSystem", phase: UpdatePhase) -> None:
-        """Register a system to run in a specific phase.
-
-        Args:
-            system: The system to register
-            phase: The phase to run in
-        """
-        self._systems_by_phase[phase].append(system)
-
-    def unregister(self, system: "BaseSystem", phase: UpdatePhase) -> bool:
-        """Remove a system from a phase.
-
-        Args:
-            system: The system to remove
-            phase: The phase to remove from
-
-        Returns:
-            True if system was found and removed, False otherwise
-        """
-        systems = self._systems_by_phase[phase]
-        if system in systems:
-            systems.remove(system)
-            return True
-        return False
-
-    def run_all(
-        self,
-        frame: int,
-        time_modifier: float = 1.0,
-        time_of_day: float = 0.5,
-    ) -> PhaseContext:
-        """Run all phases in order.
-
-        Args:
-            frame: Current simulation frame
-            time_modifier: Activity modifier from time system
-            time_of_day: Current time of day
-
-        Returns:
-            The PhaseContext used for execution
-        """
-        context = PhaseContext(
-            frame=frame,
-            phase=UpdatePhase.FRAME_START,
-            time_modifier=time_modifier,
-            time_of_day=time_of_day,
-        )
-
-        for phase in UpdatePhase:
-            self.run_phase(phase, context)
-
-        return context
-
-    def run_phase(self, phase: UpdatePhase, context: PhaseContext) -> None:
-        """Run all systems registered for a specific phase.
-
-        Args:
-            phase: The phase to run
-            context: The execution context
-        """
-        import time
-
-        context.phase = phase
-        self._current_phase = phase
-
-        if self._debug_mode:
-            start_time = time.perf_counter()
-
-        for system in self._systems_by_phase[phase]:
-            if system.enabled:
-                system.update(context.frame)
-
-        if self._debug_mode:
-            elapsed = time.perf_counter() - start_time
-            self._phase_timings[phase] = elapsed
-
-        self._current_phase = None
-
-    def run_phases(
-        self,
-        phases: list[UpdatePhase],
-        context: PhaseContext,
-    ) -> None:
-        """Run a subset of phases.
-
-        Useful for testing or when you need fine-grained control.
-
-        Args:
-            phases: List of phases to run (in order given)
-            context: The execution context
-        """
-        for phase in phases:
-            self.run_phase(phase, context)
-
-    @property
-    def current_phase(self) -> UpdatePhase | None:
-        """Get the currently executing phase, or None if not in update."""
-        return self._current_phase
-
-    def get_systems_in_phase(self, phase: UpdatePhase) -> list["BaseSystem"]:
-        """Get all systems registered for a phase."""
-        return self._systems_by_phase[phase].copy()
-
-    def enable_debug(self, enabled: bool = True) -> None:
-        """Enable debug mode (tracks timing per phase)."""
-        self._debug_mode = enabled
-
-    def get_phase_timings(self) -> dict[UpdatePhase, float]:
-        """Get timing information for each phase (requires debug mode)."""
-        return self._phase_timings.copy()
-
-    def get_debug_info(self) -> dict[str, Any]:
-        """Get debug information about the runner."""
-        return {
-            "current_phase": self._current_phase.name if self._current_phase else None,
-            "systems_per_phase": {
-                phase.name: [s.name for s in systems]
-                for phase, systems in self._systems_by_phase.items()
-                if systems
-            },
-            "timings": (
-                {
-                    phase.name: f"{timing*1000:.2f}ms"
-                    for phase, timing in self._phase_timings.items()
-                }
-                if self._debug_mode
-                else {}
-            ),
-        }
-
-
 # ============================================================================
-# Phase Decorators (for future use)
+# Phase Annotations
 # ============================================================================
 
 
 def runs_in_phase(phase: UpdatePhase) -> Callable:
     """Decorator to declare which phase a system runs in.
+
+    The annotation documents intent and enables introspection via
+    :func:`get_system_phase`; the engine's explicit ``_phase_*`` methods own
+    the actual ordering.
 
     Example:
         @runs_in_phase(UpdatePhase.COLLISION)
