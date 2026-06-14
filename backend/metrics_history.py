@@ -7,6 +7,10 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Bumped to 2 when per-trait means ("traits") were added to each sample so the
+# running UI/API can show directional selection over time, not just churn.
+SCHEMA_VERSION = 2
+
 
 def get_val(obj: Any, attr: str, default: Any = 0) -> Any:
     """Safely get value from dictionary or object."""
@@ -26,7 +30,7 @@ class MetricsHistory:
         sample_interval_frames: int = 500,
         max_samples: int = 2000,
     ) -> None:
-        self.schema_version = 1
+        self.schema_version = SCHEMA_VERSION
         self.world_id = world_id or "unknown"
         self.sample_interval_frames = sample_interval_frames
         self.max_samples = max_samples
@@ -38,6 +42,15 @@ class MetricsHistory:
         self.soccer_matches_skipped = 0
         self.processed_soccer_match_ids: set[str] = set()
 
+    def is_sample_due(self, frame: int) -> bool:
+        """Whether ``frame`` lands on a sampling boundary.
+
+        Exposed so callers can compute expensive per-sample data (e.g. trait
+        means over the live population) only on frames that will be recorded,
+        rather than on every stats collection.
+        """
+        return frame > 0 and frame % self.sample_interval_frames == 0
+
     def maybe_sample(
         self,
         frame: int,
@@ -45,8 +58,15 @@ class MetricsHistory:
         poker: Any,
         soccer: Any,
         auto_eval: Any,
+        trait_means: dict[str, float] | None = None,
     ) -> None:
-        """Sample metrics if the frame interval is reached."""
+        """Sample metrics if the frame interval is reached.
+
+        ``trait_means`` is an optional mapping of heritable trait key -> current
+        population mean (see ``core.services.stats.trait_trends``). It is stored
+        under ``"traits"`` so the history exposes directional selection over
+        time. When omitted (or empty) the field is recorded as ``{}``.
+        """
         # 1. Update cumulative soccer counters from the events list passed
         if soccer:
             for event in soccer:
@@ -119,6 +139,7 @@ class MetricsHistory:
                         "baseline_match_score_diff": None,
                     },
                     "diversity_score": round(get_val(stats, "diversity_score", 0.0), 4),
+                    "traits": dict(trait_means) if trait_means else {},
                 }
 
                 self.samples.append(sample)
@@ -149,7 +170,7 @@ class MetricsHistory:
             return
 
         try:
-            self.schema_version = payload.get("schema_version", 1)
+            self.schema_version = payload.get("schema_version", SCHEMA_VERSION)
             self.world_id = payload.get("world_id", self.world_id)
             self.sample_interval_frames = payload.get(
                 "sample_interval_frames", self.sample_interval_frames

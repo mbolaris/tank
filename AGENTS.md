@@ -66,6 +66,83 @@ Every agent session should follow this loop:
 
 ---
 
+## Studying a Running Simulation (Live)
+
+Use this when the human asks **"how well are the fish evolving?"** or **"what
+should we change to improve the simulation?"** about a simulation that is
+*currently running* - typically the web-server mode (`python main.py`) left up
+for hours or days. You do not stop it; you observe it, score it, and recommend.
+
+The `/study-sim` slash command wraps this whole workflow. The engine underneath
+it is one read-only tool:
+
+```bash
+# Attach to the running server and print a health report (human-readable)
+python tools/evolution_report.py --url http://127.0.0.1:8000
+
+# Same, but emit structured JSON you can parse and reason over
+python tools/evolution_report.py --url http://127.0.0.1:8000 --json
+```
+
+It pulls the live telemetry (`/api/worlds/<id>/snapshot` and
+`/api/world/<id>/metrics/history`) and returns:
+
+- a **verdict** (`healthy`, `treading_water`, `stalled`, `struggling`,
+  `collapsing`, `insufficient_data`) and per-axis grades (turnover, **selection**,
+  foraging, diversity, population stability), graded against the *Healthy
+  Ecosystem Indicators* table below;
+- a **trait-drift table** - the population mean of the heritable foraging traits
+  (`pursuit_aggression`, `prediction_skill`, `hunting_stamina`, `aggression`)
+  plus speed/size, first sample -> last sample. **This is the key signal:** a
+  population can churn through generations while its mean traits stay flat (pure
+  drift). A consistent drift (>=5%) is direct evidence of *directional selection*,
+  i.e. real Layer 0 evolution rather than mere reproduction; and
+- **ranked, knob-specific recommendations** that name the actual file and the
+  diagnostic to confirm each one (e.g. the ball-pursuit-vs-food-seeking gotcha,
+  energy sinks suppressing births, weak selection pressure).
+
+These same trait means are now retained over time in the metrics-history buffer
+(schema v2) and drawn as the **Trait Drift** chart in the UI's Trends tab, so
+long-running selection is visible live, not just churn.
+
+### Other data sources
+
+```bash
+# No server up? Run a fresh deterministic probe and report on it
+python tools/evolution_report.py --probe --frames 20000 --seed 42
+
+# Analyse an exported stats JSON (main.py --export-stats)
+python tools/evolution_report.py --stats results.json
+```
+
+### Multi-day runs: stream a journal
+
+The in-memory history buffer keeps the most recent ~1M frames (2000 samples x
+500), so on a days-long run the early history scrolls off. To keep the full
+long-horizon trend, stream an append-only journal and analyse it later:
+
+```bash
+# Leave this running alongside the sim (Ctrl-C to stop)
+python tools/evolution_report.py --watch --interval 300 --journal evolution_journal.jsonl
+
+# Later, report over the entire journal (beyond what the live buffer holds)
+python tools/evolution_report.py --history evolution_journal.jsonl
+```
+
+### From assessment to improvement
+
+When the human asks you to *act* on the findings, drive the top-ranked
+recommendation through the normal **Evolution Loop** (do not hand-wave a fix):
+reproduce it with the named diagnostic, make the smallest change, run the smoke
+then fast gate, benchmark the candidate against the `champions/` registry
+(`ecosystem_health_10k` is the evolution-quality benchmark), and only claim an
+improvement with a reproduction command, seed, score, and metadata. Keep Layer 1
+(algorithm/config) changes separate from any Layer 2 change to the report tool,
+benchmarks, or telemetry. Confirm selection is genuinely occurring (trait drift),
+not just generation churn, with `scripts/diagnose_evolution.py`.
+
+---
+
 ## Step 1: Run Simulations
 
 ### Headless Mode (Use This)

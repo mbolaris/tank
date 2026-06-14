@@ -30,7 +30,19 @@ interface AggregatedPoint {
         goals_per_1k_frames: number;
     };
     diversity_score: number;
+    traits?: Record<string, number>;
 }
+
+// Heritable traits tracked for directional-selection (drift) visualization.
+// Order/colors are stable; only keys actually present in the data are drawn.
+const TRAIT_SERIES: { key: string; label: string; color: string }[] = [
+    { key: 'pursuit_aggression', label: 'Pursuit', color: '#f59e0b' },
+    { key: 'prediction_skill', label: 'Prediction', color: '#8b5cf6' },
+    { key: 'hunting_stamina', label: 'Stamina', color: '#10b981' },
+    { key: 'aggression', label: 'Aggression', color: '#ef4444' },
+    { key: 'speed', label: 'Speed', color: '#3b82f6' },
+    { key: 'size', label: 'Size', color: '#ec4899' },
+];
 
 // Helper to calculate trend delta and percentage change between first and last quartiles
 function calculateTrend(values: number[]): { delta: number; pct: number } {
@@ -195,6 +207,8 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
             birthsSum: number;
             deathsSum: number;
             diversitySum: number;
+            traitsSum: Record<string, number>;
+            traitsCount: Record<string, number>;
         }> = {};
 
         samples.forEach(s => {
@@ -209,6 +223,8 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     birthsSum: 0,
                     deathsSum: 0,
                     diversitySum: 0,
+                    traitsSum: {},
+                    traitsCount: {},
                 };
             }
             const g = genMap[gen];
@@ -220,6 +236,12 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
             g.birthsSum += s.births_total;
             g.deathsSum += s.deaths_total;
             g.diversitySum += s.diversity_score ?? 0;
+            if (s.traits) {
+                for (const [k, v] of Object.entries(s.traits)) {
+                    g.traitsSum[k] = (g.traitsSum[k] ?? 0) + v;
+                    g.traitsCount[k] = (g.traitsCount[k] ?? 0) + 1;
+                }
+            }
         });
 
         data = Object.keys(genMap)
@@ -240,6 +262,12 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                     births_total: Number((g.birthsSum / g.count).toFixed(2)),
                     deaths_total: Number((g.deathsSum / g.count).toFixed(2)),
                     diversity_score: Number((g.diversitySum / g.count).toFixed(4)),
+                    traits: Object.fromEntries(
+                        Object.keys(g.traitsSum).map(k => [
+                            k,
+                            Number((g.traitsSum[k] / g.traitsCount[k]).toFixed(5)),
+                        ])
+                    ),
                 };
             });
     }
@@ -313,6 +341,13 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
         letterSpacing: '0.05em',
         color: 'var(--color-text-muted)'
     };
+
+    // Only draw trait lines for keys that actually appear (pre-schema-v2 history
+    // has no trait means, so the card is hidden entirely in that case).
+    const presentTraitSeries = TRAIT_SERIES.filter(t =>
+        processedData.some(d => d.traits && d.traits[t.key] !== undefined)
+    );
+    const hasTraitData = presentTraitSeries.length > 0;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -711,6 +746,59 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
                         </ResponsiveContainer>
                     </div>
                 </div>
+
+                {/* Trait Drift: population mean of heritable traits over time.
+                    Directional movement here is evidence of real selection, not
+                    just generational churn. Hidden when no trait data is present. */}
+                {hasTraitData && (
+                    <div style={cardStyle}>
+                        <div style={cardHeaderStyle}>
+                            <span style={cardTitleStyle}>🧬 Trait Drift (Population Mean)</span>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {presentTraitSeries.map(t => (
+                                    <span key={t.key} style={{ color: t.color, fontSize: '10px', fontWeight: 600 }}>
+                                        {t.label}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, minHeight: 0 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={processedData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <XAxis
+                                        dataKey={xAxisMode === 'frames' ? 'frame' : 'max_generation'}
+                                        stroke="rgba(255,255,255,0.3)"
+                                        fontSize={10}
+                                        tickFormatter={(v) => xAxisMode === 'frames' ? `${(v / 1000).toFixed(0)}k` : `${v}`}
+                                    />
+                                    <YAxis
+                                        stroke="rgba(255,255,255,0.3)"
+                                        fontSize={10}
+                                        domain={['auto', 'auto']}
+                                        tickFormatter={(v) => Number(v).toFixed(2)}
+                                    />
+                                    <Tooltip content={<CustomTooltip xAxisMode={xAxisMode} />} />
+                                    {xAxisMode === 'frames' && genMarkers.map((m, idx) => (
+                                        <ReferenceLine key={idx} x={m.frame} stroke="rgba(255,255,255,0.15)" strokeDasharray="2 2" />
+                                    ))}
+                                    {presentTraitSeries.map(t => (
+                                        <Line
+                                            key={t.key}
+                                            type="monotone"
+                                            dataKey={`traits.${t.key}`}
+                                            stroke={t.color}
+                                            strokeWidth={1.5}
+                                            name={t.label}
+                                            dot={false}
+                                            connectNulls
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

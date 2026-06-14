@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from backend.metrics_history import MetricsHistory
-from backend.state_payloads import StatsPayload, PokerStatsPayload
+from backend.state_payloads import PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world
 
 
@@ -64,6 +64,73 @@ def test_metrics_history_capacity_and_interval() -> None:
     assert history.samples[0]["frame"] == 10
     assert history.samples[1]["frame"] == 15
     assert history.samples[2]["frame"] == 20
+    # Every sample carries a (possibly empty) traits mapping for schema v2.
+    assert all("traits" in sample for sample in history.samples)
+    assert history.schema_version == 2
+
+
+def test_is_sample_due_matches_interval() -> None:
+    """is_sample_due should only be true on interval boundaries (and never frame 0)."""
+    history = MetricsHistory(world_id="test-world", sample_interval_frames=5, max_samples=3)
+    assert not history.is_sample_due(0)
+    assert not history.is_sample_due(4)
+    assert history.is_sample_due(5)
+    assert history.is_sample_due(10)
+    assert not history.is_sample_due(11)
+
+
+def test_maybe_sample_records_trait_means() -> None:
+    """Trait means passed to maybe_sample are stored under the sample's 'traits' key."""
+    history = MetricsHistory(world_id="test-world", sample_interval_frames=5, max_samples=3)
+    stats = StatsPayload(
+        frame=5,
+        population=10,
+        generation=1,
+        max_generation=1,
+        births=0,
+        deaths=0,
+        capacity="10%",
+        time="Day",
+        death_causes={},
+        fish_count=10,
+        food_count=5,
+        plant_count=5,
+        total_energy=1000.0,
+        food_energy=100.0,
+        live_food_count=2,
+        live_food_energy=20.0,
+        fish_energy=800.0,
+        plant_energy=100.0,
+    )
+    poker = PokerStatsPayload(
+        total_games=0,
+        total_fish_games=0,
+        total_plant_games=0,
+        total_plant_energy_transferred=0.0,
+        total_wins=0,
+        total_losses=0,
+        total_ties=0,
+        total_energy_won=0.0,
+        total_energy_lost=0.0,
+        net_energy=0.0,
+        best_hand_rank=0,
+        best_hand_name="None",
+        showdown_win_rate="0.0%",
+    )
+
+    history.maybe_sample(
+        frame=5,
+        stats=stats,
+        poker=poker,
+        soccer=[],
+        auto_eval=None,
+        trait_means={"pursuit_aggression": 0.51, "speed": 1.02},
+    )
+
+    assert history.samples[-1]["traits"] == {"pursuit_aggression": 0.51, "speed": 1.02}
+    # Omitting trait_means yields an empty mapping rather than a missing key.
+    history.maybe_sample(frame=10, stats=stats, poker=poker, soccer=[], auto_eval=None)
+    assert history.samples[-1]["traits"] == {}
 
 
 def test_metrics_history_serialization_roundtrip() -> None:
@@ -230,3 +297,22 @@ def test_metrics_history_samples_without_state_request() -> None:
     runner.step()
 
     assert [sample["frame"] for sample in runner.metrics_history.samples] == [1]
+
+
+def test_runner_samples_populate_trait_means() -> None:
+    """A live tank runner should record real population trait means in samples."""
+    from backend.simulation_runner import SimulationRunner
+    from core.services.stats.trait_trends import EVOLUTION_TRAIT_KEYS
+
+    runner = SimulationRunner(seed=42, world_type="tank")
+    runner.metrics_history.sample_interval_frames = 1
+
+    for _ in range(3):
+        runner.step()
+
+    assert runner.metrics_history.samples, "expected at least one sample"
+    traits = runner.metrics_history.samples[-1]["traits"]
+    # A freshly seeded tank has fish, so trait means should be present and valid.
+    assert traits, "expected non-empty trait means for a populated tank"
+    assert set(traits).issubset(set(EVOLUTION_TRAIT_KEYS))
+    assert all(isinstance(v, float) for v in traits.values())
