@@ -28,6 +28,7 @@ Design Decisions:
 from __future__ import annotations
 
 import logging
+import os
 import random
 import time
 import uuid
@@ -36,16 +37,22 @@ from typing import TYPE_CHECKING, Any
 
 import core.simulation.diagnostics as diagnostics
 import core.simulation.headless_runner as headless_runner
+from core.agents_wrapper import AgentsWrapper
 from core.config.simulation_config import SimulationConfig
+from core.entity_factory import create_initial_population
+from core.services.stats.calculator import StatsCalculator
 from core.simulation.coordinator import SystemCoordinator
 from core.simulation.engine_setup import setup_engine
 from core.simulation.entity_manager import EntityManager
+from core.simulation.event_managers import SoccerEventManager
 from core.simulation.frame_aggregator import FrameAggregator, FrameOutputs
 from core.simulation.mutation import MutationTransaction
 from core.simulation.mutation_executor import MutationExecutor
 from core.simulation.phase_executor import PhaseExecutor
+from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
+from core.systems.food_spawning import SpawnRateConfig
 from core.time_system import TimeSystem
 
 if TYPE_CHECKING:
@@ -60,12 +67,14 @@ if TYPE_CHECKING:
     from core.reproduction_service import ReproductionService
     from core.reproduction_system import ReproductionSystem
     from core.root_spots import RootSpotManager
+    from core.simulation.pipeline import EnginePipeline
     from core.systems.entity_lifecycle import EntityLifecycleSystem
-    from core.systems.food_spawning import FoodSpawningSystem, SpawnRateConfig
+    from core.systems.food_spawning import FoodSpawningSystem
     from core.systems.poker_proximity import PokerProximitySystem
     from core.systems.soccer_system import SoccerSystem
     from core.update_phases import UpdatePhase
     from core.worlds.contracts import EnergyDeltaRecord, RemovalRequest, SpawnRequest
+    from core.worlds.identity import EntityIdentityProvider
     from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
@@ -129,8 +138,6 @@ class SimulationEngine:
             get_root_spot_manager=lambda: self.root_spot_manager,
         )
 
-        from core.agents_wrapper import AgentsWrapper
-
         self.agents = AgentsWrapper(self)
         self._system_registry = SystemRegistry()
 
@@ -155,8 +162,6 @@ class SimulationEngine:
         self.start_time: float = time.time()
 
         # Services
-        from core.services.stats.calculator import StatsCalculator
-
         self.stats_calculator = StatsCalculator(self)
 
         # Systems - these will be optionally initialized by the SystemPack in setup()
@@ -174,8 +179,6 @@ class SimulationEngine:
         self.poker_events: deque[Any] = deque(maxlen=self.config.poker.max_poker_events)
 
         # Soccer event management (extracted from engine)
-        from core.simulation.event_managers import SoccerEventManager
-
         self._soccer_events_mgr = SoccerEventManager(max_events=self.config.soccer.max_events)
 
         # Periodic poker benchmark evaluation
@@ -183,26 +186,18 @@ class SimulationEngine:
 
         # Phase debug flag for invariant enforcement.
         # Enable via config OR env var (for tests to force invariant checking)
-        import os
-
         self._phase_debug_enabled: bool = (
             self.config.enable_phase_debug
             or os.environ.get("TANK_ENFORCE_MUTATION_INVARIANTS", "0") == "1"
         )
 
         # Pipeline (set during setup())
-        from core.simulation.pipeline import EnginePipeline
-
         self.pipeline: EnginePipeline | None = None
 
         # Identity provider for stable delta IDs (set during setup())
-        from core.worlds.identity import EntityIdentityProvider
-
         self._identity_provider: EntityIdentityProvider | None = None
 
         # Phase hooks for mode-specific entity handling (set during setup())
-        from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
-
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
         self.coordinator.set_phase_hooks(self._phase_hooks)
 
@@ -279,8 +274,6 @@ class SimulationEngine:
 
     def _build_spawn_rate_config(self) -> SpawnRateConfig:
         """Translate SimulationConfig food settings into SpawnRateConfig."""
-        from core.systems.food_spawning import SpawnRateConfig
-
         food_cfg = self.config.food
         return SpawnRateConfig(
             base_rate=food_cfg.spawn_rate,
@@ -338,8 +331,6 @@ class SimulationEngine:
         """Create initial entities in the simulation."""
         if self.environment is None or self.ecosystem is None:
             return
-
-        from core.entity_factory import create_initial_population
 
         display = self.config.display
         population = create_initial_population(

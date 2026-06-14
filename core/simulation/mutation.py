@@ -66,7 +66,9 @@ class MutationTransaction:
             pre_add_callback: Optional callback(entity) run before adding to manager
                               (used for legacy add_internal support)
         """
-        # Lazy import to avoid circular dependency
+        # Deferred (load-bearing): importing core.worlds runs the registry's
+        # eager mode registration, which pulls world backends -> core.simulation.
+        # Keep this inside the function to avoid that import-time cycle (ADR-008).
         from core.worlds.contracts import RemovalRequest, SpawnRequest
 
         # Process removals
