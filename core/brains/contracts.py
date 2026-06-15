@@ -99,9 +99,3 @@ class WorldTickResult:
 EntityId = str
 BrainObservationMap = dict[EntityId, BrainObservation]
 BrainActionMap = dict[EntityId, BrainAction]
-
-# Backward-compatibility aliases (deprecated, will be removed in future version)
-Observation = BrainObservation
-Action = BrainAction
-ObservationMap = BrainObservationMap
-ActionMap = BrainActionMap
