@@ -83,11 +83,18 @@ SUB_BEHAVIOR_PARAMS = {
     "zigzag_amplitude": (0.4, 1.0),
     "zigzag_frequency": (0.02, 0.08),
     "patrol_radius": (60.0, 150.0),
-    # Energy style parameters (used by BurstSwimmer in energy_management.py)
+    # Energy style parameters.
+    # NOTE: these are no longer read by composable behavior (EnergyStyle was
+    # removed), but they MUST stay here. _random_params() draws one rng.uniform()
+    # per key in iteration order, so this dict doubles as a deterministic RNG
+    # draw schedule. Removing a key shifts every subsequent parameter's value for
+    # every fish, breaking the golden replay fixture and determinism baselines.
+    # Deleting them requires regenerating those fixtures (a separate Layer 2 change).
     "base_speed_multiplier": (0.5, 1.0),
     "burst_speed": (1.1, 1.7),
     "burst_duration": (30.0, 90.0),
     "rest_duration": (40.0, 100.0),
+    "energy_urgency_threshold": (0.3, 0.6),
     # Social mode parameters
     "social_distance": (30.0, 80.0),
     "cohesion_strength": (0.3, 0.8),
