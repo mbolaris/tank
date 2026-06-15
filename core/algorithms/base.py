@@ -20,11 +20,21 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
+from core.config.fish import (
+    FLEE_SPEED_CRITICAL,
+    FLEE_SPEED_NORMAL,
+    FLEE_THRESHOLD_CRITICAL,
+    FLEE_THRESHOLD_LOW,
+    FLEE_THRESHOLD_NORMAL,
+)
+from core.config.food import BASE_FOOD_DETECTION_RANGE, PREDATOR_DEFAULT_FAR_DISTANCE
+from core.entities import Crab, Food
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.world import World
 
 
 ALGORITHM_PARAMETER_BOUNDS = {
@@ -430,8 +440,6 @@ class BehaviorHelpersMixin:
         Returns:
             Nearest agent within range, or None if no agents found/in range
         """
-        from core.world import World
-
         env: World = fish.environment
         fish_x = fish.pos.x
         fish_y = fish.pos.y
@@ -509,8 +517,6 @@ class BehaviorHelpersMixin:
             - distance: Distance to predator or infinity if none
             - escape_direction: Normalized vector pointing away from predator or (0,0)
         """
-        from core.entities import Crab
-
         nearest_predator = self._find_nearest(fish, Crab)
         if not nearest_predator:
             return None, float("inf"), Vector2(0, 0)
@@ -541,9 +547,6 @@ class BehaviorHelpersMixin:
         Returns:
             Nearest food within detection range, or None if no food detected
         """
-        from core.config.food import BASE_FOOD_DETECTION_RANGE
-        from core.world import World
-
         env: World = fish.environment
 
         # Performance: Use cached detection modifier from environment (updated once per frame)
@@ -557,8 +560,6 @@ class BehaviorHelpersMixin:
         if hasattr(env, "nearby_resources"):
             nearby = env.nearby_resources(fish, int(max_distance) + 1)
         else:
-            from core.entities import Food
-
             nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, Food)
 
         if not nearby:
@@ -596,16 +597,6 @@ class BehaviorHelpersMixin:
             - velocity_x: X component of flee velocity (0 if not fleeing)
             - velocity_y: Y component of flee velocity (0 if not fleeing)
         """
-        from core.config.fish import (
-            FLEE_SPEED_CRITICAL,
-            FLEE_SPEED_NORMAL,
-            FLEE_THRESHOLD_CRITICAL,
-            FLEE_THRESHOLD_LOW,
-            FLEE_THRESHOLD_NORMAL,
-        )
-        from core.config.food import PREDATOR_DEFAULT_FAR_DISTANCE
-        from core.entities import Crab
-
         # Check energy state
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()

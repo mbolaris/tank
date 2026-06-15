@@ -12,9 +12,11 @@ from typing import TYPE_CHECKING
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
     FOOD_CIRCLING_APPROACH_DISTANCE,
+    FOOD_SINK_ACCELERATION,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -47,8 +49,6 @@ class CircularHunter(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # Check energy status for smarter decisions
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3
@@ -84,8 +84,6 @@ class CircularHunter(BehaviorAlgorithm):
             is_accelerating = False
             acceleration = 0.0
             if hasattr(nearest_food, "food_properties"):
-                from core.config.food import FOOD_SINK_ACCELERATION
-
                 sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                 acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                 if acceleration > 0 and nearest_food.vel.y >= 0:

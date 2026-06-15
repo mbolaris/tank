@@ -11,6 +11,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -39,8 +40,6 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Check energy state
         is_critical = fish.energy / fish.max_energy < 0.3
         is_low = fish.energy / fish.max_energy < 0.5

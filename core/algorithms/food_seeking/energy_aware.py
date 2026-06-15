@@ -15,6 +15,7 @@ from core.config.food import (
     PREDATOR_GUARDING_FOOD_DISTANCE,
     PREDATOR_PROXIMITY_THRESHOLD,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -46,8 +47,6 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
         energy_ratio = fish.get_energy_ratio()

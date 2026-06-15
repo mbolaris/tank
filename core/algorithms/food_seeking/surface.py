@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.display import SCREEN_HEIGHT
-from core.config.food import PREDATOR_FLEE_DISTANCE_CONSERVATIVE
+from core.config.food import FOOD_SINK_ACCELERATION, PREDATOR_FLEE_DISTANCE_CONSERVATIVE
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -40,8 +41,6 @@ class SurfaceSkimmer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Check energy and threats
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3
@@ -72,8 +71,6 @@ class SurfaceSkimmer(BehaviorAlgorithm):
                     is_accelerating = False
                     acceleration = 0.0
                     if hasattr(nearest_food, "food_properties"):
-                        from core.config.food import FOOD_SINK_ACCELERATION
-
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:

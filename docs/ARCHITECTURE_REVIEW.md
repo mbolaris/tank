@@ -110,11 +110,20 @@ timing differed). This continues the `poker.py` cleanup in commit `d6543a8`.
 A reusable picker for the next pass: a promotion of `from X import …` inside
 module `M` is safe iff `X` cannot already reach `M` in the module-load graph —
 compute this with the reachability check over the graph that
-`tests/test_import_acyclic.py` builds. By that measure ~260 in-function imports
-remain safely promotable (e.g. the `core.entities` imports in `core/algorithms/*`
-are safe — verified by a fresh-interpreter import, since `core/__init__.py`
-eagerly imports `algorithms` before `entities`). Still incremental, still
-test-backed.
+`tests/test_import_acyclic.py` builds (validate the winners with a
+fresh-interpreter import too, since `core/__init__.py` eagerly imports
+subpackages and the static graph cannot see import-time execution edges).
+
+Building on that, the **`core/algorithms/` subsystem is now fully converted**
+(0 in-function imports): `core.entities` (runtime `Crab`/`Food`/`Fish`), config
+constants, `SignalType`, `MemoryType`, and `math` were hoisted to module scope;
+type-only `core.world` imports moved into `TYPE_CHECKING` (local annotations are
+never evaluated, so they need no runtime import); and redundant re-imports
+(e.g. `Vector2`, already re-exported via `core.algorithms.base`) were dropped.
+Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
+type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
+diff (identical simulation state). ~199 cycle-safe in-function imports remain
+across the rest of `core/`. Still incremental, still test-backed.
 
 ## Design principles to maintain
 

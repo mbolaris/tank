@@ -15,6 +15,7 @@ from core.config.food import (
     FOOD_PURSUIT_RANGE_NORMAL,
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -44,8 +45,6 @@ class PatrolFeeder(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Check energy and predators
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3

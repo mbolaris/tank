@@ -2,6 +2,8 @@ import math
 from typing import TYPE_CHECKING, Any
 
 from core.config.food import FOOD_SINK_ACCELERATION
+from core.entities import Crab
+from core.entities import Fish as FishClass
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
@@ -58,8 +60,6 @@ class BehaviorActionsMixin:
         Returns:
             (vx, vy, is_active) - velocity and whether threat response triggered
         """
-        from core.entities import Crab
-
         # helpers.find_nearest assumed present
         predator = self._find_nearest(fish, Crab, max_distance=200.0)
         if not predator:
@@ -460,8 +460,6 @@ class BehaviorActionsMixin:
 
     def _find_nearby_fish(self, fish: "Fish", radius: float) -> list["Fish"]:
         """Find nearby fish within radius."""
-        from core.entities import Fish as FishClass
-
         env = fish.environment
         fish_id = fish.fish_id
 

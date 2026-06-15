@@ -8,22 +8,24 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent_memory import MemoryType
+from core.config.food import (
+    CHASE_DISTANCE_CRITICAL,
+    CHASE_DISTANCE_LOW,
+    CHASE_DISTANCE_SAFE_BASE,
+    FOOD_MEMORY_RECORD_DISTANCE,
+    FOOD_SINK_ACCELERATION,
+    PROXIMITY_BOOST_DIVISOR,
+    PROXIMITY_BOOST_MULTIPLIER,
+    URGENCY_BOOST_CRITICAL,
+    URGENCY_BOOST_LOW,
+)
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
-from core.config.food import (
-    CHASE_DISTANCE_CRITICAL,
-    CHASE_DISTANCE_LOW,
-    CHASE_DISTANCE_SAFE_BASE,
-    FOOD_MEMORY_RECORD_DISTANCE,
-    PROXIMITY_BOOST_DIVISOR,
-    PROXIMITY_BOOST_MULTIPLIER,
-    URGENCY_BOOST_CRITICAL,
-    URGENCY_BOOST_LOW,
-)
 from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 
@@ -91,8 +93,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
                     # Check for acceleration (falling food)
                     if hasattr(nearest_food, "food_properties"):
-                        from core.config.food import FOOD_SINK_ACCELERATION
-
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:
@@ -148,8 +148,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
                 # Remember successful food locations
                 if hasattr(fish, "memory_system") and distance < FOOD_MEMORY_RECORD_DISTANCE:
-                    from core.agent_memory import MemoryType
-
                     fish.memory_system.add_memory(
                         MemoryType.FOOD_LOCATION, nearest_food.pos, strength=0.8
                     )
@@ -158,8 +156,6 @@ class GreedyFoodSeeker(BehaviorAlgorithm):
 
         # Use enhanced memory system if no food found
         if (is_critical or is_low) and hasattr(fish, "memory_system"):
-            from core.agent_memory import MemoryType
-
             best_food_memory = fish.memory_system.get_best_memory(MemoryType.FOOD_LOCATION)
             if best_food_memory:
                 direction = self._safe_normalize(best_food_memory.location - fish.pos)
