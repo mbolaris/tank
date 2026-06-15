@@ -120,7 +120,7 @@ class BehaviorActionsMixin:
         skill_factor floor of 0.30 preserves useful prediction even for
         unskilled fish without over-committing to noisy long-horizon intercepts.
         """
-        target_pos = food.pos
+        target_pos: Vector2 = food.pos
 
         if not hasattr(food, "vel"):
             return target_pos
