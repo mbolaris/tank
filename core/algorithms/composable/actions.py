@@ -111,6 +111,50 @@ class BehaviorActionsMixin:
 
         return 0.0, 0.0, False
 
+    def _predict_food_target(
+        self, fish: "Fish", food: Any, distance: float, prediction_skill: float
+    ) -> "Vector2":
+        """Return the predicted intercept position for a food item.
+
+        Falls back to the food's current position when it isn't moving.
+        skill_factor floor of 0.30 preserves useful prediction even for
+        unskilled fish without over-committing to noisy long-horizon intercepts.
+        """
+        target_pos = food.pos
+
+        if not hasattr(food, "vel"):
+            return target_pos
+
+        food_vel = food.vel
+        if food_vel.length() <= 0.01:
+            return target_pos
+
+        if hasattr(food, "food_properties"):
+            sink_multiplier = food.food_properties.get("sink_multiplier", 1.0)
+            acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
+            if acceleration > 0 and food_vel.y >= 0:
+                predicted_pos, _ = predict_falling_intercept(
+                    fish.pos, fish.speed, food.pos, food_vel, acceleration
+                )
+            else:
+                time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
+                predicted_pos = Vector2(
+                    food.pos.x + food_vel.x * time_to_reach,
+                    food.pos.y + food_vel.y * time_to_reach,
+                )
+        else:
+            time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
+            predicted_pos = Vector2(
+                food.pos.x + food_vel.x * time_to_reach,
+                food.pos.y + food_vel.y * time_to_reach,
+            )
+
+        skill_factor = 0.30 + prediction_skill * 0.70
+        return Vector2(
+            food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+            food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+        )
+
     def _execute_food_approach(self, fish: "Fish") -> tuple[float, float]:
         """Execute the selected food approach sub-behavior.
 
@@ -142,57 +186,8 @@ class BehaviorActionsMixin:
         base_speed = self.parameters.get("pursuit_speed", 0.9)
         base_speed *= 1.0 + pursuit_aggression * 0.4  # Up to 40% speed boost
 
-        # Calculate target position - use prediction for moving food
-        target_pos = nearest_food.pos  # Default: current position
-
-        # prediction_skill affects how accurately the fish can predict food movement
-        # Low skill = aim at current position, high skill = aim at predicted intercept
-        if hasattr(nearest_food, "vel") and hasattr(nearest_food, "food_properties"):
-            # It's a Food entity - check if it's moving
-            food_vel = nearest_food.vel
-            if food_vel.length() > 0.01:  # Lower threshold: catch newly spawned food too
-                # Get the sink multiplier for this food type
-                sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
-                acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
-
-                # Use acceleration-aware prediction for sinking food
-                if acceleration > 0 and food_vel.y >= 0:  # Falling food
-                    predicted_pos, _ = predict_falling_intercept(
-                        fish.pos, fish.speed, nearest_food.pos, food_vel, acceleration
-                    )
-                else:
-                    # Non-sinking food (like live food) - simple linear prediction
-                    time_to_reach = distance / max(fish.speed, 0.1)
-                    time_to_reach = min(time_to_reach, 60.0)  # Cap at ~2 seconds
-                    predicted_pos = Vector2(
-                        nearest_food.pos.x + food_vel.x * time_to_reach,
-                        nearest_food.pos.y + food_vel.y * time_to_reach,
-                    )
-                # Blend current and predicted position based on prediction_skill
-                # skill_factor ranges from 0.30 (low skill) to 1.0 (high skill)
-                # Floor 0.30 preserves useful prediction for unskilled fish
-                # without overcommitting to noisy long-horizon intercepts.
-                skill_factor = 0.30 + (prediction_skill * 0.70)
-                target_pos = Vector2(
-                    nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
-                    nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
-                )
-        elif hasattr(nearest_food, "vel"):
-            # Has velocity but not food_properties - use simple prediction
-            food_vel = nearest_food.vel
-            if food_vel.length() > 0.01:
-                time_to_reach = distance / max(fish.speed, 0.1)
-                time_to_reach = min(time_to_reach, 60.0)
-                predicted_pos = Vector2(
-                    nearest_food.pos.x + food_vel.x * time_to_reach,
-                    nearest_food.pos.y + food_vel.y * time_to_reach,
-                )
-                # Blend based on prediction_skill with 0.30 baseline prediction.
-                skill_factor = 0.30 + (prediction_skill * 0.70)
-                target_pos = Vector2(
-                    nearest_food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
-                    nearest_food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
-                )
+        # Predict where moving food will be; falls back to current pos if stationary.
+        target_pos = self._predict_food_target(fish, nearest_food, distance, prediction_skill)
 
         # Now calculate direction to predicted target position
         direction = self._safe_normalize(target_pos - fish.pos)
