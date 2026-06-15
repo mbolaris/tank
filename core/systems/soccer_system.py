@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 from core.energy.energy_utils import apply_energy_delta
 from core.systems.base import BaseSystem, SystemResult
-from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities.ball import Ball
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@runs_in_phase(UpdatePhase.INTERACTION)
 class SoccerSystem(BaseSystem):
     """System for managing ball physics and goal detection.
 
