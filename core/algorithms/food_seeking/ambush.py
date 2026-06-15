@@ -8,6 +8,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.config.food import FOOD_SINK_ACCELERATION
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -50,8 +51,6 @@ class AmbushFeeder(BehaviorAlgorithm):
                     is_accelerating = False
                     acceleration = 0.0
                     if hasattr(nearest_food, "food_properties"):
-                        from core.config.food import FOOD_SINK_ACCELERATION
-
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:

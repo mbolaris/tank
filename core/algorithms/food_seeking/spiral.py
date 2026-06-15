@@ -4,12 +4,14 @@ DEPRECATED: slated for removal; benchmarked at-or-below the composable
 baseline. See docs/adr/006-deprecate-monolithic-food-seekers.md.
 """
 
+import math
 import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import FOOD_PURSUIT_RANGE_EXTENDED, PREDATOR_FLEE_DISTANCE_SAFE
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -39,8 +41,6 @@ class SpiralForager(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3
 
@@ -71,8 +71,6 @@ class SpiralForager(BehaviorAlgorithm):
             self.spiral_radius = 10
 
         # Calculate spiral movement
-        import math
-
         vx = math.cos(self.spiral_angle) * self.parameters["spiral_speed"]
         vy = math.sin(self.spiral_angle) * self.parameters["spiral_speed"]
 

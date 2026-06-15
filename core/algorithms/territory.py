@@ -14,15 +14,11 @@ This module contains 8 algorithms focused on spatial behavior and exploration:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-from core.util.rng import require_rng_param
-
-if TYPE_CHECKING:
-    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.entities import Crab, Fish
+from core.util.rng import require_rng_param
 
 
 @dataclass
@@ -46,8 +42,6 @@ class TerritorialDefender(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Fish
-
         if self.territory_center is None:
             self.territory_center = Vector2(fish.pos.x, fish.pos.y)
 
@@ -120,9 +114,6 @@ class RandomExplorer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab, Fish
-        from core.math_utils import Vector2
-
         # Check for important stimuli
         nearest_predator = self._find_nearest(fish, Crab)
         nearest_food = self._find_nearest_food(fish)
@@ -320,8 +311,6 @@ class RoutePatroller(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         if not self.initialized:
             # Create strategic waypoints - cover different areas of tank
             num_waypoints = self.rng.randint(4, 7)
@@ -458,8 +447,6 @@ class NomadicWanderer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # Check for threats and opportunities
         nearest_predator = self._find_nearest(fish, Crab)
         nearest_food = self._find_nearest_food(fish)

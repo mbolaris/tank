@@ -14,14 +14,10 @@ This module contains 8 algorithms focused on managing energy expenditure:
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-from core.util.rng import require_rng_param
-
-if TYPE_CHECKING:
-    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
+from core.entities import Crab, Fish, Food
+from core.util.rng import require_rng_param
 
 
 @dataclass
@@ -47,8 +43,6 @@ class EnergyConserver(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -130,8 +124,6 @@ class BurstSwimmer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         energy_ratio = fish.energy / fish.max_energy
 
         # Check environment
@@ -221,8 +213,6 @@ class OpportunisticRester(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab, Food
-
         # Check for nearby stimuli
         foods = fish.environment.get_agents_of_type(Food)
         predators = fish.environment.get_agents_of_type(Crab)
@@ -392,8 +382,6 @@ class StarvationPreventer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Use new critical energy methods
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -509,8 +497,6 @@ class AdaptivePacer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab, Fish
-
         energy_ratio = fish.energy / fish.max_energy
 
         # Base speed influenced by energy

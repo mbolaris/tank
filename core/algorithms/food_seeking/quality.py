@@ -4,12 +4,6 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
-from core.util.rng import require_rng_param
-
-if TYPE_CHECKING:
-    from core.entities import Fish
-
-from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
     DANGER_WEIGHT_CRITICAL,
     DANGER_WEIGHT_LOW,
@@ -19,6 +13,7 @@ from core.config.food import (
     FOOD_SCORE_THRESHOLD_CRITICAL,
     FOOD_SCORE_THRESHOLD_LOW,
     FOOD_SCORE_THRESHOLD_NORMAL,
+    FOOD_SINK_ACCELERATION,
     PREDATOR_DANGER_ZONE_DIVISOR,
     PREDATOR_DANGER_ZONE_RADIUS,
     PREDATOR_DEFAULT_FAR_DISTANCE,
@@ -26,6 +21,14 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
+from core.entities import Crab, Food
+from core.util.rng import require_rng_param
+
+if TYPE_CHECKING:
+    from core.entities import Fish
+    from core.world import World
+
+from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.predictive_movement import predict_falling_intercept, predict_intercept_point
 
 
@@ -49,9 +52,6 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab, Food
-        from core.world import World
-
         # IMPROVEMENT: Use new critical energy methods for smarter decisions
         is_critical = fish.is_critical_energy()
         is_low = fish.is_low_energy()
@@ -153,8 +153,6 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
                 is_accelerating = False
                 acceleration = 0.0
                 if hasattr(best_food, "food_properties"):
-                    from core.config.food import FOOD_SINK_ACCELERATION
-
                     raw_sink_multiplier = best_food.food_properties.get("sink_multiplier", 1.0)
                     try:
                         sink_multiplier = float(cast(Any, raw_sink_multiplier))

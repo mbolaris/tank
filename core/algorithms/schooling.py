@@ -16,14 +16,10 @@ This module contains 10 algorithms focused on group behavior and social interact
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-from core.util.rng import require_rng_param
-
-if TYPE_CHECKING:
-    from core.entities import Fish
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
+from core.entities import Crab, Fish
+from core.util.rng import require_rng_param
 
 
 def _get_nearby_fish(fish: "Fish", radius: float) -> list["Fish"]:
@@ -31,8 +27,6 @@ def _get_nearby_fish(fish: "Fish", radius: float) -> list["Fish"]:
 
     OPTIMIZATION: Use dedicated nearby_evolving_agents method when available (faster).
     """
-    from core.entities import Fish
-
     env = fish.environment
     nearby = []
     if hasattr(env, "nearby_evolving_agents"):
@@ -449,8 +443,6 @@ class BoidsBehavior(BehaviorAlgorithm):
         # Use spatial query to only check nearby fish (O(N) instead of O(N²))
         # Use 200 radius to match predator detection range and boid interaction range
         QUERY_RADIUS = 200
-        from core.entities import Crab
-
         allies = [f for f in _get_nearby_fish(fish, QUERY_RADIUS) if f.species == fish.species]
 
         fish_x = fish.pos.x
@@ -595,8 +587,6 @@ class DynamicSchooler(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # Check for danger with graded threat levels
         # fish.environment.get_agents_of_type(Crab)
         nearest_predator = self._find_nearest(fish, Crab)

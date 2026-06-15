@@ -11,10 +11,12 @@ from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm, Vector2
 from core.config.food import (
+    FOOD_SINK_ACCELERATION,
     FOOD_STRIKE_DISTANCE,
     PREDATOR_FLEE_DISTANCE_CAUTIOUS,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -52,8 +54,6 @@ class AggressiveHunter(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         energy_ratio = fish.energy / fish.max_energy
         is_critical = energy_ratio < 0.3
 
@@ -94,8 +94,6 @@ class AggressiveHunter(BehaviorAlgorithm):
                     is_accelerating = False
                     acceleration = 0.0
                     if hasattr(nearest_food, "food_properties"):
-                        from core.config.food import FOOD_SINK_ACCELERATION
-
                         sink_multiplier = nearest_food.food_properties.get("sink_multiplier", 1.0)
                         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
                         if acceleration > 0 and nearest_food.vel.y >= 0:

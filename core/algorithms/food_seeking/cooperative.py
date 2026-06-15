@@ -5,6 +5,7 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.agent_signals import SignalType
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import (
     FOOD_PURSUIT_RANGE_DESPERATE,
@@ -14,6 +15,7 @@ from core.config.food import (
     SOCIAL_FOOD_PROXIMITY_THRESHOLD,
     SOCIAL_SIGNAL_DETECTION_RANGE,
 )
+from core.entities import Crab
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -41,8 +43,6 @@ class CooperativeForager(BehaviorAlgorithm):
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:
-        from core.entities import Crab
-
         # IMPROVEMENT: Check energy state
         energy_ratio = fish.energy / fish.max_energy
         is_desperate = energy_ratio < 0.3
@@ -64,8 +64,6 @@ class CooperativeForager(BehaviorAlgorithm):
             if pred_dist < PREDATOR_PROXIMITY_THRESHOLD:
                 # NEW: Broadcast danger signal
                 if hasattr(fish.environment, "communication_system"):
-                    from core.agent_signals import SignalType
-
                     fish.environment.communication_system.broadcast_signal(
                         SignalType.DANGER_WARNING,
                         fish.pos,
@@ -103,8 +101,6 @@ class CooperativeForager(BehaviorAlgorithm):
                     hasattr(fish.environment, "communication_system")
                     and fish.genome.behavioral.social_tendency.value > 0.5
                 ):
-                    from core.agent_signals import SignalType
-
                     fish.environment.communication_system.broadcast_signal(
                         SignalType.FOOD_FOUND,
                         fish.pos,
@@ -126,8 +122,6 @@ class CooperativeForager(BehaviorAlgorithm):
         # NEW: Listen for food signals from communication system
         best_signal_target = None
         if hasattr(fish.environment, "communication_system"):
-            from core.agent_signals import SignalType
-
             food_signals = fish.environment.communication_system.get_nearby_signals(
                 fish.pos, signal_type=SignalType.FOOD_FOUND
             )

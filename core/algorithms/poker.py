@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
 from core.algorithms.base import BehaviorAlgorithm
+from core.entities import Crab
+from core.entities import Fish as FishClass
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -48,8 +50,6 @@ def _find_nearest_fish_spatial(fish: "Fish", radius: float) -> tuple[Optional["F
         Tuple of (nearest_fish, distance_squared) or (None, inf)
     """
     env: World = fish.environment  # Type hint as World Protocol
-
-    from core.entities import Fish as FishClass
 
     # Use generic method if available, fall back to type query
     if hasattr(env, "nearby_evolving_agents"):
@@ -92,8 +92,6 @@ def _get_nearby_fish_spatial(fish: "Fish", radius: float) -> list["Fish"]:
         List of nearby fish (excluding self)
     """
     env: World = fish.environment
-    from core.entities import Fish as FishClass
-
     fish_id = fish.fish_id
 
     if hasattr(env, "nearby_evolving_agents"):
@@ -133,8 +131,6 @@ def _flee_from_predator(
     Returns:
         (vx, vy) flee velocity if threatened, or None if safe
     """
-    from core.entities import Crab
-
     nearest_predator = algo._find_nearest(fish, Crab)
     if nearest_predator:
         dx = nearest_predator.pos.x - fish_x
