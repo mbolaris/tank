@@ -31,6 +31,13 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
         self._last_step_result: StepResult | None = None
 
+    def _build_render_hint(self) -> dict[str, Any]:
+        return {
+            "style": "topdown",
+            "entity_style": "microbe",
+            "dish": self._get_dish_dict(),
+        }
+
     def _get_dish_dict(self) -> dict[str, Any]:
         """Get dish geometry from environment as a dict for render_hint."""
         env = getattr(self._tank_backend.engine, "environment", None)
@@ -78,12 +85,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
-
-            snapshot["render_hint"] = {
-                "style": "topdown",
-                "entity_style": "microbe",
-                "dish": self._get_dish_dict(),
-            }
+            snapshot["render_hint"] = self._build_render_hint()
         return snapshot
 
     def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
@@ -94,12 +96,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         if snapshot:
             snapshot = dict(snapshot)
             snapshot["world_type"] = "petri"
-
-            snapshot["render_hint"] = {
-                "style": "topdown",
-                "entity_style": "microbe",
-                "dish": self._get_dish_dict(),
-            }
+            snapshot["render_hint"] = self._build_render_hint()
         return snapshot
 
     @property
@@ -154,14 +151,9 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         return self._last_step_result
 
     def _patch_step_result(self, result: StepResult) -> StepResult:
+        render_hint = self._build_render_hint()
         snapshot = dict(result.snapshot)
         snapshot["world_type"] = "petri"
-
-        render_hint = {
-            "style": "topdown",
-            "entity_style": "microbe",
-            "dish": self._get_dish_dict(),
-        }
         snapshot["render_hint"] = render_hint
 
         return StepResult(

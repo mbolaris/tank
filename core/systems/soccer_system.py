@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from core.energy.energy_utils import apply_energy_delta
 from core.systems.base import BaseSystem, SystemResult
-from core.update_phases import UpdatePhase
+from core.update_phases import UpdatePhase, runs_in_phase
 
 if TYPE_CHECKING:
     from core.entities.ball import Ball
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@runs_in_phase(UpdatePhase.INTERACTION)
 class SoccerSystem(BaseSystem):
     """System for managing ball physics and goal detection.
 
@@ -41,12 +42,7 @@ class SoccerSystem(BaseSystem):
         super().__init__(engine, name="soccer")
         self.ball: Ball | None = None
         self.goal_manager: GoalZoneManager | None = None
-        self.enabled: bool = False
-
-    @property
-    def runs_in_phase(self) -> UpdatePhase:
-        """Soccer system runs in INTERACTION phase."""
-        return UpdatePhase.INTERACTION
+        self._enabled = False
 
     def setup(self) -> None:
         """Setup is called by the engine after initialization."""
