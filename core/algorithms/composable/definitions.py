@@ -83,12 +83,11 @@ SUB_BEHAVIOR_PARAMS = {
     "zigzag_amplitude": (0.4, 1.0),
     "zigzag_frequency": (0.02, 0.08),
     "patrol_radius": (60.0, 150.0),
-    # Energy style parameters
+    # Energy style parameters (used by BurstSwimmer in energy_management.py)
     "base_speed_multiplier": (0.5, 1.0),
     "burst_speed": (1.1, 1.7),
     "burst_duration": (30.0, 90.0),
     "rest_duration": (40.0, 100.0),
-    "energy_urgency_threshold": (0.3, 0.6),
     # Social mode parameters
     "social_distance": (30.0, 80.0),
     "cohesion_strength": (0.3, 0.8),

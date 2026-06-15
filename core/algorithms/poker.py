@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
 from core.algorithms.base import BehaviorAlgorithm
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -195,7 +196,6 @@ class PokerChallenger(BehaviorAlgorithm):
     """Actively seeks out other fish for poker games."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -207,7 +207,6 @@ class PokerChallenger(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None):
@@ -240,7 +239,6 @@ class PokerDodger(BehaviorAlgorithm):
     """Avoids other fish to prevent poker games."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -252,7 +250,6 @@ class PokerDodger(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None):
@@ -322,7 +319,6 @@ class PokerGambler(BehaviorAlgorithm):
     """Seeks poker aggressively when high energy."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -334,7 +330,6 @@ class PokerGambler(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None):
@@ -371,7 +366,6 @@ class SelectivePoker(BehaviorAlgorithm):
     """Only engages in poker when conditions are favorable."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -384,7 +378,6 @@ class SelectivePoker(BehaviorAlgorithm):
             },
             rng=rng,
         )
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None):
@@ -414,7 +407,6 @@ class PokerOpportunist(BehaviorAlgorithm):
     """Balances food seeking with poker opportunities."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -487,7 +479,6 @@ class PokerStrategist(BehaviorAlgorithm):
     """Uses opponent modeling and strategic positioning for poker."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -575,7 +566,6 @@ class PokerBluffer(BehaviorAlgorithm):
     """Varies behavior unpredictably to confuse opponents."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
@@ -592,7 +582,6 @@ class PokerBluffer(BehaviorAlgorithm):
         self.current_mode = "normal"  # 'normal', 'aggressive', 'passive'
         self.mode_timer = 0
         self.mode_duration = rng.randint(50, 150)
-        self.rng = rng
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None):
@@ -674,7 +663,6 @@ class PokerConservative(BehaviorAlgorithm):
     """Risk-averse poker player that only engages in highly favorable conditions."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         super().__init__(
