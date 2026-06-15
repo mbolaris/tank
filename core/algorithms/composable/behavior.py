@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from core.algorithms.base import BehaviorHelpersMixin
 from core.util import coerce_enum
+from core.util.rng import require_rng_param
 
 from .actions import BehaviorActionsMixin
 from .definitions import (
@@ -74,8 +75,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @classmethod
     def create_random(cls, rng: Optional["random.Random"] = None) -> "ComposableBehavior":
         """Create a random composable behavior."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "ComposableBehavior.create_random")
         return cls(
             threat_response=coerce_enum(ThreatResponse, rng.randint(0, len(ThreatResponse) - 1)),
@@ -160,8 +159,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         rng: Optional["random.Random"] = None,
     ) -> None:
         """Mutate the composable behavior."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "ComposableBehavior.mutate")
 
         # Mutate sub-behavior selections (discrete)
@@ -246,8 +243,6 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         rng: Optional["random.Random"] = None,
     ) -> "ComposableBehavior":
         """Create offspring by crossing over two parent behaviors."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "ComposableBehavior.from_parents")
 
         # Mendelian inheritance for discrete sub-behaviors

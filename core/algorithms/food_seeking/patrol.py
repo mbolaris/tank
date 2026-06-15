@@ -15,6 +15,7 @@ from core.config.food import (
     FOOD_PURSUIT_RANGE_NORMAL,
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -25,8 +26,6 @@ class PatrolFeeder(BehaviorAlgorithm):
     """Patrol in a pattern looking for food - IMPROVED with better detection."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="patrol_feeder",

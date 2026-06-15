@@ -20,6 +20,7 @@ from core.poker.strategy.implementations.standard import (
     TightAggressiveStrategy,
     TightPassiveStrategy,
 )
+from core.util.rng import require_rng_param
 
 # Registry of all EVOLVING strategy classes
 ALL_POKER_STRATEGIES: list[type[PokerStrategyAlgorithm]] = [
@@ -57,8 +58,6 @@ def get_random_poker_strategy(rng: random.Random | None = None) -> PokerStrategy
     Args:
         rng: Random number generator. If None, creates a new Random() instance.
     """
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "__init__")
     cls = _rng.choice(ALL_POKER_STRATEGIES)
     try:
@@ -115,7 +114,6 @@ def crossover_poker_strategies(
     """
     # Handle ComposablePokerStrategy crossover
     from core.poker.strategy.composable import ComposablePokerStrategy
-    from core.util.rng import require_rng_param
 
     crossover_rng = require_rng_param(rng, "crossover_poker_strategies")
 

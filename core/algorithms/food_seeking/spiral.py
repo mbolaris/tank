@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from core.algorithms.base import BehaviorAlgorithm
 from core.config.food import FOOD_PURSUIT_RANGE_EXTENDED, PREDATOR_FLEE_DISTANCE_SAFE
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -20,8 +21,6 @@ class SpiralForager(BehaviorAlgorithm):
     """NEW: Spiral outward from center to systematically cover area - replaces weak algorithms."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="spiral_forager",

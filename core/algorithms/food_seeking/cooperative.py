@@ -14,6 +14,7 @@ from core.config.food import (
     SOCIAL_FOOD_PROXIMITY_THRESHOLD,
     SOCIAL_SIGNAL_DETECTION_RANGE,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -24,8 +25,6 @@ class CooperativeForager(BehaviorAlgorithm):
     """Follow other fish to food sources - HEAVILY IMPROVED."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="cooperative_forager",

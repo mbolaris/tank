@@ -100,6 +100,22 @@ cycles unable to reappear silently, the remaining in-function imports are mostly
 test to prove nothing re-tangles. Still no big-bang rewrite — the value is
 incremental and the test is the safety net.
 
+**Progress (2026-06):** the `core.util.rng` leaf helpers (`require_rng`,
+`require_rng_param`, `get_rng_or_default`) — the single largest in-function
+pattern at 121 imports across 51 files — are now imported at module scope. The
+module is a pure leaf (imports only stdlib, nothing from `core`), so the
+promotion is unconditionally cycle-safe and was the obvious first cut; a seed-42
+headless before/after diff confirmed identical simulation state (only wall-clock
+timing differed). This continues the `poker.py` cleanup in commit `d6543a8`.
+A reusable picker for the next pass: a promotion of `from X import …` inside
+module `M` is safe iff `X` cannot already reach `M` in the module-load graph —
+compute this with the reachability check over the graph that
+`tests/test_import_acyclic.py` builds. By that measure ~260 in-function imports
+remain safely promotable (e.g. the `core.entities` imports in `core/algorithms/*`
+are safe — verified by a fresh-interpreter import, since `core/__init__.py`
+eagerly imports `algorithms` before `entities`). Still incremental, still
+test-backed.
+
 ## Design principles to maintain
 
 1. **Composition over inheritance** — extend the component pattern, don't grow

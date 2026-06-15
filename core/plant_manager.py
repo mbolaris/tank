@@ -33,6 +33,7 @@ from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.result import Err, Ok, Result
 from core.root_spots import RootSpotManager
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -103,8 +104,6 @@ class PlantManager:
         self.environment = environment
         self.ecosystem = ecosystem
         self._entity_adder = entity_adder
-        from core.util.rng import require_rng_param
-
         self.rng = require_rng_param(rng, "__init__")
 
         # Initialize root spot manager

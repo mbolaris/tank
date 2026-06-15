@@ -14,6 +14,7 @@ from core.entities import Agent, Entity
 from core.interfaces import MigrationHandler
 from core.spatial.bounds import WorldBounds
 from core.spatial.grid import SpatialGrid
+from core.util.rng import require_rng_param
 
 # Type alias for energy delta recorder callback
 # Signature: (entity, delta, source, metadata) -> None
@@ -72,8 +73,6 @@ class Environment:
         self.time_system = time_system
         self.event_bus = event_bus  # Domain event dispatch
         self.simulation_config = simulation_config  # Runtime config access
-        from core.util.rng import require_rng_param
-
         self._rng = require_rng_param(rng, "__init__")
 
         # Default to GenomeCodePool with all builtins for better safety + determinism

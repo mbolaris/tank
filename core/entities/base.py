@@ -23,6 +23,7 @@ from core.math_utils import Vector2
 
 # Import LifeStage from state_machine for centralized definition with transition validation
 from core.state_machine import EntityState, LifeStage, create_entity_state_machine  # noqa: F401
+from core.util.rng import require_rng
 from core.world import World
 
 
@@ -294,8 +295,6 @@ class MobileEntity(Entity):
 
         Uses environment's RNG for deterministic behavior.
         """
-        from core.util.rng import require_rng
-
         _rng = require_rng(self.environment, "MobileEntity.add_random_velocity_change")
         random_x_direction = _rng.choices([-1, 0, 1], probabilities)[0]
         random_y_direction = _rng.choices([-1, 0, 1], probabilities)[0]

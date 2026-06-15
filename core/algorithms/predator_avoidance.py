@@ -18,6 +18,8 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.util.rng import require_rng_param
+
 if TYPE_CHECKING:
     from core.entities import Fish
 
@@ -30,8 +32,6 @@ class PanicFlee(BehaviorAlgorithm):
     """Flee directly away from predators at maximum speed."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="panic_flee",
@@ -71,8 +71,6 @@ class StealthyAvoider(BehaviorAlgorithm):
     """Move slowly and carefully away from predators."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="stealthy_avoider",
@@ -114,8 +112,6 @@ class FreezeResponse(BehaviorAlgorithm):
     """Freeze when predator is near, but prioritize survival over safety when starving."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="freeze_response",
@@ -200,8 +196,6 @@ class ErraticEvader(BehaviorAlgorithm):
     """Make unpredictable movements when threatened."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="erratic_evader",
@@ -276,8 +270,6 @@ class VerticalEscaper(BehaviorAlgorithm):
     """Escape vertically when threatened."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="vertical_escaper",
@@ -314,8 +306,6 @@ class GroupDefender(BehaviorAlgorithm):
     """Stay close to group for safety."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="group_defender",
@@ -360,8 +350,6 @@ class SpiralEscape(BehaviorAlgorithm):
     """Spiral away from predators."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="spiral_escape",
@@ -408,8 +396,6 @@ class BorderHugger(BehaviorAlgorithm):
     """Move to tank edges when threatened."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="border_hugger",
@@ -453,8 +439,6 @@ class PerpendicularEscape(BehaviorAlgorithm):
     """Escape perpendicular to predator's approach."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="perpendicular_escape",
@@ -503,8 +487,6 @@ class DistanceKeeper(BehaviorAlgorithm):
     """Maintain safe distance from predators."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="distance_keeper",

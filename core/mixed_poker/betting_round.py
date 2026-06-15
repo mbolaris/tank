@@ -21,6 +21,7 @@ from core.config.poker import POKER_MAX_ACTIONS_PER_ROUND
 from core.poker.betting.actions import BettingAction
 from core.poker.core import evaluate_hand
 from core.poker.evaluation.strength import evaluate_hand_strength, evaluate_starting_hand_strength
+from core.util.rng import require_rng
 
 if TYPE_CHECKING:
     from core.mixed_poker.state import MultiplayerGameState, MultiplayerPlayerContext
@@ -90,8 +91,6 @@ def decide_player_action(
     player = players[player_idx]
     _rng = rng
     if _rng is None:
-        from core.util.rng import require_rng
-
         player_env = getattr(player, "environment", None)
         _rng = require_rng(player_env, "decide_player_action.aggression_fallback")
 

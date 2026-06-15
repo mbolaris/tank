@@ -16,6 +16,8 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.util.rng import require_rng_param
+
 if TYPE_CHECKING:
     from core.entities import Fish
 
@@ -27,8 +29,6 @@ class EnergyConserver(BehaviorAlgorithm):
     """Minimize movement to conserve energy."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "EnergyConserver.__init__")
         super().__init__(
             algorithm_id="energy_conserver",
@@ -112,8 +112,6 @@ class BurstSwimmer(BehaviorAlgorithm):
     """Alternate between bursts of activity and rest."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "BurstSwimmer.__init__")
         super().__init__(
             algorithm_id="burst_swimmer",
@@ -205,8 +203,6 @@ class OpportunisticRester(BehaviorAlgorithm):
     """Rest when no food or threats nearby."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "OpportunisticRester.__init__")
         super().__init__(
             algorithm_id="opportunistic_rester",
@@ -274,8 +270,6 @@ class EnergyBalancer(BehaviorAlgorithm):
     """Balance energy expenditure with reserves."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "EnergyBalancer.__init__")
         super().__init__(
             algorithm_id="energy_balancer",
@@ -351,8 +345,6 @@ class SustainableCruiser(BehaviorAlgorithm):
     """Maintain steady, sustainable pace."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "SustainableCruiser.__init__")
         super().__init__(
             algorithm_id="sustainable_cruiser",
@@ -385,8 +377,6 @@ class StarvationPreventer(BehaviorAlgorithm):
     """Prioritize food when energy gets low."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "StarvationPreventer.__init__")
         super().__init__(
             algorithm_id="starvation_preventer",
@@ -464,8 +454,6 @@ class MetabolicOptimizer(BehaviorAlgorithm):
     """Adjust activity based on metabolic efficiency."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "MetabolicOptimizer.__init__")
         super().__init__(
             algorithm_id="metabolic_optimizer",
@@ -506,8 +494,6 @@ class AdaptivePacer(BehaviorAlgorithm):
     """Adapt speed based on current energy and environment."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "AdaptivePacer.__init__")
         super().__init__(
             algorithm_id="adaptive_pacer",

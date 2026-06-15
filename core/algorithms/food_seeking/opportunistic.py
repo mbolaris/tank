@@ -11,6 +11,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CONSERVATIVE,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -21,8 +22,6 @@ class OpportunisticFeeder(BehaviorAlgorithm):
     """Only pursue food if it's close enough - IMPROVED to avoid starvation."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="opportunistic_feeder",

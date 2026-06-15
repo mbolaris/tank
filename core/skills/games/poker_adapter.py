@@ -33,6 +33,7 @@ from core.skills.base import (
     SkillGameType,
     SkillStrategy,
 )
+from core.util.rng import get_rng_or_default
 
 
 @dataclass
@@ -285,8 +286,6 @@ class PokerSkillGame(SkillGame):
         _rng = state.get("rng")
         if _rng is None:
             # Check if we can fallback to a deterministic source, otherwise fail
-            from core.util.rng import get_rng_or_default
-
             # If called from observe_strategy (before my fix lands), this might fail.
             # But user asked to fail loudly.
             _rng = get_rng_or_default(None, context="PokerSkillGame.play_round")

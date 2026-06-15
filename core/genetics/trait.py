@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     pass
@@ -109,8 +110,6 @@ class GeneticTrait(Generic[T]):
         Uses dampened mutation rates to prevent runaway evolvability changes.
         See module-level META_* constants for tuning parameters.
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_rate = max(

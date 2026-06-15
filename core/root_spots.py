@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Optional
 
 from core.config.display import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.plants import PLANT_ROOT_SPOT_COUNT
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities.base import Entity
@@ -147,8 +148,6 @@ class RootSpotManager:
         """
         self.screen_width = screen_width
         self.screen_height = screen_height
-        from core.util.rng import require_rng_param
-
         self.rng = require_rng_param(rng, "__init__")
         self.spots: list[RootSpot] = []
         self._initialize_spots(spot_count)

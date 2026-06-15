@@ -103,6 +103,7 @@ from core.algorithms.territory import (
     TerritorialDefender,
     WallFollower,
 )
+from core.util.rng import require_rng_param
 
 # Monolithic food-seekers slated for removal (metadata only - selection is
 # untouched because excluding entries from ALL_ALGORITHMS changes rng.choice
@@ -293,8 +294,6 @@ def get_random_algorithm(rng: random.Random) -> BehaviorAlgorithm:
     Raises:
         MissingRNGError: If rng is None
     """
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "get_random_algorithm")
     algorithm_class = _rng.choice(ALL_ALGORITHMS)
     try:
@@ -316,8 +315,6 @@ def get_algorithm_by_id(algorithm_id: str, rng: random.Random) -> BehaviorAlgori
     Raises:
         MissingRNGError: If rng is None
     """
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "get_algorithm_by_id")
     for algo_class in ALL_ALGORITHMS:
         try:
@@ -391,8 +388,6 @@ def inherit_algorithm_with_mutation(
         New algorithm instance with mutated parameters
     """
     # Create offspring via class random_instance when possible to honor RNG
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "inherit_algorithm_with_mutation")
     try:
         offspring = parent_algorithm.__class__.random_instance(rng=_rng)
@@ -449,8 +444,6 @@ def _crossover_algorithms_base(
         New algorithm instance with blended parameters
     """
     # Handle edge cases
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "_crossover_algorithms_base")
     if parent1_algorithm is None and parent2_algorithm is None:
         return get_random_algorithm(rng=_rng)
@@ -647,8 +640,6 @@ def crossover_poker_algorithms(
         New poker algorithm with intelligently blended parameters
     """
     # Handle edge cases - RNG is required for all code paths
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "crossover_poker_algorithms")
     if parent1_algorithm is None and parent2_algorithm is None:
         return get_random_algorithm(rng=_rng)

@@ -24,6 +24,8 @@ for testing and internal use.
 import random
 from enum import Enum
 
+from core.util.rng import require_rng_param
+
 
 class CrossoverMode(Enum):
     """Methods for combining parent genetic values."""
@@ -57,8 +59,6 @@ def blend_values(
     Returns:
         Blended value
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     weight2 = 1.0 - weight1
 
@@ -104,8 +104,6 @@ def blend_discrete(
     Returns:
         Selected value (either val1 or val2)
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     return val1 if rng.random() < weight1 else val2
 
@@ -131,8 +129,6 @@ def crossover_dict_values(
     Returns:
         Blended dictionary
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     result: dict[str, float] = {}
 

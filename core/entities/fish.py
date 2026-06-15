@@ -23,6 +23,7 @@ from core.entities.mixins import EnergyManagementMixin, MortalityMixin, Reproduc
 from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
+from core.util.rng import require_rng
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +117,6 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             skip_birth_recording: Skip birth event recording
             team: Team affiliation ('A' or 'B' for soccer mode, None for non-competitive modes)
         """
-        from core.util.rng import require_rng
-
         if genome is not None:
             self.genome = genome
         else:

@@ -34,6 +34,7 @@ from core.mixed_poker import MultiplayerBettingRound as BettingRound
 from core.mixed_poker import MultiplayerGameState as GameState
 from core.mixed_poker import MultiplayerPlayerContext as PlayerContext
 from core.mixed_poker import Player
+from core.util.rng import require_rng_param
 
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
@@ -223,8 +224,6 @@ def should_offer_post_poker_reproduction(
     offer_prob = (
         POST_POKER_REPRODUCTION_WINNER_PROB if is_winner else POST_POKER_REPRODUCTION_LOSER_PROB
     )
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     return rng.random() < offer_prob
 

@@ -17,6 +17,7 @@ from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, 
 from core.genetics.physical import PhysicalTraits
 from core.genetics.reproduction import ReproductionParams
 from core.genetics.validation import validate_traits_from_specs
+from core.util.rng import require_rng_param
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
@@ -104,8 +105,6 @@ class Genome:
 
         Unknown fields are ignored; missing fields keep randomized defaults.
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         genome = genome_from_dict(
             data,
@@ -173,8 +172,6 @@ class Genome:
     @classmethod
     def random(cls, use_algorithm: bool = True, rng: pyrandom.Random | None = None) -> "Genome":
         """Create a random genome."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         physical = PhysicalTraits.random(rng)
         return cls(
@@ -221,8 +218,6 @@ class Genome:
         handles all the per-trait inheritance, eliminating hundreds of lines
         of duplicated code.
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         parent1_weight = max(0.0, min(1.0, parent1_weight))
         adaptive_rate, adaptive_strength = ReproductionParams(
@@ -286,8 +281,6 @@ class Genome:
         available_policies: list[str] | None = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         params = ReproductionParams(
             mutation_rate=mutation_rate,

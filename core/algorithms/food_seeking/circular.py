@@ -15,6 +15,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_DESPERATE,
     PREDATOR_FLEE_DISTANCE_NORMAL,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -27,8 +28,6 @@ class CircularHunter(BehaviorAlgorithm):
     """Circle around food before striking - IMPROVED for better survival."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="circular_hunter",

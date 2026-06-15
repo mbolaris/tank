@@ -18,6 +18,8 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.util.rng import require_rng_param
+
 if TYPE_CHECKING:
     from core.entities import Fish
 
@@ -48,8 +50,6 @@ class TightSchooler(BehaviorAlgorithm):
     """Stay very close to school members."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="tight_schooler",
@@ -91,8 +91,6 @@ class LooseSchooler(BehaviorAlgorithm):
     """Maintain loose association with school."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="loose_schooler",
@@ -138,8 +136,6 @@ class LeaderFollower(BehaviorAlgorithm):
     """Follow the fastest/strongest fish."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="leader_follower",
@@ -177,8 +173,6 @@ class AlignmentMatcher(BehaviorAlgorithm):
     """Match velocity with nearby fish."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="alignment_matcher",
@@ -227,8 +221,6 @@ class SeparationSeeker(BehaviorAlgorithm):
     """Avoid crowding neighbors."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="separation_seeker",
@@ -268,8 +260,6 @@ class FrontRunner(BehaviorAlgorithm):
     """Lead the school from the front."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="front_runner",
@@ -318,8 +308,6 @@ class PerimeterGuard(BehaviorAlgorithm):
     """Stay on the outside of the school."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="perimeter_guard",
@@ -383,8 +371,6 @@ class MirrorMover(BehaviorAlgorithm):
     """Mirror the movements of nearby fish."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="mirror_mover",
@@ -444,8 +430,6 @@ class BoidsBehavior(BehaviorAlgorithm):
     """Classic boids algorithm (separation, alignment, cohesion)."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="boids_behavior",
@@ -595,8 +579,6 @@ class DynamicSchooler(BehaviorAlgorithm):
     """Switch between tight and loose schooling based on conditions."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="dynamic_schooler",

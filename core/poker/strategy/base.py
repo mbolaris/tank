@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 from core.poker.core.cards import Card, Rank, Suit
 from core.poker.evaluation.strength import evaluate_starting_hand_strength as _evaluate_strength
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -284,8 +285,6 @@ class PokerStrategyEngine:
     ) -> bool:
         """Decide whether to bluff in this situation."""
         # Use provided RNG or create a fallback
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
 
         # Base bluff frequency

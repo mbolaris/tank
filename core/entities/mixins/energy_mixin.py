@@ -18,6 +18,7 @@ from core.constants import DEATH_REASON_STARVATION
 from core.energy.energy_component import EnergyComponent
 from core.entities.base import EntityState
 from core.fish.energy_state import EnergyState
+from core.util.rng import require_rng
 
 if TYPE_CHECKING:
     from core.agents.components.lifecycle_component import LifecycleComponent
@@ -186,7 +187,6 @@ class EnergyManagementMixin:
         try:
             from core.entities.resources import Food
             from core.util.mutations import request_spawn_in
-            from core.util.rng import require_rng
 
             rng = require_rng(self.environment, "Fish._spawn_overflow_food")
             food = Food(

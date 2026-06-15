@@ -7,6 +7,7 @@ and garbage collection pressure for entities like Food.
 import random
 
 from core.entities import Food
+from core.util.rng import require_rng_param
 
 
 class FoodPool:
@@ -26,8 +27,6 @@ class FoodPool:
         """
         self._pool: list[Food] = []
         self._active: set = set()
-        from core.util.rng import require_rng_param
-
         self._rng = require_rng_param(rng, "__init__")
 
     def acquire(

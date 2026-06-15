@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, cast
 
 from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BASE_SPEED
 from core.telemetry.events import ReproductionEvent
+from core.util.rng import require_rng
 
 if TYPE_CHECKING:
     from core.agents.components.lifecycle_component import LifecycleComponent
@@ -101,7 +102,6 @@ class ReproductionMixin:
             The newly created baby fish, or None if creation failed
         """
         from core.entities.fish import Fish
-        from core.util.rng import require_rng
 
         rng = require_rng(self.environment, "Fish._create_asexual_offspring")
 
