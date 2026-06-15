@@ -32,6 +32,7 @@ from core.poker.strategy.composable.opponent import SimpleOpponentModel
 from core.poker.strategy.composable.validator import PokerStrategyValidator
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
+from core.util.rng import require_rng_param
 
 # Backwards-compatible aliases for the pre-split module-level helpers.
 _random_params = PokerStrategyValidator.random_parameters
@@ -82,8 +83,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     @classmethod
     def create_random(cls, rng: random.Random | None = None) -> "ComposablePokerStrategy":
         """Create a random composable poker strategy."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         return cls(
             hand_selection=coerce_enum(HandSelection, rng.randint(0, len(HandSelection) - 1)),
@@ -138,8 +137,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             Tuple of (action, amount)
         """
         # Use provided RNG or create a fallback
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         call_amount = max(0, opponent_bet - current_bet)
 
@@ -423,8 +420,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             sub_behavior_switch_rate: Probability of switching each sub-behavior
             rng: Random number generator
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
 
         # Mutate sub-behavior selections (discrete)
@@ -532,8 +527,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         strategy = self.get_regret_strategy(info_set)
         if strategy is None:
             return None
-
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
         roll = rng.random()
@@ -653,8 +646,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         rng: random.Random | None = None,
     ) -> "ComposablePokerStrategy":
         """Create offspring by crossing over two parent strategies."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
 
         # Mendelian inheritance for discrete sub-behaviors
@@ -726,8 +717,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         CFR learning state is not copied: clones start as fresh learners
         (CFRInheritanceMode.RESET).
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         regret, strategy_sum, learning_rate = CFRInheritance.inherit(
             self, self, mode=CFRInheritanceMode.RESET

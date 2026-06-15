@@ -46,6 +46,7 @@ from core.config.simulation import COLLISION_QUERY_RADIUS
 from core.entities.plant import PlantNectar
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
+from core.util.rng import require_rng
 
 if TYPE_CHECKING:
     from core.entities import Crab, Entity, Fish
@@ -478,8 +479,6 @@ class CollisionSystem(BaseSystem):
                 parent_y = food.source_plant.pos.y if food.source_plant else food.pos.y
 
                 # Check sprouting chance (use engine RNG for determinism)
-                from core.util.rng import require_rng
-
                 rng = require_rng(self._engine, "CollisionSystem.handle_fish_food_collision")
                 if rng.random() < PLANT_SPROUTING_CHANCE:
                     self._engine.sprout_new_plant(parent_genome, parent_x, parent_y)

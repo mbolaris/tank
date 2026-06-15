@@ -18,6 +18,7 @@ import random
 from typing import TYPE_CHECKING, Optional
 
 from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.algorithms.base import BehaviorAlgorithm
@@ -50,8 +51,6 @@ def inherit_trait(
     Returns:
         Inherited value with possible mutation
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     weight2 = 1.0 - weight1
 
@@ -91,8 +90,6 @@ def inherit_discrete_trait(
     Returns:
         Inherited value with possible mutation
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     inherited = val1 if rng.random() < weight1 else val2
 
@@ -130,8 +127,6 @@ def inherit_algorithm(
     Returns:
         Inherited algorithm with mutated parameters
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     from core.algorithms.registry import (
         crossover_algorithms_weighted,

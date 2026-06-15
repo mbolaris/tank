@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
+from core.util.rng import require_rng_param
+
 if TYPE_CHECKING:
     from random import Random
 
@@ -203,8 +205,6 @@ class SkillStrategy(ABC, Generic[ActionType]):
             mutation_rate: Probability and magnitude of mutations
             rng: Optional random number generator for deterministic mutations
         """
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         params = self.get_parameters()
         mutated = {}

@@ -13,6 +13,7 @@ from core.config.fish import FISH_BASE_SPEED
 from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
+from core.util.rng import require_rng_param
 
 
 def create_initial_population(
@@ -43,8 +44,6 @@ def create_initial_population(
     display_config = display_config or DisplayConfig()
     ecosystem_config = ecosystem_config or EcosystemConfig()
     population: list[entities.Entity] = []
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
 
     # These fish use the algorithmic evolution system with diverse genomes

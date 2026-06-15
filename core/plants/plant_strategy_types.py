@@ -12,6 +12,8 @@ import random
 from dataclasses import dataclass
 from enum import Enum
 
+from core.util.rng import require_rng_param
+
 
 class PlantStrategyType(Enum):
     """Baseline poker strategy types for plants.
@@ -384,8 +386,6 @@ def get_strategy_visual_config(strategy_type: PlantStrategyType) -> PlantVisualC
 
 def get_random_strategy_type(rng: random.Random | None = None) -> PlantStrategyType:
     """Get a random strategy type for spawning new plants."""
-    from core.util.rng import require_rng_param
-
     _rng = require_rng_param(rng, "__init__")
     return _rng.choice(list(PlantStrategyType))
 

@@ -29,6 +29,7 @@ from core.config.food import (
 )
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.config.simulation_config import DisplayConfig
@@ -99,8 +100,6 @@ class FoodSpawningSystem(BaseSystem):
             display_config: Display config for spawn bounds
         """
         super().__init__(engine, "FoodSpawning")
-        from core.util.rng import require_rng_param
-
         self._rng = require_rng_param(rng, "__init__")
         self.config = spawn_rate_config if spawn_rate_config is not None else SpawnRateConfig()
         self._auto_food_enabled = auto_food_enabled

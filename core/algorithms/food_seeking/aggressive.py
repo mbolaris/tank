@@ -15,6 +15,7 @@ from core.config.food import (
     PREDATOR_FLEE_DISTANCE_CAUTIOUS,
     PREDATOR_FLEE_DISTANCE_DESPERATE,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -34,8 +35,6 @@ class AggressiveHunter(BehaviorAlgorithm):
     """
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "AggressiveHunter.__init__")
         super().__init__(
             algorithm_id="aggressive_hunter",

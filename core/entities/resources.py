@@ -8,6 +8,7 @@ from core.energy.energy_utils import apply_energy_delta
 from core.entities.base import EntityUpdateResult, MobileEntity
 from core.entities.fish import Fish
 from core.math_utils import Vector2
+from core.util.rng import require_rng, require_rng_param
 
 if TYPE_CHECKING:
     from core.entities.plant import Plant
@@ -76,8 +77,6 @@ class Food(MobileEntity):
             # Use provided rng, or fall back to environment.rng - fail if neither
             _rng = rng
             if _rng is None:
-                from core.util.rng import require_rng
-
                 _rng = require_rng(environment, "Food.__init__")
             food_type = self._select_random_food_type(
                 include_stationary=allow_stationary_types, include_live=False, rng=_rng
@@ -116,8 +115,6 @@ class Food(MobileEntity):
         Raises:
             MissingRNGError: If rng is None
         """
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "Food._select_random_food_type")
         food_types = [
             ft
@@ -231,8 +228,6 @@ class LiveFood(Food):
         # LiveFood at 1.4 gives ~33% speed advantage to average fish
         self.max_speed = speed * 0.93  # 1.5 * 0.93 = 1.4
         # Use environment.rng for deterministic behavior
-        from core.util.rng import require_rng
-
         self._rng = require_rng(environment, "LiveFood.__init__")
         self.wander_timer = self._rng.randint(20, 45)
         # BALANCE: Reduced avoid_radius from 180 to 80 so fish can get much closer

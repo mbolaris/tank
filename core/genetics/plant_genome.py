@@ -11,6 +11,7 @@ import random
 from dataclasses import dataclass, field
 
 from core.evolution.mutation import mutate_continuous_trait, mutate_discrete_trait
+from core.util.rng import require_rng_param
 
 
 @dataclass
@@ -119,8 +120,6 @@ class PlantGenome:
         return rules
 
     def apply_production(self, input_str: str, rng: random.Random | None = None) -> str:
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         rules = self.get_production_rules()
         out = []
@@ -150,8 +149,6 @@ class PlantGenome:
     @classmethod
     def create_random(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a random L-system plant genome."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         # still leaving room for occasional surprise palettes in the initial
         # population.
@@ -230,7 +227,6 @@ class PlantGenome:
             PlantGenome configured for the specified strategy type
         """
         from core.plants.plant_strategy_types import PlantStrategyType, get_strategy_visual_config
-        from core.util.rng import require_rng_param
 
         rng = require_rng_param(rng, "__init__")
 
@@ -283,8 +279,6 @@ class PlantGenome:
     @classmethod
     def create_cosmic_fern_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Cosmic Fern plant - deep space colors with complex fern structure."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",
@@ -315,8 +309,6 @@ class PlantGenome:
     @classmethod
     def create_claude_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a Claude variant - Radiant helix with sunburst whorls."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",
@@ -347,8 +339,6 @@ class PlantGenome:
     @classmethod
     def create_antigravity_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create an Antigravity variant - Floating vines with aerial roots."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="RX",
@@ -379,8 +369,6 @@ class PlantGenome:
     @classmethod
     def create_gpt_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a GPT variant - Lattice bush with mirrored logic branches."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",
@@ -411,8 +399,6 @@ class PlantGenome:
     @classmethod
     def create_gpt_codex_variant(cls, rng: random.Random | None = None) -> "PlantGenome":
         """Create a GPT-5.1 Codex banyan with aerial roots and jade bark."""
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",
@@ -449,8 +435,6 @@ class PlantGenome:
         represent the model's ability to process diverse information types.
         The aesthetic is "Deep Space" - dark, rich colors with high saturation.
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",
@@ -488,8 +472,6 @@ class PlantGenome:
         The aesthetic emphasizes organic beauty, natural branching patterns, and
         graceful asymmetry - representing the thoughtful, balanced nature of Sonnet.
         """
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
         g = cls(
             axiom="X",  # Use X axiom for fern-like growth
@@ -541,8 +523,6 @@ class PlantGenome:
         # For baseline strategy plants, create exact clone (no mutations)
         if parent.strategy_type is not None:
             return cls.create_from_strategy_type(parent.strategy_type, rng=rng)
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(rng, "__init__")
 
         def mutate_float(val: float, min_val: float, max_val: float) -> float:

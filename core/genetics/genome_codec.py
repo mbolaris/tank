@@ -22,6 +22,7 @@ from core.genetics.trait import (
     trait_meta_to_dict,
     trait_values_to_dict,
 )
+from core.util.rng import require_rng_param
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +128,6 @@ def genome_from_dict(
 
     Unknown fields are ignored; missing fields keep randomized defaults from `genome_factory`.
     """
-    from core.util.rng import require_rng_param
-
     rng = require_rng_param(rng, "__init__")
     genome = genome_factory()
 

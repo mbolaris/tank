@@ -12,6 +12,7 @@ import random
 from typing import TYPE_CHECKING
 
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:  # pragma: no cover
     from core.entities.plant import Plant
@@ -57,8 +58,6 @@ class PlantPokerStrategyAdapter(PokerStrategyAlgorithm):
         rng: random.Random | None = None,
     ) -> tuple[BettingAction, float]:
         # Use provided RNG or create a fallback
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
 
         call_amount = max(0.0, opponent_bet - current_bet)

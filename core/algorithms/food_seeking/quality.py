@@ -4,6 +4,8 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
+from core.util.rng import require_rng_param
+
 if TYPE_CHECKING:
     from core.entities import Fish
 
@@ -32,8 +34,6 @@ class FoodQualityOptimizer(BehaviorAlgorithm):
     """Prefer high-value food types."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="food_quality_optimizer",

@@ -29,6 +29,7 @@ from core.mixed_poker.state import (
 )
 from core.mixed_poker.types import MixedPokerResult, Player
 from core.poker.core import PokerHand
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     pass
@@ -311,8 +312,6 @@ class MixedPokerInteraction:
 
         # Randomize button position for fairness
         # This ensures all players get equal positional advantage over many games
-        from core.util.rng import require_rng_param
-
         rng = require_rng_param(self.rng, "play_poker")
         button_position = rng.randint(0, self.num_players - 1)
 

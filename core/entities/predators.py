@@ -12,6 +12,7 @@ from core.entities.base import Agent, EntityUpdateResult
 from core.entities.fish import Fish
 from core.entities.resources import Food
 from core.genetics import Genome
+from core.util.rng import require_rng
 
 if TYPE_CHECKING:
     from core.world import World
@@ -32,8 +33,6 @@ class Crab(Agent):
     ) -> None:
         """Initialize a crab."""
         # Use require_rng for deterministic genome creation
-        from core.util.rng import require_rng
-
         # Crabs are slower and less aggressive now
         if genome is not None:
             self.genome: Genome = genome
@@ -126,8 +125,6 @@ class Crab(Agent):
 
     def _update_tank_patrol(self) -> None:
         """Tank mode: patrol back and forth on the bottom."""
-        from core.util.rng import require_rng
-
         # If no horizontal velocity, pick a random direction
         if abs(self.vel.x) < 0.1:
             rng = require_rng(self.environment, "Crab.update.patrol")
@@ -168,8 +165,6 @@ class Crab(Agent):
         self, time_modifier: float, dish: "PetriDish", math, orbit_speed: float
     ) -> None:
         """Petri mode: orbit along the dish perimeter."""
-        from core.util.rng import require_rng
-
         # Calculate agent radius (approximate as half of width)
         agent_r = self.width / 2
         orbit_radius = dish.r - agent_r - 2.0  # 2px margin from edge

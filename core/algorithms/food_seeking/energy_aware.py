@@ -15,6 +15,7 @@ from core.config.food import (
     PREDATOR_GUARDING_FOOD_DISTANCE,
     PREDATOR_PROXIMITY_THRESHOLD,
 )
+from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -27,8 +28,6 @@ class EnergyAwareFoodSeeker(BehaviorAlgorithm):
     """Seek food more aggressively when energy is low."""
 
     def __init__(self, rng: random.Random | None = None):
-        from core.util.rng import require_rng_param
-
         _rng = require_rng_param(rng, "__init__")
         super().__init__(
             algorithm_id="energy_aware_food_seeker",
