@@ -121,7 +121,7 @@ class MetricsHistory:
                 sample = {
                     "frame": frame,
                     "max_generation": get_val(stats, "max_generation", 0),
-                    "population": get_val(stats, "population", 0),
+                    "population": get_val(stats, "fish_count", get_val(stats, "population", 0)),
                     "births_total": get_val(stats, "births", 0),
                     "deaths_total": get_val(stats, "deaths", 0),
                     "fish_energy": round(get_val(stats, "fish_energy", 0.0), 2),

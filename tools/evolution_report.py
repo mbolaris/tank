@@ -146,12 +146,12 @@ def starvation_fraction(stats: dict[str, Any]) -> float | None:
 def population_value(stats: dict[str, Any]) -> float | None:
     val = _first_present(
         stats,
-        "population",
         "fish_count",
+        "final_fish_count",
+        "population",
         "mean_population",
         "avg_pop",
         "final_population",
-        "final_fish_count",
     )
     return float(val) if isinstance(val, (int, float)) else None
 
@@ -282,6 +282,36 @@ def analyze_stats(stats: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def reconcile_history_with_current(hist: dict[str, Any], inst: dict[str, Any]) -> None:
+    """Drop ambiguous history population stats when current stats prove a field mismatch.
+
+    Older live history samples may store a legacy ``population`` counter that is
+    not the current living fish count. When the current snapshot carries an
+    explicit fish count and differs by an order of magnitude from the history
+    tail, keep turnover/trait history but avoid displaying bogus population
+    mean/CV.
+    """
+    current_pop = inst.get("population")
+    history_pop = hist.get("population_last")
+    if not isinstance(current_pop, (int, float)) or not isinstance(history_pop, (int, float)):
+        return
+    if current_pop <= 0 or history_pop <= 0:
+        return
+    ratio = max(current_pop, history_pop) / min(current_pop, history_pop)
+    if ratio < 10.0:
+        return
+
+    hist["population_history_ambiguous"] = True
+    for key in (
+        "population_mean",
+        "population_min",
+        "population_max",
+        "population_cv",
+        "population_last",
+    ):
+        hist.pop(key, None)
+
+
 # ---------------------------------------------------------------------------
 # Verdict + recommendations
 # ---------------------------------------------------------------------------
@@ -340,11 +370,18 @@ def assess(hist: dict[str, Any], inst: dict[str, Any]) -> dict[str, Any]:
     starv = inst.get("starvation_fraction")
     if isinstance(starv, (int, float)):
         if starv >= STARVATION_BROKEN:
-            axes["foraging"] = "broken"
-            findings.append(
-                f"Starvation is {starv*100:.0f}% of deaths (>= {STARVATION_BROKEN*100:.0f}%): "
-                "food-seeking is likely broken."
-            )
+            if axes.get("population") == "stable" and axes.get("turnover") == "healthy":
+                axes["foraging"] = "strained"
+                findings.append(
+                    f"Starvation is {starv*100:.0f}% of deaths, but population and turnover "
+                    "are stable: food economy is tight, not necessarily broken."
+                )
+            else:
+                axes["foraging"] = "broken"
+                findings.append(
+                    f"Starvation is {starv*100:.0f}% of deaths "
+                    f"(>= {STARVATION_BROKEN*100:.0f}%): food-seeking is likely broken."
+                )
         elif starv >= STARVATION_STRAINED:
             axes["foraging"] = "strained"
             findings.append(f"Starvation is {starv*100:.0f}% of deaths (food economy is tight).")
@@ -501,6 +538,7 @@ def build_report(
 ) -> dict[str, Any]:
     hist = analyze_history(samples)
     inst = analyze_stats(stats)
+    reconcile_history_with_current(hist, inst)
     assessment = assess(hist, inst)
     recs = recommend(assessment, hist, inst)
     return {
@@ -555,6 +593,8 @@ def format_human(report: dict[str, Any]) -> str:
         f"{inst.get('population', hist.get('population_last', '?'))} "
         f"(mean {hist.get('population_mean', '?')}, CV {hist.get('population_cv', '?')})"
     )
+    if hist.get("population_history_ambiguous"):
+        lines.append("                          history population ignored: legacy field mismatch")
     starv = inst.get("starvation_fraction")
     lines.append(
         f"  starvation fraction   : {round(starv, 3) if isinstance(starv, float) else '?'} "
@@ -623,16 +663,28 @@ def fetch_live(base_url: str, world_id: str | None) -> tuple[list[dict], dict, s
     """
     base_url = base_url.rstrip("/")
     wid = resolve_world_id(base_url, world_id)
+    snapshot_stats: dict[str, Any] = {}
     try:
         snap = _http_get_json(f"{base_url}/api/worlds/{wid}/snapshot")
         samples = extract_history_samples(snap)
         stats = extract_stats(snap)
-        if samples or stats:
+        if samples:
             return samples, stats, f"live:{base_url} world={wid} (snapshot)"
+        snapshot_stats = stats
     except Exception:
         pass
-    payload = _http_get_json(f"{base_url}/api/world/{wid}/metrics/history")
-    return extract_history_samples(payload), {}, f"live:{base_url} world={wid} (metrics/history)"
+    try:
+        payload = _http_get_json(f"{base_url}/api/world/{wid}/metrics/history")
+        source = "snapshot+metrics/history" if snapshot_stats else "metrics/history"
+        return (
+            extract_history_samples(payload),
+            snapshot_stats,
+            f"live:{base_url} world={wid} ({source})",
+        )
+    except Exception:
+        if snapshot_stats:
+            return [], snapshot_stats, f"live:{base_url} world={wid} (snapshot)"
+        raise
 
 
 def load_history_file(path: str) -> list[dict]:

@@ -133,6 +133,50 @@ def test_maybe_sample_records_trait_means() -> None:
     assert history.samples[-1]["traits"] == {}
 
 
+def test_maybe_sample_prefers_fish_count_for_population() -> None:
+    """History population should mean living fish, not legacy cumulative counters."""
+    history = MetricsHistory(world_id="test-world", sample_interval_frames=5, max_samples=3)
+    stats = StatsPayload(
+        frame=5,
+        population=8022,
+        generation=1,
+        max_generation=1,
+        births=0,
+        deaths=0,
+        capacity="10%",
+        time="Day",
+        death_causes={},
+        fish_count=25,
+        food_count=5,
+        plant_count=5,
+        total_energy=1000.0,
+        food_energy=100.0,
+        live_food_count=2,
+        live_food_energy=20.0,
+        fish_energy=800.0,
+        plant_energy=100.0,
+    )
+    poker = PokerStatsPayload(
+        total_games=0,
+        total_fish_games=0,
+        total_plant_games=0,
+        total_plant_energy_transferred=0.0,
+        total_wins=0,
+        total_losses=0,
+        total_ties=0,
+        total_energy_won=0.0,
+        total_energy_lost=0.0,
+        net_energy=0.0,
+        best_hand_rank=0,
+        best_hand_name="None",
+        showdown_win_rate="0.0%",
+    )
+
+    history.maybe_sample(frame=5, stats=stats, poker=poker, soccer=[], auto_eval=None)
+
+    assert history.samples[-1]["population"] == 25
+
+
 def test_metrics_history_serialization_roundtrip() -> None:
     """Test payload round-trip serialization and deserialization."""
     history = MetricsHistory(world_id="test-world", sample_interval_frames=5, max_samples=3)

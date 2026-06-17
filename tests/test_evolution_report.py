@@ -37,10 +37,53 @@ def test_extractors_tolerate_shapes() -> None:
     assert er.extract_history_samples(None) == []
 
 
+def test_fetch_live_falls_back_to_history_when_snapshot_has_only_stats(monkeypatch) -> None:
+    calls = []
+
+    def fake_http_get_json(url: str, timeout: float = 10.0):
+        del timeout
+        calls.append(url)
+        if url.endswith("/api/worlds/default/id"):
+            return {"world_id": "abc"}
+        if url.endswith("/api/worlds/abc/snapshot"):
+            return {"snapshot": {"stats": {"population": 30}}}
+        if url.endswith("/api/world/abc/metrics/history"):
+            return {"samples": [{"frame": 1, "population": 30}]}
+        raise AssertionError(f"unexpected url {url}")
+
+    monkeypatch.setattr(er, "_http_get_json", fake_http_get_json)
+
+    samples, stats, source = er.fetch_live("http://test", None)
+
+    assert samples == [{"frame": 1, "population": 30}]
+    assert stats == {"population": 30}
+    assert "snapshot+metrics/history" in source
+    assert len(calls) == 3
+
+
 def test_starvation_fraction_from_causes() -> None:
     assert er.starvation_fraction({"starvation_rate": 0.9}) == 0.9
     assert er.starvation_fraction({"death_causes": {"starvation": 8, "predation": 2}}) == 0.8
     assert er.starvation_fraction({"death_causes": {}}) is None
+
+
+def test_population_value_prefers_explicit_fish_count() -> None:
+    stats = {"population": 8022, "fish_count": 25}
+    assert er.population_value(stats) == 25.0
+
+
+def test_ambiguous_population_history_is_suppressed() -> None:
+    samples = [
+        _sample(1000, 1, 8000, 0.6, {"pursuit_aggression": 0.40}),
+        _sample(2000, 4, 8022, 0.6, {"pursuit_aggression": 0.50}),
+    ]
+    stats = {"population": 8022, "fish_count": 25}
+
+    report = er.build_report(samples, stats, "test")
+
+    assert report["current"]["population"] == 25.0
+    assert report["history"]["population_history_ambiguous"] is True
+    assert "population_mean" not in report["history"]
 
 
 def test_trait_drift_flags_selection() -> None:
@@ -98,6 +141,34 @@ def test_struggling_run_flags_and_recommendations() -> None:
     joined = json.dumps(report["recommendations"])
     assert "diagnose_food_seeking" in joined
     assert "movement_strategy" in joined
+
+
+def test_high_starvation_with_stable_turnover_is_strained_not_broken() -> None:
+    samples = [
+        _sample(
+            i * 1000,
+            i,
+            45,
+            0.5,
+            {"pursuit_aggression": 0.40 + i * 0.02},
+            births=i * 20,
+            deaths=i * 20,
+        )
+        for i in range(1, 12)
+    ]
+    stats = {
+        "max_generation": 11,
+        "population": 45,
+        "death_causes": {"starvation": 97, "predation": 3},
+        "diversity_stats": {"diversity_score": 0.5, "unique_algorithms": 12},
+    }
+
+    report = er.build_report(samples, stats, "test")
+
+    assert report["axes"]["population"] == "stable"
+    assert report["axes"]["turnover"] == "healthy"
+    assert report["axes"]["foraging"] == "strained"
+    assert report["verdict"] == "treading_water"
 
 
 def test_insufficient_data_verdict() -> None:
