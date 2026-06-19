@@ -492,12 +492,6 @@ class SimulationEngine:
         """FRAME_END: Update stats, rebuild caches."""
         self.phase_executor.frame_end()
 
-    def handle_mixed_poker_games(self) -> None:
-        """Called by coordinator via simple delegation from poker system usually,
-        but kept here for API compatibility if needed."""
-        if self.poker_system:
-            self.poker_system.handle_mixed_poker_games()
-
     # =========================================================================
     # Identity Provider Helpers
     # =========================================================================
@@ -523,11 +517,6 @@ class SimulationEngine:
     # =========================================================================
     # Poker Events
     # =========================================================================
-
-    def add_poker_event(self, poker: PokerInteraction) -> None:
-        """Delegate event creation to the poker system."""
-        if self.poker_system:
-            self.poker_system.add_poker_event(poker)
 
     def handle_poker_result(self, poker: PokerInteraction) -> None:
         """Handle poker result (compatibility method)."""

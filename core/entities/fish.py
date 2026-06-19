@@ -60,7 +60,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         - Mortal: Can die from starvation, predation, or old age
         - Reproducible: Can reproduce through poker games or asexually
         - Movable: Moves with AI-driven behaviors
-        - SkillGamePlayer: Can play poker with evolved strategies
+        - SkillfulAgent: Can play poker with evolved strategies
         - Identifiable: Has stable fish_id for tracking and lineage
         - LifecycleAware: Transitions through baby -> adult -> elder stages
 

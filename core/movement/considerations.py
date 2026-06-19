@@ -98,10 +98,10 @@ class MovementArbiter:
 def default_considerations() -> list[MovementConsideration]:
     """The canonical movement priority order (highest priority first).
 
-    NOTE: this order is the byte-identical extraction of the historical
-    if-chain (ADR-010 step 1). ``ball_pursuit`` sitting above the composable
-    behavior's threat/food drives is the documented mis-ordering that step 2
-    corrects.
+    ``ball_pursuit`` is listed above the composable behavior, but it does not
+    pre-empt survival: the ball drive itself yields to threat/food via
+    ``ComposableBehavior.has_survival_priority`` (ADR-010 step 2), so list
+    position here is leisure-vs-leisure only.
     """
     return [
         PolicyOverrideConsideration(),

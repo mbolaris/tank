@@ -17,6 +17,7 @@ architectural choices made during development.
 | [ADR-008](008-acyclic-core-imports.md) | Acyclic Core Module Graph | Accepted | 2026-06 |
 | [ADR-009](009-generic-agent-model-reconciliation.md) | Reconcile the GenericAgent Component Model | Accepted | 2026-06 |
 | [ADR-010](010-movement-arbitration.md) | Unify Movement Drive Arbitration | Accepted | 2026-06 |
+| [ADR-011](011-minigames-out-of-core.md) | Keep Minigames Out of the Generic Core | Accepted | 2026-06 |
 
 ## What is an ADR?
 
