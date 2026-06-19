@@ -324,6 +324,17 @@ class AlgorithmicMovement(MovementStrategy):
         if rng.random() > pursuit_prob:
             return None
 
+        # Survival outranks leisure: even a topped-up fish that rolled "play"
+        # yields the ball to flee a predator or chase nearby food (ADR-010).
+        # Checked AFTER the RNG draw above so the random stream is identical to
+        # when ball pursuit had top priority - only the *outcome* changes, and
+        # only for the few fish that both rolled play and have a survival drive.
+        behavior = (
+            fish.genome.behavioral.behavior.value if fish.genome.behavioral.behavior else None
+        )
+        if behavior is not None and behavior.has_survival_priority(fish):
+            return None
+
         # Calculate direction to ball
         dx = ball.pos.x - fish.pos.x
         dy = ball.pos.y - fish.pos.y

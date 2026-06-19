@@ -133,3 +133,42 @@ class TestAlgorithmicMovement:
         velocity = strategy._get_ball_pursuit_velocity(fish)
 
         assert velocity is not None
+
+    def test_ball_pursuit_yields_to_survival_priority(self, simulation_env):
+        """Survival outranks leisure: a topped-up fish that rolled 'play' still
+        yields the ball when a survival drive (threat/food) is active (ADR-010).
+        """
+        env, agents = simulation_env
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
+        fish.energy = fish.max_energy  # surplus -> passes the ball energy gate
+        agents.add(fish)
+        env.ball = Ball(env, 500, 500)
+
+        class FixedRng:
+            def random(self) -> float:
+                return 0.0  # always roll "play"
+
+        env._rng = FixedRng()
+        behavior = fish.genome.behavioral.behavior.value
+
+        # No survival drive -> fish pursues the ball.
+        behavior.has_survival_priority = lambda f: False
+        assert strategy._get_ball_pursuit_velocity(fish) is not None
+
+        # Survival drive active -> fish yields the ball even though it rolled play.
+        behavior.has_survival_priority = lambda f: True
+        assert strategy._get_ball_pursuit_velocity(fish) is None
+
+    def test_isolated_full_fish_has_no_survival_priority(self, simulation_env):
+        """A full fish with no predator or reachable food has no survival drive,
+        so it is free to play (real has_survival_priority path, RNG-free)."""
+        env, agents = simulation_env
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, AlgorithmicMovement(), "george1.png", 100, 100, 3, genome=genome)
+        fish.energy = fish.max_energy  # full -> cannot eat -> no food drive
+        agents.add(fish)
+
+        behavior = fish.genome.behavioral.behavior.value
+        assert behavior.has_survival_priority(fish) is False

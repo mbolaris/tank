@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed (2026-06)
+Accepted (2026-06). Implemented in two commits. Step 1 landed as designed (the
+`MovementArbiter` over an ordered consideration list, byte-identical). Step 2's
+*implementation* diverged from the original proposal below - see **Outcome**.
 
 ## Context
 
@@ -193,6 +195,53 @@ isolated):
   expected and is the reason for the two-step split and multi-seed
   validation; it is a feature (the bug fix), not a regression, but it must
   be reported with reproduction command + seeds per project rules.
+
+## Outcome (what actually shipped)
+
+**Step 1** shipped as proposed: the `MovementArbiter` + considerations,
+byte-identical to the historical if-chain (proven by an identical seed-42
+headless run across all behavioral stat fields).
+
+**Step 2** did *not* ship the "run the composable behavior first and reorder
+ball below food" design above. That version was implemented and measured, and
+it **regressed the canonical `ecosystem_health_10k` benchmark on seed 42**
+(2.38 → 1.89) while improving seeds 7 and 123. The cause was exactly the
+determinism risk this ADR flagged: forcing the composable behavior to run for
+*every* fish every frame (to read its intent before deciding the ball) shifted
+the global RNG stream far more than the logic change warranted, and seed 42 -
+the champion seed - landed unlucky. Per the project bar ("wins or stays neutral
+across seeds"), that is not a pass.
+
+The shipped step 2 is a **more surgical** expression of the same intent: the
+ball drive *yields* to survival instead of being reordered beneath it. A new
+RNG-free predicate `ComposableBehavior.has_survival_priority(fish)` mirrors the
+threat/food activation conditions, and `_get_ball_pursuit_velocity` returns
+`None` when it is true. Crucially the check runs **after** the ball's existing
+RNG draw, so the random stream is unchanged from step 1 - only the *outcome*
+changes, and only for the small subset of fish that both rolled "play" and have
+a live survival drive. The arbiter order (step 1) is untouched, so the
+`execute_with_intent` / `MoveContext` machinery proved unnecessary and was not
+shipped.
+
+Result on `ecosystem_health_10k` (vs the step-1 baseline; reproduce with
+`python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py --seed <s>`):
+
+| seed | baseline | shipped | Δ score | max_gen |
+|------|----------|---------|---------|---------|
+| 42   | 2.377    | 4.792   | +2.42   | 4 → 6   |
+| 7    | 2.011    | 5.666   | +3.66   | 3 → 7   |
+| 123  | 2.506    | 3.087   | +0.58   | 4 → 4   |
+
+All seeds improve, none regress; determinism verified (`--verify-determinism`).
+The energy gate was **retained** (not deleted as the proposal suggested): with
+ordering no longer the starvation safeguard, the gate's remaining job is a
+legitimate one - keeping fish from burning reproduction-funding surplus on play.
+
+**Lesson:** when a change's effect is small but it perturbs a determinism-
+sensitive global RNG stream, prefer the implementation that minimizes the
+perturbation (yield-after-draw) over the "cleaner-looking" one that reshuffles
+evaluation order. Correctness of intent is necessary but not sufficient; the
+seed-stability of the measurement is part of the design.
 
 ## Related
 - [ADR-003: Phase-Based Execution](003-phase-based-execution.md)
