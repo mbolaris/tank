@@ -352,7 +352,9 @@ def _mutate_params(
 ) -> dict[str, float]:
     """Mutate policy parameters."""
     result = {}
-    for key, value in params.items():
+    # sorted() so per-key RNG draws happen in a deterministic order regardless
+    # of dict insertion order (hash-seed independence). See ADR-012.
+    for key, value in sorted(params.items()):
         if rng.random() < config.param_mutation_rate:
             delta = rng.gauss(0, config.param_mutation_strength)
             new_value = value + delta
@@ -380,7 +382,9 @@ def _blend_params(
         return None
 
     result = {}
-    for key in all_keys:
+    # sorted() keeps the blended dict's key order canonical (hash-seed
+    # independent), so downstream per-key mutation consumes RNG deterministically.
+    for key in sorted(all_keys):
         v1 = p1.get(key, 0.0)
         v2 = p2.get(key, 0.0)
         result[key] = weight1 * v1 + (1 - weight1) * v2

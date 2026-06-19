@@ -562,7 +562,9 @@ class GenomeCodePool:
         """Blend parameters from two parents."""
         all_keys = set(params1.keys()) | set(params2.keys())
         result = {}
-        for key in all_keys:
+        # sorted() keeps the blended dict's key order canonical (hash-seed
+        # independent) so downstream per-key mutation is deterministic. See ADR-012.
+        for key in sorted(all_keys):
             v1 = params1.get(key, 0.0)
             v2 = params2.get(key, 0.0)
             # Weighted blend

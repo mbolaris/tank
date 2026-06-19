@@ -18,6 +18,7 @@ architectural choices made during development.
 | [ADR-009](009-generic-agent-model-reconciliation.md) | Reconcile the GenericAgent Component Model | Accepted | 2026-06 |
 | [ADR-010](010-movement-arbitration.md) | Unify Movement Drive Arbitration | Accepted | 2026-06 |
 | [ADR-011](011-minigames-out-of-core.md) | Keep Minigames Out of the Generic Core | Accepted | 2026-06 |
+| [ADR-012](012-hash-seed-determinism.md) | Cross-Process Determinism (Hash-Seed Independence) | Accepted | 2026-06 |
 
 ## What is an ADR?
 
