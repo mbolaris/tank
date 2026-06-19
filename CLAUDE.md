@@ -95,7 +95,7 @@ tank/
 
 - **Protocol-based design**: Interfaces defined as Python Protocols for loose coupling
 - **Phase-based execution**: Deterministic phases (perception -> decision -> action -> resolution)
-- **Component composition**: Agents built from reusable components (perception, locomotion, feeding)
+- **Component composition**: Agents own discrete concerns via components (energy, lifecycle, reproduction, skill-game); Fish delegates behavior to a `BehaviorExecutor` + composable behavior (see ADR-009)
 - **Multi-world backend**: WorldRegistry factory creates world-specific backends
 - **Interpretable algorithms**: Explicit behavior strategies, not black-box neural networks
 - **Determinism is non-negotiable**: All benchmarks use fixed seeds; simulations are reproducible
