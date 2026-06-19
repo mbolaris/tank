@@ -122,8 +122,20 @@ never evaluated, so they need no runtime import); and redundant re-imports
 (e.g. `Vector2`, already re-exported via `core.algorithms.base`) were dropped.
 Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
-diff (identical simulation state). ~199 cycle-safe in-function imports remain
-across the rest of `core/`. Still incremental, still test-backed.
+diff (identical simulation state).
+
+**Progress (2026-06):** `core/reproduction_service.py` (the next-largest single
+file at 14 in-function imports) is converted to 0: `core.config.fish` constants,
+`core.entities.Fish`, `core.entities.base.LifeStage`, `core.genetics.Genome`/
+`ReproductionParams`, `core.genetics.code_policy_traits`, `core.genetics.diversity`,
+`core.mixed_poker`, `core.movement_strategy.AlgorithmicMovement`, and the runtime
+half of `core.poker_interaction` (the `PokerInteraction` type stays
+`TYPE_CHECKING`-only, since it is never constructed here) all moved to module
+scope. All targets were confirmed cycle-safe via the reachability check
+described above before promoting, `tests/test_import_acyclic.py` stays green,
+and a seed-42 headless before/after diff confirmed identical simulation state
+(only wall-clock timing fields differed). ~229 cycle-safe in-function imports
+remain across the rest of `core/`. Still incremental, still test-backed.
 
 ## Design principles to maintain
 

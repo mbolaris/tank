@@ -6,10 +6,28 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    FISH_BABY_SIZE,
+    FISH_BASE_SPEED,
+    POST_POKER_CROSSOVER_WINNER_WEIGHT,
+    POST_POKER_MATING_DISTANCE,
+    POST_POKER_MUTATION_RATE,
+    POST_POKER_MUTATION_STRENGTH,
+    POST_POKER_PARENT_ENERGY_CONTRIBUTION,
+    REPRODUCTION_COOLDOWN,
+)
 from core.energy.energy_utils import apply_energy_delta
+from core.entities import Fish
+from core.entities.base import LifeStage
+from core.genetics import Genome, ReproductionParams
+from core.genetics.code_policy_traits import mutate_code_policies, validate_code_policy_ids
+from core.genetics.diversity import diversity_bonus
+from core.mixed_poker import should_trigger_plant_poker_asexual_reproduction
+from core.movement_strategy import AlgorithmicMovement
+from core.poker_interaction import is_post_poker_reproduction_eligible, is_valid_reproduction_mate
 
 if TYPE_CHECKING:
-    from core.entities import Fish
     from core.poker_interaction import PokerInteraction
     from core.simulation import SimulationEngine
 
@@ -71,12 +89,6 @@ class ReproductionService:
 
     def handle_post_poker_reproduction(self, poker: PokerInteraction) -> Fish | None:
         """Handle reproduction after a fish-fish poker game."""
-        from core.config.fish import POST_POKER_MATING_DISTANCE
-        from core.poker_interaction import (
-            is_post_poker_reproduction_eligible,
-            is_valid_reproduction_mate,
-        )
-
         result = getattr(poker, "result", None)
         if result is None or getattr(result, "is_tie", False):
             return None
@@ -155,8 +167,6 @@ class ReproductionService:
 
     def handle_plant_poker_asexual_reproduction(self, winner_fish: Fish) -> Fish | None:
         """Handle asexual reproduction when fish beats only plants."""
-        from core.mixed_poker import should_trigger_plant_poker_asexual_reproduction
-
         if not should_trigger_plant_poker_asexual_reproduction(winner_fish):
             return None
 
@@ -196,8 +206,6 @@ class ReproductionService:
         get_fish = getattr(entity_manager, "get_fish", None)
         if callable(get_fish):
             return cast("list[Fish]", get_fish())
-
-        from core.entities import Fish
 
         return [e for e in self._engine.get_all_entities() if isinstance(e, Fish)]
 
@@ -325,9 +333,6 @@ class ReproductionService:
 
         The cloned genome gets light mutation to maintain diversity.
         """
-        from core import entities, movement_strategy
-        from core.genetics import Genome
-
         environment = self._engine.environment
         ecosystem = self._engine.ecosystem
         if environment is None or ecosystem is None:
@@ -351,11 +356,6 @@ class ReproductionService:
         # Pool-aware per-kind policy mutation for emergency spawns
         pool = getattr(environment, "genome_code_pool", None)
         if pool is not None:
-            from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
-
             mutate_code_policies(genome.behavioral, pool, self._engine.rng)
             validate_code_policy_ids(genome.behavioral, pool, self._engine.rng)
 
@@ -365,9 +365,9 @@ class ReproductionService:
         x = self._engine.rng.randint(int(min_x) + spawn_margin, int(max_x) - spawn_margin)
         y = self._engine.rng.randint(int(min_y) + spawn_margin, int(max_y) - spawn_margin)
 
-        new_fish = entities.Fish(
+        new_fish = Fish(
             environment,
-            movement_strategy.AlgorithmicMovement(),
+            AlgorithmicMovement(),
             self._engine.config.display.files["schooling_fish"][0],
             x,
             y,
@@ -404,8 +404,6 @@ class ReproductionService:
             # Small population: just pick the healthiest
             return max(fish_list, key=lambda f: f.energy / max(f.max_energy, 1.0))
 
-        from core.genetics.diversity import diversity_bonus
-
         genomes = [f.genome for f in fish_list]
         best_fish = fish_list[0]
         best_score = -1.0
@@ -434,9 +432,6 @@ class ReproductionService:
     @staticmethod
     def maybe_create_banked_offspring(fish: Fish) -> Fish | None:
         """Attempt a bank-funded asexual reproduction for a single fish."""
-        from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
-        from core.entities.base import LifeStage
-
         bank = fish._reproduction_component.overflow_energy_bank
         baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
 
@@ -452,19 +447,6 @@ class ReproductionService:
         return None
 
     def _create_post_poker_offspring(self, winner: Fish, mate: Fish) -> Fish | None:
-        from core.config.fish import (
-            ENERGY_MAX_DEFAULT,
-            FISH_BABY_SIZE,
-            FISH_BASE_SPEED,
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MUTATION_RATE,
-            POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
-            REPRODUCTION_COOLDOWN,
-        )
-        from core.entities import Fish
-        from core.genetics import Genome, ReproductionParams
-
         if winner.environment is None:
             return None
 
@@ -482,11 +464,6 @@ class ReproductionService:
         # Pool-aware per-kind policy mutation (prevents cross-kind contamination)
         pool = getattr(winner.environment, "genome_code_pool", None)
         if pool is not None:
-            from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
-
             mutate_code_policies(offspring_genome.behavioral, pool, self._engine.rng)
             validate_code_policy_ids(offspring_genome.behavioral, pool, self._engine.rng)
 
