@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.actions.action_registry import translate_action
+from core.movement.considerations import MovementArbiter, default_considerations
 
 logger = logging.getLogger(__name__)
 
@@ -97,62 +98,33 @@ class AlgorithmicMovement(MovementStrategy):
     _policy_error_log_interval = 60
     _policy_error_last_log: dict[int, int] = {}
 
-    def move(self, sprite: Fish) -> None:
-        """Move using the fish's composable behavior.
+    def __init__(self) -> None:
+        # Competing movement drives, resolved in priority order. The order is
+        # DATA (the arbiter's list), not statement order spread through move().
+        # See ADR-010 and core.movement.considerations.
+        self._arbiter = MovementArbiter(default_considerations())
 
-        The composable behavior handles all sub-behaviors internally:
-        threat response, food seeking, social behavior, and poker engagement.
+    def move(self, sprite: Fish) -> None:
+        """Move the fish by resolving its competing drives.
+
+        Drives (explicit policy override, ball pursuit, genome code policy, and
+        the composable behavior) are arbitrated by ``self._arbiter`` in priority
+        order; the first active drive's desired velocity is used. If no drive
+        fires (the genome has no composable behavior), fall back to random
+        movement.
         """
         sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
-        genome = sprite_entity.genome
 
-        # Priority 1: Check for explicit movement policy override
-        if sprite_entity.movement_policy is not None:
-            observation = build_movement_observation(sprite_entity)
-            try:
-                desired_velocity = sprite_entity.movement_policy(
-                    observation, sprite_entity.environment.rng
-                )
-            except Exception:
-                logger.debug(
-                    "Movement policy failed for fish %s, falling back to genome behavior",
-                    getattr(sprite_entity, "fish_id", "?"),
-                    exc_info=True,
-                )
-                desired_velocity = None
+        desired_velocity = self._arbiter.decide(self, sprite_entity)
 
-            # If policy returned valid velocity, we use it directly
-            # If it failed/returned None, we fall back to genome behavior below
-        else:
-            desired_velocity = None
-
-        # Priority 2: Check for soccer ball pursuit (HIGHEST after threat!)
-        # This runs BEFORE genome policies so fish actively chase the ball
         if desired_velocity is None:
-            ball_velocity = self._get_ball_pursuit_velocity(sprite_entity)
-            if ball_velocity is not None:
-                desired_velocity = ball_velocity
-
-        # Priority 3: Check for code policy in genome (if no ball pursuit)
-        if desired_velocity is None:
-            desired_velocity = self._execute_policy_if_present(sprite_entity)
-
-        # Priority 4: Use composable behavior from genome
-        if desired_velocity is None:
-            composable_behavior = (
-                genome.behavioral.behavior.value if genome.behavioral.behavior else None
+            # No drive produced a velocity (genome has no composable behavior):
+            # fall back to simple random movement.
+            sprite_entity.add_random_velocity_change(
+                RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
             )
-
-            if composable_behavior is None:
-                # Fallback to simple random movement
-                sprite_entity.add_random_velocity_change(
-                    RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
-                )
-                super().move(sprite_entity)
-                return
-
-            # Execute composable behavior - it handles all sub-behaviors internally
-            desired_velocity = composable_behavior.execute(sprite_entity)
+            super().move(sprite_entity)
+            return
 
         # =========================================================================
         # CONTRACT ENFORCEMENT
@@ -212,6 +184,39 @@ class AlgorithmicMovement(MovementStrategy):
                 vel.y = vel_y * scale
 
         super().move(sprite_entity)
+
+    def _get_policy_override_velocity(self, fish: Fish) -> VelocityComponents | None:
+        """Explicit movement-policy override, if one is set on the fish.
+
+        Returns the policy's velocity directly. Returns None when no policy is
+        set or the policy raises (caller falls through to the next drive).
+        """
+        if fish.movement_policy is None:
+            return None
+        observation = build_movement_observation(fish)
+        try:
+            return fish.movement_policy(observation, fish.environment.rng)
+        except Exception:
+            logger.debug(
+                "Movement policy failed for fish %s, falling back to genome behavior",
+                getattr(fish, "fish_id", "?"),
+                exc_info=True,
+            )
+            return None
+
+    def _get_composable_velocity(self, fish: Fish) -> VelocityComponents | None:
+        """Desired velocity from the genome's composable behavior.
+
+        Returns None when the genome has no composable behavior, signaling the
+        caller to fall back to random movement.
+        """
+        genome = fish.genome
+        composable_behavior = (
+            genome.behavioral.behavior.value if genome.behavioral.behavior else None
+        )
+        if composable_behavior is None:
+            return None
+        return composable_behavior.execute(fish)
 
     def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         """Execute movement policy from genome if configured.
