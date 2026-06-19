@@ -43,7 +43,10 @@ def mutate_code_policy_params(
     eff_mutation_rate = CODE_POLICY_PARAM_MUTATION_RATE * mutation_rate
     eff_strength = CODE_POLICY_PARAM_MUTATION_STRENGTH * mutation_strength
 
-    for key in mutated:
+    # Iterate in sorted key order so RNG is consumed deterministically,
+    # independent of dict insertion order (which can be hash-seed dependent
+    # upstream). Same rationale as ComposableBehavior.mutate. See ADR-012.
+    for key in sorted(mutated):
         if rng.random() < eff_mutation_rate:
             old_val = mutated[key]
             delta = rng.gauss(0, eff_strength)
