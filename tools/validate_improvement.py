@@ -73,7 +73,9 @@ def is_improvement(
 
 
 def update_champion_data(
-    champion_data: dict[str, Any] | None, new_result: dict[str, Any]
+    champion_data: dict[str, Any] | None,
+    new_result: dict[str, Any],
+    retired_reason: str = "Superseded by a higher-scoring champion.",
 ) -> dict[str, Any]:
     """Create updated champion data structure."""
     version = 1
@@ -89,7 +91,7 @@ def update_champion_data(
             "benchmark_id", new_result.get("benchmark_id", "unknown")
         )
         old_record["retired_at"] = time.time()
-        old_record["retired_reason"] = "Superseded by a higher-scoring champion."
+        old_record["retired_reason"] = retired_reason
         old_record["version"] = champion_data.get("version", 1)
         # Prepend so history stays newest-first; test_champion_provenance
         # enforces strictly descending versions. Appending broke that ordering
@@ -121,6 +123,15 @@ def main():
         "--update-champion", action="store_true", help="Overwrite champion if strictly better"
     )
     parser.add_argument(
+        "--rebaseline",
+        action="store_true",
+        help=(
+            "Record this result as the new champion regardless of score, archiving the "
+            "old one. Use when the existing champion no longer reproduces (e.g. after a "
+            "determinism fix). Still requires a matching config_hash."
+        ),
+    )
+    parser.add_argument(
         "--tolerance", type=float, default=1e-9, help="Floating point tolerance for equality"
     )
 
@@ -146,6 +157,21 @@ def main():
             sys.exit(1)
 
         new_score = float(result["score"])
+
+        # Re-baseline: forcibly record the result as the new champion. Used when
+        # the existing champion no longer reproduces (config_hash still matches,
+        # checked above). Bypasses the strictly-better requirement.
+        if args.rebaseline:
+            reason = (
+                "Re-baselined: prior champion no longer reproduced on current "
+                "code (cross-process determinism fix, ADR-012)."
+            )
+            new_champion_data = update_champion_data(champion, result, retired_reason=reason)
+            with open(args.champion_path, "w") as f:
+                json.dump(new_champion_data, f, indent=2)
+            old = f"{float(get_champion_record(champion)['score']):.6f}" if champion else "none"
+            print(f"Re-baselined {args.champion_path}: {old} -> {new_score:.6f}")
+            return
 
         if champion:
             old_score = get_champion_record(champion)["score"]

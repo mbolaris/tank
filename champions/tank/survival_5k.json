@@ -1,37 +1,70 @@
 {
   "benchmark_id": "tank/survival_5k",
-  "version": 3,
+  "version": 4,
   "champion": {
-    "score": 126.96655120000781,
+    "score": 68.28228669966626,
     "seed": 42,
-    "timestamp": 1781278217,
+    "timestamp": 1781906418.4558575,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 3599.7230374925666,
-      "avg_pop": 35.2712,
+      "avg_energy": 2521.2231547341976,
+      "avg_pop": 27.083,
       "extinct": false,
       "samples": 5000,
-      "max_generation": 4,
+      "max_generation": 2,
       "extinction_frames": 0,
-      "starvation_rate": 0.9062,
-      "starvation_deaths": 87,
-      "total_deaths": 96,
+      "starvation_rate": 0.9375,
+      "starvation_deaths": 75,
+      "total_deaths": 80,
       "death_causes": {
-        "starvation": 87,
-        "old_age": 7,
-        "predation": 2
+        "starvation": 75,
+        "predation": 5
       },
-      "diversity_score": 0.2098,
-      "unique_algorithms": 11,
-      "final_fish_count": 29,
-      "final_food_count": 128,
-      "final_total_entities": 351,
+      "diversity_score": 0.212,
+      "unique_algorithms": 6,
+      "final_fish_count": 14,
+      "final_food_count": 155,
+      "final_total_entities": 348,
       "population_scope": "fish",
       "final_total_entities_role": "diagnostic_only"
     },
     "config_hash": "50bf23dff76135a3"
   },
   "history": [
+    {
+      "score": 126.96655120000781,
+      "seed": 42,
+      "timestamp": 1781278217,
+      "metadata": {
+        "frames": 5000,
+        "avg_energy": 3599.7230374925666,
+        "avg_pop": 35.2712,
+        "extinct": false,
+        "samples": 5000,
+        "max_generation": 4,
+        "extinction_frames": 0,
+        "starvation_rate": 0.9062,
+        "starvation_deaths": 87,
+        "total_deaths": 96,
+        "death_causes": {
+          "starvation": 87,
+          "old_age": 7,
+          "predation": 2
+        },
+        "diversity_score": 0.2098,
+        "unique_algorithms": 11,
+        "final_fish_count": 29,
+        "final_food_count": 128,
+        "final_total_entities": 351,
+        "population_scope": "fish",
+        "final_total_entities_role": "diagnostic_only"
+      },
+      "config_hash": "50bf23dff76135a3",
+      "benchmark_id": "tank/survival_5k",
+      "retired_at": 1781906418.623708,
+      "retired_reason": "Re-baselined: prior champion no longer reproduced on current code (cross-process determinism fix, ADR-012).",
+      "version": 3
+    },
     {
       "benchmark_id": "tank/survival_5k",
       "seed": 42,
