@@ -1,7 +1,11 @@
 # ADR-004: Component Composition
 
 ## Status
-Accepted (2024-12)
+Accepted (2024-12). Amended by [ADR-009](009-generic-agent-model-reconciliation.md)
+(2026-06): the speculative `perceive/decide/act` loop and the unused
+`Perception`/`Locomotion`/`Feeding` components were removed. Component
+composition remains the pattern; the components that actually compose `Fish`
+are listed below (energy, lifecycle, reproduction, skill-game, visual).
 
 ## Context
 
