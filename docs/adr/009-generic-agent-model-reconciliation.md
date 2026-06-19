@@ -2,7 +2,10 @@
 
 ## Status
 
-Proposed (2026-06) — supersedes part of [ADR-004](004-component-composition.md)
+Accepted (2026-06) — supersedes part of [ADR-004](004-component-composition.md).
+Implemented via **Option A** (delete the inert loop): the `perceive/decide/act`
+scaffolding and the Perception/Locomotion/Feeding components were removed and
+the docs amended. Behavior-neutral; `fast_gate` green.
 
 ## Context
 
