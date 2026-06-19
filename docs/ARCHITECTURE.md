@@ -26,9 +26,8 @@ tank/
 |-- core/                          # Pure Python simulation (no UI dependencies)
 |   |-- agents/                    # Reusable agent components
 |   |   |-- components/            # PerceptionComponent, LocomotionComponent, FeedingComponent
-|   |-- modes/                     # Mode pack definitions and rulesets
+|   |-- modes/                     # Mode pack definitions
 |   |   |-- interfaces.py          # ModePack, ModePackDefinition protocols
-|   |   |-- rulesets.py            # ModeRuleSet: TankRuleSet, PetriRuleSet, SoccerRuleSet
 |   |   |-- tank.py, petri.py, soccer.py  # Mode configurations
 |   |-- worlds/                    # World backend implementations
 |   |   |-- interfaces.py          # MultiAgentWorldBackend, StepResult
@@ -114,12 +113,6 @@ Modes define configuration, capabilities, and game rules:
   - `mode_id`, `display_name`, `world_type`
   - Capability flags: `supports_persistence`, `supports_actions`, `has_fish`
   - Config normalization and defaults
-
-- **ModeRuleSet** (`rulesets.py`): Game rules abstraction
-  - `EnergyModel`: Existence cost, movement cost, overflow banking
-  - `ScoringModel`: Primary/secondary metrics, reward weights
-  - `ActionSpace`: Allowed actions, movement config
-  - Built-in: `TankRuleSet`, `PetriRuleSet`, `SoccerRuleSet`
 
 ### Agent Components (core/agents/components/)
 
