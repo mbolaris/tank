@@ -228,7 +228,3 @@ class MultiAgentWorldBackend(ABC):
     def world_type(self) -> str:
         """Return the world type identifier."""
         return "unknown"
-
-    def get_recent_poker_events(self, max_age_frames: int = 60) -> list[dict[str, Any]]:
-        """Get recent poker events if supported."""
-        return []

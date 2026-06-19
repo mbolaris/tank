@@ -6,7 +6,7 @@ simulation. Protocols are organized into two categories:
 Entity Capability Protocols (structural subtyping for entity features):
     EnergyHolder, Positionable, Movable, Mortal, Reproducible,
     Consumable, Predator, Identifiable, LifecycleAware, Evolvable,
-    PokerPlayer, SkillGamePlayer, SkillfulAgent
+    PokerPlayer, SkillfulAgent
 
 System Protocols (contracts for simulation subsystems):
     BehaviorStrategy, SimulationStats, EntityManager, FoodSpawner,
@@ -62,7 +62,6 @@ __all__ = [
     "Evolvable",
     "Reproducible",
     "PokerPlayer",
-    "SkillGamePlayer",
     "SkillfulAgent",
     "TraitContainer",
     # System protocols
@@ -87,7 +86,6 @@ if TYPE_CHECKING:
     )
     from core.entities import Agent, Entity
     from core.entities.base import EntityState, LifeStage
-    from core.fish.skill_game_component import SkillGameComponent
     from core.genetics import Genome
     from core.math_utils import Vector2
     from core.poker.core import PokerHand
@@ -279,21 +277,6 @@ class LifecycleAware(Protocol):
     @property
     def life_stage(self) -> "LifeStage":
         """Current life stage (BABY, ADULT, ELDER, etc.)."""
-        ...
-
-
-@runtime_checkable
-class SkillGamePlayer(Protocol):
-    """Any entity that can participate in skill games (poker).
-
-    Distinct from SkillfulAgent: this protocol checks for the component-based
-    skill game interface, while SkillfulAgent checks for the strategy-based
-    interface.
-    """
-
-    @property
-    def skill_game_component(self) -> "SkillGameComponent":
-        """Access to skill game state and logic."""
         ...
 
 

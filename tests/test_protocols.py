@@ -21,7 +21,6 @@ from core.interfaces import (
     Movable,
     Predator,
     Reproducible,
-    SkillGamePlayer,
 )
 
 
@@ -84,19 +83,6 @@ class TestProtocolConformance:
         assert hasattr(fish, "vel")
         assert hasattr(fish, "speed")
         assert callable(fish.update_position)
-
-    @pytest.mark.skip(reason="Fish exposes _skill_game_component as private, not public")
-    def test_fish_implements_skill_game_player(self, sample_fish):
-        """Fish should satisfy the SkillGamePlayer protocol.
-
-        NOTE: Currently fails because Fish stores skill_game_component as
-        _skill_game_component (private). To fully implement SkillGamePlayer protocol,
-        Fish would need a @property skill_game_component getter.
-        """
-        fish = sample_fish()
-
-        assert isinstance(fish, SkillGamePlayer)
-        assert hasattr(fish, "skill_game_component")
 
     def test_fish_implements_identifiable(self, sample_fish):
         """Fish should satisfy the Identifiable protocol."""
