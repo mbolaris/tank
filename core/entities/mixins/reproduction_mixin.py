@@ -25,7 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 class ReproductionMixin:
-    """Mixin providing reproduction behavior for Fish entities.
+    """Fish-only reproduction *policy* layered over ``ReproductionComponent``.
+
+    Holds offspring creation (via ``ReproductionService``) and the
+    protocol-facing API; the component owns reproduction state (credits,
+    cooldown) and the eligibility rule this delegates to. Not a reusable
+    mixin. See ADR-013.
 
     Expects the host class to have:
         _reproduction_component: ReproductionComponent
@@ -97,7 +102,8 @@ class ReproductionMixin:
         Returns:
             The newly created baby fish, or None if creation failed
         """
-        from core.reproduction_service import ReproductionService
         from typing import cast
+
+        from core.reproduction_service import ReproductionService
 
         return ReproductionService.create_asexual_offspring(cast("Fish", self))
