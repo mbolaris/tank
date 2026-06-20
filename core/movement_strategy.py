@@ -195,7 +195,12 @@ class AlgorithmicMovement(MovementStrategy):
             return None
         observation = build_movement_observation(fish)
         try:
-            return fish.movement_policy(observation, fish.environment.rng)
+            # movement_policy is typed Any; pin the declared return type so mypy
+            # (3.10 CI) doesn't flag no-any-return.
+            velocity: VelocityComponents | None = fish.movement_policy(
+                observation, fish.environment.rng
+            )
+            return velocity
         except Exception:
             logger.debug(
                 "Movement policy failed for fish %s, falling back to genome behavior",
