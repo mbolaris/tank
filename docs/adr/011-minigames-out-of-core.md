@@ -65,23 +65,37 @@ events flow on the `EventBus`.
 
 All three are verifiable subtractions: no production caller existed.
 
-### Scoped, not yet done (the load-bearing surface)
+### Soccer event stream moved off the engine (follow-up, shipped)
 
-The still-used engine methods — poker (`handle_poker_result`,
-`add_plant_poker_event`, `get_recent_poker_events`) and soccer
-(`add_soccer_event`, `get_recent_soccer_events`,
-`set/get_soccer_league_live_state`) — are genuine integration points between
-systems and the backend. Removing them is a real refactor: the
-`PokerSystem` / `SoccerEventManager` should own their recent-event streams and
-the backend should read them via the system registry (`engine.get_system(...)`)
-or a generic `get_recent_minigame_events()` aggregator, with writers reaching
-the stream directly rather than through an engine facade.
+The four soccer methods (`add_soccer_event`, `get_recent_soccer_events`,
+`set/get_soccer_league_live_state`) were removed from `SimulationEngine`. The
+`SoccerEventManager` now owns its stream end to end: it gained a
+`frame_provider` (so callers don't thread `frame_count`) plus `record_outcome`
+/ `recent`, and the engine exposes it as a single `soccer_events` property.
+Phase hooks, the backend adapter, the soccer runner command, and the
+`SoccerMixin` were migrated to `engine.soccer_events.*`; the `hasattr(engine,
+"<method>")` capability gates became `hasattr(engine, "soccer_events")`,
+preserving "does this world support soccer?" detection.
 
-This was deliberately **deferred**: it touches backend hooks, phase hooks, and
-UI serialization, so it carries regression risk that the dead-code removal does
-not. It is the next increment, not this one. Shipping the safe slice now (and
-saying so) is preferred over a large risky change that mixes pure subtraction
-with behavior-affecting wiring.
+Behavior-neutral (UI event buffering, not the RNG path): `ecosystem_health_10k`
+seed 42 is byte-identical (4.791812102268079). Verified by the websocket-payload,
+metrics-trends, and soccer-integration tests plus mypy.
+
+### Scoped, not yet done (the load-bearing poker surface)
+
+The still-used **poker** engine methods (`handle_poker_result`,
+`add_plant_poker_event`, `get_recent_poker_events`, plus the `poker_events`
+deque that `poker_mixin` reads directly) are genuine integration points between
+systems and the backend. Removing them is a real refactor: `PokerSystem` should
+own its recent-event stream and the backend should read it via the system
+registry (`engine.get_system(...)`) or a generic `get_recent_minigame_events()`
+aggregator, with writers reaching the stream directly rather than through an
+engine facade. The soccer change above is the template.
+
+This remains **deferred**: it touches backend hooks and UI serialization, so it
+carries regression risk that the dead-code removal does not. Shipping the safe
+slices (and saying so) is preferred over a large risky change that mixes pure
+subtraction with behavior-affecting wiring.
 
 ## Consequences
 
