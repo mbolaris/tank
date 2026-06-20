@@ -24,6 +24,7 @@ from core.entities.visual_state import FishVisualState
 from core.entity_ids import FishId
 from core.math_utils import Vector2
 from core.util.rng import require_rng
+from core.util.stable_hash import stable_algorithm_id
 
 logger = logging.getLogger(__name__)
 
@@ -511,10 +512,9 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         algorithm_name = None
         behavior = self.genome.behavioral.behavior
         if behavior is not None and behavior.value is not None:
-            # Use a hash of the behavior_id for backwards compatibility with integer tracking
-            # The ecosystem stats system expects an integer algorithm_id
+            # ecosystem stats track by a stable integer id derived from behavior_id
             behavior_id = behavior.value.behavior_id
-            algorithm_id = hash(behavior_id) % 1000  # Keep it in a reasonable range
+            algorithm_id = stable_algorithm_id(behavior_id)
             # Extract algorithm name from behavior_id for lineage display
             # behavior_id format is typically "ComposableBehavior(algo1, algo2, ...)"
             # We want a clean display name
@@ -787,7 +787,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         composable = self.genome.behavioral.behavior
         if composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
-            algorithm_id = hash(behavior_id) % 1000
+            algorithm_id = stable_algorithm_id(behavior_id)
         else:
             algorithm_id = 0  # Default algorithm for fish without composable behavior
 

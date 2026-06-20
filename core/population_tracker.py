@@ -12,7 +12,6 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from core.config.ecosystem import TOTAL_ALGORITHM_COUNT
 from core.ecosystem_stats import AlgorithmStats, EcosystemEvent, GenerationStats
 
 if TYPE_CHECKING:
@@ -80,18 +79,23 @@ class PopulationTracker:
         self.next_fish_id: int = 0
 
     def _init_algorithm_stats(self) -> None:
-        """Initialize algorithm stats for all algorithms."""
-        try:
-            from core.algorithms.registry import ALL_ALGORITHMS
+        """Register per-algorithm stats keyed by the composable ``behavior_id``.
 
-            for i, algo_class in enumerate(ALL_ALGORITHMS):
-                algo_name = algo_class.__name__
-                self.algorithm_stats[i] = AlgorithmStats(algorithm_id=i, algorithm_name=algo_name)
-        except ImportError:
-            for i in range(TOTAL_ALGORITHM_COUNT):
-                self.algorithm_stats[i] = AlgorithmStats(
-                    algorithm_id=i, algorithm_name=f"Algorithm_{i}"
-                )
+        Stats are keyed by ``stable_algorithm_id(behavior_id)`` - the SAME id the
+        telemetry sites emit - so birth/death/reproduction counters land in the
+        right bucket. The previous implementation keyed by the enumerate index of
+        the legacy ``ALL_ALGORITHMS`` classes, a different id space from the
+        composable ``behavior_id`` hashes telemetry produced, so the counters were
+        never recorded (ARCHITECTURE_REVIEW item 6; ADR-014).
+        """
+        from core.algorithms.composable.behavior import ComposableBehavior
+        from core.util.stable_hash import stable_algorithm_id
+
+        for behavior_id in ComposableBehavior.all_behavior_ids():
+            algo_id = stable_algorithm_id(behavior_id)
+            self.algorithm_stats[algo_id] = AlgorithmStats(
+                algorithm_id=algo_id, algorithm_name=behavior_id
+            )
 
     def generate_new_fish_id(self) -> int:
         """Generate a new unique fish ID.

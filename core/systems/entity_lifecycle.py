@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
+from core.util.stable_hash import stable_algorithm_id
 
 if TYPE_CHECKING:
     from core.entities import Agent, Fish, Food
@@ -220,7 +221,7 @@ class EntityLifecycleSystem(BaseSystem):
             composable = fish.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 behavior_id = composable.value.behavior_id
-                algorithm_id = hash(behavior_id) % 1000
+                algorithm_id = stable_algorithm_id(behavior_id)
 
             # Track ALL energy lost when fish dies (including banked overflow)
             total_energy_lost = fish.energy + fish._reproduction_component.overflow_energy_bank

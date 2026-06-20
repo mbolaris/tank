@@ -1,113 +1,86 @@
-"""Test script to verify algorithm performance tracking system."""
+"""Per-algorithm stats tracking: registration and telemetry share one id space.
 
-from core.algorithms.registry import ALL_ALGORITHMS
+Regression test for ARCHITECTURE_REVIEW item 6: ``_init_algorithm_stats`` used
+to key stats by the enumerate index of the legacy ``ALL_ALGORITHMS`` classes,
+while telemetry keyed by the composable ``behavior_id`` hash. The two id spaces
+never matched, so per-algorithm counters were never recorded. Both sides now
+derive the key from ``behavior_id`` via ``stable_algorithm_id``.
+"""
+
+from __future__ import annotations
+
+from core.algorithms.composable.behavior import ComposableBehavior
 from core.ecosystem import EcosystemManager
+from core.util.stable_hash import stable_algorithm_id
 
 
-def test_algorithm_stats():
-    """Test the algorithm statistics tracking."""
-    print("Testing Algorithm Performance Tracking System")
-    print("=" * 80)
+def _some_behavior_id() -> str:
+    return ComposableBehavior.all_behavior_ids()[0]
 
-    # Create ecosystem manager
-    ecosystem = EcosystemManager(max_population=50)
 
-    # Verify algorithm stats are initialized
-    print("\n1. Testing initialization...")
-    print(f"   Total algorithms initialized: {len(ecosystem.algorithm_stats)}")
-    assert len(ecosystem.algorithm_stats) == 58, "Should have 58 algorithms"
-    print("   ✓ All 53 algorithms initialized")
+def test_stats_registered_over_all_behavior_ids():
+    eco = EcosystemManager(max_population=50)
+    expected = {stable_algorithm_id(bid) for bid in ComposableBehavior.all_behavior_ids()}
+    assert set(eco.algorithm_stats) == expected
+    # 384 = 4 (threat) x 6 (food) x 4 (social) x 4 (poker)
+    assert len(eco.algorithm_stats) == 384
 
-    # Test a few algorithm names
-    print("\n2. Testing algorithm names...")
-    for i in range(min(5, len(ALL_ALGORITHMS))):
-        algo_class = ALL_ALGORITHMS[i]
-        stats = ecosystem.algorithm_stats[i]
-        print(f"   Algorithm {i}: {stats.algorithm_name}")
-        assert stats.algorithm_name == algo_class.__name__
-    print("   ✓ Algorithm names match")
 
-    # Test recording births
-    print("\n3. Testing birth recording...")
-    ecosystem.record_birth(fish_id=1, generation=0, algorithm_id=0)
-    ecosystem.record_birth(fish_id=2, generation=0, algorithm_id=0)
-    ecosystem.record_birth(fish_id=3, generation=0, algorithm_id=5)
-    assert ecosystem.algorithm_stats[0].total_births == 2
-    assert ecosystem.algorithm_stats[0].current_population == 2
-    assert ecosystem.algorithm_stats[5].total_births == 1
-    print("   ✓ Births recorded correctly")
+def test_all_behavior_ids_have_distinct_stable_ids():
+    """No CRC32 collisions across the fixed behavior_id set (else stats merge)."""
+    ids = [stable_algorithm_id(bid) for bid in ComposableBehavior.all_behavior_ids()]
+    assert len(set(ids)) == len(ids)
 
-    # Test recording deaths
-    print("\n4. Testing death recording...")
-    ecosystem.record_death(fish_id=1, generation=0, age=100, cause="starvation", algorithm_id=0)
-    assert ecosystem.algorithm_stats[0].total_deaths == 1
-    assert ecosystem.algorithm_stats[0].deaths_starvation == 1
-    assert ecosystem.algorithm_stats[0].current_population == 1
-    assert ecosystem.algorithm_stats[0].total_lifespan == 100
-    print("   ✓ Deaths recorded correctly")
 
-    # Test recording reproduction
-    print("\n5. Testing reproduction recording...")
-    ecosystem.record_reproduction(algorithm_id=0)
-    ecosystem.record_reproduction(algorithm_id=0)
-    assert ecosystem.algorithm_stats[0].total_reproductions == 2
-    print("   ✓ Reproductions recorded correctly")
+def test_registration_id_matches_telemetry_id():
+    """The whole point: a behavior_id's registered key is the id telemetry emits."""
+    eco = EcosystemManager(max_population=50)
+    bid = _some_behavior_id()
+    algo_id = stable_algorithm_id(bid)
+    assert algo_id in eco.algorithm_stats
+    assert eco.algorithm_stats[algo_id].algorithm_name == bid
 
-    # Test recording food consumption
-    print("\n6. Testing food consumption recording...")
-    ecosystem.record_food_eaten(algorithm_id=0)
-    ecosystem.record_food_eaten(algorithm_id=0)
-    ecosystem.record_food_eaten(algorithm_id=0)
-    assert ecosystem.algorithm_stats[0].total_food_eaten == 3
-    print("   ✓ Food consumption recorded correctly")
 
-    # Test performance metrics
-    print("\n7. Testing performance metrics...")
-    stats = ecosystem.algorithm_stats[0]
-    avg_lifespan = stats.get_avg_lifespan()
-    reproduction_rate = stats.get_reproduction_rate()
-    survival_rate = stats.get_survival_rate()
-    print(f"   Avg Lifespan: {avg_lifespan}")
-    print(f"   Reproduction Rate: {reproduction_rate:.2%}")
-    print(f"   Survival Rate: {survival_rate:.2%}")
-    assert avg_lifespan == 100.0
-    assert reproduction_rate == 1.0  # 2 reproductions / 2 births
-    assert survival_rate == 0.5  # 1 alive / 2 births
-    print("   ✓ Performance metrics calculated correctly")
+def test_counters_record_against_the_shared_id():
+    eco = EcosystemManager(max_population=50)
+    algo_id = stable_algorithm_id(_some_behavior_id())
 
-    # Test report generation
-    print("\n8. Testing report generation...")
-    # Add more data for a better report
-    for i in range(10):
-        ecosystem.record_birth(fish_id=100 + i, generation=1, algorithm_id=1)
-        ecosystem.record_food_eaten(algorithm_id=1)
-    for i in range(7):
-        ecosystem.record_death(
-            fish_id=100 + i, generation=1, age=150, cause="old_age", algorithm_id=1
+    eco.record_birth(fish_id=1, generation=0, algorithm_id=algo_id)
+    eco.record_birth(fish_id=2, generation=0, algorithm_id=algo_id)
+    eco.record_reproduction(algorithm_id=algo_id)
+    eco.record_food_eaten(algorithm_id=algo_id)
+    eco.record_death(fish_id=1, generation=0, age=100, cause="starvation", algorithm_id=algo_id)
+
+    stats = eco.algorithm_stats[algo_id]
+    assert stats.total_births == 2
+    assert stats.total_reproductions == 1
+    assert stats.total_food_eaten == 1
+    assert stats.total_deaths == 1
+    assert stats.deaths_starvation == 1
+    assert stats.current_population == 1  # 2 born - 1 died
+    assert stats.total_lifespan == 100
+
+
+def test_unregistered_id_is_ignored_not_crashed():
+    """A behavior_id not in the (complete) registry must not raise."""
+    eco = EcosystemManager(max_population=50)
+    eco.record_birth(fish_id=1, generation=0, algorithm_id=stable_algorithm_id("not-a-real-id"))
+    # No matching bucket -> nothing recorded, no exception.
+    assert all(s.total_births == 0 for s in eco.algorithm_stats.values())
+
+
+def test_report_generation_smoke():
+    eco = EcosystemManager(max_population=50)
+    algo_id = stable_algorithm_id(_some_behavior_id())
+    for i in range(5):
+        eco.record_birth(fish_id=100 + i, generation=1, algorithm_id=algo_id)
+        eco.record_food_eaten(algorithm_id=algo_id)
+    for i in range(3):
+        eco.record_death(
+            fish_id=100 + i, generation=1, age=150, cause="old_age", algorithm_id=algo_id
         )
-    ecosystem.record_reproduction(algorithm_id=1)
-    ecosystem.record_reproduction(algorithm_id=1)
-    ecosystem.record_reproduction(algorithm_id=1)
+    eco.record_reproduction(algorithm_id=algo_id)
 
-    report = ecosystem.get_algorithm_performance_report(min_sample_size=2)
-    assert len(report) > 0
+    report = eco.get_algorithm_performance_report(min_sample_size=2)
     assert "ALGORITHM PERFORMANCE REPORT" in report
     assert "TOP PERFORMING ALGORITHMS" in report
-    print("   ✓ Report generated successfully")
-    print("\n   Report preview (first 500 chars):")
-    print("   " + "-" * 76)
-    for line in report[:500].split("\n"):
-        print(f"   {line}")
-    print("   " + "-" * 76)
-
-    print("\n" + "=" * 80)
-    print("ALL TESTS PASSED! ✓")
-    print("=" * 80)
-
-    # Print full report
-    print("\n\nFULL ALGORITHM PERFORMANCE REPORT:")
-    print(report)
-
-
-if __name__ == "__main__":
-    test_algorithm_stats()
