@@ -3,13 +3,30 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.entities.base import Agent, EntityState, EntityUpdateResult
-from core.entities.generic_agent_types import AgentComponents
 
 if TYPE_CHECKING:
+    from core.agents.components.lifecycle_component import LifecycleComponent
+    from core.agents.components.reproduction_component import ReproductionComponent
+    from core.energy.energy_component import EnergyComponent
     from core.world import World
+
+
+@dataclass
+class AgentComponents:
+    """Components a GenericAgent delegates core state to.
+
+    Each field is the single owner of one concern. Subclasses supply the
+    components they need via ``GenericAgent._create_components`` (or by
+    passing an instance to the constructor); unset concerns stay ``None``.
+    """
+
+    energy: EnergyComponent | None = None
+    lifecycle: LifecycleComponent | None = None
+    reproduction: ReproductionComponent | None = None
 
 
 class GenericAgent(Agent):

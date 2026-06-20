@@ -15,13 +15,35 @@ Design Notes:
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-from core.simulation.frame_context import FrameContext
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
+
+
+@dataclass
+class FrameContext:
+    """Explicit per-frame state passed through pipeline steps.
+
+    This replaces the ad-hoc engine._pipeline_* attributes that were used
+    to pass data between pipeline steps. All per-frame computed values
+    should be stored here rather than on the engine.
+
+    Attributes:
+        time_modifier: Activity modifier from day/night cycle (0.0-1.0+)
+        time_of_day: Current time of day (0.0-1.0, 0=midnight, 0.5=noon)
+        new_entities: Entities spawned during entity_act phase
+        entities_to_remove: Entities marked for removal during entity_act phase
+    """
+
+    # Time values computed in TIME_UPDATE phase, used in ENTITY_ACT
+    time_modifier: float = 1.0
+    time_of_day: float = 0.5
+
+    # Entity lists computed in ENTITY_ACT phase, used in LIFECYCLE
+    new_entities: list[Any] = field(default_factory=list)
+    entities_to_remove: list[Any] = field(default_factory=list)
 
 
 @dataclass
