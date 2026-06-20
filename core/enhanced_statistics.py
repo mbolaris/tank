@@ -14,6 +14,8 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from core.util.stable_hash import stable_algorithm_id
+
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.entities import Fish
@@ -215,7 +217,7 @@ class EnhancedStatisticsTracker:
             composable = f.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 behavior_id = composable.value.behavior_id
-                algo_id = hash(behavior_id) % 1000
+                algo_id = stable_algorithm_id(behavior_id)  # process-stable; see ADR-014
                 algorithms.add(algo_id)
                 self.algorithm_last_seen[algo_id] = frame
 

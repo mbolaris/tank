@@ -38,8 +38,13 @@ class GeneticDiversityTracker:
 
             composable = genome.behavioral.behavior
             if composable is not None and composable.value is not None:
+                # Count distinct behavior_ids directly. The old
+                # ``hash(behavior_id) % 1000`` was process-randomized (PYTHONHASHSEED)
+                # AND collision-prone, making unique_algorithms - and the
+                # ecosystem_health benchmark score it feeds - non-reproducible. See
+                # ADR-014.
                 behavior_id = composable.value.behavior_id
-                algorithms.add(hash(behavior_id) % 1000)
+                algorithms.add(behavior_id)
 
             species.add(fish.species)
             color_hues.append(genome.physical.color_hue.value)

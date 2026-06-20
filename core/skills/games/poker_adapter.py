@@ -34,6 +34,7 @@ from core.skills.base import (
     SkillStrategy,
 )
 from core.util.rng import get_rng_or_default
+from core.util.stable_hash import stable_algorithm_id
 
 
 @dataclass
@@ -114,7 +115,8 @@ class PokerSkillStrategy(SkillStrategy[BettingAction]):
             Dict of strategy parameters
         """
         params = dict(self._strategy.parameters)
-        params["strategy_type"] = hash(type(self._strategy).__name__) % 1000
+        # Stable across processes (builtin hash(str) is not); diagnostic only. See ADR-014.
+        params["strategy_type"] = float(stable_algorithm_id(type(self._strategy).__name__))
         return params
 
     def set_parameters(self, params: dict[str, float]) -> None:
