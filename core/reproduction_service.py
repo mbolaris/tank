@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from core.energy.energy_utils import apply_energy_delta
+from core.util.stable_hash import stable_algorithm_id
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -546,7 +547,7 @@ class ReproductionService:
             composable = winner.genome.behavioral.behavior
             if composable is not None and composable.value is not None:
                 behavior_id = composable.value.behavior_id
-                algorithm_id = hash(behavior_id) % 1000
+                algorithm_id = stable_algorithm_id(behavior_id)
                 winner.ecosystem.record_reproduction(algorithm_id, is_asexual=False)
             winner.ecosystem.record_mating_attempt(True)
 
@@ -632,7 +633,7 @@ class ReproductionService:
         composable = fish.genome.behavioral.behavior
         if composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
-            algorithm_id = hash(behavior_id) % 1000
+            algorithm_id = stable_algorithm_id(behavior_id)
             emit_event = getattr(fish, "_emit_event", None)
             if callable(emit_event):
                 emit_event(ReproductionEvent(algorithm_id, is_asexual=True))

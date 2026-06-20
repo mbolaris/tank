@@ -21,6 +21,7 @@ architectural choices made during development.
 | [ADR-012](012-hash-seed-determinism.md) | Cross-Process Determinism (Hash-Seed Independence) | Accepted | 2026-06 |
 | [ADR-013](013-collapse-generic-agent-state-layer.md) | Collapse the GenericAgent State Layer | Accepted | 2026-06 |
 | [ADR-014](014-deterministic-algorithm-ids.md) | Deterministic Algorithm / Diversity IDs | Accepted | 2026-06 |
+| [ADR-015](015-per-algorithm-stats-keying.md) | Per-Algorithm Stats Keyed by Composable behavior_id | Accepted | 2026-06 |
 
 ## What is an ADR?
 

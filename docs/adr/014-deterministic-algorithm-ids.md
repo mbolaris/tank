@@ -85,6 +85,9 @@ The proper fix (decide that per-algorithm stats track composable `behavior_id`s,
 and share `stable_algorithm_id` at both registration and telemetry) is a
 dedicated change tracked in `docs/ARCHITECTURE_REVIEW.md`.
 
+**Update:** subsequently implemented in
+[ADR-015](015-per-algorithm-stats-keying.md).
+
 ## Verification
 
 - `mypy` clean (332 files); `fast_gate` 1728 passed; new `test_stable_hash.py`

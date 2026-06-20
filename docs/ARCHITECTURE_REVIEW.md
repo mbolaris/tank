@@ -66,7 +66,8 @@ the code, 2026-06):
 | Agent/component docs realigned to code (ADR-009 step 4 finished) | CLAUDE.md, `docs/ARCHITECTURE.md` (7 spots incl. runnable examples), and the `core/entities/base.py` module docstring no longer describe the deleted Perception/Locomotion/Feeding components or the `perceive/decide/act` loop; hierarchy now shown as `Entity → MobileEntity → Agent → GenericAgent → Fish` |
 | Orphaned `soccer_evolution` experiment removed | `core/experiments/` (module + empty package) and its two only-consumer tests deleted; no production code imported it, and it used bare `random` against the `core.util.rng` determinism rule |
 | ADR-013 Step 2 resolved (mixin/component layering kept) | Investigated the Fish mixin↔component split: intentional layering (Fish/world *policy* in the mixins over pure-state components), not a duplicate model — so "retire the mixins" was withdrawn. Deleted the one real dead duplicate (`EnergyManagementMixin._apply_energy_gain_internal`, an uncalled clone of `modify_energy`'s overflow path) and rewrote the docstrings to state the policy-vs-state, Fish-only nature. Behavior-neutral. ADR-013 Step 2 |
-| Benchmark diversity metric made cross-process deterministic (was: process-randomized `hash(str)`) | `core/util/stable_hash.py` adds `stable_algorithm_id` (CRC32); `genetic_diversity_tracker` now counts `behavior_id` strings directly (deterministic + collision-free), and `enhanced_statistics`/`poker_adapter` use the stable id. `ecosystem_health_10k` now scores identically across separate processes; both tank champions still reproduce (`validate_reproduction` passes), so no re-baseline was needed. `tests/test_stable_hash.py` (incl. a subprocess cross-process check) guards it. ADR-014. The four telemetry `algorithm_id` sites are deliberately left for the separate keying fix (open item 6) |
+| Benchmark diversity metric made cross-process deterministic (was: process-randomized `hash(str)`) | `core/util/stable_hash.py` adds `stable_algorithm_id` (CRC32); `genetic_diversity_tracker` now counts `behavior_id` strings directly (deterministic + collision-free), and `enhanced_statistics`/`poker_adapter` use the stable id. `ecosystem_health_10k` now scores identically across separate processes; both tank champions still reproduce (`validate_reproduction` passes), so no re-baseline was needed. `tests/test_stable_hash.py` (incl. a subprocess cross-process check) guards it. ADR-014. The four telemetry `algorithm_id` sites were deliberately left for the separate keying fix — now done in ADR-015 |
+| Per-algorithm stats re-keyed to the composable `behavior_id` (was: registration by legacy `ALL_ALGORITHMS` enumerate-index vs telemetry by `behavior_id` hash → counters never recorded, names always "Unknown") | Registration (`population_tracker._init_algorithm_stats`) and the 5 telemetry sites now both derive the key from `behavior_id` via `stable_algorithm_id`; `ComposableBehavior.all_behavior_ids()` enumerates the 384-combo key space. End-to-end: a seed-42 run now records births/deaths/reproductions across ~91 behaviors with real names (was ~0 / "Unknown"). Telemetry-only — champions still reproduce. `tests/test_algorithm_tracking.py` rewritten to cover the shared id space. ADR-015 |
 
 ## Open items
 
@@ -141,26 +142,6 @@ across the rest of `core/`. Still incremental, still test-backed.
 order). Same "code written against a field the abstraction doesn't have" theme.
 Fix by reading `fish.poker_stats` directly (or exposing it on `components`).
 Low urgency (benchmark-only), but it means that selection currently does nothing.
-
-### 6. Per-algorithm stats are mis-keyed: legacy registry index vs composable `behavior_id`
-`_init_algorithm_stats` (`core/population_tracker.py:82`) keys `algorithm_stats`
-by the **enumerate index of the 58 legacy `ALL_ALGORITHMS` classes**, but the
-telemetry callers compute `algorithm_id` from the composable `behavior_id`
-(`core/reproduction_service.py:549` & `:635`, `core/systems/entity_lifecycle.py:223`,
-`core/entities/fish.py:790` — still `hash(behavior_id) % 1000` today). These are
-two unrelated id spaces, so `algorithm_id in algorithm_stats` almost never
-matches: per-algorithm birth/death/reproduction counts go unrecorded and
-`algorithm_name` resolves to `"Unknown"`. `tests/test_algorithm_tracking.py`
-passes only because it injects literal ids (`0`/`1`/`5`) and never exercises the
-telemetry path. ADR-014 fixed the *determinism* of the diversity metric but
-deliberately left these four telemetry sites alone: a hash swap would only make
-broken stats *deterministically* broken without fixing the keying.
-
-Proper fix (its own change): decide that per-algorithm stats track composable
-`behavior_id`s, build the registration map over that key space, and have both
-registration and telemetry derive ids via
-`core/util/stable_hash.stable_algorithm_id`. Until then the per-algorithm
-performance report is not trustworthy. Discovered during the ADR-014 work.
 
 ## Design principles to maintain
 

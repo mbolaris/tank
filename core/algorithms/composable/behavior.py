@@ -48,17 +48,54 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     _zigzag_phase: float = field(default=0.0, repr=False)
     _patrol_angle: float = field(default=0.0, repr=False)
 
+    @staticmethod
+    def _format_behavior_id(
+        threat_response: ThreatResponse,
+        food_approach: FoodApproach,
+        social_mode: SocialMode,
+        poker_engagement: PokerEngagement,
+    ) -> str:
+        """Canonical ``behavior_id`` format - the single source of truth.
+
+        Used by both :attr:`behavior_id` and :meth:`all_behavior_ids`, so the
+        per-algorithm stats registration (which enumerates ids) can never drift
+        from the ids telemetry actually emits.
+        """
+        return "-".join(
+            [
+                threat_response.name,
+                food_approach.name,
+                social_mode.name,
+                poker_engagement.name,
+            ]
+        ).lower()
+
     @property
     def behavior_id(self) -> str:
         """Get a unique string identifier for this behavior configuration."""
-        return "-".join(
-            [
-                self.threat_response.name,
-                self.food_approach.name,
-                self.social_mode.name,
-                self.poker_engagement.name,
-            ]
-        ).lower()
+        return self._format_behavior_id(
+            self.threat_response,
+            self.food_approach,
+            self.social_mode,
+            self.poker_engagement,
+        )
+
+    @classmethod
+    def all_behavior_ids(cls) -> list[str]:
+        """Every possible ``behavior_id`` (the full enum product), stable order.
+
+        Lets per-algorithm stats register over the real key space - the
+        composable behaviors fish actually use - instead of the legacy
+        ``ALL_ALGORITHMS`` classes, whose enumerate-index ids never matched the
+        ids telemetry emits. See ADR-014 / ARCHITECTURE_REVIEW item 6.
+        """
+        return [
+            cls._format_behavior_id(threat, food, social, poker)
+            for threat in ThreatResponse
+            for food in FoodApproach
+            for social in SocialMode
+            for poker in PokerEngagement
+        ]
 
     @property
     def short_description(self) -> str:
