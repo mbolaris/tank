@@ -21,7 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 class MortalityMixin:
-    """Mixin providing death detection and cause attribution for Fish entities.
+    """Fish-only mortality *policy*: death detection, cause attribution, migration.
+
+    Mortality has no separate state component - death and migration are pure
+    Fish/world policy - so this reads lifecycle/energy state and the entity
+    state machine directly. Not a reusable mixin. See ADR-013.
 
     Expects the host class to have:
         _energy_component: EnergyComponent

@@ -30,7 +30,12 @@ logger = logging.getLogger(__name__)
 
 
 class EnergyManagementMixin:
-    """Mixin providing energy management for Fish entities.
+    """Fish-only energy *policy* layered over the pure-state ``EnergyComponent``.
+
+    Holds the overflow-routing policy (bank surplus for reproduction, then spill
+    the remainder to a food drop) and the protocol-facing energy API; the
+    component owns the energy value and metabolism math. Not a reusable mixin -
+    it wires in Fish/world specifics. See ADR-013.
 
     Expects the host class to have:
         _energy_component: EnergyComponent
@@ -109,23 +114,6 @@ class EnergyManagementMixin:
         """
         self.modify_energy(amount, source="ate_food")
         return amount
-
-    def _apply_energy_gain_internal(self, amount: float) -> float:
-        """Internal logic to apply energy gain and route overflow."""
-        old_energy = self._energy_component.energy
-        new_energy = old_energy + amount
-
-        if new_energy > self.max_energy:
-            overflow = new_energy - self.max_energy
-            self._energy_component.energy = self.max_energy
-            self._route_overflow_energy(overflow)
-        else:
-            self._energy_component.energy = new_energy
-
-        if self._energy_component.energy > 0 and self.state.state == EntityState.ACTIVE:
-            self._cached_is_dead = False
-
-        return self._energy_component.energy - old_energy
 
     def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
         """Adjust energy by a specified amount, routing overflow productively.

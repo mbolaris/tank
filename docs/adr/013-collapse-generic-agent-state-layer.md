@@ -104,16 +104,31 @@ via its mixins), not the generic base. `Fish` is otherwise unchanged.
   subclass concern. A future second agent type adds its own path deliberately
   (see Step 2), rather than silently inheriting a divergent default.
 
-## Follow-up (Step 2 — separate PR)
+## Follow-up (Step 2 — investigated; layering kept)
 
-`Fish` still carries **two** models for the same three concerns: the
-inheritance-based **mixins** *and* the **components** they delegate to. That is
-the next "one concept, one implementation" step. Recommended direction:
-make **components** the single canonical home (the model the architecture
-champions; the mixins are an inheritance escape hatch) and retire the mixins.
-This is behavior-sensitive — the overflow-routing path must stay byte-identical
-for determinism and champion benchmarks — so it earns its own ADR plus
-benchmark validation, and is deliberately **out of scope here**.
+The original draft of this ADR proposed a further step: `Fish` also carries the
+inheritance **mixins** (`EnergyManagementMixin`, `MortalityMixin`,
+`ReproductionMixin`) *and* the **components** they use, so "retire the mixins in
+favor of components." Close inspection showed that was the wrong call:
+
+- The two are a **layering, not a duplicate model.** The components are pure
+  state + math/rules with no `Fish`/`world` coupling (independently
+  unit-testable); the mixins are Fish/world *policy* over them (overflow →
+  reproduction bank → food drop, migration, offspring via `ReproductionService`).
+  The mixins **delegate** to the components — they do not re-implement them.
+- The mixin policy **cannot** move down into the components without coupling
+  them to the world (it spawns `Food`), which would defeat their testability.
+  And the components are not shared (Plant has its own `Plant*Component` family),
+  so there is no reuse pressure forcing a merge.
+- "Retiring the mixins" therefore means inlining ~520 lines into an already
+  809-line `fish.py` (~1300 lines) — strictly worse, for no dedup.
+
+So Step 2 was reduced to a **targeted cleanup** (done): delete the one genuinely
+dead duplicate in the layer — `EnergyManagementMixin._apply_energy_gain_internal`,
+an uncalled re-implementation of `modify_energy`'s overflow path — and make the
+mixin/component docstrings state the policy-vs-state split and the Fish-only
+nature explicitly, so the layer is not mistaken for reusable infrastructure or a
+second model. The layering itself is **intentional and retained**.
 
 ## Related
 - [ADR-009: Reconcile the GenericAgent Component Model](009-generic-agent-model-reconciliation.md) (extended by this ADR)
