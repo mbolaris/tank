@@ -62,6 +62,9 @@ the code, 2026-06):
 | Engine-level poker event storage removed | `PokerSystem` owns `poker_events`; backend hooks and tests read `engine.poker_system.poker_events` directly, leaving the generic engine without duplicate poker-specific state. See ADR-011 |
 | SystemResult contract made fail-fast | `BaseSystem.update()` now raises `TypeError` when `_do_update()` returns anything other than `SystemResult`, instead of normalizing invalid `None` returns to an empty result |
 | Tank adapter minigame event facades removed | `TankWorldBackendAdapter` no longer exposes `get_recent_poker_events()` or `get_soccer_league_live_state()` pass-throughs; backend hooks read `PokerSystem` and `SoccerEventManager` directly |
+| GenericAgent state layer collapsed (was: energy/death/reproduction duplicated by Fish mixins *and* the base) | `core/entities/generic_agent.py` — removed the shadowed, divergent `energy`/`max_energy`/`size`/`modify_energy`/`is_dead`/`can_reproduce` (the mixins on `Fish`, its only subclass, always won the MRO; `GenericAgent.modify_energy` had silently diverged — it dropped overflow energy instead of banking it for reproduction) plus the now-unread `AgentComponents.energy` field; made `update` abstractness real via `ABC`. Behavior-neutral (seed-42 30k-frame headless byte-identical). ADR-013, extending ADR-009 to the state layer |
+| Agent/component docs realigned to code (ADR-009 step 4 finished) | CLAUDE.md, `docs/ARCHITECTURE.md` (7 spots incl. runnable examples), and the `core/entities/base.py` module docstring no longer describe the deleted Perception/Locomotion/Feeding components or the `perceive/decide/act` loop; hierarchy now shown as `Entity → MobileEntity → Agent → GenericAgent → Fish` |
+| Orphaned `soccer_evolution` experiment removed | `core/experiments/` (module + empty package) and its two only-consumer tests deleted; no production code imported it, and it used bare `random` against the `core.util.rng` determinism rule |
 
 ## Open items
 
@@ -127,6 +130,26 @@ Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
 diff (identical simulation state). ~199 cycle-safe in-function imports remain
 across the rest of `core/`. Still incremental, still test-backed.
+
+### 5. Agent state model: mixins vs components (ADR-013 Step 2)
+`Fish` still carries **two** parallel models for the same three concerns: the
+inheritance mixins (`EnergyManagementMixin`, `MortalityMixin`,
+`ReproductionMixin`) *and* the components they delegate to (`EnergyComponent` +
+`AgentComponents`). ADR-013 removed the *third* (inert) copy on `GenericAgent`;
+the next step is to pick one canonical home — recommend **components** (the model
+the architecture champions; mixins are an inheritance escape hatch) — and retire
+the other. Behavior-sensitive: the overflow-routing path must stay byte-identical
+for determinism and champion benchmarks, so it earns its own ADR + benchmark
+validation. Do not start ad hoc.
+
+### 6. `periodic_benchmark` top-fish selection is a silent no-op (latent)
+`core/poker/evaluation/periodic_benchmark.py:49` sorts candidates by
+`f.components.poker_stats.total_winnings`, but `AgentComponents` has no
+`poker_stats` field, so the `hasattr(f.components, "poker_stats")` guard is
+*always false* and every fish sorts with key `0` (top-N = first-N in input
+order). Same "code written against a field the abstraction doesn't have" theme.
+Fix by reading `fish.poker_stats` directly (or exposing it on `components`).
+Low urgency (benchmark-only), but it means that selection currently does nothing.
 
 ## Design principles to maintain
 
