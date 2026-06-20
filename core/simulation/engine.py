@@ -61,7 +61,6 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-    from core.poker_interaction import PokerInteraction
     from core.poker_system import PokerSystem
     from core.reproduction_service import ReproductionService
     from core.reproduction_system import ReproductionSystem
@@ -517,13 +516,8 @@ class SimulationEngine:
         return self.frame_aggregator.create_energy_recorder(self._get_entity_identity)
 
     # =========================================================================
-    # Poker Events
+    # Plant Sprouting
     # =========================================================================
-
-    def handle_poker_result(self, poker: PokerInteraction) -> None:
-        """Handle poker result (compatibility method)."""
-        if self.poker_system:
-            self.poker_system.handle_poker_result(poker)
 
     def sprout_new_plant(self, parent_genome: Any, parent_x: float, parent_y: float) -> Any:
         """Delegate plant sprouting to plant manager."""
@@ -532,33 +526,6 @@ class SimulationEngine:
         return self.plant_manager.sprout_new_plant(
             parent_genome, parent_x, parent_y, self._entity_manager.entities_list
         )
-
-    def get_recent_poker_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
-        """Get recent poker events (within max_age_frames)."""
-        if not self.poker_system:
-            return []
-        max_age = max_age_frames or self.config.poker.poker_event_max_age_frames
-        return self.poker_system.get_recent_poker_events(max_age)
-
-    def add_plant_poker_event(
-        self,
-        fish_id: int,
-        plant_id: int,
-        fish_won: bool,
-        fish_hand: str,
-        plant_hand: str,
-        energy_transferred: float,
-    ) -> None:
-        """Delegate plant poker events to the poker system."""
-        if self.poker_system:
-            self.poker_system.add_plant_poker_event(
-                fish_id,
-                plant_id,
-                fish_won,
-                fish_hand,
-                plant_hand,
-                energy_transferred,
-            )
 
     # =========================================================================
     # Soccer Events
