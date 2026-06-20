@@ -267,14 +267,13 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         if modified_speed > max_allowed_speed:
             modified_speed = max_allowed_speed
 
-        # Package components for GenericAgent
-        # Fish manages its own components but passes them through for protocol compliance
+        # GenericAgent only needs the lifecycle/reproduction accessors. Fish owns
+        # its energy policy via EnergyManagementMixin over self._energy_component,
+        # and its behavior via BehaviorExecutor - so neither is delegated here.
+        # See ADR-009 (behavior) and ADR-013 (energy/mortality state).
         components = AgentComponents(
-            energy=self._energy_component,
             lifecycle=self._lifecycle_component,
             reproduction=self._reproduction_component,
-            # Fish doesn't use GenericAgent's perception/locomotion/feeding
-            # as it has its own memory_system, behavior_executor, and eat() method
         )
 
         super().__init__(
