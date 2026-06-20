@@ -81,21 +81,37 @@ Behavior-neutral (UI event buffering, not the RNG path): `ecosystem_health_10k`
 seed 42 is byte-identical (4.791812102268079). Verified by the websocket-payload,
 metrics-trends, and soccer-integration tests plus mypy.
 
-### Scoped, not yet done (the load-bearing poker surface)
+### Poker facade methods removed (follow-up, shipped)
 
-The still-used **poker** engine methods (`handle_poker_result`,
-`add_plant_poker_event`, `get_recent_poker_events`, plus the `poker_events`
-deque that `poker_mixin` reads directly) are genuine integration points between
-systems and the backend. Removing them is a real refactor: `PokerSystem` should
-own its recent-event stream and the backend should read it via the system
-registry (`engine.get_system(...)`) or a generic `get_recent_minigame_events()`
-aggregator, with writers reaching the stream directly rather than through an
-engine facade. The soccer change above is the template.
+The three poker facade methods (`handle_poker_result`, `get_recent_poker_events`,
+`add_plant_poker_event`) were removed from `SimulationEngine`. `PokerSystem` is
+already a registered system exposed as `engine.poker_system`, so callers now use
+it directly:
 
-This remains **deferred**: it touches backend hooks and UI serialization, so it
-carries regression risk that the dead-code removal does not. Shipping the safe
-slices (and saying so) is preferred over a large risky change that mixes pure
-subtraction with behavior-affecting wiring.
+- `poker_proximity` → `engine.poker_system.handle_poker_result` (guarded)
+- `tank` backend poker-event collection → `engine.poker_system.get_recent_poker_events`
+- `PokerSystem.handle_mixed_poker_games` previously bounced plant events through
+  `engine.add_plant_poker_event`, which delegated *right back* to the same
+  `PokerSystem` (a circular round-trip guarded by `hasattr`). It now calls
+  `self.add_plant_poker_event` directly; the dead engine hop and guard are gone.
+
+Behavior-neutral: `ecosystem_health_10k` seed 42 is byte-identical
+(4.791812102268079); poker-system, mixed-poker-with-plants, adapter-hot-path,
+and websocket-payload tests pass, plus mypy.
+
+### Known remaining issue (needs app verification, not done)
+
+`engine.poker_events` is a **dead deque** — allocated but never written (the
+real events live in `poker_system.poker_events`). Yet `poker_mixin` reads
+`engine.poker_events` to build the world-extras `poker_events` payload, which the
+frontend consumes as `snapshot.poker_events` — so that path appears to deliver an
+**empty** poker-event list. Fixing it (point `poker_mixin` at
+`poker_system.poker_events` and delete the dead deque) is a UI-affecting change:
+the poker dashboard's contents would change, and there is a parallel
+`snapshot.events` poker path that could then double up. That needs verification
+against the running frontend, which this environment can't exercise, so it is
+**intentionally left** rather than fixed blind. It is the last poker-specific
+state on the engine.
 
 ## Consequences
 

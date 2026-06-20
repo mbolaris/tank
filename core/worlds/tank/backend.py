@@ -553,7 +553,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         # Collect recent poker events
         try:
-            poker_events = self._engine.get_recent_poker_events(max_age_frames=60)
+            poker_system = self._engine.poker_system
+            poker_events = poker_system.get_recent_poker_events(60) if poker_system else []
             for poker_event in poker_events:
                 events.append(
                     {
@@ -676,9 +677,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
     def get_recent_poker_events(self, max_age_frames: int = 180) -> list[dict[str, Any]]:
         """Get recent poker events (TankWorld API compatibility)."""
-        if self._engine is None:
+        if self._engine is None or self._engine.poker_system is None:
             return []
-        return self._engine.get_recent_poker_events(max_age_frames)
+        return self._engine.poker_system.get_recent_poker_events(max_age_frames)
 
     def get_soccer_league_live_state(self) -> dict[str, Any] | None:
         """Get live league match state for rendering."""

@@ -273,7 +273,9 @@ class PokerProximitySystem(BaseSystem):
                     rng = getattr(self._engine, "rng", None)
                     poker = PokerInteraction(sub_group, rng=rng)
                     if poker.play_poker():
-                        self._engine.handle_poker_result(poker)
+                        poker_system = self._engine.poker_system
+                        if poker_system is not None:
+                            poker_system.handle_poker_result(poker)
                         games_triggered += 1
 
                         # Handle deaths from poker

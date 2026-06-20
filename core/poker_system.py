@@ -409,7 +409,7 @@ class PokerSystem(BaseSystem):
         result = poker.result
 
         # Add poker event for display
-        if hasattr(self._engine, "add_plant_poker_event") and result.plant_count > 0:
+        if result.plant_count > 0:
             from core.entities import Fish
             from core.entities.plant import Plant
 
@@ -454,7 +454,9 @@ class PokerSystem(BaseSystem):
                     ):
                         fish_display_id = player.fish_id
 
-            self._engine.add_plant_poker_event(
+            # Record directly on the owning system instead of bouncing through
+            # the engine (which delegated right back here). See ADR-011.
+            self.add_plant_poker_event(
                 fish_id=fish_display_id,
                 plant_id=plant_display_id,
                 fish_won=winner_is_fish,
