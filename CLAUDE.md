@@ -60,7 +60,7 @@ tank/
       tank/                  # Tank world implementation
       petri/                 # Petri dish implementation
     modes/                   # Game rulesets (TankRuleSet, PetriRuleSet, SoccerRuleSet)
-    agents/components/       # Reusable: PerceptionComponent, LocomotionComponent, FeedingComponent
+    agents/components/       # Shared agent state components (LifecycleComponent, ReproductionComponent)
     entities/                # Fish, Plant, Crab, Food, PlantNectar, Castle
     poker/                   # Full poker engine (core/, evaluation/, simulation/, strategy/)
     genetics/                # Genome, traits, inheritance
@@ -107,7 +107,7 @@ tank/
 - `core/simulation/engine.py` - Main simulation engine (phase-based)
 - `core/modes/rulesets.py` - Game rule encapsulation
 - `core/algorithms/composable/` - Composable behavior library (58 strategies)
-- `core/agents/components/` - Component system for agent building blocks
+- `core/agents/components/` - Shared agent state components (lifecycle, reproduction); Fish composes these plus `EnergyComponent` and delegates behavior to `BehaviorExecutor` (see ADR-004, ADR-009)
 
 ## CI Pipeline
 
