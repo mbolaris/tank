@@ -562,3 +562,89 @@ class ReproductionService:
         )
 
         return baby
+
+    @staticmethod
+    def create_asexual_offspring(fish: Fish) -> Fish | None:
+        """Create an offspring from a parent fish through asexual reproduction."""
+        from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE, FISH_BASE_SPEED
+        from core.entities.fish import Fish
+        from core.telemetry.events import ReproductionEvent
+        from core.util.rng import require_rng
+
+        rng = require_rng(fish.environment, "ReproductionService.create_asexual_offspring")
+
+        # Generate offspring genome (also sets cooldown)
+        (
+            offspring_genome,
+            _unused_fraction,
+        ) = fish._reproduction_component.trigger_asexual_reproduction(
+            fish.genome,
+            rng=rng,
+        )
+
+        # Pool-aware per-kind policy mutation
+        pool = getattr(fish.environment, "genome_code_pool", None)
+        if pool is not None:
+            from core.genetics.code_policy_traits import (
+                mutate_code_policies,
+                validate_code_policy_ids,
+            )
+
+            mutate_code_policies(offspring_genome.behavioral, pool, rng)
+            validate_code_policy_ids(offspring_genome.behavioral, pool, rng)
+
+        # Calculate baby's max energy capacity
+        baby_max_energy = (
+            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
+        )
+
+        # Use banked overflow energy first, then draw from parent
+        bank_used = fish._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
+        remaining_needed = baby_max_energy - bank_used
+        parent_transfer = min(fish.energy, remaining_needed)
+        apply_energy_delta(fish, -parent_transfer, source="asexual_reproduction")
+        baby_initial_energy = bank_used + parent_transfer
+
+        # Create offspring near parent
+        bounds = fish.environment.get_bounds()
+        (min_x, min_y), (max_x, max_y) = bounds
+
+        offset_x = rng.uniform(-30, 30)
+        offset_y = rng.uniform(-30, 30)
+        baby_x = max(min_x, min(max_x - 50, fish.pos.x + offset_x))
+        baby_y = max(min_y, min(max_y - 50, fish.pos.y + offset_y))
+
+        baby = Fish(
+            environment=fish.environment,
+            movement_strategy=fish.movement_strategy.__class__(),
+            species=fish.species,
+            x=baby_x,
+            y=baby_y,
+            speed=FISH_BASE_SPEED,
+            genome=offspring_genome,
+            generation=fish.generation + 1,
+            ecosystem=fish.ecosystem,
+            initial_energy=baby_initial_energy,
+            parent_id=fish.fish_id,
+        )
+
+        # Record reproduction stats
+        composable = fish.genome.behavioral.behavior
+        if composable is not None and composable.value is not None:
+            behavior_id = composable.value.behavior_id
+            algorithm_id = hash(behavior_id) % 1000
+            emit_event = getattr(fish, "_emit_event", None)
+            if callable(emit_event):
+                emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
+
+        # Inherit skill game strategies from parent with mutation
+        baby._skill_game_component.inherit_from_parent(
+            fish._skill_game_component,
+            mutation_rate=0.1,
+            rng=rng,
+        )
+
+        # Set visual birth effect timer
+        fish.visual_state.set_birth_effect(60)
+
+        return baby
