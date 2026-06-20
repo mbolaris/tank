@@ -4,14 +4,22 @@ Entity Hierarchy
 ----------------
 Entity (base)
     Core attributes: pos, state, rect, width, height, environment
-    For: Static/decorative entities (Castle)
+    For: static/decorative entities (Castle, Plant)
 
-Agent(Entity)
-    Adds: velocity, movement, AI behaviors (avoid, align, etc.)
-    For: Moving entities with behavior (Fish, Plant, Food, Crab)
+MobileEntity(Entity)
+    Adds: velocity + position integration, screen-edge handling, migration hook
+    For: moving entities without steering AI (Food, PlantNectar)
 
-This hierarchy ensures decorative entities don't inherit unnecessary
-movement methods.
+Agent(MobileEntity)
+    Adds: steering behaviors (avoid, align_near, move_towards/move_away)
+    For: Crab, Ball, GoalZone, and GenericAgent
+
+GenericAgent and Fish extend Agent in their own modules: generic_agent.py
+adds component-backed identity/energy/lifecycle/reproduction, and fish.py
+composes the full alife entity on top of that.
+
+This hierarchy ensures static entities don't inherit movement, and
+non-steering movers don't inherit AI behaviors.
 """
 
 from dataclasses import dataclass, field

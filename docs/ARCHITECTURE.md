@@ -25,7 +25,7 @@ Tank World is an artificial life (ALife) simulation framework featuring parametr
 tank/
 |-- core/                          # Pure Python simulation (no UI dependencies)
 |   |-- agents/                    # Reusable agent components
-|   |   |-- components/            # PerceptionComponent, LocomotionComponent, FeedingComponent
+|   |   |-- components/            # LifecycleComponent, ReproductionComponent (shared)
 |   |-- modes/                     # Mode pack definitions
 |   |   |-- interfaces.py          # ModePack, ModePackDefinition protocols
 |   |   |-- tank.py, petri.py, soccer.py  # Mode configurations
@@ -116,14 +116,20 @@ Modes define configuration, capabilities, and game rules:
 
 ### Agent Components (core/agents/components/)
 
-Reusable components for building different agent types:
+`Fish` is composed from focused components rather than a deep class hierarchy.
+The shared, world-agnostic components live here; energy lives in `core/energy/`
+and the Fish-specific ones in `core/fish/`:
 
-- **PerceptionComponent**: Memory queries, food/danger location tracking
-- **LocomotionComponent**: Movement, turn cost calculation, boundary handling
-- **FeedingComponent**: Bite size, food consumption, nutrition tracking
+- **LifecycleComponent** (`core/agents/components/`): age, life stage, size
+- **ReproductionComponent** (`core/agents/components/`): reproduction readiness
+  and overflow-energy banking
+- **EnergyComponent** (`core/energy/`): energy store and metabolism/burn
+- **SkillGameComponent** (`core/fish/`): poker strategy and stats
 
-Example usage: see `tests/test_agent_components.py` for a minimal composed `GenericAgent` used for
-component integration testing.
+Behavior is *not* a component: `Fish` delegates steering to
+`BehaviorExecutor` -> `MovementStrategy` -> `ComposableBehavior`. The earlier
+`Perception`/`Locomotion`/`Feeding` components and the `perceive/decide/act`
+loop were removed as inert duplicates (see ADR-009).
 
 ### Behavior Algorithms & Registry
 
@@ -406,28 +412,32 @@ Fish behavior is modular:
 
 ### GenericAgent Abstraction
 
-The `GenericAgent` class (`core/entities/generic_agent.py`) provides a composable base for building different agent types (Fish, Microbe, future robots) from shared components. It formalizes the sense-think-act lifecycle:
+The `GenericAgent` class (`core/entities/generic_agent.py`) is an abstract base
+that gives component-backed agents a shared identity and energy/lifecycle/
+reproduction surface. `Fish` is currently its only concrete subclass.
 
 ```
-GenericAgent
-├── perceive() → Percept: Collects sensory inputs
-├── decide(percept) → Action: Dispatches to policy/brain
-├── act(action): Applies actions via actuators
-└── update(dt): Orchestrates the loop + lifecycle
+GenericAgent (abstract)
+├── get_entity_id() / snapshot_type(): identity
+├── energy / max_energy / modify_energy(): energy accessors (-> EnergyComponent)
+├── life_stage / age / size: lifecycle accessors (-> LifecycleComponent)
+├── can_reproduce() / reproduction_component: reproduction (-> ReproductionComponent)
+└── update(dt): abstract — each subclass owns its per-frame loop
 ```
+
+Subclasses own their `update()` loop directly; there is no shared
+`perceive/decide/act` cycle (it was removed as inert — see ADR-009). `Fish`
+drives movement through `BehaviorExecutor` -> `MovementStrategy` ->
+`ComposableBehavior`.
 
 **Component Composition:**
 ```python
-agent = GenericAgent(
-    environment=world,
-    components=AgentComponents(
-        energy=EnergyComponent(...),
-        lifecycle=LifecycleComponent(...),
-        perception=PerceptionComponent(...),
-        locomotion=LocomotionComponent(...),
-        feeding=FeedingComponent(...),
-        reproduction=ReproductionComponent(...),  # optional
-    )
+# GenericAgent is an abstract base; Fish is its only concrete subclass and
+# supplies these components from Fish._create_components().
+components = AgentComponents(
+    energy=EnergyComponent(...),
+    lifecycle=LifecycleComponent(...),
+    reproduction=ReproductionComponent(...),
 )
 ```
 
@@ -442,36 +452,34 @@ agent = GenericAgent(
 **Entity Hierarchy:**
 ```
 Entity (base - position, state, rect)
-└── Agent (adds velocity, movement)
-    └── GenericAgent (adds components, sense-think-act)
-        ├── Fish (genetics, poker, reproduction, visual state)
+└── MobileEntity (adds velocity + position integration)
+    └── Agent (adds steering behaviors)
+        └── GenericAgent (adds component-backed identity/energy/lifecycle/reproduction)
+            └── Fish (genetics, poker, reproduction, visual state)
 ```
 
 **Design Philosophy:**
 - Structural subtyping (protocols) for capabilities, not inheritance
 - Components are optional - agents satisfy protocols based on what they have
-- Species-specific classes (Fish, Microbe) are thin wrappers supplying components
-- Decision policies are decoupled from agent structure (injectable)
+- Species-specific classes (currently `Fish`) supply their components and own
+  their per-frame `update()`
 
 **Example: Creating a New Agent Type**
 ```python
 class Robot(GenericAgent):
-    def __init__(self, environment, x, y, speed):
-        components = AgentComponents(
+    def _create_components(self) -> AgentComponents:
+        return AgentComponents(
             energy=EnergyComponent(max_energy=200, base_metabolism=0.02),
-            locomotion=LocomotionComponent(),
-            # No lifecycle = doesn't age
-            # No reproduction = doesn't breed
+            # No lifecycle = doesn't age; no reproduction = doesn't breed
         )
-        super().__init__(environment, x, y, speed, components=components)
 
     def update(self, frame_count, time_modifier=1.0, time_of_day=None):
         if self.is_dead():
             return EntityUpdateResult()
-        percept = self.perceive(time_of_day)
-        action = self.decide(percept)
-        self.act(action)
-        return self._update_common(frame_count, time_modifier, time_of_day)
+        # Own your per-frame loop: move, burn energy, emit spawns/events.
+        # GenericAgent supplies only the energy/lifecycle/reproduction accessors.
+        self.update_position()
+        return EntityUpdateResult()
 ```
 
 See `core/entities/generic_agent.py` for the core API and `tests/test_agent_components.py` for a
