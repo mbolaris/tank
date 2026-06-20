@@ -128,8 +128,8 @@ def runs_in_phase(phase: UpdatePhase) -> Callable:
     Example:
         @runs_in_phase(UpdatePhase.COLLISION)
         class CollisionSystem(BaseSystem):
-            def _do_update(self, frame: int) -> None:
-                ...
+            def _do_update(self, frame: int) -> SystemResult:
+                return SystemResult.empty()
     """
 
     def decorator(cls):

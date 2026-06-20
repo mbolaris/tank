@@ -32,7 +32,6 @@ import os
 import random
 import time
 import uuid
-from collections import deque
 from typing import TYPE_CHECKING, Any
 
 import core.simulation.diagnostics as diagnostics
@@ -174,7 +173,6 @@ class SimulationEngine:
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None
         self.plant_manager: PlantManager | None = None
-        self.poker_events: deque[Any] = deque(maxlen=self.config.poker.max_poker_events)
 
         # Soccer event management (extracted from engine)
         self._soccer_events_mgr = SoccerEventManager(

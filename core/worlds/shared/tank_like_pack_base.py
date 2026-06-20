@@ -92,7 +92,6 @@ class TankLikePackBase(ABC):
         poker = PokerSystem(engine, max_events=self.config.poker.max_poker_events)
         poker.enabled = self.config.server.poker_activity_enabled
         systems["poker_system"] = poker
-        systems["poker_events"] = poker.poker_events
         systems["poker_proximity_system"] = PokerProximitySystem(engine)
 
         if self.config.poker.enable_periodic_benchmarks:

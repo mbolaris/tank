@@ -221,10 +221,11 @@ class BaseSystem(ABC):
         result = self._do_update(frame)
         self._update_count += 1
 
-        # Defensive: _do_update is typed to return SystemResult, but normalize a
-        # stray None so a mis-implemented system can't leak None into the loop.
-        if result is None:
-            return SystemResult.empty()
+        if not isinstance(result, SystemResult):
+            raise TypeError(
+                f"{self.__class__.__name__}._do_update() must return SystemResult, "
+                f"got {type(result).__name__}"
+            )
         return result
 
     @abstractmethod

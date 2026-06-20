@@ -59,6 +59,9 @@ the code, 2026-06):
 | Unused `PhaseRunner` execution model removed (finish-or-delete) | `core/update_phases.py` keeps only the `UpdatePhase` taxonomy the engine uses |
 | `core/worlds` mode registration made lazy (was: eager at import → `core.worlds`↔`core.simulation` import-time cycle) | `core/worlds/registry.py`; de-poisons `core.worlds.*` imports; ADR-008 |
 | Persistence/versioning contract made honest (one validated snapshot version; legacy-save shims removed; finish-or-delete) | `core/contracts/version.py` keeps a single `SNAPSHOT_VERSION` (dead, unconsumed `ENTITY_TRANSFER_VERSION`/`WS_PAYLOAD_VERSION` removed; misplaced module docstring fixed); `core/transfer/entity_transfer.py` drops the unvalidated per-entity version stamp and the dead fish `movement_policy_id` shim (`genome_codec` already defaults it); `core/genetics/plant_genome.py` replaces the *random* `strategy_type`/`fractal_type` migration with a deterministic default (removes RNG from restore); `backend/world_persistence.py` `_resolve_engine()` replaces silent `except: pass` paths; `docs/persistence.md` refreshed to v3.0 with real APIs |
+| Engine-level poker event storage removed | `PokerSystem` owns `poker_events`; backend hooks and tests read `engine.poker_system.poker_events` directly, leaving the generic engine without duplicate poker-specific state. See ADR-011 |
+| SystemResult contract made fail-fast | `BaseSystem.update()` now raises `TypeError` when `_do_update()` returns anything other than `SystemResult`, instead of normalizing invalid `None` returns to an empty result |
+| Tank adapter minigame event facades removed | `TankWorldBackendAdapter` no longer exposes `get_recent_poker_events()` or `get_soccer_league_live_state()` pass-throughs; backend hooks read `PokerSystem` and `SoccerEventManager` directly |
 
 ## Open items
 

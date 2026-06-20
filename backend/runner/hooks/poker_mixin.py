@@ -32,8 +32,12 @@ class PokerMixin:
         if not hasattr(runner.world, "engine"):
             return None
 
+        poker_system = getattr(runner.world.engine, "poker_system", None)
+        if poker_system is None:
+            return None
+
         poker_events: list[PokerEventPayload] = []
-        recent_events = runner.world.engine.poker_events
+        recent_events = poker_system.poker_events
         for event in recent_events:
             if "Standard Algorithm" in event["message"] or "Auto-eval" in event["message"]:
                 continue
