@@ -26,11 +26,11 @@ class SoccerMixin:
             List of soccer event payloads, or None if not available
         """
         engine = getattr(runner.world, "engine", None)
-        if engine is None or not hasattr(engine, "get_recent_soccer_events"):
+        if engine is None or not hasattr(engine, "soccer_events"):
             return None
 
         soccer_events: list[SoccerEventPayload] = []
-        recent_events = engine.get_recent_soccer_events(max_age_frames=60)
+        recent_events = engine.soccer_events.recent(max_age_frames=60)
         for event in recent_events:
             soccer_events.append(
                 SoccerEventPayload(
@@ -78,8 +78,8 @@ class SoccerMixin:
             # Handle adapter wrapper
             engine = getattr(runner.world.world, "engine", None)
 
-        if engine is None or not hasattr(engine, "get_soccer_league_live_state"):
+        if engine is None or not hasattr(engine, "soccer_events"):
             return None
 
-        live = engine.get_soccer_league_live_state()
+        live = engine.soccer_events.league_live_state
         return live if isinstance(live, dict) else None

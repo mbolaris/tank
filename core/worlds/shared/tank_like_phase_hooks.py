@@ -174,17 +174,16 @@ class TankLikePhaseHooks(PhaseHooks):
 
         league_runtime = self._get_soccer_league_runtime(engine)
         if league_runtime is None:
-            if hasattr(engine, "set_soccer_league_live_state"):
-                engine.set_soccer_league_live_state(None)
+            if hasattr(engine, "soccer_events"):
+                engine.soccer_events.league_live_state = None
             return
 
         seed_base = getattr(engine, "seed", None)
         league_runtime.tick(engine, seed_base=seed_base, cycle=engine.frame_count)
-        if hasattr(engine, "set_soccer_league_live_state"):
-            engine.set_soccer_league_live_state(league_runtime.get_live_state())
-        if hasattr(engine, "add_soccer_event"):
+        if hasattr(engine, "soccer_events"):
+            engine.soccer_events.league_live_state = league_runtime.get_live_state()
             for outcome in league_runtime.drain_events():
-                engine.add_soccer_event(outcome)
+                engine.soccer_events.record_outcome(outcome)
 
     def _get_soccer_league_runtime(self, engine: SimulationEngine) -> SoccerLeagueRuntime | None:
         if self._soccer_league_runtime is not None:

@@ -59,7 +59,6 @@ if TYPE_CHECKING:
     from core import entities, environment
     from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
-    from core.minigames.soccer.evaluator import SoccerMinigameOutcome
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
     from core.poker_interaction import PokerInteraction
@@ -179,7 +178,10 @@ class SimulationEngine:
         self.poker_events: deque[Any] = deque(maxlen=self.config.poker.max_poker_events)
 
         # Soccer event management (extracted from engine)
-        self._soccer_events_mgr = SoccerEventManager(max_events=self.config.soccer.max_events)
+        self._soccer_events_mgr = SoccerEventManager(
+            max_events=self.config.soccer.max_events,
+            frame_provider=lambda: self.frame_count,
+        )
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
@@ -562,22 +564,15 @@ class SimulationEngine:
     # Soccer Events
     # =========================================================================
 
-    def add_soccer_event(self, outcome: SoccerMinigameOutcome) -> None:
-        """Record a soccer minigame outcome for UI/event streams."""
-        self._soccer_events_mgr.add_outcome(self.frame_count, outcome)
+    @property
+    def soccer_events(self) -> SoccerEventManager:
+        """The soccer minigame event stream (owns recent outcomes + league state).
 
-    def get_recent_soccer_events(self, max_age_frames: int | None = None) -> list[dict[str, Any]]:
-        """Get recent soccer events (within max_age_frames)."""
-        max_age = max_age_frames or self.config.soccer.event_max_age_frames
-        return self._soccer_events_mgr.get_recent(self.frame_count, max_age)
-
-    def set_soccer_league_live_state(self, state: dict[str, Any] | None) -> None:
-        """Store the latest league match state for rendering."""
-        self._soccer_events_mgr.league_live_state = state
-
-    def get_soccer_league_live_state(self) -> dict[str, Any] | None:
-        """Return the latest league match state for rendering."""
-        return self._soccer_events_mgr.league_live_state
+        Callers record/read soccer events through this manager rather than via
+        soccer-specific engine methods, keeping minigame surface off the engine
+        (ADR-011).
+        """
+        return self._soccer_events_mgr
 
     # =========================================================================
     # Statistics

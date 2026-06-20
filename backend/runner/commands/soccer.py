@@ -280,7 +280,7 @@ class SoccerCommands:
                     ),
                 )
                 if engine:
-                    engine.add_soccer_event(outcome)
+                    engine.soccer_events.record_outcome(outcome)
                     # Update live league state in the runner too
                     state = {
                         "match_id": outcome.match_id,
@@ -291,7 +291,7 @@ class SoccerCommands:
                         "winner_team": outcome.winner_team,
                     }
                     # Also update engine copy for consistency
-                    engine.set_soccer_league_live_state(state)
+                    engine.soccer_events.league_live_state = state
 
             self.soccer_match = None
             # Do NOT reset counters here

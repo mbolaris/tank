@@ -567,7 +567,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         # Collect recent soccer events
         try:
-            soccer_events = self._engine.get_recent_soccer_events(max_age_frames=60)
+            soccer_events = self._engine.soccer_events.recent(max_age_frames=60)
             for soccer_event in soccer_events:
                 events.append(
                     {
@@ -684,4 +684,4 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Get live league match state for rendering."""
         if self._engine is None:
             return None
-        return self._engine.get_soccer_league_live_state()
+        return self._engine.soccer_events.league_live_state

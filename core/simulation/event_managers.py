@@ -12,6 +12,7 @@ event management from the engine, we:
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -23,11 +24,29 @@ class SoccerEventManager:
 
     Stores recent soccer outcomes in a bounded deque and tracks the latest
     live league match state for real-time rendering.
+
+    Owns its own event stream so the engine need not carry soccer-specific
+    methods; callers reach it via ``engine.soccer_events`` (ADR-011). A
+    ``frame_provider`` lets it self-source the current frame, so callers use
+    ``record_outcome``/``recent`` without threading ``frame_count`` through.
     """
 
-    def __init__(self, max_events: int = 100) -> None:
+    def __init__(
+        self,
+        max_events: int = 100,
+        frame_provider: Callable[[], int] | None = None,
+    ) -> None:
         self._events: deque[dict[str, Any]] = deque(maxlen=max_events)
         self._league_live_state: dict[str, Any] | None = None
+        self._frame_provider = frame_provider or (lambda: 0)
+
+    def record_outcome(self, outcome: SoccerMinigameOutcome) -> None:
+        """Record an outcome, sourcing the current frame from the provider."""
+        self.add_outcome(self._frame_provider(), outcome)
+
+    def recent(self, max_age_frames: int = 1800) -> list[dict[str, Any]]:
+        """Recent events within max_age_frames of the current frame."""
+        return self.get_recent(self._frame_provider(), max_age_frames)
 
     def add_event(self, event: dict[str, Any]) -> None:
         """Record a soccer match outcome event."""
