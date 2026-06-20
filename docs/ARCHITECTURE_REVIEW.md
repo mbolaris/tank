@@ -141,6 +141,34 @@ order). Same "code written against a field the abstraction doesn't have" theme.
 Fix by reading `fish.poker_stats` directly (or exposing it on `components`).
 Low urgency (benchmark-only), but it means that selection currently does nothing.
 
+### 6. Benchmark stats use process-randomized `hash(str)` (determinism bug — high value)
+Seven production sites derive a compact `algorithm_id` / diversity bucket via
+`hash(behavior_id) % 1000` (or `hash(type(...).__name__) % 1000`):
+`core/genetic_diversity_tracker.py:42`, `core/reproduction_service.py:549` and
+`:635`, `core/systems/entity_lifecycle.py:223`, `core/entities/fish.py:790`,
+`core/enhanced_statistics.py:218`, `core/skills/games/poker_adapter.py:117`.
+CPython randomizes `hash(str)` **per process** when `PYTHONHASHSEED` is unset
+(it is unset here), so these values change run to run. Direct proof:
+`hash("food_seeker") % 1000` = 919 / 500 / 901 across three processes, but
+298 / 298 / 298 with `PYTHONHASHSEED=0`.
+
+Impact: the simulation *trajectory* is unaffected — these IDs are telemetry, and
+`max_generation`/`total_births`/`total_deaths` were byte-identical across three
+seed-42 processes — **but** `unique_algorithms` and `diversity_score` are derived
+from this hash and feed the `ecosystem_health_10k` benchmark score
+(`diversity_bonus`, line 133) and are stored in champion files
+(`champions/tank/{ecosystem_health_10k,survival_5k}.json`). So that benchmark's
+score is **not reproducible across processes** — contradicting the project's
+"determinism is non-negotiable" rule and ADR-012. The `% 1000` bucketing also
+causes silent collisions that undercount uniques even within a single process.
+
+Fix (separate change, **Layer 2** — it shifts scores, so it needs champion
+re-baselining + an ADR + benchmark validation): replace `hash(str) % 1000` with
+a stable hash (e.g. `zlib.crc32(s.encode())`), and for the diversity *count*
+drop the bucketing entirely (`algorithms.add(behavior_id)`). Re-check the
+`poker_adapter` site specifically, since poker influences reproduction. Then
+re-baseline `ecosystem_health_10k` under the deterministic score.
+
 ## Design principles to maintain
 
 1. **Composition over inheritance** — extend the component pattern, don't grow
