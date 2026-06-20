@@ -459,7 +459,7 @@ class TestMutualProximityFiltering:
         max_dist_sq = max_distance * max_distance
         violations = []
 
-        for event in engine.poker_events:
+        for event in engine.poker_system.poker_events:
             players = event.get("players", [])
             if len(players) >= 2:
                 # Check all pairs using squared distance
@@ -484,7 +484,7 @@ class TestMutualProximityFiltering:
         max_dist = max(FISH_POKER_MAX_DISTANCE, PLANT_POKER_MAX_DISTANCE)
         max_dist_sq = max_dist * max_dist
 
-        for event in engine.poker_events:
+        for event in engine.poker_system.poker_events:
             players = event.get("players", [])
             for i, p1 in enumerate(players):
                 for p2 in players[i + 1 :]:
@@ -543,7 +543,7 @@ class TestSimulationIntegration:
     def test_poker_events_recorded(self, run_simulation):
         """Verify poker events are being recorded."""
         result = run_simulation(frames=600)
-        poker_events = list(result["engine"].poker_events)
+        poker_events = list(result["engine"].poker_system.poker_events)
 
         assert len(poker_events) > 0, "Should have recorded poker events"
 
@@ -687,7 +687,7 @@ def run_manual_test():
             f"  Plant {p.plant_id}: {p.poker_wins} wins, {p.poker_losses} losses, energy={p.energy:.1f}"
         )
 
-    total_poker_events = len(list(engine.poker_events))
+    total_poker_events = len(list(engine.poker_system.poker_events))
     print(f"\nTotal poker events recorded: {total_poker_events}")
 
     print("\n" + "=" * 60)

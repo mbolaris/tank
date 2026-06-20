@@ -670,19 +670,3 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Restore pause state if present
         if "paused" in state:
             self._engine.paused = state["paused"]
-
-    # ========================================================================
-    # Legacy TankWorld-compatible properties (for smooth transition)
-    # ========================================================================
-
-    def get_recent_poker_events(self, max_age_frames: int = 180) -> list[dict[str, Any]]:
-        """Get recent poker events (TankWorld API compatibility)."""
-        if self._engine is None or self._engine.poker_system is None:
-            return []
-        return self._engine.poker_system.get_recent_poker_events(max_age_frames)
-
-    def get_soccer_league_live_state(self) -> dict[str, Any] | None:
-        """Get live league match state for rendering."""
-        if self._engine is None:
-            return None
-        return self._engine.soccer_events.league_live_state

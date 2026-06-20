@@ -66,18 +66,7 @@ class SoccerMixin:
         Returns:
             Soccer league live state dict, or None if not available
         """
-        # Try direct method on world (e.g. TankWorldBackendAdapter)
-        get_live = getattr(runner.world, "get_soccer_league_live_state", None)
-        if callable(get_live):
-            live = get_live()
-            return live if isinstance(live, dict) else None
-
-        # Try via engine
         engine = getattr(runner.world, "engine", None)
-        if engine is None and hasattr(runner.world, "world"):
-            # Handle adapter wrapper
-            engine = getattr(runner.world.world, "engine", None)
-
         if engine is None or not hasattr(engine, "soccer_events"):
             return None
 

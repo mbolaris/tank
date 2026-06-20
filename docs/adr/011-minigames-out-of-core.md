@@ -99,19 +99,22 @@ Behavior-neutral: `ecosystem_health_10k` seed 42 is byte-identical
 (4.791812102268079); poker-system, mixed-poker-with-plants, adapter-hot-path,
 and websocket-payload tests pass, plus mypy.
 
-### Known remaining issue (needs app verification, not done)
+### Dead poker event alias removed (follow-up, shipped)
 
-`engine.poker_events` is a **dead deque** — allocated but never written (the
-real events live in `poker_system.poker_events`). Yet `poker_mixin` reads
-`engine.poker_events` to build the world-extras `poker_events` payload, which the
-frontend consumes as `snapshot.poker_events` — so that path appears to deliver an
-**empty** poker-event list. Fixing it (point `poker_mixin` at
-`poker_system.poker_events` and delete the dead deque) is a UI-affecting change:
-the poker dashboard's contents would change, and there is a parallel
-`snapshot.events` poker path that could then double up. That needs verification
-against the running frontend, which this environment can't exercise, so it is
-**intentionally left** rather than fixed blind. It is the last poker-specific
-state on the engine.
+`engine.poker_events` was removed. The constructor allocated a deque that setup
+later overwrote with `PokerSystem.poker_events`, so ownership was implicit and
+the generic engine still exposed poker-specific state. Backend world hooks and
+tests now read from the owning system directly: `engine.poker_system.poker_events`.
+The frontend payload key remains `snapshot.poker_events`; only the internal
+source of that payload changed.
+
+### Tank adapter minigame facades removed (follow-up, shipped)
+
+`TankWorldBackendAdapter.get_recent_poker_events()` and
+`TankWorldBackendAdapter.get_soccer_league_live_state()` had no production
+callers after the hook migration. They were deleted so the adapter stays focused
+on the world backend contract; feature hooks now read poker events from
+`engine.poker_system` and soccer live state from `engine.soccer_events`.
 
 ## Consequences
 

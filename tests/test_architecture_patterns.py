@@ -6,6 +6,8 @@ and provide good examples of how to use them.
 
 from typing import Any, cast
 
+import pytest
+
 from core.cache_manager import CachedList, CacheManager
 from core.systems.base import BaseSystem, SystemResult
 
@@ -350,6 +352,32 @@ class TestCollisionSystemWithSystemResult:
         assert collision_system._frame_collisions_detected == 0
 
 
+class TestMinigameEventOwnership:
+    """Tests for minigame event stream ownership boundaries."""
+
+    def test_poker_events_are_owned_by_poker_system_not_engine(self):
+        """The generic engine should not expose a poker-specific event buffer."""
+        from core.simulation.engine import SimulationEngine
+
+        engine = SimulationEngine(headless=True)
+        assert not hasattr(engine, "poker_events")
+
+        engine.setup()
+
+        assert not hasattr(engine, "poker_events")
+        assert engine.poker_system is not None
+        assert hasattr(engine.poker_system, "poker_events")
+
+    def test_tank_adapter_does_not_expose_minigame_event_facades(self):
+        """Feature hooks should read minigame events from owning systems."""
+        from core.worlds.tank.backend import TankWorldBackendAdapter
+
+        adapter = TankWorldBackendAdapter(seed=42)
+
+        assert not hasattr(adapter, "get_recent_poker_events")
+        assert not hasattr(adapter, "get_soccer_league_live_state")
+
+
 class TestBaseSystemWithResult:
     """Tests for BaseSystem handling SystemResult."""
 
@@ -392,24 +420,20 @@ class TestBaseSystemWithResult:
         assert result.skipped is True
         assert result.entities_affected == 0
 
-    def test_base_system_handles_legacy_none_return(self):
-        """BaseSystem.update should handle legacy systems returning None."""
+    def test_base_system_rejects_missing_system_result(self):
+        """BaseSystem.update should fail loudly when _do_update violates the contract."""
 
-        class LegacySystem(BaseSystem):
+        class BrokenSystem(BaseSystem):
             def __init__(self):
                 self._engine = cast(Any, None)
-                self._name = "Legacy"
+                self._name = "Broken"
                 self._enabled = True
                 self._update_count = 0
 
             def _do_update(self, frame: int):
-                # Legacy systems return None
                 return None
 
-        system = LegacySystem()
-        result = system.update(frame=1)
+        system = BrokenSystem()
 
-        # Should get empty result, not None
-        assert isinstance(result, SystemResult)
-        assert result.entities_affected == 0
-        assert result.skipped is False
+        with pytest.raises(TypeError, match="must return SystemResult"):
+            system.update(frame=1)

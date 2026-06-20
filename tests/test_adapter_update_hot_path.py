@@ -36,10 +36,8 @@ def test_adapter_update_avoids_expensive_calls():
         # get_stats should NOT be called
         assert mock_get_stats.call_count == 0, "get_stats() was called during update()!"
 
-        # get_recent_poker_events should NOT be called
-        assert (
-            mock_get_events.call_count == 0
-        ), "get_recent_poker_events() was called during update()!"
+        # drain_frame_outputs should NOT be called
+        assert mock_get_events.call_count == 0, "drain_frame_outputs() was called during update()!"
 
         # Verify frame count advanced
         assert adapter.frame_count == 10
