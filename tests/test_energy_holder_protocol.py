@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from core.config.fish import LIFE_STAGE_ADULT_MAX
 from core.entities.fish import Fish
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
@@ -132,6 +133,34 @@ class TestFishModifyEnergy:
 
         assert fish.energy == 0.0
         assert delta == -20.0  # Only lost 20, not 50
+
+    def test_energy_state_uses_dynamic_lifecycle_capacity(self, mock_environment):
+        """Growing fish should judge hunger against their current capacity."""
+        fish = Fish(
+            environment=mock_environment,
+            movement_strategy=MagicMock(),
+            species="test",
+            x=100,
+            y=100,
+            speed=5,
+        )
+
+        birth_capacity = fish._energy_component.max_energy
+        fish._lifecycle_component.age = LIFE_STAGE_ADULT_MAX
+        fish._lifecycle_component.update_life_stage()
+
+        assert fish.max_energy > birth_capacity
+
+        fish.energy = birth_capacity
+        assert fish.get_energy_state().max_energy == pytest.approx(fish.max_energy)
+        assert fish.can_eat()
+
+        fish.energy = fish.max_energy * 0.10
+        assert fish.is_critical_energy()
+        assert fish.is_low_energy()
+
+        fish.energy = fish.max_energy * 0.07
+        assert fish.is_starving()
 
 
 class TestPlantModifyEnergy:
