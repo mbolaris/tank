@@ -28,9 +28,11 @@ stayed at zero and the performance report was empty/garbage. (Lineage
 
 Two facts make the right fix clear:
 
-- `ALL_ALGORITHMS` is otherwise **dead** — its only consumer was this
-  registration. Live fish behavior is entirely the composable framework, whose
-  identity is `behavior_id` (the product of four enums = **384** combinations).
+- Live fish *behavior* is entirely the composable framework, whose identity is
+  `behavior_id` (the product of four enums = **384** combinations) — not the
+  legacy `ALL_ALGORITHMS` classes. (The legacy registry is not dead: it still
+  feeds genome-algorithm selection via `rng.choice` and is retained under
+  ADR-006. It simply is not what per-algorithm *behavior* stats should key on.)
 - `tests/test_algorithm_tracking.py` passed only because it injected literal ids
   (`0`/`1`/`5`) that happened to match legacy indices; it never exercised the
   telemetry path, so it never caught the mismatch.
@@ -73,9 +75,14 @@ by registration and telemetry, derived through `stable_algorithm_id` (ADR-014):
 - Counter updates remain membership-guarded, so a fish with no composable
   behavior (the `algorithm_id = 0` fallback) is simply not attributed rather
   than crashing.
-- `ALL_ALGORITHMS` is now unused by the ecosystem (only `core/algorithms`
-  exports and `test_algorithmic_evolution` still reference it). Whether to retire
-  that legacy registry entirely is a separate question.
+- This removes per-algorithm *stats* as a consumer of `ALL_ALGORITHMS`, but that
+  registry is **not** dead and must not be retired here: `get_random_algorithm`
+  does `rng.choice(ALL_ALGORITHMS)` during genome creation, so dropping entries
+  changes seeded trajectories and invalidates champions. Its removal is the
+  explicit **stage 2** of [ADR-006](006-deprecate-monolithic-food-seekers.md)
+  (module deletion + champion re-baselining), guarded by
+  `tests/test_deprecated_algorithms.py` — a deliberate future effort, not a
+  cleanup.
 
 ## Related
 - [ADR-014: Deterministic Algorithm / Diversity IDs](014-deterministic-algorithm-ids.md)
