@@ -17,6 +17,15 @@ if TYPE_CHECKING:
     from core.entities.fish import Fish
 
 
+def _poker_net_energy(fish: "Fish") -> float:
+    """Net poker energy (won - lost - house cuts) as the poker-skill proxy.
+
+    ``fish.poker_stats`` is ``None`` until the fish has actually played poker.
+    """
+    stats = fish.poker_stats
+    return stats.get_net_energy() if stats is not None else 0.0
+
+
 @dataclass
 class PeriodicBenchmarkEvaluator:
     """Manages periodic benchmark evaluations during simulation."""
@@ -41,17 +50,8 @@ class PeriodicBenchmarkEvaluator:
         if frame - self.last_eval_frame < self.eval_interval_frames:
             return
 
-        # Sort by some poker fitness metric – adjust as needed
-        # Using total_winnings as proxy for poker skill
-        top_fish = sorted(
-            fish_population,
-            key=lambda f: (
-                getattr(f.components.poker_stats, "total_winnings", 0)
-                if hasattr(f, "components") and hasattr(f.components, "poker_stats")
-                else 0
-            ),
-            reverse=True,
-        )[:10]
+        # Rank by net poker energy (won - lost - house cuts); see _poker_net_energy.
+        top_fish = sorted(fish_population, key=_poker_net_energy, reverse=True)[:10]
 
         for fish in top_fish:
             # Get poker strategy from fish
