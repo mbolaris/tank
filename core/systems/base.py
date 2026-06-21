@@ -21,8 +21,9 @@ diagnostics and validation:
     class CollisionSystem(BaseSystem):
         ...
 
-The simulation engine can then orchestrate systems by phase, ensuring
-predictable execution order regardless of registration order.
+The simulation engine's explicit phase loop owns execution order; phase
+metadata lets diagnostics validate that each system is wired into the phase it
+declares.
 """
 
 from abc import ABC, abstractmethod

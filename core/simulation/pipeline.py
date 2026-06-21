@@ -46,7 +46,7 @@ class FrameContext:
     entities_to_remove: list[Any] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(frozen=True)
 class PipelineStep:
     """A single step in the engine update pipeline.
 
@@ -72,12 +72,16 @@ class EnginePipeline:
         Args:
             steps: List of PipelineStep instances in execution order
         """
-        self._steps = steps
+        self._steps = steps.copy()
 
     @property
     def steps(self) -> list[PipelineStep]:
-        """Get the list of pipeline steps."""
-        return self._steps
+        """Get the pipeline steps in execution order.
+
+        Returns a copy so callers can inspect or wrap steps without mutating the
+        live pipeline accidentally.
+        """
+        return self._steps.copy()
 
     @property
     def step_names(self) -> list[str]:
