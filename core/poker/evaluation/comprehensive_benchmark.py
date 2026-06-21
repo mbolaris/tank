@@ -359,11 +359,9 @@ def run_comprehensive_benchmark(
 
     # Select fish to evaluate using stratified sampling for better representation
     def get_poker_winnings(f: Fish) -> float:
-        if hasattr(f, "components") and hasattr(f.components, "poker_stats"):
-            ps = f.components.poker_stats
-            if ps is not None:
-                return getattr(ps, "total_winnings", 0)
-        return 0
+        # Net poker energy (won - lost - house cuts); None until the fish plays.
+        ps = f.poker_stats
+        return ps.get_net_energy() if ps is not None else 0.0
 
     sorted_fish = sorted(fish_population, key=get_poker_winnings, reverse=True)
     total_fish = len(sorted_fish)

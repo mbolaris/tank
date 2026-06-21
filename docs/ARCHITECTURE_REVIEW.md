@@ -68,6 +68,7 @@ the code, 2026-06):
 | ADR-013 Step 2 resolved (mixin/component layering kept) | Investigated the Fish mixin↔component split: intentional layering (Fish/world *policy* in the mixins over pure-state components), not a duplicate model — so "retire the mixins" was withdrawn. Deleted the one real dead duplicate (`EnergyManagementMixin._apply_energy_gain_internal`, an uncalled clone of `modify_energy`'s overflow path) and rewrote the docstrings to state the policy-vs-state, Fish-only nature. Behavior-neutral. ADR-013 Step 2 |
 | Benchmark diversity metric made cross-process deterministic (was: process-randomized `hash(str)`) | `core/util/stable_hash.py` adds `stable_algorithm_id` (CRC32); `genetic_diversity_tracker` now counts `behavior_id` strings directly (deterministic + collision-free), and `enhanced_statistics`/`poker_adapter` use the stable id. `ecosystem_health_10k` now scores identically across separate processes; both tank champions still reproduce (`validate_reproduction` passes), so no re-baseline was needed. `tests/test_stable_hash.py` (incl. a subprocess cross-process check) guards it. ADR-014. The four telemetry `algorithm_id` sites were deliberately left for the separate keying fix — now done in ADR-015 |
 | Per-algorithm stats re-keyed to the composable `behavior_id` (was: registration by legacy `ALL_ALGORITHMS` enumerate-index vs telemetry by `behavior_id` hash → counters never recorded, names always "Unknown") | Registration (`population_tracker._init_algorithm_stats`) and the 5 telemetry sites now both derive the key from `behavior_id` via `stable_algorithm_id`; `ComposableBehavior.all_behavior_ids()` enumerates the 384-combo key space. End-to-end: a seed-42 run now records births/deaths/reproductions across ~91 behaviors with real names (was ~0 / "Unknown"). Telemetry-only — champions still reproduce. `tests/test_algorithm_tracking.py` rewritten to cover the shared id space. ADR-015 |
+| Poker-benchmark fish selection fixed (was: silent no-op) | `periodic_benchmark` and `comprehensive_benchmark` ranked fish by `f.components.poker_stats.total_winnings` — a field that exists on neither `AgentComponents` nor `FishPokerStats` — so the sort key was always 0 and "top fish" = input order. Now rank by `fish.poker_stats.get_net_energy()` (won − lost − house cuts; `None` until the fish plays). `tests/test_poker_benchmark_selection.py` proves the ordering. Item 5 |
 
 ## Open items
 
@@ -133,15 +134,6 @@ Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
 diff (identical simulation state). ~199 cycle-safe in-function imports remain
 across the rest of `core/`. Still incremental, still test-backed.
-
-### 5. `periodic_benchmark` top-fish selection is a silent no-op (latent)
-`core/poker/evaluation/periodic_benchmark.py:49` sorts candidates by
-`f.components.poker_stats.total_winnings`, but `AgentComponents` has no
-`poker_stats` field, so the `hasattr(f.components, "poker_stats")` guard is
-*always false* and every fish sorts with key `0` (top-N = first-N in input
-order). Same "code written against a field the abstraction doesn't have" theme.
-Fix by reading `fish.poker_stats` directly (or exposing it on `components`).
-Low urgency (benchmark-only), but it means that selection currently does nothing.
 
 ## Design principles to maintain
 
