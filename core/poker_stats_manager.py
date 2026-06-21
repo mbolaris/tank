@@ -341,6 +341,20 @@ class PokerStatsManager:
 
         self._log_poker_event(winner_id, loser_id, amount, winner_hand, loser_hand)
 
+    def record_fish_poker_game(self) -> None:
+        """Count one completed fish-vs-fish poker game (UI ``total_fish_games``).
+
+        Per-fish ``FishPokerStats`` are recorded inside the multiplayer poker
+        interaction; only this aggregate counter was left unincremented after
+        ``record_poker_outcome`` (the legacy 2-player recorder) was orphaned, so
+        the UI's fish poker game count sat frozen at 0.
+        """
+        self.total_fish_poker_games += 1
+        try:
+            self._save_poker_totals()
+        except Exception as error:  # pragma: no cover - defensive logging
+            logger.error(f"Failed to save poker totals: {error}", exc_info=True)
+
     def record_plant_poker_game(
         self,
         fish_id: int,

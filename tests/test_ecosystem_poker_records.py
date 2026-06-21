@@ -27,3 +27,31 @@ def test_mixed_poker_outcome_record_tracks_house_cut():
         rel_tol=0,
         abs_tol=1e-9,
     )
+
+
+def test_record_fish_poker_game_increments_total():
+    ecosystem = EcosystemManager()
+    start = ecosystem.total_fish_poker_games
+    ecosystem.record_fish_poker_game()
+    ecosystem.record_fish_poker_game()
+    assert ecosystem.total_fish_poker_games == start + 2
+
+
+def test_fish_poker_game_counter_advances_in_sim():
+    """Regression: fish-vs-fish poker games played but the global counter stayed
+    at 0 because handle_poker_result never counted the completed game (its
+    recorder, record_poker_outcome, was orphaned when poker moved to the
+    multiplayer interaction). It must advance during a real seeded sim.
+    """
+    from core.worlds.registry import WorldRegistry
+
+    world = WorldRegistry.create_world("tank", seed=42, config={})
+    world.reset(seed=42, config={})
+    eco = world._engine.ecosystem
+    start = eco.total_fish_poker_games
+
+    for _ in range(3000):
+        world.step()
+
+    # Delta (not absolute) so a persisted logs/poker_totals.json can't mask it.
+    assert eco.total_fish_poker_games > start
