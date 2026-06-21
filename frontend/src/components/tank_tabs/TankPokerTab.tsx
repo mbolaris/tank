@@ -41,7 +41,7 @@ export function TankPokerTab({
     worldType,
 }: TankPokerTabProps) {
     const [pokerGameState, setPokerGameState] = useState<PokerGameState | null>(null);
-    const [showPokerGame, setShowPokerGame] = useState(true);
+    const [showPokerGame, setShowPokerGame] = useState(false);
     const [pokerLoading, setPokerLoading] = useState(false);
     const [pokerError, setPokerError] = useState<string | null>(null);
     const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
@@ -92,11 +92,17 @@ export function TankPokerTab({
             if (response.success === false) {
                 console.warn("Failed to auto-start poker:", response.error);
                 handlePokerError('Failed to start poker game', response.error);
+                setPokerGameState(null);
+                setShowPokerGame(false);
             } else if (response.state) {
                 setPokerGameState(response.state);
                 if (!response.state.is_your_turn && !response.state.game_over) {
                     processAiTurnsWithDelay();
                 }
+            } else {
+                handlePokerError('Failed to start poker game', 'No game state returned');
+                setPokerGameState(null);
+                setShowPokerGame(false);
             }
         } catch (error) {
             // Suppress ghost-mount errors in StrictMode and allow retry
@@ -220,7 +226,7 @@ export function TankPokerTab({
                 <h2 className={styles.sectionTitle}>
                     <CardsIcon size={20} style={{ color: '#a78bfa' }} />
                     Play Poker
-                    {showPokerGame && (
+                    {showPokerGame && pokerGameState && (
                         <span className={styles.activeBadge}>Active Game</span>
                     )}
                 </h2>

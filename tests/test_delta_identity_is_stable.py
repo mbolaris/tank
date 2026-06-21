@@ -13,6 +13,8 @@ from core.simulation.engine import SimulationEngine
 def test_spawn_delta_ids_are_not_raw_python_id():
     """Verify spawn delta IDs for Fish/Food are stable offsets, not id()."""
     engine = SimulationEngine(headless=True, seed=42)
+    engine.config.ecosystem.initial_fish_count = 0
+    engine.config.server.plants_enabled = False
     engine.setup()
     assert engine.environment is not None
     env = engine.environment
@@ -66,6 +68,8 @@ def test_spawn_delta_ids_are_not_raw_python_id():
 def test_removal_delta_ids_are_not_raw_python_id():
     """Verify removal delta IDs for Food are stable offsets, not id()."""
     engine = SimulationEngine(headless=True, seed=42)
+    engine.config.ecosystem.initial_fish_count = 0
+    engine.config.server.plants_enabled = False
     engine.setup()
     assert engine.environment is not None
     env = engine.environment
@@ -101,6 +105,8 @@ def test_removal_delta_ids_are_not_raw_python_id():
 def test_delta_ids_stable_across_frames():
     """Verify that the same entity gets the same ID across multiple frames."""
     engine = SimulationEngine(headless=True, seed=42)
+    engine.config.ecosystem.initial_fish_count = 0
+    engine.config.server.plants_enabled = False
     engine.setup()
     assert engine.environment is not None
     env = engine.environment

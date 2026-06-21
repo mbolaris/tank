@@ -13,7 +13,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.config.fish import ENERGY_MAX_DEFAULT, OVERFLOW_ENERGY_BANK_MULTIPLIER
+from core.config.fish import (
+    ENERGY_MAX_DEFAULT,
+    OVERFLOW_ENERGY_BANK_MULTIPLIER,
+    SAFE_ENERGY_THRESHOLD_RATIO,
+    STARVATION_THRESHOLD_RATIO,
+)
 from core.constants import DEATH_REASON_STARVATION
 from core.energy.energy_component import EnergyComponent
 from core.entities.base import EntityState
@@ -95,7 +100,7 @@ class EnergyManagementMixin:
         """Get immutable snapshot of current energy state."""
         return EnergyState(
             current_energy=self.energy,
-            max_energy=self._energy_component.max_energy,
+            max_energy=self.max_energy,
         )
 
     def can_eat(self) -> bool:
@@ -206,16 +211,16 @@ class EnergyManagementMixin:
         self.modify_energy(-energy_breakdown["total"], source="metabolism")
 
     def is_starving(self) -> bool:
-        return self._energy_component.is_starving()
+        return self.get_energy_ratio() < STARVATION_THRESHOLD_RATIO
 
     def is_critical_energy(self) -> bool:
-        return self._energy_component.is_critical_energy()
+        return self.get_energy_state().is_critical
 
     def is_low_energy(self) -> bool:
-        return self._energy_component.is_low_energy()
+        return self.get_energy_state().is_hungry
 
     def is_safe_energy(self) -> bool:
-        return self._energy_component.is_safe_energy()
+        return self.get_energy_ratio() >= SAFE_ENERGY_THRESHOLD_RATIO
 
     def get_energy_ratio(self) -> float:
         """Get energy as a ratio of max energy (0.0-1.0)."""
