@@ -38,10 +38,10 @@ flowchart LR
 A single step in the update loop:
 
 ```python
-@dataclass
+@dataclass(frozen=True)
 class PipelineStep:
     name: str  # Human-readable identifier (e.g., "frame_start")
-    fn: Callable[[SimulationEngine], None]  # Step execution function
+    fn: Callable[[SimulationEngine, FrameContext], None]  # Step execution function
 ```
 
 ### EnginePipeline
@@ -53,12 +53,20 @@ class EnginePipeline:
     def __init__(self, steps: list[PipelineStep]): ...
 
     @property
+    def steps(self) -> list[PipelineStep]: ...
+
+    @property
     def step_names(self) -> list[str]: ...
 
     def run(self, engine: SimulationEngine) -> None:
-        for step in self.steps:
-            step.fn(engine)
+        ctx = FrameContext()
+        for step in self._steps:
+            step.fn(engine, ctx)
 ```
+
+`PipelineStep` is frozen, and `EnginePipeline` copies its step list on
+construction and returns a copy from `steps`. To customize phase order,
+construct a new pipeline instead of mutating an existing one.
 
 ### default_pipeline()
 
@@ -73,9 +81,10 @@ The canonical Tank pipeline that reproduces the exact phase order originally har
 | 5 | lifecycle | Process deaths, add/remove entities |
 | 6 | spawn | Auto-spawn food |
 | 7 | collision | Handle physical collisions |
-| 8 | interaction | Handle social interactions (poker) |
-| 9 | reproduction | Handle mating and emergency spawns |
-| 10 | frame_end | Update stats, rebuild caches |
+| 8 | soccer | Update optional ball physics and agent-ball interactions |
+| 9 | interaction | Handle social interactions (poker) |
+| 10 | reproduction | Handle mating and emergency spawns |
+| 11 | frame_end | Update stats, rebuild caches |
 
 ## How ModePack Selects a Pipeline
 
@@ -128,18 +137,23 @@ def create_my_mode_pack() -> ModePackDefinition:
 
 ## Data Flow Between Steps
 
-Some steps need to pass data to subsequent steps. This is handled via temporary engine attributes:
+Some steps need to pass data to subsequent steps. This is handled with a
+per-frame `FrameContext` created by `EnginePipeline.run()` and passed to every
+step:
 
 ```python
-def _step_time_update(engine):
+def _step_time_update(engine, ctx):
     time_modifier, time_of_day = engine._phase_time_update()
-    engine._pipeline_time_modifier = time_modifier
-    engine._pipeline_time_of_day = time_of_day
+    ctx.time_modifier = time_modifier
+    ctx.time_of_day = time_of_day
 
-def _step_entity_act(engine):
-    time_modifier = getattr(engine, "_pipeline_time_modifier", 1.0)
-    time_of_day = getattr(engine, "_pipeline_time_of_day", 0.5)
-    # ... use values ...
+def _step_entity_act(engine, ctx):
+    new_entities, entities_to_remove = engine._phase_entity_act(
+        ctx.time_modifier,
+        ctx.time_of_day,
+    )
+    ctx.new_entities = new_entities
+    ctx.entities_to_remove = entities_to_remove
 ```
 
 ## Related Files

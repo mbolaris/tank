@@ -5,8 +5,9 @@ and debugging. Extracted from SimulationEngine to follow SRP.
 
 Design Decisions:
 -----------------
-1. Systems are registered in a specific order which determines execution order.
-   The order is controlled by the caller at registration time.
+1. Systems are registered in a stable order for introspection/debug output.
+   Execution order is owned by the EnginePipeline, PhaseExecutor, and
+   SystemCoordinator.
 
 2. Systems can be enabled/disabled at runtime without removal.
 
@@ -46,21 +47,19 @@ class SystemRegistry:
 
     Systems are the workhorses of the simulation - they contain the logic
     that operates on entities each frame. This registry:
-    - Maintains systems in execution order
+    - Maintains systems in registration order for inspection
     - Provides runtime enable/disable
     - Aggregates debug information
 
     Attributes:
-        systems: List of registered systems in execution order
+        systems: List of registered systems in inspection order
 
     Example:
         registry = SystemRegistry()
         registry.register(collision_system)
         registry.register(reproduction_system)
 
-        for system in registry.get_all():
-            system.update(frame)
-
+        debug_info = registry.get_debug_info()
         registry.set_enabled("Collision", False)  # Disable collisions
     """
 
@@ -69,9 +68,7 @@ class SystemRegistry:
         self._systems: list[BaseSystem] = []
 
     def register(self, system: "BaseSystem") -> None:
-        """Register a system for execution.
-
-        Systems are executed in registration order.
+        """Register a system for introspection and runtime control.
 
         Args:
             system: The system to register
@@ -109,7 +106,7 @@ class SystemRegistry:
         return None
 
     def get_all(self) -> list["BaseSystem"]:
-        """Get all registered systems in execution order.
+        """Get all registered systems in inspection order.
 
         Returns:
             List of registered systems (copy to prevent mutation)
@@ -146,7 +143,7 @@ class SystemRegistry:
         return len(self._systems)
 
     def __iter__(self):
-        """Iterate over systems in execution order."""
+        """Iterate over systems in inspection order."""
         return iter(self._systems)
 
     def __repr__(self) -> str:

@@ -77,6 +77,31 @@ def test_custom_pipeline_can_be_created() -> None:
     assert len(custom_pipeline.steps) == 2
 
 
+def test_pipeline_steps_are_not_mutated_through_external_lists() -> None:
+    """Pipeline ordering should change only by constructing a new pipeline."""
+    from dataclasses import FrozenInstanceError
+
+    import pytest
+
+    from core.simulation.pipeline import EnginePipeline, PipelineStep
+
+    def noop_step(engine, ctx) -> None:
+        pass
+
+    source_steps = [PipelineStep("step_a", noop_step)]
+    pipeline = EnginePipeline(source_steps)
+
+    source_steps.append(PipelineStep("outside_append", noop_step))
+    assert pipeline.step_names == ["step_a"]
+
+    exposed_steps = pipeline.steps
+    exposed_steps.append(PipelineStep("property_append", noop_step))
+    assert pipeline.step_names == ["step_a"]
+
+    with pytest.raises(FrozenInstanceError):
+        exposed_steps[0].name = "renamed"
+
+
 def test_pipeline_step_execution_order() -> None:
     """Assert that pipeline steps are executed in order."""
     from core.simulation.pipeline import EnginePipeline, PipelineStep
