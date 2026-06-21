@@ -9,6 +9,7 @@ monkeypatched manager methods are honored.
 
 from typing import TYPE_CHECKING, Any, Optional
 
+from core.constants import SOURCE_POKER_FISH
 from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
 
 if TYPE_CHECKING:
@@ -109,7 +110,7 @@ class EcosystemTelemetryRouter:
                         food_type = delta.metadata["food_type"]
                     self._manager.record_energy_gain(food_type, amount)
                 elif source == "poker_win":
-                    self._manager.record_energy_gain("poker", amount)
+                    self._manager.record_energy_gain(SOURCE_POKER_FISH, amount)
                 else:
                     self._manager.record_energy_gain(source, amount)
 

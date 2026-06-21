@@ -31,6 +31,10 @@ pre-commit install
   ```bash
   python tools/smoke_gate.py
   ```
+* **Agent Gate (Local Pre-Commit Check)**: Runs smoke gate plus a curated correctness suite of architecture, energy, genetics, and protocol tests. Runs in under 90 seconds.
+  ```bash
+  python tools/agent_gate.py
+  ```
 * **Fast Gate (Pre-PR Check)**: Runs the smoke gate plus all non-slow unit tests. Runs in under 3 minutes.
   ```bash
   python tools/fast_gate.py
@@ -90,7 +94,7 @@ A PR title must describe the improvement clearly. The description must include:
 1. **Summary**: What was changed and why.
 2. **Benchmark Results**: Before and after scores.
 3. **Reproduction Command**: The exact command and seed used to reproduce the score.
-4. **Validation Evidence**: Confirmation that `python tools/fast_gate.py` passes.
+4. **Validation Evidence**: Confirmation that `python tools/agent_gate.py` and `python tools/fast_gate.py` pass.
 5. **No Regressions**: Evidence that other active benchmarks were not degraded.
 
 ---
@@ -99,7 +103,7 @@ A PR title must describe the improvement clearly. The description must include:
 
 ### Prompt A: Vague/Simple Entry (Start Here)
 ```text
-Improve this Tank World repo. Start by reading AGENTS.md and docs/AGENT_QUICKSTART.md, run the smoke gate, find one small safe improvement, validate it, and summarize exactly what changed.
+Improve this Tank World repo. Start by reading AGENTS.md, docs/AGENT_FIELD_GUIDE.md, and docs/AGENT_QUICKSTART.md, run the smoke gate, find one small safe improvement, validate it with the agent gate, and summarize exactly what changed.
 ```
 
 ### Prompt B: Layer 1 (Algorithm/Config) Optimization
@@ -110,9 +114,10 @@ Your task is to identify and optimize a Layer 1 behavior algorithm or configurat
 2. Run the smoke gate: python tools/smoke_gate.py
 3. Run a baseline benchmark: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 4. Modify fish parameters in core/config/fish.py or behavior logic in core/algorithms/composable/.
-5. Validate using the fast gate: python tools/fast_gate.py
-6. Compare scores against the champion and update the champion registry.
-7. Commit only the Layer 1 changes with a detailed message following the AGENTS.md format.
+5. Validate locally using the agent gate: python tools/agent_gate.py
+6. Before PR, run the fast gate: python tools/fast_gate.py
+7. Compare scores against the champion; update champion metadata only with explicit benchmark evidence and maintainer-approved scope.
+8. Commit only the Layer 1 changes with a detailed message following the AGENTS.md format.
 Do not modify workflows, CI configurations, or unrelated documentation.
 ```
 
@@ -123,8 +128,9 @@ Your task is to improve documentation, testing, or benchmark usability.
 1. Read AGENTS.md and docs/AGENT_QUICKSTART.md.
 2. Run the smoke gate: python tools/smoke_gate.py
 3. Propose/implement edits to documentation, test harnesses under tests/, or tools in tools/.
-4. Run the fast gate: python tools/fast_gate.py
-5. Verify changes do not introduce type errors or lint failures.
-6. Commit only Layer 2 changes.
+4. Run the agent gate: python tools/agent_gate.py
+5. Before PR, run the fast gate: python tools/fast_gate.py
+6. Verify changes do not introduce type errors or lint failures.
+7. Commit only Layer 2 changes.
 Do not modify fish behaviors, game rules, physics, or champion scores.
 ```

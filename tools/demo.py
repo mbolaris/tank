@@ -138,7 +138,8 @@ def run_tank_simulation(config: DemoConfig, run_dir: Path) -> dict[str, Any]:
         export_stats=str(stats_path),
         trace_output=None,
     )
-    return json.loads(stats_path.read_text(encoding="utf-8"))
+    stats: dict[str, Any] = json.loads(stats_path.read_text(encoding="utf-8"))
+    return stats
 
 
 def record_tank_replay(config: DemoConfig, run_dir: Path) -> Path:
@@ -242,7 +243,7 @@ def run_benchmark(config: DemoConfig, run_dir: Path) -> dict[str, Any]:
     from tools.run_bench import load_benchmark_module
 
     module = load_benchmark_module(str(config.benchmark_path))
-    result = module.run(config.seed)
+    result: dict[str, Any] = module.run(config.seed)
     result["timestamp"] = time.time()
     _write_json(run_dir / "benchmark_result.json", result)
     return result

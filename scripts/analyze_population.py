@@ -20,6 +20,15 @@ from core.entities.base import LifeStage
 from core.worlds import WorldRegistry
 
 
+def _max_population(adapter) -> int:
+    config = getattr(adapter, "config", None)
+    ecosystem = getattr(config, "ecosystem", None)
+    nested_value = getattr(ecosystem, "max_population", None)
+    if nested_value is not None:
+        return int(nested_value)
+    return int(getattr(config, "max_population", 100))
+
+
 def analyze_population(adapter, frames: int = 3000):
     """Run simulation and analyze population dynamics."""
 
@@ -45,7 +54,8 @@ def analyze_population(adapter, frames: int = 3000):
         if fish_count > max_pop_reached:
             max_pop_reached = fish_count
 
-        if fish_count >= adapter.config.max_population - 5:
+        max_population = _max_population(adapter)
+        if fish_count >= max_population - 5:
             frames_at_max += 1
 
         # Sample every 100 frames
@@ -109,12 +119,13 @@ def analyze_population(adapter, frames: int = 3000):
     print("-" * 70)
 
     print("\nPopulation:")
-    print(f"  Max capacity: {adapter.config.max_population}")
+    max_population = _max_population(adapter)
+    print(f"  Max capacity: {max_population}")
     print(
         f"  Final population: {len([e for e in adapter.get_entities_for_snapshot() if isinstance(e, Fish)])}"
     )
     print(f"  Peak population reached: {max_pop_reached}")
-    print(f"  Frames near max (>={adapter.config.max_population - 5}): {frames_at_max}")
+    print(f"  Frames near max (>={max_population - 5}): {frames_at_max}")
 
     print("\nBirths & Deaths:")
     print(f"  Total births: {ecosystem.total_births}")
@@ -198,6 +209,7 @@ def main():
 
     config = {
         "max_population": 100,
+        "num_schooling_fish": 20,
         "auto_food_enabled": True,
         "headless": True,
     }
@@ -216,16 +228,11 @@ def main():
     print(f"Ecosystem: {adapter.ecosystem}")
     print(f"Environment: {adapter.environment}")
 
-    # Spawn initial population
-    initial_spawn = 20
-    for _ in range(initial_spawn):
-        adapter.engine.spawn_emergency_fish()
-
     fish_count = len([e for e in adapter.get_entities_for_snapshot() if isinstance(e, Fish)])
     print(f"Starting with {fish_count} fish")
 
     if fish_count == 0:
-        print("WARNING: No fish spawned! Check spawn_emergency_fish implementation.")
+        print("WARNING: No fish spawned! Check world reset initial population configuration.")
         return
 
     print(f"Max population: {config['max_population']}")

@@ -269,6 +269,9 @@ pre-commit install
 # Run the smoke gate to ensure the baseline is healthy
 python tools/smoke_gate.py
 
+# Run local checks with the agent gate
+python tools/agent_gate.py
+
 # Run a baseline benchmark (5k frames is faster for verification)
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
@@ -322,6 +325,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical deep-dive and [doc
 ```bash
 # Smoke gate (runs in under 30 seconds)
 python tools/smoke_gate.py
+
+# Agent gate (runs in under 90 seconds, smoke gate + curated checks)
+python tools/agent_gate.py
 
 # Fast gate (pre-PR check, runs in under 3 minutes)
 python tools/fast_gate.py

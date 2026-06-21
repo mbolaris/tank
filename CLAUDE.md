@@ -17,6 +17,9 @@ The project operates at three layers:
 # Run before coding (under 30 seconds)
 python tools/smoke_gate.py
 
+# Run before committing locally (under 90 seconds, smoke gate + curated checks)
+python tools/agent_gate.py
+
 # Run before PR (smoke gate + broad non-slow tests)
 python tools/fast_gate.py
 
@@ -114,9 +117,10 @@ tank/
 CI runs named validation tiers:
 
 1. **smoke-gate**: `python tools/smoke_gate.py`
-2. **fast-gate**: `python tools/fast_gate.py` plus mypy
-3. **frontend-ci**: npm install, lint, build, test
-4. **nightly-full**: `python tools/full_gate.py` (nightly or on `full-test`)
+2. **agent-gate**: `python tools/agent_gate.py`
+3. **fast-gate**: `python tools/fast_gate.py` plus mypy
+4. **frontend-ci**: npm install, lint, build, test
+5. **nightly-full**: `python tools/full_gate.py` (nightly or on `full-test`)
 
 Benchmark CI (`bench.yml`): Verifies champions and runs full determinism checks
 nightly or when a maintainer dispatches it explicitly.
@@ -129,7 +133,7 @@ The standard evolution loop:
 2. **Baseline**: Run `python main.py --headless --max-frames 30000 --export-stats results.json --seed 42`
 3. **Evaluate**: Check `results.json` for underperforming algorithms (high starvation rate, low reproduction)
 4. **Improve**: Modify code in `core/algorithms/` or `core/config/`
-5. **Validate**: Run `python tools/fast_gate.py` before PR
+5. **Validate**: Run `python tools/agent_gate.py` before local commit, and `python tools/fast_gate.py` before PR
 6. **Benchmark**: Run full benchmarks only after a candidate improvement exists
 7. **Compare**: Compare candidate results against the `champions/` registry
 8. **Commit**: Clear message with metrics, reproduction command, and evidence

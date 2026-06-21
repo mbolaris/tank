@@ -2,6 +2,7 @@ import math
 
 from core.ecosystem import EcosystemManager
 from core.ecosystem_stats import MixedPokerOutcomeRecord
+from core.worlds.contracts import EnergyDeltaRecord
 
 
 def test_mixed_poker_outcome_record_tracks_house_cut():
@@ -35,6 +36,18 @@ def test_record_fish_poker_game_increments_total():
     ecosystem.record_fish_poker_game()
     ecosystem.record_fish_poker_game()
     assert ecosystem.total_fish_poker_games == start + 2
+
+
+def test_poker_win_energy_delta_feeds_reported_fish_poker_source():
+    ecosystem = EcosystemManager()
+
+    ecosystem.ingest_energy_deltas(
+        [EnergyDeltaRecord(entity_id="fish-1", delta=12.5, source="poker_win")]
+    )
+
+    assert math.isclose(ecosystem.energy_sources.get("poker_fish", 0.0), 12.5)
+    assert ecosystem.energy_sources.get("poker", 0.0) == 0.0
+    assert math.isclose(ecosystem.get_summary_stats([])["energy_from_poker"], 12.5)
 
 
 def test_fish_poker_game_counter_advances_in_sim():

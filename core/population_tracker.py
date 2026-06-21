@@ -275,13 +275,14 @@ class PopulationTracker:
             fish_list: List of all living fish
             enhanced_stats: EnhancedStatisticsTracker for snapshots
         """
-        if not fish_list:
-            return
-
         gen_fish: dict[int, list[Fish]] = defaultdict(list)
         for fish in fish_list:
             if hasattr(fish, "generation"):
                 gen_fish[fish.generation].append(fish)
+
+        for generation, stats in self.generation_stats.items():
+            if generation not in gen_fish:
+                stats.population = 0
 
         for generation, fishes in gen_fish.items():
             if generation not in self.generation_stats:

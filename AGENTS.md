@@ -36,7 +36,8 @@ python main.py --headless --max-frames 30000 --stats-interval 10000 --export-sta
 # 4. Run a benchmark
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-# 5. Identify what needs improvement, make changes, run the fast gate, commit
+# 5. Identify what needs improvement, make changes, run the agent gate, commit
+#    Run the fast gate before opening a PR
 ```
 
 ---
@@ -272,6 +273,14 @@ It targets under 30 seconds and runs quick format/lint checks plus a curated
 correctness suite. It excludes the broad pytest suite, integration/slow/manual
 tests, champion reproduction, and 5k/10k benchmarks.
 
+### Tier 1.5: Agent Gate (Local Pre-Commit Check)
+
+Run the agent gate before committing locally:
+```bash
+python tools/agent_gate.py
+```
+It runs the smoke gate plus a curated correctness suite of architecture, energy, genetics, and protocol tests. It targets under 90 seconds.
+
 ### Tier 2: Fast Gate (Before PR)
 
 Run the fast gate before opening or updating a PR:
@@ -381,8 +390,9 @@ Tank World has built-in support for Claude Code agentic development:
 2. Run `python tools/smoke_gate.py` before coding
 3. Run a benchmark to understand current baseline
 4. Analyze results and identify improvement targets
-5. Make changes and run `python tools/fast_gate.py` before PR
-6. Commit with clear metrics in the message
+5. Make changes and run `python tools/agent_gate.py` before local commit
+6. Run `python tools/fast_gate.py` before PR
+7. Commit with clear metrics in the message
 
 ### What Claude Code Can Do Here
 
@@ -523,13 +533,13 @@ Workflow:
 2. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 3. Analyze: Review results.json for underperformers
 4. Improve: Modify relevant code in core/
-5. Validate: Run fast gate (python tools/fast_gate.py); run full benchmarks only for a candidate improvement
+5. Validate: Run agent gate (python tools/agent_gate.py) before local commit, then fast gate (python tools/fast_gate.py) before PR; run full benchmarks only for a candidate improvement
 6. Commit: Clear message with metrics and reproduction command
 7. Push: git push -u origin [branch]
 
 Rules:
 - Always use deterministic seeds
-- Run the fast gate (python tools/fast_gate.py) before committing
+- Run the agent gate (python tools/agent_gate.py) before committing, and the fast gate (python tools/fast_gate.py) before opening a PR
 - Never claim benchmark improvement without reproduction command, seed, score, and metadata
 - Layer 2 changes (benchmarks, CI, scoring, prompts, gates, champion metadata) must be separate from Layer 1 improvements
 - One focused improvement per PR

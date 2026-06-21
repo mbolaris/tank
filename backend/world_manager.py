@@ -180,7 +180,10 @@ class WorldManager:
                 close()
             return
 
-        task = loop.create_task(result, name=task_name)
+        async def _run(aw: Any) -> Any:
+            return await aw
+
+        task: asyncio.Task[Any] = loop.create_task(_run(result), name=task_name)
         task.add_done_callback(self._handle_background_task)
 
     def _collect_world_cleanup(

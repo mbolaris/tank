@@ -29,3 +29,12 @@ def test_fast_gate_composes_smoke_gate_and_excludes_expensive_markers():
 
     assert "tools/smoke_gate.py" in source
     assert "not slow and not integration and not manual" in source
+
+
+def test_agent_gate_composes_smoke_gate_and_uses_curated_tests():
+    source = (ROOT / "tools" / "agent_gate.py").read_text(encoding="utf-8")
+
+    assert "tools/smoke_gate.py" in source
+    assert "_AGENT_CURATED_TESTS" in source
+    assert "tests/test_determinism.py" in source
+    assert "not slow and not integration and not manual" in source

@@ -316,6 +316,8 @@ class SimulationConfig:
         # Ecosystem
         ecosystem_map = {
             "max_population": "max_population",
+            "num_schooling_fish": "num_schooling_fish",
+            "initial_fish_count": "initial_fish_count",
             "critical_population_threshold": "critical_population_threshold",
             "emergency_spawn_cooldown": "emergency_spawn_cooldown",
         }

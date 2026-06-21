@@ -136,7 +136,7 @@ def collect_stats(
 
     if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
         # Collect soccer events if hooks are present
-        soccer_events = []
+        soccer_events: list[Any] = []
         if hasattr(runner.world_hooks, "collect_soccer_events"):
             try:
                 soccer_events = runner.world_hooks.collect_soccer_events(runner) or []

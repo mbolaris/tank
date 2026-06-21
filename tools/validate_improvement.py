@@ -18,7 +18,8 @@ def get_champion_record(champion_data: dict[str, Any]) -> dict[str, Any]:
     stores score/seed/metadata at the top level (as written by run_bench.py).
     """
     if "champion" in champion_data:
-        return champion_data["champion"]
+        record: dict[str, Any] = champion_data["champion"]
+        return record
     return champion_data
 
 

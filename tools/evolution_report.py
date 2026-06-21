@@ -119,9 +119,10 @@ def extract_stats(obj: Any) -> dict[str, Any]:
     obj = _unwrap_snapshot(obj)
     # A full snapshot nests the curated stats under "stats".
     if isinstance(obj.get("stats"), dict):
-        return obj["stats"]
+        stats: dict[str, Any] = obj["stats"]
+        return stats
     # An exported get_current_metrics() dict is already the stats block.
-    return obj
+    return dict(obj)
 
 
 def _diversity_block(stats: dict[str, Any]) -> dict[str, Any]:
@@ -167,7 +168,7 @@ def _coefficient_of_variation(values: list[float]) -> float:
     if mean == 0:
         return 0.0
     var = sum((v - mean) ** 2 for v in values) / n
-    return (var**0.5) / abs(mean)
+    return float((var**0.5) / abs(mean))
 
 
 def analyze_history(samples: list[dict[str, Any]]) -> dict[str, Any]:
@@ -612,7 +613,8 @@ def resolve_world_id(base_url: str, world_id: str | None) -> str:
     if world_id:
         return world_id
     data = _http_get_json(f"{base_url}/api/worlds/default/id")
-    return data["world_id"]
+    wid: str = data["world_id"]
+    return wid
 
 
 def fetch_live(base_url: str, world_id: str | None) -> tuple[list[dict], dict, str]:

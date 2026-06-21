@@ -94,7 +94,7 @@ class _PinnedPolicy:
         return self._policy_id
 
     def __call__(self, observation: dict[str, Any], rng: random.Random) -> tuple[float, float]:
-        return self._behavior.execute(self._fish)
+        return self._behavior.execute(self._fish)  # type: ignore[no-any-return]
 
 
 def _pin_fish(
@@ -118,9 +118,9 @@ def _pin_fish(
             if behavior is None:
                 continue  # No genome behavior: leave default movement in place
         else:
-            behavior = algo_class.random_instance(rng=param_rng)
+            behavior = algo_class.random_instance(rng=param_rng)  # type: ignore[attr-defined]
         entity.movement_policy = _PinnedPolicy(behavior, entity, f"pinned:{algorithm_id}")
-        entity._bench_pinned = True
+        entity._bench_pinned = True  # type: ignore[attr-defined]
 
 
 def run_single(algorithm_id: str, seed: int, frames: int) -> dict[str, Any]:

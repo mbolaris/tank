@@ -62,7 +62,8 @@ def load_champion(benchmark_id: str) -> dict[str, Any] | None:
     if not champion_path.exists():
         return None
     with open(champion_path) as f:
-        return json.load(f)
+        result: dict[str, Any] = json.load(f)
+        return result
 
 
 def run_benchmark(benchmark_id: str, seed: int) -> dict[str, Any]:
@@ -105,7 +106,7 @@ def run_benchmark(benchmark_id: str, seed: int) -> dict[str, Any]:
                 "is_improvement": diff > 1e-9,
             }
 
-    return result
+    return dict(result)
 
 
 def run_all_benchmarks(seed: int, benchmark_ids: list[str] | None = None) -> dict[str, Any]:
