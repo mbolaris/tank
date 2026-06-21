@@ -8,8 +8,14 @@ If you are an AI agent or a developer preparing to contribute improvements:
 # 1. Setup dev dependencies
 pip install -e .[dev]
 
-# 2. Run the smoke gate to verify everything is working
+# 2. Run the smoke gate to verify everything is working (under 30 seconds)
 python tools/smoke_gate.py
+
+# 3. Use the agent gate for local validation (under 90 seconds)
+python tools/agent_gate.py
+
+# 4. Use the fast gate before submitting a PR (under 3 minutes)
+python tools/fast_gate.py
 ```
 
 For detailed setup or troubleshooting, follow the normal setup paths below.

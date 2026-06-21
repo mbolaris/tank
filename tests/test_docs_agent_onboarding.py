@@ -11,6 +11,7 @@ def test_readme_references_smoke_and_fast_gates():
     assert readme_path.exists(), "README.md does not exist"
     content = readme_path.read_text(encoding="utf-8")
     assert "tools/smoke_gate.py" in content, "README.md must reference tools/smoke_gate.py"
+    assert "tools/agent_gate.py" in content, "README.md must reference tools/agent_gate.py"
     assert "tools/fast_gate.py" in content, "README.md must reference tools/fast_gate.py"
 
 

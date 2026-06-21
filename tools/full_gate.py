@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Run strict full validation for maintainers and nightly CI."""
 
-from gate_common import exit_for_gate, print_gate_header, python_command, run_steps
+try:
+    from tools.gate_common import exit_for_gate, print_gate_header, python_command, run_steps
+except ImportError:
+    from gate_common import exit_for_gate, print_gate_header, python_command, run_steps  # type: ignore[import-not-found,no-redef]
 
 
 def main() -> None:

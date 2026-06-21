@@ -61,6 +61,8 @@ class MultiAgentWorldBackend(ABC):
     The interface is intentionally minimal to support diverse world types.
     """
 
+    runner: Any = None
+
     @abstractmethod
     def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
         """Reset the world to initial state.

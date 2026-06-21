@@ -54,9 +54,10 @@ specialization of it. Memorize the shape:
 1. CHECK    python tools/smoke_gate.py        # is the repo healthy right now?
 2. PICK     one task from the menu in §4       # exactly one, the smallest that helps
 3. CHANGE   edit the files the recipe names    # nothing the recipe didn't mention
-4. PROVE    python tools/fast_gate.py          # did I keep it healthy?
-5. WRITE    a clear commit + PR (§6 template)  # what, why, and the proof
-6. STOP     one focused change per PR           # resist doing "just one more thing"
+4. RUN      python tools/agent_gate.py        # local validation gate (under 90s)
+5. PROVE    python tools/fast_gate.py          # did I keep it healthy?
+6. WRITE    a clear commit + PR (§6 template)  # what, why, and the proof
+7. STOP     one focused change per PR           # resist doing "just one more thing"
 ```
 
 If step 1 fails on a fresh checkout, **stop and report it** — the repo was
@@ -300,7 +301,7 @@ changed* and *how do I know it's safe*. Give them both. Copy this template:
 
 ## Proof
 <for Layer 1: before/after scores + the exact reproduction commands and seed>
-<for Layer 2: confirmation that smoke_gate / fast_gate pass>
+<for Layer 2: confirmation that smoke_gate / agent_gate / fast_gate pass>
 
 Reproduction:
     python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
@@ -317,7 +318,7 @@ seed, and the reproduction command. Avoid vague messages like "improved stuff."
 
 Before you commit, run the self-check:
 
-- [ ] `python tools/fast_gate.py` is green.
+- [ ] `python tools/agent_gate.py` and `python tools/fast_gate.py` are green.
 - [ ] My diff is **one focused change** (Rule 1).
 - [ ] I did **not** touch `champions/**` by hand (Rule 3).
 - [ ] I added **no** non-determinism (Rule 2).

@@ -238,7 +238,7 @@ def mutate_all_algorithms(
     return combined
 
 
-def apply_mutations_to_definitions(plan: MutationPlan) -> dict[str, tuple[float, float]]:
+def apply_mutations_to_definitions(plan: MutationPlan) -> dict[str, float]:
     """Apply composable mutations and return new SUB_BEHAVIOR_PARAMS bounds.
 
     This shifts the *default values* (midpoints) of parameters by adjusting bounds

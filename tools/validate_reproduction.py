@@ -50,7 +50,7 @@ def validate_reproduction(
             if len(v1) != len(v2):
                 return False
             return all(_deep_equal(i1, i2, tol) for i1, i2 in zip(v1, v2, strict=True))
-        return v1 == v2
+        return bool(v1 == v2)
 
     # Check metadata keys
     # We define a set of keys that MUST match for reproduction.
