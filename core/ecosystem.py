@@ -240,6 +240,10 @@ class EcosystemManager:
     def total_fish_poker_games(self, value: int) -> None:
         self.poker_manager.total_fish_poker_games = value
 
+    def record_fish_poker_game(self) -> None:
+        """Count one completed fish-vs-fish poker game (see PokerStatsManager)."""
+        self.poker_manager.record_fish_poker_game()
+
     @property
     def total_plant_poker_games(self) -> int:
         return self.poker_manager.total_plant_poker_games

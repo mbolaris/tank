@@ -90,6 +90,14 @@ class PokerSystem(BaseSystem):
         """
         self.add_poker_event(poker)
 
+        # Count the completed fish-vs-fish game so the UI's total_fish_games and
+        # poker-rate stats advance. Per-fish FishPokerStats are recorded inside
+        # the poker interaction; this aggregate counter was previously never
+        # incremented (its recorder, record_poker_outcome, was orphaned).
+        ecosystem = getattr(self._engine, "ecosystem", None)
+        if ecosystem is not None and poker.result is not None:
+            ecosystem.record_fish_poker_game()
+
         # Delegate post-poker reproduction to the ReproductionService
         reproduction_service = getattr(self._engine, "reproduction_service", None)
         if reproduction_service is not None:
