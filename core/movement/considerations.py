@@ -18,18 +18,32 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from core.movement.ball_pursuit import BallPursuitConsideration
+
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.movement_strategy import AlgorithmicMovement
 
 Velocity = tuple[float, float]
 
+__all__ = [
+    "MovementConsideration",
+    "PolicyOverrideConsideration",
+    "BallPursuitConsideration",
+    "CodePolicyConsideration",
+    "ComposableBehaviorConsideration",
+    "MovementArbiter",
+    "default_considerations",
+]
+
 
 class MovementConsideration(Protocol):
     """One competing movement drive.
 
-    Implementations are stateless and delegate to the owning strategy, so the
-    priority *order* lives in exactly one place (the arbiter's list).
+    Implementations are stateless; some delegate to the owning strategy (e.g.
+    the policy/code/composable drives below) while others are self-contained
+    (e.g. ``BallPursuitConsideration``). Either way the priority *order* lives in
+    exactly one place — the arbiter's list — not in control flow.
     """
 
     name: str
@@ -46,15 +60,6 @@ class PolicyOverrideConsideration:
 
     def desired_velocity(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
         return strategy._get_policy_override_velocity(fish)
-
-
-class BallPursuitConsideration:
-    """Soccer-ball pursuit for fish with surplus energy."""
-
-    name = "ball_pursuit"
-
-    def desired_velocity(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
-        return strategy._get_ball_pursuit_velocity(fish)
 
 
 class CodePolicyConsideration:
