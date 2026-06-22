@@ -11,6 +11,8 @@ from core.config.fish import (
     CRITICAL_ENERGY_THRESHOLD_RATIO,
     LOW_ENERGY_THRESHOLD_RATIO,
     REPRODUCTION_MIN_ENERGY,
+    SAFE_ENERGY_THRESHOLD_RATIO,
+    STARVATION_THRESHOLD_RATIO,
 )
 
 
@@ -33,6 +35,16 @@ class EnergyState:
         return max(0.0, min(1.0, self.current_energy / self.max_energy))
 
     @property
+    def is_starving(self) -> bool:
+        """Check if energy is below the starvation threshold (most severe).
+
+        This is the lowest energy band; below it a fish is considered to be
+        starving (distinct from a starvation *death*, which occurs at zero
+        energy).
+        """
+        return self.percentage < STARVATION_THRESHOLD_RATIO
+
+    @property
     def is_critical(self) -> bool:
         """Check if energy is critically low."""
         return self.percentage < CRITICAL_ENERGY_THRESHOLD_RATIO
@@ -44,6 +56,15 @@ class EnergyState:
         Uses the configured ratio.
         """
         return self.percentage < LOW_ENERGY_THRESHOLD_RATIO
+
+    @property
+    def is_safe(self) -> bool:
+        """Check if energy is at or above the safe threshold.
+
+        At this level a fish is comfortable enough to explore and breed
+        rather than prioritise foraging.
+        """
+        return self.percentage >= SAFE_ENERGY_THRESHOLD_RATIO
 
     @property
     def can_reproduce(self) -> bool:
