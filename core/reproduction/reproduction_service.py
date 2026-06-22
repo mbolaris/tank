@@ -366,6 +366,9 @@ class ReproductionService:
         x = self._engine.rng.randint(int(min_x) + spawn_margin, int(max_x) - spawn_margin)
         y = self._engine.rng.randint(int(min_y) + spawn_margin, int(max_y) - spawn_margin)
 
+        # Pass parent_id so emergency clones appear in the lineage tree
+        # under their donor rather than being orphaned to "root".
+        parent_id = parent.fish_id if fish_list else None
         new_fish = entities.Fish(
             environment,
             movement_strategy.AlgorithmicMovement(),
@@ -376,6 +379,7 @@ class ReproductionService:
             genome=genome,
             generation=generation,
             ecosystem=ecosystem,
+            parent_id=parent_id,
         )
         new_fish.register_birth()
 
