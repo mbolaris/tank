@@ -7,7 +7,7 @@ import random
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.config.simulation_config import SimulationConfig
 from core.entities import LifeStage
-from core.reproduction_service import ReproductionService
+from core.reproduction.reproduction_service import ReproductionService
 
 
 class _DummyTrait:

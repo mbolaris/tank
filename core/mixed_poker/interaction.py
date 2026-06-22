@@ -450,7 +450,7 @@ class MixedPokerInteraction:
             winner_bet = game_state.player_total_bets[best_hand_idx]
             net_gain = total_pot - winner_bet
 
-            from core.poker_interaction import calculate_house_cut
+            from core.poker.integration.poker_interaction import calculate_house_cut
 
             house_cut = calculate_house_cut(winner_size, net_gain)
 

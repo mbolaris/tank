@@ -253,7 +253,7 @@ class TestPokerPlayerLimits:
 
     def test_fish_poker_max_players_enforced(self, engine_with_entities):
         """Verify PokerInteraction enforces MAX_PLAYERS limit."""
-        from core.poker_interaction import MAX_PLAYERS, PokerInteraction
+        from core.poker.integration.poker_interaction import MAX_PLAYERS, PokerInteraction
 
         fish = engine_with_entities["fish"]
 
@@ -277,7 +277,7 @@ class TestPokerPlayerLimits:
 
     def test_deck_has_enough_cards_for_max_players(self):
         """Verify a 52-card deck can handle MAX_PLAYERS."""
-        from core.poker_interaction import MAX_PLAYERS
+        from core.poker.integration.poker_interaction import MAX_PLAYERS
 
         # With 52 cards:
         # - Each player needs 2 hole cards
@@ -553,7 +553,7 @@ class TestEnergyTransferTracking:
 
     def test_poker_stats_manager_tracks_energy_transfer(self):
         """Verify PokerStatsManager.record_mixed_poker_energy_transfer works correctly."""
-        from core.poker_stats_manager import PokerStatsManager
+        from core.poker.stats.poker_stats_manager import PokerStatsManager
 
         manager = PokerStatsManager(lambda e: None, lambda: 0)
 
@@ -619,7 +619,7 @@ class TestEnergyTransferTracking:
 
     def test_energy_transfer_sign_convention(self):
         """Verify positive = fish gained, negative = plants gained."""
-        from core.poker_stats_manager import PokerStatsManager
+        from core.poker.stats.poker_stats_manager import PokerStatsManager
 
         manager = PokerStatsManager(lambda e: None, lambda: 0)
 

@@ -6,7 +6,7 @@ centralizes all reproduction logic (asexual, emergency, and post-poker).
 
 from typing import TYPE_CHECKING, Any
 
-from core.reproduction_service import ReproductionService
+from core.reproduction.reproduction_service import ReproductionService
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 

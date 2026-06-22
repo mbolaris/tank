@@ -20,8 +20,8 @@ from core.config.ecosystem import FISH_POKER_MAX_DISTANCE
 from core.config.plants import PLANT_POKER_MAX_DISTANCE
 from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import MixedPokerInteraction
-from core.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
-from core.poker_interaction import PokerInteraction
+from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
+from core.poker.integration.poker_interaction import PokerInteraction
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
@@ -333,7 +333,7 @@ class PokerSystem(BaseSystem):
         """
         from core.entities import Fish
         from core.entities.plant import Plant
-        from core.poker_table_planner import MixedPokerTablePlanner
+        from core.poker.integration.poker_table_planner import MixedPokerTablePlanner
 
         if not POKER_ACTIVITY_ENABLED:
             return

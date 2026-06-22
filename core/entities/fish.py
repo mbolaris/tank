@@ -488,7 +488,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         if self._lifecycle_component.life_stage not in (LifeStage.ADULT, LifeStage.ELDER):
             return False
 
-        from core.poker_interaction import MIN_ENERGY_TO_PLAY
+        from core.poker.integration.poker_interaction import MIN_ENERGY_TO_PLAY
 
         return self.energy >= MIN_ENERGY_TO_PLAY and self.poker_cooldown <= 0 and not self.is_dead()
 

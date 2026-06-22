@@ -73,9 +73,9 @@ class TankLikePackBase(ABC):
         that are shared across Tank-like modes.
         """
         from core.collision_system import CollisionSystem
-        from core.poker_system import PokerSystem
-        from core.reproduction_service import ReproductionService
-        from core.reproduction_system import ReproductionSystem
+        from core.poker.integration.poker_system import PokerSystem
+        from core.reproduction.reproduction_service import ReproductionService
+        from core.reproduction.reproduction_system import ReproductionSystem
         from core.systems.entity_lifecycle import EntityLifecycleSystem
         from core.systems.poker_proximity import PokerProximitySystem
 

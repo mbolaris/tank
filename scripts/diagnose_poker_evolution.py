@@ -20,8 +20,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.genetics import Genome
+from core.poker.evaluation.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.strategy.implementations import (
     ALL_POKER_STRATEGIES,
     LooseAggressiveStrategy,

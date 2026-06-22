@@ -186,8 +186,11 @@ def evaluate_vs_single_benchmark_duplicate(
     Returns:
         SingleBenchmarkResult with bb/100 and confidence interval
     """
-    # Import here to avoid circular import with core.auto_evaluate_poker
-    from core.auto_evaluate_poker import AutoEvaluatePokerGame, is_shutdown_requested
+    # Import here to avoid circular import with core.poker.evaluation.auto_evaluate_poker
+    from core.poker.evaluation.auto_evaluate_poker import (
+        AutoEvaluatePokerGame,
+        is_shutdown_requested,
+    )
 
     # Deterministically seed the benchmark opponent using simple string sum (stable)
     bench_seed = cfg.base_seed + sum(ord(c) for c in benchmark_id)

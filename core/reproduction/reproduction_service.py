@@ -11,7 +11,7 @@ from core.util.stable_hash import stable_algorithm_id
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.poker_interaction import PokerInteraction
+    from core.poker.integration.poker_interaction import PokerInteraction
     from core.simulation import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ class ReproductionService:
     def handle_post_poker_reproduction(self, poker: PokerInteraction) -> Fish | None:
         """Handle reproduction after a fish-fish poker game."""
         from core.config.fish import POST_POKER_MATING_DISTANCE
-        from core.poker_interaction import (
+        from core.poker.integration.poker_interaction import (
             is_post_poker_reproduction_eligible,
             is_valid_reproduction_mate,
         )

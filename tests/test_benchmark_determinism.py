@@ -3,8 +3,8 @@
 import random
 import unittest
 
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.core.cards import Deck
+from core.poker.evaluation.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.evaluation.benchmark_eval import (
     BenchmarkEvalConfig,
     create_standard_strategy,

@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from typing import Any, cast
 
-from core.poker_system import PokerSystem
+from core.poker.integration.poker_system import PokerSystem
 from core.simulation.engine import SimulationEngine
 
 

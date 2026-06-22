@@ -30,10 +30,10 @@ from core.ecosystem_stats import (
 from core.ecosystem_telemetry import EcosystemTelemetryRouter
 from core.genetic_diversity_tracker import GeneticDiversityTracker
 from core.lineage_tracker import LineageTracker
-from core.poker_outcome_recorder import PokerOutcomeRecorder
-from core.poker_stats_manager import PokerStatsManager
+from core.poker.stats.poker_outcome_recorder import PokerOutcomeRecorder
+from core.poker.stats.poker_stats_manager import PokerStatsManager
 from core.population_tracker import PopulationTracker
-from core.reproduction_stats_manager import ReproductionStatsManager
+from core.reproduction.reproduction_stats_manager import ReproductionStatsManager
 from core.services.energy_tracker import EnergyTracker
 
 if TYPE_CHECKING:

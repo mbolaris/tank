@@ -6,7 +6,7 @@ poker game participants are all within mutual proximity (no chain connections).
 
 from types import SimpleNamespace
 
-from core.poker_interaction import filter_mutually_proximate
+from core.poker.integration.poker_interaction import filter_mutually_proximate
 
 
 class MockEntity:

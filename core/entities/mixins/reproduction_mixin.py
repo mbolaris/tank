@@ -89,7 +89,7 @@ class ReproductionMixin:
         Returns:
             Newborn fish if reproduction occurred, None otherwise
         """
-        from core.reproduction_service import ReproductionService
+        from core.reproduction.reproduction_service import ReproductionService
 
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(cast("Fish", self))
@@ -104,6 +104,6 @@ class ReproductionMixin:
         """
         from typing import cast
 
-        from core.reproduction_service import ReproductionService
+        from core.reproduction.reproduction_service import ReproductionService
 
         return ReproductionService.create_asexual_offspring(cast("Fish", self))

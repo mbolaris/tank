@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def _request_shutdown_best_effort() -> None:
     try:
-        from core.auto_evaluate_poker import request_shutdown
+        from core.poker.evaluation.auto_evaluate_poker import request_shutdown
 
         request_shutdown()
     except (ImportError, RuntimeError):

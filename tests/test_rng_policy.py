@@ -127,7 +127,7 @@ def test_no_unseeded_random_in_core() -> None:
         "core/poker/simulation/",  # Poker simulation has its own engine
         "core/poker/evaluation/",  # Benchmark tools
         "core/skills/games/",  # Mini-game utilities (not core sim)
-        "core/human_poker_game.py",  # Human-facing game
+        "core/poker/human_poker_game.py",  # Human-facing game
     }
 
     violations: list[str] = []
