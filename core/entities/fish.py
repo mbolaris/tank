@@ -42,11 +42,9 @@ from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
-from core.fish.skill_game_component import SkillGameComponent
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
-from core.skills.base import SkillGameResult, SkillGameType, SkillStrategy
 from core.telemetry.events import BirthEvent, FoodEatenEvent
 
 
@@ -54,14 +52,14 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
     """A fish entity with genetics, energy, and life cycle (pure logic, no rendering).
 
     Fish extends GenericAgent with full alife capabilities including genetics,
-    reproduction, skill games (poker), and complex lifecycle management.
+    reproduction, poker, and complex lifecycle management.
 
     Protocol Implementations (via GenericAgent + Fish-specific):
         - EnergyHolder: Has energy with overflow routing to reproduction
         - Mortal: Can die from starvation, predation, or old age
         - Reproducible: Can reproduce through poker games or asexually
         - Movable: Moves with AI-driven behaviors
-        - SkillfulAgent: Can play poker with evolved strategies
+        - PokerPlayer: Can play poker with evolved strategies
         - Identifiable: Has stable fish_id for tracking and lineage
         - LifecycleAware: Transitions through baby -> adult -> elder stages
 
@@ -236,9 +234,6 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             decay_rate=FISH_MEMORY_DECAY_RATE,
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
-
-        # NEW: Skill game component (manages strategies and stats for skill games)
-        self._skill_game_component = SkillGameComponent()
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem
@@ -443,44 +438,12 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         return self.fish_id
 
     # =========================================================================
-    # SkillfulAgent Protocol Implementation
+    # Poker eligibility
     # =========================================================================
 
-    def get_strategy(self, game_type: SkillGameType) -> SkillStrategy | None:
-        """Get the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
-
-        Args:
-            game_type: The type of skill game
-
-        Returns:
-            The fish's strategy for that game, or None if not initialized
-        """
-        return self._skill_game_component.get_strategy(game_type)
-
-    def set_strategy(self, game_type: SkillGameType, strategy: SkillStrategy) -> None:
-        """Set the fish's strategy for a specific skill game (implements SkillfulAgent Protocol).
-
-        Args:
-            game_type: The type of skill game
-            strategy: The strategy to use for that game
-        """
-        self._skill_game_component.set_strategy(game_type, strategy)
-
-    def learn_from_game(self, game_type: SkillGameType, result: SkillGameResult) -> None:
-        """Update strategy based on game outcome (implements SkillfulAgent Protocol).
-
-        This is how fish learn within their lifetime. The strategy is updated
-        based on the result (win/loss/tie) and optimality of play.
-
-        Args:
-            game_type: The type of skill game that was played
-            result: The outcome of the game
-        """
-        self._skill_game_component.record_game_result(game_type, result)
-
     @property
-    def can_play_skill_games(self) -> bool:
-        """Whether this fish is currently able to play skill games (implements SkillfulAgent Protocol).
+    def can_play_poker(self) -> bool:
+        """Whether this fish is currently eligible to engage in poker.
 
         Returns:
             True if fish is adult, has sufficient energy, and isn't on cooldown

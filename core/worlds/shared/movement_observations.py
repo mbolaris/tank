@@ -87,7 +87,7 @@ class TankLikeMovementObservationBuilder:
             "nearest_threat_vector": nearest_threat_vector,
             "energy": fish.energy,
             "age": fish.age or 0,
-            "can_play_poker": getattr(fish, "can_play_skill_games", False),
+            "can_play_poker": fish.can_play_poker,
         }
 
 

@@ -558,13 +558,15 @@ class ReproductionService:
         winner.visual_state.set_birth_effect(60)
         mate.visual_state.set_birth_effect(60)
 
-        source_parent = (
-            winner if self._engine.rng.random() < POST_POKER_CROSSOVER_WINNER_WEIGHT else mate
-        )
-        baby._skill_game_component.inherit_from_parent(
-            source_parent._skill_game_component,
-            mutation_rate=POST_POKER_MUTATION_RATE,
-        )
+        # Determinism anchor: post-poker reproduction has always drawn one engine
+        # RNG value here (it picked which parent's learned state the offspring
+        # inherited). That inherited state has been removed, but dropping the draw
+        # would reshuffle the shared seeded stream for every poker-on config and
+        # trip the golden-replay/benchmark guards. Retain the draw so this removal
+        # stays byte-identical; drop it via a coordinated re-record when this path
+        # is next intentionally changed. (See docs/POKER_SEAM_PROPOSAL.md: minigame
+        # state should not draw from the core RNG.)
+        self._engine.rng.random()
 
         return baby
 
@@ -641,13 +643,6 @@ class ReproductionService:
             emit_event = getattr(fish, "_emit_event", None)
             if callable(emit_event):
                 emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
-
-        # Inherit skill game strategies from parent with mutation
-        baby._skill_game_component.inherit_from_parent(
-            fish._skill_game_component,
-            mutation_rate=0.1,
-            rng=rng,
-        )
 
         # Set visual birth effect timer
         fish.visual_state.set_birth_effect(60)

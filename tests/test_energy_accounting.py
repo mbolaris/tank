@@ -1,18 +1,14 @@
 import math
 import random
-from typing import Any, cast
+from typing import Any
 
 from core.ecosystem import EcosystemManager
 from core.entities import Agent, Fish
 from core.entities.plant import Plant
 from core.genetics import PlantGenome
 from core.mixed_poker import MixedPokerInteraction, MixedPokerResult
-from core.movement_strategy import AlgorithmicMovement
 from core.root_spots import RootSpot
 from core.simulation.engine import SimulationEngine
-from core.skill_game_system import SkillGameSystem
-from core.skills.base import SkillGameResult
-from core.skills.config import SkillGameConfig
 
 
 class _EnvStub:
@@ -58,106 +54,6 @@ class _EnvStub:
     @property
     def rng(self) -> random.Random:
         return self._rng
-
-
-def test_skill_game_records_energy_transfer(simulation_env):
-    _unused_env, _agents_wrapper = simulation_env
-
-    ecosystem = EcosystemManager()
-    env = _EnvStub()
-
-    fish1 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=100,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-    fish2 = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=120,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-
-    fish1.energy = fish1.max_energy * 0.4
-    fish2.energy = fish2.max_energy * 0.4
-
-    cfg = SkillGameConfig(stake_multiplier=1.0)
-    engine_stub = cast(SimulationEngine, object())
-    system = SkillGameSystem(engine_stub, config=cfg)
-
-    result1 = SkillGameResult(
-        player_id="fish1",
-        opponent_id="fish2",
-        won=True,
-        score_change=10.0,
-        was_optimal=True,
-    )
-
-    transferred = system._apply_energy_changes(fish1, fish2, result1, None)
-    assert transferred > 0
-
-    assert math.isclose(
-        ecosystem.energy_sources.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9
-    )
-    assert math.isclose(
-        ecosystem.energy_burn.get("skill_game", 0.0), transferred, rel_tol=0, abs_tol=1e-9
-    )
-
-
-def test_single_player_skill_game_records_energy_delta(simulation_env):
-    _unused_env, _agents_wrapper = simulation_env
-
-    ecosystem = EcosystemManager()
-    env = _EnvStub()
-
-    fish = Fish(
-        environment=env,
-        movement_strategy=AlgorithmicMovement(),
-        species="test",
-        x=100,
-        y=100,
-        speed=2.0,
-        ecosystem=ecosystem,
-    )
-
-    fish.energy = fish.max_energy * 0.2
-
-    cfg = SkillGameConfig(stake_multiplier=1.0)
-    engine_stub = cast(SimulationEngine, object())
-    system = SkillGameSystem(engine_stub, config=cfg)
-
-    win = SkillGameResult(
-        player_id="fish",
-        opponent_id=None,
-        won=True,
-        score_change=7.0,
-        was_optimal=True,
-    )
-    delta = system._apply_energy_changes(fish, None, win, None)
-    assert delta > 0
-    assert math.isclose(
-        ecosystem.energy_sources.get("skill_game_env", 0.0), delta, rel_tol=0, abs_tol=1e-9
-    )
-
-    loss = SkillGameResult(
-        player_id="fish",
-        opponent_id=None,
-        won=False,
-        score_change=-5.0,
-        was_optimal=False,
-    )
-    delta2 = system._apply_energy_changes(fish, None, loss, None)
-    assert delta2 < 0
-    assert math.isclose(
-        ecosystem.energy_burn.get("skill_game_env", 0.0), -delta2, rel_tol=0, abs_tol=1e-9
-    )
 
 
 def test_plant_records_energy_gains_and_spends(simulation_env):
