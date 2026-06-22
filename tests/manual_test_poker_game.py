@@ -21,7 +21,7 @@ def test_poker_game_creation():
     print("Test 1: Game Creation and Initialization")
     print("-" * 50)
 
-    from core.human_poker_game import HumanPokerGame
+    from core.poker.human_poker_game import HumanPokerGame
 
     ai_fish = [
         {
@@ -124,7 +124,7 @@ def test_ai_decision_making():
     print("Test 3: AI Decision Making")
     print("-" * 50)
 
-    from core.human_poker_game import HumanPokerGame
+    from core.poker.human_poker_game import HumanPokerGame
 
     # Create multiple games to test AI variety
     for i in range(3):
@@ -247,7 +247,7 @@ def test_error_handling():
     print("Test 5: Error Handling")
     print("-" * 50)
 
-    from core.human_poker_game import HumanPokerGame
+    from core.poker.human_poker_game import HumanPokerGame
 
     ai_fish = [
         {"fish_id": 1, "name": "Fish 1", "energy": 100, "algorithm": "Test", "aggression": 0.5},

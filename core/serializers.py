@@ -8,7 +8,7 @@ from typing import Any
 
 from core.entities.fish import Fish
 from core.entities.plant import Plant
-from core.plant_poker_strategy import PlantPokerStrategyAdapter
+from core.poker.strategy.plant_poker_strategy import PlantPokerStrategyAdapter
 
 
 class FishSerializer:

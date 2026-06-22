@@ -138,7 +138,7 @@ class PlantPokerComponent:
                 pass  # Fall through to genome-based strategy
 
         # Fall back to genome-based strategy (legacy behavior)
-        from core.plant_poker_strategy import PlantPokerStrategyAdapter
+        from core.poker.strategy.plant_poker_strategy import PlantPokerStrategyAdapter
 
         return PlantPokerStrategyAdapter(genome)
 

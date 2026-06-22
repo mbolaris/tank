@@ -23,8 +23,12 @@ from typing import TYPE_CHECKING, Any, cast
 
 from core.config.ecosystem import FISH_POKER_MAX_DISTANCE, FISH_POKER_MIN_DISTANCE
 from core.entities import Fish
-from core.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
-from core.poker_interaction import PokerInteraction, filter_mutually_proximate, get_ready_players
+from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
+from core.poker.integration.poker_interaction import (
+    PokerInteraction,
+    filter_mutually_proximate,
+    get_ready_players,
+)
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 

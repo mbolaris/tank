@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import TYPE_CHECKING, Any, cast
 
-from core.human_poker_game import HumanPokerGame
+from core.poker.human_poker_game import HumanPokerGame
 
 if TYPE_CHECKING:
     pass

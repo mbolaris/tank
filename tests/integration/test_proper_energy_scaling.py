@@ -10,7 +10,7 @@ from core.entities import Fish, LifeStage
 from core.environment import Environment
 from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
-from core.poker_interaction import PokerInteraction
+from core.poker.integration.poker_interaction import PokerInteraction
 
 
 def test_with_scaled_energy():
@@ -105,7 +105,7 @@ def test_with_scaled_energy():
         print(f"  Loser above 90%: {loser_fish.energy >= loser_fish.max_energy * 0.9}")
 
         # Check if reproduction would be triggered using the new API
-        from core.poker_interaction import should_trigger_reproduction
+        from core.poker.integration.poker_interaction import should_trigger_reproduction
 
         can_reproduce = should_trigger_reproduction(winner_fish, loser_fish)
 

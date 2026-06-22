@@ -7,7 +7,7 @@ The implementation is based on MixedPokerInteraction which handles 2-6 players
 of any type using full Texas Hold'em with betting rounds.
 
 Usage:
-    from core.poker_interaction import PokerInteraction, PokerResult
+    from core.poker.integration.poker_interaction import PokerInteraction, PokerResult
 
     players = [fish1, fish2, plant1]  # Any PokerPlayer entities
     poker = PokerInteraction(players)

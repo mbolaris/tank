@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from core.auto_evaluate_poker import AutoEvaluatePokerGame
+from core.poker.evaluation.auto_evaluate_poker import AutoEvaluatePokerGame
 from core.poker.strategy.implementations import (
     BalancedStrategy,
     LooseAggressiveStrategy,

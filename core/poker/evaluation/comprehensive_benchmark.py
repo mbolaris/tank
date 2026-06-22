@@ -297,7 +297,7 @@ def _evaluate_single_fish(
     # Evaluate against each baseline
     for baseline_id in config.fish_vs_baselines.baseline_opponents:
         try:
-            from core.auto_evaluate_poker import is_shutdown_requested
+            from core.poker.evaluation.auto_evaluate_poker import is_shutdown_requested
 
             if is_shutdown_requested():
                 break
@@ -343,7 +343,7 @@ def run_comprehensive_benchmark(
     # Fast exit during shutdown (Ctrl+C) to avoid keeping non-daemon worker
     # threads alive and delaying process termination.
     try:
-        from core.auto_evaluate_poker import is_shutdown_requested
+        from core.poker.evaluation.auto_evaluate_poker import is_shutdown_requested
 
         if is_shutdown_requested():
             return PopulationBenchmarkResult(

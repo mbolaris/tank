@@ -60,9 +60,9 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-    from core.poker_system import PokerSystem
-    from core.reproduction_service import ReproductionService
-    from core.reproduction_system import ReproductionSystem
+    from core.poker.integration.poker_system import PokerSystem
+    from core.reproduction.reproduction_service import ReproductionService
+    from core.reproduction.reproduction_system import ReproductionSystem
     from core.root_spots import RootSpotManager
     from core.simulation.pipeline import EnginePipeline
     from core.systems.entity_lifecycle import EntityLifecycleSystem

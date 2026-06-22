@@ -1,8 +1,8 @@
 """Tests for human vs AI poker game realism."""
 
-from core.human_poker_game import HumanPokerGame
 from core.poker.core import BettingRound
 from core.poker.core.cards import Card, Rank, Suit
+from core.poker.human_poker_game import HumanPokerGame
 
 
 def test_showdown_splits_pot_on_tie():

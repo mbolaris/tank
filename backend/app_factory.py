@@ -261,7 +261,7 @@ def create_app(
             raise
         finally:
             try:
-                from core.auto_evaluate_poker import request_shutdown
+                from core.poker.evaluation.auto_evaluate_poker import request_shutdown
 
                 request_shutdown()
             except Exception:
@@ -298,14 +298,7 @@ def create_app(
 
 def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     """Setup and include all API routers."""
-    from backend.routers import (
-        connections,
-        discovery,
-        metrics,
-        servers,
-        transfers,
-        websocket,
-    )
+    from backend.routers import connections, discovery, metrics, servers, transfers, websocket
     from backend.routers.solutions import create_solutions_router
     from backend.routers.worlds import setup_worlds_router
 

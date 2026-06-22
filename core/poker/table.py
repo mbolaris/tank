@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 from core.entities import Fish
 
 if TYPE_CHECKING:
-    from core.poker_interaction import PokerResult
+    from core.poker.integration.poker_interaction import PokerResult
 
 
 class PokerTable:
@@ -20,7 +20,7 @@ class PokerTable:
     def play_hand(self, bet_amount: float | None = None) -> Optional["PokerResult"]:
         """Play a poker hand among the configured players."""
 
-        from core.poker_interaction import PokerInteraction
+        from core.poker.integration.poker_interaction import PokerInteraction
 
         interaction = PokerInteraction(self.players)
         if not interaction.can_play_poker():

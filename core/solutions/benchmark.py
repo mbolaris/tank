@@ -353,7 +353,7 @@ class SolutionBenchmark:
 
         Returns (win_rate_1, win_rate_2) tuple.
         """
-        from core.auto_evaluate_poker import AutoEvaluatePokerGame
+        from core.poker.evaluation.auto_evaluate_poker import AutoEvaluatePokerGame
 
         if sol1.metadata.solution_id == sol2.metadata.solution_id:
             return (0.5, 0.5)

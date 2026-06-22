@@ -22,9 +22,9 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.environment import Environment
     from core.plant_manager import PlantManager
-    from core.poker_system import PokerSystem
-    from core.reproduction_service import ReproductionService
-    from core.reproduction_system import ReproductionSystem
+    from core.poker.integration.poker_system import PokerSystem
+    from core.reproduction.reproduction_service import ReproductionService
+    from core.reproduction.reproduction_system import ReproductionSystem
     from core.simulation.entity_manager import EntityManager
     from core.simulation.phase_hooks import PhaseHooks
     from core.systems.entity_lifecycle import EntityLifecycleSystem

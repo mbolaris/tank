@@ -13,7 +13,7 @@ from core.config.fish import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
 from core.entities import Fish, LifeStage
 from core.genetics import Genome
 from core.movement_strategy import AlgorithmicMovement
-from core.poker_interaction import PokerInteraction
+from core.poker.integration.poker_interaction import PokerInteraction
 from core.simulation.engine import SimulationEngine
 
 
