@@ -19,7 +19,6 @@ from core.policies.interfaces import build_movement_observation
 if TYPE_CHECKING:
     from core.entities import Fish
 
-from core.actions.action_registry import translate_action
 from core.movement.considerations import MovementArbiter, default_considerations
 
 logger = logging.getLogger(__name__)
@@ -33,6 +32,21 @@ ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
 ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = (
     ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
 )
+
+# Kinematic action bound for tank-like worlds, mirroring
+# TankLikeActionTranslator(max_velocity=5.0). The internal movement path clamps
+# inline rather than round-tripping every fish every frame through the
+# external-brain action-translation registry, which only re-applied this same
+# clamp while allocating an Action object. The translation layer is still the
+# correct seam for *external* brains; it is just not needed on the internal
+# composable-behavior path. See ADR-007 (silent-fallback removal).
+MAX_ACTION_VELOCITY = 5.0
+
+
+def _clamp_action_velocity(value: float) -> float:
+    """Clamp one velocity component to the kinematic action bound."""
+    return max(-MAX_ACTION_VELOCITY, min(MAX_ACTION_VELOCITY, value))
+
 
 VelocityComponents = tuple[float, float]
 
@@ -126,26 +140,13 @@ class AlgorithmicMovement(MovementStrategy):
             super().move(sprite_entity)
             return
 
-        # =========================================================================
-        # CONTRACT ENFORCEMENT
-        # =========================================================================
-        # Convert raw decision (velocity) to canonical Action via Registry
-        # This ensures all behaviors go through the standard translation layer.
-
-        world_type = getattr(sprite_entity.environment, "world_type", None) or "tank"
-
-        # Translate to standardized Action
-        # Note: desired_velocity is a tuple (vx, vy); the world's registered
-        # translator (e.g. TankActionTranslator) converts it to a canonical Action.
-        try:
-            action = translate_action(
-                world_type, str(getattr(sprite_entity, "fish_id", "unknown")), desired_velocity
-            )
-            # Use the translated velocity from the Action object
-            desired_vx, desired_vy = action.target_velocity
-        except Exception:
-            # Fallback if translation fails (should not happen with defaults)
-            desired_vx, desired_vy = desired_velocity
+        # Clamp the desired velocity to the kinematic action bound, then scale by
+        # speed below. This is the internal fast path: on the composable-behavior
+        # path the external-brain action-translation registry only re-applied this
+        # same clamp (allocating an Action per fish per frame), so it is bypassed
+        # here. External brains still translate through core.actions.
+        desired_vx = _clamp_action_velocity(float(desired_velocity[0]))
+        desired_vy = _clamp_action_velocity(float(desired_velocity[1]))
 
         # Apply algorithm decision - scale by speed to get actual velocity
         speed = sprite_entity.speed
@@ -273,84 +274,3 @@ class AlgorithmicMovement(MovementStrategy):
             dt=env_dt,
             frame=fish_frame,
         )
-
-    def _get_ball_pursuit_velocity(self, fish: Fish) -> VelocityComponents | None:
-        """Check if fish should pursue the soccer ball.
-
-        Only fish with an energy surplus play ball. Hungry fish skip the
-        ball entirely so the composable behavior's food pursuit can run.
-
-        The previous version *increased* ball interest with hunger (up to
-        80% per frame for starving fish). Because ball pursuit pre-empts
-        food seeking, the whole population converged on the ball at tank
-        center and starved next to uneaten food (98% starvation deaths).
-
-        Returns:
-            Velocity toward ball if pursuing, None otherwise
-        """
-        import math
-
-        from core.entities.ball import Ball
-
-        # Prefer the primary ball reference provided by the environment
-        ball = getattr(fish.environment, "ball", None)
-        if ball is None:
-            agents = getattr(fish.environment, "agents", None)
-            if agents:
-                for entity in agents:
-                    if isinstance(entity, Ball):
-                        ball = entity
-                        break
-
-        if ball is None:
-            return None  # No ball = no soccer
-
-        # Ball play is only worthwhile once a fish is genuinely topped up.
-        # Reproduction is funded by energy banked *above* max_energy (overflow),
-        # so a fish anywhere below max is still climbing toward its next birth -
-        # diverting it to the ball burns the very energy that would fund offspring.
-        # The previous gate let merely-"safe" fish (>40% energy) play, taxing the
-        # exact population that should be breeding. Gate on near-max energy so only
-        # fish at the overflow boundary spend the genuine surplus on play.
-        PLAY_ENERGY_THRESHOLD_RATIO = 0.90
-        max_energy = getattr(fish, "max_energy", 100.0)
-        current_energy = getattr(fish, "energy", max_energy)
-        energy_ratio = current_energy / max_energy if max_energy > 0 else 1.0
-
-        if energy_ratio <= PLAY_ENERGY_THRESHOLD_RATIO:
-            return None  # Still building toward reproduction: forage, don't play
-
-        # Cap kept low: surplus energy banked via overflow funds reproduction,
-        # so heavy ball play by full-energy fish directly suppresses births.
-        surplus = (energy_ratio - PLAY_ENERGY_THRESHOLD_RATIO) / (1.0 - PLAY_ENERGY_THRESHOLD_RATIO)
-        pursuit_prob = 0.25 * surplus  # 0% at play threshold -> 25% at full energy
-
-        rng = fish.environment.rng
-        if rng.random() > pursuit_prob:
-            return None
-
-        # Survival outranks leisure: even a topped-up fish that rolled "play"
-        # yields the ball to flee a predator or chase nearby food (ADR-010).
-        # Checked AFTER the RNG draw above so the random stream is identical to
-        # when ball pursuit had top priority - only the *outcome* changes, and
-        # only for the few fish that both rolled play and have a survival drive.
-        behavior = (
-            fish.genome.behavioral.behavior.value if fish.genome.behavioral.behavior else None
-        )
-        if behavior is not None and behavior.has_survival_priority(fish):
-            return None
-
-        # Calculate direction to ball
-        dx = ball.pos.x - fish.pos.x
-        dy = ball.pos.y - fish.pos.y
-        dist = math.sqrt(dx * dx + dy * dy)
-
-        if dist < 10:  # Already at ball
-            return None
-
-        # Normalize and scale to fish's max speed
-        max_speed = getattr(fish, "max_speed", 2.0)
-        vx = (dx / dist) * max_speed
-        vy = (dy / dist) * max_speed
-
-        return (vx, vy)

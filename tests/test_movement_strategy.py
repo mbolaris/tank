@@ -4,6 +4,7 @@ from core.entities import Fish, Food
 from core.entities.ball import Ball
 from core.genetics import Genome
 from core.math_utils import Vector2
+from core.movement.ball_pursuit import ball_pursuit_velocity
 from core.movement_strategy import AlgorithmicMovement, MovementStrategy
 
 
@@ -130,7 +131,7 @@ class TestAlgorithmicMovement:
 
         env._rng = FixedRng()
 
-        velocity = strategy._get_ball_pursuit_velocity(fish)
+        velocity = ball_pursuit_velocity(fish)
 
         assert velocity is not None
 
@@ -155,11 +156,11 @@ class TestAlgorithmicMovement:
 
         # No survival drive -> fish pursues the ball.
         behavior.has_survival_priority = lambda f: False
-        assert strategy._get_ball_pursuit_velocity(fish) is not None
+        assert ball_pursuit_velocity(fish) is not None
 
         # Survival drive active -> fish yields the ball even though it rolled play.
         behavior.has_survival_priority = lambda f: True
-        assert strategy._get_ball_pursuit_velocity(fish) is None
+        assert ball_pursuit_velocity(fish) is None
 
     def test_isolated_full_fish_has_no_survival_priority(self, simulation_env):
         """A full fish with no predator or reachable food has no survival drive,

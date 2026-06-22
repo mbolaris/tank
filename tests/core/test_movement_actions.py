@@ -1,10 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from core.brains.contracts import BrainAction
 from core.math_utils import Vector2
-
-Action = BrainAction
 
 
 class TestMovementActions(unittest.TestCase):
@@ -29,57 +26,33 @@ class TestMovementActions(unittest.TestCase):
         self.strategy = AlgorithmicMovement()
 
     @patch("core.movement_strategy.build_movement_observation")
-    @patch("core.movement_strategy.translate_action")
-    def test_move_uses_action_registry(self, mock_translate, mock_build_obs):
-        # Mock observation builder to return empty dict
+    def test_move_applies_desired_velocity(self, mock_build_obs):
+        # The internal movement path uses the arbiter's desired velocity directly
+        # (scaled by speed, then smoothed) - no external-brain action round-trip.
         mock_build_obs.return_value = {}
 
-        # Setup: Force a specific raw decision via movement_policy override
-        desired_raw = (1.0, 0.5)
-        self.fish.movement_policy = MagicMock(return_value=desired_raw)
+        # Force a specific desired decision via the movement_policy override drive.
+        self.fish.movement_policy = MagicMock(return_value=(1.0, 0.5))
 
-        # Setup: Mock translate_action to return a DIFFERENT action
-        # This proves the system is using the translated action, not the raw one
-        translated_velocity = (0.0, 1.0)  # Different from raw
-        mock_action = Action(entity_id="123", target_velocity=translated_velocity)
-        mock_translate.return_value = mock_action
-
-        # Act
         self.strategy.move(self.fish)
 
-        # Assert: Registry was called correctly
-        mock_translate.assert_called_once()
-        args, _ = mock_translate.call_args
-        self.assertEqual(args[0], "tank")  # World type
-        self.assertEqual(args[1], "123")  # Fish ID string
-        self.assertEqual(args[2], desired_raw)  # Raw decision passed through
-
-        # Assert: Fish velocity reflects the TRANSLATED action
-        # Note: AlgorithmicMovement applies smoothing, but target should push velocity towards (0, 1)
-        # Initial vel is (0,0), target is (0, 2.0) [0.0*speed, 1.0*speed]
-        # Smoothing is 0.1. So new vel should be approx (0, 0.2)
-        # vel.y += (2.0 - 0) * 0.1 = 0.2
-
-        self.assertAlmostEqual(self.fish.vel.x, 0.0)
-        self.assertAlmostEqual(self.fish.vel.y, 0.2)
+        # target = (1.0*speed, 0.5*speed) = (2.0, 1.0); smoothing 0.1 from vel (0,0):
+        # vel.x += (2.0 - 0) * 0.1 = 0.2; vel.y += (1.0 - 0) * 0.1 = 0.1
+        self.assertAlmostEqual(self.fish.vel.x, 0.2)
+        self.assertAlmostEqual(self.fish.vel.y, 0.1)
 
     @patch("core.movement_strategy.build_movement_observation")
-    @patch("core.movement_strategy.translate_action")
-    def test_fallback_on_translation_failure(self, mock_translate, mock_build_obs):
-        # Mock observation
+    def test_move_clamps_desired_velocity_to_action_bound(self, mock_build_obs):
+        # A desired component beyond MAX_ACTION_VELOCITY (5.0) is clamped inline
+        # before being scaled by speed - the clamp the action translator used to
+        # apply, now applied directly without allocating an Action per frame.
         mock_build_obs.return_value = {}
 
-        # Setup: Force raw decision
-        desired_raw = (1.0, 0.0)
-        self.fish.movement_policy = MagicMock(return_value=desired_raw)
+        self.fish.movement_policy = MagicMock(return_value=(10.0, 0.0))
 
-        # Setup: Make translation fail
-        mock_translate.side_effect = Exception("Registry error")
-
-        # Act
         self.strategy.move(self.fish)
 
-        # Assert: Should fall back to raw decision
-        # target_vx = 1.0 * 2.0 = 2.0
-        # vel.x += (2.0 - 0) * 0.1 = 0.2
-        self.assertAlmostEqual(self.fish.vel.x, 0.2)
+        # Clamp 10.0 -> 5.0; target_vx = 5.0 * 2.0 = 10.0; vel.x += 10.0 * 0.1 = 1.0
+        # (Unclamped this would be 2.0, so the assertion distinguishes the clamp.)
+        self.assertAlmostEqual(self.fish.vel.x, 1.0)
+        self.assertAlmostEqual(self.fish.vel.y, 0.0)

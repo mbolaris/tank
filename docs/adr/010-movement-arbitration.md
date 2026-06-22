@@ -243,6 +243,35 @@ perturbation (yield-after-draw) over the "cleaner-looking" one that reshuffles
 evaluation order. Correctness of intent is necessary but not sufficient; the
 seed-stability of the measurement is part of the design.
 
+## Follow-up: ball drive made a self-contained consideration (shipped)
+
+The Decision called for "each drive a self-contained `Consideration` that knows
+its own activation condition and desired velocity," but step 1 left the ball
+logic as `AlgorithmicMovement._get_ball_pursuit_velocity` — a private method on
+the *generic* movement strategy that imported `core.entities.ball.Ball`. The
+`BallPursuitConsideration` was a hollow shim delegating back into it, so the
+generic strategy still named a minigame entity (the ADR-011 leak).
+
+That logic now lives in `core/movement/ball_pursuit.py` as the consideration
+itself: `ball_pursuit_velocity(fish)` plus a `BallPursuitConsideration` that
+owns the energy gate and survival-yield. `core/movement_strategy.py` no longer
+imports `Ball` or carries any soccer concept; the arbiter's list *names* the
+drive but does not *implement* it. The same pass removed two `getattr` lies in
+the moved code — `getattr(fish, "max_speed", 2.0)` (Fish has no `max_speed`, so
+it always returned the default) became the explicit `BALL_PURSUIT_TARGET_SPEED`,
+and `getattr(fish, "energy"/"max_energy", …)` became direct attribute access
+(Fish is an `EnergyHolder`). Verified byte-identical: seed-42 30k-frame headless
+run, all behavioral/stat fields match.
+
+**Honest residual:** the module lives in `core/movement` (generic), not
+`core/minigames/soccer`. Ball pursuit is a *tank-world default* drive
+(`tank_practice_enabled` defaults True even with soccer off), not a soccer-only
+plugin, and the soccer package `__init__` eagerly imports the whole subsystem —
+so importing it from generic movement would pull soccer into every tank run. A
+full relocation needs inversion of control (the world/pack *registers* its
+considerations into the arbiter instead of the generic factory naming them);
+deferred until that seam exists. Tracked in `docs/ARCHITECTURE_REVIEW.md`.
+
 ## Related
 - [ADR-003: Phase-Based Execution](003-phase-based-execution.md)
 - [ADR-007: Error-Handling Strategy](007-error-handling-strategy.md)

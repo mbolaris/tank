@@ -69,6 +69,9 @@ the code, 2026-06):
 | Benchmark diversity metric made cross-process deterministic (was: process-randomized `hash(str)`) | `core/util/stable_hash.py` adds `stable_algorithm_id` (CRC32); `genetic_diversity_tracker` now counts `behavior_id` strings directly (deterministic + collision-free), and `enhanced_statistics`/`poker_adapter` use the stable id. `ecosystem_health_10k` now scores identically across separate processes; both tank champions still reproduce (`validate_reproduction` passes), so no re-baseline was needed. `tests/test_stable_hash.py` (incl. a subprocess cross-process check) guards it. ADR-014. The four telemetry `algorithm_id` sites were deliberately left for the separate keying fix — now done in ADR-015 |
 | Per-algorithm stats re-keyed to the composable `behavior_id` (was: registration by legacy `ALL_ALGORITHMS` enumerate-index vs telemetry by `behavior_id` hash → counters never recorded, names always "Unknown") | Registration (`population_tracker._init_algorithm_stats`) and the 5 telemetry sites now both derive the key from `behavior_id` via `stable_algorithm_id`; `ComposableBehavior.all_behavior_ids()` enumerates the 384-combo key space. End-to-end: a seed-42 run now records births/deaths/reproductions across ~91 behaviors with real names (was ~0 / "Unknown"). Telemetry-only — champions still reproduce. `tests/test_algorithm_tracking.py` rewritten to cover the shared id space. ADR-015 |
 | Poker-benchmark fish selection fixed (was: silent no-op) | `periodic_benchmark` and `comprehensive_benchmark` ranked fish by `f.components.poker_stats.total_winnings` — a field that exists on neither `AgentComponents` nor `FishPokerStats` — so the sort key was always 0 and "top fish" = input order. Now rank by `fish.poker_stats.get_net_energy()` (won − lost − house cuts; `None` until the fish plays). `tests/test_poker_benchmark_selection.py` proves the ordering. Item 5 |
+| Ball drive lifted out of generic movement (ADR-010 follow-through) | `_get_ball_pursuit_velocity` removed from `core/movement_strategy.py` (the generic strategy no longer imports `core.entities.ball.Ball` or carries any soccer concept). The drive is now the self-contained `BallPursuitConsideration` + `ball_pursuit_velocity()` in `core/movement/ball_pursuit.py`, owning its own energy gate and survival-yield (the "self-contained Consideration" ADR-010 designed). Byte-identical seed-42 30k. Residual (full relocation to `core/minigames/soccer` via IoC registration) tracked in Open item 5 |
+| Internal movement path no longer round-trips the external-brain action layer | `AlgorithmicMovement.move()` clamped each fish's desired velocity inline (`MAX_ACTION_VELOCITY`) instead of allocating an `Action` per fish per frame via `translate_action` wrapped in a bare `except Exception`. The translation registry (`core/actions`) remains the seam for *external* brains; it was never needed on the internal composable-behavior path, where it only re-applied the same ±5.0 clamp. Removes the silent-fallback ADR-007 flagged at `movement_strategy.py`. Byte-identical seed-42 30k; `tests/core/test_movement_actions.py` rewritten to assert the inline-clamp contract |
+| `getattr` lies removed from ball pursuit | `getattr(fish, "max_speed", 2.0)` (Fish has **no** `max_speed`; only `Food`/`Ball` do — the default always fired) → explicit `BALL_PURSUIT_TARGET_SPEED`; `getattr(fish, "energy"/"max_energy", …)` (Fish is an `EnergyHolder`, always has them) → direct access. Genuinely-optional `environment.ball` access *kept* as `getattr` — the point is to distinguish optional from guaranteed, not to ban the tool |
 
 ## Open items
 
@@ -134,6 +137,40 @@ Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
 diff (identical simulation state). ~199 cycle-safe in-function imports remain
 across the rest of `core/`. Still incremental, still test-backed.
+
+### 5. Defensive access erodes the protocol layer (new, systemic, opportunistic)
+`core/` (excl. tests) carries ~354 `getattr`, ~193 `hasattr`, and ~60 bare
+`except`. The protocol layer (`core/interfaces.py`) exists precisely so callers
+*don't* probe for attributes — yet much code routes around it with
+`getattr(x, "field", default)`, which converts a loud `AttributeError` (fixed in
+minutes) into a silent wrong value (found, if ever, after a 30k-frame
+archaeology dig). The `getattr(fish, "max_speed", 2.0)` bug (Open-item-4 sibling,
+now fixed) is the archetype: the attribute never existed, the default was
+load-bearing, and a downstream clamp hid the consequence — invisible until two
+layers change.
+
+Treat this exactly like the in-function import debt (item 4): **opportunistic,
+test-backed, no big-bang.** When you touch a module, replace
+protocol-guaranteed `getattr`/`hasattr` with direct access and let it fail loud;
+keep `getattr` only for *genuinely optional/foreign* attributes (e.g.
+`environment.ball`, which may not exist). A good first sweep is the rest of
+`core/movement_strategy.py` and the `Fish.__init__` config-defaulting chain
+(`getattr(environment, "simulation_config", None)` → `…soccer` → `…enabled`),
+which also mixes construction with save-migration self-healing — extract that to
+a `Genome.normalize()` invoked at load time (SRP: a constructor should
+construct).
+
+### 6. Movement-consideration IoC (deferred, enables full ADR-011 compliance)
+`default_considerations()` (generic `core/movement`) still *names* the ball
+drive. The clean form is registration: the tank/soccer pack inserts its
+considerations into the arbiter, so the generic factory lists only generic
+drives and a new minigame touches zero generic code. Blocked on a small seam —
+`AlgorithmicMovement` is constructed arg-less in 4 sites (`entity_factory`,
+`reproduction_service`, `entity_transfer`, `backend/runner/commands/fish`), so
+the arbiter has no pack/config access today. Determinism note: ball pursuit is a
+no-op (returns `None` *before* any RNG draw) when no ball is present, so adding
+it conditionally is RNG-neutral — the migration can be byte-identical. See
+ADR-010 follow-up and ADR-011.
 
 ## Design principles to maintain
 
