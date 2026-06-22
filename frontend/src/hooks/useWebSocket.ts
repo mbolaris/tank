@@ -131,10 +131,8 @@ export function useWebSocket(worldId?: string) {
                     } else if (data.type === 'delta') {
                         setState((current) => (current ? applyDelta(current, data as DeltaUpdate) : current));
                     } else if (data.success !== undefined || data.state !== undefined || data.error !== undefined) {
-                        // This is a command response (e.g., poker game state)
-                        // Call any pending callbacks
-                        responseCallbacksRef.current.forEach((callback) => callback(data));
-                        responseCallbacksRef.current.clear();
+                        // This is a command response (e.g., poker game state).
+                        routeCommandResponse(responseCallbacksRef.current, data);
                     }
                 } catch (error) {
                     console.error('WebSocket message parse error:', error, 'Data:', event.data);
@@ -222,7 +220,8 @@ export function useWebSocket(worldId?: string) {
                     }
                 }, 10000); // 10 second timeout
 
-                wsRef.current.send(JSON.stringify(command));
+                const requestId = callbackId;
+                wsRef.current.send(JSON.stringify({ ...command, request_id: requestId }));
             } else {
                 reject(new Error('WebSocket not connected'));
             }
@@ -242,6 +241,25 @@ export function useWebSocket(worldId?: string) {
         /** Connected world ID (available immediately after connection, before first update) */
         connectedWorldId,
     };
+}
+
+export function routeCommandResponse(
+    callbacks: Map<string, (data: CommandResponse) => void>,
+    data: CommandResponse
+): void {
+    if (data.request_id) {
+        const callback = callbacks.get(data.request_id);
+        if (callback) {
+            callbacks.delete(data.request_id);
+            callback(data);
+        }
+        return;
+    }
+
+    // Backward-compatible fallback for legacy command responses that do not
+    // include request IDs.
+    callbacks.forEach((callback) => callback(data));
+    callbacks.clear();
 }
 
 export function applyFullUpdate(

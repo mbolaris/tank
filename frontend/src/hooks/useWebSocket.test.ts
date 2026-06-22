@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { SimulationUpdate, StatsData } from '../types/simulation';
-import { applyFullUpdate } from './useWebSocket';
+import { applyFullUpdate, routeCommandResponse } from './useWebSocket';
 
 /**
  * Pure function to normalize a WorldUpdatePayload into SimulationUpdate format.
@@ -184,4 +184,33 @@ describe('WebSocket Update Normalization', () => {
         expect(result.metrics_history).toBe(history);
     });
 
+});
+
+describe('Command response routing', () => {
+    it('routes request-id responses only to the matching pending command', () => {
+        const calls: string[] = [];
+        const callbacks = new Map<string, (data: { success: boolean; request_id?: string }) => void>([
+            ['start', () => calls.push('start')],
+            ['autopilot', () => calls.push('autopilot')],
+        ]);
+
+        routeCommandResponse(callbacks, { success: false, request_id: 'autopilot' });
+
+        expect(calls).toEqual(['autopilot']);
+        expect(callbacks.has('start')).toBe(true);
+        expect(callbacks.has('autopilot')).toBe(false);
+    });
+
+    it('keeps legacy uncorrelated responses working as a fallback', () => {
+        const calls: string[] = [];
+        const callbacks = new Map<string, (data: { success: boolean; request_id?: string }) => void>([
+            ['first', () => calls.push('first')],
+            ['second', () => calls.push('second')],
+        ]);
+
+        routeCommandResponse(callbacks, { success: true });
+
+        expect(calls).toEqual(['first', 'second']);
+        expect(callbacks.size).toBe(0);
+    });
 });

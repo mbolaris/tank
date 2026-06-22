@@ -84,10 +84,13 @@ async def _handle_websocket_for_adapter(
                         data = orjson.loads(text)
                         command = data.get("command")
                         command_data = data.get("data")
+                        request_id = data.get("request_id")
 
                         if command and hasattr(adapter, "handle_command_async"):
                             result = await adapter.handle_command_async(command, command_data)
                             if result is not None:
+                                if request_id is not None and isinstance(result, dict):
+                                    result = {**result, "request_id": request_id}
                                 response = orjson.dumps(result)
                                 await websocket.send_bytes(response)
                     except Exception as e:

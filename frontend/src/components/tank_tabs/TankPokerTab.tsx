@@ -45,13 +45,31 @@ export function TankPokerTab({
     const [pokerLoading, setPokerLoading] = useState(false);
     const [pokerError, setPokerError] = useState<string | null>(null);
     const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
+    const hasStartedRef = useRef(false);
 
-    const handlePokerError = (message: string, error?: unknown) => {
+    const handlePokerError = useCallback((message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
         const fullMessage = errorDetail ? `${message}: ${errorDetail}` : message;
         setPokerError(fullMessage);
         setTimeout(() => setPokerError(null), 5000);
-    };
+    }, []);
+
+    const clearInactivePokerGame = useCallback(() => {
+        setPokerGameState(null);
+        setShowPokerGame(false);
+        hasStartedRef.current = false;
+    }, []);
+
+    const handleInactivePokerResponse = useCallback((response: PokerCommandResponse): boolean => {
+        if (response.success !== false) {
+            return false;
+        }
+        if (!response.error?.toLowerCase().includes('no poker game active')) {
+            return false;
+        }
+        clearInactivePokerGame();
+        return true;
+    }, [clearInactivePokerGame]);
 
     // Process AI turns one at a time with delay for visual feedback
     const processAiTurnsWithDelay = useCallback(async () => {
@@ -66,6 +84,10 @@ export function TankPokerTab({
                     data: {},
                 });
 
+                if (handleInactivePokerResponse(response)) {
+                    return;
+                }
+
                 if (response.state) {
                     setPokerGameState(response.state);
                 }
@@ -79,7 +101,7 @@ export function TankPokerTab({
         };
 
         await processNextAiTurn();
-    }, [sendCommandWithResponse]);
+    }, [sendCommandWithResponse, handleInactivePokerResponse, handlePokerError]);
 
     const handleStartPoker = useCallback(async () => {
         try {
@@ -92,8 +114,7 @@ export function TankPokerTab({
             if (response.success === false) {
                 console.warn("Failed to auto-start poker:", response.error);
                 handlePokerError('Failed to start poker game', response.error);
-                setPokerGameState(null);
-                setShowPokerGame(false);
+                clearInactivePokerGame();
             } else if (response.state) {
                 setPokerGameState(response.state);
                 if (!response.state.is_your_turn && !response.state.game_over) {
@@ -101,8 +122,7 @@ export function TankPokerTab({
                 }
             } else {
                 handlePokerError('Failed to start poker game', 'No game state returned');
-                setPokerGameState(null);
-                setShowPokerGame(false);
+                clearInactivePokerGame();
             }
         } catch (error) {
             // Suppress ghost-mount errors in StrictMode and allow retry
@@ -111,12 +131,12 @@ export function TankPokerTab({
                 setShowPokerGame(false);
             } else {
                 handlePokerError('Failed to start poker game', error);
-                setShowPokerGame(false);
+                clearInactivePokerGame();
             }
         } finally {
             setPokerLoading(false);
         }
-    }, [sendCommandWithResponse, processAiTurnsWithDelay]);
+    }, [sendCommandWithResponse, processAiTurnsWithDelay, clearInactivePokerGame, handlePokerError]);
 
     // Auto-restart game when session ends
     useEffect(() => {
@@ -152,7 +172,6 @@ export function TankPokerTab({
     }, [showPokerGame, pokerGameState?.session_over, handleStartPoker]);
 
     // Effect to start game once connected
-    const hasStartedRef = useRef(false);
     useEffect(() => {
         if (isConnected && !hasStartedRef.current && !pokerGameState && !pokerLoading) {
             hasStartedRef.current = true;
@@ -160,7 +179,7 @@ export function TankPokerTab({
         }
     }, [isConnected, pokerGameState, pokerLoading, handleStartPoker]);
 
-    const handlePokerAction = async (action: string, amount?: number) => {
+    const handlePokerAction = useCallback(async (action: string, amount?: number) => {
         try {
             setPokerLoading(true);
             const response = await sendCommandWithResponse({
@@ -168,6 +187,9 @@ export function TankPokerTab({
                 data: { action, amount: amount || 0 },
             });
             if (response.success === false) {
+                if (handleInactivePokerResponse(response)) {
+                    return;
+                }
                 handlePokerError(response.error || 'Invalid action');
             } else if (response.state) {
                 setPokerGameState(response.state);
@@ -178,14 +200,14 @@ export function TankPokerTab({
         } finally {
             setPokerLoading(false);
         }
-    };
+    }, [sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
 
-    const handleClosePoker = () => {
+    const handleClosePoker = useCallback(() => {
         setShowPokerGame(false);
         setPokerGameState(null);
-    };
+    }, []);
 
-    const handleNewRound = async () => {
+    const handleNewRound = useCallback(async () => {
         try {
             setPokerLoading(true);
             const response = await sendCommandWithResponse({
@@ -193,6 +215,9 @@ export function TankPokerTab({
                 data: {},
             });
             if (response.success === false) {
+                if (handleInactivePokerResponse(response)) {
+                    return;
+                }
                 handlePokerError(response.error || 'Failed to start new round');
             } else if (response.state) {
                 setPokerGameState(response.state);
@@ -205,19 +230,20 @@ export function TankPokerTab({
         } finally {
             setPokerLoading(false);
         }
-    };
+    }, [sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
 
-    const handleGetAutopilotAction = async () => {
+    const handleGetAutopilotAction = useCallback(async () => {
         const response = await sendCommandWithResponse({
             command: 'poker_autopilot_action',
             data: {},
         });
+        handleInactivePokerResponse(response);
         return {
             success: response.success,
             action: response.action ?? 'wait',
             amount: response.amount ?? 0,
         };
-    };
+    }, [sendCommandWithResponse, handleInactivePokerResponse]);
 
     return (
         <div className={styles.pokerTab}>

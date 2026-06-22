@@ -562,6 +562,7 @@ export interface DeltaUpdate {
 }
 
 export interface Command {
+    request_id?: string;
     command:
     | 'add_food'
     | 'spawn_fish'
@@ -695,6 +696,7 @@ export interface AutoEvaluateStats {
 // Command Response Types
 export interface CommandResponse {
     success: boolean;
+    request_id?: string;
     error?: string;
     state?: PokerGameState;
     stats?: AutoEvaluateStats;
