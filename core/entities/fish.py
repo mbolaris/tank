@@ -177,13 +177,14 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
 
         # Life cycle - managed by LifecycleComponent for better code organization
 
-        # Calculate max_age using size_modifier and lifespan_modifier.
-        # This decouples size from age, allowing small but long-lived fish.
+        # Calculate max_age using the dedicated lifespan trait only. Body size
+        # already affects capacity, bite size, and metabolism; coupling it to
+        # age gives large fish a hidden longevity advantage.
         lifespan_trait = getattr(self.genome.physical, "lifespan_modifier", None)
         lifespan_mult = lifespan_trait.value if lifespan_trait is not None else 1.0
 
         size_modifier = self.genome.physical.size_modifier.value
-        max_age = int(LIFE_STAGE_MATURE_MAX * size_modifier * lifespan_mult)
+        max_age = int(LIFE_STAGE_MATURE_MAX * lifespan_mult)
         self._lifecycle_component = LifecycleComponent(max_age, size_modifier)
 
         # Energy & metabolism - managed by EnergyComponent for better code organization
