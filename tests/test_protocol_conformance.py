@@ -332,7 +332,6 @@ class TestInterfacesModuleProtocols:
             "PokerPlayer",
             "Positionable",
             "BehaviorStrategy",
-            "SkillfulAgent",
         ]
 
         for name in runtime_checkable_protocols:
@@ -364,7 +363,6 @@ class TestInterfacesModuleProtocols:
             "Evolvable",
             "Mortal",
             "Reproducible",
-            "SkillfulAgent",
         ]
 
         for name in all_protocol_names:

@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.entities.fish import Fish
     from core.entities.visual_state import FishVisualState
-    from core.fish.skill_game_component import SkillGameComponent
     from core.genetics import Genome
     from core.math_utils import Vector2
     from core.movement_strategy import MovementStrategy
@@ -36,7 +35,6 @@ class ReproductionMixin:
         _reproduction_component: ReproductionComponent
         _lifecycle_component: LifecycleComponent
         _energy_component: EnergyComponent
-        _skill_game_component: SkillGameComponent
         genome: Genome
         environment: World
         ecosystem: EcosystemManager
@@ -52,7 +50,6 @@ class ReproductionMixin:
 
     _reproduction_component: ReproductionComponent
     _lifecycle_component: LifecycleComponent
-    _skill_game_component: SkillGameComponent
     _emit_event: Callable[[object], None]
     genome: Genome
     environment: World
