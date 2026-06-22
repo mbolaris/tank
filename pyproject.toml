@@ -172,6 +172,7 @@ exclude = [
     "frontend/",
     ".venv/",
     "venv/",
+    "tools/archive/debug_poker_match.py",
 ]
 
 [tool.coverage.run]

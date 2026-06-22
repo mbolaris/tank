@@ -6,6 +6,47 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _workflow_job_names() -> set[str]:
+    workflow_paths = [
+        ROOT / ".github" / "workflows" / "ci.yml",
+        ROOT / ".github" / "workflows" / "bench.yml",
+    ]
+
+    actual_jobs = set()
+    job_pattern = re.compile(r"^(?:  |\t)([a-zA-Z0-9_-]+):")
+
+    for wf_path in workflow_paths:
+        assert wf_path.exists(), f"Workflow file {wf_path} does not exist"
+        in_jobs = False
+        for line in wf_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("jobs:"):
+                in_jobs = True
+                continue
+            if in_jobs:
+                if line.strip() == "":
+                    continue
+                if not line.startswith(" ") and not line.startswith("\t"):
+                    in_jobs = False
+                    continue
+                match = job_pattern.match(line)
+                if match:
+                    actual_jobs.add(match.group(1))
+
+    assert actual_jobs, "No jobs were parsed from the workflow files"
+    return actual_jobs
+
+
+def _markdown_section(content: str, heading: str) -> str:
+    marker = f"## {heading}"
+    start = content.find(marker)
+    assert start != -1, f"Could not find section heading: {marker}"
+
+    next_heading = content.find("\n## ", start + len(marker))
+    if next_heading == -1:
+        return content[start:]
+    return content[start:next_heading]
+
+
 def test_readme_references_smoke_and_fast_gates():
     readme_path = ROOT / "README.md"
     assert readme_path.exists(), "README.md does not exist"
@@ -22,6 +63,20 @@ def test_agents_references_agent_quickstart():
     assert (
         "docs/AGENT_QUICKSTART.md" in content
     ), "AGENTS.md must reference docs/AGENT_QUICKSTART.md"
+    assert "tools/agent_gate.py" in content, "AGENTS.md must reference tools/agent_gate.py"
+
+
+def test_vague_prompt_guidance_starts_with_smoke_gate_not_fast_gate():
+    agents_path = ROOT / "AGENTS.md"
+    content = agents_path.read_text(encoding="utf-8")
+    section = _markdown_section(content, "If you were given a vague prompt")
+
+    gate_commands = re.findall(r"python tools/(?:smoke|agent|fast|full)_gate\.py", section)
+
+    assert gate_commands, "AGENTS.md vague-prompt section must name a validation gate"
+    assert (
+        gate_commands[0] == "python tools/smoke_gate.py"
+    ), "Vague-prompt guidance must make smoke_gate.py the first validation command"
 
 
 def test_agent_quickstart_exists():
@@ -64,34 +119,7 @@ def test_ci_job_names_in_readme_match_workflow_files():
     readme_path = ROOT / "README.md"
     readme_content = readme_path.read_text(encoding="utf-8")
 
-    # Extract actual job names from CI and Bench workflow files
-    workflow_paths = [
-        ROOT / ".github" / "workflows" / "ci.yml",
-        ROOT / ".github" / "workflows" / "bench.yml",
-    ]
-
-    actual_jobs = set()
-    job_pattern = re.compile(r"^(?:  |\t)([a-zA-Z0-9_-]+):")
-
-    for wf_path in workflow_paths:
-        assert wf_path.exists(), f"Workflow file {wf_path} does not exist"
-        in_jobs = False
-        for line in wf_path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("jobs:"):
-                in_jobs = True
-                continue
-            if in_jobs:
-                if line.strip() == "":
-                    continue
-                if not line.startswith(" ") and not line.startswith("\t"):
-                    in_jobs = False
-                    continue
-                match = job_pattern.match(line)
-                if match:
-                    actual_jobs.add(match.group(1))
-
-    # Assert that actual jobs are found
-    assert actual_jobs, "No jobs were parsed from the workflow files"
+    actual_jobs = _workflow_job_names()
 
     # Extract the job names mentioned in the CI section of README.md
     # Look for "CI currently runs" sentence
@@ -111,3 +139,12 @@ def test_ci_job_names_in_readme_match_workflow_files():
         assert (
             job in actual_jobs
         ), f"README.md references stale/nonexistent CI job '{job}' (actual jobs: {actual_jobs})"
+
+    all_readme_job_mentions = set(
+        re.findall(
+            r"(?<!-)\b[a-zA-Z0-9_-]+-gate\b|(?<!-)\b[a-zA-Z0-9_-]+-ci\b|(?<!-)\bverify-[a-zA-Z0-9_-]+\b|(?<!-)\bnightly-[a-zA-Z0-9_-]+\b",
+            readme_content,
+        )
+    )
+    stale_mentions = sorted(all_readme_job_mentions - actual_jobs)
+    assert not stale_mentions, f"README.md mentions stale/nonexistent CI jobs: {stale_mentions}"

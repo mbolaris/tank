@@ -27,6 +27,7 @@ import logging
 import os
 import platform
 import socket
+import sys
 import time
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
@@ -151,7 +152,7 @@ def _get_network_ip() -> str:
 
 def _configure_windows_event_loop(logger: logging.Logger) -> None:
     """Configure asyncio event loop policy on Windows."""
-    if platform.system() != "Windows":
+    if sys.platform != "win32":
         return
 
     loop_policy = os.getenv("TANK_WINDOWS_EVENT_LOOP", "selector").strip().lower()
