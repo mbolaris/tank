@@ -112,17 +112,18 @@ tank/
 - `core/algorithms/composable/` - Composable behavior library (58 strategies)
 - `core/agents/components/` - Shared agent state components (lifecycle, reproduction); Fish composes these plus `EnergyComponent` and delegates behavior to `BehaviorExecutor` (see ADR-004, ADR-009)
 
-## CI Pipeline
+## Validation Pipeline
 
-CI runs named validation tiers:
+Local validation tiers:
 
-1. **smoke-gate**: `python tools/smoke_gate.py`
-2. **agent-gate**: `python tools/agent_gate.py`
-3. **fast-gate**: `python tools/fast_gate.py` plus mypy
-4. **frontend-ci**: npm install, lint, build, test
-5. **nightly-full**: `python tools/full_gate.py` (nightly or on `full-test`)
+1. **Smoke Gate**: `python tools/smoke_gate.py` before coding
+2. **Agent Gate**: `python tools/agent_gate.py` before local commit
+3. **Fast Gate**: `python tools/fast_gate.py` before PR
+4. **Full Gate**: `python tools/full_gate.py` only for maintainers/nightly/full validation
 
-Benchmark CI (`bench.yml`): Verifies champions and runs full determinism checks
+Public CI jobs are named `smoke-gate`, `fast-gate`, `frontend-ci`, and
+`nightly-full` in `ci.yml`, plus `verify-champions` and `benchmark-gate` in
+`bench.yml`. Benchmark CI verifies champions and runs full determinism checks
 nightly or when a maintainer dispatches it explicitly.
 
 ## Working on Improvements
