@@ -394,7 +394,7 @@ class CollisionSystem(BaseSystem):
             cause: Optional death cause override
         """
         self._frame_fish_deaths += 1
-        lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+        lifecycle_system = self._engine.lifecycle_system
         if lifecycle_system is not None:
             lifecycle_system.record_fish_death(fish, cause)
 

@@ -147,7 +147,7 @@ class ReproductionService:
         if required_credits > 0:
             winner._reproduction_component.consume_repro_credits(required_credits)
         baby.register_birth()
-        lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+        lifecycle_system = self._engine.lifecycle_system
         if lifecycle_system is not None:
             lifecycle_system.record_birth()
 
@@ -228,7 +228,7 @@ class ReproductionService:
 
             if self._engine.request_spawn(baby, reason="banked_asexual_reproduction"):
                 baby.register_birth()
-                lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                lifecycle_system = self._engine.lifecycle_system
                 if lifecycle_system is not None:
                     lifecycle_system.record_birth()
                 if required_credits > 0:
@@ -383,7 +383,7 @@ class ReproductionService:
         )
         new_fish.register_birth()
 
-        lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+        lifecycle_system = self._engine.lifecycle_system
         if lifecycle_system is not None:
             lifecycle_system.record_emergency_spawn()
 
@@ -427,14 +427,12 @@ class ReproductionService:
         return best_fish
 
     def _get_repro_credit_required(self) -> float:
-        config = getattr(self._engine, "config", None)
-        soccer_cfg = getattr(config, "soccer", None) if config is not None else None
-        if soccer_cfg is None or not getattr(soccer_cfg, "enabled", False):
+        # config and config.soccer are always present (typed dataclass fields with
+        # defaults), so read them directly and let mypy guard the field names.
+        soccer_cfg = self._engine.config.soccer
+        if not soccer_cfg.enabled or soccer_cfg.repro_reward_mode != "credits":
             return 0.0
-        if getattr(soccer_cfg, "repro_reward_mode", "") != "credits":
-            return 0.0
-        required = float(getattr(soccer_cfg, "repro_credit_required", 0.0))
-        return max(0.0, required)
+        return max(0.0, soccer_cfg.repro_credit_required)
 
     @staticmethod
     def maybe_create_banked_offspring(fish: Fish) -> Fish | None:

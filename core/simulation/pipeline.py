@@ -160,7 +160,7 @@ def _step_reproduction(engine: SimulationEngine, ctx: FrameContext) -> None:
 
 def _step_soccer(engine: SimulationEngine, ctx: FrameContext) -> None:
     """SOCCER: Update ball physics and agent-ball interactions."""
-    soccer_system = getattr(engine, "soccer_system", None)
+    soccer_system = engine.soccer_system
     if soccer_system and soccer_system.enabled:
         soccer_system.update(engine.frame_count)
 
