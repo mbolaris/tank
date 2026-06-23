@@ -150,7 +150,7 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
 - `core/algorithms/composable/actions.py` - Sub-behavior implementations
 - `core/config/fish.py` - Energy costs, thresholds, lifecycle
 - `core/config/food.py` - Food detection, spawning rates
-- `core/reproduction_service.py` - Emergency spawn logic
+- `core/reproduction/reproduction_service.py` - Emergency spawn logic
 
 ### Healthy Ecosystem Indicators
 
