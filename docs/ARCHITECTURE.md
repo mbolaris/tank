@@ -77,7 +77,7 @@ tank/
 - **algorithms/**: Behavior strategy library with registry + adaptive mutation
   - 58 strategies registered in `core/algorithms/registry.py`
   - Categories: 14 food seeking, 10 predator avoidance, 10 schooling, 8 energy, 8 territory, 8 poker interaction
-  - Composable behaviors (`composable.py`) expose sub-behavior knobs for hybrids
+  - Composable behaviors (`core/algorithms/composable/`) expose sub-behavior knobs for hybrids
 - **environment.py**: Spatial grid for efficient proximity queries
 - **ecosystem.py / ecosystem_stats.py / population_tracker.py**: Population tracking, death cause tallies, and reproduction stats
 - **agent_memory.py / agent_signals.py**: Shared memory and signaling helpers for strategies and agent components
@@ -124,7 +124,7 @@ and the Fish-specific ones in `core/fish/`:
 - **ReproductionComponent** (`core/agents/components/`): reproduction readiness
   and overflow-energy banking
 - **EnergyComponent** (`core/energy/`): energy store and metabolism/burn
-- **SkillGameComponent** (`core/fish/`): poker strategy and stats
+- **FishPokerStats** (`core/fish/poker_stats_component.py`): per-fish poker stats
 
 Behavior is *not* a component: `Fish` delegates steering to
 `BehaviorExecutor` -> `MovementStrategy` -> `ComposableBehavior`. The earlier
@@ -136,7 +136,7 @@ loop were removed as inert duplicates (see ADR-009).
 `core/algorithms/registry.py` is the authoritative source for behavior strategies:
 - Deterministic list (`ALL_ALGORITHMS`) for serialization and indexing
 - Adaptive mutation utilities (`inherit_algorithm_with_mutation`, `calculate_adaptive_mutation_factor`)
-- Sub-behavior controls in `composable.py` for hybrid behaviors (threat response, food approach, energy style, social mode, poker engagement)
+- Sub-behavior controls in `core/algorithms/composable/` for hybrid behaviors (threat response, food approach, energy style, social mode, poker engagement)
 `core/registry.py` is a separate introspection helper used by AI tooling to map algorithms to source files.
 
 ### Poker Systems
@@ -144,9 +144,8 @@ loop were removed as inert duplicates (see ADR-009).
 - **core/poker/**: Engine, betting, strategy, and evaluation packages used by simulation and mixed poker.
 - **core/poker/simulation/hand_engine.py**: Unified hand-level engine shared by heads-up, multiplayer, evaluation, and UI wrappers.
 - **core/poker/simulation/engine.py** and **core/poker/simulation/multiplayer_engine.py**: Thin adapters that configure players and delegate to the shared hand engine.
-- **core/poker_system.py**: BaseSystem that tracks poker events, throttles mixed games, and exposes UI-facing history.
+- **core/poker/integration/poker_system.py**: BaseSystem that tracks poker events, throttles mixed games, and exposes UI-facing history.
 - **core/mixed_poker/** + **core/plant_poker_strategy.py**: Plant vs. fish poker integration, including plant-triggered reproduction rules.
-- **skill_game_system.py** + **core/skills/games/**: Optional skill game orchestration with adapters (e.g., poker adapter in `core/skills/games/poker_adapter.py`).
 
 ### Systems & Registry
 
@@ -157,8 +156,8 @@ loop were removed as inert duplicates (see ADR-009).
 3. `FoodSpawningSystem` (`core/systems/food_spawning.py`) - deterministic food spawning using engine RNG
 4. `CollisionSystem` (`core/collision_system.py`) - physical collision detection and handling
 5. `PokerProximitySystem` (`core/systems/poker_proximity.py`) - fish group detection for poker
-6. `ReproductionSystem` (`core/reproduction_system.py`) - asexual + emergency spawning
-7. `PokerSystem` (`core/poker_system.py`) - poker history, mixed games, and stats
+6. `ReproductionSystem` (`core/reproduction/reproduction_system.py`) - asexual + emergency spawning
+7. `PokerSystem` (`core/poker/integration/poker_system.py`) - poker history, mixed games, and stats
 
 All systems expose `update(frame)`, `get_debug_info()`, and runtime enable/disable controls via the engine registry. Execution order is enforced by the explicit phase loop in `core/simulation/engine.py`, not the registry.
 
@@ -292,7 +291,7 @@ Algorithms are defined in `core/algorithms/` and registered in `registry.py`:
 - **Energy management (8)**: e.g., EnergyConserver, MetabolicOptimizer, AdaptivePacer
 - **Territory/exploration (8)**: e.g., TerritorialDefender, RoutePatroller, NomadicWanderer
 - **Poker interaction (8)**: e.g., PokerStrategist, PokerOpportunist, PokerBluffer
-- **Composable hybrids**: Configure threat response, food approach, energy style, social mode, and poker engagement via `composable.py`
+- **Composable hybrids**: Configure threat response, food approach, energy style, social mode, and poker engagement via `core/algorithms/composable/`
 
 ### Movement Strategies
 
@@ -518,21 +517,22 @@ lightweight reference composition used in tests.
 - Death when energy reaches zero
 
 ### Reproduction System
-- Asexual reproduction + emergency spawns are handled by `core/reproduction_service.py` (invoked by `core/reproduction_system.py`)
-- Post-poker reproduction (sexual + plant wins) is coordinated by `core/reproduction_service.py`
+- Asexual reproduction + emergency spawns are handled by `core/reproduction/reproduction_service.py` (invoked by `core/reproduction/reproduction_system.py`)
+- Post-poker reproduction (sexual + plant wins) is coordinated by `core/reproduction/reproduction_service.py`
 - Population cap checks live in `EcosystemManager`
 
-### Skill Game System
-- **Multiple game types**: Poker, Rock-Paper-Scissors, Number Guessing
-- Fish play games when they encounter each other (optional; not wired into the engine by default)
-- Winners gain energy from losers
-- Strategies evolve through genetic algorithm
+### Poker Interaction
 
-**Poker Integration:**
-- `PokerSkillGame` adapter unifies poker with skill game framework
-- Uses existing poker engine and strategy system
-- Conforms to `SkillGame` interface like other games
-- Fish use `SkillfulAgent` Protocol for uniform game interaction
+Poker is the simulation's energy-transfer interaction between agents. It is the
+only such game wired into the engine:
+
+- `PokerProximitySystem` detects nearby eligible fish; `PokerSystem`
+  (`core/poker/integration/poker_system.py`) throttles and records games.
+- Winners gain energy from losers; a fish's eligibility gate is
+  `Fish.can_play_poker` (adult, above `MIN_ENERGY_TO_PLAY`, off cooldown).
+- Strategies are heritable via the genome and evolve through natural selection.
+- Plant-vs-fish poker lives in `core/mixed_poker/`; the shared hand-level engine
+  is `core/poker/simulation/hand_engine.py`.
 
 ### Protocol-Based Architecture
 
@@ -550,7 +550,7 @@ The simulation now includes a comprehensive set of protocols for entity capabili
 | `Movable` | Can move with velocity | Fish, Food, Crab |
 | `Consumable` | Can be consumed | Food, PlantNectar |
 | `Predator` | Can hunt other entities | Crab |
-| `SkillGamePlayer` | Can play poker/skill games | Fish, Plant |
+| `PokerPlayer` | Can play poker | Fish, Plant |
 | `Identifiable` | Has unique ID for tracking | Fish, Plant |
 | `LifecycleAware` | Has life stages (baby, adult, elder) | Fish |
 
@@ -602,13 +602,11 @@ See `tests/test_protocols.py` for comprehensive examples and `core/protocols.py`
 - `dimensions` property for environment size
 - Implemented by `Environment` class
 
-**SkillfulAgent Protocol** (`core/interfaces.py`):
-- Defines contract for agents that can play skill games
-- `get_strategy(game_type)` - Get agent's strategy for a game
-- `set_strategy(game_type, strategy)` - Set strategy
-- `learn_from_game(game_type, result)` - Update from game outcomes
-- `can_play_skill_games` - Check if agent is ready to play
-- Implemented by `Fish` class
+**PokerPlayer Protocol** (`core/interfaces.py`):
+- Defines the contract for agents that can play poker
+- Composition of `EnergyHolder` + `Positionable` + poker-specific methods
+- Eligibility is exposed by `Fish.can_play_poker` (adult, sufficient energy, off cooldown)
+- Implemented by `Fish` (and `Plant` via mixed poker)
 
 **Benefits:**
 - **Structural subtyping**: Classes satisfy protocols without explicit inheritance
