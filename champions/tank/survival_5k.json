@@ -1,36 +1,69 @@
 {
   "benchmark_id": "tank/survival_5k",
-  "version": 4,
+  "version": 5,
   "champion": {
-    "score": 68.28228669966626,
+    "score": 511.74701099411067,
     "seed": 42,
-    "timestamp": 1781906418.4558575,
+    "timestamp": 1782239303.047239,
     "metadata": {
       "frames": 5000,
-      "avg_energy": 2521.2231547341976,
-      "avg_pop": 27.083,
+      "avg_energy": 11182.549461226552,
+      "avg_pop": 45.763,
       "extinct": false,
       "samples": 5000,
-      "max_generation": 2,
+      "max_generation": 4,
       "extinction_frames": 0,
-      "starvation_rate": 0.9375,
-      "starvation_deaths": 75,
-      "total_deaths": 80,
+      "starvation_rate": 0.9947,
+      "starvation_deaths": 188,
+      "total_deaths": 189,
       "death_causes": {
-        "starvation": 75,
-        "predation": 5
+        "starvation": 188,
+        "predation": 1
       },
-      "diversity_score": 0.212,
-      "unique_algorithms": 6,
-      "final_fish_count": 14,
-      "final_food_count": 155,
-      "final_total_entities": 348,
+      "diversity_score": 0.2593,
+      "unique_algorithms": 20,
+      "final_fish_count": 55,
+      "final_food_count": 32,
+      "final_total_entities": 183,
       "population_scope": "fish",
       "final_total_entities_role": "diagnostic_only"
     },
-    "config_hash": "50bf23dff76135a3"
+    "config_hash": "3c435479cabf5892"
   },
   "history": [
+    {
+      "score": 68.28228669966626,
+      "seed": 42,
+      "timestamp": 1781906418.4558575,
+      "metadata": {
+        "frames": 5000,
+        "avg_energy": 2521.2231547341976,
+        "avg_pop": 27.083,
+        "extinct": false,
+        "samples": 5000,
+        "max_generation": 2,
+        "extinction_frames": 0,
+        "starvation_rate": 0.9375,
+        "starvation_deaths": 75,
+        "total_deaths": 80,
+        "death_causes": {
+          "starvation": 75,
+          "predation": 5
+        },
+        "diversity_score": 0.212,
+        "unique_algorithms": 6,
+        "final_fish_count": 14,
+        "final_food_count": 155,
+        "final_total_entities": 348,
+        "population_scope": "fish",
+        "final_total_entities_role": "diagnostic_only"
+      },
+      "config_hash": "50bf23dff76135a3",
+      "benchmark_id": "tank/survival_5k",
+      "retired_at": 1782239327.9179206,
+      "retired_reason": "Re-baselined: composable food pursuit now selects targets by energy/distance desirability (new FOOD_QUALITY_DISTANCE_WEIGHT) instead of pure proximity, which changes core config (config_hash) and seed-42 trajectories. Verified double-run deterministic and a win across seeds 42/7/123.",
+      "version": 4
+    },
     {
       "score": 126.96655120000781,
       "seed": 42,

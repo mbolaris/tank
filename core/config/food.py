@@ -147,6 +147,23 @@ BASE_FOOD_DETECTION_RANGE = 580.0  # Daytime: full visibility (pixels, was 520)
 #   Day (100%):      450px - full range, rewards speed and pursuit
 
 # =============================================================================
+# FOOD TARGET SELECTION (quality vs. proximity)
+# =============================================================================
+# When several food items are in detection range, a fish weighs each one's
+# energy value against the cost of swimming to it, instead of blindly chasing
+# the nearest morsel. A probe on the ecosystem_health_10k config showed ~79% of
+# pursuing fish chasing sub-optimal food, leaving a mean ~67 energy on the table
+# per pursuit (the largest measured foraging inefficiency).
+#
+#   desirability = energy / (1 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
+#
+# Higher weight favors closer food; 0.0 reproduces "ignore quality, take the
+# richest visible". The value is small because distances (0..580px) dwarf energy
+# values (65..120): at ~50px a near morsel is only lightly discounted, while a
+# richer item a little farther can still win. Tuned against both tank champions.
+FOOD_QUALITY_DISTANCE_WEIGHT = 0.02
+
+# =============================================================================
 # PREDATOR AVOIDANCE vs FOOD PURSUIT
 # =============================================================================
 # These constants define the risk/reward trade-off between eating and surviving.
