@@ -22,64 +22,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from core.poker.evaluation.benchmark_snapshot import (
+    BenchmarkSnapshot,
+    benchmark_result_uncertainty,
+    snapshot_uncertainty_payload,
+)
+
 if TYPE_CHECKING:
     from core.entities import Fish
     from core.poker.evaluation.comprehensive_benchmark import PopulationBenchmarkResult
 
 logger = logging.getLogger(__name__)
-
-
-def _round_ci(ci: tuple[float, float], digits: int = 2) -> list[float]:
-    """Round a confidence interval for JSON/API payloads."""
-    return [round(ci[0], digits), round(ci[1], digits)]
-
-
-@dataclass
-class BenchmarkSnapshot:
-    """Single point-in-time benchmark snapshot."""
-
-    frame: int
-    timestamp: str
-    generation_estimate: int  # Average generation of evaluated fish
-
-    # Population-level bb/100 metrics
-    pop_bb_per_100: float
-    pop_weighted_bb: float
-    pop_bb_vs_trivial: float
-    pop_bb_vs_weak: float
-    pop_bb_vs_moderate: float
-    pop_bb_per_100_ci_95: tuple[float, float] = (0.0, 0.0)
-    pop_bb_per_100_se: float = 0.0
-    pop_weighted_bb_ci_95: tuple[float, float] = (0.0, 0.0)
-    pop_weighted_bb_se: float = 0.0
-    pop_bb_vs_strong: float = 0.0
-    pop_bb_vs_expert: float = 0.0  # Elo rating metrics (more stable than raw bb/100)
-    pop_mean_elo: float = 1200.0
-    pop_median_elo: float = 1200.0
-    elo_tier_distribution: dict[str, int] = field(default_factory=dict)
-
-    # Confidence-based skill assessments
-    confidence_vs_weak: float = 0.5
-    confidence_vs_moderate: float = 0.5
-    confidence_vs_strong: float = 0.5
-    confidence_vs_expert: float = 0.5
-
-    # Strategy distribution
-    strategy_distribution: dict[str, int] = field(default_factory=dict)
-    dominant_strategy: str = ""
-
-    # Best performer
-    best_fish_id: int | None = None
-    best_bb_per_100: float = 0.0
-    best_elo: float = 1200.0
-    best_strategy: str = ""
-
-    # Per-baseline breakdown
-    per_baseline_bb_per_100: dict[str, float] = field(default_factory=dict)
-
-    # Evaluation metadata
-    fish_evaluated: int = 0
-    total_hands: int = 0
 
 
 @dataclass
@@ -411,10 +364,7 @@ class EvolutionBenchmarkTracker:
             pop_bb_vs_trivial=result.pop_bb_vs_trivial,
             pop_bb_vs_weak=result.pop_bb_vs_weak,
             pop_bb_vs_moderate=result.pop_bb_vs_moderate,
-            pop_bb_per_100_ci_95=result.pop_avg_bb_per_100_ci_95,
-            pop_bb_per_100_se=result.pop_avg_bb_per_100_se,
-            pop_weighted_bb_ci_95=result.pop_weighted_bb_per_100_ci_95,
-            pop_weighted_bb_se=result.pop_weighted_bb_per_100_se,
+            **benchmark_result_uncertainty(result),
             pop_bb_vs_strong=result.pop_bb_vs_strong,
             pop_bb_vs_expert=result.pop_bb_vs_expert,
             # Elo rating metrics (more stable than raw bb/100)
@@ -484,11 +434,8 @@ class EvolutionBenchmarkTracker:
                         "confidence_vs_strong": round(s.confidence_vs_strong, 3),
                         # Raw bb/100 metrics (for reference)
                         "pop_bb_per_100": round(s.pop_bb_per_100, 2),
-                        "pop_bb_per_100_ci_95": _round_ci(s.pop_bb_per_100_ci_95),
-                        "pop_bb_per_100_se": round(s.pop_bb_per_100_se, 4),
                         "pop_weighted_bb": round(s.pop_weighted_bb, 2),
-                        "pop_weighted_bb_ci_95": _round_ci(s.pop_weighted_bb_ci_95),
-                        "pop_weighted_bb_se": round(s.pop_weighted_bb_se, 4),
+                        **snapshot_uncertainty_payload(s),
                         "pop_bb_vs_trivial": round(s.pop_bb_vs_trivial, 2),
                         "pop_bb_vs_weak": round(s.pop_bb_vs_weak, 2),
                         "pop_bb_vs_moderate": round(s.pop_bb_vs_moderate, 2),
@@ -565,11 +512,8 @@ class EvolutionBenchmarkTracker:
                     "conf_expert": round(s.confidence_vs_expert, 3),
                     # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(s.pop_bb_per_100, 2),
-                    "pop_bb_per_100_ci_95": _round_ci(s.pop_bb_per_100_ci_95),
-                    "pop_bb_per_100_se": round(s.pop_bb_per_100_se, 4),
                     "pop_weighted_bb": round(s.pop_weighted_bb, 2),
-                    "pop_weighted_bb_ci_95": _round_ci(s.pop_weighted_bb_ci_95),
-                    "pop_weighted_bb_se": round(s.pop_weighted_bb_se, 4),
+                    **snapshot_uncertainty_payload(s),
                     "vs_trivial": round(s.pop_bb_vs_trivial, 2),
                     "vs_weak": round(s.pop_bb_vs_weak, 2),
                     "vs_moderate": round(s.pop_bb_vs_moderate, 2),
@@ -617,15 +561,8 @@ class EvolutionBenchmarkTracker:
                     ),
                     # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(self.history.snapshots[-1].pop_bb_per_100, 2),
-                    "pop_bb_per_100_ci_95": _round_ci(
-                        self.history.snapshots[-1].pop_bb_per_100_ci_95
-                    ),
-                    "pop_bb_per_100_se": round(self.history.snapshots[-1].pop_bb_per_100_se, 4),
                     "pop_weighted_bb": round(self.history.snapshots[-1].pop_weighted_bb, 2),
-                    "pop_weighted_bb_ci_95": _round_ci(
-                        self.history.snapshots[-1].pop_weighted_bb_ci_95
-                    ),
-                    "pop_weighted_bb_se": round(self.history.snapshots[-1].pop_weighted_bb_se, 4),
+                    **snapshot_uncertainty_payload(self.history.snapshots[-1]),
                     "vs_trivial": round(self.history.snapshots[-1].pop_bb_vs_trivial, 2),
                     "vs_weak": round(self.history.snapshots[-1].pop_bb_vs_weak, 2),
                     "vs_moderate": round(self.history.snapshots[-1].pop_bb_vs_moderate, 2),

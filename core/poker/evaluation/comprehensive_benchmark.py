@@ -190,10 +190,7 @@ class PopulationBenchmarkResult:
     # Population averages
     pop_avg_bb_per_100: float = 0.0
     pop_avg_bb_per_100_ci_95: tuple[float, float] = (0.0, 0.0)
-    pop_avg_bb_per_100_se: float = 0.0
     pop_weighted_bb_per_100: float = 0.0
-    pop_weighted_bb_per_100_ci_95: tuple[float, float] = (0.0, 0.0)
-    pop_weighted_bb_per_100_se: float = 0.0
 
     # Per-difficulty tier population averages
     pop_bb_vs_trivial: float = 0.0
@@ -469,19 +466,14 @@ def run_comprehensive_benchmark(
             except Exception as e:
                 logger.error(f"Benchmark failed for fish {fish.fish_id}: {e}")
 
-    # Compute population aggregates
     if fish_results:
         result.individual_results = fish_results
 
-        # Overall population averages
         all_bb = [r.overall_bb_per_100 for r in fish_results]
         all_weighted = [r.weighted_bb_per_100 for r in fish_results]
         result.pop_avg_bb_per_100 = sum(all_bb) / len(all_bb)
-        result.pop_avg_bb_per_100_ci_95, result.pop_avg_bb_per_100_se = compute_mean_ci_95(all_bb)
+        result.pop_avg_bb_per_100_ci_95, _ = compute_mean_ci_95(all_bb)
         result.pop_weighted_bb_per_100 = sum(all_weighted) / len(all_weighted)
-        result.pop_weighted_bb_per_100_ci_95, result.pop_weighted_bb_per_100_se = (
-            compute_mean_ci_95(all_weighted)
-        )
 
         # Per-tier averages
         result.pop_bb_vs_trivial = sum(r.avg_bb_per_100_vs_trivial for r in fish_results) / len(
