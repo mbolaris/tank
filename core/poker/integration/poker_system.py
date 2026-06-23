@@ -522,10 +522,7 @@ class PokerSystem(BaseSystem):
                     winner_fish = player
                     break
 
-            # winner_type == "fish" guarantees a Fish won; isinstance narrows
-            # fish_players' (Fish | Plant) element type and guards the Fish-only
-            # reproduction path. (Surfaced by mypy once the engine accessor above
-            # stopped being a getattr-typed Any.)
+            # winner_type=="fish" guarantees a Fish; isinstance also narrows fish_players' Fish|Plant.
             if isinstance(winner_fish, Fish):
                 reproduction_service = self._engine.reproduction_service
                 if reproduction_service is not None:
