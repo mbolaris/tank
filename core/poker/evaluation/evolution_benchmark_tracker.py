@@ -29,6 +29,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _round_ci(ci: tuple[float, float], digits: int = 2) -> list[float]:
+    """Round a confidence interval for JSON/API payloads."""
+    return [round(ci[0], digits), round(ci[1], digits)]
+
+
 @dataclass
 class BenchmarkSnapshot:
     """Single point-in-time benchmark snapshot."""
@@ -43,6 +48,10 @@ class BenchmarkSnapshot:
     pop_bb_vs_trivial: float
     pop_bb_vs_weak: float
     pop_bb_vs_moderate: float
+    pop_bb_per_100_ci_95: tuple[float, float] = (0.0, 0.0)
+    pop_bb_per_100_se: float = 0.0
+    pop_weighted_bb_ci_95: tuple[float, float] = (0.0, 0.0)
+    pop_weighted_bb_se: float = 0.0
     pop_bb_vs_strong: float = 0.0
     pop_bb_vs_expert: float = 0.0  # Elo rating metrics (more stable than raw bb/100)
     pop_mean_elo: float = 1200.0
@@ -402,6 +411,10 @@ class EvolutionBenchmarkTracker:
             pop_bb_vs_trivial=result.pop_bb_vs_trivial,
             pop_bb_vs_weak=result.pop_bb_vs_weak,
             pop_bb_vs_moderate=result.pop_bb_vs_moderate,
+            pop_bb_per_100_ci_95=result.pop_avg_bb_per_100_ci_95,
+            pop_bb_per_100_se=result.pop_avg_bb_per_100_se,
+            pop_weighted_bb_ci_95=result.pop_weighted_bb_per_100_ci_95,
+            pop_weighted_bb_se=result.pop_weighted_bb_per_100_se,
             pop_bb_vs_strong=result.pop_bb_vs_strong,
             pop_bb_vs_expert=result.pop_bb_vs_expert,
             # Elo rating metrics (more stable than raw bb/100)
@@ -471,7 +484,11 @@ class EvolutionBenchmarkTracker:
                         "confidence_vs_strong": round(s.confidence_vs_strong, 3),
                         # Raw bb/100 metrics (for reference)
                         "pop_bb_per_100": round(s.pop_bb_per_100, 2),
+                        "pop_bb_per_100_ci_95": _round_ci(s.pop_bb_per_100_ci_95),
+                        "pop_bb_per_100_se": round(s.pop_bb_per_100_se, 4),
                         "pop_weighted_bb": round(s.pop_weighted_bb, 2),
+                        "pop_weighted_bb_ci_95": _round_ci(s.pop_weighted_bb_ci_95),
+                        "pop_weighted_bb_se": round(s.pop_weighted_bb_se, 4),
                         "pop_bb_vs_trivial": round(s.pop_bb_vs_trivial, 2),
                         "pop_bb_vs_weak": round(s.pop_bb_vs_weak, 2),
                         "pop_bb_vs_moderate": round(s.pop_bb_vs_moderate, 2),
@@ -548,7 +565,11 @@ class EvolutionBenchmarkTracker:
                     "conf_expert": round(s.confidence_vs_expert, 3),
                     # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(s.pop_bb_per_100, 2),
+                    "pop_bb_per_100_ci_95": _round_ci(s.pop_bb_per_100_ci_95),
+                    "pop_bb_per_100_se": round(s.pop_bb_per_100_se, 4),
                     "pop_weighted_bb": round(s.pop_weighted_bb, 2),
+                    "pop_weighted_bb_ci_95": _round_ci(s.pop_weighted_bb_ci_95),
+                    "pop_weighted_bb_se": round(s.pop_weighted_bb_se, 4),
                     "vs_trivial": round(s.pop_bb_vs_trivial, 2),
                     "vs_weak": round(s.pop_bb_vs_weak, 2),
                     "vs_moderate": round(s.pop_bb_vs_moderate, 2),
@@ -596,7 +617,15 @@ class EvolutionBenchmarkTracker:
                     ),
                     # Raw bb/100 metrics (for reference)
                     "pop_bb_per_100": round(self.history.snapshots[-1].pop_bb_per_100, 2),
+                    "pop_bb_per_100_ci_95": _round_ci(
+                        self.history.snapshots[-1].pop_bb_per_100_ci_95
+                    ),
+                    "pop_bb_per_100_se": round(self.history.snapshots[-1].pop_bb_per_100_se, 4),
                     "pop_weighted_bb": round(self.history.snapshots[-1].pop_weighted_bb, 2),
+                    "pop_weighted_bb_ci_95": _round_ci(
+                        self.history.snapshots[-1].pop_weighted_bb_ci_95
+                    ),
+                    "pop_weighted_bb_se": round(self.history.snapshots[-1].pop_weighted_bb_se, 4),
                     "vs_trivial": round(self.history.snapshots[-1].pop_bb_vs_trivial, 2),
                     "vs_weak": round(self.history.snapshots[-1].pop_bb_vs_weak, 2),
                     "vs_moderate": round(self.history.snapshots[-1].pop_bb_vs_moderate, 2),

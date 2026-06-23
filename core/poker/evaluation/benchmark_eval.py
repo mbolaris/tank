@@ -102,21 +102,36 @@ class BenchmarkSuiteResult:
     weighted_bb_per_100_ci_95: tuple[float, float]
 
 
-def _compute_ci_95(values: list[float]) -> tuple[float, float]:
-    """Basic t-approximation CI. Good enough for our use;
-    if you want bootstrap later, you can swap this out.
+def compute_standard_error(values: list[float]) -> float:
+    """Standard error of a mean for benchmark sample values."""
+    if len(values) < 2:
+        return 0.0
+
+    stdev = statistics.stdev(values)
+    return stdev / math.sqrt(len(values))
+
+
+def compute_mean_ci_95(values: list[float]) -> tuple[tuple[float, float], float]:
+    """Basic t-approximation CI plus standard error for a sample mean.
+
+    Good enough for live observability; a later plateau analyzer can swap in a
+    bootstrap model without changing the persisted snapshot shape.
     """
     if len(values) < 2:
         mean = values[0] if values else 0.0
-        return (mean, mean)
+        return (mean, mean), 0.0
 
     mean = statistics.mean(values)
-    stdev = statistics.stdev(values)
-    n = len(values)
-
+    se = compute_standard_error(values)
     t_crit = 1.96  # ~95% for large n
-    margin = t_crit * (stdev / math.sqrt(n))
-    return (mean - margin, mean + margin)
+    margin = t_crit * se
+    return (mean - margin, mean + margin), se
+
+
+def _compute_ci_95(values: list[float]) -> tuple[float, float]:
+    """Basic t-approximation CI. Kept for existing per-opponent callers."""
+    ci, _ = compute_mean_ci_95(values)
+    return ci
 
 
 def create_standard_strategy(
