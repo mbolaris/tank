@@ -1,9 +1,14 @@
 import math
 from typing import TYPE_CHECKING, Any
 
-from core.config.food import FOOD_SINK_ACCELERATION
+from core.config.food import (
+    BASE_FOOD_DETECTION_RANGE,
+    FOOD_QUALITY_DISTANCE_WEIGHT,
+    FOOD_SINK_ACCELERATION,
+)
 from core.entities import Crab
 from core.entities import Fish as FishClass
+from core.entities import Food as FoodClass
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
@@ -179,6 +184,64 @@ class BehaviorActionsMixin:
             food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
         )
 
+    def _select_food_target(self, fish: "Fish") -> Any | None:
+        """Pick the best food to pursue within detection range.
+
+        Unlike :meth:`_find_nearest_food` (pure proximity, kept for the cheap
+        "is any food in range?" survival-priority check and the legacy
+        algorithms), this weighs each detected food's energy value against the
+        cost of swimming to it, so a fish prefers a richer morsel when it is not
+        much farther than a poorer one:
+
+            desirability = energy / (1 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
+
+        As ``FOOD_QUALITY_DISTANCE_WEIGHT`` -> 0 the choice ignores distance
+        (take the richest food in range); larger values increasingly favor
+        closer food (energy-per-distance), approaching pure proximity.
+
+        Determinism: basic float arithmetic only (``sqrt`` is correctly rounded
+        in IEEE-754), with an explicit ``(pos.x, pos.y)`` tie-break so the choice
+        never depends on spatial-query iteration order.
+        """
+        env = fish.environment
+
+        detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
+        max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+        max_distance_sq = max_distance * max_distance
+
+        if hasattr(env, "nearby_resources"):
+            nearby = env.nearby_resources(fish, int(max_distance) + 1)
+        else:
+            nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, FoodClass)
+        if not nearby:
+            return None
+
+        fish_x = fish.pos.x
+        fish_y = fish.pos.y
+        best = None
+        best_score = -1.0
+        best_key: tuple[float, float] | None = None
+
+        for food in nearby:
+            dx = food.pos.x - fish_x
+            dy = food.pos.y - fish_y
+            dist_sq = dx * dx + dy * dy
+            if dist_sq > max_distance_sq:
+                continue
+
+            get_energy = getattr(food, "get_energy_value", None)
+            energy = get_energy() if callable(get_energy) else 1.0
+            distance = math.sqrt(dist_sq)
+            score = energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
+
+            key = (food.pos.x, food.pos.y)
+            if score > best_score or (score == best_score and (best_key is None or key < best_key)):
+                best_score = score
+                best = food
+                best_key = key
+
+        return best
+
     def _execute_food_approach(self, fish: "Fish") -> tuple[float, float]:
         """Execute the selected food approach sub-behavior.
 
@@ -195,7 +258,7 @@ class BehaviorActionsMixin:
         if hasattr(fish, "can_eat") and not fish.can_eat():
             return 0.0, 0.0
 
-        nearest_food = self._find_nearest_food(fish)
+        nearest_food = self._select_food_target(fish)
         if not nearest_food:
             return 0.0, 0.0
 
