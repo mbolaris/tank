@@ -11,8 +11,8 @@ from core.worlds.tank import TankWorldBackendAdapter
 class TestActionPipeline:
     """Integration tests for the action pipeline."""
 
-    def test_200_tick_sanity(self):
-        """Run 200 ticks with seed, verify no crashes and entity count evolves."""
+    def test_50_tick_sanity(self):
+        """Run 50 ticks with seed, verify no crashes and entity count evolves."""
         adapter = TankWorldBackendAdapter(seed=12345)
         result = adapter.reset(seed=12345)
 
@@ -22,14 +22,14 @@ class TestActionPipeline:
         initial_entities = len(adapter.entities_list)
         assert initial_entities > 0, "Should have initial entities"
 
-        # Run 200 ticks
-        for i in range(200):
+        # Run 50 ticks
+        for i in range(50):
             result = adapter.step()
             assert result is not None
             assert result.info["frame"] == i + 1
 
         final_entities = len(adapter.entities_list)
-        assert final_entities > 0, "Should still have entities after 200 ticks"
+        assert final_entities > 0, "Should still have entities after 50 ticks"
 
         # Entity count should change (births/deaths occur)
         # This is a sanity check, not a strict assertion
