@@ -55,14 +55,10 @@ def test_population_benchmark_populates_bb100_uncertainty(monkeypatch):
     )
 
     assert result.pop_avg_bb_per_100 == 20.0
-    assert math.isclose(result.pop_avg_bb_per_100_se, 10.0 / math.sqrt(3))
     assert result.pop_avg_bb_per_100_ci_95[0] < result.pop_avg_bb_per_100
     assert result.pop_avg_bb_per_100_ci_95[1] > result.pop_avg_bb_per_100
 
     assert result.pop_weighted_bb_per_100 == 15.0
-    assert math.isclose(result.pop_weighted_bb_per_100_se, 10.0 / math.sqrt(3))
-    assert result.pop_weighted_bb_per_100_ci_95[0] < result.pop_weighted_bb_per_100
-    assert result.pop_weighted_bb_per_100_ci_95[1] > result.pop_weighted_bb_per_100
 
 
 def test_tracker_persists_uncertainty_fields(monkeypatch, tmp_path):
@@ -72,10 +68,7 @@ def test_tracker_persists_uncertainty_fields(monkeypatch, tmp_path):
             timestamp="2026-06-23T00:00:00",
             pop_avg_bb_per_100=12.345,
             pop_avg_bb_per_100_ci_95=(7.0, 18.0),
-            pop_avg_bb_per_100_se=2.8061,
             pop_weighted_bb_per_100=15.678,
-            pop_weighted_bb_per_100_ci_95=(9.0, 22.0),
-            pop_weighted_bb_per_100_se=3.3163,
             pop_bb_vs_trivial=0.0,
             pop_bb_vs_weak=0.0,
             pop_bb_vs_moderate=0.0,
@@ -96,7 +89,24 @@ def test_tracker_persists_uncertainty_fields(monkeypatch, tmp_path):
             pop_vs_baseline={},
             fish_evaluated=1,
             total_hands=100,
-            individual_results=[],
+            individual_results=[
+                FishBenchmarkResult(
+                    fish_id=1,
+                    fish_generation=2,
+                    strategy_id="tight_aggressive",
+                    strategy_params={},
+                    overall_bb_per_100=10.0,
+                    weighted_bb_per_100=12.0,
+                ),
+                FishBenchmarkResult(
+                    fish_id=2,
+                    fish_generation=2,
+                    strategy_id="tight_aggressive",
+                    strategy_params={},
+                    overall_bb_per_100=20.0,
+                    weighted_bb_per_100=24.0,
+                ),
+            ],
         )
 
     monkeypatch.setattr(comprehensive_benchmark, "run_quick_benchmark", fake_quick_benchmark)
@@ -108,18 +118,20 @@ def test_tracker_persists_uncertainty_fields(monkeypatch, tmp_path):
     )
 
     assert snapshot is not None
-    assert snapshot.pop_bb_per_100_ci_95 == (7.0, 18.0)
-    assert snapshot.pop_bb_per_100_se == 2.8061
-    assert snapshot.pop_weighted_bb_ci_95 == (9.0, 22.0)
-    assert snapshot.pop_weighted_bb_se == 3.3163
+    assert snapshot.pop_bb_per_100_ci_95[0] < 15.0
+    assert snapshot.pop_bb_per_100_ci_95[1] > 15.0
+    assert math.isclose(snapshot.pop_bb_per_100_se, 5.0)
+    assert snapshot.pop_weighted_bb_ci_95[0] < 18.0
+    assert snapshot.pop_weighted_bb_ci_95[1] > 18.0
+    assert math.isclose(snapshot.pop_weighted_bb_se, 6.0)
 
     api_data = tracker.get_api_data()
-    assert api_data["latest"]["pop_bb_per_100_ci_95"] == [7.0, 18.0]
-    assert api_data["latest"]["pop_bb_per_100_se"] == 2.8061
-    assert api_data["latest"]["pop_weighted_bb_ci_95"] == [9.0, 22.0]
-    assert api_data["latest"]["pop_weighted_bb_se"] == 3.3163
-    assert api_data["history"][0]["pop_bb_per_100_ci_95"] == [7.0, 18.0]
+    assert api_data["latest"]["pop_bb_per_100_ci_95"] == [5.2, 24.8]
+    assert api_data["latest"]["pop_bb_per_100_se"] == 5.0
+    assert api_data["latest"]["pop_weighted_bb_ci_95"] == [6.24, 29.76]
+    assert api_data["latest"]["pop_weighted_bb_se"] == 6.0
+    assert api_data["history"][0]["pop_bb_per_100_ci_95"] == [5.2, 24.8]
 
     exported = json.loads(export_path.read_text())
-    assert exported["snapshots"][0]["pop_bb_per_100_ci_95"] == [7.0, 18.0]
-    assert exported["snapshots"][0]["pop_weighted_bb_ci_95"] == [9.0, 22.0]
+    assert exported["snapshots"][0]["pop_bb_per_100_ci_95"] == [5.2, 24.8]
+    assert exported["snapshots"][0]["pop_weighted_bb_ci_95"] == [6.24, 29.76]
