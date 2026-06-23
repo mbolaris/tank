@@ -26,7 +26,6 @@ from pathlib import Path
 # lower its pin; drop it from this dict once it is under the limit.
 LEGACY_MAX_LINES: dict[str, int] = {
     "core/algorithms/base.py": 785,
-    "core/algorithms/composable/actions.py": 540,
     "core/algorithms/energy_management.py": 567,
     "core/algorithms/poker.py": 752,
     "core/algorithms/predator_avoidance.py": 540,
