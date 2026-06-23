@@ -13,6 +13,11 @@ class DummyEngine:
     def __init__(self) -> None:
         self.frame_count = 5
         self.added_entities: list[Any] = []
+        # Collaborators handle_poker_result reads. A faithful SimulationEngine
+        # stand-in declares them (production code now trusts these typed attrs
+        # instead of getattr-defaulting, so the double must honor the contract).
+        self.ecosystem = None
+        self.reproduction_service = None
 
     def add_entity(self, entity):
         self.added_entities.append(entity)
