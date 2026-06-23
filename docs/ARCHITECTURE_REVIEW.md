@@ -45,6 +45,7 @@ the code, 2026-06):
 
 | Item | Evidence |
 |------|----------|
+| Gratuitous distrust of typed engine collaborators removed (Open-item-5 category **b**) | 11 sites across 5 files read declared, typed engine attributes through `getattr(engine, "lifecycle_system"/"reproduction_service"/"ecosystem"/"soccer_system"/"config", None)` — i.e. `getattr`-with-default against attributes the engine *always* has (`engine.py` declares them `… \| None`). Because `getattr` returns `Any`, every downstream call on the result was silently **unchecked**. Replaced with direct typed access in `reproduction/reproduction_service.py` (incl. collapsing the all-defensive `_get_repro_credit_required`: `getattr(config,"soccer")…getattr(cfg,"enabled",False)` → `self._engine.config.soccer.enabled`, all guaranteed typed dataclass fields), `collision_system.py`, `systems/poker_proximity.py`, `poker/integration/poker_system.py`, `simulation/pipeline.py`. **Proof the `Any` was hiding bugs:** restoring the type immediately surfaced a real latent hole — `poker_system` passed `fish_players`' `Fish \| Plant` element into a `Fish`-only reproduction method; fixed with an explicit `isinstance(winner_fish, Fish)` narrow (the `winner_type=="fish"` invariant already guaranteed it). Behavior-neutral: `getattr`-default never fired (attrs always present), the `isinstance` is equivalent to the prior `is not None` under that invariant, zero RNG touched — seed-42 golden-replay byte-identical, `agent_gate` 575 passed, mypy green (323 files, now type-checking these calls). |
 | Dead skill-game framework removed (~2,900 LOC; principle #6) | The generic `SkillGame` framework was a parallel abstraction to the real poker path: `core/poker`/`core/mixed_poker` never imported `core.skills`, no `SystemPack` wired `SkillGameSystem`, and only scripts/tests constructed it. Removed `core/skills/` (RPS, number-guessing, poker_adapter, base, config), `core/skill_game_system.py`, `core/fish/skill_game_component.py`, the `SkillfulAgent` protocol, and the dead `Fish.get_strategy/set_strategy/learn_from_game` surface. The genuinely-live bit — the poker-eligibility gate, misnamed `can_play_skill_games` — was kept and renamed `Fish.can_play_poker`, and `movement_observations` now reads it directly (dropping a `getattr`-lie per Open-item #5). **Determinism note:** byte-identical (seed-42, 30k frames; golden-replay guard green). The post-poker reproduction path had drawn `engine.rng.random()` only to pick whose (always-empty) skill strategies the offspring inherited; dropping that draw would have reshuffled the shared stream for every poker-on config and tripped `test_replay_golden`, so it is **retained as an explicit determinism anchor** in `_create_post_poker_offspring` (documented inline; remove via a coordinated re-record when that path next changes). A clean example of *cosmetic minigame state coupled to the core RNG stream* — the motivation for `docs/POKER_SEAM_PROPOSAL.md`. |
 | Unused `ParameterRegistry` removed (137 LOC; principle #6) | `core/parameters/` was a read-only facade over three bounds tables that its own docstring said was "intended for tooling … mutation engines" — but the mutation engine reads the source tables directly and nothing but one test imported it. Deleted the package and `tests/core/test_parameter_registry.py`. |
 | God-class ratchet now actually ratchets | `tests/test_god_class_limits.py` skipped legacy files entirely (so they could regrow unbounded), tracked only a count, and carried 6 stale/deleted entries with comments that lied (`fish.py # 1201` — was 810). Rewrote it: `LEGACY_MAX_LINES` is now a **path-keyed dict pinned to each file's current size** (resolving the 4-way `engine.py` basename collision), `test_no_new_god_classes` enforces the per-file ceiling against regrowth, and `test_legacy_list_is_current` fails when a listed file drops under 500 or disappears — forcing harvest. Net: 45→33 honest, enforced pins; 7 already-refactored files (e.g. `environment.py` 433, `behavioral.py` 270) harvested. |
@@ -142,27 +143,62 @@ type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
 diff (identical simulation state). ~199 cycle-safe in-function imports remain
 across the rest of `core/`. Still incremental, still test-backed.
 
-### 5. Defensive access erodes the protocol layer (new, systemic, opportunistic)
-`core/` (excl. tests) carries ~354 `getattr`, ~193 `hasattr`, and ~60 bare
-`except`. The protocol layer (`core/interfaces.py`) exists precisely so callers
-*don't* probe for attributes — yet much code routes around it with
-`getattr(x, "field", default)`, which converts a loud `AttributeError` (fixed in
-minutes) into a silent wrong value (found, if ever, after a 30k-frame
-archaeology dig). The `getattr(fish, "max_speed", 2.0)` bug (Open-item-4 sibling,
-now fixed) is the archetype: the attribute never existed, the default was
-load-bearing, and a downstream clamp hid the consequence — invisible until two
-layers change.
+### 5. Defensive access erodes the protocol layer (systemic; **three distinct root causes**)
+`core/` (excl. tests) carries ~347 `getattr` and ~192 `hasattr` (bare `except` is
+now 0). The protocol layer (`core/interfaces.py`) exists precisely so callers
+*don't* probe for attributes — yet much code routes around it, converting a loud
+`AttributeError` (fixed in minutes) into a silent wrong value (found, if ever,
+after a 30k-frame archaeology dig). `getattr` returning `Any` also **disables
+mypy on everything downstream of the call** (see the Recently-completed entry:
+restoring one type immediately exposed a `Fish | Plant` passed to a `Fish`-only
+method).
 
-Treat this exactly like the in-function import debt (item 4): **opportunistic,
-test-backed, no big-bang.** When you touch a module, replace
-protocol-guaranteed `getattr`/`hasattr` with direct access and let it fail loud;
-keep `getattr` only for *genuinely optional/foreign* attributes (e.g.
-`environment.ball`, which may not exist). A good first sweep is the rest of
-`core/movement_strategy.py` and the `Fish.__init__` config-defaulting chain
-(`getattr(environment, "simulation_config", None)` → `…soccer` → `…enabled`),
-which also mixes construction with save-migration self-healing — extract that to
-a `Genome.normalize()` invoked at load time (SRP: a constructor should
-construct).
+The key insight for *this* sweep: these are **not one debt** — they are three,
+with different costs and different correct fixes. Lumping them as "opportunistic"
+hides that two are cheap, mypy-enforceable wins and only the third is a real
+modeling decision. Triage by root cause:
+
+- **(a) Untyped service-locator on `environment`.** `Environment` accreted
+  `simulation_config: Any | None`, `genome_code_pool`, `event_bus`, `ball`, … —
+  none on the `World` protocol (`core/world.py`), which is *deliberately* minimal
+  (spatial queries only). So core code typed against `World` literally cannot see
+  them and must `getattr` the concrete shape: e.g. `Fish.__init__`'s
+  `getattr(environment, "simulation_config", None)` → `…soccer` → `…enabled`.
+  This is the **deepest** cause and a genuine design fork to decide, not sweep:
+  either (i) declare the truly-core ones on a richer `SimulationWorld(World)`
+  protocol so callers type against it and trust it, or (ii) inject them as
+  explicit typed dependencies where needed. Until then `environment` is a bag
+  every consumer reaches into blindly.
+- **(b) Gratuitous distrust of typed attributes.** `getattr(engine, "lifecycle_
+  system", None)` where the engine *declares* `lifecycle_system: … | None`. The
+  default never fires; the only effect is to silence mypy. Fix = direct access;
+  pure win, mypy-verified. **Largely done** — see Recently completed (11 sites).
+  The same pattern likely remains on `*.engine`/world handles in
+  `transfer/entity_transfer.py` and `worlds/*/backend.py`; verify the holder is
+  typed, then convert.
+- **(c) Genuine cross-mode optionality.** `getattr(fish.environment, "ball",
+  None)`, `getattr(kicker, "team", None)` — state that legitimately may be absent
+  because it belongs to a *mode* (soccer), not the generic core. `getattr` here
+  is defensible **only** as the read of last resort; the better form is the
+  ADR-011 direction (model the capability with a protocol / register it with the
+  pack) so "is this a soccer world?" is a typed question, not an attribute probe.
+  This is the unfinished half of ADR-011, not cleanup.
+
+Treat (b) like the in-function import debt (item 4): opportunistic, test-backed,
+no big-bang. Treat (a) and (c) as **decisions to make**, not sweeps to do.
+
+**Related smell — invariant placement (`Fish.__init__`).** The constructor
+*repairs* its genome at construction time (back-fills a missing
+`poker_strategy`; defaults a `soccer_policy_id` from the code pool when soccer is
+on) and reads mode config via the (a)-chain above. That places the invariant
+"a genome is complete/valid" in a *consumer's constructor* rather than in the
+genome itself — so every other site that builds or loads a genome must
+re-remember to repair it, or silently won't have the guarantee. Extract to a
+`Genome.normalize()` invoked once at load/construction (SRP: a constructor
+should construct; an invariant should live with the type it constrains).
+**Determinism caveat:** the back-fill draws from the RNG, so the extraction must
+preserve draw order exactly or be re-recorded against the golden replay — do it
+as a deliberate, verified change, not a drive-by.
 
 ### 6. Movement-consideration IoC (deferred, enables full ADR-011 compliance)
 `default_considerations()` (generic `core/movement`) still *names* the ball

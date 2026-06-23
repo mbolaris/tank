@@ -285,7 +285,7 @@ class PokerProximitySystem(BaseSystem):
                         # Handle deaths from poker
                         for f in sub_group:
                             if f.is_dead():
-                                lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                                lifecycle_system = self._engine.lifecycle_system
                                 if lifecycle_system is not None:
                                     lifecycle_system.record_fish_death(f)
 

@@ -94,12 +94,12 @@ class PokerSystem(BaseSystem):
         # poker-rate stats advance. Per-fish FishPokerStats are recorded inside
         # the poker interaction; this aggregate counter was previously never
         # incremented (its recorder, record_poker_outcome, was orphaned).
-        ecosystem = getattr(self._engine, "ecosystem", None)
+        ecosystem = self._engine.ecosystem
         if ecosystem is not None and poker.result is not None:
             ecosystem.record_fish_poker_game()
 
         # Delegate post-poker reproduction to the ReproductionService
-        reproduction_service = getattr(self._engine, "reproduction_service", None)
+        reproduction_service = self._engine.reproduction_service
         if reproduction_service is not None:
             baby = reproduction_service.handle_post_poker_reproduction(poker)
             if baby is not None:
@@ -389,7 +389,7 @@ class PokerSystem(BaseSystem):
                 for player in table.players:
                     if isinstance(player, Fish) and player.is_dead():
                         if player in all_entities_set:
-                            lifecycle_system = getattr(self._engine, "lifecycle_system", None)
+                            lifecycle_system = self._engine.lifecycle_system
                             if lifecycle_system is not None:
                                 lifecycle_system.record_fish_death(player)
                             all_entities_set.discard(player)
@@ -522,9 +522,12 @@ class PokerSystem(BaseSystem):
                     winner_fish = player
                     break
 
-            if winner_fish is not None:
-                # Delegate to ReproductionService
-                reproduction_service = getattr(self._engine, "reproduction_service", None)
+            # winner_type == "fish" guarantees a Fish won; isinstance narrows
+            # fish_players' (Fish | Plant) element type and guards the Fish-only
+            # reproduction path. (Surfaced by mypy once the engine accessor above
+            # stopped being a getattr-typed Any.)
+            if isinstance(winner_fish, Fish):
+                reproduction_service = self._engine.reproduction_service
                 if reproduction_service is not None:
                     reproduction_service.handle_plant_poker_asexual_reproduction(winner_fish)
 
