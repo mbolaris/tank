@@ -68,7 +68,7 @@ SUB_BEHAVIOR_PARAMS = {
     # Threat response parameters
     "flee_speed": (0.8, 1.5),
     "flee_threshold": (80.0, 180.0),
-    "stealth_speed": (0.2, 0.5),
+    "stealth_speed": (0.2121, 0.5000),
     "freeze_distance": (40.0, 100.0),
     "erratic_amplitude": (0.3, 0.8),
     # Food approach parameters
@@ -76,7 +76,7 @@ SUB_BEHAVIOR_PARAMS = {
     # room to discover faster hunters. Upper bound is capped by energy costs.
     "pursuit_speed": (0.9, 1.6),
     "intercept_skill": (0.3, 0.9),
-    "circle_radius": (30.0, 80.0),
+    "circle_radius": (32.8147, 80.0000),
     "circle_speed": (0.05, 0.15),
     "ambush_patience": (0.5, 1.0),
     "ambush_strike_distance": (20.0, 60.0),
@@ -90,27 +90,27 @@ SUB_BEHAVIOR_PARAMS = {
     # draw schedule. Removing a key shifts every subsequent parameter's value for
     # every fish, breaking the golden replay fixture and determinism baselines.
     # Deleting them requires regenerating those fixtures (a separate Layer 2 change).
-    "base_speed_multiplier": (0.5, 1.0),
+    "base_speed_multiplier": (0.5000, 0.9427),
     "burst_speed": (1.1, 1.7),
-    "burst_duration": (30.0, 90.0),
+    "burst_duration": (30.0000, 86.4517),
     "rest_duration": (40.0, 100.0),
     "energy_urgency_threshold": (0.3, 0.6),
     # Social mode parameters
     "social_distance": (30.0, 80.0),
     "cohesion_strength": (0.3, 0.8),
-    "alignment_strength": (0.2, 0.6),
+    "alignment_strength": (0.2000, 0.5904),
     "separation_distance": (15.0, 40.0),
-    "follow_distance": (20.0, 60.0),
+    "follow_distance": (20.0000, 58.8267),
     # Poker engagement parameters
-    "poker_seek_radius": (80.0, 180.0),  # Tighter search: less travel to gamble
+    "poker_seek_radius": (80.0000, 175.1823),  # Tighter search: less travel to gamble
     "poker_avoid_radius": (60.0, 150.0),
-    "min_energy_for_poker": (0.55, 0.80),  # HIGH floor: poker is a net energy loss (house cut)
+    "min_energy_for_poker": (0.5653, 0.8000),  # HIGH floor: poker is a net energy loss (house cut)
     # Priority weights (how much each category influences final behavior)
     "threat_priority": (0.6, 1.0),  # Usually high - survival first
     # Increased food_priority from (0.4, 0.9) to (0.5, 0.95) based on experiment
     # showing fish need to prioritize food more aggressively to survive
     "food_priority": (0.5, 0.95),
-    "social_priority": (0.1, 0.5),
+    "social_priority": (0.1000, 0.4734),
     "poker_priority": (0.05, 0.30),  # Low: food search should dominate idle time
 }
 
