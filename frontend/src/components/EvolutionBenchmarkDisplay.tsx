@@ -662,6 +662,56 @@ function ImprovementBanner({ improvement }: { improvement: BenchmarkImprovementM
     );
 }
 
+function formatSignedBb(value: number): string {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}`;
+}
+
+function formatCi(ci?: [number, number]): string {
+    if (!ci) return 'waiting for next benchmark';
+    return `[${formatSignedBb(ci[0])}, ${formatSignedBb(ci[1])}]`;
+}
+
+function BenchmarkCertainty({ latest }: { latest: BenchmarkSnapshot }) {
+    const hasUncertainty = latest.pop_bb_per_100_ci_95 || latest.pop_weighted_bb_ci_95;
+
+    return (
+        <div style={styles.certaintyPanel}>
+            <div style={styles.certaintyHeader}>
+                <span style={styles.certaintyTitle}>Benchmark Certainty</span>
+                <span style={styles.certaintyMeta}>
+                    {latest.total_hands?.toLocaleString() ?? 0} hands · {latest.fish_evaluated ?? 0} fish
+                </span>
+            </div>
+            {hasUncertainty ? (
+                <div style={styles.certaintyGrid}>
+                    <div style={styles.certaintyMetric}>
+                        <span style={styles.certaintyLabel}>Population 95% CI</span>
+                        <span style={styles.certaintyValue}>
+                            {formatCi(latest.pop_bb_per_100_ci_95)}
+                        </span>
+                        <span style={styles.certaintySub}>
+                            SE {(latest.pop_bb_per_100_se ?? 0).toFixed(2)}
+                        </span>
+                    </div>
+                    <div style={styles.certaintyMetric}>
+                        <span style={styles.certaintyLabel}>Weighted 95% CI</span>
+                        <span style={styles.certaintyValue}>
+                            {formatCi(latest.pop_weighted_bb_ci_95)}
+                        </span>
+                        <span style={styles.certaintySub}>
+                            SE {(latest.pop_weighted_bb_se ?? 0).toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+            ) : (
+                <div style={styles.certaintyEmpty}>
+                    Waiting for a fresh benchmark snapshot with uncertainty fields.
+                </div>
+            )}
+        </div>
+    );
+}
+
 export function EvolutionBenchmarkDisplay({ worldId }: { worldId?: string }) {
     const [data, setData] = useState<EvolutionBenchmarkData | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('overview');
@@ -878,6 +928,8 @@ export function EvolutionBenchmarkDisplay({ worldId }: { worldId?: string }) {
                                     <ImprovementBanner improvement={improvement} />
                                 </div>
                             </div>
+
+                            <BenchmarkCertainty latest={latest} />
                         </div>
                     )}
 
@@ -1109,6 +1161,71 @@ const styles = {
         display: 'flex',
         gap: '12px',
         fontSize: '11px',
+    },
+    certaintyPanel: {
+        backgroundColor: colors.bgLight,
+        borderRadius: '8px',
+        padding: '8px 12px',
+        border: `1px solid ${colors.border}`,
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: '8px',
+    },
+    certaintyHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '12px',
+        flexWrap: 'wrap' as const,
+    },
+    certaintyTitle: {
+        color: colors.text,
+        fontSize: '11px',
+        fontWeight: 700,
+        textTransform: 'uppercase' as const,
+        letterSpacing: '0.04em',
+    },
+    certaintyMeta: {
+        color: colors.textSecondary,
+        fontSize: '10px',
+        fontFamily: 'var(--font-mono)',
+    },
+    certaintyGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '8px',
+    },
+    certaintyMetric: {
+        minHeight: '52px',
+        borderRadius: '6px',
+        backgroundColor: 'rgba(15,23,42,0.45)',
+        border: `1px solid rgba(148,163,184,0.16)`,
+        padding: '8px 10px',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        justifyContent: 'center',
+        gap: '3px',
+    },
+    certaintyLabel: {
+        color: colors.textSecondary,
+        fontSize: '10px',
+        textTransform: 'uppercase' as const,
+    },
+    certaintyValue: {
+        color: colors.text,
+        fontSize: '13px',
+        fontWeight: 700,
+        fontFamily: 'var(--font-mono)',
+    },
+    certaintySub: {
+        color: colors.textSecondary,
+        fontSize: '10px',
+        fontFamily: 'var(--font-mono)',
+    },
+    certaintyEmpty: {
+        color: colors.textSecondary,
+        fontSize: '11px',
+        padding: '4px 0',
     },
     baselineGrid: {
         display: 'flex',

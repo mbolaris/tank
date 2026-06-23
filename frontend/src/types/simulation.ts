@@ -717,7 +717,11 @@ export interface BenchmarkSnapshot {
     fish_evaluated?: number;
     total_hands?: number;
     pop_bb_per_100: number;
+    pop_bb_per_100_ci_95?: [number, number];
+    pop_bb_per_100_se?: number;
     pop_weighted_bb: number;
+    pop_weighted_bb_ci_95?: [number, number];
+    pop_weighted_bb_se?: number;
     vs_trivial: number;
     vs_weak: number;
     vs_moderate: number;
