@@ -2,23 +2,7 @@ import { useCallback, useEffect, useMemo, useState, useRef, memo } from 'react';
 import { config, type ServerWithWorlds } from '../config';
 import { useErrorNotification } from '../hooks/useErrorNotification';
 import { ErrorNotification } from './ErrorNotification';
-
-interface TankNode {
-    id: string;
-    name: string;
-    serverName: string;
-    allowTransfers: boolean;
-    x: number;
-    y: number;
-}
-
-export interface TankConnection {
-    id: string;
-    sourceId: string;
-    destinationId: string;
-    probability: number; // 0-100
-    direction: 'left' | 'right';
-}
+import { buildConnectionPayload, type TankConnection, type TankNode } from './tankNetworkConnections';
 
 interface TankNetworkMapProps {
     servers: ServerWithWorlds[];
@@ -46,6 +30,7 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
                 id: tankStatus.world_id,
                 name: tankStatus.name,
                 allowTransfers: true,
+                serverId: server.server.server_id,
                 serverName: server.server.hostname,
             })),
         );
@@ -173,18 +158,7 @@ const TankNetworkMapInternal = function TankNetworkMap({ servers }: TankNetworkM
         e.preventDefault();
         if (!sourceId || !destinationId || sourceId === destinationId) return;
 
-        const sourceNode = nodeLookup.get(sourceId);
-        const destNode = nodeLookup.get(destinationId);
-
-        const direction = (sourceNode && destNode && destNode.x > sourceNode.x) ? 'right' : 'left';
-
-        const newConnection = {
-            id: `${sourceId}->${destinationId}`,
-            sourceId,
-            destinationId,
-            probability,
-            direction
-        };
+        const newConnection = buildConnectionPayload(sourceId, destinationId, probability, nodeLookup);
 
         try {
             const res = await fetch(`${config.apiBaseUrl}/api/connections`, {
