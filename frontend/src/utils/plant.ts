@@ -259,11 +259,17 @@ function createLeafPaths(leaves: FractalLeaf[]): { leafPath?: Path2D; veinPath?:
         const rotation = (leaf.angle * Math.PI) / 180 + Math.PI / 2;
         const centerX = leaf.x + Math.sin(rotation) * leaf.size / 2;
         const centerY = leaf.y - Math.cos(rotation) * leaf.size / 2;
+        const radiusX = leaf.size * 0.4;
+        const radiusY = leaf.size;
+        leafPath.moveTo(
+            centerX + Math.cos(rotation) * radiusX,
+            centerY + Math.sin(rotation) * radiusX
+        );
         leafPath.ellipse(
             centerX,
             centerY,
-            leaf.size * 0.4,
-            leaf.size,
+            radiusX,
+            radiusY,
             rotation,
             0,
             Math.PI * 2
@@ -1266,11 +1272,17 @@ export function renderPlant(
             const rotation = (leaf.angle * Math.PI) / 180 + Math.PI / 2;
             const centerX = leaf.x + Math.sin(rotation) * leaf.size / 2;
             const centerY = leaf.y - Math.cos(rotation) * leaf.size / 2;
+            const radiusX = leaf.size * 0.4;
+            const radiusY = leaf.size;
+            ctx.moveTo(
+                centerX + Math.cos(rotation) * radiusX,
+                centerY + Math.sin(rotation) * radiusX
+            );
             ctx.ellipse(
                 centerX,
                 centerY,
-                leaf.size * 0.4,
-                leaf.size,
+                radiusX,
+                radiusY,
                 rotation,
                 0,
                 Math.PI * 2

@@ -58,11 +58,22 @@ class MockCanvas {
 
 // Mock Path2D
 class MockPath2D {
+    static instances: MockPath2D[] = [];
+    calls: string[] = [];
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    constructor(_path?: string | Path2D) { }
-    moveTo() { }
-    lineTo() { }
-    ellipse() { }
+    constructor(_path?: string | Path2D) {
+        MockPath2D.instances.push(this);
+    }
+    moveTo() {
+        this.calls.push('moveTo');
+    }
+    lineTo() {
+        this.calls.push('lineTo');
+    }
+    ellipse() {
+        this.calls.push('ellipse');
+    }
 }
 
 describe('Memory Cleanup Utilities', () => {
@@ -78,6 +89,7 @@ describe('Memory Cleanup Utilities', () => {
         });
 
         // Clear caches before each test
+        MockPath2D.instances = [];
         clearAvatarPathCache();
         clearAllPlantCaches();
     });
@@ -172,6 +184,20 @@ describe('Memory Cleanup Utilities', () => {
 
             expect(mockContext.stroke).toHaveBeenCalledTimes(10);
             expect(mockContext.fill).toHaveBeenCalledTimes(1);
+        });
+
+        it('starts each cached leaf ellipse as a separate subpath', () => {
+            renderPlant(mockContext, 789, mockGenome, 0, 0, 1, 2, 0);
+
+            const leafPath = MockPath2D.instances.find((path) => path.calls.includes('ellipse'));
+            expect(leafPath).toBeDefined();
+
+            const calls = leafPath!.calls;
+            calls.forEach((call, index) => {
+                if (call === 'ellipse') {
+                    expect(calls[index - 1]).toBe('moveTo');
+                }
+            });
         });
 
         it('should reuse cached spiral nectar paths', () => {
