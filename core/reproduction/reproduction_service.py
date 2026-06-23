@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from core.energy.energy_utils import apply_energy_delta
 from core.util.stable_hash import stable_algorithm_id
@@ -193,14 +193,10 @@ class ReproductionService:
         }
 
     def _get_fish_entities(self) -> list[Fish]:
-        entity_manager = getattr(self._engine, "entity_manager", None)
-        get_fish = getattr(entity_manager, "get_fish", None)
-        if callable(get_fish):
-            return cast("list[Fish]", get_fish())
-
-        from core.entities import Fish
-
-        return [e for e in self._engine.get_all_entities() if isinstance(e, Fish)]
+        # engine.entity_manager is a typed property and get_fish() is the canonical
+        # typed fish view; the prior getattr/callable/cast dance guarded a fallback
+        # branch that could never run (get_fish always exists).
+        return self._engine.entity_manager.get_fish()
 
     def _update_cooldowns(self, fish_list: list[Fish]) -> None:
         for fish in fish_list:
@@ -638,9 +634,7 @@ class ReproductionService:
         if composable is not None and composable.value is not None:
             behavior_id = composable.value.behavior_id
             algorithm_id = stable_algorithm_id(behavior_id)
-            emit_event = getattr(fish, "_emit_event", None)
-            if callable(emit_event):
-                emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
+            fish._emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
 
         # Set visual birth effect timer
         fish.visual_state.set_birth_effect(60)
