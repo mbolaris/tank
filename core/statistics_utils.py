@@ -11,6 +11,7 @@ Design Principles:
 - Functions are pure and side-effect free
 """
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
@@ -153,6 +154,67 @@ def safe_mean_std(values: list[float]) -> tuple[float, float]:
     m = mean(values)
     s = stdev(values) if len(values) > 1 else 0.0
     return float(m), float(s)
+
+
+def population_variance(values: Sequence[float]) -> float:
+    """Calculate the population variance (mean squared deviation).
+
+    Uses the population estimator (divides by ``n``, not ``n - 1``). This is the
+    measure used for trait-convergence detection, where the population *is* the
+    sample. Fewer than two values has no spread, so we return 0.0.
+
+    Args:
+        values: Sequence of numeric values
+
+    Returns:
+        Population variance, or 0.0 for sequences shorter than 2
+
+    Example:
+        >>> population_variance([2.0, 4.0, 6.0])
+        2.6666666666666665
+        >>> population_variance([5.0])
+        0.0
+    """
+    n = len(values)
+    if n < 2:
+        return 0.0
+    mean_value = sum(values) / n
+    return sum((v - mean_value) ** 2 for v in values) / n
+
+
+def pearson_correlation(x_values: Sequence[float], y_values: Sequence[float]) -> float:
+    """Calculate the Pearson correlation coefficient between two series.
+
+    Returns a value in ``[-1.0, 1.0]`` measuring the linear relationship
+    between the paired samples. When either series has zero variance (a flat
+    line) the correlation is undefined, so we return 0.0.
+
+    Args:
+        x_values: First series of numeric values
+        y_values: Second series, paired element-wise with ``x_values``
+
+    Returns:
+        Pearson's r, or 0.0 when it is undefined (empty or zero-variance input)
+
+    Example:
+        >>> pearson_correlation([1.0, 2.0, 3.0], [2.0, 4.0, 6.0])
+        1.0
+        >>> pearson_correlation([1.0, 2.0, 3.0], [6.0, 4.0, 2.0])
+        -1.0
+    """
+    n = len(x_values)
+    if n == 0:
+        return 0.0
+
+    mean_x = sum(x_values) / n
+    mean_y = sum(y_values) / n
+
+    numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(x_values, y_values, strict=False))
+    variance_x = sum((x - mean_x) ** 2 for x in x_values)
+    variance_y = sum((y - mean_y) ** 2 for y in y_values)
+
+    denominator = math.sqrt(variance_x * variance_y)
+    return 0.0 if denominator == 0 else numerator / denominator
 
 
 def descriptive_stats(values: list[float]) -> DescriptiveStats:

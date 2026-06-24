@@ -11,15 +11,20 @@ This module provides advanced population analytics including:
 
 import math
 from collections import defaultdict, deque
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from core.statistics_utils import pearson_correlation
 from core.util.stable_hash import stable_algorithm_id
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.entities import Fish
     from core.genetics import Genome
+
+# Minimum paired samples required before a trait correlation is reported.
+MIN_CORRELATION_SAMPLES = 10
 
 
 @dataclass
@@ -113,6 +118,50 @@ class LiveFoodStats:
             "speed_modifier": self.speed_sum / self.captures,
             "vision_range": self.vision_sum / self.captures,
         }
+
+
+def _trait_correlations(
+    samples_by_trait: Mapping[str, Iterable[tuple[float, float]]],
+) -> list[TraitCorrelation]:
+    """Correlate each trait's ``(value, score)`` samples against the score.
+
+    Shared by the trait-fitness and live-food correlation reports: both pair a
+    trait value with a success score and want a Pearson coefficient plus a
+    simplified significance estimate. Traits with fewer than
+    ``MIN_CORRELATION_SAMPLES`` samples are skipped; results are sorted by
+    descending absolute correlation.
+    """
+    correlations: list[TraitCorrelation] = []
+
+    for trait_name, raw_samples in samples_by_trait.items():
+        samples = list(raw_samples)
+        n = len(samples)
+        if n < MIN_CORRELATION_SAMPLES:
+            continue
+
+        trait_values = [value for value, _ in samples]
+        score_values = [score for _, score in samples]
+        correlation = pearson_correlation(trait_values, score_values)
+
+        # Simplified t-test: strong correlations on larger samples get a lower
+        # (more significant) p-value; near-zero correlations are treated as noise.
+        if abs(correlation) > 0.01:
+            t_stat = correlation * math.sqrt((n - 2) / (1 - correlation**2))
+            p_value = max(0.001, 1.0 / (1.0 + abs(t_stat)))
+        else:
+            p_value = 1.0
+
+        correlations.append(
+            TraitCorrelation(
+                trait_name=trait_name,
+                correlation=correlation,
+                sample_size=n,
+                p_value=p_value,
+            )
+        )
+
+    correlations.sort(key=lambda c: abs(c.correlation), reverse=True)
+    return correlations
 
 
 class EnhancedStatisticsTracker:
@@ -266,52 +315,7 @@ class EnhancedStatisticsTracker:
         Returns:
             List of TraitCorrelation objects showing which traits correlate with success
         """
-        correlations = []
-
-        for trait_name, samples_deque in self.trait_fitness_data.items():
-            if len(samples_deque) < 10:
-                # Need at least 10 samples for meaningful correlation
-                continue
-
-            # Calculate Pearson correlation coefficient
-            samples = list(samples_deque)
-            n = len(samples)
-            trait_values = [s[0] for s in samples]
-            fitness_values = [s[1] for s in samples]
-
-            mean_trait = sum(trait_values) / n
-            mean_fitness = sum(fitness_values) / n
-
-            numerator = sum(
-                (t - mean_trait) * (f - mean_fitness)
-                for t, f in zip(trait_values, fitness_values, strict=False)
-            )
-
-            trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)
-            fitness_variance = sum((f - mean_fitness) ** 2 for f in fitness_values)
-
-            denominator = math.sqrt(trait_variance * fitness_variance)
-
-            correlation = 0.0 if denominator == 0 else numerator / denominator
-
-            # Calculate p-value (simplified t-test)
-            if abs(correlation) > 0.01:
-                t_stat = correlation * math.sqrt((n - 2) / (1 - correlation**2))
-                # Simplified p-value estimate
-                p_value = max(0.001, 1.0 / (1.0 + abs(t_stat)))
-            else:
-                p_value = 1.0
-
-            correlations.append(
-                TraitCorrelation(
-                    trait_name=trait_name, correlation=correlation, sample_size=n, p_value=p_value
-                )
-            )
-
-        # Sort by absolute correlation strength
-        correlations.sort(key=lambda x: abs(x.correlation), reverse=True)
-
-        return correlations
+        return _trait_correlations(self.trait_fitness_data)
 
     def check_for_extinctions(
         self, frame: int, ecosystem: "EcosystemManager"
@@ -487,49 +491,7 @@ class EnhancedStatisticsTracker:
 
     def calculate_live_food_correlations(self) -> list[TraitCorrelation]:
         """Calculate correlations between traits and live food capture success."""
-
-        correlations: list[TraitCorrelation] = []
-
-        for trait_name, samples_deque in self.live_food_trait_samples.items():
-            if len(samples_deque) < 10:
-                continue
-
-            samples = list(samples_deque)
-            n = len(samples)
-            trait_values = [value for value, _ in samples]
-            success_values = [score for _, score in samples]
-
-            mean_trait = sum(trait_values) / n
-            mean_success = sum(success_values) / n
-
-            numerator = sum(
-                (t - mean_trait) * (s - mean_success)
-                for t, s in zip(trait_values, success_values, strict=False)
-            )
-
-            trait_variance = sum((t - mean_trait) ** 2 for t in trait_values)
-            success_variance = sum((s - mean_success) ** 2 for s in success_values)
-
-            denominator = math.sqrt(trait_variance * success_variance)
-            correlation = 0.0 if denominator == 0 else numerator / denominator
-
-            if abs(correlation) > 0.01:
-                t_stat = correlation * math.sqrt((n - 2) / (1 - correlation**2))
-                p_value = max(0.001, 1.0 / (1.0 + abs(t_stat)))
-            else:
-                p_value = 1.0
-
-            correlations.append(
-                TraitCorrelation(
-                    trait_name=trait_name,
-                    correlation=correlation,
-                    sample_size=n,
-                    p_value=p_value,
-                )
-            )
-
-        correlations.sort(key=lambda c: abs(c.correlation), reverse=True)
-        return correlations
+        return _trait_correlations(self.live_food_trait_samples)
 
     def record_offspring_birth(self, energy_cost: float) -> None:
         """Record a reproduction event.
