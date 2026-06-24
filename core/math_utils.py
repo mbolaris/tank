@@ -99,50 +99,6 @@ class Vector2:
     def __repr__(self) -> str:
         return f"Vector2({self.x}, {self.y})"
 
-    def add_inplace(self, other: Vector2) -> Vector2:
-        """Add another vector to this one in-place."""
-        self.x += other.x
-        self.y += other.y
-        return self
-
-    def sub_inplace(self, other: Vector2) -> Vector2:
-        """Subtract another vector from this one in-place."""
-        self.x -= other.x
-        self.y -= other.y
-        return self
-
-    def mul_inplace(self, scalar: float) -> Vector2:
-        """Multiply this vector by a scalar in-place."""
-        self.x *= scalar
-        self.y *= scalar
-        return self
-
-    def div_inplace(self, scalar: float) -> Vector2:
-        """Divide this vector by a scalar in-place."""
-        self.x /= scalar
-        self.y /= scalar
-        return self
-
-    def normalize_inplace(self) -> Vector2:
-        """Normalize this vector in-place."""
-        length = math.sqrt(self.x * self.x + self.y * self.y)
-        if length > 0:
-            self.x /= length
-            self.y /= length
-        else:
-            self.x = 0.0
-            self.y = 0.0
-        return self
-
-    def limit_inplace(self, max_length: float) -> Vector2:
-        """Limit the length of this vector in-place."""
-        length_sq = self.x * self.x + self.y * self.y
-        if length_sq > max_length * max_length and length_sq > 0:
-            length = math.sqrt(length_sq)
-            self.x = (self.x / length) * max_length
-            self.y = (self.y / length) * max_length
-        return self
-
     @staticmethod
     def distance_squared(x1: float, y1: float, x2: float, y2: float) -> float:
         """Calculate squared distance between two points without allocating Vector2 objects.
