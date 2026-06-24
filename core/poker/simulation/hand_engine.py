@@ -640,6 +640,8 @@ def start_hand_from_players(
     small_blind: float,
     big_blind: float,
     deck: Deck,
+    small_blind_pos: int | None = None,
+    big_blind_pos: int | None = None,
 ) -> MultiplayerGameState:
     """Initialize a hand for interactive step-by-step play.
 
@@ -649,6 +651,8 @@ def start_hand_from_players(
         small_blind: Small blind amount.
         big_blind: Big blind amount.
         deck: Deck to deal from (should be shuffled).
+        small_blind_pos: Optional pre-calculated small blind position.
+        big_blind_pos: Optional pre-calculated big blind position.
 
     Returns:
         Initialized MultiplayerGameState with hole cards dealt and blinds posted.
@@ -667,7 +671,30 @@ def start_hand_from_players(
 
     _deal_hole_cards(game_state)
 
-    small_blind_pos, big_blind_pos = _blind_positions(num_players, button_position)
+    if small_blind_pos is None or big_blind_pos is None:
+        # Fallback to computing based on active players in contexts, or default _blind_positions
+        has_inactive = any(p.remaining_energy <= 0 or p.folded for p in players.values())
+        if has_inactive and len(players) > 2:
+
+            def get_next_active(from_idx: int) -> int:
+                next_idx = (from_idx + 1) % num_players
+                attempts = 0
+                while (
+                    players[next_idx].remaining_energy <= 0 or players[next_idx].folded
+                ) and attempts < num_players:
+                    next_idx = (next_idx + 1) % num_players
+                    attempts += 1
+                return next_idx
+
+            sb_pos = get_next_active(button_position)
+            bb_pos = get_next_active(sb_pos)
+            small_blind_pos = sb_pos if small_blind_pos is None else small_blind_pos
+            big_blind_pos = bb_pos if big_blind_pos is None else big_blind_pos
+        else:
+            sb_pos, bb_pos = _blind_positions(num_players, button_position)
+            small_blind_pos = sb_pos if small_blind_pos is None else small_blind_pos
+            big_blind_pos = bb_pos if big_blind_pos is None else big_blind_pos
+
     game_state.player_bet(small_blind_pos, small_blind)
     game_state.player_bet(big_blind_pos, big_blind)
 

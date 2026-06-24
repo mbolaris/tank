@@ -105,7 +105,7 @@ function PerformanceChart({
 
     return (
         <div style={styles.chartWrapper}>
-            <svg width={width} height={height} style={styles.chartSvg}>
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={styles.chartSvg}>
                 {/* Y-axis */}
                 <line
                     x1={padding.left}
@@ -624,6 +624,8 @@ const styles = {
     },
     chartSvg: {
         width: '100%',
+        height: 'auto',
+        display: 'block',
     },
     toggleGroup: {
         display: 'flex',

@@ -89,8 +89,8 @@ export default function SizeSummaryGraph({
     };
 
     return (
-        <div style={{ width, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <svg width={width} height={svgHeight}>
+        <div style={{ width: '100%', maxWidth: width, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <svg width={width} height={svgHeight} viewBox={`0 0 ${width} ${svgHeight}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
                 {/* bars */}
                 {bins.map((count, i) => {
                     const h = (count / maxCount) * (plotH - 6);
