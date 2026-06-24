@@ -55,7 +55,7 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 24px',
-            width: '100%',
+            flex: 1,
             gap: '24px',
         }}>
             {/* Primary Actions */}

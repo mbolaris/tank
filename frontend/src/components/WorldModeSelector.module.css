@@ -5,6 +5,7 @@
     background: rgba(0, 0, 0, 0.2);
     padding: var(--spacing-xs);
     border-radius: var(--spacing-sm);
+    flex-shrink: 0;
 }
 
 .label {
