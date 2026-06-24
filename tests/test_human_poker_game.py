@@ -125,3 +125,41 @@ def test_game_ends_immediately_when_all_but_one_fold():
         f"No community cards should be dealt when fold leaves 1 player. "
         f"Started with {cards_before}, ended with {len(game.community_cards)}"
     )
+
+
+def test_start_hand_with_inactive_player():
+    """Verify that starting a hand with an inactive player (energy <= 0) assigns the blinds to active players only."""
+    ai_fish = [{"name": "AI One"}, {"name": "AI Two"}, {"name": "AI Three"}]
+    game = HumanPokerGame(
+        game_id="test",
+        human_energy=100.0,
+        ai_fish=ai_fish,
+    )
+
+    # Now set AI Two (index 2) to 0 energy
+    game.players[2].energy = 0.0
+    game.game_over = True  # Force game over to allow start_new_hand
+    game.session_over = False
+
+    # Force button index to 0, so next hand's button index will advance to 1 (AI One)
+    game.button_index = 0
+
+    # Start the hand
+    result = game.start_new_hand()
+    assert result["success"]
+
+    # Dealer button: 1 (AI One)
+    # Small blind: 3 (AI Three, since 2 has 0 energy and is skipped)
+    # Big blind: 0 (You, since 3 is SB)
+    assert game.button_index == 1
+    assert game.big_blind_index == 0
+
+    assert game.players[3].current_bet == 5.0
+    assert game.players[0].current_bet == 10.0
+    assert game.players[2].current_bet == 0.0
+    assert game.players[2].folded
+
+    # Verify hand engine matches human game's expectations
+    assert game._hand_state.players[3].current_bet == 5.0
+    assert game._hand_state.players[0].current_bet == 10.0
+    assert game._hand_state.players[2].current_bet == 0.0

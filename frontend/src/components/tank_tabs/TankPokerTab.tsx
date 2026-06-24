@@ -46,6 +46,12 @@ export function TankPokerTab({
     const [pokerError, setPokerError] = useState<string | null>(null);
     const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
     const hasStartedRef = useRef(false);
+    const gameStateRef = useRef<PokerGameState | null>(null);
+
+    // Keep gameStateRef updated to prevent stale closures in callbacks
+    useEffect(() => {
+        gameStateRef.current = pokerGameState;
+    }, [pokerGameState]);
 
     const handlePokerError = useCallback((message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
@@ -74,6 +80,8 @@ export function TankPokerTab({
     // Process AI turns one at a time with delay for visual feedback
     const processAiTurnsWithDelay = useCallback(async () => {
         const AI_TURN_DELAY = 1000;
+        let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 3;
 
         const processNextAiTurn = async (): Promise<void> => {
             try {
@@ -88,15 +96,30 @@ export function TankPokerTab({
                     return;
                 }
 
-                if (response.state) {
-                    setPokerGameState(response.state);
-                }
+                consecutiveErrors = 0; // Reset error count on success
 
-                if (response.action_taken) {
+                const state = response.state;
+                if (state) {
+                    setPokerGameState(state);
+                    if (!state.is_your_turn && !state.game_over) {
+                        await processNextAiTurn();
+                    }
+                } else if (response.action_taken) {
                     await processNextAiTurn();
                 }
             } catch (error) {
+                consecutiveErrors++;
                 handlePokerError('Failed to process AI turn', error);
+
+                // If it's still an AI's turn, retry after a delay to avoid permanent stalls
+                const currentGameState = gameStateRef.current;
+                if (consecutiveErrors <= MAX_CONSECUTIVE_ERRORS && currentGameState && !currentGameState.is_your_turn && !currentGameState.game_over) {
+                    console.warn(`Retrying AI turn processing (attempt ${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}) in 3s...`);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    await processNextAiTurn();
+                } else if (consecutiveErrors > MAX_CONSECUTIVE_ERRORS) {
+                    console.error("Max consecutive AI turn errors reached. Stopping polling.");
+                }
             }
         };
 

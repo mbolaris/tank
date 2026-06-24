@@ -12,7 +12,7 @@ export default function SizeHistogram({ bins = [], width = 240, height = 48 }: S
     const barWidth = width / bins.length;
 
     return (
-        <svg width={width} height={height} style={{ display: 'block' }}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', maxWidth: '100%', height: 'auto' }}>
             {bins.map((count, i) => {
                 const h = (count / maxCount) * (height - 6);
                 const x = i * barWidth + 1;

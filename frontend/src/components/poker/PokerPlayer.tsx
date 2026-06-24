@@ -140,6 +140,7 @@ export function PokerPlayer({
 
     // Check if we should show actual cards (showdown) or card backs
     const showActualCards = cards.length > 0 && cards[0] !== '??';
+    const serializedCards = JSON.stringify(cards);
 
     useEffect(() => {
         // Clear any pending timeouts when component unmounts
@@ -152,6 +153,7 @@ export function PokerPlayer({
     useEffect(() => {
         // Skip card flip logic for human player
         if (isHuman) return;
+        const cardsToReveal = JSON.parse(serializedCards) as string[];
 
         // If showdown just started (transitioned from card backs to actual cards)
         if (showActualCards && !prevShowActualCardsRef.current) {
@@ -162,7 +164,7 @@ export function PokerPlayer({
             setFlippingIndex(null);
 
             // Reveal cards one at a time with delay
-            cards.forEach((card, index) => {
+            cardsToReveal.forEach((card, index) => {
                 const delay = index * CARD_FLIP_DELAY;
 
                 const timeout = setTimeout(() => {
@@ -190,7 +192,7 @@ export function PokerPlayer({
         }
 
         prevShowActualCardsRef.current = showActualCards;
-    }, [isHuman, showActualCards, cards]);
+    }, [isHuman, showActualCards, serializedCards]);
 
     const playerClass = `${styles.player} ${folded ? styles.folded : ''} ${isActive ? styles.active : ''}`;
 

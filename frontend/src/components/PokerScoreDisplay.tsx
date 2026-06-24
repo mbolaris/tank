@@ -122,7 +122,7 @@ export function PokerScoreDisplay({ score, elo, history, isLoading, compact = fa
             </div>
 
             {points.length > 1 && (
-                <svg width={width} height={height}>
+                <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', maxWidth: '100%', height: 'auto' }}>
                     {!displayElo && (
                         <line
                             x1={0} y1={scaleY(0.5)}

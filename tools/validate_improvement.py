@@ -139,13 +139,13 @@ def main():
     args = parser.parse_args()
 
     try:
-        with open(args.result_path) as f:
+        with open(args.result_path, encoding="utf-8") as f:
             result = json.load(f)
 
         # Check if champion exists
         champion: dict[str, Any] | None = None
         try:
-            with open(args.champion_path) as f:
+            with open(args.champion_path, encoding="utf-8") as f:
                 champion = json.load(f)
         except FileNotFoundError:
             print(
@@ -168,7 +168,7 @@ def main():
                 "code (cross-process determinism fix, ADR-012)."
             )
             new_champion_data = update_champion_data(champion, result, retired_reason=reason)
-            with open(args.champion_path, "w") as f:
+            with open(args.champion_path, "w", encoding="utf-8") as f:
                 json.dump(new_champion_data, f, indent=2)
             old = f"{float(get_champion_record(champion)['score']):.6f}" if champion else "none"
             print(f"Re-baselined {args.champion_path}: {old} -> {new_score:.6f}")
@@ -197,7 +197,7 @@ def main():
             if is_improvement(result, champion, args.tolerance):
                 new_champion_data = update_champion_data(champion, result)
 
-                with open(args.champion_path, "w") as f:
+                with open(args.champion_path, "w", encoding="utf-8") as f:
                     json.dump(new_champion_data, f, indent=2)
                 print(f"Updated champion at {args.champion_path}")
             else:

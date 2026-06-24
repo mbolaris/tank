@@ -330,7 +330,7 @@ function LongitudinalChart({ history, metric }: { history: BenchmarkSnapshot[]; 
                     </div>
                 ))}
             </div>
-            <svg width={width} height={height} style={{ overflow: 'hidden' }}>
+            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'hidden' }}>
                 <defs>
                     <clipPath id={clipId}>
                         <rect x={padding.left} y={padding.top} width={plotWidth} height={plotHeight} />

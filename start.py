@@ -14,6 +14,18 @@ import subprocess
 import threading
 import webbrowser
 
+# Reconfigure stdout/stderr to UTF-8 to prevent encoding crashes on Windows with emojis
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # Enable ANSI escape sequences on Windows Command Prompt
 if os.name == "nt":
     os.system("")
@@ -32,12 +44,20 @@ BOLD = "\033[1m"
 def print_banner():
     """Print the startup banner."""
     width = 60
-    print(f"{CYAN}╔{'═' * (width - 2)}╗{RESET}")
-    print(f"{CYAN}║{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}║{RESET}")
-    print(f"{CYAN}╠{'═' * (width - 2)}╣{RESET}")
-    print(f"{CYAN}║{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}║{RESET}")
-    print(f"{CYAN}║{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}║{RESET}")
-    print(f"{CYAN}╚{'═' * (width - 2)}╝{RESET}")
+    try:
+        print(f"{CYAN}╔{'═' * (width - 2)}╗{RESET}")
+        print(f"{CYAN}║{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}║{RESET}")
+        print(f"{CYAN}╠{'═' * (width - 2)}╣{RESET}")
+        print(f"{CYAN}║{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}║{RESET}")
+        print(f"{CYAN}║{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}║{RESET}")
+        print(f"{CYAN}╚{'═' * (width - 2)}╝{RESET}")
+    except UnicodeEncodeError:
+        print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
+        print(f"{CYAN}|{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}|{RESET}")
+        print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
+        print(f"{CYAN}|{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}|{RESET}")
+        print(f"{CYAN}|{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}|{RESET}")
+        print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
     print()
 
 

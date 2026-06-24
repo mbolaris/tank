@@ -170,12 +170,20 @@ class HumanPokerGame:
                 context.all_in = True
             contexts[i] = context
 
+        # Track blind positions for game flow (BB option, first-to-act)
+        small_blind_index = self._get_next_active_player(self.button_index)
+        self.big_blind_index = self._get_next_active_player(small_blind_index)
+        self.big_blind_has_option = True
+        self._last_raiser = self.big_blind_index
+
         self._hand_state = start_hand_from_players(
             players=contexts,
             button_position=self.button_index,
             small_blind=self.small_blind,
             big_blind=self.big_blind,
             deck=self.deck,
+            small_blind_pos=small_blind_index,
+            big_blind_pos=self.big_blind_index,
         )
 
         for i, player in enumerate(self.players):
@@ -193,13 +201,6 @@ class HumanPokerGame:
         self.hands_played += 1
         self._hand_cache = {}
         self._players_acted_since_raise = set()
-        self._last_raiser = None
-
-        # Track blind positions for game flow (BB option, first-to-act)
-        small_blind_index = self._get_next_active_player(self.button_index)
-        self.big_blind_index = self._get_next_active_player(small_blind_index)
-        self.big_blind_has_option = True
-        self._last_raiser = self.big_blind_index
 
         # First to act is player after big blind
         self.current_player_index = self._get_next_active_player(self.big_blind_index)

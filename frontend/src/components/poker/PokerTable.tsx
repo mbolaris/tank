@@ -27,49 +27,51 @@ const CARD_FLIP_DELAY = 1000; // 1 second between card flips
 export function PokerTable({ pot, communityCards, resultBanner, players, lastMove, currentPlayer, isYourTurn, phase, worldType }: PokerTableProps) {
     const [revealedCards, setRevealedCards] = useState<string[]>([]);
     const [flippingIndex, setFlippingIndex] = useState<number | null>(null);
-    const prevCardsRef = useRef<string[]>([]);
     const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+    const revealedRef = useRef<string[]>([]);
 
     useEffect(() => {
-        // Clear any pending timeouts when component unmounts or cards change
+        // Clear any pending timeouts when component unmounts
         return () => {
             timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
             timeoutsRef.current = [];
         };
     }, []);
 
-    useEffect(() => {
-        const prevCards = prevCardsRef.current;
+    const serializedCards = JSON.stringify(communityCards);
 
-        // If cards decreased (new hand), reset revealed cards
-        if (communityCards.length < prevCards.length) {
+    useEffect(() => {
+        const cards = JSON.parse(serializedCards) as string[];
+
+        // If cards decreased or first card changed (new hand), reset revealed cards
+        if (
+            cards.length < revealedRef.current.length ||
+            (cards.length > 0 &&
+                revealedRef.current.length > 0 &&
+                cards[0] !== revealedRef.current[0])
+        ) {
             timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
             timeoutsRef.current = [];
+            revealedRef.current = [];
             setRevealedCards([]);
             setFlippingIndex(null);
-            prevCardsRef.current = communityCards;
-            return;
         }
 
-        // Find new cards that need to be revealed
-        const newCards = communityCards.slice(revealedCards.length);
+        const currentRevealedCount = revealedRef.current.length;
+        const newCardsToAnimate = cards.slice(currentRevealedCount);
 
-        if (newCards.length > 0) {
-            // Clear any existing timeouts
-            timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-            timeoutsRef.current = [];
-
-            // Reveal cards one at a time with delay
-            newCards.forEach((card, index) => {
+        if (newCardsToAnimate.length > 0) {
+            newCardsToAnimate.forEach((card, index) => {
+                const cardIndex = currentRevealedCount + index;
                 const delay = index * CARD_FLIP_DELAY;
-                const cardIndex = revealedCards.length + index;
 
                 const timeout = setTimeout(() => {
                     setFlippingIndex(cardIndex);
 
                     // After flip animation (400ms), add card to revealed list
                     const revealTimeout = setTimeout(() => {
-                        setRevealedCards(prev => [...prev, card]);
+                        revealedRef.current = [...revealedRef.current, card];
+                        setRevealedCards([...revealedRef.current]);
                         setFlippingIndex(null);
                     }, 400);
 
@@ -79,9 +81,7 @@ export function PokerTable({ pot, communityCards, resultBanner, players, lastMov
                 timeoutsRef.current.push(timeout);
             });
         }
-
-        prevCardsRef.current = communityCards;
-    }, [communityCards, revealedCards.length]);
+    }, [serializedCards]);
 
     return (
         <div className={styles.table}>
