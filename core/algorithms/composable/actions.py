@@ -243,6 +243,10 @@ class BehaviorActionsMixin:
             zigzag = math.sin(self._zigzag_phase) * amplitude
             vx = direction.x * speed + perp.x * zigzag
             vy = direction.y * speed + perp.y * zigzag
+            magnitude = math.hypot(vx, vy)
+            if magnitude > speed > 0:
+                scale = speed / magnitude
+                vx, vy = vx * scale, vy * scale
             return vx, vy
 
         elif self.food_approach == FoodApproach.PATROL_ROUTE:
