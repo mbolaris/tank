@@ -9,6 +9,7 @@ thin delegating facades.
 from typing import TYPE_CHECKING, Any
 
 from core.ecosystem_stats import GeneticDiversityStats
+from core.statistics_utils import population_variance
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -55,20 +56,12 @@ class GeneticDiversityTracker:
         n_fish = len(fish_list)
 
         color_variance = 0.0
-        if n_fish > 1:
-            mean_color = sum(color_hues) / n_fish
-            color_variance = sum((h - mean_color) ** 2 for h in color_hues) / n_fish
-
         trait_variances: dict[str, float] = {}
         if n_fish > 1:
-            mean_speed = sum(speed_modifiers) / n_fish
-            trait_variances["speed"] = sum((s - mean_speed) ** 2 for s in speed_modifiers) / n_fish
-
-            mean_size = sum(size_modifiers) / n_fish
-            trait_variances["size"] = sum((s - mean_size) ** 2 for s in size_modifiers) / n_fish
-
-            mean_vision = sum(vision_ranges) / n_fish
-            trait_variances["vision"] = sum((v - mean_vision) ** 2 for v in vision_ranges) / n_fish
+            color_variance = population_variance(color_hues)
+            trait_variances["speed"] = population_variance(speed_modifiers)
+            trait_variances["size"] = population_variance(size_modifiers)
+            trait_variances["vision"] = population_variance(vision_ranges)
 
         # Track behavioral trait variances for convergence detection.
         # Low variance in a trait means the population has converged on it,
@@ -81,8 +74,7 @@ class GeneticDiversityTracker:
                 if trait is not None and hasattr(trait, "value"):
                     values.append(float(trait.value))
             if len(values) > 1:
-                mean_val = sum(values) / len(values)
-                trait_variances[trait_name] = sum((v - mean_val) ** 2 for v in values) / len(values)
+                trait_variances[trait_name] = population_variance(values)
 
         self.stats.unique_algorithms = len(algorithms)
         self.stats.unique_species = len(species)

@@ -4,12 +4,16 @@ Tests the core statistical functions to ensure they handle
 edge cases correctly and provide consistent results.
 """
 
+import math
+
 from core.statistics_utils import (
     GeneDistribution,
     MetaStats,
     compute_meta_stats,
     create_histogram,
     descriptive_stats,
+    pearson_correlation,
+    population_variance,
     safe_mean_std,
 )
 
@@ -205,3 +209,73 @@ class TestCreateHistogram:
         bins, edges = create_histogram(values, 0, 10, num_bins=1)
         assert bins == [5]
         assert len(edges) == 2
+
+
+class TestPopulationVariance:
+    """Tests for population_variance function."""
+
+    def test_empty_returns_zero(self):
+        """Empty sequence has no spread."""
+        assert population_variance([]) == 0.0
+
+    def test_single_value_returns_zero(self):
+        """A single value has no spread."""
+        assert population_variance([42.0]) == 0.0
+
+    def test_identical_values_returns_zero(self):
+        """A converged population has zero variance."""
+        assert population_variance([3.0, 3.0, 3.0]) == 0.0
+
+    def test_known_variance(self):
+        """Population variance divides by n, not n - 1."""
+        # mean = 4; squared deviations 4, 0, 4 -> 8 / 3
+        assert population_variance([2.0, 4.0, 6.0]) == 8.0 / 3.0
+
+    def test_matches_manual_formula(self):
+        """Result equals the explicit mean-squared-deviation computation."""
+        values = [1.0, 2.5, 3.0, 7.0, 9.5]
+        n = len(values)
+        mean_value = sum(values) / n
+        expected = sum((v - mean_value) ** 2 for v in values) / n
+        assert population_variance(values) == expected
+
+
+class TestPearsonCorrelation:
+    """Tests for pearson_correlation function."""
+
+    def test_empty_returns_zero(self):
+        """No samples means no correlation."""
+        assert pearson_correlation([], []) == 0.0
+
+    def test_perfect_positive(self):
+        """A perfectly increasing linear relationship is +1.0."""
+        assert pearson_correlation([1.0, 2.0, 3.0], [2.0, 4.0, 6.0]) == 1.0
+
+    def test_perfect_negative(self):
+        """A perfectly decreasing linear relationship is -1.0."""
+        assert pearson_correlation([1.0, 2.0, 3.0], [6.0, 4.0, 2.0]) == -1.0
+
+    def test_zero_variance_returns_zero(self):
+        """A flat series makes correlation undefined; we return 0.0."""
+        assert pearson_correlation([1.0, 2.0, 3.0], [5.0, 5.0, 5.0]) == 0.0
+
+    def test_within_bounds(self):
+        """Noisy-but-correlated data stays in [-1, 1] and is positive."""
+        xs = [float(i) for i in range(20)]
+        ys = [2.0 * x + (1.0 if i % 2 else -1.0) for i, x in enumerate(xs)]
+        r = pearson_correlation(xs, ys)
+        assert 0.9 < r <= 1.0
+
+    def test_matches_manual_formula(self):
+        """Result equals the explicit Pearson computation (byte-identical math)."""
+        xs = [1.0, 2.0, 4.0, 8.0, 9.0]
+        ys = [3.0, 1.0, 5.0, 9.0, 7.0]
+        n = len(xs)
+        mean_x = sum(xs) / n
+        mean_y = sum(ys) / n
+        numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys, strict=False))
+        denominator = math.sqrt(
+            sum((x - mean_x) ** 2 for x in xs) * sum((y - mean_y) ** 2 for y in ys)
+        )
+        expected = numerator / denominator
+        assert pearson_correlation(xs, ys) == expected
