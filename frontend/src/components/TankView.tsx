@@ -24,12 +24,12 @@ interface TankViewProps {
 }
 
 const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
+    { id: 'insights', label: 'Insights', icon: '💬' },
     { id: 'soccer', label: 'Soccer', icon: '⚽' },
     { id: 'poker', label: 'Poker', icon: '♠' },
     { id: 'trends', label: 'Trends', icon: '📈' },
     { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
     { id: 'genetics', label: 'Genetics', icon: '🧬' },
-    { id: 'insights', label: 'Insights', icon: '💬' },
 ];
 
 export function TankView({ worldId }: TankViewProps) {
@@ -379,6 +379,12 @@ export function TankView({ worldId }: TankViewProps) {
             {/* Panel Grid */}
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
+                    {isVisible('insights') && (
+                        <CollapsiblePanel title="Insights" icon="💬">
+                            <CommentaryFeed worldId={effectiveWorldId} />
+                        </CollapsiblePanel>
+                    )}
+
                     {isVisible('soccer') && (
                         <CollapsiblePanel title="Soccer League" icon="⚽">
                             <TankSoccerTab
@@ -422,12 +428,6 @@ export function TankView({ worldId }: TankViewProps) {
                     {isVisible('genetics') && (
                         <CollapsiblePanel title="Genetics" icon="🧬">
                             <TankGeneticsTab worldId={effectiveWorldId} />
-                        </CollapsiblePanel>
-                    )}
-
-                    {isVisible('insights') && (
-                        <CollapsiblePanel title="Insights" icon="💬">
-                            <CommentaryFeed worldId={effectiveWorldId} />
                         </CollapsiblePanel>
                     )}
                 </div>
