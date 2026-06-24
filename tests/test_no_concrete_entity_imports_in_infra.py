@@ -36,6 +36,7 @@ DISALLOWED_PATTERNS = [
     r"^from core\.entities import (?:Fish|Plant)\b",
     r"^from core\.entities\.fish import Fish\b",
     r"^from core\.entities\.plant import (?:Plant|PlantNectar)\b",
+    r"^from core\.entities\.plant_nectar import PlantNectar\b",
     # Note: Food imports are sometimes needed for instantiation (e.g., world_persistence)
     # Ball and GoalZone are allowed if needed for instantiation in soccer setup
 ]
@@ -141,7 +142,7 @@ def test_snapshot_type_exists_on_all_entity_classes() -> None:
     from core.entities.ball import Ball
     from core.entities.base import Castle
     from core.entities.goal_zone import GoalZone
-    from core.entities.plant import PlantNectar
+    from core.entities.plant_nectar import PlantNectar
 
     # These are the expected snapshot_type values for each class
     expected_types = {

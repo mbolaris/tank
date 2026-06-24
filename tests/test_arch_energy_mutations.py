@@ -11,6 +11,9 @@ CORE_DIR = ROOT / "core"
 ALLOWLIST_PATHS = {
     Path("core/entities/fish.py"),
     Path("core/entities/plant.py"),
+    # PlantNectar is a Food consumable (no modify_energy); its direct energy
+    # writes moved here when it was split out of plant.py.
+    Path("core/entities/plant_nectar.py"),
     Path("core/entities/generic_agent.py"),
     Path("core/entities/predators.py"),
     # Fish entity mixins contain energy management logic extracted from fish.py.
