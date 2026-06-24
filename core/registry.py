@@ -51,65 +51,6 @@ def _discover_algorithms() -> list[type[BehaviorStrategyBase]]:
 ALL_ALGORITHMS: list[type[BehaviorStrategyBase]] = _discover_algorithms()
 
 
-def get_algorithm_source_map() -> dict[str, str]:
-    """Get a dictionary mapping algorithm class names to their source file paths.
-
-    This mapping is used by AI agents to:
-    1. Identify which file contains a specific algorithm
-    2. Locate the code to analyze and improve
-    3. Generate targeted pull requests for algorithm optimization
-
-    Returns:
-        Dictionary mapping algorithm class name to absolute file path
-        Example: {"GreedyFoodSeeker": "/path/to/core/algorithms/food_seeking.py"}
-    """
-    mapping = {}
-
-    for algorithm_class in ALL_ALGORITHMS:
-        class_name = algorithm_class.__name__
-
-        # Get the source file for this class
-        try:
-            source_file = inspect.getfile(algorithm_class)
-            # Convert to absolute path
-            abs_path = os.path.abspath(source_file)
-            mapping[class_name] = abs_path
-        except (TypeError, OSError) as e:
-            # Handle cases where source file cannot be determined
-            mapping[class_name] = f"<unknown: {e}>"
-
-    return mapping
-
-
-def get_algorithm_id_to_source_map() -> dict[str, str]:
-    """Get a dictionary mapping algorithm IDs to their source file paths.
-
-    Returns:
-        Dictionary mapping algorithm_id (e.g., "greedy_food_seeker") to file path
-    """
-    mapping = {}
-
-    for algorithm_class in ALL_ALGORITHMS:
-        # Create instance to get algorithm_id
-        try:
-            instance = algorithm_class()
-            algo_id = instance.algorithm_id
-
-            # Get source file
-            source_file = inspect.getfile(algorithm_class)
-            abs_path = os.path.abspath(source_file)
-
-            mapping[algo_id] = abs_path
-        except (TypeError, OSError, AttributeError):
-            # Skip algorithms that can't be instantiated or inspected
-            # TypeError: inspect.getfile() fails for built-in classes
-            # OSError: File system errors
-            # AttributeError: Missing algorithm_id attribute
-            continue
-
-    return mapping
-
-
 def get_algorithm_metadata() -> dict[str, dict[str, str]]:
     """Get comprehensive metadata about all algorithms.
 

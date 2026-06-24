@@ -2,6 +2,22 @@
 
 This document describes how to integrate ball-based soccer gameplay into the Tank World and Petri Dish environments, including physics, observations, and evolution tracking.
 
+> **Status: historical design guide.** This captures the original soccer
+> integration design. Some module paths below are aspirational and never landed
+> as written. In the current codebase:
+>
+> - Agent actions are **not** modeled as bespoke `SoccerAction`/`KickCommand`
+>   dataclasses. They flow through the generic action-translation registry
+>   (`core/actions/action_registry.py`), which turns raw brain output into a
+>   `BrainAction` (`core/brains/contracts.py`). The concrete tank translator is
+>   `TankLikeActionTranslator` (`core/worlds/shared/action_translator.py`); there
+>   is no `SoccerActionTranslator`.
+> - RCSS-Lite physics and the soccer engine live under `core/minigames/soccer/`
+>   (see `params.py`), not `core/movement/rcss_mode.py`.
+>
+> Treat the code snippets below as design intent; cross-check module paths
+> against the tree before copying them.
+
 ## Architecture Overview
 
 ### New Components
@@ -18,12 +34,15 @@ This document describes how to integrate ball-based soccer gameplay into the Tan
    - Configurable radius and energy rewards
    - Tracking of goal counts and timing
 
-3. **Soccer Actions** (`core/actions/soccer_action.py`)
-   - `KickCommand`: Power and direction
-   - `SoccerAction`: Movement + kick combined
-   - `SoccerActionTranslator`: Converts external actions to soccer commands
+3. **Actions** (`core/actions/action_registry.py`)
+   - Raw brain output is translated to a `BrainAction` via the per-world
+     translator registered with `register_action_translator`.
+   - Kick intent rides on the normalized action dict (`kick_power`,
+     `kick_angle`) rather than dedicated dataclasses.
+   - `TankLikeActionTranslator` (`core/worlds/shared/action_translator.py`) is
+     the concrete tank/soccer translator.
 
-4. **RCSS-Lite Physics Mode** (`core/movement/rcss_mode.py`)
+4. **RCSS-Lite Physics Mode** (`core/minigames/soccer/`)
    - Stamina-limited movement (8000 max stamina)
    - Effort degradation and recovery mechanics
    - Turn inertia (slower turns when moving fast)
@@ -198,21 +217,15 @@ def build_observations_with_soccer(self, world):
 
 ### Step 6: Action Translation
 
-Use SoccerActionTranslator for external agents:
+Translate external-agent actions through the action registry, which dispatches
+to the world's registered translator and returns a `BrainAction`:
 
 ```python
-from core.worlds.shared.soccer_action_translator import SoccerActionTranslator
+from core.actions.action_registry import translate_action
 
-translator = SoccerActionTranslator(
-    max_velocity=5.0,
-    max_kick_power=100.0,
-    auto_rcss_near_ball=True,
-    rcss_activation_distance=50.0,
-)
-
-# Convert raw action to SoccerAction
-raw_action = {"movement": (vx, vy), "kick": (power, direction)}
-soccer_action = translator.translate_action(fish_id, raw_action)
+# Raw action carries movement plus optional kick intent (kick_power, kick_angle)
+raw_action = {"movement": (vx, vy), "kick_power": power, "kick_angle": angle}
+action = translate_action("tank", fish_id, raw_action)
 ```
 
 ### Step 7: Goal Scoring and Energy Rewards
@@ -391,13 +404,13 @@ Fish observations now include:
 
 ## Files Modified/Created
 
-- ✅ `core/entities/ball.py` - Ball entity (189 lines)
-- ✅ `core/entities/goal_zone.py` - Goal zones and manager (280 lines)
-- ✅ `core/entities/fish.py` - Added team affiliation (1 line)
-- ✅ `core/actions/soccer_action.py` - Soccer actions (100 lines)
-- ✅ `core/worlds/shared/soccer_action_translator.py` - Action translation (180 lines)
-- ✅ `core/movement/rcss_mode.py` - RCSS-Lite physics engine (280 lines)
-- ✅ `core/worlds/tank/soccer_observations.py` - Soccer observations (300 lines)
-- ✅ `tests/test_ball_physics.py` - 23 comprehensive tests (400+ lines)
-
-Total: ~1700 lines of well-tested, production-ready code.
+- `core/entities/ball.py` - Ball entity
+- `core/entities/goal_zone.py` - Goal zones and manager
+- `core/entities/fish.py` - Team affiliation
+- `core/worlds/shared/action_translator.py` - `TankLikeActionTranslator`
+  (raw action → `BrainAction`; supersedes the planned `soccer_action.py` /
+  `soccer_action_translator.py` dataclass layer, which was never adopted)
+- `core/minigames/soccer/` - RCSS-Lite physics and soccer engine
+  (supersedes the planned `core/movement/rcss_mode.py`)
+- `core/worlds/tank/soccer_observations.py` - Soccer observations
+- `tests/test_ball_physics.py` - Ball physics tests
