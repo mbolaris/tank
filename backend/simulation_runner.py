@@ -24,6 +24,7 @@ from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
+from backend.commentary_store import CommentaryStore
 from backend.metrics_history import MetricsHistory
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
@@ -130,6 +131,9 @@ class SimulationRunner(CommandHandlerMixin):
         # Initialize metrics history tracking
         self.metrics_history = MetricsHistory(world_id=self.world_id)
 
+        # Initialize agent commentary buffer (the "Insights" feed)
+        self.commentary = CommentaryStore(world_id=self.world_id)
+
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
         if not hasattr(self.world_hooks, attr):
@@ -195,6 +199,10 @@ class SimulationRunner(CommandHandlerMixin):
         # Update metrics history world_id
         if hasattr(self, "metrics_history") and self.metrics_history is not None:
             self.metrics_history.world_id = world_id
+
+        # Update commentary buffer world_id
+        if hasattr(self, "commentary") and self.commentary is not None:
+            self.commentary.world_id = world_id
 
         # Update hooks with new world identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
@@ -410,6 +418,7 @@ class SimulationRunner(CommandHandlerMixin):
             )
             self.world.runner = self
             self.metrics_history = MetricsHistory(world_id=self.world_id)
+            self.commentary = CommentaryStore(world_id=self.world_id)
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
@@ -508,6 +517,32 @@ class SimulationRunner(CommandHandlerMixin):
         """
 
         return self._entity_snapshot_builder.to_snapshot(entity)
+
+    def add_commentary(
+        self,
+        text: str,
+        *,
+        author: str | None = None,
+        tags: Any = None,
+        severity: str | None = None,
+        metrics: Any = None,
+    ) -> dict[str, Any]:
+        """Record an agent observation about this world (the Insights feed).
+
+        Stamps the comment with the current simulation frame and appends it to
+        the commentary buffer. This is purely additive telemetry - it reads
+        ``frame_count`` but never mutates simulation state, so posting a comment
+        cannot perturb a running experiment.
+        """
+        with self.lock:
+            return self.commentary.add(
+                text,
+                author=author,
+                tags=tags,
+                severity=severity,
+                metrics=metrics,
+                frame=self.frame_count,
+            )
 
     def handle_command(self, command: str, data: dict[str, Any] | None = None):
         """Handle a command from the client.

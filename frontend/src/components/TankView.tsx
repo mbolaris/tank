@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
+import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
@@ -28,6 +29,7 @@ const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
     { id: 'trends', label: 'Trends', icon: '📈' },
     { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
     { id: 'genetics', label: 'Genetics', icon: '🧬' },
+    { id: 'insights', label: 'Insights', icon: '💬' },
 ];
 
 export function TankView({ worldId }: TankViewProps) {
@@ -36,7 +38,7 @@ export function TankView({ worldId }: TankViewProps) {
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
-    const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
+    const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem', 'insights']);
 
     // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
@@ -420,6 +422,12 @@ export function TankView({ worldId }: TankViewProps) {
                     {isVisible('genetics') && (
                         <CollapsiblePanel title="Genetics" icon="🧬">
                             <TankGeneticsTab worldId={effectiveWorldId} />
+                        </CollapsiblePanel>
+                    )}
+
+                    {isVisible('insights') && (
+                        <CollapsiblePanel title="Insights" icon="💬">
+                            <CommentaryFeed worldId={effectiveWorldId} />
                         </CollapsiblePanel>
                     )}
                 </div>

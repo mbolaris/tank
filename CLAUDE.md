@@ -48,6 +48,12 @@ cd frontend && npm run dev        # Frontend on :3000
 
 # Validate improvement against champion
 python tools/validate_improvement.py results.json champions/tank/survival_5k.json
+
+# Study a running sim and post commentary to the UI's Insights feed (/observe-sim)
+python tools/evolution_report.py --url http://127.0.0.1:8000 --json   # observe (read-only)
+python tools/post_commentary.py --url http://127.0.0.1:8000 \
+    --text "Selection on pursuit_aggression: +12% over 40k frames" --severity insight --tags selection
+python tools/post_commentary.py --read --limit 15                     # read the feed back
 ```
 
 ## Project Structure

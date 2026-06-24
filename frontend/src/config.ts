@@ -150,6 +150,15 @@ export const config = {
     get serversApiUrl(): string {
         return `${this.apiBaseUrl}/api/servers`;
     },
+
+    /**
+     * Get API URL for a world's agent-commentary feed (the "Insights" tab).
+     * Accepts "default" to target the server's default world.
+     * @param worldId - The world ID (or "default")
+     */
+    commentaryUrl(worldId: string): string {
+        return `${this.apiBaseUrl}/api/world/${worldId}/commentary`;
+    },
 } as const;
 
 export type Config = typeof config;
