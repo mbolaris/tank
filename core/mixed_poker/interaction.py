@@ -696,7 +696,7 @@ class MixedPokerInteraction:
 
                     # Also update legacy/simple stats if they exist
                     if hasattr(player, "poker_wins"):
-                        player.poker_wins = getattr(player, "poker_wins", 0) + 1
+                        player.poker_wins += 1
 
                 elif is_tie:
                     # Tie
@@ -715,7 +715,7 @@ class MixedPokerInteraction:
                     )
 
                     if hasattr(player, "poker_losses"):
-                        player.poker_losses = getattr(player, "poker_losses", 0) + 1
+                        player.poker_losses += 1
 
             # 2. Update Plant Stats
             elif isinstance(player, Plant):
