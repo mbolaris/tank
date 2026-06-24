@@ -481,11 +481,24 @@ def deserialize_entity(data: dict[str, Any], target_world: Any) -> Any | None:
     return DEFAULT_REGISTRY.deserialize_entity(data, target_world)
 
 
+def deserialize_entity_for_persistence(data: dict[str, Any], target_world: Any) -> Any | None:
+    """Deserialize entity data for same-world snapshot restoration.
+
+    Unlike migration transfer, persistence must preserve stable entity identity so
+    restored descendants keep valid lineage and telemetry references.
+    """
+    if data.get("type") == "fish":
+        return _deserialize_fish(data, target_world, preserve_identity=True)
+    return deserialize_entity(data, target_world)
+
+
 def try_deserialize_entity(data: dict[str, Any], target_world: Any) -> TransferOutcome:
     return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
-def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
+def _deserialize_fish(
+    data: dict[str, Any], target_world: Any, *, preserve_identity: bool = False
+) -> Any | None:
     """Deserialize and create a Fish entity."""
     try:
         from core.entities.fish import Fish
@@ -510,6 +523,12 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
 
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()
+        fish_id = int(data["id"]) if preserve_identity and data.get("id") is not None else None
+        parent_id = (
+            int(data["parent_id"])
+            if preserve_identity and data.get("parent_id") is not None
+            else None
+        )
 
         # Create fish
         fish = Fish(
@@ -521,10 +540,10 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
             speed=data["speed"],
             genome=genome,
             generation=data["generation"],
-            fish_id=None,  # Will get new ID in target tank
+            fish_id=fish_id,
             ecosystem=target_world.engine.ecosystem,
             initial_energy=data["energy"],
-            parent_id=None,  # Clear parent_id: source tank parent doesn't exist here
+            parent_id=parent_id,
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
         if "max_age" in data:
