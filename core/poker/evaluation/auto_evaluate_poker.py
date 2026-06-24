@@ -46,6 +46,19 @@ def request_shutdown() -> None:
     _shutdown_requested = True
 
 
+def clear_shutdown() -> None:
+    """Clear a previously-requested shutdown.
+
+    Symmetric with :func:`request_shutdown`. Because the flag is a process
+    global, a shutdown requested by one server/app lifecycle would otherwise
+    persist and abort a later, unrelated evaluation in the same process (this
+    bites test suites, where a TestClient lifespan teardown calls
+    ``request_shutdown``). Resetting it lets a fresh evaluation run.
+    """
+    global _shutdown_requested
+    _shutdown_requested = False
+
+
 def is_shutdown_requested() -> bool:
     """Check if shutdown has been requested."""
     return _shutdown_requested

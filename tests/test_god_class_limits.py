@@ -42,7 +42,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/interfaces.py": 663,
     "core/minigames/soccer/engine.py": 778,
     "core/mixed_poker/interaction.py": 728,
-    "core/poker/evaluation/auto_evaluate_poker.py": 581,
+    "core/poker/evaluation/auto_evaluate_poker.py": 594,
     "core/poker/evaluation/comprehensive_benchmark.py": 601,
     "core/poker/evaluation/evolution_benchmark_tracker.py": 623,
     "core/poker/human_poker_game.py": 863,

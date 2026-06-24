@@ -201,6 +201,9 @@ def save_world_state(
                 # Persist metrics history if available
                 if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
                     snapshot["metrics_history"] = runner.metrics_history.to_payload()
+                # Persist agent commentary (the Insights feed) if available
+                if hasattr(runner, "commentary") and runner.commentary is not None:
+                    snapshot["commentary"] = runner.commentary.to_payload()
                 return save_snapshot_data(world_id, snapshot)
 
         logger.warning(f"World {world_id[:8]} does not support state capture")
@@ -280,6 +283,15 @@ def restore_world_from_snapshot(
         ):
             if "metrics_history" in snapshot:
                 runner.metrics_history.load(snapshot["metrics_history"])
+
+        # Restore agent commentary (the Insights feed) if present
+        if (
+            runner is not None
+            and hasattr(runner, "commentary")
+            and runner.commentary is not None
+            and "commentary" in snapshot
+        ):
+            runner.commentary.load(snapshot["commentary"])
 
         # Clear existing entities via EntityManager (authoritative path)
         engine._entity_manager.clear()

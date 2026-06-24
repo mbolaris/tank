@@ -142,6 +142,49 @@ improvement with a reproduction command, seed, score, and metadata. Keep Layer 1
 benchmarks, or telemetry. Confirm selection is genuinely occurring (trait drift),
 not just generation churn, with `scripts/diagnose_evolution.py`.
 
+### Narrating the simulation to the UI (the Insights feed)
+
+Assessment usually lives only in your chat transcript. To surface what you notice
+**on the simulation UI itself**, post it to the world's **Insights** feed, where
+it shows up live in the web UI's `💬 Insights` tab. Any agent with network access
+to the server can do this - it is a plain HTTP POST, so you do not need to be the
+process running the sim.
+
+The `/observe-sim` slash command wraps the whole observe -> distill -> post loop.
+Under it are two read/write tools:
+
+```bash
+# Read what's already been posted (so you don't repeat earlier comments)
+python tools/post_commentary.py --url http://127.0.0.1:8000 --read --limit 15
+
+# Post a short, evidence-backed observation to the Insights feed
+python tools/post_commentary.py --url http://127.0.0.1:8000 \
+  --text "Directional selection on pursuit_aggression: mean +12% over 40k frames" \
+  --severity insight --tags selection,foraging \
+  --metric max_generation=14 --metric pursuit_aggression_drift_pct=12
+```
+
+The REST surface (see `backend/routers/commentary.py`) is:
+
+- `POST /api/world/<id>/commentary` - body `{text, author?, tags?, severity?,
+  metrics?}`; `<id>` may be the literal `default`.
+- `GET  /api/world/<id>/commentary?limit=&since_id=` - recent comments (what the
+  UI polls, and what you read to avoid repeating yourself).
+
+What makes a **good** comment: it is *specific and evidence-backed*, tied to a
+number and a frame horizon, and *non-repetitive*. Pull the signal from the
+`evolution_report.py` JSON - directional **selection vs churn** (trait drift),
+**foraging / death causes**, **population turnover**, **diversity**, and the
+**energy economy** that funds reproduction. Choose a `severity`
+(`info` < `insight` < `warning` < `concern`) that matches the signal, and tag it
+(`selection`, `foraging`, `turnover`, `diversity`, `population`, `energy`, ...).
+Bad: "Fish are evolving." Good: "Starvation is 91% of deaths and fish are
+clustering at the ball instead of foraging - foraging is broken, not slow."
+
+Commentary is **Layer 2** (telemetry/UI): posting never perturbs the sim, and it
+is separate from any Layer 1 fix. If an observation warrants a change, hand it to
+`/study-sim improve` and the full Evolution Loop.
+
 ---
 
 ## Step 1: Run Simulations

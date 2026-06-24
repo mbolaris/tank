@@ -1,0 +1,125 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    max-height: 520px;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-left-width: 3px;
+    border-radius: 8px;
+}
+
+.itemHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.severityIcon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.author {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.meta {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.text {
+    margin: 0;
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+.metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.metric {
+    font-size: 10px;
+    color: #94a3b8;
+    font-family: var(--font-mono, monospace);
+}
+
+.metricValue {
+    color: #e2e8f0;
+}
+
+.empty {
+    padding: 16px 12px;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.empty code {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 11px;
+}
+
+.error {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+}

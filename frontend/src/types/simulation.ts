@@ -814,3 +814,30 @@ export interface MetricsHistory {
     max_samples: number;
     samples: MetricsSample[];
 }
+
+/**
+ * A single agent observation posted to a world's "Insights" feed.
+ * Mirrors backend/commentary_store.py.
+ */
+export type CommentarySeverity = 'info' | 'insight' | 'warning' | 'concern';
+
+export interface CommentaryItem {
+    id: number;
+    created_at: number; // epoch seconds
+    frame: number; // simulation frame at post time
+    author: string;
+    text: string;
+    tags: string[];
+    severity: CommentarySeverity;
+    metrics?: Record<string, number | string | boolean | null> | null;
+}
+
+/**
+ * Response shape from GET /api/world/{world_id}/commentary.
+ */
+export interface CommentaryResponse {
+    schema_version: number;
+    world_id: string;
+    count: number;
+    comments: CommentaryItem[];
+}
