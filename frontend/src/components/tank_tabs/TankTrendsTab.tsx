@@ -312,7 +312,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
     // Styles for the cards and layout
     const gridStyle: React.CSSProperties = {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
         gap: '16px',
         marginTop: '8px'
     };

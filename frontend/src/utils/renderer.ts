@@ -1604,7 +1604,8 @@ export class Renderer {
             // Draw background pill
             const labelWidth = ctx.measureText(label).width + 8;
             const labelX = x + width / 2;
-            const labelY = baseY + 5;
+            const staggerOffset = (plant.id % 3) * 15;
+            const labelY = baseY - 20 - staggerOffset;
 
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.beginPath();

@@ -159,9 +159,42 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
         // Prune dead fish that have no children (dead-end branches)
         const prunedResult = pruneDeadLeaves(result, true);
 
-        return { tree: prunedResult, error: null };
+        // Compress straight dead lineages with same behavior
+        const compressedResult = compressLineageTree(prunedResult);
+
+        return { tree: compressedResult, error: null };
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown lineage transform error';
         return { tree: null, error: `Failed to process lineage data: ${message}` };
     }
 };
+
+/**
+ * Recursively compress straight path segments with the same algorithm and dead intermediate nodes.
+ */
+export const compressLineageTree = (node: TreeNodeData | null): TreeNodeData | null => {
+    if (!node) return null;
+
+    // Recursively compress children first
+    if (node.children && node.children.length > 0) {
+        node.children = node.children
+            .map(compressLineageTree)
+            .filter((child): child is TreeNodeData => child !== null);
+    }
+
+    // Compression rule:
+    // If a node has exactly one child, and that child has the same algorithm as this node,
+    // and that child is NOT alive, we can pull the child's children up to bypass the child.
+    if (node.children && node.children.length === 1) {
+        const child = node.children[0];
+        if (child.attributes.Algo === node.attributes.Algo && !child.attributes.IsAlive) {
+            // Bypass child by inheriting its children
+            node.children = child.children;
+            // Recursively compress the node again as it now has new children
+            return compressLineageTree(node);
+        }
+    }
+
+    return node;
+};
+
