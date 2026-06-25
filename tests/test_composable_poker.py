@@ -22,6 +22,7 @@ from core.poker.strategy.composable import (
     PositionAwareness,
     ShowdownTendency,
 )
+from core.poker.strategy.composable.cfr_decision import CFR_DECISION_MIN_VISITS
 from core.poker.strategy.implementations import crossover_poker_strategies
 
 
@@ -288,6 +289,130 @@ class TestComposablePokerStrategyDecisions:
         )
         # At least the adjusted strength should differ
         # (Can't guarantee different actions due to randomness)
+
+    def test_uses_cfr_fold_when_regret_available(self):
+        """Learned CFR actions override the default heuristic decision path."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.9,
+            pot_ratio=50 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 100.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.9,
+            current_bet=0,
+            opponent_bet=10,
+            pot=50,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.FOLD
+        assert amount == 0.0
+
+    def test_uses_cfr_call_when_regret_available(self):
+        """CFR call regret maps to a concrete call amount."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.4,
+            pot_ratio=60 / 120,
+            position_on_button=True,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 0.0,
+            "call": 100.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.4,
+            current_bet=5,
+            opponent_bet=20,
+            pot=60,
+            player_energy=120,
+            position_on_button=True,
+            rng=rng,
+        )
+
+        assert action == BettingAction.CALL
+        assert amount == 15.0
+
+    def test_uses_cfr_raise_bucket_when_regret_available(self):
+        """CFR raise buckets map to concrete raises above the call amount."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.45,
+            pot_ratio=100 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 0.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 100.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.45,
+            current_bet=0,
+            opponent_bet=10,
+            pot=100,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.RAISE
+        assert amount > 10.0
+
+    def test_ignores_cfr_regret_before_minimum_visits(self):
+        """Under-sampled CFR regrets are too noisy to drive live decisions."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.9,
+            pot_ratio=50 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 100.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS - 1
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.9,
+            current_bet=0,
+            opponent_bet=10,
+            pot=50,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.RAISE
+        assert amount > 0.0
 
 
 class TestOpponentModeling:
