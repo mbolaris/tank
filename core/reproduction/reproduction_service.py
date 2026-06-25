@@ -98,6 +98,27 @@ class ReproductionService:
         if winner is None or getattr(winner, "environment", None) is None:
             return None
 
+        # Ecological viability guard (Proposal #86):
+        # Skip spawning another baby if adult ratio or energy levels indicate famine.
+        from core.config.fish import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+        from core.entities.base import LifeStage
+
+        fish_list = self._get_fish_entities()
+        if fish_list:
+            adult_count = sum(
+                1 for f in fish_list if f.life_stage in (LifeStage.ADULT, LifeStage.ELDER)
+            )
+            adult_fraction = adult_count / len(fish_list)
+
+            total_energy_ratio = sum(f.energy / max(f.max_energy, 1.0) for f in fish_list)
+            mean_energy_ratio = total_energy_ratio / len(fish_list)
+
+            if (
+                adult_fraction < 0.25
+                or mean_energy_ratio < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+            ):
+                return None
+
         required_credits = self._get_repro_credit_required()
         if required_credits > 0 and not winner._reproduction_component.has_repro_credits(
             required_credits
