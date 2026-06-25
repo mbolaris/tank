@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.poker.betting.actions import BettingAction
+from core.poker.strategy.composable.cfr_decision import decide_from_cfr_regret
 from core.poker.strategy.composable.cfr_inheritance import CFRInheritance, CFRInheritanceMode
 from core.poker.strategy.composable.codec import PokerStrategyCodec
 from core.poker.strategy.composable.definitions import (
@@ -34,7 +35,6 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 from core.util.rng import require_rng_param
 
-# Backwards-compatible aliases for the pre-split module-level helpers.
 _random_params = PokerStrategyValidator.random_parameters
 _blend_regret_tables = CFRInheritance.blend_tables
 
@@ -99,15 +99,10 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             parameters=PokerStrategyValidator.random_parameters(rng),
         )
 
-    # Alias for consistency with other strategy classes
     @classmethod
     def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         """Create a random instance (alias for create_random)."""
         return cls.create_random(rng)
-
-    # -------------------------------------------------------------------------
-    # Main Decision Method
-    # -------------------------------------------------------------------------
 
     def decide_action(
         self,
@@ -143,6 +138,18 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         # Can't call if insufficient energy
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
+
+        cfr_decision = decide_from_cfr_regret(
+            self,
+            hand_strength=hand_strength,
+            call_amount=call_amount,
+            pot=pot,
+            player_energy=player_energy,
+            position_on_button=position_on_button,
+            rng=_rng,
+        )
+        if cfr_decision is not None:
+            return cfr_decision
 
         # Premium hands should always raise when facing a bet
         # Check this BEFORE position adjustment to avoid missing premium hands OOP
@@ -182,10 +189,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         return self._call_or_fold(
             adjusted_strength, call_amount, pot, player_energy, opponent_adjustment, _rng
         )
-
-    # -------------------------------------------------------------------------
-    # Sub-behavior Execution Methods
-    # -------------------------------------------------------------------------
 
     def _should_play_hand(
         self, strength: float, position_on_button: bool, is_desperate: bool
@@ -739,10 +742,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             rng=rng,
         )
         return clone
-
-    # -------------------------------------------------------------------------
-    # Display / Debug
-    # -------------------------------------------------------------------------
 
     def get_style_description(self) -> str:
         """Get human-readable description of this strategy blend."""
