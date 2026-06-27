@@ -27,10 +27,10 @@ describe('RendererRegistry', () => {
         expect(renderer.id).toBe('fallback');
     });
 
-    it('should cache renderer instances', () => {
+    it('should return distinct renderer instances', () => {
         rendererRegistry.register('tank', 'side', () => new MockRenderer());
         const r1 = rendererRegistry.getRenderer('tank', 'side');
         const r2 = rendererRegistry.getRenderer('tank', 'side');
-        expect(r1).toBe(r2);
+        expect(r1).not.toBe(r2);
     });
 });
