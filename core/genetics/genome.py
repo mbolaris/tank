@@ -15,7 +15,7 @@ from core.exceptions import GeneticsError
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
 from core.genetics.physical import PhysicalTraits
-from core.genetics.reproduction import ReproductionParams
+from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
 from core.genetics.validation import validate_traits_from_specs
 from core.util.rng import require_rng_param
 
@@ -189,6 +189,8 @@ class Genome:
         params: ReproductionParams,
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -199,6 +201,8 @@ class Genome:
             mutation_strength=params.mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
 
     @classmethod
@@ -211,6 +215,8 @@ class Genome:
         mutation_strength: float = 0.15,  # Increased from 0.1
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -220,10 +226,11 @@ class Genome:
         """
         rng = require_rng_param(rng, "__init__")
         parent1_weight = max(0.0, min(1.0, parent1_weight))
+        context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
         adaptive_rate, adaptive_strength = ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-        ).adaptive_mutation()
+        ).adaptive_mutation(context)
 
         # Inherit traits using declarative specs
         physical = PhysicalTraits.from_parents(
@@ -243,6 +250,8 @@ class Genome:
             mutation_strength=adaptive_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=context,
         )
 
         return cls._assemble_offspring(
@@ -258,6 +267,8 @@ class Genome:
         parent: "Genome",
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -267,6 +278,8 @@ class Genome:
             params=ReproductionParams(),
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
 
     @classmethod
@@ -279,6 +292,8 @@ class Genome:
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         rng = require_rng_param(rng, "__init__")
@@ -295,6 +310,8 @@ class Genome:
                 params=params,
                 rng=rng,
                 available_policies=available_policies,
+                diversity_score=diversity_score,
+                mutation_context=mutation_context,
             )
 
         if crossover_mode is GeneticCrossoverMode.DOMINANT_RECESSIVE:
@@ -302,7 +319,8 @@ class Genome:
                 "crossover_mode=%s currently behaves like recombination", crossover_mode.value
             )
 
-        adaptive_rate, adaptive_strength = params.adaptive_mutation()
+        context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
+        adaptive_rate, adaptive_strength = params.adaptive_mutation(context)
 
         physical = PhysicalTraits.from_parents_recombination(
             parent1.physical,
@@ -320,6 +338,9 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=context,
         )
 
         return cls._assemble_offspring(

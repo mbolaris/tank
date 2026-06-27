@@ -1,6 +1,9 @@
 import random
 
-from core.genetics import Genome, ReproductionParams
+import pytest
+
+from core.genetics import Genome, ReproductionMutationContext, ReproductionParams
+from core.genetics.reproduction import DANGER_SUB_BEHAVIOR_SWITCH_RATE
 
 
 def test_from_parents_weighted_params_matches_direct_call() -> None:
@@ -27,3 +30,46 @@ def test_from_parents_weighted_params_matches_direct_call() -> None:
     )
 
     assert child_params.debug_snapshot() == child_direct.debug_snapshot()
+
+
+def test_low_diversity_without_stall_signal_does_not_escalate_mutation() -> None:
+    params = ReproductionParams(mutation_rate=0.15, mutation_strength=0.15)
+
+    rate, strength = params.adaptive_mutation(ReproductionMutationContext(diversity_score=0.11))
+
+    assert rate == pytest.approx(0.15)
+    assert strength == pytest.approx(0.15)
+
+
+def test_declining_low_diversity_escalates_with_bounds() -> None:
+    params = ReproductionParams(mutation_rate=0.15, mutation_strength=0.15)
+
+    rate, strength = params.adaptive_mutation(
+        ReproductionMutationContext(diversity_score=0.11, diversity_slope=-0.00001)
+    )
+
+    assert rate == pytest.approx(0.35)
+    assert strength == pytest.approx(0.25)
+
+
+def test_lineage_preservation_blocks_escalation() -> None:
+    params = ReproductionParams(mutation_rate=0.15, mutation_strength=0.15)
+
+    rate, strength = params.adaptive_mutation(
+        ReproductionMutationContext(
+            diversity_score=0.11,
+            diversity_slope=-0.00001,
+            preserve_parent_lineage=True,
+        )
+    )
+
+    assert rate == pytest.approx(0.15)
+    assert strength == pytest.approx(0.15)
+
+
+def test_danger_zone_escalates_behavior_switch_rate_only_when_active() -> None:
+    inactive = ReproductionMutationContext(diversity_score=0.11)
+    active = ReproductionMutationContext(diversity_score=0.11, diversity_slope=-0.00001)
+
+    assert inactive.sub_behavior_switch_rate(0.08) == pytest.approx(0.08)
+    assert active.sub_behavior_switch_rate(0.08) == pytest.approx(DANGER_SUB_BEHAVIOR_SWITCH_RATE)

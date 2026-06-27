@@ -91,7 +91,7 @@ class ReproductionMixin:
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(cast("Fish", self))
 
-    def _create_asexual_offspring(self) -> Fish | None:
+    def _create_asexual_offspring(self, mutation_context=None) -> Fish | None:
         """Create an offspring through asexual reproduction.
 
         Called when conditions are met for instant asexual reproduction.
@@ -103,4 +103,6 @@ class ReproductionMixin:
 
         from core.reproduction.reproduction_service import ReproductionService
 
-        return ReproductionService.create_asexual_offspring(cast("Fish", self))
+        return ReproductionService.create_asexual_offspring(
+            cast("Fish", self), mutation_context=mutation_context
+        )

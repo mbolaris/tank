@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from core.entities.base import LifeStage
     from core.genetics import Genome
+    from core.genetics.reproduction import ReproductionMutationContext
 
 
 class ReproductionComponent:
@@ -152,6 +153,8 @@ class ReproductionComponent:
         own_genome: "Genome",
         rng: Optional["Random"] = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: "ReproductionMutationContext | None" = None,
     ) -> tuple["Genome", float]:
         """Trigger instant asexual reproduction and return offspring genome.
 
@@ -162,6 +165,8 @@ class ReproductionComponent:
             own_genome: This fish's genome
             rng: Random number generator for deterministic mutation
             available_policies: Optional list of available code policy IDs for mutation
+            diversity_score: Current ecosystem diversity score if available
+            mutation_context: Population-level mutation controller state
 
         Returns:
             Tuple of (offspring_genome, energy_transfer_fraction)
@@ -173,7 +178,11 @@ class ReproductionComponent:
 
         # Create mutated clone
         offspring_genome = Genome.clone_with_mutation(
-            own_genome, rng=rng, available_policies=available_policies
+            own_genome,
+            rng=rng,
+            available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
 
         return offspring_genome, self.ENERGY_TRANSFER_TO_BABY
