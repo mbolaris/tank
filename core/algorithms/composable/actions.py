@@ -49,29 +49,29 @@ class BehaviorActionsMixin:
     def _find_nearest_food(self, fish: "Fish") -> Any | None:
         raise NotImplementedError
 
-    def has_survival_priority(self, fish: "Fish") -> bool:
-        """Whether the fish has an active survival drive (threat or food).
-
-        RNG-free predicate used by the movement arbiter so that external leisure
-        drives (e.g. soccer-ball pursuit) never pre-empt fleeing or feeding
-        (ADR-010). Mirrors the activation conditions of
-        ``_execute_threat_response`` and ``_execute_food_approach`` without
-        producing a velocity or drawing from the RNG.
-        """
-        # Threat: a predator within the aggression-modulated flee threshold.
+    def has_threat_priority(self, fish: "Fish") -> bool:
         predator = self._find_nearest(fish, Crab, max_distance=200.0)
-        if predator is not None:
-            distance = (predator.pos - fish.pos).length()
-            flee_threshold = self.parameters.get("flee_threshold", 120.0)
-            aggression = fish.genome.behavioral.aggression.value
-            flee_threshold *= 1.2 - aggression * 0.4
-            if distance <= flee_threshold:
-                return True
+        if predator is None:
+            return False
+        distance = (predator.pos - fish.pos).length()
+        flee_threshold = self.parameters.get("flee_threshold", 120.0)
+        aggression = fish.genome.behavioral.aggression.value
+        return bool(distance <= flee_threshold * (1.2 - aggression * 0.4))
 
-        # Food: the fish has capacity to eat and food is detectable.
+    def has_food_priority(self, fish: "Fish") -> bool:
         if hasattr(fish, "can_eat") and not fish.can_eat():
             return False
         return self._find_nearest_food(fish) is not None
+
+    def has_survival_priority(self, fish: "Fish") -> bool:
+        """Whether the fish has an active survival drive (threat or food).
+
+        RNG-free predicate used by the movement arbiter so leisure drives do not
+        pre-empt fleeing or feeding (ADR-010).
+        """
+        if self.has_threat_priority(fish):
+            return True
+        return self.has_food_priority(fish)
 
     def _execute_threat_response(self, fish: "Fish") -> tuple[float, float, bool]:
         """Execute the selected threat response sub-behavior.

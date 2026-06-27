@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from core.code_pool import BUILTIN_FLEE_FROM_THREAT_ID
 from core.movement.ball_pursuit import BallPursuitConsideration
 
 if TYPE_CHECKING:
@@ -68,6 +69,26 @@ class CodePolicyConsideration:
     name = "code_policy"
 
     def desired_velocity(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
+        behavior = (
+            fish.genome.behavioral.behavior.value if fish.genome.behavioral.behavior else None
+        )
+        movement_policy_id = fish.genome.behavioral.movement_policy_id
+        if (
+            movement_policy_id is not None
+            and movement_policy_id.value == BUILTIN_FLEE_FROM_THREAT_ID
+        ):
+            has_threat_priority = getattr(behavior, "has_threat_priority", None)
+            has_food_priority = getattr(behavior, "has_food_priority", None)
+            if (
+                callable(has_threat_priority)
+                and has_threat_priority(fish)
+                and (not callable(has_food_priority) or not has_food_priority(fish))
+            ):
+                return strategy._execute_policy_if_present(fish)
+
+        has_survival_priority = getattr(behavior, "has_survival_priority", None)
+        if callable(has_survival_priority) and has_survival_priority(fish):
+            return None
         return strategy._execute_policy_if_present(fish)
 
 
@@ -103,9 +124,9 @@ class MovementArbiter:
 def default_considerations() -> list[MovementConsideration]:
     """The canonical movement priority order (highest priority first).
 
-    ``ball_pursuit`` is listed above the composable behavior, but it does not
-    pre-empt survival: the ball drive itself yields to threat/food via
-    ``ComposableBehavior.has_survival_priority`` (ADR-010 step 2), so list
+    ``ball_pursuit`` and ``code_policy`` are listed above the composable
+    behavior, but neither pre-empts survival: each drive yields to threat/food
+    via ``ComposableBehavior.has_survival_priority`` (ADR-010 step 2), so list
     position here is leisure-vs-leisure only.
     """
     return [

@@ -10,12 +10,16 @@ from core.movement_strategy import AlgorithmicMovement
 
 
 class StubBehavior:
-    def __init__(self, vx: float, vy: float) -> None:
+    def __init__(self, vx: float, vy: float, *, survival_priority: bool = False) -> None:
         self._vx = vx
         self._vy = vy
+        self._survival_priority = survival_priority
 
     def execute(self, fish: Fish) -> tuple[float, float]:
         return self._vx, self._vy
+
+    def has_survival_priority(self, fish: Fish) -> bool:
+        return self._survival_priority
 
 
 def _make_fish(env: Environment, behavior: StubBehavior) -> Fish:
@@ -48,6 +52,19 @@ def test_code_policy_movement_overrides_composable_behavior():
 
     assert fish.vel.y > 0.0
     assert fish.vel.x == pytest.approx(0.0)
+
+
+def test_code_policy_yields_to_composable_survival_priority():
+    rng = random.Random(42)
+    env = Environment(width=800, height=600, rng=rng)
+    env.genome_code_pool.pool.register("fixed_policy", lambda obs, rng: (0.0, 1.0))
+    fish = _make_fish(env, StubBehavior(-1.0, 0.0, survival_priority=True))
+    fish.genome.behavioral.movement_policy_id = GeneticTrait("fixed_policy")
+
+    fish.movement_strategy.move(fish)
+
+    assert fish.vel.x < 0.0
+    assert fish.vel.y == pytest.approx(0.0)
 
 
 def test_code_policy_fallbacks_when_pool_missing():
