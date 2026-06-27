@@ -115,12 +115,19 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         // Initialize renderers (idempotent)
         initRenderers();
 
+        // Local cache of the active renderer to prevent recreating it on every frame in renderLoop
+        let currentRenderer: Renderer | null = null;
+        let currentWorldType = '';
+        let currentViewMode: 'side' | 'topdown' | '' = '';
+
         // Initial renderer setup - will be updated in render loop based on state
         const initialWorldType = 'tank'; // Default until state arrives
-        const effectiveViewMode = viewMode || 'side';
+        const initialViewMode = viewMode || 'side';
 
-        const renderer = rendererRegistry.getRenderer(initialWorldType, effectiveViewMode);
-        rendererRef.current = renderer;
+        currentRenderer = rendererRegistry.getRenderer(initialWorldType, initialViewMode);
+        rendererRef.current = currentRenderer;
+        currentWorldType = initialWorldType;
+        currentViewMode = initialViewMode;
 
         // Preload images
         const loadImages = async () => {
@@ -158,10 +165,22 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         // Petri/Soccer = topdown view
                         effectiveViewMode = 'topdown';
                     }
-                    const renderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
-                    rendererRef.current = renderer;
 
-                    renderer.render({
+                    // Only retrieve a new renderer when the worldType or viewMode changes
+                    if (!currentRenderer || worldType !== currentWorldType || effectiveViewMode !== currentViewMode) {
+                        if (currentRenderer) {
+                            if (import.meta.env.DEV) {
+                                console.debug('[Canvas] Disposing old Renderer due to mode change:', currentWorldType, currentViewMode);
+                            }
+                            currentRenderer.dispose();
+                        }
+                        currentRenderer = rendererRegistry.getRenderer(worldType, effectiveViewMode);
+                        rendererRef.current = currentRenderer;
+                        currentWorldType = worldType;
+                        currentViewMode = effectiveViewMode;
+                    }
+
+                    currentRenderer.render({
                         worldType,
                         viewMode: effectiveViewMode,
                         snapshot: currentState,
@@ -188,11 +207,12 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
         return () => {
             cancelAnimationFrame(animationFrameId);
-            if (rendererRef.current) {
+            if (currentRenderer) {
                 if (import.meta.env.DEV) {
                     console.debug('[Canvas] Disposing Renderer');
                 }
-                rendererRef.current.dispose();
+                currentRenderer.dispose();
+                currentRenderer = null;
                 rendererRef.current = null;
             }
         };
