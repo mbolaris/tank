@@ -48,6 +48,7 @@ from core.genetics.policy_inheritance import (
     validate_code_policy,
     validate_policy_fields,
 )
+from core.genetics.reproduction import ReproductionMutationContext
 from core.genetics.trait import GeneticTrait, TraitSpec, random_genetic_trait
 
 if TYPE_CHECKING:
@@ -220,6 +221,8 @@ class BehavioralTraits:
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits from two parents.
 
@@ -241,6 +244,8 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
         return cls(**inherited)
 
@@ -255,6 +260,8 @@ class BehavioralTraits:
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = recombine_behavioral_traits(
@@ -266,5 +273,7 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
         return cls(**inherited)

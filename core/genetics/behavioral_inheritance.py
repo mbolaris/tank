@@ -23,6 +23,10 @@ from core.genetics.mate_preferences import (
     inherit_mate_preferences,
 )
 from core.genetics.policy_inheritance import inherit_single_policy
+from core.genetics.reproduction import (
+    DEFAULT_SUB_BEHAVIOR_SWITCH_RATE,
+    ReproductionMutationContext,
+)
 from core.genetics.trait import (
     GeneticTrait,
     TraitSpec,
@@ -87,6 +91,8 @@ def inherit_composable_behavior(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
 ) -> "ComposableBehavior":
     """Inherit composable behavior from two parents.
 
@@ -97,6 +103,9 @@ def inherit_composable_behavior(
     """
     from core.algorithms.composable import ComposableBehavior
 
+    context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
+    sub_behavior_switch_rate = context.sub_behavior_switch_rate(DEFAULT_SUB_BEHAVIOR_SWITCH_RATE)
+
     if behavior1 is None and behavior2 is None:
         return ComposableBehavior.create_random(rng=rng)
     elif behavior1 is None:
@@ -105,7 +114,7 @@ def inherit_composable_behavior(
         child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            sub_behavior_switch_rate=0.08,
+            sub_behavior_switch_rate=sub_behavior_switch_rate,
             rng=rng,
         )
         return child
@@ -115,7 +124,7 @@ def inherit_composable_behavior(
         child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            sub_behavior_switch_rate=0.08,
+            sub_behavior_switch_rate=sub_behavior_switch_rate,
             rng=rng,
         )
         return child
@@ -126,7 +135,7 @@ def inherit_composable_behavior(
         weight1=weight1,
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
-        sub_behavior_switch_rate=0.08,  # Increased from 0.03 for more behavioral diversity
+        sub_behavior_switch_rate=sub_behavior_switch_rate,  # Increased from 0.03 for more behavioral diversity
         rng=rng,
     )
 
@@ -181,6 +190,8 @@ def inherit_behavioral_traits(
     mutation_strength: float = 0.1,
     rng: pyrandom.Random,
     available_policies: list[str] | None = None,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
 ) -> dict:
     """Build the inherited trait dict for BehavioralTraits.from_parents.
 
@@ -218,6 +229,8 @@ def inherit_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        diversity_score=diversity_score,
+        mutation_context=mutation_context,
     )
     inherited["behavior"] = inherit_trait_meta(
         parent1.behavior, parent2.behavior, behavior_val, rng
@@ -294,6 +307,8 @@ def recombine_behavioral_traits(
     mutation_strength: float = 0.1,
     rng: pyrandom.Random,
     available_policies: list[str] | None = None,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
 ) -> dict:
     """Build the inherited trait dict for BehavioralTraits.from_parents_recombination.
 
@@ -320,6 +335,8 @@ def recombine_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        diversity_score=diversity_score,
+        mutation_context=mutation_context,
     )
     inherited["behavior"] = inherit_trait_meta(
         parent1.behavior, parent2.behavior, behavior_val, rng

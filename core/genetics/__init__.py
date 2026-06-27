@@ -25,7 +25,7 @@ from core.genetics.diversity import (
 from core.genetics.genome import GeneticCrossoverMode, Genome
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.plant_genome import PlantGenome
-from core.genetics.reproduction import ReproductionParams
+from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
 from core.genetics.trait import (
     GeneticTrait,
     TraitSpec,
@@ -60,6 +60,7 @@ __all__ = [
     "apply_trait_values_from_dict",
     "apply_trait_meta_from_dict",
     # Reproduction API
+    "ReproductionMutationContext",
     "ReproductionParams",
     # Validation
     "validate_traits_from_specs",
