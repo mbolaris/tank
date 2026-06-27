@@ -167,7 +167,7 @@ const CustomTooltip = ({ active, payload, label, xAxisMode }: CustomTooltipProps
 };
 
 function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
-    const [xAxisMode, setXAxisMode] = useState<XAxisMode>('frames');
+    const [xAxisMode, setXAxisMode] = useState<XAxisMode>('generations');
 
     // Handle null or empty history state
     if (!history || !history.samples || history.samples.length === 0) {
@@ -284,11 +284,16 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
         }
 
         const meanEnergy = d.population > 0 ? Number((d.fish_energy / d.population).toFixed(1)) : 0;
+        const turnoverRate = d.population > 0
+            ? Number(((birthsInterval + deathsInterval) / d.population).toFixed(3))
+            : 0;
 
         return {
             ...d,
             births_interval: birthsInterval,
             deaths_interval: deathsInterval,
+            reproduction_balance: birthsInterval - deathsInterval,
+            turnover_rate: turnoverRate,
             mean_energy: meanEnergy
         };
     });
@@ -585,7 +590,83 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                     </div>
                 </div>
 
-                {/* 4. Ecosystem Diversity */}
+                {/* 4. Selection Pressure */}
+                <div style={cardStyle}>
+                    <div style={cardHeaderStyle}>
+                        <span style={cardTitleStyle}>Selection Pressure</span>
+                        <TrendBadge
+                            values={processedData.map(d => d.turnover_rate)}
+                            formatter={(v) => `${v > 0 ? '+' : ''}${v.toFixed(3)}`}
+                        />
+                    </div>
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                                data={processedData}
+                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                            >
+                                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                <XAxis
+                                    dataKey={xAxisMode === 'frames' ? 'frame' : 'max_generation'}
+                                    stroke="rgba(255,255,255,0.3)"
+                                    fontSize={10}
+                                    tickFormatter={(v) => xAxisMode === 'frames' ? `${(v/1000).toFixed(0)}k` : `${v}`}
+                                />
+                                <YAxis
+                                    yAxisId="left"
+                                    stroke="var(--color-warning)"
+                                    fontSize={10}
+                                    domain={[0, 'auto']}
+                                />
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    stroke="rgba(255,255,255,0.4)"
+                                    fontSize={10}
+                                    domain={['auto', 'auto']}
+                                />
+                                <Tooltip
+                                    content={<CustomTooltip xAxisMode={xAxisMode} />}
+                                />
+                                <ReferenceLine
+                                    yAxisId="right"
+                                    y={0}
+                                    stroke="rgba(255,255,255,0.18)"
+                                    strokeDasharray="3 3"
+                                />
+                                {xAxisMode === 'frames' && genMarkers.map((m, idx) => (
+                                    <ReferenceLine
+                                        key={idx}
+                                        yAxisId="left"
+                                        x={m.frame}
+                                        stroke="rgba(255,255,255,0.15)"
+                                        strokeDasharray="2 2"
+                                    />
+                                ))}
+                                <Line
+                                    yAxisId="left"
+                                    type="monotone"
+                                    dataKey="turnover_rate"
+                                    stroke="var(--color-warning)"
+                                    strokeWidth={2}
+                                    name="Turnover Rate"
+                                    dot={false}
+                                />
+                                <Line
+                                    yAxisId="right"
+                                    type="monotone"
+                                    dataKey="reproduction_balance"
+                                    stroke="var(--color-success)"
+                                    strokeWidth={1.5}
+                                    name="Birth-Death Balance"
+                                    dot={false}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* 5. Ecosystem Diversity */}
                 <div style={cardStyle}>
                     <div style={cardHeaderStyle}>
                         <span style={cardTitleStyle}>🧬 Genetic/Algorithm Diversity</span>
