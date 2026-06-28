@@ -32,6 +32,7 @@ class ReproductionSystem(BaseSystem):
             details={
                 "banked_asexual": stats.banked_asexual,
                 "trait_asexual": stats.trait_asexual,
+                "proximity_sexual": stats.proximity_sexual,
                 "emergency_spawns": stats.emergency_spawns,
             },
         )
