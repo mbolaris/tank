@@ -13,15 +13,52 @@ from typing import TYPE_CHECKING, Any
 
 from core.config.food import (
     BASE_FOOD_DETECTION_RANGE,
+    CHASE_DISTANCE_LOW,
+    CHASE_DISTANCE_SAFE_BASE,
     FOOD_QUALITY_DISTANCE_WEIGHT,
     FOOD_SINK_ACCELERATION,
 )
+from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.entities import Food as FoodClass
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
 if TYPE_CHECKING:
     from core.entities import Fish
+
+
+# Critical fish keep the status-quo detection reach; the low/safe caps below
+# are the actual energy-saving change for fish with enough energy to be choosy.
+COMPOSABLE_CHASE_DISTANCE_CRITICAL = BASE_FOOD_DETECTION_RANGE
+
+
+def _numeric_energy_ratio(fish: Fish) -> float | None:
+    """Return the fish energy ratio when the object exposes it numerically."""
+    get_energy_ratio = getattr(fish, "get_energy_ratio", None)
+    if callable(get_energy_ratio):
+        ratio = get_energy_ratio()
+        if isinstance(ratio, (int, float)):
+            return max(0.0, ratio)
+
+    energy = getattr(fish, "energy", None)
+    max_energy = getattr(fish, "max_energy", None)
+    if isinstance(energy, (int, float)) and isinstance(max_energy, (int, float)) and max_energy > 0:
+        return max(0.0, energy / max_energy)
+
+    return None
+
+
+def _food_chase_distance_for_energy(fish: Fish) -> float:
+    """Return the energy-state chase cap for composable food selection."""
+    energy_ratio = _numeric_energy_ratio(fish)
+    if energy_ratio is None:
+        return BASE_FOOD_DETECTION_RANGE
+
+    if energy_ratio < CRITICAL_ENERGY_THRESHOLD_RATIO:
+        return COMPOSABLE_CHASE_DISTANCE_CRITICAL
+    if energy_ratio < SAFE_ENERGY_THRESHOLD_RATIO:
+        return float(CHASE_DISTANCE_LOW)
+    return float(CHASE_DISTANCE_SAFE_BASE)
 
 
 def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill: float) -> Vector2:
@@ -89,7 +126,9 @@ def select_food_target(fish: Fish) -> Any | None:
     env = fish.environment
 
     detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
-    max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    detection_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    chase_distance = _food_chase_distance_for_energy(fish)
+    max_distance = min(detection_distance, chase_distance)
     max_distance_sq = max_distance * max_distance
 
     if hasattr(env, "nearby_resources"):

@@ -21,13 +21,15 @@ def _food(x: float, y: float, energy: float) -> MagicMock:
     return food
 
 
-def _fish_in(foods: list) -> MagicMock:
+def _fish_in(foods: list, energy_ratio: float | None = None) -> MagicMock:
     env = MagicMock()
     env.get_detection_modifier.return_value = 1.0
     env.nearby_resources.return_value = foods
     fish = MagicMock()
     fish.pos = Vector2(0.0, 0.0)
     fish.environment = env
+    if energy_ratio is not None:
+        fish.get_energy_ratio.return_value = energy_ratio
     return fish
 
 
@@ -55,6 +57,37 @@ def test_ignores_food_beyond_detection_range():
     """Food outside BASE_FOOD_DETECTION_RANGE (580px) is not selectable."""
     too_far = _food(600.0, 0.0, 1000.0)  # very rich but out of range
     assert select_food_target(_fish_in([too_far])) is None
+
+
+def test_safe_energy_limits_wasteful_long_chases():
+    """Well-fed fish ignore rich food beyond the safe chase cap."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(200.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.50)) is near_poor
+
+
+def test_low_energy_extends_chase_distance():
+    """Hungry fish can pursue farther food when its value justifies the trip."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(250.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.20)) is far_rich
+
+
+def test_recovery_band_uses_low_chase_distance_until_safe():
+    """Fish between low and safe energy still get enough reach to recover."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(250.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.30)) is far_rich
+
+
+def test_critical_energy_preserves_full_detection_reach():
+    """Critical fish keep status-quo reach while the critical cap is A/B tested."""
+    far_food = _food(500.0, 0.0, 100.0)
+
+    assert select_food_target(_fish_in([far_food], energy_ratio=0.05)) is far_food
 
 
 def test_tie_break_is_deterministic_and_order_independent():
