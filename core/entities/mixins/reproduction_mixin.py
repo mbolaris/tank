@@ -64,10 +64,11 @@ class ReproductionMixin:
 
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce (delegates to ReproductionComponent)."""
+        fish = cast("Fish", self)
         return self._reproduction_component.can_reproduce(
             self._lifecycle_component.life_stage,
             self.energy,
-            self.max_energy,  # type: ignore[attr-defined]  # provided by EnergyManagementMixin
+            fish.max_energy,
         )
 
     def try_mate(self, other: Fish) -> bool:
@@ -79,27 +80,30 @@ class ReproductionMixin:
         from core.config.fish import STANDARD_MATING_DISTANCE, STANDARD_MATING_MIN_ENERGY_RATIO
         from core.entities.base import LifeStage
 
-        if other is self or other.species != self.species:
+        fish = cast("Fish", self)
+        if other is fish or other.species != fish.species:
             return False
-        if hasattr(self, "is_dead") and self.is_dead():
+        if fish.is_dead():
             return False
         if hasattr(other, "is_dead") and other.is_dead():
             return False
-        if self.life_stage != LifeStage.ADULT or other.life_stage != LifeStage.ADULT:
+        if fish.life_stage != LifeStage.ADULT or other.life_stage != LifeStage.ADULT:
             return False
         if (
-            self._reproduction_component.reproduction_cooldown > 0
+            fish._reproduction_component.reproduction_cooldown > 0
             or other._reproduction_component.reproduction_cooldown > 0
         ):
             return False
-        if self.energy < self.max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+        self_max_energy = fish.max_energy
+        other_max_energy = float(other.max_energy)
+        if fish.energy < self_max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
             return False
-        if other.energy < other.max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+        if other.energy < other_max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
             return False
 
-        dx = (self.pos.x + self.width * 0.5) - (other.pos.x + other.width * 0.5)
-        dy = (self.pos.y + self.height * 0.5) - (other.pos.y + other.height * 0.5)
-        return dx * dx + dy * dy <= STANDARD_MATING_DISTANCE * STANDARD_MATING_DISTANCE
+        dx = (fish.pos.x + fish.width * 0.5) - (other.pos.x + other.width * 0.5)
+        dy = (fish.pos.y + fish.height * 0.5) - (other.pos.y + other.height * 0.5)
+        return bool(dx * dx + dy * dy <= STANDARD_MATING_DISTANCE * STANDARD_MATING_DISTANCE)
 
     def update_reproduction(self) -> Fish | None:
         """Update reproduction state and potentially create offspring.
