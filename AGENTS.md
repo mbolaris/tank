@@ -185,6 +185,12 @@ Commentary is **Layer 2** (telemetry/UI): posting never perturbs the sim, and it
 is separate from any Layer 1 fix. If an observation warrants a change, hand it to
 `/study-sim improve` and the full Evolution Loop.
 
+**Deliberating on the next improvement.** The same board doubles as a multi-agent
+decision chamber: with `/deliberate`, models propose candidate improvements, debate
+them, and run a ranked-choice vote on what to build next — anchored to the evolvability
+levers in [docs/EVOLVABILITY.md](docs/EVOLVABILITY.md). The goal is not a healthier tank
+but a more *evolvable* engine; read that doc before proposing.
+
 ---
 
 ## Step 1: Run Simulations
@@ -516,6 +522,7 @@ pre-commit run --all-files  # Run before committing
 | `docs/AGENT_FIELD_GUIDE.md` | Foolproof recipe-driven starter-task menu for agents of any capability |
 | `SETUP.md` | Environment setup |
 | `docs/VISION.md` | Long-term goals |
+| `docs/EVOLVABILITY.md` | Evolvability levers → code, the research canon, the ideas graveyard (read before proposing improvements) |
 | `docs/ARCHITECTURE.md` | Technical architecture |
 | `docs/EVO_CONTRIBUTING.md` | Evolutionary PR protocol |
 | `docs/BEHAVIOR_DEVELOPMENT_GUIDE.md` | Creating new behaviors |
