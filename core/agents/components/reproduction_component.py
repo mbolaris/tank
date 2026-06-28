@@ -4,9 +4,8 @@ This module provides the ReproductionComponent class which handles reproduction-
 functionality for fish, specifically asexual reproduction and cooldown tracking.
 
 Note on Sexual Reproduction:
-    Sexual reproduction occurs ONLY via poker games, not through traditional mating.
-    When fish win poker games, they may trigger reproduction with their opponent.
-    This design centralizes reproduction logic in PokerSystem.
+    Sexual reproduction can happen through standard proximity mating or through
+    poker games. ReproductionService owns the actual birth accounting.
 
 Note: All reproduction is instant (no pregnancy/gestation period). Asexual reproduction
 triggers immediately when conditions are met, and offspring are created in the same frame.
@@ -31,8 +30,8 @@ class ReproductionComponent:
     - Offspring genome generation
     - Overflow energy banking for reproduction
 
-    Note: Sexual reproduction happens via poker games (see PokerSystem).
-    This component does NOT handle mate selection or attraction.
+    Note: Sexual reproduction happens via ReproductionService; this component
+    does NOT handle mate selection or attraction.
 
     All reproduction is instant - there is no pregnancy/gestation period.
 

@@ -71,11 +71,35 @@ class ReproductionMixin:
         )
 
     def try_mate(self, other: Fish) -> bool:
-        """Attempt to mate with another fish.
+        """Return whether this fish can standard-mate with another fish.
 
-        Standard mating is disabled; fish only reproduce sexually after poker games.
+        Offspring creation is centralized in ReproductionService; this method
+        preserves the protocol-facing eligibility check.
         """
-        return False
+        from core.config.fish import STANDARD_MATING_DISTANCE, STANDARD_MATING_MIN_ENERGY_RATIO
+        from core.entities.base import LifeStage
+
+        if other is self or other.species != self.species:
+            return False
+        if hasattr(self, "is_dead") and self.is_dead():
+            return False
+        if hasattr(other, "is_dead") and other.is_dead():
+            return False
+        if self.life_stage != LifeStage.ADULT or other.life_stage != LifeStage.ADULT:
+            return False
+        if (
+            self._reproduction_component.reproduction_cooldown > 0
+            or other._reproduction_component.reproduction_cooldown > 0
+        ):
+            return False
+        if self.energy < self.max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+            return False
+        if other.energy < other.max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+            return False
+
+        dx = (self.pos.x + self.width * 0.5) - (other.pos.x + other.width * 0.5)
+        dy = (self.pos.y + self.height * 0.5) - (other.pos.y + other.height * 0.5)
+        return dx * dx + dy * dy <= STANDARD_MATING_DISTANCE * STANDARD_MATING_DISTANCE
 
     def update_reproduction(self) -> Fish | None:
         """Update reproduction state and potentially create offspring.

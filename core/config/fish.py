@@ -80,6 +80,13 @@ REPRODUCTION_COOLDOWN = 0  # No cooldown - reproduce whenever bank has enough en
 REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
 MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
 
+# Standard proximity mating: symmetric "sneaker" sex-vs-cloning trade-off.
+STANDARD_MATING_DISTANCE = 60.0
+STANDARD_MATING_MIN_ENERGY_RATIO = 0.50
+STANDARD_MATING_PARENT_ENERGY_CONTRIBUTION = 0.50
+STANDARD_MATING_MUTATION_RATE = 0.15
+STANDARD_MATING_MUTATION_STRENGTH = 0.15
+
 # Lowered to 0.70 to make reproduction achievable while still requiring healthy fish
 POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 0.70
 POST_POKER_REPRODUCTION_WINNER_PROB = 0.4  # Probability winner offers reproduction (40%)
