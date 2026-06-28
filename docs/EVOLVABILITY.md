@@ -29,7 +29,7 @@ idea by: *does it make the system better at evolving?*
 
 | Signal | What it tells us | Where it comes from |
 |---|---|---|
-| **Directional selection vs churn** | Are trait means *drifting* in a fitness‑tracking direction, or just turning over flat (pure drift)? This is the single most important signal. | `scripts/diagnose_evolution.py` (first→last trait drift); the Trait Drift chart; `tools/evolution_report.py --json` |
+| **Directional selection vs churn** | Are trait means *drifting* in a fitness‑tracking direction, or just turning over flat (pure drift)? This is the single most important signal. | **Live:** `tools/evolution_report.py --url … --json` (`trait_drift` / `selection_detected`) and the UI's **Trait Drift** chart. **Controlled check (a fresh seeded probe, not the live tank):** `scripts/diagnose_evolution.py` — the *builder's* validation tool, not a live lens. |
 | **Sustained diversity** | Is the gene pool keeping the raw material to keep innovating, or prematurely converging? | `core/genetics/diversity.py` (`genetic_distance`, Shannon entropy), `core/genetic_diversity_tracker.py`, `diversity_score` |
 | **Quality‑gain per generation** | Are new generations *better*, or merely newer? | trait drift × turnover together; lineage outcomes |
 | **The fitness signal** | The Layer‑1 objective the build loop optimizes | `benchmarks/tank/ecosystem_health_10k.py` |
