@@ -428,3 +428,12 @@ def get_active_broadcast_count() -> int:
         Number of running broadcast tasks
     """
     return sum(1 for task in _broadcast_tasks.values() if not task.done())
+
+
+def clear_broadcast_state() -> None:
+    """Cancel any running broadcast tasks and clear global broadcast state (for test isolation)."""
+    for task in list(_broadcast_tasks.values()):
+        if not task.done():
+            task.cancel()
+    _broadcast_tasks.clear()
+    _broadcast_locks.clear()

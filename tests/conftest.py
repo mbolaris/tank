@@ -121,3 +121,13 @@ def _force_mutation_invariants_in_tests():
     os.environ["TANK_ENFORCE_MUTATION_INVARIANTS"] = "1"
     yield
     os.environ.pop("TANK_ENFORCE_MUTATION_INVARIANTS", None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_broadcast_globals():
+    """Reset global broadcast tasks and locks between tests to prevent loop pollution."""
+    from backend.broadcast import clear_broadcast_state
+
+    clear_broadcast_state()
+    yield
+    clear_broadcast_state()
