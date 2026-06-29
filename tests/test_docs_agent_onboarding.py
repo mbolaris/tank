@@ -4,6 +4,13 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PUBLIC_AGENT_DOCS = [
+    ROOT / "README.md",
+    ROOT / "docs" / "EVO_CONTRIBUTING.md",
+    ROOT / "docs" / "AGENT_QUICKSTART.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs" / "AGENT_FIELD_GUIDE.md",
+]
 
 
 def _workflow_job_names() -> set[str]:
@@ -164,3 +171,34 @@ def test_agent_quickstart_does_not_mention_update_champion():
         "Do NOT edit the `champions/**/*.json` files directly" in content
         or "do not edit the champions/**/*.json files" in content
     )
+
+
+def test_public_agent_docs_restrict_champion_update_guidance():
+    """Public agent docs may compare against champions, but not casually update them."""
+    forbidden_unconditional_patterns = [
+        r"if\s+better,\s*update\s+the\s+champion\s+file",
+        r"if\s+you\s+have\s+an\s+improvement,\s*update\s+the\s+champion\s+file",
+        r"git\s+add\s+champions/[^\n]+\.json",
+        r"manually\s+overwrite\s+the\s+affected\s+champion\s+files",
+    ]
+    restricted_words = ("maintainer", "authorized", "must not", "do not", "unless explicitly")
+
+    for doc_path in PUBLIC_AGENT_DOCS:
+        assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
+        content = doc_path.read_text(encoding="utf-8")
+        lower = content.lower()
+
+        for pattern in forbidden_unconditional_patterns:
+            assert not re.search(pattern, lower), (
+                f"{doc_path.relative_to(ROOT)} contains unconditional champion-update guidance "
+                f"matching {pattern!r}. Agents should report evidence, not update champions."
+            )
+
+        for match in re.finditer(r"--update-champion", lower):
+            start = max(0, match.start() - 240)
+            end = min(len(lower), match.end() + 240)
+            context = lower[start:end]
+            assert any(word in context for word in restricted_words), (
+                f"{doc_path.relative_to(ROOT)} mentions --update-champion without clear "
+                "maintainer/task authorization language nearby."
+            )

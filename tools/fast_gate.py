@@ -24,6 +24,7 @@ def main() -> None:
                 "-m",
                 "not slow and not integration and not manual",
                 "-q",
+                "--durations=25",
             ),
             "Tier 2: broad non-slow tests",
         ),
