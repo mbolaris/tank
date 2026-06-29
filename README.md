@@ -217,8 +217,8 @@ When you discover an improvement (human or AI):
 
 1. Run the benchmark: `python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --out results.json`
 2. Compare vs champion: `python tools/validate_improvement.py results.json champions/tank/survival_5k.json`
-3. If better, update the champion file: `python tools/validate_improvement.py results.json champions/tank/survival_5k.json --update-champion`
-4. Run `python tools/verify_all_champions.py` if deterministic behavior changed and you need to refresh baseline files
+3. If better, report the command, seed, score, metadata, and code diff in the PR.
+4. Do not edit `champions/**/*.json` or use champion-update tooling unless a maintainer or the task prompt explicitly authorizes that scope.
 5. Open a PR with benchmark evidence; CI re-runs the relevant checks before merge
 
 See [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) for the complete protocol.
