@@ -309,6 +309,7 @@ def recombine_behavioral_traits(
     available_policies: list[str] | None = None,
     diversity_score: float | None = None,
     mutation_context: ReproductionMutationContext | None = None,
+    parent1_dominant: bool | None = None,
 ) -> dict:
     """Build the inherited trait dict for BehavioralTraits.from_parents_recombination.
 
@@ -325,6 +326,7 @@ def recombine_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        parent1_dominant=parent1_dominant,
     )
 
     # Inherit composable behavior with recombination-style weighting

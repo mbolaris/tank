@@ -98,6 +98,7 @@ class PhysicalTraits:
         mutation_rate: float = 0.1,
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
+        parent1_dominant: bool | None = None,
     ) -> "PhysicalTraits":
         """Inherit physical traits by choosing a parent per trait (recombination)."""
         inherited = inherit_traits_from_specs_recombination(
@@ -108,5 +109,6 @@ class PhysicalTraits:
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
             rng=rng,
+            parent1_dominant=parent1_dominant,
         )
         return cls(**inherited)
