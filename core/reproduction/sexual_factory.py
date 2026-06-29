@@ -122,6 +122,7 @@ def create_standard_mating_offspring(
         mutation_strength=config.mutation_strength,
         rng=engine.rng,
         mutation_context=mutation_context,
+        parent1_dominant=parent.energy >= mate.energy,
     )
 
     _mutate_code_policies(parent, offspring_genome, engine)

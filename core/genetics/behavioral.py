@@ -262,6 +262,7 @@ class BehavioralTraits:
         available_policies: list[str] | None = None,
         diversity_score: float | None = None,
         mutation_context: ReproductionMutationContext | None = None,
+        parent1_dominant: bool | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = recombine_behavioral_traits(
@@ -275,5 +276,6 @@ class BehavioralTraits:
             available_policies=available_policies,
             diversity_score=diversity_score,
             mutation_context=mutation_context,
+            parent1_dominant=parent1_dominant,
         )
         return cls(**inherited)

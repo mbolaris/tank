@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
+from core.evolution.mutation import mutate_continuous_trait as _mutate_continuous
+from core.evolution.mutation import mutate_discrete_trait as _mutate_discrete
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
@@ -202,16 +204,45 @@ class TraitSpec:
         base_mutation_rate: float,
         base_mutation_strength: float,
         rng: pyrandom.Random,
+        parent1_dominant: bool | None = None,
     ) -> GeneticTrait:
-        """Inherit this trait from two parents with mutation."""
+        """Inherit this trait from two parents with mutation.
+
+        Horizontal Gene Transfer (HGT): if the parents' average
+        ``hgt_probability`` exceeds a random draw, the trait value is **copied**
+        from the dominant parent (determined by *parent1_dominant* or *weight1*)
+        instead of being blended.  Mutation is still applied afterward regardless,
+        preserving the normal variation pipeline.  This activates the previously
+        dormant ``hgt_probability`` meta-gene so that it is subject to selection.
+        """
         # Blend metadata from both parents
         eff_rate = base_mutation_rate * (trait1.mutation_rate + trait2.mutation_rate) / 2
         eff_strength = (
             base_mutation_strength * (trait1.mutation_strength + trait2.mutation_strength) / 2
         )
 
+        # --- HGT gate (proposal #5) ---
+        # Average the two parents' heritable hgt_probability and draw a coin.
+        # If it fires, skip blending and copy from the dominant parent.
+        avg_hgt = (trait1.hgt_probability + trait2.hgt_probability) / 2
+        use_hgt = rng.random() < avg_hgt
+
         value: float | int
-        if self.discrete:
+        if use_hgt:
+            # Copy the trait value from the dominant parent.
+            is_p1_dominant = parent1_dominant if parent1_dominant is not None else (weight1 >= 0.5)
+            donor = trait1 if is_p1_dominant else trait2
+            if self.discrete:
+                value = int(donor.value)
+                # Still apply discrete mutation so the mutation RNG draw happens.
+                value = _mutate_discrete(value, int(self.min_val), int(self.max_val), eff_rate, rng)
+            else:
+                value = float(donor.value)
+                # Still apply continuous mutation so the mutation RNG draw happens.
+                value = _mutate_continuous(
+                    value, self.min_val, self.max_val, eff_rate, eff_strength, rng
+                )
+        elif self.discrete:
             value = _inherit_discrete_trait(
                 int(trait1.value),
                 int(trait2.value),
@@ -292,6 +323,7 @@ def inherit_traits_from_specs_recombination(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    parent1_dominant: bool | None = None,
 ) -> dict:
     """Inherit all traits by choosing a parent per trait (recombination).
 
@@ -311,6 +343,7 @@ def inherit_traits_from_specs_recombination(
             base_mutation_rate=mutation_rate,
             base_mutation_strength=mutation_strength,
             rng=rng,
+            parent1_dominant=parent1_dominant,
         )
     return inherited
 

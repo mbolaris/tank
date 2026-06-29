@@ -294,6 +294,7 @@ class Genome:
         available_policies: list[str] | None = None,
         diversity_score: float | None = None,
         mutation_context: ReproductionMutationContext | None = None,
+        parent1_dominant: bool | None = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         rng = require_rng_param(rng, "__init__")
@@ -329,6 +330,7 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            parent1_dominant=parent1_dominant,
         )
 
         behavioral = BehavioralTraits.from_parents_recombination(
@@ -341,6 +343,7 @@ class Genome:
             available_policies=available_policies,
             diversity_score=diversity_score,
             mutation_context=context,
+            parent1_dominant=parent1_dominant,
         )
 
         return cls._assemble_offspring(
