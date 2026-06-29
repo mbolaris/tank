@@ -288,7 +288,7 @@ def _find_proximity_mate(
     config: ProximityMatingConfig,
 ) -> Fish | None:
     max_dist_sq = config.max_distance * config.max_distance
-    candidates: list[tuple[float, int, Fish]] = []
+    candidates: list[tuple[float, float, int, Fish]] = []
 
     for mate in fish_list:
         if mate is parent or mate.fish_id in used:
@@ -297,12 +297,13 @@ def _find_proximity_mate(
             continue
         dist_sq = _distance_sq(parent, mate)
         if dist_sq <= max_dist_sq:
-            candidates.append((dist_sq, mate.fish_id, mate))
+            attraction = parent.genome.calculate_mate_attraction(mate.genome)
+            candidates.append((attraction, dist_sq, mate.fish_id, mate))
 
     if not candidates:
         return None
-    candidates.sort(key=lambda item: (item[0], item[1]))
-    return candidates[0][2]
+    candidates.sort(key=lambda item: (-item[0], item[1], item[2]))
+    return candidates[0][3]
 
 
 def _mutate_code_policies(parent: Fish, offspring_genome, engine: SimulationEngine) -> None:
