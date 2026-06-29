@@ -145,9 +145,23 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
 engine actually getting better. The durable fix is a **frozen, held‑out measure of
 evolvability** — e.g. the population's **selection response** (trait drift under a fixed
 perturbation across held‑out seeds) — that proposals are scored against but may **not**
-modify. This does not exist yet; speccing and building it is itself a top‑tier proposal.
-Until it does, treat any change to the fitness signal as the highest‑leverage *and*
-highest‑risk class of work, kept separate from Layer‑1 changes and justified rigorously.
+modify.
+
+The first frozen assay is now:
+
+```bash
+# Held-out multi-seed ruler (default seeds: 42, 7, 123)
+python tools/run_selection_response_assay.py
+
+# Single-seed benchmark-compatible surface
+python tools/run_bench.py benchmarks/tank/selection_response_10k.py --seed 42
+```
+
+It reports a decomposed score: directional trait drift per generation, sustained
+diversity, and quality-per-generation. Treat it as held out: a PR that edits this assay
+must not claim an improvement from the edited assay in the same change. Changes to the
+fitness signal remain the highest‑leverage *and* highest‑risk class of work, kept
+separate from Layer‑1 changes and justified rigorously.
 
 ---
 
