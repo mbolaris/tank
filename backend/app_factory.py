@@ -152,6 +152,8 @@ def _get_network_ip() -> str:
 
 def _configure_windows_event_loop(logger: logging.Logger) -> None:
     """Configure asyncio event loop policy on Windows."""
+    if "pytest" in sys.modules:
+        return
     if sys.platform != "win32":
         return
 

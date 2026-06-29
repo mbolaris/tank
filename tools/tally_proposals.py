@@ -33,11 +33,14 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 # Reuse the board client (HTTP + default-world resolution) from the sibling tool.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from post_commentary import DEFAULT_URL, post_comment, read_comments
+if TYPE_CHECKING:
+    from tools.post_commentary import DEFAULT_URL, post_comment, read_comments
+else:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from post_commentary import DEFAULT_URL, post_comment, read_comments
 
 KEEP_LOOKING = 0  # the standing "adopt nothing yet" candidate
 QUORUM = 3  # distinct voters required before a winner is binding

@@ -64,7 +64,7 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 ## What should it avoid?
 
 - **Mixing Layers**: Do not combine Layer 1 behavior optimizations with Layer 2 tooling, documentation, or workflow modifications in a single PR.
-- **Unverified Champion Updates**: Do not update `champions/**/*.json` files unless you have reproduced the benchmark score deterministically and have a valid reason to do so.
+- **Champion File Modifications**: Do not edit `champions/**/*.json` files unless explicitly authorized by a maintainer or task prompt. Unauthorized changes will be rejected.
 - **Breaking Determinism**: Do not use non-deterministic inputs (like system time, global random, or network calls) in simulations or benchmarks.
 - **Placeholder Work**: Do not leave TODOs or generic placeholders in code or documentation.
 
@@ -78,15 +78,8 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
    ```bash
    python tools/validate_improvement.py results.json champions/tank/survival_5k.json
    ```
-3. If the change represents a valid improvement, update the champion file:
-   ```bash
-   python tools/validate_improvement.py results.json champions/tank/survival_5k.json --update-champion
-   ```
-4. If a legitimate codebase change (like a bug fix) breaks deterministic outcomes and necessitates updating all champion baselines, run:
-   ```bash
-   python tools/verify_all_champions.py
-   ```
-   And commit the resulting `verify_*.json` outputs as your new baselines.
+3. If the change represents a candidate improvement, report the score, seed, reproduction command, and all metadata in your PR description.
+4. **Do NOT edit the `champions/**/*.json` files directly** unless you are explicitly authorized by a maintainer or task prompt. Maintainers will run the full validation gate and update champions upon merging.
 
 ## What should a PR include?
 
@@ -116,7 +109,7 @@ Your task is to identify and optimize a Layer 1 behavior algorithm or configurat
 4. Modify fish parameters in core/config/fish.py or behavior logic in core/algorithms/composable/.
 5. Validate locally using the agent gate: python tools/agent_gate.py
 6. Before PR, run the fast gate: python tools/fast_gate.py
-7. Compare scores against the champion; update champion metadata only with explicit benchmark evidence and maintainer-approved scope.
+7. Compare scores against the champion; do not edit the champions/**/*.json files unless explicitly authorized by a maintainer or task prompt.
 8. Commit only the Layer 1 changes with a detailed message following the AGENTS.md format.
 Do not modify workflows, CI configurations, or unrelated documentation.
 ```

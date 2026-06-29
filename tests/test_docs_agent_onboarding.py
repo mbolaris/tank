@@ -148,3 +148,19 @@ def test_ci_job_names_in_readme_match_workflow_files():
     )
     stale_mentions = sorted(all_readme_job_mentions - actual_jobs)
     assert not stale_mentions, f"README.md mentions stale/nonexistent CI jobs: {stale_mentions}"
+
+
+def test_agent_quickstart_does_not_mention_update_champion():
+    quickstart_path = ROOT / "docs" / "AGENT_QUICKSTART.md"
+    content = quickstart_path.read_text(encoding="utf-8")
+    assert "--update-champion" not in content, (
+        "docs/AGENT_QUICKSTART.md must not instruct agents to use --update-champion. "
+        "Updating champion files is restricted to authorized agents/maintainers."
+    )
+    assert (
+        "verify_all_champions.py" not in content
+    ), "docs/AGENT_QUICKSTART.md must not instruct agents to use verify_all_champions.py."
+    assert (
+        "Do NOT edit the `champions/**/*.json` files directly" in content
+        or "do not edit the champions/**/*.json files" in content
+    )
