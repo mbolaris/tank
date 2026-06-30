@@ -336,8 +336,11 @@ Run the fast gate before opening or updating a PR:
 ```bash
 python tools/fast_gate.py
 ```
-It runs the smoke gate plus the broad non-slow test suite. It targets under
-2-3 minutes and excludes integration/slow/manual tests and full benchmarks.
+It runs the smoke gate plus the broad non-slow test suite (parallelized
+across cores via pytest-xdist). It targets under 2-3 minutes on normal
+developer/CI hardware and excludes integration/slow/manual tests and full
+benchmarks. On constrained or single-core sandboxes it can take longer; if it
+does, that's a hardware limit, not a sign something is broken.
 
 ### Tier 3: Full Validation (Maintainers/Nightly)
 
