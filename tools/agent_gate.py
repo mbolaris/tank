@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Run the under-90-second curated agent gate.
 
-This sits between the smoke gate and the fast gate:
-  smoke (under 30s) -> agent (under 90s) -> fast (under 3 min) -> full (nightly)
+This sits between the smoke gate and the pre-PR gate:
+  smoke (under 30s) -> agent (under 90s) -> pre-PR (broad suite) -> full (nightly)
 
 Use agent gate before a local commit. It runs the smoke gate first, then a
 curated set of architecture, determinism, energy, genetics, protocol, and
 import-boundary tests - broader than smoke, but much cheaper than the full
-non-slow suite that the fast gate runs.
+non-slow suite that the pre-PR gate runs.
 """
 
 try:

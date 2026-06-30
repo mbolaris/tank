@@ -35,7 +35,7 @@ Quick sanity checks to verify basic functionality:
 python tools/smoke_gate.py
 
 # Before PR: smoke gate plus broad non-slow suite
-python tools/fast_gate.py
+python tools/pre_pr_gate.py
 
 # Nightly or explicit maintainer validation
 python tools/full_gate.py

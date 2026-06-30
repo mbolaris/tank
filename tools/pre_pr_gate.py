@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the contributor pre-PR fast gate."""
+"""Run the contributor pre-PR validation gate."""
 
 try:
     from tools.gate_common import exit_for_gate, print_gate_header, python_command, run_steps
@@ -9,8 +9,8 @@ except ImportError:
 
 def main() -> None:
     print_gate_header(
-        name="FAST",
-        target="under 2-3 minutes on normal developer/CI hardware (parallelized across cores)",
+        name="PRE-PR",
+        target="varies by hardware; typically under 3 minutes on multi-core CI, longer on constrained sandboxes",
         includes="the smoke gate, then the broad non-slow test suite run in parallel",
         excludes="integration/manual/slow tests, champion reproduction, and 5k/10k benchmarks",
     )
@@ -31,7 +31,7 @@ def main() -> None:
             "Tier 2: broad non-slow tests (parallel)",
         ),
     ]
-    exit_for_gate("FAST", run_steps(steps))
+    exit_for_gate("PRE-PR", run_steps(steps))
 
 
 if __name__ == "__main__":

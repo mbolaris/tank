@@ -50,7 +50,7 @@ hand-wave a fix:
    (e.g. `scripts/diagnose_food_seeking.py`, `scripts/diagnose_evolution.py`).
 2. Make the **smallest** change. Keep Layer 1 (algorithm/config in `core/`)
    separate from any Layer 2 change (this tool, benchmarks, telemetry, gates).
-3. `python tools/smoke_gate.py`, then `python tools/fast_gate.py`.
+3. `python tools/smoke_gate.py`, then `python tools/pre_pr_gate.py`.
 4. Benchmark the candidate and compare against `champions/`. The
    evolution-quality benchmark is `benchmarks/tank/ecosystem_health_10k.py`;
    confirm trait drift actually moved with `scripts/diagnose_evolution.py`.

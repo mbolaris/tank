@@ -5,7 +5,7 @@ score reproduces within tolerance. If run_bench.py, a benchmark, or core config
 changes in a way that breaks champion reproducibility, this fails loudly
 instead of leaving the champions registry silently stale.
 
-Marked slow: runs in the nightly gate, not the fast gate.
+Marked slow: runs in the nightly gate, not the pre-PR gate.
 """
 
 import glob

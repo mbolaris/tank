@@ -54,13 +54,13 @@ def _markdown_section(content: str, heading: str) -> str:
     return content[start:next_heading]
 
 
-def test_readme_references_smoke_and_fast_gates():
+def test_readme_references_smoke_and_pre_pr_gates():
     readme_path = ROOT / "README.md"
     assert readme_path.exists(), "README.md does not exist"
     content = readme_path.read_text(encoding="utf-8")
     assert "tools/smoke_gate.py" in content, "README.md must reference tools/smoke_gate.py"
     assert "tools/agent_gate.py" in content, "README.md must reference tools/agent_gate.py"
-    assert "tools/fast_gate.py" in content, "README.md must reference tools/fast_gate.py"
+    assert "tools/pre_pr_gate.py" in content, "README.md must reference tools/pre_pr_gate.py"
 
 
 def test_agents_references_agent_quickstart():
@@ -73,12 +73,12 @@ def test_agents_references_agent_quickstart():
     assert "tools/agent_gate.py" in content, "AGENTS.md must reference tools/agent_gate.py"
 
 
-def test_vague_prompt_guidance_starts_with_smoke_gate_not_fast_gate():
+def test_vague_prompt_guidance_starts_with_smoke_gate_not_pre_pr_gate():
     agents_path = ROOT / "AGENTS.md"
     content = agents_path.read_text(encoding="utf-8")
     section = _markdown_section(content, "If you were given a vague prompt")
 
-    gate_commands = re.findall(r"python tools/(?:smoke|agent|fast|full)_gate\.py", section)
+    gate_commands = re.findall(r"python tools/(?:smoke|agent|pre_pr|full)_gate\.py", section)
 
     assert gate_commands, "AGENTS.md vague-prompt section must name a validation gate"
     assert (

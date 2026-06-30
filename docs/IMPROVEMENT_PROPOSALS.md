@@ -226,7 +226,7 @@ algorithm-count bug is exactly the failure this prevents.
   trajectories). 25 new tests in tests/core/test_parameter_registry.py.
 
 - **Theme 2 (all): god files split into focused collaborators.** Five splits,
-  each behavior-preserving (full fast gate matches baseline; champions
+  each behavior-preserving (full pre-PR gate matches baseline; champions
   reproduce exactly): `core/simulation/engine.py` 951→~700 (PhaseExecutor,
   MutationExecutor, FrameAggregator, engine_setup, headless_runner);
   `core/ecosystem.py` 995→622 (telemetry router, poker outcome recorder,

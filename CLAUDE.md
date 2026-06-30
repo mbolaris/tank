@@ -21,7 +21,7 @@ python tools/smoke_gate.py
 python tools/agent_gate.py
 
 # Run before PR (smoke gate + broad non-slow tests)
-python tools/fast_gate.py
+python tools/pre_pr_gate.py
 
 # Run full validation only for nightly or explicit maintainer review
 python tools/full_gate.py
@@ -124,10 +124,10 @@ Local validation tiers:
 
 1. **Smoke Gate**: `python tools/smoke_gate.py` before coding
 2. **Agent Gate**: `python tools/agent_gate.py` before local commit
-3. **Fast Gate**: `python tools/fast_gate.py` before PR
+3. **Pre-PR Gate**: `python tools/pre_pr_gate.py` before PR
 4. **Full Gate**: `python tools/full_gate.py` only for maintainers/nightly/full validation
 
-Public CI jobs are named `smoke-gate`, `fast-gate`, `frontend-ci`, and
+Public CI jobs are named `smoke-gate`, `pre-pr-gate`, `frontend-ci`, and
 `nightly-full` in `ci.yml`, plus `verify-champions` and `benchmark-gate` in
 `bench.yml`. Benchmark CI verifies champions and runs full determinism checks
 nightly or when a maintainer dispatches it explicitly.
@@ -140,7 +140,7 @@ The standard evolution loop:
 2. **Baseline**: Run `python main.py --headless --max-frames 30000 --export-stats results.json --seed 42`
 3. **Evaluate**: Check `results.json` for underperforming algorithms (high starvation rate, low reproduction)
 4. **Improve**: Modify code in `core/algorithms/` or `core/config/`
-5. **Validate**: Run `python tools/agent_gate.py` before local commit, and `python tools/fast_gate.py` before PR
+5. **Validate**: Run `python tools/agent_gate.py` before local commit, and `python tools/pre_pr_gate.py` before PR
 6. **Benchmark**: Run full benchmarks only after a candidate improvement exists
 7. **Compare**: Compare candidate results against the `champions/` registry
 8. **Commit**: Clear message with metrics, reproduction command, and evidence
