@@ -107,7 +107,13 @@ class ReproductionComponent:
         self.overflow_energy_bank -= used
         return used
 
-    def can_reproduce(self, life_stage: "LifeStage", energy: float, max_energy: float) -> bool:
+    def can_reproduce(
+        self,
+        life_stage: "LifeStage",
+        energy: float,
+        max_energy: float,
+        mutation_context: "ReproductionMutationContext | None" = None,
+    ) -> bool:
         """Check if fish can reproduce.
 
         Fish must have 90% of their max energy to reproduce - proving they are successful
@@ -123,7 +129,10 @@ class ReproductionComponent:
         """
         from core.entities.base import LifeStage
 
-        min_energy_for_reproduction = max_energy * self.REPRODUCTION_ENERGY_PERCENTAGE
+        threshold = self.REPRODUCTION_ENERGY_PERCENTAGE
+        if mutation_context is not None:
+            threshold = mutation_context.protected_reproduction_ratio(threshold)
+        min_energy_for_reproduction = max_energy * threshold
         return (
             life_stage == LifeStage.ADULT
             and energy >= min_energy_for_reproduction
@@ -135,17 +144,21 @@ class ReproductionComponent:
         life_stage: "LifeStage",
         energy: float,
         max_energy: float,
+        mutation_context: "ReproductionMutationContext | None" = None,
     ) -> bool:
         """Check if the fish can trigger asexual reproduction.
 
         Asexual reproduction requires higher energy than sexual reproduction,
         as the parent must fund the entire offspring alone.
         """
-        if not self.can_reproduce(life_stage, energy, max_energy):
+        if not self.can_reproduce(life_stage, energy, max_energy, mutation_context):
             return False
 
         # Asexual reproduction requires 95% energy (slightly less than 100%)
-        return energy >= max_energy * self.ASEXUAL_REPRODUCTION_THRESHOLD
+        threshold = self.ASEXUAL_REPRODUCTION_THRESHOLD
+        if mutation_context is not None:
+            threshold = mutation_context.protected_reproduction_ratio(threshold)
+        return energy >= max_energy * threshold
 
     def trigger_asexual_reproduction(
         self,

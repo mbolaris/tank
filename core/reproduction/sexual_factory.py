@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from core.energy.energy_utils import apply_energy_delta
 from core.util.stable_hash import stable_algorithm_id
@@ -162,6 +162,7 @@ def create_standard_mating_offspring(
         initial_energy=parent_contrib + mate_contrib,
         parent_id=parent.fish_id,
     )
+    cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     _record_successful_mating(parent)
     parent.visual_state.set_birth_effect(60)
@@ -247,6 +248,7 @@ def create_post_poker_offspring(
         initial_energy=total_contrib,
         parent_id=winner.fish_id,
     )
+    cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     _record_successful_mating(winner)
     winner.visual_state.set_birth_effect(60)

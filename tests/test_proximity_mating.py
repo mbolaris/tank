@@ -12,7 +12,7 @@ from core.config.fish import (
 )
 from core.config.simulation_config import SimulationConfig
 from core.entities import Fish, LifeStage
-from core.genetics import Genome
+from core.genetics import Genome, ReproductionMutationContext
 from core.movement_strategy import AlgorithmicMovement
 from core.reproduction.reproduction_service import ReproductionService
 from core.world import World
@@ -172,3 +172,21 @@ def test_proximity_mating_requires_local_parent_energy() -> None:
 
     assert stats.proximity_sexual == 0
     assert engine.spawned == []
+
+
+def test_protected_niche_context_can_unlock_trait_asexual_reproduction() -> None:
+    env = _MiniEnvironment()
+    ecosystem = _MiniEcosystem()
+    parent = _adult_fish(env, ecosystem, x=80, y=80, energy_ratio=0.86)
+    engine = _MiniEngine([parent], env)
+    service = ReproductionService(cast("SimpleNamespace", engine))
+
+    service._mutation_controller.context_for_parents = (  # type: ignore[method-assign]
+        lambda *_parents: ReproductionMutationContext(preserve_parent_lineage=True)
+    )
+
+    stats = service.update_frame(1)
+
+    assert stats.trait_asexual == 1
+    assert len(engine.spawned) == 1
+    assert engine.spawned[0].protected_niche_birth

@@ -72,7 +72,6 @@ class ReproductionService:
         self._mutation_controller.record_diversity_sample(frame)
 
         fish_count = len(fish_list)
-
         proximity = self._handle_proximity_mating(fish_list, fish_count)
         fish_count += proximity
 
@@ -221,7 +220,6 @@ class ReproductionService:
             required_credits
         ):
             return None
-
         mutation_context = self._mutation_context_for_parents(winner_fish)
         baby = self.create_asexual_offspring(winner_fish, mutation_context=mutation_context)
         if baby is None:
@@ -284,7 +282,6 @@ class ReproductionService:
                 required_credits
             ):
                 continue
-
             mutation_context = self._mutation_context_for_parents(fish)
             baby = self.maybe_create_banked_offspring(fish, mutation_context=mutation_context)
             if baby is None:
@@ -319,8 +316,12 @@ class ReproductionService:
             life_stage = fish.life_stage
             if life_stage is None:
                 continue
+            mutation_context = self._mutation_context_for_parents(fish)
             if not fish._reproduction_component.can_asexually_reproduce(
-                life_stage, fish.energy, fish.max_energy
+                life_stage,
+                fish.energy,
+                fish.max_energy,
+                mutation_context,
             ):
                 continue
 
@@ -328,7 +329,6 @@ class ReproductionService:
             asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
             rng = fish.environment.rng
             if rng.random() < asexual_trait:
-                mutation_context = self._mutation_context_for_parents(fish)
                 try:
                     baby = fish._create_asexual_offspring(mutation_context=mutation_context)
                 except TypeError:

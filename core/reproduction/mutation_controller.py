@@ -21,6 +21,8 @@ class DiversityMutationController:
     SAMPLE_INTERVAL_FRAMES = 500
     STALL_WINDOW_FRAMES = 10_000
     UNDERREPRESENTED_LINEAGE_SHARE = 0.15
+    UNDERREPRESENTED_GENETIC_NICHE_SHARE = 0.20
+    GENETIC_NICHE_RADIUS = 0.30
 
     def __init__(
         self,
@@ -92,15 +94,36 @@ class DiversityMutationController:
             if behavior_id is not None:
                 counts[behavior_id] = counts.get(behavior_id, 0) + 1
 
-        if len(counts) <= 1:
-            return False
+        population = len(fish_list)
+        if len(counts) > 1:
+            for parent in parents:
+                behavior_id = self._behavior_id_for(parent)
+                if behavior_id is None:
+                    continue
+                if counts.get(behavior_id, 0) / population <= self.UNDERREPRESENTED_LINEAGE_SHARE:
+                    return True
+        return self._preserve_genetically_isolated_parent(parents, fish_list)
+
+    def _preserve_genetically_isolated_parent(
+        self,
+        parents: tuple[Fish, ...],
+        fish_list: list[Fish],
+    ) -> bool:
+        from core.genetics.diversity import genetic_distance
 
         population = len(fish_list)
+        if population < 4:
+            return False
+
+        max_neighbors = max(1, int(population * self.UNDERREPRESENTED_GENETIC_NICHE_SHARE))
         for parent in parents:
-            behavior_id = self._behavior_id_for(parent)
-            if behavior_id is None:
-                continue
-            if counts.get(behavior_id, 0) / population <= self.UNDERREPRESENTED_LINEAGE_SHARE:
+            neighbor_count = 0
+            for fish in fish_list:
+                if genetic_distance(parent.genome, fish.genome) <= self.GENETIC_NICHE_RADIUS:
+                    neighbor_count += 1
+                    if neighbor_count > max_neighbors:
+                        break
+            if neighbor_count <= max_neighbors:
                 return True
         return False
 
