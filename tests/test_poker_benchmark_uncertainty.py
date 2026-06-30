@@ -157,3 +157,61 @@ def test_tracker_persists_uncertainty_fields(monkeypatch, tmp_path):
     exported = json.loads(export_path.read_text())
     assert exported["snapshots"][0]["pop_bb_per_100_ci_95"] == [5.2, 24.8]
     assert exported["snapshots"][0]["pop_weighted_bb_ci_95"] == [6.24, 29.76]
+
+
+def test_tracker_loads_history_on_init(monkeypatch, tmp_path):
+    def fake_quick_benchmark(fish_population, frame):
+        return SimpleNamespace(
+            frame=frame,
+            timestamp="2026-06-23T00:00:00",
+            pop_avg_bb_per_100=12.345,
+            pop_avg_bb_per_100_ci_95=(7.0, 18.0),
+            pop_weighted_bb_per_100=15.678,
+            pop_bb_vs_trivial=0.0,
+            pop_bb_vs_weak=0.0,
+            pop_bb_vs_moderate=0.0,
+            pop_bb_vs_strong=0.0,
+            pop_bb_vs_expert=0.0,
+            pop_mean_elo=1234.0,
+            pop_median_elo=1230.0,
+            elo_tier_distribution={},
+            pop_confidence_vs_weak=0.5,
+            pop_confidence_vs_moderate=0.5,
+            pop_confidence_vs_strong=0.5,
+            pop_confidence_vs_expert=0.5,
+            strategy_count={"tight_aggressive": 1},
+            best_fish_id=1,
+            best_bb_per_100=20.0,
+            best_elo=1300.0,
+            best_strategy="tight_aggressive",
+            pop_vs_baseline={},
+            fish_evaluated=1,
+            total_hands=100,
+            individual_results=[
+                FishBenchmarkResult(
+                    fish_id=1,
+                    fish_generation=2,
+                    strategy_id="tight_aggressive",
+                    strategy_params={},
+                    overall_bb_per_100=10.0,
+                    weighted_bb_per_100=12.0,
+                ),
+            ],
+        )
+
+    monkeypatch.setattr(comprehensive_benchmark, "run_quick_benchmark", fake_quick_benchmark)
+
+    export_path = tmp_path / "poker_evolution.json"
+    tracker = EvolutionBenchmarkTracker(export_path=export_path)
+    tracker.run_and_record([SimpleNamespace(generation=2)], current_frame=100, force=True)
+
+    # Instantiate a new tracker pointing to the same file path
+    tracker2 = EvolutionBenchmarkTracker(export_path=export_path)
+
+    # Assert history was loaded and reconstructed correctly
+    assert len(tracker2.history.snapshots) == 1
+    assert tracker2._last_eval_frame == 100
+    assert tracker2.history.elo_trend == [1234.0]
+    assert tracker2.history.elo_median_trend == [1230.0]
+    assert tracker2.history.best_elo_trend == [1300.0]
+    assert tracker2.history.elo_ema == [1234.0]

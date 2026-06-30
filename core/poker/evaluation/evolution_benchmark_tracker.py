@@ -245,10 +245,114 @@ class EvolutionBenchmarkTracker:
             use_quick_benchmark: Use quick (True) or full (False) benchmark config
         """
         self.eval_interval_frames = eval_interval_frames
-        self.export_path = export_path
+        self.export_path = Path(export_path) if export_path is not None else None
         self.use_quick_benchmark = use_quick_benchmark
         self.history = EvolutionBenchmarkHistory()
         self._last_eval_frame = -eval_interval_frames  # Allow immediate first run
+
+        # Load existing history if file exists to prevent resetting ELO trends on resume
+        if self.export_path and self.export_path.exists():
+            self.load_history()
+
+    def load_history(self) -> None:
+        """Load history from the JSON export path if it exists."""
+        if not self.export_path or not self.export_path.exists():
+            return
+
+        try:
+            with open(self.export_path) as f:
+                data = json.load(f)
+
+            snapshots_data = data.get("snapshots", [])
+            for s in snapshots_data:
+                frame = s.get("frame", 0)
+                timestamp = s.get("timestamp", "")
+                generation_estimate = s.get("generation", 0)
+
+                pop_bb_per_100 = s.get("pop_bb_per_100", 0.0)
+                pop_weighted_bb = s.get("pop_weighted_bb", 0.0)
+                pop_bb_vs_trivial = s.get("pop_bb_vs_trivial", 0.0)
+                pop_bb_vs_weak = s.get("pop_bb_vs_weak", 0.0)
+                pop_bb_vs_moderate = s.get("pop_bb_vs_moderate", 0.0)
+                pop_bb_vs_strong = s.get("pop_bb_vs_strong", 0.0)
+                pop_bb_vs_expert = s.get("pop_bb_vs_expert", 0.0)
+
+                pop_bb_per_100_ci_95_list = s.get("pop_bb_per_100_ci_95", [0.0, 0.0])
+                pop_bb_per_100_ci_95 = (pop_bb_per_100_ci_95_list[0], pop_bb_per_100_ci_95_list[1])
+                pop_bb_per_100_se = s.get("pop_bb_per_100_se", 0.0)
+
+                pop_weighted_bb_ci_95_list = s.get("pop_weighted_bb_ci_95", [0.0, 0.0])
+                pop_weighted_bb_ci_95 = (
+                    pop_weighted_bb_ci_95_list[0],
+                    pop_weighted_bb_ci_95_list[1],
+                )
+                pop_weighted_bb_se = s.get("pop_weighted_bb_se", 0.0)
+
+                pop_mean_elo = s.get("pop_mean_elo", 1200.0)
+                pop_median_elo = s.get("pop_median_elo", 1200.0)
+                elo_tier_distribution = s.get("elo_tier_distribution", {})
+
+                confidence_vs_weak = s.get("confidence_vs_weak", 0.5)
+                confidence_vs_moderate = s.get("confidence_vs_moderate", 0.5)
+                confidence_vs_strong = s.get("confidence_vs_strong", 0.5)
+                confidence_vs_expert = s.get("confidence_vs_expert", 0.5)
+
+                strategy_distribution = s.get("strategy_distribution", {})
+                dominant_strategy = s.get("dominant_strategy", "")
+
+                best_fish_id = s.get("best_fish_id")
+                best_bb_per_100 = s.get("best_bb_per_100", 0.0)
+                best_elo = s.get("best_elo", 1200.0)
+                best_strategy = s.get("best_strategy", "")
+
+                per_baseline_bb_per_100 = s.get("per_baseline", {})
+
+                fish_evaluated = s.get("fish_evaluated", 0)
+                total_hands = s.get("total_hands", 0)
+
+                snapshot = BenchmarkSnapshot(
+                    frame=frame,
+                    timestamp=timestamp,
+                    generation_estimate=generation_estimate,
+                    pop_bb_per_100=pop_bb_per_100,
+                    pop_weighted_bb=pop_weighted_bb,
+                    pop_bb_vs_trivial=pop_bb_vs_trivial,
+                    pop_bb_vs_weak=pop_bb_vs_weak,
+                    pop_bb_vs_moderate=pop_bb_vs_moderate,
+                    pop_bb_per_100_ci_95=pop_bb_per_100_ci_95,
+                    pop_bb_per_100_se=pop_bb_per_100_se,
+                    pop_weighted_bb_ci_95=pop_weighted_bb_ci_95,
+                    pop_weighted_bb_se=pop_weighted_bb_se,
+                    pop_bb_vs_strong=pop_bb_vs_strong,
+                    pop_bb_vs_expert=pop_bb_vs_expert,
+                    pop_mean_elo=pop_mean_elo,
+                    pop_median_elo=pop_median_elo,
+                    elo_tier_distribution=elo_tier_distribution,
+                    confidence_vs_weak=confidence_vs_weak,
+                    confidence_vs_moderate=confidence_vs_moderate,
+                    confidence_vs_strong=confidence_vs_strong,
+                    confidence_vs_expert=confidence_vs_expert,
+                    strategy_distribution=strategy_distribution,
+                    dominant_strategy=dominant_strategy,
+                    best_fish_id=best_fish_id,
+                    best_bb_per_100=best_bb_per_100,
+                    best_elo=best_elo,
+                    best_strategy=best_strategy,
+                    per_baseline_bb_per_100=per_baseline_bb_per_100,
+                    fish_evaluated=fish_evaluated,
+                    total_hands=total_hands,
+                )
+                self.history.add_snapshot(snapshot)
+
+            if self.history.snapshots:
+                self._last_eval_frame = self.history.snapshots[-1].frame
+                logger.info(
+                    f"Loaded {len(self.history.snapshots)} evolution benchmark snapshots "
+                    f"from {self.export_path}. Last eval frame set to {self._last_eval_frame}."
+                )
+
+        except Exception as e:
+            logger.warning(f"Failed to load benchmark history from {self.export_path}: {e}")
 
     def should_run(self, current_frame: int) -> bool:
         """Check if it's time for a benchmark run."""
