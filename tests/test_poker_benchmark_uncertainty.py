@@ -5,13 +5,35 @@ import math
 from types import SimpleNamespace
 
 from core.poker.evaluation import comprehensive_benchmark
-from core.poker.evaluation.benchmark_suite import ComprehensiveBenchmarkConfig
+from core.poker.evaluation.benchmark_suite import (
+    BASELINE_OPPONENTS,
+    QUICK_BENCHMARK_CONFIG,
+    BaselineDifficulty,
+    ComprehensiveBenchmarkConfig,
+)
 from core.poker.evaluation.comprehensive_benchmark import FishBenchmarkResult
 from core.poker.evaluation.evolution_benchmark_tracker import EvolutionBenchmarkTracker
 
 
 class _StubFish:
     poker_stats = None
+
+
+def test_quick_benchmark_covers_reported_confidence_tiers():
+    selected = set(QUICK_BENCHMARK_CONFIG.fish_vs_baselines.baseline_opponents)
+    by_difficulty = {
+        difficulty: {
+            opponent.strategy_id
+            for opponent in BASELINE_OPPONENTS
+            if opponent.difficulty is difficulty
+        }
+        for difficulty in BaselineDifficulty
+    }
+
+    assert selected & by_difficulty[BaselineDifficulty.WEAK]
+    assert selected & by_difficulty[BaselineDifficulty.MODERATE]
+    assert selected & by_difficulty[BaselineDifficulty.STRONG]
+    assert selected & by_difficulty[BaselineDifficulty.EXPERT]
 
 
 def test_population_benchmark_populates_bb100_uncertainty(monkeypatch):
