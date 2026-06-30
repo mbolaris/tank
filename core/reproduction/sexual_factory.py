@@ -127,14 +127,11 @@ def create_standard_mating_offspring(
 
     _mutate_code_policies(parent, offspring_genome, engine)
 
-    baby_max_energy = (
-        ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-    )
-    if baby_max_energy <= 0:
-        return None
+    # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
+    newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
 
-    parent_contrib = baby_max_energy * config.parent_energy_contribution
-    mate_contrib = baby_max_energy * config.parent_energy_contribution
+    parent_contrib = newborn_energy_target * config.parent_energy_contribution
+    mate_contrib = newborn_energy_target * config.parent_energy_contribution
     if parent.energy < parent_contrib or mate.energy < mate_contrib:
         return None
 
@@ -209,11 +206,8 @@ def create_post_poker_offspring(
 
     _mutate_code_policies(winner, offspring_genome, engine)
 
-    baby_max_energy = (
-        ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-    )
-    if baby_max_energy <= 0:
-        return None
+    # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
+    newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
 
     winner_contrib = max(0.0, winner.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
     mate_contrib = max(0.0, mate.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
@@ -221,11 +215,11 @@ def create_post_poker_offspring(
     if total_contrib <= 0:
         return None
 
-    if total_contrib > baby_max_energy:
-        scale = baby_max_energy / total_contrib
+    if total_contrib > newborn_energy_target:
+        scale = newborn_energy_target / total_contrib
         winner_contrib *= scale
         mate_contrib *= scale
-        total_contrib = baby_max_energy
+        total_contrib = newborn_energy_target
 
     apply_energy_delta(winner, -winner_contrib, source="post_poker_reproduction")
     apply_energy_delta(mate, -mate_contrib, source="post_poker_reproduction")

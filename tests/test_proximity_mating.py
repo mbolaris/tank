@@ -146,7 +146,7 @@ def test_proximity_mating_spawns_sexual_offspring_before_cloning() -> None:
     expected_contribution = (
         ENERGY_MAX_DEFAULT
         * FISH_BABY_SIZE
-        * baby.genome.physical.size_modifier.value
+        * 1.0  # Fair-Start: decoupled from offspring size modifier
         * STANDARD_MATING_PARENT_ENERGY_CONTRIBUTION
     )
     assert parent.energy == parent_energy_before - expected_contribution

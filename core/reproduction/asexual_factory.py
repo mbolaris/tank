@@ -80,12 +80,11 @@ def create_asexual_offspring(
         mutate_code_policies(offspring_genome.behavioral, pool, rng)
         validate_code_policy_ids(offspring_genome.behavioral, pool, rng)
 
-    baby_max_energy = (
-        ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-    )
+    # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
+    newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
 
-    bank_used = fish._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
-    remaining_needed = baby_max_energy - bank_used
+    bank_used = fish._reproduction_component.consume_overflow_energy_bank(newborn_energy_target)
+    remaining_needed = newborn_energy_target - bank_used
     parent_transfer = min(fish.energy, remaining_needed)
     apply_energy_delta(fish, -parent_transfer, source="asexual_reproduction")
     baby_initial_energy = bank_used + parent_transfer
