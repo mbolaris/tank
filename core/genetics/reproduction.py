@@ -11,6 +11,7 @@ DIVERSITY_DANGER_FLOOR = 0.12
 DIVERSITY_RECOVERY_FLOOR = 0.25
 DEFAULT_SUB_BEHAVIOR_SWITCH_RATE = 0.08
 DANGER_SUB_BEHAVIOR_SWITCH_RATE = 0.16
+PROTECTED_NICHE_REPRODUCTION_DISCOUNT = 0.10
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,17 @@ class ReproductionMutationContext:
         if self.diversity_score < DIVERSITY_DANGER_FLOOR:
             return DANGER_SUB_BEHAVIOR_SWITCH_RATE
         return base_rate
+
+    def protected_reproduction_ratio(self, base_ratio: float) -> float:
+        """Return a niche-protected reproduction threshold ratio.
+
+        Protection is deliberately modest: it gives underrepresented parents a
+        small chance to reproduce before the dominant niche crowds them out,
+        without making reproduction free or flattening selection globally.
+        """
+        if not self.preserve_parent_lineage:
+            return base_ratio
+        return max(0.0, base_ratio * (1.0 - PROTECTED_NICHE_REPRODUCTION_DISCOUNT))
 
 
 @dataclass(frozen=True)

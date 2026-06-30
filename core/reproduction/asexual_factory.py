@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from core.energy.energy_utils import apply_energy_delta
 from core.util.stable_hash import stable_algorithm_id
@@ -108,6 +108,7 @@ def create_asexual_offspring(
         initial_energy=baby_initial_energy,
         parent_id=fish.fish_id,
     )
+    cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     composable = fish.genome.behavioral.behavior
     if composable is not None and composable.value is not None:

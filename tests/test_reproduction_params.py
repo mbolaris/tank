@@ -2,6 +2,8 @@ import random
 
 import pytest
 
+from core.agents.components.reproduction_component import ReproductionComponent
+from core.entities import LifeStage
 from core.genetics import Genome, ReproductionMutationContext, ReproductionParams
 from core.genetics.reproduction import DANGER_SUB_BEHAVIOR_SWITCH_RATE
 
@@ -73,3 +75,21 @@ def test_danger_zone_escalates_behavior_switch_rate_only_when_active() -> None:
 
     assert inactive.sub_behavior_switch_rate(0.08) == pytest.approx(0.08)
     assert active.sub_behavior_switch_rate(0.08) == pytest.approx(DANGER_SUB_BEHAVIOR_SWITCH_RATE)
+
+
+def test_protected_lineage_gets_modest_asexual_energy_relief() -> None:
+    component = ReproductionComponent()
+    protected = ReproductionMutationContext(preserve_parent_lineage=True)
+
+    assert not component.can_asexually_reproduce(LifeStage.ADULT, 86.0, 100.0)
+    assert component.can_asexually_reproduce(LifeStage.ADULT, 86.0, 100.0, protected)
+
+
+def test_protected_lineage_still_requires_adult_and_cooldown() -> None:
+    component = ReproductionComponent()
+    protected = ReproductionMutationContext(preserve_parent_lineage=True)
+
+    assert not component.can_asexually_reproduce(LifeStage.BABY, 100.0, 100.0, protected)
+
+    component.reproduction_cooldown = 1
+    assert not component.can_asexually_reproduce(LifeStage.ADULT, 100.0, 100.0, protected)
