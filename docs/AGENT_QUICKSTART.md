@@ -35,9 +35,9 @@ pre-commit install
   ```bash
   python tools/agent_gate.py
   ```
-* **Fast Gate (Pre-PR Check)**: Runs the smoke gate plus all non-slow unit tests. Runs in under 3 minutes.
+* **Pre-PR Gate**: Runs the smoke gate plus all non-slow unit tests (parallelized). Runtime varies by hardware.
   ```bash
-  python tools/fast_gate.py
+  python tools/pre_pr_gate.py
   ```
 * **Full Gate (Nightly/Maintainers only)**: Runs everything, including integration/slow tests and strict champion reproduction. Do not run this for routine local iterations.
   ```bash
@@ -87,7 +87,7 @@ A PR title must describe the improvement clearly. The description must include:
 1. **Summary**: What was changed and why.
 2. **Benchmark Results**: Before and after scores.
 3. **Reproduction Command**: The exact command and seed used to reproduce the score.
-4. **Validation Evidence**: Confirmation that `python tools/agent_gate.py` and `python tools/fast_gate.py` pass.
+4. **Validation Evidence**: Confirmation that `python tools/agent_gate.py` and `python tools/pre_pr_gate.py` pass.
 5. **No Regressions**: Evidence that other active benchmarks were not degraded.
 
 ---
@@ -108,7 +108,7 @@ Your task is to identify and optimize a Layer 1 behavior algorithm or configurat
 3. Run a baseline benchmark: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 4. Modify fish parameters in core/config/fish.py or behavior logic in core/algorithms/composable/.
 5. Validate locally using the agent gate: python tools/agent_gate.py
-6. Before PR, run the fast gate: python tools/fast_gate.py
+6. Before PR, run the pre-PR gate: python tools/pre_pr_gate.py
 7. Compare scores against the champion; do not edit the champions/**/*.json files unless explicitly authorized by a maintainer or task prompt.
 8. Commit only the Layer 1 changes with a detailed message following the AGENTS.md format.
 Do not modify workflows, CI configurations, or unrelated documentation.
@@ -122,7 +122,7 @@ Your task is to improve documentation, testing, or benchmark usability.
 2. Run the smoke gate: python tools/smoke_gate.py
 3. Propose/implement edits to documentation, test harnesses under tests/, or tools in tools/.
 4. Run the agent gate: python tools/agent_gate.py
-5. Before PR, run the fast gate: python tools/fast_gate.py
+5. Before PR, run the pre-PR gate: python tools/pre_pr_gate.py
 6. Verify changes do not introduce type errors or lint failures.
 7. Commit only Layer 2 changes.
 Do not modify fish behaviors, game rules, physics, or champion scores.

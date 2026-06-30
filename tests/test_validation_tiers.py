@@ -161,8 +161,8 @@ def test_run_bench_contract_tests_do_not_import_real_benchmarks():
     assert "benchmarks/soccer/" not in source.replace("\\", "/")
 
 
-def test_fast_gate_composes_smoke_gate_and_excludes_expensive_markers():
-    source = (ROOT / "tools" / "fast_gate.py").read_text(encoding="utf-8")
+def test_pre_pr_gate_composes_smoke_gate_and_excludes_expensive_markers():
+    source = (ROOT / "tools" / "pre_pr_gate.py").read_text(encoding="utf-8")
 
     assert "tools/smoke_gate.py" in source
     assert "not slow and not integration and not manual" in source
@@ -180,7 +180,7 @@ def test_agent_gate_composes_smoke_gate_and_uses_curated_tests():
 def test_no_unmarked_expensive_simulation_loops():
     """Ensure ordinary tests cannot accidentally grow into real simulations.
 
-    The fast gate should include cheap unit and contract coverage. Tests that run
+    The pre-PR gate should include cheap unit and contract coverage. Tests that run
     long simulation loops, invoke real benchmarks in subprocesses, sleep for long
     periods, or run headless commands with large frame counts belong behind the
     slow/integration/manual markers.

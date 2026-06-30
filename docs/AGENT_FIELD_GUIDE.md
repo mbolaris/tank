@@ -55,7 +55,7 @@ specialization of it. Memorize the shape:
 2. PICK     one task from the menu in §4       # exactly one, the smallest that helps
 3. CHANGE   edit the files the recipe names    # nothing the recipe didn't mention
 4. RUN      python tools/agent_gate.py        # local validation gate (under 90s)
-5. PROVE    python tools/fast_gate.py          # did I keep it healthy?
+5. PROVE    python tools/pre_pr_gate.py          # did I keep it healthy?
 6. WRITE    a clear commit + PR (§6 template)  # what, why, and the proof
 7. STOP     one focused change per PR           # resist doing "just one more thing"
 ```
@@ -152,10 +152,10 @@ your diff touches only the lines needed for the fix.
 2. Write a small, fast, deterministic test. Copy the style of a neighboring test
    file. No network, no sleeps, no global random — pass seeds explicitly.
 3. Run just your test: `pytest tests/path/to/your_test.py -v`.
-4. Run `python tools/fast_gate.py` to confirm the whole non-slow suite is green.
+4. Run `python tools/pre_pr_gate.py` to confirm the whole non-slow suite is green.
 
 **Done-check:** Your test passes, it fails if you deliberately break the thing
-it tests (try it, then revert), and `fast_gate` is green.
+it tests (try it, then revert), and `pre_pr_gate` is green.
 
 ---
 
@@ -187,10 +187,10 @@ it tests (try it, then revert), and `fast_gate` is green.
    ```bash
    python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py --seed 42 --out eco.json
    ```
-6. Run `python tools/fast_gate.py`.
+6. Run `python tools/pre_pr_gate.py`.
 
 **Done-check:** `after.score > before.score` on `survival_5k`, no meaningful
-regression on `ecosystem_health_10k`, `fast_gate` green, and your PR quotes both
+regression on `ecosystem_health_10k`, `pre_pr_gate` green, and your PR quotes both
 numbers and the exact reproduction commands.
 
 > ⚠️ Do **not** edit `champions/tank/survival_5k.json` to record your new score.
@@ -221,9 +221,9 @@ the composable framework in `core/algorithms/composable/` (`behavior.py`,
    crash inside `execute`.
 4. Prove it the same way as T3: baseline benchmark → change → re-benchmark →
    compare scores, check a second benchmark for regressions.
-5. Run `python tools/fast_gate.py`.
+5. Run `python tools/pre_pr_gate.py`.
 
-**Done-check:** Measurable benchmark improvement with no regression, `fast_gate`
+**Done-check:** Measurable benchmark improvement with no regression, `pre_pr_gate`
 green, and the algorithm still handles edge cases (no food visible, critical
 energy) without erroring.
 
@@ -248,10 +248,10 @@ energy) without erroring.
    already prints unless that's the fix.
 3. Run the script before and after to confirm it still works and now does the
    new thing.
-4. Run `python tools/fast_gate.py`.
+4. Run `python tools/pre_pr_gate.py`.
 
 **Done-check:** The tool runs cleanly, does the new helpful thing, breaks
-nothing else, and `fast_gate` is green.
+nothing else, and `pre_pr_gate` is green.
 
 ---
 
@@ -301,7 +301,7 @@ changed* and *how do I know it's safe*. Give them both. Copy this template:
 
 ## Proof
 <for Layer 1: before/after scores + the exact reproduction commands and seed>
-<for Layer 2: confirmation that smoke_gate / agent_gate / fast_gate pass>
+<for Layer 2: confirmation that smoke_gate / agent_gate / pre_pr_gate pass>
 
 Reproduction:
     python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
@@ -310,7 +310,7 @@ Before: <score>
 After:  <score>
 
 ## No regressions
-<which other benchmark(s) you checked, and that fast_gate is green>
+<which other benchmark(s) you checked, and that pre_pr_gate is green>
 ```
 
 **Commit message** — same idea, compressed. State the change, the numbers, the
@@ -318,7 +318,7 @@ seed, and the reproduction command. Avoid vague messages like "improved stuff."
 
 Before you commit, run the self-check:
 
-- [ ] `python tools/agent_gate.py` and `python tools/fast_gate.py` are green.
+- [ ] `python tools/agent_gate.py` and `python tools/pre_pr_gate.py` are green.
 - [ ] My diff is **one focused change** (Rule 1).
 - [ ] I did **not** touch `champions/**` by hand (Rule 3).
 - [ ] I added **no** non-determinism (Rule 2).

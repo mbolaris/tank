@@ -37,7 +37,7 @@ python main.py --headless --max-frames 30000 --stats-interval 10000 --export-sta
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # 5. Identify what needs improvement, make changes, run the agent gate, commit
-#    Run the fast gate before opening a PR
+#    Run the pre-PR gate before opening a PR
 ```
 
 ---
@@ -135,7 +135,7 @@ python tools/evolution_report.py --history evolution_journal.jsonl
 When the human asks you to *act* on the findings, drive the top-ranked
 recommendation through the normal **Evolution Loop** (do not hand-wave a fix):
 reproduce it with the named diagnostic, make the smallest change, run the smoke
-then fast gate, benchmark the candidate against the `champions/` registry
+then pre-PR gate, benchmark the candidate against the `champions/` registry
 (`ecosystem_health_10k` is the evolution-quality benchmark), and only claim an
 improvement with a reproduction command, seed, score, and metadata. Keep Layer 1
 (algorithm/config) changes separate from any Layer 2 change to the report tool,
@@ -330,17 +330,16 @@ python tools/agent_gate.py
 ```
 It runs the smoke gate plus a curated correctness suite of architecture, energy, genetics, and protocol tests. It targets under 90 seconds.
 
-### Tier 2: Fast Gate (Before PR)
+### Tier 2: Pre-PR Gate (Before PR)
 
-Run the fast gate before opening or updating a PR:
+Run the pre-PR gate before opening or updating a PR:
 ```bash
-python tools/fast_gate.py
+python tools/pre_pr_gate.py
 ```
 It runs the smoke gate plus the broad non-slow test suite (parallelized
-across cores via pytest-xdist). It targets under 2-3 minutes on normal
-developer/CI hardware and excludes integration/slow/manual tests and full
-benchmarks. On constrained or single-core sandboxes it can take longer; if it
-does, that's a hardware limit, not a sign something is broken.
+across cores via pytest-xdist). Runtime varies by hardware — typically a
+few minutes on multi-core CI, longer on constrained or single-core sandboxes.
+It excludes integration/slow/manual tests and full benchmarks.
 
 ### Tier 3: Full Validation (Maintainers/Nightly)
 
@@ -353,7 +352,7 @@ for nightly or explicit maintainer use, not routine agent iteration.
 
 ### Run Full Benchmarks (Only for Candidate Improvements)
 
-Only run full benchmarks after you have confirmed that the fast gate passes and you have a candidate algorithm/config improvement:
+Only run full benchmarks after you have confirmed that the pre-PR gate passes and you have a candidate algorithm/config improvement:
 ```bash
 # Run benchmark
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
@@ -443,7 +442,7 @@ Tank World has built-in support for Claude Code agentic development:
 3. Run a benchmark to understand current baseline
 4. Analyze results and identify improvement targets
 5. Make changes and run `python tools/agent_gate.py` before local commit
-6. Run `python tools/fast_gate.py` before PR
+6. Run `python tools/pre_pr_gate.py` before PR
 7. Commit with clear metrics in the message
 
 ### What Claude Code Can Do Here
@@ -586,13 +585,13 @@ Workflow:
 2. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 3. Analyze: Review results.json for underperformers
 4. Improve: Modify relevant code in core/
-5. Validate: Run agent gate (python tools/agent_gate.py) before local commit, then fast gate (python tools/fast_gate.py) before PR; run full benchmarks only for a candidate improvement
+5. Validate: Run agent gate (python tools/agent_gate.py) before local commit, then pre-PR gate (python tools/pre_pr_gate.py) before PR; run full benchmarks only for a candidate improvement
 6. Commit: Clear message with metrics and reproduction command
 7. Push: git push -u origin [branch]
 
 Rules:
 - Always use deterministic seeds
-- Run the agent gate (python tools/agent_gate.py) before committing, and the fast gate (python tools/fast_gate.py) before opening a PR
+- Run the agent gate (python tools/agent_gate.py) before committing, and the pre-PR gate (python tools/pre_pr_gate.py) before opening a PR
 - Never claim benchmark improvement without reproduction command, seed, score, and metadata
 - Layer 2 changes (benchmarks, CI, scoring, prompts, gates, champion metadata) must be separate from Layer 1 improvements
 - One focused improvement per PR

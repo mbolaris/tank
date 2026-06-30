@@ -275,8 +275,8 @@ python tools/agent_gate.py
 # Run a baseline benchmark (5k frames is faster for verification)
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
-# Make improvements, validate with the fast gate before opening a PR
-python tools/fast_gate.py
+# Make improvements, validate with the pre-PR gate before opening a PR
+python tools/pre_pr_gate.py
 pre-commit run --all-files
 ```
 
@@ -329,8 +329,8 @@ python tools/smoke_gate.py
 # Agent gate (runs in under 90 seconds, smoke gate + curated checks)
 python tools/agent_gate.py
 
-# Fast gate (pre-PR check, runs in under 3 minutes)
-python tools/fast_gate.py
+# Pre-PR gate (broad non-slow suite; runtime varies by hardware)
+python tools/pre_pr_gate.py
 
 # Full validation gate (nightly/maintainers only)
 python tools/full_gate.py
@@ -345,7 +345,7 @@ pre-commit run --all-files
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
 ```
 
-CI currently runs `smoke-gate`, `fast-gate`, `frontend-ci`, and `nightly-full` under [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with `verify-champions` and `benchmark-gate` defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
+CI currently runs `smoke-gate`, `pre-pr-gate`, `frontend-ci`, and `nightly-full` under [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with `verify-champions` and `benchmark-gate` defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
 
 ---
 
