@@ -717,12 +717,13 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     ) -> "ComposablePokerStrategy":
         """Create a mutated clone (for asexual reproduction).
 
-        CFR learning state is not copied: clones start as fresh learners
-        (CFRInheritanceMode.RESET).
+        CFR learning state is inherited with decay so useful lifetime poker
+        learning can persist through asexual reproduction without freezing
+        stale regrets indefinitely.
         """
         rng = require_rng_param(rng, "__init__")
         regret, strategy_sum, learning_rate = CFRInheritance.inherit(
-            self, self, mode=CFRInheritanceMode.RESET
+            self, self, weight1=1.0, mode=CFRInheritanceMode.BLEND_DECAY
         )
         clone = ComposablePokerStrategy(
             hand_selection=self.hand_selection,
