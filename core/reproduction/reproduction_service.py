@@ -169,10 +169,23 @@ class ReproductionService:
         if not eligible_mates:
             return None
 
-        if not is_post_poker_reproduction_eligible(winner, eligible_mates[0]):
-            return None
+        # Sort candidates by attraction score, breaking ties by distance and ID
+        candidates = []
+        for fish in eligible_mates:
+            attraction = winner.genome.calculate_mate_attraction(fish.genome)
+            dx = (fish.pos.x + fish.width * 0.5) - winner_cx
+            dy = (fish.pos.y + fish.height * 0.5) - winner_cy
+            dist_sq = dx * dx + dy * dy
+            candidates.append((attraction, dist_sq, fish.fish_id, fish))
 
-        mate = self._engine.rng.choice(eligible_mates)
+        candidates.sort(key=lambda item: (-item[0], item[1], item[2]))
+        mate = candidates[0][3]
+
+        # Consumes one RNG value to maintain deterministic stream alignment with baseline
+        self._engine.rng.random()
+
+        if not is_post_poker_reproduction_eligible(winner, mate):
+            return None
 
         if self._engine.ecosystem is not None:
             if not self._engine.ecosystem.can_reproduce(
