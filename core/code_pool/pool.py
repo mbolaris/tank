@@ -261,8 +261,16 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         else:
             turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
-        # Dash toward ball if not too close
-        dash = 1.0 if dist > 0.4 else 0.0
+        # Dash toward ball at full power while fresh; ease off once stamina
+        # runs low so a long chase doesn't crash through the RCSS effort
+        # floor (a constant full-power dash costs more stamina than passive
+        # recovery replaces). BotEntity's default_policy_action never hits
+        # this because it throttles power by distance instead.
+        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
+        if dist > 0.4:
+            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
+        else:
+            dash = 0.0
 
         # Kick if close to ball
         kick_power = 0.0
@@ -335,7 +343,11 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
         else:
             turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
-        dash = 1.0 if dist > 0.5 else 0.0
+        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
+        if dist > 0.5:
+            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
+        else:
+            dash = 0.0
 
         # Kick away if close to ball
         ball_rel = observation.get("ball_relative_pos", {})
@@ -406,7 +418,11 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
         else:
             turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
 
-        dash = 1.0 if dist > 0.4 else 0.0
+        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
+        if dist > 0.4:
+            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
+        else:
+            dash = 0.0
 
         # Shoot on goal if close to ball
         kick_power = 0.0
