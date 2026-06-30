@@ -22,6 +22,10 @@ from core.poker.strategy.composable import (
     PositionAwareness,
     ShowdownTendency,
 )
+from core.poker.strategy.composable.definitions import (
+    CFR_INHERITANCE_DECAY,
+    CFR_MIN_VISITS_FOR_INHERITANCE,
+)
 from core.poker.strategy.composable.cfr_decision import CFR_DECISION_MIN_VISITS
 from core.poker.strategy.implementations import crossover_poker_strategies
 
@@ -160,6 +164,36 @@ class TestComposablePokerStrategyMutation:
         # With no mutation and no switching, should have same sub-behaviors
         assert clone.hand_selection == original.hand_selection
         assert clone.betting_style == original.betting_style
+
+    def test_clone_with_mutation_inherits_decayed_cfr_state(self):
+        """Asexual clones keep qualified CFR learning with decay."""
+        rng = random.Random(1)
+        original = ComposablePokerStrategy()
+        info_set = "bucket:turn:button"
+        original.regret[info_set] = {
+            "fold": 10.0,
+            "call": -2.0,
+            "raise_small": 5.0,
+        }
+        original.strategy_sum[info_set] = {
+            "fold": 3.0,
+            "call": 1.0,
+            "raise_small": 2.0,
+        }
+        original.visit_count[info_set] = CFR_MIN_VISITS_FOR_INHERITANCE
+        original.learning_rate = 0.7
+
+        clone = original.clone_with_mutation(
+            mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng
+        )
+
+        assert clone.regret[info_set]["fold"] == pytest.approx(10.0 * CFR_INHERITANCE_DECAY)
+        assert clone.regret[info_set]["call"] == pytest.approx(-2.0 * CFR_INHERITANCE_DECAY)
+        assert clone.strategy_sum[info_set]["raise_small"] == pytest.approx(
+            2.0 * CFR_INHERITANCE_DECAY
+        )
+        assert clone.learning_rate == pytest.approx(original.learning_rate)
+        assert clone.visit_count == {}
 
 
 class TestComposablePokerStrategySerialization:
