@@ -59,6 +59,7 @@ def build_observation(
         "self_angle": player.body_angle,  # Radians [-pi, pi]
         "neck_angle": player.neck_angle,  # Radians relative to body
         "stamina": player.stamina,
+        "stamina_ratio": (player.stamina / config.stamina_max) if config.stamina_max > 0 else 1.0,
         "recovery": player.recovery,
         "effort": player.effort,
         "team": player.team,
