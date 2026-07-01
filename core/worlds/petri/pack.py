@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
+from core.exceptions import SimulationError
 from core.worlds.petri.dish import PetriDish
 from core.worlds.shared.identity import TankLikeEntityIdentityProvider
 from core.worlds.shared.tank_like_pack_base import TankLikePackBase
@@ -119,7 +120,9 @@ class PetriPack(TankLikePackBase):
 
         environment = engine.environment
         if environment is None:
-            raise RuntimeError("Engine environment must be initialized before registering systems")
+            raise SimulationError(
+                "Engine environment must be initialized before registering systems"
+            )
 
         # 1. Initialize EcosystemManager
         engine.ecosystem = EcosystemManager(
@@ -163,7 +166,7 @@ class PetriPack(TankLikePackBase):
         # 4. Register systems in execution order
         lifecycle_system = engine.lifecycle_system
         if lifecycle_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine lifecycle_system must be initialized before registering systems"
             )
         engine._system_registry.register(lifecycle_system)
@@ -175,23 +178,25 @@ class PetriPack(TankLikePackBase):
         poker_system = engine.poker_system
 
         if food_spawning_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine food_spawning_system must be initialized before registering systems"
             )
         if collision_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine collision_system must be initialized before registering systems"
             )
         if poker_proximity_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine poker_proximity_system must be initialized before registering systems"
             )
         if reproduction_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine reproduction_system must be initialized before registering systems"
             )
         if poker_system is None:
-            raise RuntimeError("Engine poker_system must be initialized before registering systems")
+            raise SimulationError(
+                "Engine poker_system must be initialized before registering systems"
+            )
 
         engine._system_registry.register(food_spawning_system)
         engine._system_registry.register(collision_system)

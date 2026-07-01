@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
+from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE, FISH_BASE_SPEED
 from core.energy.energy_utils import apply_energy_delta
+from core.entities import Fish
+from core.entities.base import LifeStage
+from core.genetics.code_policy_traits import mutate_code_policies, validate_code_policy_ids
+from core.genetics.reproduction import ReproductionMutationContext
+from core.telemetry.events import ReproductionEvent
+from core.util.rng import require_rng
 from core.util.stable_hash import stable_algorithm_id
-
-if TYPE_CHECKING:
-    from core.entities import Fish
-    from core.genetics.reproduction import ReproductionMutationContext
 
 
 def _diversity_score_for(fish: Fish) -> float | None:
@@ -29,9 +32,6 @@ def maybe_create_banked_offspring(
     mutation_context: ReproductionMutationContext | None = None,
 ) -> Fish | None:
     """Attempt a bank-funded asexual reproduction for a single fish."""
-    from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
-    from core.entities.base import LifeStage
-
     bank = fish._reproduction_component.overflow_energy_bank
     baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
 
@@ -50,12 +50,6 @@ def create_asexual_offspring(
     mutation_context: ReproductionMutationContext | None = None,
 ) -> Fish | None:
     """Create an offspring from a parent fish through asexual reproduction."""
-    from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE, FISH_BASE_SPEED
-    from core.entities.fish import Fish
-    from core.genetics.reproduction import ReproductionMutationContext
-    from core.telemetry.events import ReproductionEvent
-    from core.util.rng import require_rng
-
     rng = require_rng(fish.environment, "ReproductionService.create_asexual_offspring")
 
     if mutation_context is None:
@@ -72,11 +66,6 @@ def create_asexual_offspring(
 
     pool = getattr(fish.environment, "genome_code_pool", None)
     if pool is not None:
-        from core.genetics.code_policy_traits import (
-            mutate_code_policies,
-            validate_code_policy_ids,
-        )
-
         mutate_code_policies(offspring_genome.behavioral, pool, rng)
         validate_code_policy_ids(offspring_genome.behavioral, pool, rng)
 
