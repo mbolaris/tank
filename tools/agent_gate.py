@@ -38,6 +38,7 @@ _AGENT_CURATED_TESTS = [
     "tests/test_engine_no_tank_imports.py",
     "tests/test_behavioral_trait_wiring.py",
     "tests/test_algorithm_decoupling.py",
+    "tests/test_evolution_comprehensive.py",
 ]
 
 

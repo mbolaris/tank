@@ -15,6 +15,7 @@ from functools import wraps
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from starlette.datastructures import Headers
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # Configuration from environment
@@ -33,6 +34,26 @@ IP_WHITELIST = set(filter(None, os.getenv("IP_WHITELIST", "127.0.0.1,::1").split
 TRUSTED_PROXIES = set(filter(None, os.getenv("TRUSTED_PROXIES", "").split(",")))
 
 
+def resolve_client_ip(direct_ip: str | None, headers: Headers) -> str:
+    """Resolve the real client IP, honoring proxy headers only from trusted proxies.
+
+    Shared by HTTP request handling (RateLimitMiddleware, rate_limit decorator)
+    and WebSocket connection handling so both paths apply the same trust
+    boundary: X-Forwarded-For/X-Real-IP are only honored when the direct
+    connection itself arrives from a TRUSTED_PROXIES address, preventing
+    clients from spoofing their IP to bypass per-IP limits.
+    """
+    if direct_ip in TRUSTED_PROXIES:
+        forwarded_for = headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        real_ip = headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip
+
+    return direct_ip or "unknown"
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Simple in-memory rate limiting middleware.
 
@@ -46,23 +67,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.request_counts: dict[str, list] = defaultdict(list)
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract client IP.
-
-        Proxy headers (X-Forwarded-For, X-Real-IP) are only trusted when the
-        direct connection arrives from a TRUSTED_PROXIES address, preventing
-        clients from spoofing their IP to bypass rate limiting.
-        """
+        """Extract client IP (see resolve_client_ip for the trust boundary)."""
         direct_ip = request.client.host if request.client else None
-
-        if direct_ip in TRUSTED_PROXIES:
-            forwarded_for = request.headers.get("X-Forwarded-For")
-            if forwarded_for:
-                return forwarded_for.split(",")[0].strip()
-            real_ip = request.headers.get("X-Real-IP")
-            if real_ip:
-                return real_ip
-
-        return direct_ip or "unknown"
+        return resolve_client_ip(direct_ip, request.headers)
 
     def _is_rate_limited(self, client_ip: str) -> bool:
         """Check if client has exceeded rate limit."""
@@ -201,15 +208,8 @@ def rate_limit(max_requests: int = 10, window_seconds: int = 60):
                 return await func(request, *args, **kwargs)
 
             # Get client IP — only honour proxy headers from trusted proxies.
-            direct_ip = request.client.host if request.client else "unknown"
-            if direct_ip in TRUSTED_PROXIES:
-                client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-                if not client_ip:
-                    client_ip = request.headers.get("X-Real-IP", "")
-                if not client_ip:
-                    client_ip = direct_ip
-            else:
-                client_ip = direct_ip
+            direct_ip = request.client.host if request.client else None
+            client_ip = resolve_client_ip(direct_ip, request.headers)
 
             # Whitelist check
             if client_ip in IP_WHITELIST:
