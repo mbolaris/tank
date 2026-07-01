@@ -230,6 +230,50 @@ def test_smoke_league_produces_match_outcome():
     assert match_completed, "Expected at least one match outcome within 50 frames"
 
 
+def test_default_config_is_self_funded_and_shaped():
+    """The shipped league defaults reward skill via a self-funded shaped pot."""
+    config = SoccerConfig()
+    assert config.reward_mode == "shaped_pot"
+    assert config.entry_fee_energy > 0.0
+
+
+def test_entry_fee_filters_unaffordable_participants_without_crashing():
+    """A nonzero entry fee must not raise when some rostered fish are too poor.
+
+    Poor fish are dropped before match creation; the match still forms and
+    completes from the affording fish, and the league records an outcome.
+    """
+    config = SoccerConfig(
+        enabled=True,
+        match_every_frames=1,
+        duration_frames=10,
+        team_size=0,
+        num_players=6,  # derives team_size = 3
+        entry_fee_energy=5.0,
+        reward_mode="shaped_pot",
+        cycles_per_frame=1,
+    )
+    runtime = SoccerLeagueRuntime(config)
+
+    # 6 wealthy fish (can afford the fee) + 4 broke fish (cannot).
+    wealthy = [DummyFish(i, 100.0) for i in range(6)]
+    broke = [DummyFish(100 + i, 1.0) for i in range(4)]
+    world = DummyWorld(wealthy + broke)
+
+    match_completed = False
+    for cycle in range(50):
+        # Must never raise even though broke fish are on the roster.
+        runtime.tick(world, seed_base=42, cycle=cycle)
+        if runtime.drain_events():
+            match_completed = True
+            break
+
+    assert match_completed, "Expected a match to complete despite unaffordable fish on roster"
+    # Broke fish never paid the fee (they were filtered out before match creation).
+    for fish in broke:
+        assert fish.energy == 1.0
+
+
 def test_leaderboard_sorting(base_config):
     """Test leaderboard is sorted by Points then GD."""
     runtime = SoccerLeagueRuntime(base_config)
