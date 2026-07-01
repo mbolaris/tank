@@ -110,9 +110,14 @@ before …()" precondition guards — a caller-misuse invariant violation, the
 textbook `SimulationError` case per the table above; verified no
 `except RuntimeError` anywhere caught these specifically before the swap,
 `tests/test_world_registry.py`'s 10 matching `pytest.raises` updated in the
-same change). Many generic `raise ValueError`/`RuntimeError` sites remain —
-note that genuine *argument-type* misuse (e.g. `"interval must be >= 1"`)
-correctly stays `ValueError`; only domain failures move to the hierarchy.
+same change). Extended to the same "engine/system must be initialized before
+registering systems" invariant in `core/worlds/shared/tank_like_pack_base.py`
+(7 sites) and its near-duplicate in `core/worlds/petri/pack.py` (7 sites) —
+identical pattern, no test depended on the exact exception type in either
+file, so no test changes were needed there. Many generic `raise ValueError`/
+`RuntimeError` sites remain — note that genuine *argument-type* misuse (e.g.
+`"interval must be >= 1"`) correctly stays `ValueError`; only domain failures
+move to the hierarchy.
 
 **Fresh finding (not yet acted on):** `core.exceptions.TransferError` — the one
 this ADR's own text names as "ever adopted" — has **zero real call sites**.
@@ -176,8 +181,39 @@ change outside this cleanup's scope. Verified with the acyclicity test, a
 fresh-interpreter import of each module, `mypy` (329 files), and a seed-42
 headless before/after diff (identical modulo the wall-clock field).
 
-~199 cycle-safe in-function imports remain
-across the rest of `core/`. Still incremental, still test-backed.
+**Progress (2026-07, cont.):** `core/worlds/shared/tank_like_pack_base.py` (12
+imports across 4 methods: `CollisionSystem`, `PokerSystem`,
+`ReproductionService`/`ReproductionSystem`, `EntityLifecycleSystem`,
+`PokerProximitySystem`, `PeriodicBenchmarkEvaluator`, `EventBus`,
+`EcosystemManager`, `PlantManager`, `FoodSpawningSystem`,
+`TankLikePhaseHooks`) and `core/reproduction/asexual_factory.py` (8 imports,
+incl. `Fish` itself). The `tank_like_pack_base.py` case was the riskiest
+promotion so far — it is the shared base both `TankPack` and `PetriPack`
+subclass, its own docstring says it exists specifically "to enable clean mode
+boundaries... without tangled import chains," and one target
+(`core.poker.integration.poker_system`) pulls in `core/poker/__init__.py` →
+`core.poker.table` → `Fish`, the exact shape that bit the `genome.py`
+promotion two rounds ago. Verified safe (no target, or its parent-package
+`__init__.py` chain, references `core.worlds`) and confirmed empirically:
+both `WorldRegistry.create_world("tank", ...)` and `("petri", ...)` still
+construct and step correctly, plus the usual acyclicity/mypy/fresh-import/
+seed-42-diff bar. One style fix alongside: `from core import environment`
+(the top-level-facade-for-one-submodule anti-pattern ADR-008 names) became
+`import core.environment as environment`; a same-named *local variable*
+(`environment = engine.environment`) already existed in a different method
+of the same class, confirmed harmless (mypy clean, and Python function-local
+scoping means the two never collide) rather than reason to avoid the fix.
+`asexual_factory.py` confirmed safe via the established precedent: `Fish`'s
+reverse dependency on `core.reproduction.reproduction_service` (inside
+`core/entities/mixins/reproduction_mixin.py`) is already function-local on
+that side, so promoting the forward direction here doesn't close a cycle.
+
+~168 cycle-safe in-function imports remain
+across the rest of `core/` (measured, not estimated — see the AST-based
+counting script this pass used, `sys.argv`-free and reusable: walk each
+file's AST, count `Import`/`ImportFrom` nodes for `core.*` targets that are
+nested inside a `FunctionDef`/`AsyncFunctionDef` and not inside a
+`TYPE_CHECKING` block). Still incremental, still test-backed.
 
 ### 5. Defensive access erodes the protocol layer (systemic; **three distinct root causes**)
 `core/` (excl. tests) carries ~347 `getattr` and ~192 `hasattr` (bare `except` is

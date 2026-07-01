@@ -20,7 +20,21 @@ import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+import core.environment as environment
+from core.collision_system import CollisionSystem
 from core.config.simulation_config import SimulationConfig
+from core.ecosystem import EcosystemManager
+from core.events import EventBus
+from core.exceptions import SimulationError
+from core.plant_manager import PlantManager
+from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+from core.poker.integration.poker_system import PokerSystem
+from core.reproduction.reproduction_service import ReproductionService
+from core.reproduction.reproduction_system import ReproductionSystem
+from core.systems.entity_lifecycle import EntityLifecycleSystem
+from core.systems.food_spawning import FoodSpawningSystem
+from core.systems.poker_proximity import PokerProximitySystem
+from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks
 
 if TYPE_CHECKING:
     from core.environment import Environment
@@ -72,13 +86,6 @@ class TankLikePackBase(ABC):
         Creates collision, reproduction, lifecycle, and poker systems
         that are shared across Tank-like modes.
         """
-        from core.collision_system import CollisionSystem
-        from core.poker.integration.poker_system import PokerSystem
-        from core.reproduction.reproduction_service import ReproductionService
-        from core.reproduction.reproduction_system import ReproductionSystem
-        from core.systems.entity_lifecycle import EntityLifecycleSystem
-        from core.systems.poker_proximity import PokerProximitySystem
-
         systems: dict[str, Any] = {}
         systems["lifecycle_system"] = EntityLifecycleSystem(engine)
         systems["collision_system"] = CollisionSystem(engine)
@@ -95,8 +102,6 @@ class TankLikePackBase(ABC):
         systems["poker_proximity_system"] = PokerProximitySystem(engine)
 
         if self.config.poker.enable_periodic_benchmarks:
-            from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
-
             systems["benchmark_evaluator"] = PeriodicBenchmarkEvaluator(
                 self.config.poker.benchmark_config
             )
@@ -105,9 +110,6 @@ class TankLikePackBase(ABC):
 
     def build_environment(self, engine: SimulationEngine) -> Environment:
         """Create the Tank-like environment with EventBus and GenomeCodePool."""
-        from core import environment
-        from core.events import EventBus
-
         # 1. Initialize EventBus for domain events
         engine.event_bus = EventBus()
 
@@ -149,15 +151,13 @@ class TankLikePackBase(ABC):
 
     def register_systems(self, engine: SimulationEngine) -> None:
         """Register Tank-like systems in the correct order."""
-        from core.ecosystem import EcosystemManager
-        from core.plant_manager import PlantManager
-        from core.systems.food_spawning import FoodSpawningSystem
-
         eco_config = self.config.ecosystem
 
         environment = engine.environment
         if environment is None:
-            raise RuntimeError("Engine environment must be initialized before registering systems")
+            raise SimulationError(
+                "Engine environment must be initialized before registering systems"
+            )
 
         # 1. Initialize EcosystemManager
         engine.ecosystem = EcosystemManager(
@@ -186,7 +186,7 @@ class TankLikePackBase(ABC):
         # 4. Register systems in execution order
         lifecycle_system = engine.lifecycle_system
         if lifecycle_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine lifecycle_system must be initialized before registering systems"
             )
         engine._system_registry.register(lifecycle_system)
@@ -198,23 +198,25 @@ class TankLikePackBase(ABC):
         poker_system = engine.poker_system
 
         if food_spawning_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine food_spawning_system must be initialized before registering systems"
             )
         if collision_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine collision_system must be initialized before registering systems"
             )
         if poker_proximity_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine poker_proximity_system must be initialized before registering systems"
             )
         if reproduction_system is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "Engine reproduction_system must be initialized before registering systems"
             )
         if poker_system is None:
-            raise RuntimeError("Engine poker_system must be initialized before registering systems")
+            raise SimulationError(
+                "Engine poker_system must be initialized before registering systems"
+            )
 
         engine._system_registry.register(food_spawning_system)
         engine._system_registry.register(collision_system)
@@ -250,6 +252,4 @@ class TankLikePackBase(ABC):
         - Food expiry and cleanup
         - Fish population/energy statistics
         """
-        from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks
-
         return TankLikePhaseHooks()
