@@ -340,6 +340,7 @@ python tools/agent_gate.py
 
 # Pre-PR gate (broad non-slow suite; runtime varies by hardware)
 python tools/pre_pr_gate.py
+python tools/pre_pr_gate.py --shard core   # re-run one shard (worlds/evolution/backend_tools/core)
 
 # Full validation gate (nightly/maintainers only)
 python tools/full_gate.py
