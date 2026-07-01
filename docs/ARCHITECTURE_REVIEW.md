@@ -103,11 +103,27 @@ touching a module — no big-bang rewrite. Do not delete the currently-unused
 
 Adopted so far (reference examples to copy): `ConfigurationError`
 (`SimulationConfig.validate`, every unknown-world/mode lookup), `GeneticsError`
-(`Genome.assert_valid`), and `PersistenceError` (snapshot restore;
-`VersionMismatchError` now subclasses it). Many generic `raise ValueError`/
-`RuntimeError` sites remain — note that genuine *argument-type* misuse (e.g.
-`"interval must be >= 1"`) correctly stays `ValueError`; only domain failures
-move to the hierarchy.
+(`Genome.assert_valid`), `PersistenceError` (snapshot restore;
+`VersionMismatchError` now subclasses it), and `SimulationError`
+(`core/worlds/tank/backend.py`'s 12 "World not initialized. Call reset()
+before …()" precondition guards — a caller-misuse invariant violation, the
+textbook `SimulationError` case per the table above; verified no
+`except RuntimeError` anywhere caught these specifically before the swap,
+`tests/test_world_registry.py`'s 10 matching `pytest.raises` updated in the
+same change). Many generic `raise ValueError`/`RuntimeError` sites remain —
+note that genuine *argument-type* misuse (e.g. `"interval must be >= 1"`)
+correctly stays `ValueError`; only domain failures move to the hierarchy.
+
+**Fresh finding (not yet acted on):** `core.exceptions.TransferError` — the one
+this ADR's own text names as "ever adopted" — has **zero real call sites**.
+The actual in-use `TransferError` is an unrelated local dataclass in
+`core/transfer/entity_transfer.py` (an error-payload value object inside its
+`TransferOutcome` Result type, correctly following ADR-007's `Result` guidance
+for that module). The names collide only because they're in different
+modules today; adopting the real exception class inside `entity_transfer.py`
+later will need an import alias (or a rename of one of the two). Left
+untouched here — renaming either is a judgment call with real callers on the
+dataclass side, not a mechanical fix.
 
 ### 4. In-function import debt (now measured & guarded, per ADR-008)
 `core/` carries hundreds of function-level (in-function) imports originally
@@ -142,7 +158,25 @@ never evaluated, so they need no runtime import); and redundant re-imports
 (e.g. `Vector2`, already re-exported via `core.algorithms.base`) were dropped.
 Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
-diff (identical simulation state). ~199 cycle-safe in-function imports remain
+diff (identical simulation state).
+
+**Progress (2026-07):** `core/services/stats/genetic_stats.py` (7 repeated
+`core.config.fish` constant imports, one per small stat helper — the module
+is a pure leaf with zero `core.*` imports of its own) and
+`core/transfer/entity_transfer.py` (10 imports of `Fish`/`Plant`/`Crab`/
+`Genome`/`PlantGenome`/`AlgorithmicMovement`, confirmed acyclic by grepping
+`core/entities/`, `core/genetics/`, and `core/movement_strategy.py` for any
+reference back to `core.transfer`) converted to module-level imports.
+Deliberately **left alone**: two sites in `genetic_stats.py` that import
+`core.algorithms.composable`/`core.poker.strategy.composable` inside a
+`try: … except ImportError: return []` — these catch `ImportError` as
+deliberate graceful degradation (not a cycle workaround), so promoting them
+would trade a per-call fallback for a hard module-load crash, a behavior
+change outside this cleanup's scope. Verified with the acyclicity test, a
+fresh-interpreter import of each module, `mypy` (329 files), and a seed-42
+headless before/after diff (identical modulo the wall-clock field).
+
+~199 cycle-safe in-function imports remain
 across the rest of `core/`. Still incremental, still test-backed.
 
 ### 5. Defensive access erodes the protocol layer (systemic; **three distinct root causes**)

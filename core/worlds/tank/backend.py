@@ -10,6 +10,7 @@ import random
 from typing import TYPE_CHECKING, Any, Optional
 
 from core.config.simulation_config import SimulationConfig
+from core.exceptions import SimulationError
 from core.simulation import SimulationEngine
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.tank.action_bridge import apply_actions
@@ -91,7 +92,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def add_entity(self, entity) -> None:
         """Add an entity to the world (shim for tests)."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before add_entity().")
+            raise SimulationError("World not initialized. Call reset() before add_entity().")
         self._engine.add_entity(entity)
 
     def reset(
@@ -158,7 +159,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def frame_count(self) -> int:
         """Current frame count."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing frame_count.")
+            raise SimulationError(
+                "World not initialized. Call reset() before accessing frame_count."
+            )
         return self._engine.frame_count
 
     @frame_count.setter
@@ -172,14 +175,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def paused(self) -> bool:
         """Whether the simulation is paused."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing paused.")
+            raise SimulationError("World not initialized. Call reset() before accessing paused.")
         return self._engine.paused
 
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set paused state on the underlying engine."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before setting paused.")
+            raise SimulationError("World not initialized. Call reset() before setting paused.")
         self._engine.paused = value
 
     @property
@@ -192,14 +195,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def set_paused(self, value: bool) -> None:
         """Set the simulation paused state (protocol method)."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before setting paused.")
+            raise SimulationError("World not initialized. Call reset() before setting paused.")
         self._engine.paused = value
 
     @property
     def entities_list(self) -> list[Any]:
         """Expose entities list for snapshot builders."""
         if self._engine is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "World not initialized. Call reset() before accessing entities_list."
             )
         return self._engine.entities_list
@@ -248,7 +251,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             StepResult with updated snapshot, events, metrics
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before step().")
+            raise SimulationError("World not initialized. Call reset() before step().")
 
         fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
 
@@ -315,7 +318,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         path that avoids expensive metrics/event collection.
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before update().")
+            raise SimulationError("World not initialized. Call reset() before update().")
 
         self._engine.update()
         self._current_frame = self._engine.frame_count
@@ -323,7 +326,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
         """Return current metrics."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before get_stats().")
+            raise SimulationError("World not initialized. Call reset() before get_stats().")
         return self.get_current_metrics(include_distributions=include_distributions)
 
     def get_current_snapshot(self) -> dict[str, Any]:
@@ -554,14 +557,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         This allows existing backend code to access adapter.engine.
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing engine.")
+            raise SimulationError("World not initialized. Call reset() before accessing engine.")
         return self._engine
 
     @property
     def ecosystem(self) -> Any:
         """Access underlying ecosystem."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing ecosystem.")
+            raise SimulationError("World not initialized. Call reset() before accessing ecosystem.")
         return self._engine.ecosystem
 
     @property
@@ -573,7 +576,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def rng(self) -> Any:
         """Access random number generator."""
         if self._rng is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing rng.")
+            raise SimulationError("World not initialized. Call reset() before accessing rng.")
         return self._rng
 
     # ========================================================================

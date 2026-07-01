@@ -10,6 +10,19 @@ from typing import TYPE_CHECKING, Any
 
 logger = logging.getLogger(__name__)
 
+from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
+    FISH_ADULT_SIZE,
+    FISH_PATTERN_COUNT,
+    FISH_SIZE_MODIFIER_MAX,
+    FISH_SIZE_MODIFIER_MIN,
+    FISH_TEMPLATE_COUNT,
+    LIFESPAN_MODIFIER_MAX,
+    LIFESPAN_MODIFIER_MIN,
+)
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 from core.services.stats.utils import humanize_gene_label
@@ -110,8 +123,6 @@ def _compute_numeric_stats(
 
 
 def _get_adult_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
-
     # Calculate actual size (base * modifier)
     values = []
     for f in fish_list:
@@ -126,8 +137,6 @@ def _get_adult_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
 
 
 def _get_eye_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import EYE_SIZE_MAX, EYE_SIZE_MIN
-
     values = _get_trait_values(fish_list, "eye_size", "physical")
     return _compute_numeric_stats(values, EYE_SIZE_MIN, EYE_SIZE_MAX, "eye_size")
 
@@ -144,23 +153,17 @@ def _get_tail_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
 
 
 def _get_body_aspect_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import BODY_ASPECT_MAX, BODY_ASPECT_MIN
-
     values = _get_trait_values(fish_list, "body_aspect", "physical")
     return _compute_numeric_stats(values, BODY_ASPECT_MIN, BODY_ASPECT_MAX, "body_aspect")
 
 
 def _get_template_id_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_TEMPLATE_COUNT
-
     values = _get_trait_values(fish_list, "template_id", "physical")
     # For discrete values, use min/max of possible range for histogram
     return _compute_numeric_stats(values, 0, FISH_TEMPLATE_COUNT - 1, "template_id")
 
 
 def _get_pattern_type_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_PATTERN_COUNT
-
     values = _get_trait_values(fish_list, "pattern_type", "physical")
     return _compute_numeric_stats(values, 0, FISH_PATTERN_COUNT - 1, "pattern_type")
 
@@ -171,8 +174,6 @@ def _get_pattern_intensity_stats(fish_list: list["Fish"]) -> dict[str, Any]:
 
 
 def _get_lifespan_modifier_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import LIFESPAN_MODIFIER_MAX, LIFESPAN_MODIFIER_MIN
-
     values = _get_trait_values(fish_list, "lifespan_modifier", "physical")
     return _compute_numeric_stats(
         values, LIFESPAN_MODIFIER_MIN, LIFESPAN_MODIFIER_MAX, "lifespan_modifier"
@@ -267,8 +268,6 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
 
     # Derived Adult Size Distribution
     try:
-        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
-
         allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
         allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)
 

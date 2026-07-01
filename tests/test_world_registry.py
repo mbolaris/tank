@@ -7,7 +7,7 @@ including the WorldRegistry and TankWorldBackendAdapter.
 import pytest
 
 from core.config.display import FRAME_RATE, SCREEN_WIDTH
-from core.exceptions import ConfigurationError
+from core.exceptions import ConfigurationError, SimulationError
 from core.worlds import MultiAgentWorldBackend, StepResult, WorldRegistry
 from core.worlds.petri.backend import PetriWorldBackendAdapter
 from core.worlds.tank.backend import TankWorldBackendAdapter
@@ -122,9 +122,9 @@ class TestTankWorldBackendAdapter:
         assert result2.info["seed"] == 200
 
     def test_step_without_reset_raises_error(self):
-        """Test that step() before reset() raises RuntimeError."""
+        """Test that step() before reset() raises SimulationError."""
         adapter = TankWorldBackendAdapter(seed=42)
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             adapter.step()
 
     def test_step_returns_step_result(self):
@@ -256,7 +256,7 @@ class TestTankWorldBackendAdapter:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Before reset, should raise
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.engine
 
         adapter.reset(seed=42)
@@ -277,7 +277,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.entities_list
 
         # After reset, should delegate to underlying world
@@ -290,7 +290,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.frame_count
 
         # After reset, should start at 0
@@ -306,10 +306,10 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.paused
 
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             adapter.paused = True
 
         # After reset, should be able to get and set
@@ -327,7 +327,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.engine
 
         # After reset, should delegate to underlying world
@@ -341,7 +341,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.ecosystem
 
         # After reset, should delegate to underlying world
@@ -365,7 +365,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             _ = adapter.rng
 
         # After reset, should delegate to underlying world
@@ -404,7 +404,7 @@ class TestTankWorldBackendAdapterCompatibility:
         adapter = TankWorldBackendAdapter(seed=42, max_population=10)
 
         # Should raise error before initialization
-        with pytest.raises(RuntimeError, match="World not initialized"):
+        with pytest.raises(SimulationError, match="World not initialized"):
             adapter.get_stats()
 
         # After setup, should return stats

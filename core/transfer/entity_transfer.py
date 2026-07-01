@@ -8,6 +8,12 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 
+from core.entities.fish import Fish
+from core.entities.plant import Plant
+from core.entities.predators import Crab
+from core.genetics import Genome, PlantGenome
+from core.movement_strategy import AlgorithmicMovement
+
 logger = logging.getLogger(__name__)
 
 SerializedEntity = dict[str, Any]
@@ -62,8 +68,6 @@ class FishTransferCodec:
     type_name = "fish"
 
     def can_serialize(self, entity: Any) -> bool:
-        from core.entities.fish import Fish
-
         return isinstance(entity, Fish)
 
     def serialize(self, entity: Any, ctx: TransferContext) -> dict[str, Any]:
@@ -77,8 +81,6 @@ class PlantTransferCodec:
     type_name = "plant"
 
     def can_serialize(self, entity: Any) -> bool:
-        from core.entities.plant import Plant
-
         return isinstance(entity, Plant)
 
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
@@ -94,8 +96,6 @@ class CrabTransferCodec:
     type_name = "crab"
 
     def can_serialize(self, entity: Any) -> bool:
-        from core.entities.predators import Crab
-
         return isinstance(entity, Crab)
 
     def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
@@ -472,10 +472,6 @@ def try_deserialize_entity(data: dict[str, Any], target_world: Any) -> TransferO
 def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Fish entity."""
     try:
-        from core.entities.fish import Fish
-        from core.genetics import Genome
-        from core.movement_strategy import AlgorithmicMovement
-
         if not _require_keys(
             data,
             ["genome_data", "species", "x", "y", "speed", "generation", "energy"],
@@ -530,9 +526,6 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
 def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Plant entity."""
     try:
-        from core.entities.plant import Plant
-        from core.genetics import PlantGenome
-
         if not _require_keys(
             data,
             ["genome_data", "x", "y", "energy", "age"],
@@ -655,9 +648,6 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
 def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Any | None:
     """Deserialize and create a Crab entity."""
     try:
-        from core.entities.predators import Crab
-        from core.genetics import Genome
-
         if not _require_keys(data, ["x", "y"], entity_type="crab"):
             return None
 
