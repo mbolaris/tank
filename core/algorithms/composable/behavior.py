@@ -97,6 +97,22 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
             for poker in PokerEngagement
         ]
 
+    def similarity(self, other: "ComposableBehavior") -> float:
+        """Fraction of matching discrete sub-behavior categories (0.0-1.0).
+
+        Compares threat_response/food_approach/social_mode/poker_engagement
+        only (not continuous parameters), giving mate-preference scoring a
+        cheap, deterministic measure of behavioral-profile match for
+        assortative mating.
+        """
+        matches = (
+            int(self.threat_response == other.threat_response)
+            + int(self.food_approach == other.food_approach)
+            + int(self.social_mode == other.social_mode)
+            + int(self.poker_engagement == other.poker_engagement)
+        )
+        return matches / 4.0
+
     @property
     def short_description(self) -> str:
         """Get a human-readable short description of this behavior."""

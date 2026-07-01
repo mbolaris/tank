@@ -220,6 +220,25 @@ def calculate_mate_attraction(
             scores.append(score)
             weights.append(preference_strength * 0.5)  # Cap behavioral weight at 0.5
 
+    # Behavioral-profile assortative mating: prefer (or avoid) mates whose
+    # composable behavior (threat_response/food_approach/social_mode/
+    # poker_engagement) matches this fish's own. This shields minority/novel
+    # behavior profiles from being bred out by the majority strategy, enabling
+    # sympatric speciation. Same double-sided pattern as prefer_similar_size.
+    self_behavior = self_behavioral.behavior.value if self_behavioral.behavior else None
+    other_behavior = (
+        other_behavioral.behavior.value if other_behavioral and other_behavioral.behavior else None
+    )
+    if self_behavior is not None and other_behavior is not None:
+        p_sim_behavior = normalized_prefs.get("prefer_similar_behavior", 0.5)
+        gamma = (p_sim_behavior - 0.5) * 2.0  # -1.0 (prefer different) .. 1.0 (prefer similar)
+        weight = abs(gamma)
+        if weight > 0.0:
+            behavior_similarity = self_behavior.similarity(other_behavior)
+            score = behavior_similarity if gamma >= 0 else (1.0 - behavior_similarity)
+            scores.append(score)
+            weights.append(weight)
+
     total_weight = sum(weights)
     if total_weight <= 0.0:
         return 0.0
