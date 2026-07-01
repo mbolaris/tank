@@ -34,6 +34,16 @@ class GeneticDiversityTracker:
         size_modifiers = []
         vision_ranges = []
 
+        # Behavioral trait variances feed convergence detection (low variance
+        # means the population has converged on that trait, maybe a
+        # convergence trap). Collected in the same pass as the fields above -
+        # per-fish values and their order are unchanged, so variances are
+        # identical to computing them in separate passes.
+        behavioral_trait_names = ("prediction_skill", "pursuit_aggression", "hunting_stamina")
+        behavioral_trait_values: dict[str, list[float]] = {
+            name: [] for name in behavioral_trait_names
+        }
+
         for fish in fish_list:
             genome = fish.genome
 
@@ -53,6 +63,11 @@ class GeneticDiversityTracker:
             size_modifiers.append(genome.physical.size_modifier.value)
             vision_ranges.append(genome.vision_range)
 
+            for trait_name in behavioral_trait_names:
+                trait = getattr(genome.behavioral, trait_name, None)
+                if trait is not None and hasattr(trait, "value"):
+                    behavioral_trait_values[trait_name].append(float(trait.value))
+
         n_fish = len(fish_list)
 
         color_variance = 0.0
@@ -63,16 +78,7 @@ class GeneticDiversityTracker:
             trait_variances["size"] = population_variance(size_modifiers)
             trait_variances["vision"] = population_variance(vision_ranges)
 
-        # Track behavioral trait variances for convergence detection.
-        # Low variance in a trait means the population has converged on it,
-        # which may indicate a convergence trap (stuck at suboptimal value).
-        behavioral_traits = ["prediction_skill", "pursuit_aggression", "hunting_stamina"]
-        for trait_name in behavioral_traits:
-            values = []
-            for fish in fish_list:
-                trait = getattr(fish.genome.behavioral, trait_name, None)
-                if trait is not None and hasattr(trait, "value"):
-                    values.append(float(trait.value))
+        for trait_name, values in behavioral_trait_values.items():
             if len(values) > 1:
                 trait_variances[trait_name] = population_variance(values)
 
