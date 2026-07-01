@@ -7,9 +7,10 @@ This module provides WebSocket endpoints for all world types:
 import logging
 from typing import TYPE_CHECKING
 
+import orjson
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.security import resolve_client_ip, websocket_limiter
+from backend.security import resolve_client_ip, websocket_limiter, websocket_message_limiter
 
 if TYPE_CHECKING:
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
@@ -79,10 +80,33 @@ async def _handle_websocket_for_adapter(
 
                 # Handle text messages (commands)
                 if "text" in message:
+                    # Per-message rate limit: the connection limiter caps how
+                    # many sockets an IP may open; this caps how fast an
+                    # accepted socket may send commands. Checked before any
+                    # parsing so spam costs the server almost nothing.
+                    if not websocket_message_limiter.allow(client_ip):
+                        logger.warning(
+                            "World %s: message rate limit exceeded for %s, dropping command",
+                            world_id[:8],
+                            client_ip,
+                        )
+                        await websocket.send_bytes(
+                            orjson.dumps(
+                                {
+                                    "error": "rate_limited",
+                                    "message": (
+                                        "Too many messages. Limit: "
+                                        f"{websocket_message_limiter.max_messages} per "
+                                        f"{websocket_message_limiter.window_seconds}s"
+                                    ),
+                                    "retry_after": websocket_message_limiter.window_seconds,
+                                }
+                            )
+                        )
+                        continue
+
                     text = message["text"]
                     try:
-                        import orjson
-
                         data = orjson.loads(text)
                         command = data.get("command")
                         command_data = data.get("data")
@@ -180,7 +204,9 @@ async def _handle_websocket_for_world(
         await _handle_websocket_for_adapter(websocket, adapter, world_id)
     finally:
         world_manager.remove_client(world_id, websocket)
-        websocket_limiter.disconnect(client_ip)
+        remaining = websocket_limiter.disconnect(client_ip)
+        if remaining == 0:
+            websocket_message_limiter.forget(client_ip)
 
 
 def setup_router(

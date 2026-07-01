@@ -127,8 +127,8 @@ Local validation tiers:
 3. **Pre-PR Gate**: `python tools/pre_pr_gate.py` before PR
 4. **Full Gate**: `python tools/full_gate.py` only for maintainers/nightly/full validation
 
-Public CI jobs are named `smoke-gate`, `pre-pr-gate`, `frontend-ci`, and
-`nightly-full` in `ci.yml`, plus `verify-champions` and `benchmark-gate` in
+Public CI jobs are named `smoke-gate`, `pre-pr-gate`, `frontend-ci`,
+`security-audit`, and `nightly-full` in `ci.yml`, plus `verify-champions` and `benchmark-gate` in
 `bench.yml`. Benchmark CI verifies champions and runs full determinism checks
 nightly or when a maintainer dispatches it explicitly.
 

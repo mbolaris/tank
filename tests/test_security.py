@@ -8,7 +8,12 @@ from starlette.datastructures import Headers
 from starlette.requests import Request
 
 import backend.security as security_module
-from backend.security import RequestValidationMiddleware, resolve_client_ip
+from backend.security import (
+    RequestValidationMiddleware,
+    WebSocketLimiter,
+    WebSocketMessageRateLimiter,
+    resolve_client_ip,
+)
 
 
 def _make_request(*, content_length: str | None = None) -> Request:
@@ -96,6 +101,141 @@ def test_resolve_client_ip_falls_back_to_real_ip_header(monkeypatch: pytest.Monk
 
 def test_resolve_client_ip_handles_missing_direct_ip() -> None:
     assert resolve_client_ip(None, Headers({})) == "unknown"
+
+
+def test_ws_message_limiter_allows_under_limit_then_blocks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(security_module, "IP_WHITELIST", set())
+    limiter = WebSocketMessageRateLimiter(max_messages=3, window_seconds=60)
+
+    assert all(limiter.allow("203.0.113.5") for _ in range(3))
+    assert not limiter.allow("203.0.113.5")
+    # Another IP has its own budget.
+    assert limiter.allow("203.0.113.6")
+
+
+def test_ws_message_limiter_window_expiry_frees_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(security_module, "IP_WHITELIST", set())
+    limiter = WebSocketMessageRateLimiter(max_messages=1, window_seconds=60)
+
+    assert limiter.allow("203.0.113.5")
+    assert not limiter.allow("203.0.113.5")
+
+    # Age the recorded message past the window; the budget frees up.
+    limiter.message_times["203.0.113.5"] = [ts - 61 for ts in limiter.message_times["203.0.113.5"]]
+    assert limiter.allow("203.0.113.5")
+
+
+def test_ws_message_limiter_exempts_whitelist_and_disabled_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    limiter = WebSocketMessageRateLimiter(max_messages=1, window_seconds=60)
+
+    monkeypatch.setattr(security_module, "IP_WHITELIST", {"127.0.0.1"})
+    assert all(limiter.allow("127.0.0.1") for _ in range(10))
+
+    monkeypatch.setattr(security_module, "IP_WHITELIST", set())
+    monkeypatch.setattr(security_module, "RATE_LIMIT_ENABLED", False)
+    assert all(limiter.allow("203.0.113.5") for _ in range(10))
+
+
+def test_ws_message_limiter_forget_drops_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(security_module, "IP_WHITELIST", set())
+    limiter = WebSocketMessageRateLimiter(max_messages=1, window_seconds=60)
+
+    assert limiter.allow("203.0.113.5")
+    assert not limiter.allow("203.0.113.5")
+
+    limiter.forget("203.0.113.5")
+    assert "203.0.113.5" not in limiter.message_times
+    assert limiter.allow("203.0.113.5")
+
+
+def test_ws_connection_limiter_disconnect_reports_remaining() -> None:
+    limiter = WebSocketLimiter(max_connections_per_ip=5)
+
+    assert limiter.connect("203.0.113.5")
+    assert limiter.connect("203.0.113.5")
+    assert limiter.disconnect("203.0.113.5") == 1
+    assert limiter.disconnect("203.0.113.5") == 0
+    # Never goes negative.
+    assert limiter.disconnect("203.0.113.5") == 0
+
+
+@pytest.mark.asyncio
+async def test_ws_receive_loop_drops_commands_over_message_rate_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A single accepted connection cannot spam commands: once over budget,
+    commands are rejected with a rate_limited error and never reach the
+    adapter's command handler."""
+    import backend.routers.websocket as ws_module
+
+    monkeypatch.setattr(security_module, "IP_WHITELIST", set())
+    monkeypatch.setattr(
+        ws_module,
+        "websocket_message_limiter",
+        WebSocketMessageRateLimiter(max_messages=1, window_seconds=60),
+    )
+
+    command = json.dumps({"command": "ping", "data": None})
+    incoming = [
+        {"type": "websocket.receive", "text": command},
+        {"type": "websocket.receive", "text": command},
+        {"type": "websocket.disconnect"},
+    ]
+    sent: list[bytes] = []
+
+    class _FakeAddress:
+        host = "203.0.113.5"
+
+    class _FakeWebSocket:
+        client = _FakeAddress()
+        headers = Headers({})
+
+        async def accept(self) -> None:
+            pass
+
+        async def receive(self) -> dict:
+            return incoming.pop(0)
+
+        async def send_bytes(self, payload: bytes) -> None:
+            sent.append(payload)
+
+    handled_commands: list[str] = []
+
+    class _FakeAdapter:
+        def add_client(self, ws) -> None:
+            pass
+
+        def remove_client(self, ws) -> None:
+            pass
+
+        async def get_state_async(self, force_full: bool, allow_delta: bool):
+            return None
+
+        def serialize_state(self, state) -> bytes:
+            return b"{}"
+
+        async def handle_command_async(self, command: str, data):
+            handled_commands.append(command)
+            return {"ok": True}
+
+    await ws_module._handle_websocket_for_adapter(
+        _FakeWebSocket(),  # type: ignore[arg-type]
+        _FakeAdapter(),  # type: ignore[arg-type]
+        "test-world",
+    )
+
+    # First command handled, second dropped by the limiter.
+    assert handled_commands == ["ping"]
+    responses = [json.loads(payload) for payload in sent]
+    assert responses[0] == {"ok": True}
+    assert responses[1]["error"] == "rate_limited"
+    assert responses[1]["retry_after"] == 60
 
 
 def test_websocket_get_client_ip_shares_http_trust_boundary(

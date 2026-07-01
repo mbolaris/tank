@@ -24,6 +24,11 @@ def main() -> None:
                 "-m",
                 "black",
                 "--check",
+                # Single worker: Black's process pool can crash in sandboxed
+                # agent environments, and the gate must never fail for
+                # reasons unrelated to the code being checked.
+                "-W",
+                "1",
                 "core",
                 "tests",
                 "tools",
