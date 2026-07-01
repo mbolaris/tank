@@ -44,7 +44,6 @@ from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.genetics import Genome
-from core.genetics.trait import GeneticTrait
 from core.telemetry.events import BirthEvent, FoodEatenEvent
 
 
@@ -123,43 +122,17 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             rng = require_rng(environment, "Fish.__init__.genome")
             self.genome = Genome.random(rng=rng)
 
-        # Ensure poker strategy is initialized (self-healing for older saves/migrations)
-        if (
-            self.genome.behavioral.poker_strategy is None
-            or self.genome.behavioral.poker_strategy.value is None
-        ):
-            from core.poker.strategy.implementations import get_random_poker_strategy
-
-            rng = require_rng(environment, "Fish.__init__.poker_strategy")
-            strategy = get_random_poker_strategy(rng=rng)
-
-            if self.genome.behavioral.poker_strategy is None:
-                self.genome.behavioral.poker_strategy = GeneticTrait(strategy)
-            else:
-                self.genome.behavioral.poker_strategy.value = strategy
-
-        # Ensure soccer policy is set when soccer is enabled
+        # Ensure the genome satisfies its invariants (self-healing for older
+        # saves/migrations or hand-built genomes). The repair logic itself
+        # lives on Genome (see Genome.normalize()) so every construction path
+        # gets the same guarantee instead of re-implementing it here.
         _sim_config = getattr(environment, "simulation_config", None)
         _soccer_cfg = getattr(_sim_config, "soccer", None) if _sim_config else None
-        if getattr(_soccer_cfg, "enabled", False):
-            _soccer_trait = self.genome.behavioral.soccer_policy_id
-            if _soccer_trait is None or _soccer_trait.value is None:
-                _pool = getattr(environment, "genome_code_pool", None)
-                if _pool is not None:
-                    from core.genetics.code_policy_traits import SOCCER_POLICY
-
-                    _rng = require_rng(environment, "Fish.__init__.soccer_policy")
-                    _default_id = _pool.get_default(SOCCER_POLICY)
-                    if _default_id:
-                        self.genome.behavioral.soccer_policy_id = GeneticTrait(_default_id)
-                        self.genome.behavioral.soccer_policy_params = GeneticTrait({})
-                    else:
-                        # No default; pick random from pool
-                        _available = _pool.get_components_by_kind(SOCCER_POLICY)
-                        if _available:
-                            _chosen = _rng.choice(_available)
-                            self.genome.behavioral.soccer_policy_id = GeneticTrait(_chosen)
-                            self.genome.behavioral.soccer_policy_params = GeneticTrait({})
+        self.genome.normalize(
+            rng=require_rng(environment, "Fish.__init__.genome_normalize"),
+            code_pool=getattr(environment, "genome_code_pool", None),
+            soccer_enabled=getattr(_soccer_cfg, "enabled", False),
+        )
 
         self.generation: int = generation
         self.species: str = species
