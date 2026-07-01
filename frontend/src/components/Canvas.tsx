@@ -154,13 +154,17 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                     const worldType = worldTypePropRef.current || 'tank';
 
                     // Determine effective view mode:
-                    // - Tank mode: ALWAYS use 'side' view (fish in rectangular tank)
-                    // - Petri mode: ALWAYS use 'topdown' view (microbes in circular dish)
-                    // This prevents the confusing case of microbes in a rectangle.
+                    // - Tank mode: respects the caller's viewMode prop, which defaults to
+                    //   'side' (fish in rectangular tank) but is selectable to 'topdown'
+                    //   (genome-driven microbe rendering, see docs/EVOLVABILITY.md sec 3.5)
+                    //   via the existing side/topdown override - opt-in only, so the
+                    //   out-of-box experience is unchanged.
+                    // - Petri/Soccer mode: ALWAYS use 'topdown' view (microbes in circular
+                    //   dish). This prevents the confusing case of microbes forced into a
+                    //   rectangle if a stale 'side' value ever reaches this branch.
                     let effectiveViewMode: 'side' | 'topdown';
                     if (worldType === 'tank') {
-                        // Tank mode = side view only (fish in rectangle)
-                        effectiveViewMode = 'side';
+                        effectiveViewMode = viewModeRef.current === 'topdown' ? 'topdown' : 'side';
                     } else {
                         // Petri/Soccer = topdown view
                         effectiveViewMode = 'topdown';
