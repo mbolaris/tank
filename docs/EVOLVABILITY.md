@@ -136,6 +136,24 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
   | verdict: adopted / rejected / inconclusive | lesson: <one line>
 ```
 
+- 2026-07-01 | Behavioral assortative mating (`prefer_similar_behavior` heritable mate
+  preference, matched on threat_response/food_approach/social_mode/poker_engagement via
+  `ComposableBehavior.similarity()`) | lever §3.6 + §3.4 | hypothesis: shielding
+  behaviorally-similar mates from dilution by the majority strategy would sustain diversity
+  and protect novel/minority niches without weakening selection | result:
+  `run_selection_response_assay.py` seeds 42/7/123, mean composite score 50.57 → 48.99
+  (−3.1%, dominated by offsetting per-seed swings: seed 7 −49%, seed 123 +75%, seed 42 flat
+  — within the documented seed-trajectory noise band); mean drift-per-generation improved
+  +8.1% (kill criterion passed: no seed showed degraded drift or population collapse); mean
+  `diversity_delta` was flat (+0.066 → +0.068) and `min_final_diversity` across seeds fell
+  (0.304 → 0.269) | verdict: inconclusive — merged as a safe, neutral-default (0.5 = no-op)
+  heritable lever since it passes its own kill criterion and adds a new evolvable dimension,
+  but it is **not** a demonstrated diversity win | lesson: the preference starts neutral and
+  only diverges via mutation, so a 10k-frame/~7–9-generation window may be too short for a
+  freshly-introduced heritable trait to reach an allele frequency that visibly changes
+  population dynamics. Retest over a longer horizon (30k+ frames) or with a biased initial
+  distribution before concluding the mechanism does or doesn't work.
+
 ---
 
 ## 6. Open problem — a frozen evolvability benchmark

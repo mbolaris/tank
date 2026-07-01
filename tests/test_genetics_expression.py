@@ -108,6 +108,136 @@ class TestGenomeExpressionRefactor(unittest.TestCase):
         # So score_color_assortative should be strictly greater than score_color_disassortative.
         self.assertGreater(score_color_assortative, score_color_disassortative)
 
+    def test_composable_behavior_similarity(self):
+        """ComposableBehavior.similarity counts matching discrete sub-behaviors / 4."""
+        from core.algorithms.composable import ComposableBehavior
+        from core.algorithms.composable.definitions import (
+            FoodApproach,
+            PokerEngagement,
+            SocialMode,
+            ThreatResponse,
+        )
+
+        base = ComposableBehavior(
+            threat_response=ThreatResponse.PANIC_FLEE,
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        identical = ComposableBehavior(
+            threat_response=ThreatResponse.PANIC_FLEE,
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        self.assertEqual(base.similarity(identical), 1.0)
+
+        one_diff = ComposableBehavior(
+            threat_response=ThreatResponse.FREEZE,  # differs
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        self.assertAlmostEqual(base.similarity(one_diff), 0.75)
+
+        fully_diff = ComposableBehavior(
+            threat_response=ThreatResponse.FREEZE,
+            food_approach=FoodApproach.AMBUSH_WAIT,
+            social_mode=SocialMode.TIGHT_SCHOOL,
+            poker_engagement=PokerEngagement.AGGRESSIVE,
+        )
+        self.assertEqual(base.similarity(fully_diff), 0.0)
+
+    def test_behavioral_assortative_mating_preferences(self):
+        """Verify that prefer_similar_behavior modulates attraction by behavior-profile match."""
+        from core.algorithms.composable import ComposableBehavior
+        from core.algorithms.composable.definitions import (
+            FoodApproach,
+            PokerEngagement,
+            SocialMode,
+            ThreatResponse,
+        )
+        from core.genetics.genome import Genome
+
+        g1 = Genome.random()
+        g2 = Genome.random()
+
+        # Neutralize physical/other behavioral preferences so only the behavior
+        # preference under test drives the score delta.
+        for key in list(g1.behavioral.mate_preferences.value.keys()):
+            g1.behavioral.mate_preferences.value[key] = 0.5
+        g2.physical = g1.physical
+
+        same_behavior = ComposableBehavior(
+            threat_response=ThreatResponse.PANIC_FLEE,
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        different_behavior = ComposableBehavior(
+            threat_response=ThreatResponse.FREEZE,
+            food_approach=FoodApproach.AMBUSH_WAIT,
+            social_mode=SocialMode.TIGHT_SCHOOL,
+            poker_engagement=PokerEngagement.AGGRESSIVE,
+        )
+        g1.behavioral.behavior.value = same_behavior
+
+        # Assortative (prefer_similar_behavior = 1.0): matching profile should score higher.
+        g1.behavioral.mate_preferences.value["prefer_similar_behavior"] = 1.0
+        g2.behavioral.behavior.value = same_behavior
+        score_matching = g1.calculate_mate_attraction(g2)
+        g2.behavioral.behavior.value = different_behavior
+        score_mismatched = g1.calculate_mate_attraction(g2)
+        self.assertGreater(score_matching, score_mismatched)
+
+        # Disassortative (prefer_similar_behavior = 0.0): mismatched profile scores higher.
+        g1.behavioral.mate_preferences.value["prefer_similar_behavior"] = 0.0
+        g2.behavioral.behavior.value = same_behavior
+        score_matching_disassortative = g1.calculate_mate_attraction(g2)
+        g2.behavioral.behavior.value = different_behavior
+        score_mismatched_disassortative = g1.calculate_mate_attraction(g2)
+        self.assertGreater(score_mismatched_disassortative, score_matching_disassortative)
+
+    def test_neutral_behavior_preference_has_no_effect(self):
+        """At the 0.5 default, behavior-profile mismatch should not change attraction."""
+        from core.algorithms.composable import ComposableBehavior
+        from core.algorithms.composable.definitions import (
+            FoodApproach,
+            PokerEngagement,
+            SocialMode,
+            ThreatResponse,
+        )
+        from core.genetics.genome import Genome
+
+        g1 = Genome.random()
+        g2 = Genome.random()
+        g2.physical = g1.physical
+        g1.behavioral.mate_preferences.value["prefer_similar_behavior"] = 0.5
+
+        g1.behavioral.behavior.value = ComposableBehavior(
+            threat_response=ThreatResponse.PANIC_FLEE,
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        g2.behavioral.behavior.value = ComposableBehavior(
+            threat_response=ThreatResponse.PANIC_FLEE,
+            food_approach=FoodApproach.DIRECT_PURSUIT,
+            social_mode=SocialMode.SOLO,
+            poker_engagement=PokerEngagement.PASSIVE,
+        )
+        score_matching = g1.calculate_mate_attraction(g2)
+
+        g2.behavioral.behavior.value = ComposableBehavior(
+            threat_response=ThreatResponse.FREEZE,
+            food_approach=FoodApproach.AMBUSH_WAIT,
+            social_mode=SocialMode.TIGHT_SCHOOL,
+            poker_engagement=PokerEngagement.AGGRESSIVE,
+        )
+        score_mismatched = g1.calculate_mate_attraction(g2)
+
+        self.assertAlmostEqual(score_matching, score_mismatched)
+
     def test_neutral_preferences_behavior(self):
         """Verify that when preferences are 0.5, their weights are 0.0 (neutral)."""
         from core.genetics.genome import Genome
