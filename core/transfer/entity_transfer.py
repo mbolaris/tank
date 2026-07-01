@@ -352,8 +352,6 @@ def capture_fish_mutable_state(fish: Any) -> dict[str, Any]:
         "age": fish.age or 0,
         "reproduction_cooldown": fish._reproduction_component.reproduction_cooldown,
         "repro_credits": fish._reproduction_component.repro_credits,
-        "food_memories": list(fish.memory.food_memories) if hasattr(fish, "memory") else [],
-        "predator_last_seen": fish.memory.predator_last_seen if hasattr(fish, "memory") else 0,
         "genome_data": genome_data,
     }
 
@@ -374,12 +372,8 @@ def finalize_fish_serialization(fish: Any, mutable_state: dict[str, Any]) -> Ser
         "age": mutable_state["age"],
         "max_age": fish.max_age if fish.max_age is not None else 0,
         "generation": fish.generation,
-        "parent_id": fish.parent_id if hasattr(fish, "parent_id") else None,
+        "parent_id": fish.parent_id,
         "genome_data": mutable_state["genome_data"],
-        "memory": {
-            "food_memories": mutable_state["food_memories"],
-            "predator_last_seen": mutable_state["predator_last_seen"],
-        },
         "reproduction_cooldown": mutable_state["reproduction_cooldown"],
         "repro_credits": mutable_state["repro_credits"],
     }
@@ -395,28 +389,21 @@ def capture_plant_mutable_state(
     plant: Any, migration_direction: str | None = None
 ) -> dict[str, Any]:
     """Capture mutable state of a plant that must be read under lock."""
-    # Get plant ID - try both id and plant_id
-    plant_id = getattr(plant, "id", getattr(plant, "plant_id", None))
-    # Get root spot ID if available
-    root_spot_id = (
-        plant.root_spot.spot_id if hasattr(plant, "root_spot") and plant.root_spot else None
-    )
+    root_spot_id = plant.root_spot.spot_id if plant.root_spot else None
 
     return {
-        "id": plant_id,
+        "id": plant.plant_id,
         "x": plant.pos.x,
         "y": plant.pos.y,
         "root_spot_id": root_spot_id,
         "migration_direction": migration_direction,
         "energy": plant.energy,
         "age": plant.age,
-        "poker_cooldown": getattr(plant, "poker_cooldown", 0),
-        "nectar_cooldown": getattr(plant, "nectar_cooldown", 0),
-        "poker_wins": getattr(plant, "poker_wins", 0),
-        "poker_losses": getattr(plant, "poker_losses", 0),
-        "nectar_produced": getattr(plant, "nectar_produced", 0),
-        "growth_stage": plant.growth_stage if hasattr(plant, "growth_stage") else 1.0,
-        "nectar_ready": plant.nectar_ready if hasattr(plant, "nectar_ready") else False,
+        "poker_cooldown": plant.poker_cooldown,
+        "nectar_cooldown": plant.nectar_cooldown,
+        "poker_wins": plant.poker_wins,
+        "poker_losses": plant.poker_losses,
+        "nectar_produced": plant.nectar_produced,
     }
 
 
@@ -432,7 +419,6 @@ def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> S
         "energy": mutable_state["energy"],
         "max_energy": plant.max_energy,
         "age": mutable_state["age"],
-        "generation": getattr(plant, "generation", 0),
         "poker_cooldown": mutable_state["poker_cooldown"],
         "nectar_cooldown": mutable_state["nectar_cooldown"],
         "poker_wins": mutable_state["poker_wins"],
@@ -463,8 +449,6 @@ def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> S
             "floral_hue": plant.genome.floral_hue,
             "floral_saturation": plant.genome.floral_saturation,
         },
-        "growth_stage": mutable_state["growth_stage"],
-        "nectar_ready": mutable_state["nectar_ready"],
     }
 
 
@@ -537,12 +521,6 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
         if "repro_credits" in data:
             fish._reproduction_component.repro_credits = float(data.get("repro_credits", 0.0))
 
-        # Restore memory (if applicable)
-        if hasattr(fish, "memory") and "memory" in data:
-            memory = data["memory"]
-            fish.memory.food_memories = memory.get("food_memories", [])
-            fish.memory.predator_last_seen = memory.get("predator_last_seen", 0)
-
         return fish
     except Exception as e:
         logger.error(f"Failed to deserialize fish: {e}", exc_info=True)
@@ -563,7 +541,7 @@ def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
             return None
 
         # Get root spot manager
-        root_spot_manager = getattr(target_world.engine, "root_spot_manager", None)
+        root_spot_manager = target_world.engine.root_spot_manager
         if root_spot_manager is None:
             logger.error("Cannot deserialize plant: root_spot_manager not available")
             return None
@@ -611,7 +589,7 @@ def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
         plant_id = data.get("id")
         if plant_id is None:
             # Generate a new ID if not present (should not happen for valid transfers)
-            plant_manager = getattr(target_world.engine, "plant_manager", None)
+            plant_manager = target_world.engine.plant_manager
             if plant_manager is not None:
                 plant_id = plant_manager._generate_plant_id()
             else:
@@ -624,22 +602,19 @@ def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
             genome=genome,
             root_spot=root_spot,
             initial_energy=data["energy"],
-            ecosystem=getattr(target_world.engine, "ecosystem", None),
+            ecosystem=target_world.engine.ecosystem,
             plant_id=plant_id,
         )
 
         # Claim the spot for this plant (may race with concurrent sprouting/migration).
         if not root_spot.claim(plant):
-            raise NoRootSpotsError(
-                f"Failed to claim root spot (spot_id={getattr(root_spot, 'spot_id', None)})"
-            )
+            raise NoRootSpotsError(f"Failed to claim root spot (spot_id={root_spot.spot_id})")
 
         # Restore additional state
         plant.age = data.get("age", 0)
         if "max_energy" in data:
             plant.max_energy = data["max_energy"]
-            if hasattr(plant, "_update_size"):
-                plant._update_size()
+            plant._update_size()
         # Note: energy is already set via initial_energy parameter
         # Restore poker and nectar state
         if "poker_cooldown" in data:
@@ -668,11 +643,11 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
         "x": crab.pos.x,
         "y": crab.pos.y,
         "energy": crab.energy,
-        "hunt_cooldown": getattr(crab, "hunt_cooldown", 0),
+        "hunt_cooldown": crab.hunt_cooldown,
         "genome_data": crab.genome.to_dict(),
         "motion": {
-            "theta": getattr(crab, "_orbit_theta", None),
-            "dir": getattr(crab, "_orbit_dir", None),
+            "theta": crab._orbit_theta,
+            "dir": crab._orbit_dir,
         },
     }
 
