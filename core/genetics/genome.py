@@ -8,16 +8,25 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import core.genetics.expression as expression
 from core.exceptions import GeneticsError
-from core.genetics.behavioral import BehavioralTraits
+from core.genetics.behavioral import (
+    BEHAVIORAL_TRAIT_SPECS,
+    BehavioralTraits,
+    validate_policy_fields,
+)
+from core.genetics.code_policy_traits import SOCCER_POLICY
 from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
-from core.genetics.physical import PhysicalTraits
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
+from core.genetics.trait import GeneticTrait
 from core.genetics.validation import validate_traits_from_specs
 from core.util.rng import require_rng_param
+
+if TYPE_CHECKING:
+    from core.code_pool.genome_code_pool import GenomeCodePool
 
 logger = logging.getLogger(__name__)
 GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
@@ -120,9 +129,6 @@ class Genome:
 
     def validate(self) -> dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
-        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-
         issues = []
         issues.extend(
             validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical")
@@ -134,8 +140,6 @@ class Genome:
         )
 
         # Validate per-kind policy params fields
-        from core.genetics.behavioral import validate_policy_fields
-
         for kind, id_attr, params_attr in [
             ("movement_policy", "movement_policy_id", "movement_policy_params"),
             ("poker_policy", "poker_policy_id", "poker_policy_params"),
@@ -164,6 +168,51 @@ class Genome:
             return
         issues = "\n".join(result["issues"])
         raise GeneticsError(f"Invalid genome:\n{issues}")
+
+    def normalize(
+        self,
+        *,
+        rng: pyrandom.Random,
+        code_pool: "GenomeCodePool | None" = None,
+        soccer_enabled: bool = False,
+    ) -> None:
+        """Back-fill required fields a genome may be missing (idempotent).
+
+        A fully-populated genome (the common case) is a no-op. This exists for
+        genomes that reach a live fish without having gone through
+        :meth:`random` with every flag set - older saves/migrations, or a
+        caller that hand-builds a ``Genome`` - so the invariant "a genome is
+        complete" lives on the genome itself rather than being re-implemented
+        by every consumer that constructs or loads one.
+
+        Consumes RNG only for the fields it actually has to fill, in this
+        fixed order (poker strategy, then soccer policy): callers that care
+        about exact RNG draw sequences (this project's determinism contract)
+        must not reorder or split these checks.
+        """
+        if self.behavioral.poker_strategy is None or self.behavioral.poker_strategy.value is None:
+            from core.poker.strategy.implementations import get_random_poker_strategy
+
+            strategy = get_random_poker_strategy(rng=rng)
+            if self.behavioral.poker_strategy is None:
+                self.behavioral.poker_strategy = GeneticTrait(strategy)
+            else:
+                self.behavioral.poker_strategy.value = strategy
+
+        if soccer_enabled:
+            soccer_trait = self.behavioral.soccer_policy_id
+            if soccer_trait is None or soccer_trait.value is None:
+                if code_pool is not None:
+                    default_id = code_pool.get_default(SOCCER_POLICY)
+                    if default_id:
+                        self.behavioral.soccer_policy_id = GeneticTrait(default_id)
+                        self.behavioral.soccer_policy_params = GeneticTrait({})
+                    else:
+                        available = code_pool.get_components_by_kind(SOCCER_POLICY)
+                        if available:
+                            chosen = rng.choice(available)
+                            self.behavioral.soccer_policy_id = GeneticTrait(chosen)
+                            self.behavioral.soccer_policy_params = GeneticTrait({})
 
     # =========================================================================
     # Factory Methods
