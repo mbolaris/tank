@@ -67,6 +67,73 @@ class TestGenomeExpressionRefactor(unittest.TestCase):
         )
         self.assertAlmostEqual(score, expected)
 
+    def test_disassortative_mating_preferences(self):
+        """Verify that prefer_similar_size and prefer_different_color modulate attraction scores."""
+        from core.genetics.genome import Genome
+
+        # Create identical clones (except preference alleles)
+        g1 = Genome.random()
+        g2 = Genome.random()
+
+        # Make physical traits identical so similarity = 1.0
+        g2.physical = g1.physical
+
+        # Test 1: Assortative Mating for Size (prefer_similar_size = 1.0)
+        g1.behavioral.mate_preferences.value["prefer_similar_size"] = 1.0
+        g1.behavioral.mate_preferences.value["prefer_different_color"] = 0.5  # neutral
+        score_assortative = g1.calculate_mate_attraction(g2)
+
+        # Test 2: Disassortative Mating for Size (prefer_similar_size = 0.0)
+        g1.behavioral.mate_preferences.value["prefer_similar_size"] = 0.0
+        score_disassortative = g1.calculate_mate_attraction(g2)
+
+        # Because g1 and g2 are identical (size similarity is 1.0):
+        # - Assortative (prefer_similar_size = 1.0) gets size similarity = 1.0 with weight 1.0.
+        # - Disassortative (prefer_similar_size = 0.0) gets size similarity = 0.0 with weight 1.0.
+        # So score_assortative should be strictly greater than score_disassortative.
+        self.assertGreater(score_assortative, score_disassortative)
+
+        # Test 3: Assortative Mating for Color (prefer_different_color = 0.0)
+        g1.behavioral.mate_preferences.value["prefer_similar_size"] = 0.5  # neutral
+        g1.behavioral.mate_preferences.value["prefer_different_color"] = 0.0
+        score_color_assortative = g1.calculate_mate_attraction(g2)
+
+        # Test 4: Disassortative Mating for Color (prefer_different_color = 1.0)
+        g1.behavioral.mate_preferences.value["prefer_different_color"] = 1.0
+        score_color_disassortative = g1.calculate_mate_attraction(g2)
+
+        # Because g1 and g2 have identical colors (color similarity is 1.0):
+        # - Assortative (prefer_different_color = 0.0) gets color similarity = 1.0 with weight 1.0.
+        # - Disassortative (prefer_different_color = 1.0) gets color similarity = 0.0 with weight 1.0.
+        # So score_color_assortative should be strictly greater than score_color_disassortative.
+        self.assertGreater(score_color_assortative, score_color_disassortative)
+
+    def test_neutral_preferences_behavior(self):
+        """Verify that when preferences are 0.5, their weights are 0.0 (neutral)."""
+        from core.genetics.genome import Genome
+
+        g1 = Genome.random()
+        g2 = Genome.random()
+
+        # Set physical traits to be identical first
+        g2.physical = g1.physical
+
+        # Default preferences are 0.5
+        g1.behavioral.mate_preferences.value["prefer_similar_size"] = 0.5
+        g1.behavioral.mate_preferences.value["prefer_different_color"] = 0.5
+
+        # Calculate attraction with identical and different size/color
+        # Save original size
+        orig_size = g2.physical.size_modifier.value
+        g2.physical.size_modifier.value = g1.physical.size_modifier.value
+        score_similar = g1.calculate_mate_attraction(g2)
+
+        g2.physical.size_modifier.value = orig_size + 0.5  # different size
+        score_different = g1.calculate_mate_attraction(g2)
+
+        # Since weight of size modifier is 0.0, changing size should not affect attraction score!
+        self.assertAlmostEqual(score_similar, score_different)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

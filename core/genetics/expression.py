@@ -161,15 +161,30 @@ def calculate_mate_attraction(
             continue
 
         mate_value = float(get_trait_value(other_trait, default=0.0))
-        score = _normalized_similarity(
+        similarity = _normalized_similarity(
             mate_value,
             desired,
             spec.min_val,
             spec.max_val,
             circular=(trait_name == "color_hue"),
         )
+
+        if trait_name == "size_modifier":
+            p_sim_size = normalized_prefs.get("prefer_similar_size", 0.5)
+            alpha = (p_sim_size - 0.5) * 2.0  # ranges from -1.0 to 1.0
+            weight = abs(alpha)
+            score = similarity if alpha >= 0 else (1.0 - similarity)
+        elif trait_name == "color_hue":
+            p_diff_color = normalized_prefs.get("prefer_different_color", 0.5)
+            beta = (p_diff_color - 0.5) * 2.0  # ranges from -1.0 to 1.0
+            weight = abs(beta)
+            score = (1.0 - similarity) if beta >= 0 else similarity
+        else:
+            score = similarity
+            weight = 1.0
+
         scores.append(score)
-        weights.append(1.0)
+        weights.append(weight)
 
     pattern_weight = normalized_prefs.get("prefer_high_pattern_intensity", 0.5)
     if pattern_weight > 0.0 and has_trait_value(other_physical.pattern_intensity):
