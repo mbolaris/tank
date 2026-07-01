@@ -95,7 +95,8 @@ weak post, and a safe tweak loses to a moonshot with a clean first test.
 ## Guardrail
 
 This loop only **talks** — it never edits code. The winning proposal is handed to a separate,
-gated builder step (`/study-sim improve` or a coding agent) run through the Evolution Loop.
+gated builder step (`/build-elected`, `/study-sim improve`, or a coding agent) run through the
+Evolution Loop.
 Layer-2 changes to the fitness signal / benchmark / selection criteria are **in scope** —
 that is literally evolving the engine — but they are the highest-leverage *and* highest-risk
 proposals: justify them rigorously, keep them separate from Layer-1 changes, and never move
