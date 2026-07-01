@@ -14,6 +14,7 @@ from collections.abc import Callable
 from typing import Any
 
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000
@@ -70,8 +71,11 @@ def run(
     max_generation = 0
 
     # Run loop
+    # Every frame here already re-fetches stats explicitly below, so step()'s
+    # own internal metrics/event computation would be entirely wasted work -
+    # skip it via the fast-step path (see core/worlds/tank/backend.py::step).
     for i in range(FRAMES):
-        world.step()
+        world.step({FAST_STEP_ACTION: True})
         if fingerprint_callback is not None:
             fingerprint_callback(world, i + 1)
 
