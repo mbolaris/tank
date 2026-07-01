@@ -10,7 +10,10 @@ PUBLIC_AGENT_DOCS = [
     ROOT / "docs" / "AGENT_QUICKSTART.md",
     ROOT / "AGENTS.md",
     ROOT / "docs" / "AGENT_FIELD_GUIDE.md",
+    ROOT / "CLAUDE.md",
+    ROOT / "SETUP.md",
 ]
+ARCHIVED_ADR_DIR = ROOT / "docs" / "adr"
 
 
 def _workflow_job_names() -> set[str]:
@@ -61,6 +64,49 @@ def test_readme_references_smoke_and_pre_pr_gates():
     assert "tools/smoke_gate.py" in content, "README.md must reference tools/smoke_gate.py"
     assert "tools/agent_gate.py" in content, "README.md must reference tools/agent_gate.py"
     assert "tools/pre_pr_gate.py" in content, "README.md must reference tools/pre_pr_gate.py"
+
+
+def test_active_docs_never_reference_fast_gate():
+    """The renamed tools/fast_gate.py -> tools/pre_pr_gate.py must not resurface.
+
+    These are the live, forward-looking docs an agent reads to decide what command
+    to run; a stale mention here would send a vague-prompt agent looking for a
+    script that no longer exists. Historical mentions belong only in docs/adr/,
+    where test_archived_adr_fast_gate_mentions_are_marked_historical enforces they
+    stay clearly marked as such.
+    """
+    for doc_path in PUBLIC_AGENT_DOCS:
+        assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
+        content = doc_path.read_text(encoding="utf-8")
+        assert "fast_gate" not in content, (
+            f"{doc_path.relative_to(ROOT)} references the retired tools/fast_gate.py. "
+            "Use tools/pre_pr_gate.py instead."
+        )
+
+
+def test_archived_adr_fast_gate_mentions_are_marked_historical():
+    """ADRs may cite the retired `fast_gate` name only as historical record.
+
+    If any ADR still mentions it, docs/adr/README.md must carry an explicit
+    historical-record note explaining the rename - so a reader (or an agent)
+    cannot mistake old verification notes for current instructions.
+    """
+    adr_files_with_mentions = [
+        path
+        for path in sorted(ARCHIVED_ADR_DIR.glob("*.md"))
+        if path.name != "README.md" and "fast_gate" in path.read_text(encoding="utf-8")
+    ]
+    if not adr_files_with_mentions:
+        return
+
+    readme_path = ARCHIVED_ADR_DIR / "README.md"
+    assert readme_path.exists(), "docs/adr/README.md does not exist"
+    readme_content = readme_path.read_text(encoding="utf-8")
+
+    assert "fast_gate" in readme_content and "historical" in readme_content.lower(), (
+        "docs/adr/README.md must clearly mark 'fast_gate' mentions as historical "
+        f"(found live references in: {[p.name for p in adr_files_with_mentions]})"
+    )
 
 
 def test_agents_references_agent_quickstart():

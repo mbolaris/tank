@@ -168,6 +168,19 @@ def test_pre_pr_gate_composes_smoke_gate_and_excludes_expensive_markers():
     assert "not slow and not integration and not manual" in source
 
 
+def test_pre_pr_gate_reports_collection_and_module_diagnostics():
+    """The broad suite must stay diagnosable: exact collected/deselected counts
+    (which `-n auto` does not print on its own) and a slowest-modules breakdown.
+    """
+    source = (ROOT / "tools" / "pre_pr_gate.py").read_text(encoding="utf-8")
+    assert "run_pytest_with_diagnostics" in source
+    assert "collect_only_args" in source
+
+    gate_common_source = (ROOT / "tools" / "gate_common.py").read_text(encoding="utf-8")
+    assert "def run_pytest_with_diagnostics(" in gate_common_source
+    assert "def collect_only_counts(" in gate_common_source
+
+
 def test_agent_gate_composes_smoke_gate_and_uses_curated_tests():
     source = (ROOT / "tools" / "agent_gate.py").read_text(encoding="utf-8")
 
