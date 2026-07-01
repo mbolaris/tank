@@ -1,0 +1,12 @@
+# Default owner for everything in the repository.
+# In a project where most PRs are agent-generated, every change gets a
+# human owner for review by default.
+* @mbolaris
+
+# Governance-sensitive surfaces (Layer 2): benchmarks, champion records,
+# CI workflows, and validation gates decide what counts as an improvement,
+# so changes here always need maintainer review.
+/benchmarks/ @mbolaris
+/champions/ @mbolaris
+/.github/ @mbolaris
+/tools/ @mbolaris

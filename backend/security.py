@@ -23,6 +23,11 @@ RATE_LIMIT_ENABLED = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "60"))  # requests per window
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in seconds
 
+# WebSocket per-message rate limiting (applies after a connection is accepted,
+# so one accepted connection cannot spam commands through the receive loop).
+WS_MESSAGE_RATE_LIMIT = int(os.getenv("WS_MESSAGE_RATE_LIMIT", "30"))  # messages per window
+WS_MESSAGE_RATE_WINDOW = int(os.getenv("WS_MESSAGE_RATE_WINDOW", "10"))  # window in seconds
+
 # Whitelist for internal/development IPs
 IP_WHITELIST = set(filter(None, os.getenv("IP_WHITELIST", "127.0.0.1,::1").split(",")))
 
@@ -259,11 +264,57 @@ class WebSocketLimiter:
         self.connections[client_ip] += 1
         return True
 
-    def disconnect(self, client_ip: str):
-        """Unregister a connection."""
+    def disconnect(self, client_ip: str) -> int:
+        """Unregister a connection. Returns the IP's remaining connection count."""
         if self.connections[client_ip] > 0:
             self.connections[client_ip] -= 1
+        return self.connections[client_ip]
 
 
-# Global WebSocket limiter instance
+# Per-message rate limiter for accepted WebSocket connections
+class WebSocketMessageRateLimiter:
+    """Sliding-window rate limit for incoming WebSocket messages, keyed by IP.
+
+    The connection limiter above caps how many sockets an IP may hold open;
+    this caps how fast those sockets may send once accepted, sharing the same
+    trust boundary (resolve_client_ip) and IP_WHITELIST exemption as the HTTP
+    rate-limit path. In-memory, single-process — same trade-off as
+    RateLimitMiddleware.
+    """
+
+    def __init__(
+        self,
+        max_messages: int = WS_MESSAGE_RATE_LIMIT,
+        window_seconds: int = WS_MESSAGE_RATE_WINDOW,
+    ):
+        self.max_messages = max_messages
+        self.window_seconds = window_seconds
+        self.message_times: dict[str, list[float]] = defaultdict(list)
+
+    def allow(self, client_ip: str) -> bool:
+        """Record one incoming message; return False if the IP is over budget."""
+        if not RATE_LIMIT_ENABLED:
+            return True
+        if client_ip in IP_WHITELIST:
+            return True
+
+        current_time = time.time()
+        window_start = current_time - self.window_seconds
+
+        timestamps = [ts for ts in self.message_times[client_ip] if ts > window_start]
+        if len(timestamps) >= self.max_messages:
+            self.message_times[client_ip] = timestamps
+            return False
+
+        timestamps.append(current_time)
+        self.message_times[client_ip] = timestamps
+        return True
+
+    def forget(self, client_ip: str) -> None:
+        """Drop tracked state for an IP (call when its last connection closes)."""
+        self.message_times.pop(client_ip, None)
+
+
+# Global WebSocket limiter instances
 websocket_limiter = WebSocketLimiter(max_connections_per_ip=5)
+websocket_message_limiter = WebSocketMessageRateLimiter()
