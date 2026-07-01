@@ -13,6 +13,13 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from core.config.soccer import (
+    SOCCER_SHAPED_PER_PLAYER_CAP,
+    SOCCER_SHAPED_PROGRESS_WEIGHT,
+    SOCCER_SHAPED_SHOT_WEIGHT,
+    SOCCER_SHAPED_TEAM_BONUS_CAP,
+    SOCCER_SHAPED_TOUCH_WEIGHT,
+)
 from core.minigames.soccer.selection import get_entity_id
 
 if TYPE_CHECKING:
@@ -104,10 +111,10 @@ def apply_soccer_rewards(
 def calculate_shaped_bonuses(
     telemetry: SoccerTelemetry,
     *,
-    progress_weight: float = 0.5,
-    touch_weight: float = 0.2,
-    shot_weight: float = 1.0,
-    max_bonus_per_player: float = 10.0,
+    progress_weight: float = SOCCER_SHAPED_PROGRESS_WEIGHT,
+    touch_weight: float = SOCCER_SHAPED_TOUCH_WEIGHT,
+    shot_weight: float = SOCCER_SHAPED_SHOT_WEIGHT,
+    max_bonus_per_player: float = SOCCER_SHAPED_PER_PLAYER_CAP,
 ) -> dict[str, float]:
     """Calculate shaped bonuses from telemetry for evolution fitness.
 
@@ -164,10 +171,10 @@ def apply_shaped_soccer_rewards(
     *,
     entry_fees: Mapping[int, float] | None = None,
     reward_multiplier: float = 1.0,
-    shaped_bonus_cap: float = 20.0,
-    progress_weight: float = 0.5,
-    touch_weight: float = 0.2,
-    shot_weight: float = 1.0,
+    shaped_bonus_cap: float = SOCCER_SHAPED_TEAM_BONUS_CAP,
+    progress_weight: float = SOCCER_SHAPED_PROGRESS_WEIGHT,
+    touch_weight: float = SOCCER_SHAPED_TOUCH_WEIGHT,
+    shot_weight: float = SOCCER_SHAPED_SHOT_WEIGHT,
     reward_source: str = "soccer_shaped",
     draw_refund_source: str = "soccer_draw_refund",
 ) -> dict[str, float]:

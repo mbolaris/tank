@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from core.config.soccer import SOCCER_GOAL_REWARD_ENERGY, SOCCER_KICK_REWARD_ENERGY
 from core.energy.energy_utils import apply_energy_delta
 from core.systems.base import BaseSystem, SystemResult
 
@@ -178,12 +179,16 @@ class SoccerSystem(BaseSystem):
             # Award small energy reward for kicking via proper channel
             # Fish implements modify_energy(), no fallback needed
             try:
-                apply_energy_delta(kicker, 2.0, source="soccer_kick")
+                apply_energy_delta(kicker, SOCCER_KICK_REWARD_ENERGY, source="soccer_kick")
             except AttributeError:
                 pass
 
             # Set visual effect for HUD display
-            kicker.soccer_effect_state = {"type": "kick", "amount": 2.0, "timer": 10}  # type: ignore[attr-defined]
+            kicker.soccer_effect_state = {  # type: ignore[attr-defined]
+                "type": "kick",
+                "amount": SOCCER_KICK_REWARD_ENERGY,
+                "timer": 10,
+            }
 
     def _handle_goal_scored(self, goal_event) -> None:
         """Handle a goal being scored and award energy.
@@ -216,7 +221,7 @@ class SoccerSystem(BaseSystem):
             if fish.fish_id == goal_event.scorer_id:
                 # Award big energy reward for scoring via proper channel
                 # Fish implements modify_energy(), no fallback needed
-                reward = 50.0
+                reward = SOCCER_GOAL_REWARD_ENERGY
                 try:
                     apply_energy_delta(fish, reward, source="soccer_goal")
                 except AttributeError:
