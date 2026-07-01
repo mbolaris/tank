@@ -30,7 +30,6 @@ from core.poker.strategy.composable.definitions import (
     CFR_MIN_VISITS_FOR_INHERITANCE,
 )
 
-
 SCENARIOS: tuple[dict[str, Any], ...] = (
     {
         "name": "medium_in_position",
