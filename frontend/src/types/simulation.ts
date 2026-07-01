@@ -14,6 +14,16 @@ export interface FishGenomeData {
     eye_size: number;
     pattern_intensity: number;
     pattern_type: number;
+    // Behavioral traits (heritable; see docs/EVOLVABILITY.md sec 3.5 phenotype legibility).
+    // Already present in the wire payload via Genome.to_dict() - optional here since
+    // fish without a resolved genome (or older cached snapshots) may omit them.
+    aggression?: number;
+    pursuit_aggression?: number;
+    hunting_stamina?: number;
+    prediction_skill?: number;
+    behavior?: {
+        food_approach?: number;
+    };
 }
 
 /**
