@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.security import websocket_limiter
+from backend.security import resolve_client_ip, websocket_limiter
 
 if TYPE_CHECKING:
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
@@ -19,9 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 def _get_client_ip(websocket: WebSocket) -> str:
-    """Extract client IP from WebSocket connection (host only, no port)."""
-    client = websocket.client
-    return client.host if client else "unknown"
+    """Extract client IP from WebSocket connection (see resolve_client_ip for
+    the trust boundary — matches the HTTP rate-limit path so a connection
+    behind a trusted reverse proxy isn't misattributed to the proxy's IP)."""
+    direct_ip = websocket.client.host if websocket.client else None
+    return resolve_client_ip(direct_ip, websocket.headers)
 
 
 async def _handle_websocket_for_adapter(
