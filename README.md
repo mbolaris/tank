@@ -354,7 +354,7 @@ pre-commit run --all-files
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
 ```
 
-CI runs `smoke-gate`, `pre-pr-gate`, `frontend-ci`, `security-audit`, and `nightly-full` under [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with `verify-champions` and `benchmark-gate` defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
+CI currently runs `smoke-gate`, `pre-pr-gate`, `frontend-ci`, `security-audit`, and `nightly-full` under [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with `verify-champions` and `benchmark-gate` defined separately in [`.github/workflows/bench.yml`](.github/workflows/bench.yml).
 
 ---
 
