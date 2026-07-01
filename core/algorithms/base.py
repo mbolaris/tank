@@ -532,8 +532,14 @@ class BehaviorHelpersMixin:
     def _find_nearest_food(self, fish: "Fish") -> Any | None:
         """Find nearest food within time-based detection range.
 
-        PERFORMANCE: Uses dedicated spatial food query (nearby_resources) which is
-        faster than generic nearby_agents_by_type.
+        PERFORMANCE: Prefers the spatial grid's single-pass closest_food query
+        when the environment exposes one. It is mathematically equivalent to
+        building the nearby_resources list and scanning it for the minimum
+        distance - same grid cells (an axis-aligned box of a given radius always
+        contains the circle of that radius, so no padding is needed), same
+        tie-break order (identical column/row iteration) - but with no
+        intermediate list allocation. See core/spatial/grid.py::closest_food.
+        Falls back to the list-then-scan path for environments without it.
 
         Fish have reduced ability to detect food at night due to lower visibility.
         Detection range is modified by time of day:
@@ -553,6 +559,11 @@ class BehaviorHelpersMixin:
         # Note: access specific property, safe to duck-type or check hasattr if strict
         detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
         max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+
+        closest_food = getattr(env, "closest_food", None)
+        if closest_food is not None:
+            return closest_food(fish, max_distance)
+
         max_distance_sq = max_distance * max_distance
 
         # OPTIMIZATION: Use dedicated nearby_resources spatial query
