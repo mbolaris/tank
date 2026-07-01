@@ -37,6 +37,9 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
             // Skip if already processing or loading
             if (isProcessingRef.current || loading) return;
 
+            // Skip polling if session is over (waiting for auto-restart)
+            if (gameState.session_over) return;
+
             // Skip polling if it's not our turn (AI turns are being processed)
             // This prevents spamming the server with "wait" responses
             if (!gameState.is_your_turn && !gameState.game_over) return;
@@ -61,7 +64,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 const { action, amount } = result;
 
                 if (action === 'exit') {
-                    setAutopilot(false);
+                    // Do not disable autopilot; the session is over, wait for the state update or auto-restart
                 } else if (action === 'new_round') {
                     // Delay before new round for readability
                     await new Promise(resolve => setTimeout(resolve, AUTOPILOT_NEW_ROUND_DELAY));
@@ -91,14 +94,14 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
         return () => clearInterval(intervalId);
     }, [autopilot, gameState, loading, onGetAutopilotAction, onAction, onNewRound, addError]);
 
-    // Turn off autopilot when session ends - use ref to avoid setState in render cycle
-    const sessionOverRef = useRef(gameState?.session_over);
+    // Reset autopilot to true when a new game session starts
+    const lastGameIdRef = useRef<string | null>(null);
     useEffect(() => {
-        if (gameState?.session_over && !sessionOverRef.current) {
-            setAutopilot(false);
+        if (gameState?.game_id && gameState.game_id !== lastGameIdRef.current) {
+            setAutopilot(true);
+            lastGameIdRef.current = gameState.game_id;
         }
-        sessionOverRef.current = gameState?.session_over;
-    }, [gameState?.session_over]);
+    }, [gameState?.game_id]);
     if (!gameState || !gameState.players) {
         return (
             <div className={styles.container}>
