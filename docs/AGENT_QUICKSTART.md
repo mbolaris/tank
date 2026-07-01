@@ -35,9 +35,10 @@ pre-commit install
   ```bash
   python tools/agent_gate.py
   ```
-* **Pre-PR Gate**: Runs the smoke gate plus all non-slow unit tests (parallelized). Runtime varies by hardware.
+* **Pre-PR Gate**: Runs the smoke gate plus all non-slow unit tests (parallelized). Runtime varies by hardware. The suite runs as named shards (`worlds`, `evolution`, `backend_tools`, `core`); use `--shard NAME` to isolate or re-run one failing slice.
   ```bash
   python tools/pre_pr_gate.py
+  python tools/pre_pr_gate.py --shard evolution   # one shard only
   ```
 * **Full Gate (Nightly/Maintainers only)**: Runs everything, including integration/slow tests and strict champion reproduction. Do not run this for routine local iterations.
   ```bash

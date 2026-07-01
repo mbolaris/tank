@@ -153,6 +153,8 @@ your diff touches only the lines needed for the fix.
    file. No network, no sleeps, no global random — pass seeds explicitly.
 3. Run just your test: `pytest tests/path/to/your_test.py -v`.
 4. Run `python tools/pre_pr_gate.py` to confirm the whole non-slow suite is green.
+   If one shard fails, re-run just that slice with
+   `python tools/pre_pr_gate.py --shard <worlds|evolution|backend_tools|core>`.
 
 **Done-check:** Your test passes, it fails if you deliberately break the thing
 it tests (try it, then revert), and `pre_pr_gate` is green.

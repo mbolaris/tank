@@ -341,6 +341,15 @@ across cores via pytest-xdist). Runtime varies by hardware — typically a
 few minutes on multi-core CI, longer on constrained or single-core sandboxes.
 It excludes integration/slow/manual tests and full benchmarks.
 
+The broad suite is split into named shards (`worlds`, `evolution`,
+`backend_tools`, `core` — see `tools/pre_pr_shards.py`) that exactly
+partition the suite. The default run executes all of them; to isolate or
+re-run one failing slice:
+```bash
+python tools/pre_pr_gate.py --list-shards        # shard names and sizes
+python tools/pre_pr_gate.py --shard evolution    # smoke gate + one shard
+```
+
 ### Tier 3: Full Validation (Maintainers/Nightly)
 
 ```bash
