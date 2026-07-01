@@ -40,8 +40,8 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
 
     def _get_dish_dict(self) -> dict[str, Any]:
         """Get dish geometry from environment as a dict for render_hint."""
-        env = getattr(self._tank_backend.engine, "environment", None)
-        dish = getattr(env, "dish", None) if env else None
+        env = self._tank_backend.engine.environment
+        dish = env.dish if env else None
 
         if dish:
             return {

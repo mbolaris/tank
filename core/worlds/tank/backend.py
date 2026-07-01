@@ -226,11 +226,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         brain_mode = "builtin"
         if self._engine is not None:
-            config = getattr(self._engine, "config", None)
-            if config is not None:
-                tank_config = getattr(config, "tank", None)
-                if tank_config is not None:
-                    brain_mode = getattr(tank_config, "brain_mode", "builtin")
+            brain_mode = self._engine.config.tank.brain_mode
 
         self._cached_brain_mode = brain_mode
         return brain_mode
@@ -293,9 +289,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         frame_outputs = self._engine.drain_frame_outputs()
 
         # Feed energy deltas to ecosystem for stats tracking
-        if self._engine.ecosystem is not None and hasattr(
-            self._engine.ecosystem, "ingest_energy_deltas"
-        ):
+        if self._engine.ecosystem is not None:
             self._engine.ecosystem.ingest_energy_deltas(frame_outputs.energy_deltas)
 
         # Build result
@@ -459,7 +453,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "food_type": getattr(entity, "food_type", "regular"),
+                    "food_type": entity.food_type,
                 }
             elif isinstance(entity, Crab):
                 entity_dict = {
@@ -467,11 +461,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "hunt_cooldown": getattr(entity, "hunt_cooldown", 0),
+                    "hunt_cooldown": entity.hunt_cooldown,
                     "genome_data": entity.genome.to_dict(),
                     "motion": {
-                        "theta": getattr(entity, "_orbit_theta", None),
-                        "dir": getattr(entity, "_orbit_dir", None),
+                        "theta": entity._orbit_theta,
+                        "dir": entity._orbit_dir,
                     },
                 }
             elif isinstance(entity, Castle):
@@ -498,47 +492,6 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                 entities_snapshot.append(entity_dict)
 
         return entities_snapshot
-
-    def _extract_genome_data(self, entity: Any) -> dict[str, Any] | None:
-        """Extract minimal genome data for rendering.
-
-        Args:
-            entity: Entity with genome attribute
-
-        Returns:
-            Dictionary with visual genome traits or None
-        """
-        if not hasattr(entity, "genome"):
-            return None
-
-        genome = entity.genome
-
-        # Extract visual traits for rendering
-        genome_data = {}
-
-        # Fish genome
-        if hasattr(genome, "physical"):
-            physical = genome.physical
-            genome_data.update(
-                {
-                    "color_hue": getattr(physical, "color_hue", None),
-                    "size": getattr(physical, "size_modifier", None),
-                    "template_id": getattr(physical, "template_id", None),
-                }
-            )
-
-        # Plant genome
-        if hasattr(genome, "visual"):
-            visual = genome.visual
-            genome_data.update(
-                {
-                    "hue": getattr(visual, "hue", None),
-                    "stem_height": getattr(visual, "stem_height", None),
-                    "leaf_count": getattr(visual, "leaf_count", None),
-                }
-            )
-
-        return genome_data if genome_data else None
 
     def _collect_recent_events(self) -> list[dict[str, Any]]:
         """Collect recent events from the simulation.
