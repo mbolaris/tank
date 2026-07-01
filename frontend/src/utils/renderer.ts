@@ -996,9 +996,11 @@ export class Renderer {
         }
         ctx.translate(-scaledSize / 2, -scaledSize / 2);
 
-        // Get base color from hue
-        const baseColor = this.hslToRgbString(fishParams.color_hue, 0.7, 0.6);
-        const patternColor = this.hslToRgbString(fishParams.color_hue, 0.8, 0.3);
+        // Get base color from hue (with saturation boost based on generation)
+        const generation = fish.generation;
+        const genSatBoost = generation !== undefined ? Math.min(0.18, (generation / 25) * 0.18) : 0;
+        const baseColor = this.hslToRgbString(fishParams.color_hue, 0.7 + genSatBoost, 0.6);
+        const patternColor = this.hslToRgbString(fishParams.color_hue, 0.8 + genSatBoost, 0.3);
 
         // Get SVG path for the fish body
         const fishPath = getFishPath(fishParams, scaledSize);
@@ -1036,6 +1038,25 @@ export class Renderer {
         ctx.beginPath();
         ctx.arc(eyePos.x, eyePos.y, eyeRadius * 0.5, 0, Math.PI * 2);
         ctx.fill();
+
+        // Draw trait cues if effects are enabled
+        if (showEffects) {
+            const seed = (
+                (fish.id * 2654435761) ^
+                (fishParams.template_id * 374761393) ^
+                (Math.floor((fishParams.fin_size || 1) * 1000) * 668265263) ^
+                (Math.floor((fishParams.tail_size || 1) * 1000) * 2246822519) ^
+                (Math.floor((fishParams.body_aspect || 1) * 1000) * 3266489917) ^
+                (Math.floor((fishParams.eye_size || 1) * 1000) * 234567891) ^
+                (Math.floor((fishParams.pattern_intensity || 0.5) * 1000) * 198491317)
+            ) >>> 0;
+            const rand = this.seededRand(seed);
+
+            ctx.save();
+            ctx.translate(scaledSize / 2, scaledSize / 2);
+            this.drawTraitCues(ctx, fish, scaledSize / 2, fishParams.color_hue * 360, rand);
+            ctx.restore();
+        }
 
         ctx.restore();
 
@@ -1655,4 +1676,101 @@ export class Renderer {
     }
 
     // Note: plant energy bars intentionally removed per product request.
+
+    private clamp(value: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private seededRand(seed: number): () => number {
+        let t = seed >>> 0;
+        return () => {
+            t += 0x6D2B79F5;
+            let x = t;
+            x = Math.imul(x ^ (x >>> 15), x | 1);
+            x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+            return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    private drawTraitCues(
+        ctx: CanvasRenderingContext2D,
+        entity: EntityData,
+        r: number,
+        hueDeg: number,
+        rand: () => number
+    ) {
+        const genome = entity.genome_data;
+
+        // Aggression -> outer glow aura, red-shifted with intensity
+        const aggression = this.clamp(genome?.aggression ?? 0, 0, 1);
+        if (aggression > 0.05) {
+            const auraHue = hueDeg * (1 - aggression);
+            const auraR = r * (1.15 + aggression * 0.35);
+            ctx.save();
+            ctx.globalAlpha = 0.15 + aggression * 0.35;
+            const auraGrad = ctx.createRadialGradient(0, 0, r * 0.9, 0, 0, auraR);
+            auraGrad.addColorStop(0, `hsla(${auraHue}, 90%, 55%, 0.55)`);
+            auraGrad.addColorStop(1, `hsla(${auraHue}, 90%, 50%, 0)`);
+            ctx.fillStyle = auraGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, auraR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Prediction_skill -> forward sensory cone (narrower & longer as skill rises)
+        const predictionSkill = this.clamp(genome?.prediction_skill ?? 0, 0, 1);
+        if (predictionSkill > 0.05) {
+            const coneLen = r * (0.8 + predictionSkill * 2.2);
+            const coneHalfAngle = 0.55 - predictionSkill * 0.28;
+            ctx.save();
+            ctx.globalAlpha = 0.1 + predictionSkill * 0.22;
+            const coneGrad = ctx.createLinearGradient(r * 0.9, 0, r * 0.9 + coneLen, 0);
+            coneGrad.addColorStop(0, `hsla(${(hueDeg + 200) % 360}, 80%, 75%, 0.8)`);
+            coneGrad.addColorStop(1, `hsla(${(hueDeg + 200) % 360}, 80%, 75%, 0)`);
+            ctx.fillStyle = coneGrad;
+            ctx.beginPath();
+            ctx.moveTo(r * 0.9, 0);
+            ctx.lineTo(r * 0.9 + coneLen, -Math.sin(coneHalfAngle) * coneLen);
+            ctx.lineTo(r * 0.9 + coneLen, Math.sin(coneHalfAngle) * coneLen);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Hunting_stamina -> trailing bubble stream behind the fish
+        const huntingStamina = this.clamp(genome?.hunting_stamina ?? 0, 0, 1);
+        if (huntingStamina > 0.05) {
+            const bubbleCount = Math.floor(huntingStamina * 5);
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = `hsla(${(hueDeg + 190) % 360}, 40%, 85%, 0.7)`;
+            for (let i = 0; i < bubbleCount; i++) {
+                const t = (i + 1) / (bubbleCount + 1);
+                const bx = -r * (1.3 + t * 2.1) + (rand() - 0.5) * r * 0.3;
+                const by = (rand() - 0.5) * r * 0.7 * (1 + t);
+                const br = r * (0.06 + rand() * 0.05) * (1 - t * 0.4);
+                ctx.beginPath();
+                ctx.arc(bx, by, br, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Food-approach family: a dashed ring at a fixed per-strategy hue, independent
+        // of the individual's own color_hue (which stays the mate-choice signal).
+        const FOOD_APPROACH_FAMILY_HUES = [200, 130, 20, 280, 50, 320];
+        const foodApproach = genome?.behavior?.food_approach ?? 0;
+        const familyHue = FOOD_APPROACH_FAMILY_HUES[foodApproach % FOOD_APPROACH_FAMILY_HUES.length];
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = `hsla(${familyHue}, 75%, 65%, 0.9)`;
+        ctx.lineWidth = Math.max(1, r * 0.045);
+        ctx.setLineDash([r * 0.18, r * 0.12]);
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 1.08, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
 }
