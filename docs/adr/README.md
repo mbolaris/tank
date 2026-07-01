@@ -3,6 +3,12 @@
 This directory contains Architecture Decision Records (ADRs) documenting significant
 architectural choices made during development.
 
+> **Historical note:** ADRs are point-in-time records and are not updated after
+> acceptance. Verification notes in older ADRs may cite `fast_gate` — the
+> pre-rename name for [`tools/pre_pr_gate.py`](../../tools/pre_pr_gate.py). For the
+> current validation tier names and commands, see [CLAUDE.md](../../CLAUDE.md) or
+> [AGENTS.md](../../AGENTS.md), not historical ADR text.
+
 ## Index
 
 | ADR | Title | Status | Date |
