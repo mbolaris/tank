@@ -716,3 +716,80 @@ class SpatialGrid:
                                 result_append(other)
 
         return result
+
+    def closest_type(
+        self, agent: Entity, radius: float, agent_class: type[Entity]
+    ) -> Entity | None:
+        """Find the single closest agent of a given type within radius.
+
+        PERFORMANCE: Avoids list allocation by tracking the best match during
+        iteration instead of building the full candidate list. Mirrors
+        query_type's exact traversal (dedicated grids for Fish/Food, the same
+        cell range/type-bucket scan otherwise) so the result is identical to
+        scanning query_type's list for the minimum distance.
+        """
+        agent_class_name = agent_class.__name__
+        if agent_class_name == "Fish":
+            return self.closest_fish(agent, radius)
+        if agent_class_name == "Food" or issubclass(agent_class, Food):
+            return self.closest_food(agent, radius)
+
+        # OPTIMIZATION: Assume agent has pos (skip hasattr check in hot path)
+        pos = agent.pos
+        agent_x = pos.x
+        agent_y = pos.y
+        radius_sq = radius * radius
+
+        cs = self.cell_size
+        cols_m1 = self.cols - 1
+        rows_m1 = self.rows - 1
+
+        min_col = int((agent_x - radius) / cs)
+        if min_col < 0:
+            min_col = 0
+
+        max_col = int((agent_x + radius) / cs)
+        if max_col > cols_m1:
+            max_col = cols_m1
+
+        min_row = int((agent_y - radius) / cs)
+        if min_row < 0:
+            min_row = 0
+
+        max_row = int((agent_y + radius) / cs)
+        if max_row > rows_m1:
+            max_row = rows_m1
+
+        grid_dict = self.grid
+        subclass_cache = self._subclass_cache
+
+        nearest_agent: Entity | None = None
+        nearest_dist_sq = float("inf")
+
+        for col in range(min_col, max_col + 1):
+            for row in range(min_row, max_row + 1):
+                cell_buckets = grid_dict.get((col, row))
+                if not cell_buckets:
+                    continue
+
+                for type_key, bucket in cell_buckets.items():
+                    cache_key = (type_key, agent_class)
+                    is_match = subclass_cache.get(cache_key)
+                    if is_match is None:
+                        is_match = issubclass(type_key, agent_class)
+                        subclass_cache[cache_key] = is_match
+
+                    if is_match:
+                        for other in bucket:
+                            if other is agent:
+                                continue
+
+                            other_pos = other.pos
+                            dx = other_pos.x - agent_x
+                            dy = other_pos.y - agent_y
+                            dist_sq = dx * dx + dy * dy
+                            if dist_sq <= radius_sq and dist_sq < nearest_dist_sq:
+                                nearest_dist_sq = dist_sq
+                                nearest_agent = other
+
+        return nearest_agent

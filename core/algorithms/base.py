@@ -445,6 +445,15 @@ class BehaviorHelpersMixin:
         fish_y = fish.pos.y
 
         if max_distance is not None:
+            # OPTIMIZATION: closest_type is mathematically equivalent to
+            # building the nearby_agents_by_type list and scanning it for the
+            # minimum distance (same grid cells, same tie-break order - see
+            # core/spatial/grid.py::closest_type) but with no intermediate list
+            # allocation. Falls back to the list-then-scan path otherwise.
+            closest_of_type = getattr(env, "closest_type", None)
+            if closest_of_type is not None:
+                return closest_of_type(fish, max_distance, agent_type)
+
             # OPTIMIZATION: Use spatial query instead of get_agents_of_type
             # This reduces from O(n) to O(k) where k is nearby agents
             agents = env.nearby_agents_by_type(fish, int(max_distance) + 1, agent_type)

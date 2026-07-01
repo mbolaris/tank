@@ -299,6 +299,10 @@ class Environment:
         """Find closest food efficiently."""
         return self.spatial_grid.closest_food(agent, radius)
 
+    def closest_type(self, agent: Entity, radius: float, agent_type: type[Entity]) -> Entity | None:
+        """Find the closest agent of a given type efficiently."""
+        return self.spatial_grid.closest_type(agent, radius, agent_type)
+
     def nearby_agents_by_type(
         self,
         agent: Entity,
