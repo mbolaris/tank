@@ -275,7 +275,7 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 
 ### Priority Areas
 
-1. **Layer 1 (Algorithms)**: Improve the 58 behavior algorithms in `core/algorithms/`
+1. **Layer 1 (Algorithms)**: Improve the behavior algorithms in `core/algorithms/` (see `core/algorithms/registry.py::ALL_ALGORITHMS` for the current list)
 2. **Layer 0 (In-World)**: Tune parameters in `core/config/` for better ecosystem dynamics
 3. **Layer 2 (Meta)**: Improve benchmarks, CI, documentation, and workflows
 
@@ -348,6 +348,15 @@ re-run one failing slice:
 ```bash
 python tools/pre_pr_gate.py --list-shards        # shard names and sizes
 python tools/pre_pr_gate.py --shard evolution    # smoke gate + one shard
+```
+
+**In constrained / sandboxed agent environments** where pytest-xdist hangs or
+wedges (a known interaction with some CI sandboxes), use `--no-xdist` to fall
+back to serial execution:
+```bash
+python tools/pre_pr_gate.py --no-xdist
+python tools/pre_pr_gate.py --shard backend_tools --no-xdist
+# or set PRE_PR_NO_XDIST=1 in your environment
 ```
 
 ### Tier 3: Full Validation (Maintainers/Nightly)
@@ -542,7 +551,7 @@ pre-commit run --all-files  # Run before committing
 
 | Directory | Contents |
 |-----------|----------|
-| `core/algorithms/` | 58 behavior algorithms |
+| `core/algorithms/` | behavior algorithm library (composable + specialized) |
 | `core/config/` | Tunable parameters |
 | `benchmarks/` | Evaluation harnesses |
 | `champions/` | Best-known solutions |
