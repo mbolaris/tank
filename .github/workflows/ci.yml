@@ -57,6 +57,10 @@ jobs:
       run: python tools/pre_pr_gate.py
     - name: Type check with mypy
       run: python -m mypy core/ backend/ tools/
+    - name: Enforce coverage floor
+      run: |
+        pytest tests/ -m "not slow and not integration and not manual" \
+          --cov=core --cov=backend --cov-fail-under=70 -q
 
   frontend-ci:
     runs-on: ubuntu-latest
