@@ -8,6 +8,7 @@ so failures are easy to isolate and cheap to re-run:
     python tools/pre_pr_gate.py --shard evolution  # smoke gate + one shard
     python tools/pre_pr_gate.py --list-shards      # show shards and file counts
     python tools/pre_pr_gate.py --no-xdist         # run serially (constrained envs)
+    python tools/pre_pr_gate.py --timeout 300      # run with a custom per-shard timeout
 
 The default full run executes exactly the same tests as the pre-shard gate did
 (the shards partition the suite), just grouped with per-shard summaries.
@@ -43,6 +44,10 @@ except ImportError:
 
 _MARKER_EXPR = "not slow and not integration and not manual"
 
+# Default per-shard wall-clock timeout in seconds.
+# Generous enough for most machines, but prevents indefinite hangs.
+_DEFAULT_SHARD_TIMEOUT = 600
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -66,6 +71,15 @@ def _parse_args() -> argparse.Namespace:
             "pytest-xdist hangs. Also honoured via env var PRE_PR_NO_XDIST=1."
         ),
     )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=_DEFAULT_SHARD_TIMEOUT,
+        help=(
+            "wall-clock timeout in seconds per shard (default: %(default)s). "
+            "Set to 0 to disable."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -78,7 +92,13 @@ _XDIST_ERROR_SIGNALS = (
 )
 
 
-def _run_shard(name: str, test_files: list[str], *, no_xdist: bool = False) -> bool:
+def _run_shard(
+    name: str,
+    test_files: list[str],
+    *,
+    no_xdist: bool = False,
+    timeout: float | None = None,
+) -> bool:
     """Run one named shard, either in parallel (default) or serially (--no-xdist)."""
     import os
 
@@ -111,6 +131,7 @@ def _run_shard(name: str, test_files: list[str], *, no_xdist: bool = False) -> b
         cmd,
         label,
         collect_only_args=[*test_files, "-m", _MARKER_EXPR],
+        timeout=timeout,
     )
 
 
@@ -127,8 +148,10 @@ def main() -> None:
 
     no_xdist = args.no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
     selected = [args.shard] if args.shard else shard_names()
+    effective_timeout: float | None = args.timeout if args.timeout > 0 else None
 
     mode_label = "serial" if no_xdist else "parallel"
+    timeout_label = f"{int(args.timeout)}s" if effective_timeout else "none"
     print_gate_header(
         name="PRE-PR" if args.shard is None else f"PRE-PR (shard: {args.shard})",
         target="varies by hardware; typically under 3 minutes on multi-core CI, longer on constrained sandboxes",
@@ -140,24 +163,28 @@ def main() -> None:
     )
     if no_xdist:
         print("[INFO] Running in serial mode (--no-xdist / PRE_PR_NO_XDIST).", flush=True)
+    if effective_timeout:
+        print(f"[INFO] Per-shard timeout: {timeout_label}.", flush=True)
 
     passed = run_steps([(python_command("tools/smoke_gate.py"), "Tier 1: smoke gate")])
     for name in selected:
         if not passed:
             break
-        passed = _run_shard(name, shards[name], no_xdist=no_xdist)
+        passed = _run_shard(name, shards[name], no_xdist=no_xdist, timeout=effective_timeout)
         if not passed:
             if not no_xdist:
                 print(
                     f"\nHint: re-run just this shard with:"
                     f"\n  python tools/pre_pr_gate.py --shard {name}"
                     f"\nIf the failure looks like an xdist hang or worker crash, try:"
-                    f"\n  python tools/pre_pr_gate.py --shard {name} --no-xdist",
+                    f"\n  python tools/pre_pr_gate.py --shard {name} --no-xdist"
+                    f"\nIf the shard timed out, increase the limit with --timeout <seconds>.",
                     flush=True,
                 )
             else:
                 print(
-                    f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name} --no-xdist`",
+                    f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name} --no-xdist`"
+                    f"\nIf the shard timed out, increase the limit with --timeout <seconds>.",
                     flush=True,
                 )
     exit_for_gate("PRE-PR", passed)
