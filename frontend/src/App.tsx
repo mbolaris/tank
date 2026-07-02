@@ -3,13 +3,18 @@
  */
 
 import { Routes, Route, Link, useParams, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { TankView } from './components/TankView';
-import { NetworkDashboard } from './pages/NetworkDashboard';
 import { config, type WorldStatus } from './config';
 import { FishIcon, GlobeIcon, WaveIcon, ChevronLeftIcon, ChevronRightIcon } from './components/ui';
 import './App.css';
+
+const TankView = lazy(() =>
+    import('./components/TankView').then((module) => ({ default: module.TankView }))
+);
+const NetworkDashboard = lazy(() =>
+    import('./pages/NetworkDashboard').then((module) => ({ default: module.NetworkDashboard }))
+);
 
 interface TankNavigatorProps {
     currentTankId?: string;
@@ -395,7 +400,9 @@ function TankPage() {
     return (
         <div className="app">
             <main className="main">
-                <TankView worldId={tankId} />
+                <Suspense fallback={<PageLoading label="Loading tank..." />}>
+                    <TankView worldId={tankId} />
+                </Suspense>
             </main>
             <footer className="footer">
                 <p>Built with React + FastAPI + WebSocket | Running at ~30 FPS</p>
@@ -408,7 +415,9 @@ function HomePage() {
     return (
         <div className="app">
             <main className="main">
-                <TankView />
+                <Suspense fallback={<PageLoading label="Loading tank..." />}>
+                    <TankView />
+                </Suspense>
             </main>
             <footer className="footer">
                 <p>Built with React + FastAPI + WebSocket | Running at ~30 FPS</p>
@@ -426,11 +435,36 @@ function App() {
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="/tank/:tankId" element={<TankPage />} />
-                        <Route path="/network" element={<NetworkDashboard />} />
+                        <Route
+                            path="/network"
+                            element={
+                                <Suspense fallback={<PageLoading label="Loading network..." />}>
+                                    <NetworkDashboard />
+                                </Suspense>
+                            }
+                        />
                     </Routes>
                 </div>
             </div>
         </ErrorBoundary>
+    );
+}
+
+function PageLoading({ label }: { label: string }) {
+    return (
+        <div
+            style={{
+                minHeight: '240px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-text-muted)',
+                fontSize: '13px',
+                fontWeight: 600,
+            }}
+        >
+            {label}
+        </div>
     );
 }
 

@@ -1,4 +1,13 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+    lazy,
+    Suspense,
+    useState,
+    useCallback,
+    useEffect,
+    useRef,
+    type ChangeEvent,
+    type ReactNode,
+} from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
@@ -7,21 +16,31 @@ import { ControlPanel } from './ControlPanel';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
-import { initRenderers } from '../renderers/init';
-import { TransferDialog } from './TransferDialog';
 import { PlantIcon } from './ui';
-import {
-    TankSoccerTab,
-    TankPokerTab,
-    TankEcosystemTab,
-    TankGeneticsTab,
-    TankTrendsTab,
-} from './tank_tabs';
 import styles from './TankView.module.css';
 
 interface TankViewProps {
     worldId?: string;
 }
+
+const TransferDialog = lazy(() =>
+    import('./TransferDialog').then((module) => ({ default: module.TransferDialog }))
+);
+const TankSoccerTab = lazy(() =>
+    import('./tank_tabs/TankSoccerTab').then((module) => ({ default: module.TankSoccerTab }))
+);
+const TankPokerTab = lazy(() =>
+    import('./tank_tabs/TankPokerTab').then((module) => ({ default: module.TankPokerTab }))
+);
+const TankEcosystemTab = lazy(() =>
+    import('./tank_tabs/TankEcosystemTab').then((module) => ({ default: module.TankEcosystemTab }))
+);
+const TankGeneticsTab = lazy(() =>
+    import('./tank_tabs/TankGeneticsTab').then((module) => ({ default: module.TankGeneticsTab }))
+);
+const TankTrendsTab = lazy(() =>
+    import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
+);
 
 const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
     { id: 'insights', label: 'Insights', icon: '💬' },
@@ -54,7 +73,7 @@ export function TankView({ worldId }: TankViewProps) {
     const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
 
     const handlePlantEnergyChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
+        (e: ChangeEvent<HTMLInputElement>) => {
             const rate = parseFloat(e.target.value);
             setPlantEnergyInput(rate);
             sendCommand({ command: 'set_plant_energy_input', data: { rate } });
@@ -87,9 +106,6 @@ export function TankView({ worldId }: TankViewProps) {
 
     // Effective world ID - use connected ID which is available immediately
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
-
-    // Ensure renderers are initialized
-    initRenderers();
 
     const handleEntityClick = (entityId: number, entityType: string) => {
         setSelectedEntityId(entityId);
@@ -387,47 +403,57 @@ export function TankView({ worldId }: TankViewProps) {
 
                     {isVisible('soccer') && (
                         <CollapsiblePanel title="Soccer League" icon="⚽">
-                            <TankSoccerTab
-                                liveState={state?.soccer_league_live ?? null}
-                                events={state?.soccer_events ?? []}
-                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                            />
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankSoccerTab
+                                    liveState={state?.soccer_league_live ?? null}
+                                    events={state?.soccer_events ?? []}
+                                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
 
                     {isVisible('poker') && (
                         <CollapsiblePanel title="Poker" icon="♠">
-                            <TankPokerTab
-                                worldId={effectiveWorldId}
-                                isConnected={isConnected}
-                                pokerLeaderboard={state?.poker_leaderboard ?? []}
-                                pokerEvents={state?.poker_events ?? []}
-                                pokerStats={state?.stats?.poker_stats}
-                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                                sendCommandWithResponse={sendCommandWithResponse}
-                                worldType={effectiveWorldType}
-                            />
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankPokerTab
+                                    worldId={effectiveWorldId}
+                                    isConnected={isConnected}
+                                    pokerLeaderboard={state?.poker_leaderboard ?? []}
+                                    pokerEvents={state?.poker_events ?? []}
+                                    pokerStats={state?.stats?.poker_stats}
+                                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                    sendCommandWithResponse={sendCommandWithResponse}
+                                    worldType={effectiveWorldType}
+                                />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
 
                     {isVisible('trends') && (
                         <CollapsiblePanel title="Trends" icon="📈">
-                            <TankTrendsTab history={state?.metrics_history ?? null} />
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankTrendsTab history={state?.metrics_history ?? null} />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
 
                     {isVisible('ecosystem') && (
                         <CollapsiblePanel title="Ecosystem" icon="🌿">
-                            <TankEcosystemTab
-                                stats={state?.stats ?? null}
-                                autoEvaluation={state?.auto_evaluation}
-                            />
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankEcosystemTab
+                                    stats={state?.stats ?? null}
+                                    autoEvaluation={state?.auto_evaluation}
+                                />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
 
                     {isVisible('genetics') && (
                         <CollapsiblePanel title="Genetics" icon="🧬">
-                            <TankGeneticsTab worldId={effectiveWorldId} />
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankGeneticsTab worldId={effectiveWorldId} />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
                 </div>
@@ -438,14 +464,16 @@ export function TankView({ worldId }: TankViewProps) {
                 selectedEntityId !== null &&
                 selectedEntityType !== null &&
                 state?.world_id && (
-                    <TransferDialog
-                        entityId={selectedEntityId}
-                        entityType={selectedEntityType}
-                        sourceWorldId={state.world_id}
-                        sourceWorldName={state.world_id}
-                        onClose={handleCloseTransferDialog}
-                        onTransferComplete={handleTransferComplete}
-                    />
+                    <Suspense fallback={null}>
+                        <TransferDialog
+                            entityId={selectedEntityId}
+                            entityType={selectedEntityType}
+                            sourceWorldId={state.world_id}
+                            sourceWorldName={state.world_id}
+                            onClose={handleCloseTransferDialog}
+                            onTransferComplete={handleTransferComplete}
+                        />
+                    </Suspense>
                 )}
 
             {/* Transfer Notification */}
@@ -474,7 +502,25 @@ export function TankView({ worldId }: TankViewProps) {
     );
 }
 
-function CollapsiblePanel({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function PanelLoading() {
+    return (
+        <div
+            style={{
+                minHeight: '96px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-text-muted)',
+                fontSize: '12px',
+                fontWeight: 600,
+            }}
+        >
+            Loading panel...
+        </div>
+    );
+}
+
+function CollapsiblePanel({ title, icon, children }: { title: string; icon: string; children: ReactNode }) {
     const [isOpen, setIsOpen] = useState(true);
 
     return (
