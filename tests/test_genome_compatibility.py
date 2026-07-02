@@ -1,5 +1,8 @@
 import random
 
+import pytest
+
+import core.genetics.genome_codec as genome_codec
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 
@@ -132,6 +135,38 @@ def test_genome_with_code_policy_round_trip():
     assert g2.behavioral.poker_policy_id.value == "comp_poker"
     assert g2.behavioral.poker_policy_params is not None
     assert g2.behavioral.poker_policy_params.value == {"bet": 0.5}
+
+
+def test_malformed_behavior_payload_keeps_default_behavior():
+    """Malformed persisted behavior data should not block genome loading."""
+    rng = random.Random(457)
+    data = {
+        "schema_version": 2,
+        "behavior": {
+            "threat_response": object(),
+        },
+    }
+
+    genome = Genome.from_dict(data, rng=rng, use_algorithm=True)
+
+    assert genome.behavioral.behavior is not None
+    assert genome.behavioral.behavior.value is not None
+
+
+def test_unexpected_genome_decode_errors_surface(monkeypatch):
+    """Unexpected decode failures should not be hidden by persistence fallbacks."""
+
+    def raise_runtime_error(*_args, **_kwargs):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(genome_codec, "apply_trait_meta_from_dict", raise_runtime_error)
+    data = {
+        "schema_version": 2,
+        "trait_meta": {"speed": {"mutation_rate": 1.0}},
+    }
+
+    with pytest.raises(RuntimeError, match="unexpected"):
+        Genome.from_dict(data, rng=random.Random(458), use_algorithm=False)
 
 
 def test_code_policy_validation():
