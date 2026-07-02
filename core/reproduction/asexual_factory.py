@@ -32,18 +32,22 @@ def maybe_create_banked_offspring(
     mutation_context: ReproductionMutationContext | None = None,
 ) -> Fish | None:
     """Attempt a bank-funded asexual reproduction for a single fish."""
+    from core.reproduction.niche_cost import MIN_NICHE_COST_MULTIPLIER, get_niche_cost_multiplier
+
+    if fish._reproduction_component.reproduction_cooldown > 0 or fish.life_stage != LifeStage.ADULT:
+        return None
+
     bank = fish._reproduction_component.overflow_energy_bank
     baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
 
-    from core.reproduction.niche_cost import get_niche_cost_multiplier
+    # The niche multiplier scans the population, so rule out fish whose bank
+    # cannot cover even the cheapest possible cost before computing it.
+    if bank < baby_energy_needed * MIN_NICHE_COST_MULTIPLIER:
+        return None
 
     baby_energy_needed *= get_niche_cost_multiplier(fish)
 
-    if (
-        fish._reproduction_component.reproduction_cooldown <= 0
-        and fish.life_stage == LifeStage.ADULT
-        and bank >= baby_energy_needed
-    ):
+    if bank >= baby_energy_needed:
         return create_asexual_offspring(fish, mutation_context=mutation_context)
 
     return None

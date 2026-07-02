@@ -69,6 +69,107 @@ def _circular_distance(a: float, b: float) -> float:
     return min(diff, 1.0 - diff)
 
 
+# Trait comparison kinds for the precomputed distance table.
+_KIND_CONTINUOUS = 0
+_KIND_DISCRETE = 1
+_KIND_HUE = 2
+
+# Lazily built once from the trait specs (deferred to avoid circular imports):
+# - rows: (is_physical, trait_name, kind, weight, min_val, max_val)
+# - kind_weight_rows: (kind, weight) per row, for the distance inner loop
+# - base_total_weight: sum of all row weights, accumulated in row order so the
+#   floating-point result matches an incremental per-row summation exactly
+_trait_table: (
+    tuple[
+        list[tuple[bool, str, int, float, float, float]],
+        list[tuple[int, float]],
+        float,
+    ]
+    | None
+) = None
+
+
+def _get_trait_table() -> tuple[
+    list[tuple[bool, str, int, float, float, float]],
+    list[tuple[int, float]],
+    float,
+]:
+    global _trait_table
+    if _trait_table is None:
+        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
+        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+
+        rows: list[tuple[bool, str, int, float, float, float]] = []
+        for spec in PHYSICAL_TRAIT_SPECS:
+            weight = _PHYSICAL_TRAIT_WEIGHTS.get(spec.name, 0.5)
+            if spec.name == "color_hue":
+                kind = _KIND_HUE
+            elif spec.discrete:
+                kind = _KIND_DISCRETE
+            else:
+                kind = _KIND_CONTINUOUS
+            rows.append((True, spec.name, kind, weight, spec.min_val, spec.max_val))
+        for spec in BEHAVIORAL_TRAIT_SPECS:
+            weight = _BEHAVIORAL_TRAIT_WEIGHTS.get(spec.name, 0.5)
+            rows.append((False, spec.name, _KIND_CONTINUOUS, weight, spec.min_val, spec.max_val))
+
+        kind_weight_rows = [(kind, weight) for _, _, kind, weight, _, _ in rows]
+        base_total_weight = 0.0
+        for _, weight in kind_weight_rows:
+            base_total_weight += weight
+        _trait_table = (rows, kind_weight_rows, base_total_weight)
+    return _trait_table
+
+
+def _build_distance_profile(
+    genome: Genome,
+) -> tuple[tuple[float | int, ...], tuple[object, ...] | None]:
+    """Precompute the per-genome values genetic_distance compares.
+
+    Continuous traits are stored already normalized, discrete traits as ints,
+    and hue as the raw float, so the distance loop needs no trait lookups.
+    """
+    from core.genetics.trait_utils import get_trait_value
+
+    rows, _, _ = _get_trait_table()
+    values: list[float | int] = []
+    for is_physical, name, kind, _weight, min_val, max_val in rows:
+        traits = genome.physical if is_physical else genome.behavioral
+        val = get_trait_value(getattr(traits, name), default=0.0)
+        if kind == _KIND_HUE:
+            values.append(float(val))
+        elif kind == _KIND_DISCRETE:
+            values.append(int(val))
+        else:
+            values.append(_normalize_trait(float(val), min_val, max_val))
+
+    behavior = genome.behavioral.behavior
+    behavior_key: tuple[object, ...] | None = None
+    if behavior is not None and behavior.value is not None:
+        cb = behavior.value
+        behavior_key = (cb.threat_response, cb.food_approach, cb.social_mode, cb.poker_engagement)
+    return (tuple(values), behavior_key)
+
+
+def _distance_profile(
+    genome: Genome,
+) -> tuple[tuple[float | int, ...], tuple[object, ...] | None]:
+    """Return the genome's cached distance profile, building it if needed.
+
+    The cache lives on the genome (cleared by Genome.invalidate_caches) and is
+    valid because distance-relevant traits are fixed after genome creation:
+    mutation happens when offspring genomes are created, never in place.
+    """
+    profile = getattr(genome, "_distance_profile_cache", None)
+    if profile is None:
+        profile = _build_distance_profile(genome)
+        try:
+            object.__setattr__(genome, "_distance_profile_cache", profile)
+        except AttributeError:
+            pass  # Duck-typed genome that rejects the attribute; skip caching
+    return profile
+
+
 def genetic_distance(genome1: Genome, genome2: Genome) -> float:
     """Calculate genetic distance between two genomes.
 
@@ -89,53 +190,24 @@ def genetic_distance(genome1: Genome, genome2: Genome) -> float:
     Returns:
         Non-negative genetic distance (typically 0.0 to ~5.0)
     """
-    from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-    from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-    from core.genetics.trait_utils import get_trait_value
+    _, kind_weight_rows, total_weight = _get_trait_table()
+    values1, behavior1 = _distance_profile(genome1)
+    values2, behavior2 = _distance_profile(genome2)
 
     distance_sq = 0.0
-    total_weight = 0.0
-
-    # Physical trait distances
-    for spec in PHYSICAL_TRAIT_SPECS:
-        weight = _PHYSICAL_TRAIT_WEIGHTS.get(spec.name, 0.5)
-        val1 = get_trait_value(getattr(genome1.physical, spec.name), default=0.0)
-        val2 = get_trait_value(getattr(genome2.physical, spec.name), default=0.0)
-
-        if spec.name == "color_hue":
-            # Circular distance for hue
-            d = _circular_distance(float(val1), float(val2))
-        elif spec.discrete:
-            # Discrete traits: 0 or 1 (match/mismatch)
-            d = 0.0 if int(val1) == int(val2) else 1.0
+    for (kind, weight), v1, v2 in zip(kind_weight_rows, values1, values2, strict=True):
+        if kind == _KIND_CONTINUOUS:
+            d = v1 - v2
+        elif kind == _KIND_DISCRETE:
+            d = 0.0 if v1 == v2 else 1.0
         else:
-            d = _normalize_trait(float(val1), spec.min_val, spec.max_val) - _normalize_trait(
-                float(val2), spec.min_val, spec.max_val
-            )
-
+            d = _circular_distance(v1, v2)
         distance_sq += weight * d * d
-        total_weight += weight
-
-    # Behavioral trait distances
-    for spec in BEHAVIORAL_TRAIT_SPECS:
-        weight = _BEHAVIORAL_TRAIT_WEIGHTS.get(spec.name, 0.5)
-        val1 = get_trait_value(getattr(genome1.behavioral, spec.name), default=0.0)
-        val2 = get_trait_value(getattr(genome2.behavioral, spec.name), default=0.0)
-
-        d = _normalize_trait(float(val1), spec.min_val, spec.max_val) - _normalize_trait(
-            float(val2), spec.min_val, spec.max_val
-        )
-        distance_sq += weight * d * d
-        total_weight += weight
 
     # Composable behavior sub-behavior distances (discrete mismatches)
-    b1 = genome1.behavioral.behavior
-    b2 = genome2.behavioral.behavior
-    if b1 is not None and b2 is not None and b1.value is not None and b2.value is not None:
-        cb1 = b1.value
-        cb2 = b2.value
-        for attr in ("threat_response", "food_approach", "social_mode", "poker_engagement"):
-            if getattr(cb1, attr) != getattr(cb2, attr):
+    if behavior1 is not None and behavior2 is not None:
+        for a, b in zip(behavior1, behavior2, strict=True):
+            if a != b:
                 distance_sq += _BEHAVIOR_MISMATCH_WEIGHT
                 total_weight += _BEHAVIOR_MISMATCH_WEIGHT
 
