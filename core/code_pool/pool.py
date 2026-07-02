@@ -222,8 +222,208 @@ def flee_from_threat_policy(observation: dict[str, Any], rng: Any) -> tuple[floa
     return (0.0, 0.0)
 
 
+# Evolvable parameter keys shared by all builtin soccer policies.
+# Every key defaults to 0.0 (= hand-tuned baseline behavior) and is mapped
+# through a clamped scale inside the policy, so any mutated value in the
+# genome's [-10, 10] range stays physically sane. Seeding these keys into
+# soccer_policy_params is what gives selection heritable material to act on
+# (mutation only perturbs keys that already exist).
+SOCCER_POLICY_PARAM_KEYS: tuple[str, ...] = (
+    "intercept_lead",
+    "shot_range",
+    "dribble_power",
+    "stamina_floor",
+    "hold_depth",
+    "press_radius",
+)
+
+# The engine only applies kicks when the ball center is within
+# kickable_margin + player_size (= 1.0m with canonical params) of the player
+# center; beyond that the command is silently dropped and the cycle is wasted.
+# Gate kicks slightly inside that radius so every kick we issue lands.
+_ENGINE_KICKABLE_DIST = 0.98
+
+
+def _norm_angle(angle: float) -> float:
+    """Normalize an angle to [-pi, pi]."""
+    while angle > math.pi:
+        angle -= 2 * math.pi
+    while angle < -math.pi:
+        angle += 2 * math.pi
+    return angle
+
+
+def _scaled_param(
+    params: dict[str, Any],
+    key: str,
+    base: float,
+    scale: float,
+    lo: float,
+    hi: float,
+) -> float:
+    """Map an evolvable param (raw genome value, ~[-10, 10]) onto a bounded knob."""
+    try:
+        raw = float(params.get(key, 0.0))
+    except (TypeError, ValueError):
+        raw = 0.0
+    return max(lo, min(hi, base + scale * raw))
+
+
+def _steer_action(
+    tx: float,
+    ty: float,
+    facing_angle: float,
+    stamina_ratio: float,
+    stamina_floor: float,
+) -> dict[str, Any]:
+    """Turn toward, then dash at, the relative target (tx, ty).
+
+    Turning is far more effective at low speed (RCSS divides the turn moment
+    by 1 + inertia_moment * speed), so we stop dashing while a large turn is
+    needed instead of sliding past the target.
+    """
+    dist = math.sqrt(tx * tx + ty * ty)
+    angle_delta = _norm_angle(math.atan2(ty, tx) - facing_angle)
+
+    if abs(angle_delta) >= 0.25:
+        return {
+            "turn": max(-1.0, min(1.0, (angle_delta * 1.5) / math.pi)),
+            "dash": 0.0,
+            "kick_power": 0.0,
+            "kick_angle": 0.0,
+        }
+
+    # Full power while fresh; taper near the stamina floor so a long chase
+    # doesn't crash through the RCSS effort floor.
+    if dist > 0.4:
+        dash = (
+            1.0
+            if stamina_ratio > stamina_floor
+            else max(0.3, stamina_ratio / max(stamina_floor, 1e-6))
+        )
+    else:
+        dash = 0.0
+
+    return {"turn": 0.0, "dash": dash, "kick_power": 0.0, "kick_angle": 0.0}
+
+
+def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any]:
+    """Shared param-driven core for the builtin soccer policies.
+
+    Roles differ only in off-ball positioning:
+    - "chaser": always intercepts the ball
+    - "striker": lurks between the ball and the opponent goal, presses when close
+    - "defender": holds the line between own goal and the ball, presses when close
+
+    All geometry is derived from goal_direction (already side- and
+    half-time-swap-aware via build_observation), so every role works on both
+    teams and in both halves.
+    """
+    params_raw = observation.get("params")
+    params: dict[str, Any] = params_raw if isinstance(params_raw, dict) else {}
+
+    self_pos = observation.get("position", {})
+    sx = float(self_pos.get("x", 0.0))
+    sy = float(self_pos.get("y", 0.0))
+
+    ball_rel = observation.get("ball_relative_pos", {})
+    brx = float(ball_rel.get("x", 0.0))
+    bry = float(ball_rel.get("y", 0.0))
+    ball_dist = math.sqrt(brx * brx + bry * bry)
+
+    ball_vx = float(observation.get("ball_vel_x", 0.0))
+    ball_vy = float(observation.get("ball_vel_y", 0.0))
+
+    goal_rel = observation.get("goal_direction", {})
+    grx = float(goal_rel.get("x", 0.0))
+    gry = float(goal_rel.get("y", 0.0))
+    goal_dist = math.sqrt(grx * grx + gry * gry)
+
+    facing_angle = float(observation.get("facing_angle", 0.0))
+    stamina_ratio = float(observation.get("stamina_ratio", 1.0))
+    field_length = float(observation.get("field_length", 100.0))
+
+    # Evolvable knobs (base values are the hand-tuned baseline; a raw genome
+    # value of 0.0 reproduces it exactly).
+    intercept_lead = _scaled_param(params, "intercept_lead", 5.0, 1.2, 0.0, 16.0)
+    shot_range = _scaled_param(params, "shot_range", 40.0, 2.0, 10.0, 60.0)
+    dribble_power = _scaled_param(params, "dribble_power", 0.65, 0.035, 0.15, 1.0)
+    stamina_floor = _scaled_param(params, "stamina_floor", 0.35, 0.04, 0.05, 0.85)
+    hold_depth = _scaled_param(params, "hold_depth", 0.40, 0.035, 0.10, 0.80)
+    press_radius = _scaled_param(params, "press_radius", 14.0, 1.6, 3.0, 40.0)
+
+    # --- On the ball: shoot or dribble toward the opponent goal ---
+    if ball_dist <= _ENGINE_KICKABLE_DIST:
+        kick_angle = _norm_angle(math.atan2(gry, grx) - facing_angle)
+        if goal_dist <= shot_range or role == "defender":
+            # In range: shoot full power. Defenders always clear hard.
+            kick_power = 1.0
+        else:
+            # Out of range: dribble - a soft touch toward goal we can chase,
+            # instead of a long ball the defense collects.
+            kick_power = dribble_power
+        return {"turn": 0.0, "dash": 0.0, "kick_power": kick_power, "kick_angle": kick_angle}
+
+    # --- Off the ball: role-specific positioning ---
+    # Lead the ball's velocity to intercept where it is going, not where it is.
+    ix = brx + ball_vx * intercept_lead
+    iy = bry + ball_vy * intercept_lead
+
+    if role == "striker":
+        # Ball in the offensive zone (near opponent goal) or close by: press.
+        ball_to_goal_x = grx - brx
+        ball_to_goal_y = gry - bry
+        ball_goal_dist = math.sqrt(ball_to_goal_x**2 + ball_to_goal_y**2)
+        if ball_dist <= press_radius or ball_goal_dist <= field_length * 0.5:
+            tx, ty = ix, iy
+        else:
+            # Lurk between the ball and the opponent goal, hold_depth of the
+            # way back from the goal toward the ball.
+            goal_x, goal_y = sx + grx, sy + gry
+            ball_x, ball_y = sx + brx, sy + bry
+            tx = (goal_x + (ball_x - goal_x) * hold_depth) - sx
+            ty = (goal_y + (ball_y - goal_y) * hold_depth) - sy
+    elif role == "defender":
+        if ball_dist <= press_radius:
+            tx, ty = ix, iy
+        else:
+            # Hold the line between own goal and the ball. Goals are mirrored
+            # across the field center, so own goal = -(opponent goal).
+            goal_x, goal_y = sx + grx, sy + gry
+            own_goal_x, own_goal_y = -goal_x, -goal_y
+            ball_x, ball_y = sx + brx, sy + bry
+            tx = (own_goal_x + (ball_x - own_goal_x) * hold_depth) - sx
+            ty = (own_goal_y + (ball_y - own_goal_y) * hold_depth) - sy
+    else:
+        tx, ty = ix, iy
+
+    return _steer_action(tx, ty, facing_angle, stamina_ratio, stamina_floor)
+
+
+def default_soccer_policy_params(
+    policy_id: str | None = None,
+    rng: Any = None,
+    jitter: float = 0.0,
+) -> dict[str, float]:
+    """Default (zero) values for all evolvable soccer policy params.
+
+    Seed these into soccer_policy_params when a soccer policy is assigned so
+    mutation/crossover (which only touch existing keys) have material to work
+    with. Optional Gaussian jitter gives the founding population initial
+    variance for selection to act on.
+    """
+    _ = policy_id  # All builtin policies share the same param space.
+    values: dict[str, float] = {}
+    for key in SOCCER_POLICY_PARAM_KEYS:
+        value = 0.0
+        if rng is not None and jitter > 0.0:
+            value = max(-10.0, min(10.0, rng.gauss(0.0, jitter)))
+        values[key] = value
+    return values
+
+
 def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
-    """Built-in soccer policy that chases the ball and kicks toward opponent goal.
+    """Built-in soccer policy that intercepts the ball and works it toward goal.
 
     Args:
         observation: Soccer observation with position, ball_position, field dimensions
@@ -234,69 +434,13 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
     """
     _ = rng
     try:
-        # Use relative observations for simplicity
-        ball_rel = observation.get("ball_relative_pos", {})
-        brx = float(ball_rel.get("x", 0.0))
-        bry = float(ball_rel.get("y", 0.0))
-        dist = math.sqrt(brx * brx + bry * bry)
-
-        facing_angle = float(observation.get("facing_angle", 0.0))
-
-        # Calculate turn needed to face ball
-        target_angle = math.atan2(bry, brx)
-        # We need to adjust target_angle because atan2(bry, brx) is already relative to us
-        # But wait, if brx, bry are (ball_x - self_x), then atan2(bry, brx) is the absolute angle
-        # from our position to the ball.
-        angle_delta = target_angle - facing_angle
-
-        # Normalize to [-pi, pi]
-        while angle_delta > math.pi:
-            angle_delta -= 2 * math.pi
-        while angle_delta < -math.pi:
-            angle_delta += 2 * math.pi
-
-        # Scale turn to be more responsive, map radians to [-1, 1] appropriately
-        if abs(angle_delta) < 0.2:
-            turn = 0.0
-        else:
-            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
-
-        # Dash toward ball at full power while fresh; ease off once stamina
-        # runs low so a long chase doesn't crash through the RCSS effort
-        # floor (a constant full-power dash costs more stamina than passive
-        # recovery replaces). BotEntity's default_policy_action never hits
-        # this because it throttles power by distance instead.
-        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
-        if dist > 0.4:
-            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
-        else:
-            dash = 0.0
-
-        # Kick if close to ball
-        kick_power = 0.0
-        kick_angle = 0.0
-        is_kickable = observation.get("is_kickable", 0.0) > 0.5
-        if is_kickable or dist < 1.0:
-            # Kick toward opponent goal
-            goal_rel = observation.get("goal_direction", {})
-            grx = float(goal_rel.get("x", 0.0))
-            gry = float(goal_rel.get("y", 0.0))
-            # Kick angle relative to facing
-            kick_angle = math.atan2(gry, grx) - facing_angle
-            kick_power = 1.0
-
-        return {
-            "turn": turn,
-            "dash": dash,
-            "kick_power": kick_power,
-            "kick_angle": kick_angle,
-        }
+        return _soccer_policy_core(observation, role="chaser")
     except (TypeError, ValueError, KeyError):
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
 def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
-    """Built-in soccer policy that plays defensively near own goal.
+    """Built-in soccer policy that screens its own goal and clears the ball.
 
     Args:
         observation: Soccer observation with position, ball_position, field dimensions
@@ -307,74 +451,13 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
     """
     _ = rng
     try:
-        # Defensive logic: stay between own goal and ball
-        self_pos = observation.get("position", {})
-        sx = float(self_pos.get("x", 0.0))
-        sy = float(self_pos.get("y", 0.0))
-
-        ball_pos = observation.get("ball_position", {})
-        bx = float(ball_pos.get("x", 0.0))
-        by = float(ball_pos.get("y", 0.0))
-
-        field_width = float(observation.get("field_width", 100.0))
-        facing_angle = float(observation.get("facing_angle", 0.0))
-
-        own_goal_x = -field_width / 2.0  # Assumes we are team "left"
-        # If we are team "right", own goal is on the right
-        # A better defensive policy would be team-aware
-        # For now, let's assume this is used by the defender of the left team
-
-        target_x = (own_goal_x + bx) / 2.0
-        target_y = by * 0.5  # Stay somewhat centered
-
-        dx = target_x - sx
-        dy = target_y - sy
-        dist = math.sqrt(dx * dx + dy * dy)
-
-        target_angle = math.atan2(dy, dx)
-        angle_delta = target_angle - facing_angle
-        while angle_delta > math.pi:
-            angle_delta -= 2 * math.pi
-        while angle_delta < -math.pi:
-            angle_delta += 2 * math.pi
-
-        if abs(angle_delta) < 0.2:
-            turn = 0.0
-        else:
-            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
-
-        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
-        if dist > 0.5:
-            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
-        else:
-            dash = 0.0
-
-        # Kick away if close to ball
-        ball_rel = observation.get("ball_relative_pos", {})
-        brx = float(ball_rel.get("x", 0.0))
-        bry = float(ball_rel.get("y", 0.0))
-        ball_dist = math.sqrt(brx * brx + bry * bry)
-
-        kick_power = 0.0
-        kick_angle = 0.0
-        is_kickable = observation.get("is_kickable", 0.0) > 0.5
-        if is_kickable or ball_dist < 1.0:
-            # Clear it forward
-            kick_angle = -facing_angle  # Kick toward positive X (assuming left team)
-            kick_power = 1.0
-
-        return {
-            "turn": turn,
-            "dash": dash,
-            "kick_power": kick_power,
-            "kick_angle": kick_angle,
-        }
+        return _soccer_policy_core(observation, role="defender")
     except (TypeError, ValueError, KeyError):
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
 def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
-    """Built-in soccer policy that plays as a striker, staying in offensive zone.
+    """Built-in soccer policy that lurks upfield and presses in the offensive zone.
 
     Args:
         observation: Soccer observation with position, ball_position, field dimensions
@@ -385,59 +468,6 @@ def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, An
     """
     _ = rng
     try:
-        # Relative features
-        ball_rel = observation.get("ball_relative_pos", {})
-        brx = float(ball_rel.get("x", 0.0))
-        bry = float(ball_rel.get("y", 0.0))
-        ball_dist = math.sqrt(brx * brx + bry * bry)
-
-        goal_rel = observation.get("goal_direction", {})
-        grx = float(goal_rel.get("x", 0.0))
-        gry = float(goal_rel.get("y", 0.0))
-
-        facing_angle = float(observation.get("facing_angle", 0.0))
-
-        # Determine target: ball if reasonably close or in offensive zone
-        if ball_dist < 20.0 or brx > 0:
-            tx, ty = brx, bry
-        else:
-            tx, ty = grx * 0.5, gry * 0.5
-
-        dist = math.sqrt(tx * tx + ty * ty)
-
-        # Calculate turn needed
-        target_angle = math.atan2(ty, tx)
-        angle_delta = target_angle - facing_angle
-        while angle_delta > math.pi:
-            angle_delta -= 2 * math.pi
-        while angle_delta < -math.pi:
-            angle_delta += 2 * math.pi
-
-        if abs(angle_delta) < 0.2:
-            turn = 0.0
-        else:
-            turn = max(-1.0, min(1.0, (angle_delta * 1.5) / 3.14159))
-
-        stamina_ratio = float(observation.get("stamina_ratio", 1.0))
-        if dist > 0.4:
-            dash = 1.0 if stamina_ratio > 0.4 else max(0.3, stamina_ratio / 0.4)
-        else:
-            dash = 0.0
-
-        # Shoot on goal if close to ball
-        kick_power = 0.0
-        kick_angle = 0.0
-        is_kickable = observation.get("is_kickable", 0.0) > 0.5
-        if is_kickable or ball_dist < 1.0:
-            # Aim for goal
-            kick_angle = math.atan2(gry, grx) - facing_angle
-            kick_power = 1.0
-
-        return {
-            "turn": turn,
-            "dash": dash,
-            "kick_power": kick_power,
-            "kick_angle": kick_angle,
-        }
+        return _soccer_policy_core(observation, role="striker")
     except (TypeError, ValueError, KeyError):
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}

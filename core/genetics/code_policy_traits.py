@@ -329,7 +329,15 @@ def assign_random_policy(
         return False
 
     setattr(behavioral, id_attr, GeneticTrait(component_id))
-    setattr(behavioral, params_attr, GeneticTrait({}))
+    # Soccer policies expose a shared evolvable param space; seed its keys so
+    # mutation/crossover (which only touch existing keys) can act on them.
+    if kind == SOCCER_POLICY:
+        from core.code_pool.pool import default_soccer_policy_params
+
+        params: dict[str, float] = default_soccer_policy_params(component_id, rng=rng, jitter=0.5)
+    else:
+        params = {}
+    setattr(behavioral, params_attr, GeneticTrait(params))
     return True
 
 

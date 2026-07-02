@@ -14,7 +14,7 @@ import math
 import random as pyrandom
 import sys
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .models import ValidationError
@@ -44,6 +44,14 @@ class SafetyConfig:
     clamp_movement_output: bool = True  # Clamp movement vectors to [-1, 1]
     clamp_value_range: tuple[float, float] = (-1.0, 1.0)  # Range for clamping
 
+    # Per-key clamp overrides for dict outputs whose convention is not [-1, 1].
+    # kick_angle is radians in [-pi, pi] (soccer action convention); clamping it
+    # to [-1, 1] would bend any kick aimed more than ~57 degrees off the body
+    # axis and send it in the wrong direction.
+    clamp_key_overrides: dict[str, tuple[float, float]] = field(
+        default_factory=lambda: {"kick_angle": (-math.pi, math.pi)}
+    )
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
         return {
@@ -54,12 +62,22 @@ class SafetyConfig:
             "max_output_size": self.max_output_size,
             "clamp_movement_output": self.clamp_movement_output,
             "clamp_value_range": list(self.clamp_value_range),
+            "clamp_key_overrides": {
+                key: list(bounds) for key, bounds in self.clamp_key_overrides.items()
+            },
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SafetyConfig:
         """Deserialize from dictionary."""
         clamp_range = data.get("clamp_value_range", [-1.0, 1.0])
+        default_overrides = {"kick_angle": (-math.pi, math.pi)}
+        raw_overrides = data.get("clamp_key_overrides")
+        overrides = (
+            {key: tuple(bounds[:2]) for key, bounds in raw_overrides.items()}
+            if raw_overrides is not None
+            else default_overrides
+        )
         return cls(
             max_source_length=data.get("max_source_length", 10_000),
             max_ast_nodes=data.get("max_ast_nodes", 500),
@@ -68,6 +86,7 @@ class SafetyConfig:
             max_output_size=data.get("max_output_size", 1000),
             clamp_movement_output=data.get("clamp_movement_output", True),
             clamp_value_range=tuple(clamp_range[:2]),
+            clamp_key_overrides=overrides,
         )
 
 
@@ -333,12 +352,13 @@ class SafeExecutor:
         if isinstance(output, dict):
             clamped_map: dict[Any, Any] = {}
             for key, val in output.items():
+                key_min, key_max = self.config.clamp_key_overrides.get(key, (min_val, max_val))
                 if isinstance(val, (int, float)):
                     if not math.isfinite(val):
                         clamped_map[key] = 0.0
                         was_clamped = True
-                    elif val < min_val or val > max_val:
-                        clamped_map[key] = max(min_val, min(max_val, val))
+                    elif val < key_min or val > key_max:
+                        clamped_map[key] = max(key_min, min(key_max, val))
                         was_clamped = True
                     else:
                         clamped_map[key] = val
