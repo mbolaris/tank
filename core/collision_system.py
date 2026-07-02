@@ -331,11 +331,8 @@ class CollisionSystem(BaseSystem):
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not fish]
 
-            nearby_entities = sorted(nearby_entities, key=collision_sort_key)
-
-            # Cache fish position for inner loop
-            fish.pos.x + fish.width * 0.5
-            fish.pos.y + fish.height * 0.5
+            if len(nearby_entities) > 1:
+                nearby_entities = sorted(nearby_entities, key=collision_sort_key)
 
             for other in nearby_entities:
                 if other is fish:
@@ -417,7 +414,8 @@ class CollisionSystem(BaseSystem):
 
         # Sort crabs for deterministic processing order
         # Use position instead of id() for cross-process reproducibility
-        crabs.sort(key=lambda c: (c.pos.x, c.pos.y))
+        if len(crabs) > 1:
+            crabs.sort(key=lambda c: (c.pos.x, c.pos.y))
 
         environment = self._engine.environment
         check_collision = self.check_collision
@@ -444,7 +442,8 @@ class CollisionSystem(BaseSystem):
                 continue
 
             # Sort nearby food deterministically
-            nearby_food.sort(key=food_sort_key)
+            if len(nearby_food) > 1:
+                nearby_food.sort(key=food_sort_key)
 
             for food in nearby_food:
                 # Check if food is already eaten (pending removal)
