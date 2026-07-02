@@ -130,6 +130,10 @@ def create_standard_mating_offspring(
     # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
     newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
 
+    from core.reproduction.niche_cost import get_niche_cost_multiplier
+
+    newborn_energy_target *= get_niche_cost_multiplier(parent)
+
     parent_contrib = newborn_energy_target * config.parent_energy_contribution
     mate_contrib = newborn_energy_target * config.parent_energy_contribution
     if parent.energy < parent_contrib or mate.energy < mate_contrib:
@@ -209,6 +213,10 @@ def create_post_poker_offspring(
 
     # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
     newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
+
+    from core.reproduction.niche_cost import get_niche_cost_multiplier
+
+    newborn_energy_target *= get_niche_cost_multiplier(winner)
 
     winner_contrib = max(0.0, winner.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
     mate_contrib = max(0.0, mate.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)

@@ -35,6 +35,10 @@ def maybe_create_banked_offspring(
     bank = fish._reproduction_component.overflow_energy_bank
     baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
 
+    from core.reproduction.niche_cost import get_niche_cost_multiplier
+
+    baby_energy_needed *= get_niche_cost_multiplier(fish)
+
     if (
         fish._reproduction_component.reproduction_cooldown <= 0
         and fish.life_stage == LifeStage.ADULT
@@ -71,6 +75,10 @@ def create_asexual_offspring(
 
     # Use standard size_modifier=1.0 for newborn energy calculation (Fair-Start)
     newborn_energy_target = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * 1.0
+
+    from core.reproduction.niche_cost import get_niche_cost_multiplier
+
+    newborn_energy_target *= get_niche_cost_multiplier(fish)
 
     bank_used = fish._reproduction_component.consume_overflow_energy_bank(newborn_energy_target)
     remaining_needed = newborn_energy_target - bank_used
