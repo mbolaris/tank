@@ -1,11 +1,11 @@
-import requests  # type: ignore[import-untyped]
+import httpx
 
 
 def verify_poker_score():
     try:
         # Get list of servers
         print("Fetching servers...")
-        response = requests.get("http://localhost:8000/api/servers")
+        response = httpx.get("http://localhost:8000/api/servers")
         response.raise_for_status()
         data = response.json()
 

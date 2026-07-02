@@ -56,6 +56,16 @@ def main() -> None:
         (
             python_command(
                 "-m",
+                "mypy",
+                "core",
+                "backend",
+                "tools",
+            ),
+            "Mypy type check",
+        ),
+        (
+            python_command(
+                "-m",
                 "pytest",
                 *_AGENT_CURATED_TESTS,
                 "-m",

@@ -99,7 +99,10 @@ def _kill_step_process_group(pgid: int) -> None:
     if not _POSIX:
         return
     try:
-        os.killpg(pgid, signal.SIGKILL)
+        killpg = getattr(os, "killpg", None)
+        sigkill = getattr(signal, "SIGKILL", None)
+        if killpg is not None and sigkill is not None:
+            killpg(pgid, sigkill)
     except (ProcessLookupError, PermissionError):
         pass
 
