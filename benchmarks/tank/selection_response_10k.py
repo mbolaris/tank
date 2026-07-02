@@ -40,6 +40,7 @@ WORLD_CONFIG: dict[str, Any] = {
     "plants_enabled": False,
     "auto_food_spawn_rate": 9,
     "soccer_enabled": False,
+    "panic_button_enabled": True,
 }
 
 CONFIG: dict[str, Any] = {

@@ -154,6 +154,8 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
   population dynamics. Retest over a longer horizon (30k+ frames) or with a biased initial
   distribution before concluding the mechanism does or doesn't work.
 
+- 2026-07-01 | Panic Button -- diversity-triggered hypermutation (plasticity of evolvability) | lever §3.1 | hypothesis: a population-level panic reflex that scales mutation rate and strength exactly when diversity collapses prevents premature convergence without degrading directional selection | result: `run_selection_response_assay.py` seeds 42/7/123, mean composite score 48.99 → 53.20 (+8.6%), mean selected trait fraction 0.78 → 0.89 (+14%), mean drift-per-generation 3.45% → 3.62% (+4.9%), diversity delta maintained (0.02), min final diversity 0.249 | verdict: adopted | lesson: seeded clamping of mutation parameters during hypermutation prevents destructive runaway dynamics while successfully boosting selection response.
+
 ---
 
 ## 6. Open problem — a frozen evolvability benchmark

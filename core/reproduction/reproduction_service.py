@@ -265,7 +265,11 @@ class ReproductionService:
         return None if score is None else float(score)
 
     def _mutation_context_for_parents(self, *parents: Fish) -> ReproductionMutationContext:
-        return self._mutation_controller.context_for_parents(*parents)
+        eco_cfg = getattr(self._engine.config, "ecosystem", None)
+        try:
+            return self._mutation_controller.context_for_parents(*parents, ecosystem_config=eco_cfg)
+        except TypeError:
+            return self._mutation_controller.context_for_parents(*parents)
 
     def _handle_banked_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0

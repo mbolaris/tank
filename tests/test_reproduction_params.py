@@ -93,3 +93,45 @@ def test_protected_lineage_still_requires_adult_and_cooldown() -> None:
 
     component.reproduction_cooldown = 1
     assert not component.can_asexually_reproduce(LifeStage.ADULT, 100.0, 100.0, protected)
+
+
+def test_panic_button_applies_hypermutation_factor() -> None:
+    params = ReproductionParams(mutation_rate=0.10, mutation_strength=0.10)
+    context = ReproductionMutationContext(
+        diversity_score=0.15,
+        panic_button_enabled=True,
+        panic_button_k=1.0,
+        panic_button_target=0.30,
+    )
+    rate, strength = params.adaptive_mutation(context)
+    # panic_factor = 1.0 + 1.0 * (0.30 - 0.15) / 0.30 = 1.5
+    # rate = 0.10 * 1.5 = 0.15
+    # strength = 0.10 * 1.5 = 0.15
+    assert rate == pytest.approx(0.15)
+    assert strength == pytest.approx(0.15)
+
+
+def test_panic_button_disabled_has_no_effect() -> None:
+    params = ReproductionParams(mutation_rate=0.10, mutation_strength=0.10)
+    context = ReproductionMutationContext(
+        diversity_score=0.15,
+        panic_button_enabled=False,
+        panic_button_k=1.0,
+        panic_button_target=0.30,
+    )
+    rate, strength = params.adaptive_mutation(context)
+    assert rate == pytest.approx(0.10)
+    assert strength == pytest.approx(0.10)
+
+
+def test_panic_button_above_target_has_no_effect() -> None:
+    params = ReproductionParams(mutation_rate=0.10, mutation_strength=0.10)
+    context = ReproductionMutationContext(
+        diversity_score=0.45,
+        panic_button_enabled=True,
+        panic_button_k=1.0,
+        panic_button_target=0.30,
+    )
+    rate, strength = params.adaptive_mutation(context)
+    assert rate == pytest.approx(0.10)
+    assert strength == pytest.approx(0.10)
