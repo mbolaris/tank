@@ -56,7 +56,7 @@ jobs:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: python tools/pre_pr_gate.py
     - name: Type check with mypy
-      run: python -m mypy core/
+      run: python -m mypy core/ backend/ tools/
 
   frontend-ci:
     runs-on: ubuntu-latest
