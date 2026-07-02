@@ -1,14 +1,25 @@
-"""Tests for the pytest-output parsing helpers behind the pre-PR gate diagnostics.
+"""Tests for the helpers behind the validation gates.
 
-These are pure string-parsing functions exercised with literal sample text captured
-from real pytest/pytest-xdist runs, so they stay fast and deterministic - no
-subprocesses, no sleeps.
+The parsing tests are pure string-parsing functions exercised with literal
+sample text captured from real pytest/pytest-xdist runs, so they stay fast and
+deterministic. The step-runner tests spawn tiny real subprocesses to prove the
+gates reap orphaned grandchildren instead of hanging on them.
 """
 
+import os
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+from tools import gate_common
 from tools.gate_common import (
     parse_banner_line,
     parse_collected_counts,
     parse_duration_line,
+    run_captured_step,
+    run_step_command,
     summarize_pytest_lines,
 )
 
@@ -94,3 +105,68 @@ def test_summarize_pytest_lines_ignores_collect_only_style_banner():
 
 def test_summarize_pytest_lines_handles_no_matches():
     assert summarize_pytest_lines([]) == (None, {})
+
+
+# A grandchild leaked by a step sleeps this long; the gate must never wait it out.
+_ORPHAN_SLEEP_SECONDS = 30
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="process-group reaping is POSIX-only")
+
+
+@posix_only
+def test_run_captured_step_does_not_hang_on_orphan_holding_pipe(monkeypatch):
+    """A step that leaks a background grandchild (e.g. a stuck formatter pool
+    worker) must not wedge the gate's output-capture loop: once the leader
+    exits, the watchdog kills the step's process group and the pipe closes.
+    """
+    monkeypatch.setattr(gate_common, "_STRAGGLER_GRACE_SECONDS", 0.5)
+    leaker = (
+        "import subprocess, sys;"
+        "subprocess.Popen([sys.executable, '-c',"
+        f" 'import time; time.sleep({_ORPHAN_SLEEP_SECONDS})']);"
+        "print('leader done')"
+    )
+
+    start = time.monotonic()
+    returncode, lines = run_captured_step([sys.executable, "-c", leaker], echo=False)
+    elapsed = time.monotonic() - start
+
+    assert returncode == 0
+    assert "leader done" in lines
+    assert elapsed < _ORPHAN_SLEEP_SECONDS / 2
+
+
+@posix_only
+def test_run_step_command_reaps_orphaned_grandchild(tmp_path):
+    """Orphans left behind by a finished step inherit the gate's own stdout, so
+    they must be dead by the time the step returns - otherwise a harness reading
+    the gate's output to EOF hangs even after the gate exits.
+    """
+    pid_file = tmp_path / "orphan_pid.txt"
+    leaker = (
+        "import pathlib, subprocess, sys;"
+        "child = subprocess.Popen([sys.executable, '-c',"
+        f" 'import time; time.sleep({_ORPHAN_SLEEP_SECONDS})']);"
+        f"pathlib.Path({str(pid_file)!r}).write_text(str(child.pid))"
+    )
+
+    returncode = run_step_command([sys.executable, "-c", leaker])
+
+    assert returncode == 0
+    orphan_pid = int(pid_file.read_text())
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        if _process_gone_or_zombie(orphan_pid):
+            return
+        time.sleep(0.05)
+    raise AssertionError(f"orphaned grandchild {orphan_pid} survived run_step_command")
+
+
+def _process_gone_or_zombie(pid: int) -> bool:
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except (FileNotFoundError, ProcessLookupError):
+        return True
+    # Field after the parenthesized command name is the state; a zombie has
+    # been killed and merely awaits reaping by init.
+    return stat.rsplit(")", 1)[1].split()[0] == "Z"
