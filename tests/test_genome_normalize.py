@@ -96,8 +96,15 @@ def test_normalize_backfills_soccer_policy_from_pool_default():
 
     assert genome.behavioral.soccer_policy_id is not None
     assert genome.behavioral.soccer_policy_id.value == "soccer_default"
+    # Params are seeded with the evolvable keys (mutation/crossover only act on
+    # existing keys, so an empty dict would freeze soccer behavior forever).
     assert genome.behavioral.soccer_policy_params is not None
-    assert genome.behavioral.soccer_policy_params.value == {}
+    from core.code_pool import SOCCER_POLICY_PARAM_KEYS
+
+    params = genome.behavioral.soccer_policy_params.value
+    assert params is not None
+    assert set(params.keys()) == set(SOCCER_POLICY_PARAM_KEYS)
+    assert all(isinstance(v, float) for v in params.values())
 
 
 def test_normalize_backfills_soccer_policy_randomly_without_a_default():

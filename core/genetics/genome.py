@@ -206,13 +206,25 @@ class Genome:
                     default_id = code_pool.get_default(SOCCER_POLICY)
                     if default_id:
                         self.behavioral.soccer_policy_id = GeneticTrait(default_id)
-                        self.behavioral.soccer_policy_params = GeneticTrait({})
                     else:
                         available = code_pool.get_components_by_kind(SOCCER_POLICY)
                         if available:
                             chosen = rng.choice(available)
                             self.behavioral.soccer_policy_id = GeneticTrait(chosen)
-                            self.behavioral.soccer_policy_params = GeneticTrait({})
+
+            # Seed the evolvable param keys whenever a policy is set but its
+            # params are empty. Mutation and crossover only operate on keys
+            # that already exist, so an empty dict would freeze soccer
+            # behavior forever; a small jitter gives the founding population
+            # variance for selection to act on.
+            soccer_trait = self.behavioral.soccer_policy_id
+            if soccer_trait is not None and soccer_trait.value is not None:
+                params_trait = self.behavioral.soccer_policy_params
+                if params_trait is None or not params_trait.value:
+                    from core.code_pool.pool import default_soccer_policy_params
+
+                    seeded = default_soccer_policy_params(soccer_trait.value, rng=rng, jitter=0.5)
+                    self.behavioral.soccer_policy_params = GeneticTrait(seeded)
 
     # =========================================================================
     # Factory Methods

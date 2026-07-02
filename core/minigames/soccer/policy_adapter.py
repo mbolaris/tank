@@ -306,7 +306,10 @@ def _convert_normalized_to_rcss(output: dict[str, Any]) -> dict[str, Any]:
     if kick_power > 0.1:
         # Convert kick
         power = _clamp(kick_power * MAX_KICK_POWER, 0, MAX_KICK_POWER)
-        angle_rad = float(output.get("kick_angle", 0.0))
+        # Normalize before converting to degrees: an unnormalized relative
+        # angle (e.g. 5 rad instead of -1.28 rad) would hit the +/-180 clamp
+        # and send the kick in the wrong direction.
+        angle_rad = _normalize_angle(float(output.get("kick_angle", 0.0)))
         angle_deg = math.degrees(angle_rad)
         angle_deg = _clamp(angle_deg, -180, 180)
         return {"kick": [power, angle_deg]}
