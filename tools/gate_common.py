@@ -2,13 +2,24 @@
 
 from __future__ import annotations
 
+import os
 import re
+import signal
 import subprocess
 import sys
+import threading
 from collections.abc import Sequence
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Process-group isolation and reaping are POSIX-only; on other platforms the
+# gates simply run steps the plain way.
+_POSIX = os.name == "posix"
+
+# How long after a step's leader process exits to wait for its output pipe to
+# reach EOF before force-killing the step's process group.
+_STRAGGLER_GRACE_SECONDS = 5.0
 
 _BANNER_RE = re.compile(r"^=+\s*(.*?)\s*=+$")
 _COLLECTED_RE = re.compile(
@@ -75,6 +86,85 @@ def summarize_pytest_lines(lines: Sequence[str]) -> tuple[str | None, dict[str, 
     return result_line, module_durations
 
 
+def _kill_step_process_group(pgid: int) -> None:
+    """Best-effort SIGKILL of a finished step's whole process group.
+
+    Each gate step runs as its own session leader, so once the leader has
+    exited, anything still alive in its group is an orphaned grandchild (for
+    example a stuck worker from a formatter's process pool in a sandboxed
+    environment). Orphans inherit the gate's output pipes, and any harness that
+    reads gate output until EOF will hang on them even after the gate itself
+    prints its final result and exits - so reap them explicitly.
+    """
+    if not _POSIX:
+        return
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def run_step_command(args: Sequence[str]) -> int:
+    """Run one gate step in its own process group, reaping stragglers after."""
+    process = subprocess.Popen(
+        list(args),
+        cwd=str(REPO_ROOT),
+        stdin=subprocess.DEVNULL,
+        start_new_session=_POSIX,
+    )
+    try:
+        returncode = process.wait()
+    except BaseException:
+        # The step runs in its own session, so terminal signals (Ctrl-C) do
+        # not reach it directly - propagate the interruption ourselves.
+        _kill_step_process_group(process.pid)
+        raise
+    _kill_step_process_group(process.pid)
+    return returncode
+
+
+def run_captured_step(args: Sequence[str], echo: bool) -> tuple[int, list[str]]:
+    """Like `run_step_command`, but captures (and optionally echoes) the step's
+    merged stdout/stderr lines. A watchdog force-kills the step's process group
+    if its output pipe does not reach EOF shortly after the leader exits, so an
+    orphaned grandchild holding the pipe open can never wedge the gate.
+    """
+    process = subprocess.Popen(
+        list(args),
+        cwd=str(REPO_ROOT),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        start_new_session=_POSIX,
+    )
+    assert process.stdout is not None
+    eof_seen = threading.Event()
+
+    def _reap_if_pipe_stays_open() -> None:
+        process.wait()
+        if not eof_seen.wait(_STRAGGLER_GRACE_SECONDS):
+            _kill_step_process_group(process.pid)
+
+    threading.Thread(target=_reap_if_pipe_stays_open, daemon=True).start()
+
+    captured: list[str] = []
+    try:
+        for line in process.stdout:
+            if echo:
+                print(line, end="", flush=True)
+            captured.append(line.rstrip("\n"))
+    except BaseException:
+        _kill_step_process_group(process.pid)
+        raise
+    finally:
+        eof_seen.set()
+    returncode = process.wait()
+    _kill_step_process_group(process.pid)
+    return returncode, captured
+
+
 def collect_only_counts(target_args: Sequence[str]) -> tuple[int, int, int] | None:
     """Run a fast `--collect-only` pass to report exact (total, selected, deselected)
     counts for a marker expression, without executing any tests. `-n auto` runs do
@@ -82,14 +172,11 @@ def collect_only_counts(target_args: Sequence[str]) -> tuple[int, int, int] | No
     Returns None if the summary banner could not be parsed (purely diagnostic - never
     raises, since it must not affect the gate's pass/fail result).
     """
-    result = subprocess.run(
+    _, lines = run_captured_step(
         python_command("-m", "pytest", *target_args, "--collect-only", "-q"),
-        cwd=str(REPO_ROOT),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
+        echo=False,
     )
-    for line in reversed(result.stdout.splitlines()):
+    for line in reversed(lines):
         banner = parse_banner_line(line)
         if banner is None:
             continue
@@ -114,21 +201,7 @@ def run_pytest_with_diagnostics(
     print(f"\n=== {name} ===", flush=True)
 
     counts = collect_only_counts(collect_only_args)
-
-    process = subprocess.Popen(
-        list(args),
-        cwd=str(REPO_ROOT),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    assert process.stdout is not None
-    captured = []
-    for line in process.stdout:
-        print(line, end="", flush=True)
-        captured.append(line.rstrip("\n"))
-    returncode = process.wait()
+    returncode, captured = run_captured_step(args, echo=True)
 
     result_line, module_durations = summarize_pytest_lines(captured)
 
@@ -156,9 +229,9 @@ def run_pytest_with_diagnostics(
 def run_steps(steps: Sequence[tuple[list[str], str]]) -> bool:
     for args, name in steps:
         print(f"\n=== {name} ===", flush=True)
-        result = subprocess.run(args, cwd=str(REPO_ROOT))
-        if result.returncode != 0:
-            print(f"[FAIL] {name} failed with exit code {result.returncode}", flush=True)
+        returncode = run_step_command(args)
+        if returncode != 0:
+            print(f"[FAIL] {name} failed with exit code {returncode}", flush=True)
             return False
         print(f"[PASS] {name}", flush=True)
     return True
