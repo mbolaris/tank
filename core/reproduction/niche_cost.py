@@ -1,10 +1,17 @@
 """Niche-based reproduction cost calculations."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.entities import Fish
+
+# Bounds of the multiplier returned by get_niche_cost_multiplier. Callers may
+# use MIN_NICHE_COST_MULTIPLIER to rule out reproduction without paying for
+# the population scan (a bank below base_cost * MIN can never be sufficient).
+MIN_NICHE_COST_MULTIPLIER = 0.6
+MAX_NICHE_COST_MULTIPLIER = 1.8
 
 
 def get_niche_cost_multiplier(fish: Fish) -> float:
@@ -78,4 +85,4 @@ def get_niche_cost_multiplier(fish: Fish) -> float:
 
     p = N_same / N_total
     # Cost scales from 0.6x (unique) to 1.8x (dominant)
-    return float(max(0.6, min(1.8, 0.6 + 1.2 * p)))
+    return float(max(MIN_NICHE_COST_MULTIPLIER, min(MAX_NICHE_COST_MULTIPLIER, 0.6 + 1.2 * p)))

@@ -59,6 +59,8 @@ class Genome:
     # OPTIMIZATION: Cache for computed properties to avoid repeated calculations
     _speed_modifier_cache: float | None = field(default=None, repr=False, compare=False)
     _metabolism_rate_cache: float | None = field(default=None, repr=False, compare=False)
+    # Precomputed trait values for genetic_distance (see core/genetics/diversity.py)
+    _distance_profile_cache: Any = field(default=None, repr=False, compare=False)
 
     @property
     def speed_modifier(self) -> float:
@@ -89,6 +91,7 @@ class Genome:
         """Invalidate cached computed properties when traits change."""
         object.__setattr__(self, "_speed_modifier_cache", None)
         object.__setattr__(self, "_metabolism_rate_cache", None)
+        object.__setattr__(self, "_distance_profile_cache", None)
 
     def to_dict(
         self,

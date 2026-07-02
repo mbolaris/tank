@@ -12,8 +12,8 @@ from core.genetics.reproduction import (
 )
 
 if TYPE_CHECKING:
-    from core.entities import Fish
     from core.config.simulation_config import EcosystemConfig
+    from core.entities import Fish
 
 
 class DiversityMutationController:
@@ -35,8 +35,20 @@ class DiversityMutationController:
         self._fish_provider = fish_provider
         self._diversity_samples: list[tuple[int, float]] = []
         self._escalation_active = False
+        # Per-population memoization for lineage-preservation checks. Both the
+        # behavior counts and per-parent isolation results depend only on fish
+        # list membership and genomes, which are fixed while the (cached) fish
+        # list object is unchanged: spawns/removals go through the engine's
+        # mutation queue and rebuild the list, and genomes never mutate in
+        # place after creation. Reset every frame as a safety net.
+        self._cached_fish_list: list[Fish] | None = None
+        self._cached_behavior_counts: dict[str, int] = {}
+        # Keyed by id(parent); the stored parent reference keeps the object
+        # alive so ids cannot be recycled while an entry exists.
+        self._cached_isolation: dict[int, tuple[Fish, bool]] = {}
 
     def record_diversity_sample(self, frame: int) -> None:
+        self._reset_population_cache()
         score = self._diversity_score_provider()
         if score is None:
             return
@@ -95,16 +107,29 @@ class DiversityMutationController:
             return None
         return (last_score - first_score) / frame_span
 
+    def _reset_population_cache(self) -> None:
+        self._cached_fish_list = None
+        self._cached_behavior_counts = {}
+        self._cached_isolation = {}
+
+    def _behavior_counts_for(self, fish_list: list[Fish]) -> dict[str, int]:
+        if fish_list is not self._cached_fish_list:
+            counts: dict[str, int] = {}
+            for fish in fish_list:
+                behavior_id = self._behavior_id_for(fish)
+                if behavior_id is not None:
+                    counts[behavior_id] = counts.get(behavior_id, 0) + 1
+            self._cached_fish_list = fish_list
+            self._cached_behavior_counts = counts
+            self._cached_isolation = {}
+        return self._cached_behavior_counts
+
     def _preserve_underrepresented_lineage(self, parents: tuple[Fish, ...]) -> bool:
         fish_list = self._fish_provider()
         if len(fish_list) < 4 or not parents:
             return False
 
-        counts: dict[str, int] = {}
-        for fish in fish_list:
-            behavior_id = self._behavior_id_for(fish)
-            if behavior_id is not None:
-                counts[behavior_id] = counts.get(behavior_id, 0) + 1
+        counts = self._behavior_counts_for(fish_list)
 
         population = len(fish_list)
         if len(counts) > 1:
@@ -121,23 +146,37 @@ class DiversityMutationController:
         parents: tuple[Fish, ...],
         fish_list: list[Fish],
     ) -> bool:
-        from core.genetics.diversity import genetic_distance
-
         population = len(fish_list)
         if population < 4:
             return False
 
         max_neighbors = max(1, int(population * self.UNDERREPRESENTED_GENETIC_NICHE_SHARE))
         for parent in parents:
-            neighbor_count = 0
-            for fish in fish_list:
-                if genetic_distance(parent.genome, fish.genome) <= self.GENETIC_NICHE_RADIUS:
-                    neighbor_count += 1
-                    if neighbor_count > max_neighbors:
-                        break
-            if neighbor_count <= max_neighbors:
+            cached = self._cached_isolation.get(id(parent))
+            if cached is None or cached[0] is not parent:
+                isolated = self._is_genetically_isolated(parent, fish_list, max_neighbors)
+                self._cached_isolation[id(parent)] = (parent, isolated)
+            else:
+                isolated = cached[1]
+            if isolated:
                 return True
         return False
+
+    def _is_genetically_isolated(
+        self,
+        parent: Fish,
+        fish_list: list[Fish],
+        max_neighbors: int,
+    ) -> bool:
+        from core.genetics.diversity import genetic_distance
+
+        neighbor_count = 0
+        for fish in fish_list:
+            if genetic_distance(parent.genome, fish.genome) <= self.GENETIC_NICHE_RADIUS:
+                neighbor_count += 1
+                if neighbor_count > max_neighbors:
+                    return False
+        return True
 
     @staticmethod
     def _behavior_id_for(fish: Fish) -> str | None:
