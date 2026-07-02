@@ -196,17 +196,15 @@ def run_pytest_with_diagnostics(
     slow_module_count: int = 10,
 ) -> bool:
     """Run a pytest step like `run_steps`, plus a diagnostic summary: exact
-    collected/selected/deselected counts (via a fast --collect-only pre-pass) and
-    the slowest modules by aggregated sampled test duration. Diagnostics are purely
-    additive - a parsing miss only skips part of the summary, it never changes the
-    step's pass/fail result, which comes solely from the pytest exit code.
+    collected/selected/deselected counts (via a fast --collect-only pre-pass).
     """
     print(f"\n=== {name} ===", flush=True)
 
     counts = collect_only_counts(collect_only_args)
-    returncode, captured = run_captured_step(args, echo=True)
 
-    result_line, module_durations = summarize_pytest_lines(captured)
+    # Run pytest directly to stdout/stderr without pipe buffering to avoid hangs on Windows or
+    # with orphaned background grandchildren (which inherit the captured pipe standard handles).
+    returncode = run_step_command(args)
 
     print("\n--- Test summary ---", flush=True)
     if counts is not None:
@@ -214,13 +212,6 @@ def run_pytest_with_diagnostics(
         print(
             f"Collected: {total} items ({selected} selected, {deselected} deselected)", flush=True
         )
-    if result_line:
-        print(f"Result: {result_line}", flush=True)
-    if module_durations:
-        ranked = sorted(module_durations.items(), key=lambda kv: kv[1], reverse=True)
-        print("Slowest modules (aggregated from sampled test durations):", flush=True)
-        for module, seconds in ranked[:slow_module_count]:
-            print(f"  {seconds:7.2f}s  {module}", flush=True)
 
     if returncode != 0:
         print(f"[FAIL] {name} failed with exit code {returncode}", flush=True)
