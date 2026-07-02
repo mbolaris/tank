@@ -7,9 +7,14 @@ so failures are easy to isolate and cheap to re-run:
     python tools/pre_pr_gate.py                    # smoke gate + every shard
     python tools/pre_pr_gate.py --shard evolution  # smoke gate + one shard
     python tools/pre_pr_gate.py --list-shards      # show shards and file counts
+    python tools/pre_pr_gate.py --no-xdist         # run serially (constrained envs)
 
 The default full run executes exactly the same tests as the pre-shard gate did
 (the shards partition the suite), just grouped with per-shard summaries.
+
+In sandboxed / CI-constrained environments where pytest-xdist hangs or wedges,
+use --no-xdist (or set PRE_PR_NO_XDIST=1) to fall back to serial execution.
+The gate auto-detects common xdist failure signals and prints a fallback hint.
 """
 
 import argparse
@@ -51,12 +56,47 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="list shard names with their test-file counts and exit",
     )
+    parser.add_argument(
+        "--no-xdist",
+        action="store_true",
+        default=False,
+        help=(
+            "run shards serially instead of in parallel (drops -n auto). "
+            "Use in sandboxed / resource-constrained environments where "
+            "pytest-xdist hangs. Also honoured via env var PRE_PR_NO_XDIST=1."
+        ),
+    )
     return parser.parse_args()
 
 
-def _run_shard(name: str, test_files: list[str]) -> bool:
-    return run_pytest_with_diagnostics(
-        python_command(
+_XDIST_ERROR_SIGNALS = (
+    "xdist",
+    "gw0",
+    "pytest-xdist",
+    "Failed to start worker",
+    "DoneWithoutBreak",
+)
+
+
+def _run_shard(name: str, test_files: list[str], *, no_xdist: bool = False) -> bool:
+    """Run one named shard, either in parallel (default) or serially (--no-xdist)."""
+    import os
+
+    use_serial = no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
+    if use_serial:
+        label = f"Tier 2 shard '{name}': non-slow tests (serial)"
+        cmd = python_command(
+            "-m",
+            "pytest",
+            *test_files,
+            "-m",
+            _MARKER_EXPR,
+            "-q",
+            "--durations=25",
+        )
+    else:
+        label = f"Tier 2 shard '{name}': non-slow tests (parallel)"
+        cmd = python_command(
             "-m",
             "pytest",
             *test_files,
@@ -66,13 +106,17 @@ def _run_shard(name: str, test_files: list[str]) -> bool:
             "auto",
             "-q",
             "--durations=25",
-        ),
-        f"Tier 2 shard '{name}': non-slow tests (parallel)",
+        )
+    return run_pytest_with_diagnostics(
+        cmd,
+        label,
         collect_only_args=[*test_files, "-m", _MARKER_EXPR],
     )
 
 
 def main() -> None:
+    import os
+
     args = _parse_args()
     shards = resolve_shards()
 
@@ -81,25 +125,41 @@ def main() -> None:
             print(f"{name}: {len(shards[name])} test files")
         raise SystemExit(0)
 
+    no_xdist = args.no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
     selected = [args.shard] if args.shard else shard_names()
+
+    mode_label = "serial" if no_xdist else "parallel"
     print_gate_header(
         name="PRE-PR" if args.shard is None else f"PRE-PR (shard: {args.shard})",
         target="varies by hardware; typically under 3 minutes on multi-core CI, longer on constrained sandboxes",
-        includes="the smoke gate, then the broad non-slow test suite run in parallel, sharded as "
-        + ", ".join(selected),
+        includes=(
+            f"the smoke gate, then the broad non-slow test suite run {mode_label}, sharded as "
+            + ", ".join(selected)
+        ),
         excludes="integration/manual/slow tests, champion reproduction, and 5k/10k benchmarks",
     )
+    if no_xdist:
+        print("[INFO] Running in serial mode (--no-xdist / PRE_PR_NO_XDIST).", flush=True)
 
     passed = run_steps([(python_command("tools/smoke_gate.py"), "Tier 1: smoke gate")])
     for name in selected:
         if not passed:
             break
-        passed = _run_shard(name, shards[name])
+        passed = _run_shard(name, shards[name], no_xdist=no_xdist)
         if not passed:
-            print(
-                f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name}`",
-                flush=True,
-            )
+            if not no_xdist:
+                print(
+                    f"\nHint: re-run just this shard with:"
+                    f"\n  python tools/pre_pr_gate.py --shard {name}"
+                    f"\nIf the failure looks like an xdist hang or worker crash, try:"
+                    f"\n  python tools/pre_pr_gate.py --shard {name} --no-xdist",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name} --no-xdist`",
+                    flush=True,
+                )
     exit_for_gate("PRE-PR", passed)
 
 

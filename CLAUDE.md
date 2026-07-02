@@ -4,7 +4,7 @@ This file is automatically loaded by Claude Code at the start of every session. 
 
 ## What Is This Project?
 
-Tank World is a **self-evolving artificial life research framework**. Fish agents compete for survival in a simulated ecosystem using 58 parametrizable behavior algorithms. AI agents (like you) analyze simulation data, improve the algorithms, and commit changes back to the repository. Git is the heredity mechanism: PRs are mutations, CI is selection, merged changes are offspring.
+Tank World is a **self-evolving artificial life research framework**. Fish agents compete for survival in a simulated ecosystem using dozens of parametrizable behavior algorithms. AI agents (like you) analyze simulation data, improve the algorithms, and commit changes back to the repository. Git is the heredity mechanism: PRs are mutations, CI is selection, merged changes are offspring.
 
 The project operates at three layers:
 - **Layer 0**: In-world evolution (fish evolve through natural selection inside simulations)
@@ -63,7 +63,7 @@ tank/
   main.py                    # CLI entry (web or headless mode)
   backend/                   # FastAPI + WebSocket server
   core/                      # Pure Python simulation engine (no UI deps)
-    algorithms/              # 58 behavior algorithms (composable library)
+    algorithms/              # behavior algorithm library (composable + specialized)
       composable/            # Main algorithm framework (definitions.py, behavior.py, actions.py)
     worlds/                  # Multi-world backend (Tank, Petri)
       tank/                  # Tank world implementation
@@ -115,7 +115,7 @@ tank/
 - `core/worlds/interfaces.py` - MultiAgentWorldBackend protocol
 - `core/simulation/engine.py` - Main simulation engine (phase-based)
 - `core/modes/rulesets.py` - Game rule encapsulation
-- `core/algorithms/composable/` - Composable behavior library (58 strategies)
+- `core/algorithms/composable/` - Composable behavior library (see `core/algorithms/registry.py::ALL_ALGORITHMS` for current set)
 - `core/agents/components/` - Shared agent state components (lifecycle, reproduction); Fish composes these plus `EnergyComponent` and delegates behavior to `BehaviorExecutor` (see ADR-004, ADR-009)
 
 ## Validation Pipeline

@@ -44,7 +44,7 @@ flowchart TB
         A[AI agents benchmark, compare vs BKS,<br/>and open PRs that CI validates]
     end
     subgraph L0["Layer 0 · In-World Evolution"]
-        F[Fish evolve via natural selection<br/>across 58 behavior algorithms]
+        F[Fish evolve via natural selection<br/>across dozens of behavior algorithms]
     end
     M -->|better ways to discover improvements| A
     A -->|better algorithms and parameters| F
@@ -54,7 +54,7 @@ flowchart TB
 
 ### Layer 0: In-World Evolution
 
-Fish compete for survival using 58 parametrizable behavior algorithms encoded in their genomes. Natural selection tunes parameters and shifts algorithm prevalence over generations. Better strategies mean more reproduction and longer survival.
+Fish compete for survival using dozens of parametrizable behavior algorithms encoded in their genomes (see `core/algorithms/registry.py::ALL_ALGORITHMS` for the current list). Natural selection tunes parameters and shifts algorithm prevalence over generations. Better strategies mean more reproduction and longer survival.
 
 **Output**: Champion genomes, performance telemetry, population dynamics data.
 
@@ -91,7 +91,7 @@ flowchart LR
 
 A fish tank ecosystem with real evolutionary dynamics:
 
-- **58 behavior algorithms** across food seeking, predator avoidance, schooling, energy management, territory, and poker strategies
+- **50+ behavior algorithms** across food seeking, predator avoidance, schooling, energy management, territory, and poker strategies
 - **Predator-prey dynamics** with crabs hunting fish
 - **Fractal L-system plants** with genetic evolution and nectar production
 - **Fish poker** where fish play Texas Hold'em against each other and plants for energy stakes, on a full poker engine
@@ -300,7 +300,7 @@ tank/
 |-- main.py                  # CLI entry point (web or headless)
 |-- backend/                 # FastAPI + WebSocket server
 |-- core/                    # Pure Python simulation engine (no UI deps)
-|   |-- algorithms/          # 58 behavior algorithms (composable library)
+|   |-- algorithms/          # behavior algorithm library (composable + specialized)
 |   |-- worlds/              # Tank/Petri backends and shared world abstractions
 |   |-- modes/               # Game rulesets (energy models, scoring)
 |   |-- minigames/           # Soccer training and league runtime
