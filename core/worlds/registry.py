@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
+from typing import Any
 
 from core.exceptions import ConfigurationError
 from core.modes.interfaces import ModeConfig, ModePack, ModePackDefinition
@@ -71,7 +72,7 @@ class WorldRegistry:
         *,
         seed: int | None = None,
         config: ModeConfig | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> MultiAgentWorldBackend:
         """Create a world backend for the given mode.
 
