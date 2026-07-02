@@ -358,7 +358,7 @@ export class SoccerTopDownRenderer implements Renderer {
 
                 // Use unified avatar renderer with proper size
                 // Pass forceMicrobe for Petri dish mode
-                drawAvatar(ctx, player.id, avatarRadius, player.vel_x, player.vel_y, genomeData, forceMicrobe);
+                drawAvatar(ctx, player.id, avatarRadius, player.vel_x, player.vel_y, genomeData, forceMicrobe, player.team);
 
             } else {
                 // Fallback to simple circle rendering
