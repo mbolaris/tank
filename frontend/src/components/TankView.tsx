@@ -70,7 +70,7 @@ export function TankView({ worldId }: TankViewProps) {
     const effectiveShowSoccer = showSoccer ?? false;
 
     // Plant energy input control
-    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
+    const [plantEnergyInput, setPlantEnergyInput] = useState(0.5);
 
     const handlePlantEnergyChange = useCallback(
         (e: ChangeEvent<HTMLInputElement>) => {
