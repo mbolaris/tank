@@ -1,9 +1,25 @@
 """Tests for WorldManager broadcast scheduling."""
 
 import asyncio
+import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+
+def _close_dangling_coroutines(mock_loop: MagicMock) -> None:
+    """Close any unawaited coroutines captured by a mocked event-loop's create_task.
+
+    When production code passes an AsyncMock-produced coroutine to
+    ``loop.create_task()``, the mock captures but never awaits it, provoking a
+    ``RuntimeWarning: coroutine ... was never awaited`` during GC.
+    This helper finds those captured coroutines and closes them explicitly.
+    """
+    for call in mock_loop.create_task.call_args_list:
+        if call.args:
+            coro = call.args[0]
+            if inspect.iscoroutine(coro):
+                coro.close()
 
 
 class TestWorldManagerBroadcastScheduling:
@@ -35,6 +51,10 @@ class TestWorldManagerBroadcastScheduling:
             call_args = mock_loop.create_task.call_args
             assert "broadcast_start" in call_args.kwargs.get("name", "")
 
+            # Close the unawaited coroutine that AsyncMock produced for the
+            # mocked create_task call, preventing 'coroutine was never awaited'.
+            _close_dangling_coroutines(mock_loop)
+
     def test_tank_world_schedules_broadcast(self) -> None:
         """Creating a tank world should also call start_broadcast_callback."""
         from backend.world_manager import WorldManager
@@ -62,6 +82,9 @@ class TestWorldManagerBroadcastScheduling:
 
             # Verify create_task was called for broadcast
             assert mock_loop.create_task.called
+
+            # Close the unawaited coroutine that AsyncMock produced.
+            _close_dangling_coroutines(mock_loop)
 
     def test_broadcast_not_scheduled_without_callback(self) -> None:
         """If no callback is set, world creation should still succeed."""

@@ -28,6 +28,21 @@ _COLLECTED_RE = re.compile(
 )
 _DURATION_RE = re.compile(r"^(\d+\.\d+)s\s+(?:setup|call|teardown)\s+(\S+)$")
 
+# Default per-step timeout in seconds.  Override via GATE_STEP_TIMEOUT env var.
+_DEFAULT_STEP_TIMEOUT: float | None = None
+
+
+def _env_step_timeout() -> float | None:
+    """Read an optional per-step timeout from the environment."""
+    raw = os.environ.get("GATE_STEP_TIMEOUT")
+    if raw is None:
+        return _DEFAULT_STEP_TIMEOUT
+    try:
+        val = float(raw)
+        return val if val > 0 else None
+    except ValueError:
+        return _DEFAULT_STEP_TIMEOUT
+
 
 def print_gate_header(name: str, target: str, includes: str, excludes: str) -> None:
     print("=" * 72, flush=True)
@@ -107,8 +122,30 @@ def _kill_step_process_group(pgid: int) -> None:
         pass
 
 
-def run_step_command(args: Sequence[str]) -> int:
-    """Run one gate step in its own process group, reaping stragglers after."""
+def _force_kill_process(process: subprocess.Popen) -> None:
+    """Force-kill a process, cleaning up its session/group when possible."""
+    if _POSIX:
+        _kill_step_process_group(process.pid)
+    else:
+        try:
+            process.kill()
+        except OSError:
+            pass
+
+
+def run_step_command(
+    args: Sequence[str],
+    *,
+    timeout: float | None = None,
+) -> int:
+    """Run one gate step in its own process group, reaping stragglers after.
+
+    Args:
+        args: Command and arguments to execute.
+        timeout: Optional wall-clock timeout in seconds.  When elapsed the
+            step is killed and a non-zero return code is returned.
+    """
+    effective_timeout = timeout if timeout is not None else _env_step_timeout()
     process = subprocess.Popen(
         list(args),
         cwd=str(REPO_ROOT),
@@ -116,11 +153,22 @@ def run_step_command(args: Sequence[str]) -> int:
         start_new_session=_POSIX,
     )
     try:
-        returncode = process.wait()
+        returncode = process.wait(timeout=effective_timeout)
+    except subprocess.TimeoutExpired:
+        print(
+            f"\n[TIMEOUT] Step exceeded {effective_timeout}s wall-clock limit, killing.",
+            flush=True,
+        )
+        _force_kill_process(process)
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
+        return 1
     except BaseException:
         # The step runs in its own session, so terminal signals (Ctrl-C) do
         # not reach it directly - propagate the interruption ourselves.
-        _kill_step_process_group(process.pid)
+        _force_kill_process(process)
         raise
     _kill_step_process_group(process.pid)
     return returncode
@@ -194,9 +242,20 @@ def run_pytest_with_diagnostics(
     name: str,
     collect_only_args: Sequence[str],
     slow_module_count: int = 10,
+    timeout: float | None = None,
 ) -> bool:
     """Run a pytest step like `run_steps`, plus a diagnostic summary: exact
     collected/selected/deselected counts (via a fast --collect-only pre-pass).
+
+    Args:
+        args: pytest command-line arguments.
+        name: Human-readable label for this step.
+        collect_only_args: Arguments for the ``--collect-only`` pre-pass.
+        slow_module_count: Number of slowest modules to report (unused, kept
+            for backwards compatibility).
+        timeout: Optional wall-clock timeout in seconds.  Passed through to
+            ``run_step_command``; when elapsed the step is killed and reported
+            as failed.
     """
     print(f"\n=== {name} ===", flush=True)
 
@@ -204,7 +263,7 @@ def run_pytest_with_diagnostics(
 
     # Run pytest directly to stdout/stderr without pipe buffering to avoid hangs on Windows or
     # with orphaned background grandchildren (which inherit the captured pipe standard handles).
-    returncode = run_step_command(args)
+    returncode = run_step_command(args, timeout=timeout)
 
     print("\n--- Test summary ---", flush=True)
     if counts is not None:

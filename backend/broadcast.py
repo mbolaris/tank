@@ -431,9 +431,18 @@ def get_active_broadcast_count() -> int:
 
 
 def clear_broadcast_state() -> None:
-    """Cancel any running broadcast tasks and clear global broadcast state (for test isolation)."""
+    """Cancel any running broadcast tasks and clear global broadcast state (for test isolation).
+
+    Suppresses ``RuntimeError`` from tasks bound to a foreign or closed event
+    loop, which can happen during test teardown when an autouse fixture runs
+    outside the loop that created the tasks.
+    """
     for task in list(_broadcast_tasks.values()):
         if not task.done():
-            task.cancel()
+            try:
+                task.cancel()
+            except RuntimeError:
+                # Task belongs to a different/closed event loop — nothing to do.
+                pass
     _broadcast_tasks.clear()
     _broadcast_locks.clear()

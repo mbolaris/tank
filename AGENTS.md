@@ -352,10 +352,10 @@ python tools/pre_pr_gate.py --shard evolution    # smoke gate + one shard
 
 **In constrained / sandboxed agent environments** where pytest-xdist hangs or
 wedges (a known interaction with some CI sandboxes), use `--no-xdist` to fall
-back to serial execution:
+back to serial execution, and `--timeout` to override the per-shard wall-clock limit (default 600s):
 ```bash
 python tools/pre_pr_gate.py --no-xdist
-python tools/pre_pr_gate.py --shard backend_tools --no-xdist
+python tools/pre_pr_gate.py --shard backend_tools --no-xdist --timeout 300
 # or set PRE_PR_NO_XDIST=1 in your environment
 ```
 
