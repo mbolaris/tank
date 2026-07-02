@@ -26,6 +26,8 @@ from core.util.rng import require_rng_param
 
 logger = logging.getLogger(__name__)
 
+GENOME_DECODE_ERRORS = (AttributeError, ImportError, KeyError, TypeError, ValueError)
+
 
 def genome_to_dict(
     genome: Any,
@@ -162,7 +164,7 @@ def genome_from_dict(
         try:
             apply_trait_meta_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, trait_meta)
             apply_trait_meta_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, trait_meta)
-        except Exception:
+        except GENOME_DECODE_ERRORS:
             logger.debug("Failed applying trait_meta; continuing with defaults", exc_info=True)
 
         # Apply metadata for non-spec traits on BehavioralTraits.
@@ -188,7 +190,7 @@ def genome_from_dict(
                 genome.behavioral.behavior = GeneticTrait(cb)
             else:
                 genome.behavioral.behavior.value = cb
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing behavior; keeping default", exc_info=True)
 
     # Poker strategy (in-game betting decisions)
@@ -203,7 +205,7 @@ def genome_from_dict(
                 genome.behavioral.poker_strategy = GeneticTrait(strat)
             else:
                 genome.behavioral.poker_strategy.value = strat
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
 
     # New per-kind policy fields
@@ -269,7 +271,7 @@ def genome_from_dict(
                     meta = trait_meta.get(name)
                     if isinstance(meta, dict):
                         apply_trait_meta_to_trait(trait, meta)
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing per-kind policies; keeping defaults", exc_info=True)
 
     invalidate = getattr(genome, "invalidate_caches", None)

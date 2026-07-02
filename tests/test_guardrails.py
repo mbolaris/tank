@@ -154,3 +154,25 @@ def test_no_deprecated_engine_entity_list_apis() -> None:
                         violations.append(f"{rel_path}: Contains removed API '{term}'")
 
     assert not violations, "Found removed engine entity-list APIs:\n" + "\n".join(violations)
+
+
+def test_no_committed_test_result_artifacts() -> None:
+    """Keep ad-hoc test output files out of the committed test tree."""
+    from pathlib import Path
+
+    tests_dir = Path(__file__).resolve().parent
+    artifacts = sorted(path.name for path in tests_dir.glob("*_result.txt"))
+
+    assert not artifacts, "Remove generated test result artifacts: " + ", ".join(artifacts)
+
+
+def test_no_ad_hoc_scripts_in_test_tree() -> None:
+    """Keep one-off debug and verification scripts out of pytest's test tree."""
+    from pathlib import Path
+
+    tests_dir = Path(__file__).resolve().parent
+    scripts = sorted(
+        path.name for pattern in ("debug_*.py", "verify_*.py") for path in tests_dir.glob(pattern)
+    )
+
+    assert not scripts, "Move ad-hoc scripts out of tests/: " + ", ".join(scripts)
