@@ -90,6 +90,9 @@ class EcosystemConfig:
     spawn_margin_pixels: int = SPAWN_MARGIN_PIXELS
     total_algorithm_count: int = TOTAL_ALGORITHM_COUNT
     total_species_count: int = TOTAL_SPECIES_COUNT
+    panic_button_enabled: bool = False
+    panic_button_k: float = 1.0
+    panic_button_target: float = 0.30
 
     @property
     def initial_fish_count(self) -> int:
@@ -320,6 +323,9 @@ class SimulationConfig:
             "initial_fish_count": "initial_fish_count",
             "critical_population_threshold": "critical_population_threshold",
             "emergency_spawn_cooldown": "emergency_spawn_cooldown",
+            "panic_button_enabled": "panic_button_enabled",
+            "panic_button_k": "panic_button_k",
+            "panic_button_target": "panic_button_target",
         }
         for flat_key, attr in ecosystem_map.items():
             if flat_key in config_dict:

@@ -29,6 +29,9 @@ class ReproductionMutationContext:
     quality_gain_stalled: bool = False
     escalation_active: bool = False
     preserve_parent_lineage: bool = False
+    panic_button_enabled: bool = False
+    panic_button_k: float = 1.0
+    panic_button_target: float = 0.30
 
     @classmethod
     def from_score(cls, diversity_score: float | None) -> ReproductionMutationContext:
@@ -110,4 +113,13 @@ class ReproductionParams:
             factor = context.mutation_multiplier()
             rate *= factor
             strength *= factor
+            if context.panic_button_enabled and context.diversity_score is not None:
+                d_live = context.diversity_score
+                target = context.panic_button_target
+                k = context.panic_button_k
+                if target > 0.0 and d_live < target:
+                    panic_factor = 1.0 + k * (target - d_live) / target
+                    panic_factor = max(1.0, min(2.0, panic_factor))
+                    rate *= panic_factor
+                    strength *= panic_factor
         return calculate_adaptive_mutation_rate(rate, strength)

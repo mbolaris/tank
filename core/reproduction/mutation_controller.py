@@ -13,6 +13,7 @@ from core.genetics.reproduction import (
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.config.simulation_config import EcosystemConfig
 
 
 class DiversityMutationController:
@@ -50,7 +51,11 @@ class DiversityMutationController:
         while self._diversity_samples and self._diversity_samples[0][0] < min_frame:
             self._diversity_samples.pop(0)
 
-    def context_for_parents(self, *parents: Fish) -> ReproductionMutationContext:
+    def context_for_parents(
+        self,
+        *parents: Fish,
+        ecosystem_config: EcosystemConfig | None = None,
+    ) -> ReproductionMutationContext:
         diversity_score = self._diversity_score_provider()
         diversity_slope = self._diversity_slope()
         diversity_declining = diversity_slope is not None and diversity_slope < 0.0
@@ -66,11 +71,18 @@ class DiversityMutationController:
         ):
             self._escalation_active = True
 
+        panic_enabled = getattr(ecosystem_config, "panic_button_enabled", False)
+        panic_k = getattr(ecosystem_config, "panic_button_k", 1.0)
+        panic_target = getattr(ecosystem_config, "panic_button_target", 0.30)
+
         return ReproductionMutationContext(
             diversity_score=diversity_score,
             diversity_slope=diversity_slope,
             escalation_active=self._escalation_active,
             preserve_parent_lineage=self._preserve_underrepresented_lineage(parents),
+            panic_button_enabled=panic_enabled,
+            panic_button_k=panic_k,
+            panic_button_target=panic_target,
         )
 
     def _diversity_slope(self) -> float | None:
