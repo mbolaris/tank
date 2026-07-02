@@ -13,6 +13,8 @@ triggers immediately when conditions are met, and offspring are created in the s
 
 from typing import TYPE_CHECKING, Optional
 
+from core.config.fish import REPRODUCTION_COOLDOWN as CONFIG_REPRODUCTION_COOLDOWN
+
 if TYPE_CHECKING:
     from random import Random
 
@@ -43,7 +45,7 @@ class ReproductionComponent:
     # Reproduction constants
     REPRODUCTION_ENERGY_PERCENTAGE = 0.9  # Require ~90% energy before any reproduction path
     ASEXUAL_REPRODUCTION_THRESHOLD = 0.95  # Asexual requires 95% (higher since no mate to help)
-    REPRODUCTION_COOLDOWN = 300  # 10 seconds at 30fps - prevents constant reproduction
+    REPRODUCTION_COOLDOWN = CONFIG_REPRODUCTION_COOLDOWN
     MATING_DISTANCE = 60.0  # Maximum distance for poker-triggered reproduction
     REPRODUCTION_ENERGY_COST = 10.0  # Energy cost for reproduction
     ENERGY_TRANSFER_TO_BABY = 0.30  # Parent transfers 30% of their current energy to baby
