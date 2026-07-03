@@ -64,9 +64,9 @@ def test_metrics_history_capacity_and_interval() -> None:
     assert history.samples[0]["frame"] == 10
     assert history.samples[1]["frame"] == 15
     assert history.samples[2]["frame"] == 20
-    # Every sample carries a (possibly empty) traits mapping for schema v2.
+    # Every sample carries a (possibly empty) traits mapping for schema v2/v3.
     assert all("traits" in sample for sample in history.samples)
-    assert history.schema_version == 2
+    assert history.schema_version == 3
 
 
 def test_is_sample_due_matches_interval() -> None:

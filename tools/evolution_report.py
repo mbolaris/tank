@@ -63,6 +63,30 @@ POP_STABLE_MIN = 20.0  # stable population floor (fish)
 POP_CV_UNSTABLE = 0.35  # coefficient of variation above this => boom/bust
 DIVERSITY_LOW = 0.30  # diversity_score below this => converging
 MIN_SAMPLES_FOR_TREND = 3
+# Sliding window width (in samples) for local CV when filtering stable windows
+_STABLE_POP_LOCAL_WINDOW = 20
+
+# Known [min, max] bounds for the tracked behavioral traits.  Behavioral traits
+# are genome floats in [0, 1]; expressed traits (speed, size) have wider ranges
+# derived from the composable parameter bounds + body-size model.  These are
+# used by the conditioned ruler to compute *range-normalized absolute drift*
+# (delta / range) so that near-zero-baseline traits (prediction_skill starting
+# at 0.027) don't produce meaningless percent blowups.
+#
+# Conservative estimates — if the actual runtime value is outside this range
+# (because of future parameter changes) the normalization just exceeds [0, 1]
+# and the pct_norm field still communicates the scale of the change honestly.
+TRAIT_BOUNDS: dict[str, tuple[float, float]] = {
+    "pursuit_aggression": (0.0, 1.0),
+    "prediction_skill": (0.0, 1.0),
+    "hunting_stamina": (0.0, 1.0),
+    "aggression": (0.0, 1.0),
+    # speed: expressed from base_speed_multiplier (0.5-0.9427) * burst (1.1-1.7)
+    # upper bound observed empirically; use a generous [0.5, 3.0] bracket.
+    "speed": (0.5, 3.0),
+    # size: body-size modifier; range [0.5, 3.0] observed in long runs.
+    "size": (0.5, 3.0),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +255,8 @@ def analyze_history(samples: list[dict[str, Any]]) -> dict[str, Any]:
     # Trait drift (first -> last population mean), the selection-vs-churn signal.
     result["trait_drift"] = _trait_drift(samples)
     result["selection_detected"] = any(d["selection"] for d in result["trait_drift"].values())
+    # Bottleneck-conditioned selection quality (Proposal #27)
+    result["selection_quality"] = _selection_quality(samples, result["trait_drift"])
     return result
 
 
@@ -255,6 +281,150 @@ def _trait_drift(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "selection": abs(rel) >= TRAIT_DRIFT_SELECTION_PCT,
         }
     return drift
+
+
+# ---------------------------------------------------------------------------
+# Bottleneck-Conditioned Selection Ruler (Proposal #27)
+# ---------------------------------------------------------------------------
+
+
+def _local_cv(pops: list[float], center: int, window: int) -> float:
+    """Coefficient of variation of the *window* samples around *center*."""
+    half = window // 2
+    start = max(0, center - half)
+    end = min(len(pops), center + half + 1)
+    return _coefficient_of_variation(pops[start:end])
+
+
+def _stable_samples(
+    samples: list[dict[str, Any]],
+    pop_floor: float = POP_STABLE_MIN,
+    local_window: int = _STABLE_POP_LOCAL_WINDOW,
+    local_cv_ceiling: float = POP_CV_UNSTABLE,
+) -> list[dict[str, Any]]:
+    """Return only samples that appear to come from a stable, non-bottleneck
+    population window.
+
+    A sample is *stable* when:
+    1. Its recorded population >= *pop_floor* (eliminates low-N founder pools).
+    2. The local CV across the surrounding *local_window* samples is below
+       *local_cv_ceiling* (eliminates boom/bust shoulders).
+    """
+    pops = [float(s.get("population", 0)) for s in samples]
+    result: list[dict[str, Any]] = []
+    for i, s in enumerate(samples):
+        pop = float(s.get("population", 0))
+        if pop < pop_floor:
+            continue
+        if _local_cv(pops, i, local_window) >= local_cv_ceiling:
+            continue
+        result.append(s)
+    return result
+
+
+def _boot_ids(samples: list[dict[str, Any]]) -> set[int]:
+    """Unique boot_ids present in the sample set; skips samples without one."""
+    ids: set[int] = set()
+    for s in samples:
+        bid = s.get("boot_id")
+        if isinstance(bid, int):
+            ids.add(bid)
+    return ids
+
+
+def _range_normalized_drift(
+    raw_drift: dict[str, dict[str, Any]],
+) -> dict[str, float]:
+    """Return per-trait |delta| / trait_range, clipped to [0, 1].
+
+    This is the range-normalized absolute drift requested in Proposal #27/#29:
+    it is immune to near-zero-baseline percent blowups because it divides by the
+    known trait range rather than by the (possibly tiny) starting value.
+    """
+    result: dict[str, float] = {}
+    for key, d in raw_drift.items():
+        lo, hi = TRAIT_BOUNDS.get(key, (None, None))
+        if lo is None or hi is None or hi == lo:
+            continue
+        norm = abs(d["delta"]) / (hi - lo)
+        result[key] = round(min(norm, 1.0), 5)
+    return result
+
+
+def _selection_quality(
+    all_samples: list[dict[str, Any]],
+    raw_drift: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Bottleneck-Conditioned Selection Ruler (Proposal #27).
+
+    Produces a ``selection_quality`` block with:
+
+    * ``confidence``: one of
+      - ``high_confidence_selection``  -- raw drift and conditioned drift agree
+        (both show selection or both show no selection) AND the window is single-epoch.
+      - ``bottleneck_confounded``      -- raw drift shows selection but the
+        conditioned (population-filtered) drift does not, or stable sample count
+        is too low to judge.
+      - ``epoch_confounded``           -- samples span more than one ``boot_id``
+        (code-epoch mixing); conditioned drift may still be reported but trust is
+        reduced.
+      - ``insufficient_stable_samples``-- fewer than MIN_SAMPLES_FOR_TREND stable
+        samples remain after population filtering.
+
+    * ``stable_sample_count``: how many samples survived the population filter.
+    * ``boot_ids_in_window``: list of unique boot_ids observed ([] if none tagged).
+    * ``epoch_mixed``: True when len(boot_ids) > 1.
+    * ``conditioned_drift``: per-trait drift computed on the stable subset (same
+      schema as ``trait_drift`` in the main history block).
+    * ``range_normalized_drift``: |delta|/range for *all* traits (raw window),
+      bypassing the percent-blowup problem.
+    * ``conditioned_selection_detected``: True if any conditioned trait has
+      |pct| >= TRAIT_DRIFT_SELECTION_PCT.
+    """
+    boot_ids = sorted(_boot_ids(all_samples))
+    epoch_mixed = len(boot_ids) > 1
+
+    # Range-normalized drift on the full raw window (immune to zero-baseline blowups)
+    rn_drift = _range_normalized_drift(raw_drift)
+
+    # Population-conditioned subset
+    stable = _stable_samples(all_samples)
+    stable_count = len(stable)
+
+    if stable_count < MIN_SAMPLES_FOR_TREND:
+        confidence = "epoch_confounded" if epoch_mixed else "insufficient_stable_samples"
+        return {
+            "confidence": confidence,
+            "stable_sample_count": stable_count,
+            "boot_ids_in_window": boot_ids,
+            "epoch_mixed": epoch_mixed,
+            "conditioned_drift": {},
+            "range_normalized_drift": rn_drift,
+            "conditioned_selection_detected": False,
+        }
+
+    cond_drift = _trait_drift(stable)
+    cond_sel = any(d["selection"] for d in cond_drift.values())
+    raw_sel = any(d["selection"] for d in raw_drift.values())
+
+    if epoch_mixed:
+        confidence = "epoch_confounded"
+    elif raw_sel and not cond_sel:
+        # Raw showed selection but it vanishes when bottlenecks are removed
+        confidence = "bottleneck_confounded"
+    else:
+        # Both agree (raw and conditioned both show selection, or both show none)
+        confidence = "high_confidence_selection" if cond_sel else "high_confidence_no_selection"
+
+    return {
+        "confidence": confidence,
+        "stable_sample_count": stable_count,
+        "boot_ids_in_window": boot_ids,
+        "epoch_mixed": epoch_mixed,
+        "conditioned_drift": cond_drift,
+        "range_normalized_drift": rn_drift,
+        "conditioned_selection_detected": cond_sel,
+    }
 
 
 def analyze_stats(stats: dict[str, Any]) -> dict[str, Any]:
@@ -579,6 +749,39 @@ def format_human(report: dict[str, Any]) -> str:
             )
     else:
         lines.append("  (no trait-mean history available - need >=2 samples with traits)")
+
+    sq = hist.get("selection_quality") or {}
+    if sq:
+        lines.append("")
+        lines.append("SELECTION QUALITY (Proposal #27 bottleneck-conditioned ruler)")
+        lines.append("-" * 78)
+        conf = sq.get("confidence", "?")
+        epoch_mixed = sq.get("epoch_mixed", False)
+        boot_ids = sq.get("boot_ids_in_window", [])
+        stable_n = sq.get("stable_sample_count", "?")
+        lines.append(f"  confidence            : {conf}")
+        lines.append(
+            f"  epoch mixed           : {epoch_mixed}"
+            + (f" (boot_ids={boot_ids})" if boot_ids else " (no boot_id tags in samples)")
+        )
+        lines.append(f"  stable samples used   : {stable_n}")
+        rn = sq.get("range_normalized_drift") or {}
+        if rn:
+            lines.append(
+                "  range-norm |drift|    : "
+                + ", ".join(f"{k}={v:.3f}" for k, v in sorted(rn.items()))
+            )
+        cond = sq.get("conditioned_drift") or {}
+        if cond:
+            lines.append("  conditioned drift (pop-filtered):")
+            for trait, d in cond.items():
+                mark = "  <- selection" if d["selection"] else ""
+                lines.append(
+                    f"    {trait:>18}: {d['start']:8.4f} -> {d['end']:8.4f} "
+                    f"({d['delta']:+.4f}, {d['pct']:+6.1f}%){mark}"
+                )
+        elif sq.get("stable_sample_count", 0) < 3:
+            lines.append("  conditioned drift     : (insufficient stable samples)")
 
     lines.append("")
     lines.append("FINDINGS")
