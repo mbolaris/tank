@@ -3,6 +3,8 @@
 from types import SimpleNamespace
 from typing import Any, cast
 
+from core.agents.components.reproduction_component import ReproductionComponent
+from core.config.poker import POKER_REPRO_CREDIT_AWARD
 from core.poker.integration.poker_system import PokerSystem
 from core.simulation.engine import SimulationEngine
 
@@ -130,6 +132,91 @@ def test_handle_poker_result_adds_offspring():
     assert len(system.poker_events) == 1
     assert system.poker_events[0]["winner_id"] == 1
     assert system.poker_events[0]["energy_transferred"] == 3.0
+
+
+def _rewarded_poker(result):
+    """Poker stub rich enough for the per-fish reward log fields."""
+    fish1 = SimpleNamespace(
+        fish_id=1, energy=120.0, _reproduction_component=ReproductionComponent()
+    )
+    fish1.get_poker_id = lambda: 1
+    fish2 = SimpleNamespace(fish_id=2, energy=80.0, _reproduction_component=ReproductionComponent())
+    fish2.get_poker_id = lambda: 2
+    poker = SimpleNamespace(
+        result=result,
+        players=[fish1, fish2],
+        fish_players=[fish1, fish2],
+        _initial_player_energies=[110.0, 90.0],
+    )
+    poker._get_player_id = lambda p: p.get_poker_id()
+    return poker, fish1, fish2
+
+
+def test_handle_poker_result_records_per_fish_rewards():
+    engine = DummyEngine()
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+
+    result = _base_result(
+        winner_id=1,
+        loser_id=2,
+        loser_ids=[2],
+        is_tie=False,
+        energy_transferred=10.0,
+        winner_type="fish",
+        total_pot=20.0,
+        house_cut=2.0,
+    )
+    poker, fish1, fish2 = _rewarded_poker(result)
+
+    system.handle_poker_result(poker)
+
+    event = system.poker_events[-1]
+    assert event["energy_deltas"] == {"1": 10.0, "2": -10.0}
+    assert event["repro_credit_deltas"] == {"1": POKER_REPRO_CREDIT_AWARD}
+    assert event["pot"] == 20.0
+    assert event["house_cut"] == 2.0
+    # The winner banked reproduction credits; the loser did not.
+    assert fish1._reproduction_component.repro_credits == POKER_REPRO_CREDIT_AWARD
+    assert fish2._reproduction_component.repro_credits == 0.0
+
+
+def test_handle_poker_result_no_repro_credits_on_tie():
+    engine = DummyEngine()
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+
+    result = _base_result(is_tie=True, winner_type="fish")
+    poker, fish1, fish2 = _rewarded_poker(result)
+
+    system.handle_poker_result(poker)
+
+    event = system.poker_events[-1]
+    assert event["repro_credit_deltas"] == {}
+    assert fish1._reproduction_component.repro_credits == 0.0
+    assert fish2._reproduction_component.repro_credits == 0.0
+
+
+def test_handle_poker_result_annotates_reproduction():
+    engine = DummyEngine()
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+    engine.reproduction_service = SimpleNamespace(
+        handle_post_poker_reproduction=lambda poker: SimpleNamespace(fish_id=99)
+    )
+
+    result = _base_result(
+        winner_id=1,
+        loser_id=2,
+        loser_ids=[2],
+        is_tie=False,
+        energy_transferred=5.0,
+        winner_type="fish",
+    )
+    poker, _, _ = _rewarded_poker(result)
+
+    system.handle_poker_result(poker)
+
+    event = system.poker_events[-1]
+    assert event["reproduction"] == {"parent_id": 1, "baby_id": 99}
+    assert "baby #99" in event["message"]
 
 
 def test_plant_event_adds_metadata():

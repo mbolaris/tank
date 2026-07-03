@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
+import { SoccerRewardLog } from '../MinigameRewardLog';
 
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
@@ -39,6 +40,8 @@ export function TankSoccerTab({
             {/* League Live Section */}
             <div className="glass-panel" style={{ padding: '16px' }}>
                 <SoccerLeagueLive liveState={liveState} />
+                {/* Reward log under the field: what each fish earned per match */}
+                <SoccerRewardLog events={events} currentFrame={currentFrame} />
             </div>
 
             {/* League Events Section with Filter */}

@@ -53,6 +53,12 @@ class PokerEventData(BaseModel):
     loser_hand: str
     energy_transferred: float
     message: str
+    # Per-fish reward log detail (keys are stringified fish ids)
+    energy_deltas: dict[str, float] = {}
+    repro_credit_deltas: dict[str, float] = {}
+    pot: float = 0.0
+    house_cut: float = 0.0
+    reproduction: dict[str, int | None] | None = None
 
 
 class PokerLeaderboardEntry(BaseModel):

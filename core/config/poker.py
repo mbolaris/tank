@@ -57,6 +57,14 @@ POKER_PREFLOP_MAX_ENERGY_FRACTION = 0.3  # Maximum fraction of energy to bet pre
 POKER_PREFLOP_MIN_RAISE_MULTIPLIER = 1.5  # Minimum raise as multiplier of call amount
 POKER_LAG_ENERGY_FRACTION = 0.35  # Energy fraction for loose-aggressive strategy raises
 
+# Poker Reproduction Rewards
+# Winning fish bank reproduction credits alongside pot winnings, mirroring
+# SOCCER_LEAGUE_REPRO_CREDIT_AWARD so both minigames reward skill with
+# reproduction opportunity as well as energy. Credits only gate reproduction
+# when a nonzero credit requirement is configured; by default they are a
+# tracked reward that surfaces in the poker reward log.
+POKER_REPRO_CREDIT_AWARD = 2.0
+
 # Poker Event Tracking
 MAX_POKER_EVENTS = 10  # Maximum number of recent poker events to keep
 POKER_EVENT_MAX_AGE_FRAMES = 180  # Maximum age for poker events (6 seconds at 30fps)
