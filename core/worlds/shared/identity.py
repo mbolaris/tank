@@ -97,6 +97,12 @@ class TankLikeEntityIdentityProvider:
         Returns:
             Tuple of (entity_type, entity_id) with stable IDs
         """
+        # OPTIMIZATION: Check if already cached on entity
+        cached_identity: tuple[str, str] | None = getattr(entity, "_stable_identity_cache", None)
+        if cached_identity is not None:
+            self._stable_id_to_entity[cached_identity[1]] = entity
+            return cached_identity
+
         _load_offsets()
 
         python_id = id(entity)
@@ -117,8 +123,13 @@ class TankLikeEntityIdentityProvider:
             offset = _TYPE_OFFSETS.get(entity_type, self.OTHER_OFFSET)
             stable_id = intrinsic_id + offset
             stable_id_str = str(stable_id)
+            identity = (entity_type, stable_id_str)
+            try:
+                object.__setattr__(entity, "_stable_identity_cache", identity)
+            except AttributeError:
+                pass
             self._stable_id_to_entity[stable_id_str] = entity
-            return entity_type, stable_id_str
+            return identity
 
         # Entities without intrinsic IDs use counter-based stable IDs
         if python_id not in self._entity_stable_ids:
@@ -135,8 +146,13 @@ class TankLikeEntityIdentityProvider:
                 self._next_other_id += 1
 
         stable_id_str = str(self._entity_stable_ids[python_id])
+        identity = (entity_type, stable_id_str)
+        try:
+            object.__setattr__(entity, "_stable_identity_cache", identity)
+        except AttributeError:
+            pass
         self._stable_id_to_entity[stable_id_str] = entity
-        return entity_type, stable_id_str
+        return identity
 
     def get_entity_by_id(self, entity_id: str) -> Any | None:
         """Lookup an entity by its stable ID.
@@ -178,5 +194,17 @@ class TankLikeEntityIdentityProvider:
                 active entities
         """
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
-        for stale_id in stale_ids:
-            del self._entity_stable_ids[stale_id]
+        for python_id in stale_ids:
+            stable_id_int = self._entity_stable_ids[python_id]
+            stable_id_str = str(stable_id_int)
+            entity = self._stable_id_to_entity.get(stable_id_str)
+            if entity is not None:
+                try:
+                    delattr(entity, "_stable_identity_cache")
+                except AttributeError:
+                    pass
+                try:
+                    del self._stable_id_to_entity[stable_id_str]
+                except KeyError:
+                    pass
+            del self._entity_stable_ids[python_id]
