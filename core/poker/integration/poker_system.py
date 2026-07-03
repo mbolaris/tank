@@ -22,11 +22,7 @@ from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import MixedPokerInteraction
 from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
 from core.poker.integration.poker_interaction import PokerInteraction
-from core.poker.integration.poker_rewards import (
-    annotate_reproduction_reward,
-    award_winner_repro_credits,
-    fish_energy_deltas,
-)
+from core.poker.integration.poker_rewards import annotate_reproduction_reward, fish_energy_deltas
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
@@ -93,8 +89,7 @@ class PokerSystem(BaseSystem):
         Args:
             poker: The completed poker interaction
         """
-        repro_credit_deltas = award_winner_repro_credits(poker)
-        event = self.add_poker_event(poker, repro_credit_deltas=repro_credit_deltas)
+        event = self.add_poker_event(poker)
 
         # Count the completed fish-vs-fish game so the UI's total_fish_games and
         # poker-rate stats advance. Per-fish FishPokerStats are recorded inside
@@ -153,17 +148,11 @@ class PokerSystem(BaseSystem):
         self._total_energy_transferred += energy_transferred
         return event
 
-    def add_poker_event(
-        self,
-        poker: PokerInteraction,
-        repro_credit_deltas: dict[str, float] | None = None,
-    ) -> dict[str, Any] | None:
+    def add_poker_event(self, poker: PokerInteraction) -> dict[str, Any] | None:
         """Add a poker event to the recent events list.
 
         Args:
             poker: The completed poker interaction
-            repro_credit_deltas: Reproduction credits awarded for this hand,
-                keyed by stringified fish id
 
         Returns:
             The recorded event dict, or None if there was no result
@@ -228,7 +217,6 @@ class PokerSystem(BaseSystem):
             message,
             extra={
                 "energy_deltas": fish_energy_deltas(poker),
-                "repro_credit_deltas": dict(repro_credit_deltas or {}),
                 "pot": float(getattr(result, "total_pot", 0.0) or 0.0),
                 "house_cut": float(getattr(result, "house_cut", 0.0) or 0.0),
             },
@@ -249,7 +237,6 @@ class PokerSystem(BaseSystem):
         plant_hand: str,
         energy_transferred: float,
         energy_deltas: dict[str, float] | None = None,
-        repro_credit_deltas: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         """Record a poker event between a fish and a plant.
 
@@ -261,8 +248,6 @@ class PokerSystem(BaseSystem):
             plant_hand: Description of plant's hand
             energy_transferred: Amount of energy transferred
             energy_deltas: Net per-fish energy change, keyed by stringified fish id
-            repro_credit_deltas: Reproduction credits awarded, keyed by
-                stringified fish id
 
         Returns:
             The recorded event dict (still mutable while in the history deque)
@@ -293,7 +278,6 @@ class PokerSystem(BaseSystem):
             "is_plant": True,
             "plant_id": plant_id,
             "energy_deltas": dict(energy_deltas or {}),
-            "repro_credit_deltas": dict(repro_credit_deltas or {}),
         }
 
         self.poker_events.append(event)
@@ -461,9 +445,6 @@ class PokerSystem(BaseSystem):
 
         result = poker.result
 
-        # Reward the winning fish with reproduction credits (mirrors soccer);
-        # the deltas feed the reward log event below.
-        repro_credit_deltas = award_winner_repro_credits(poker)
         plant_event: dict[str, Any] | None = None
 
         # Add poker event for display
@@ -522,7 +503,6 @@ class PokerSystem(BaseSystem):
                 plant_hand=loser_hand_desc,
                 energy_transferred=abs(result.energy_transferred),
                 energy_deltas=fish_energy_deltas(poker),
-                repro_credit_deltas=repro_credit_deltas,
             )
 
         # Record mixed fish+plant poker energy economy with correct attribution.

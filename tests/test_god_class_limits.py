@@ -46,7 +46,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/poker/evaluation/comprehensive_benchmark.py": 601,
     "core/poker/evaluation/evolution_benchmark_tracker.py": 727,
     "core/poker/human_poker_game.py": 863,
-    "core/poker/integration/poker_system.py": 594,
+    "core/poker/integration/poker_system.py": 577,
     "core/poker/simulation/hand_engine.py": 754,
     "core/poker/stats/poker_stats_manager.py": 578,
     "core/poker/strategy/composable/strategy.py": 764,

@@ -54,7 +54,6 @@ class PokerMixin:
                     is_plant=event.get("is_plant", False),
                     plant_id=event.get("plant_id", None),
                     energy_deltas=event.get("energy_deltas", {}),
-                    repro_credit_deltas=event.get("repro_credit_deltas", {}),
                     pot=event.get("pot", 0.0),
                     house_cut=event.get("house_cut", 0.0),
                     reproduction=event.get("reproduction"),
