@@ -659,6 +659,13 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # Age - managed by LifecycleComponent
         self._lifecycle_component.increment_age()
         age = self._lifecycle_component.age  # Cache for use below
+        if age >= self._lifecycle_component.max_age:
+            from core.constants import DEATH_REASON_OLD_AGE
+            from core.state_machine import EntityState
+
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason=DEATH_REASON_OLD_AGE)
+            self._cached_is_dead = True
 
         # Performance: Update enhanced memory system less frequently (every 10 frames)
         if age % 10 == 0:

@@ -38,9 +38,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _fish_sort_key(fish: Fish) -> int:
-    """Stable ordering helper for deterministic traversal."""
-    return fish.fish_id
+import operator
+
+_fish_sort_key = operator.attrgetter("fish_id")
 
 
 @runs_in_phase(UpdatePhase.INTERACTION)
@@ -140,16 +140,9 @@ class PokerProximitySystem(BaseSystem):
 
             # Get nearby fish using spatial grid.
             if environment is not None and hasattr(environment, "nearby_evolving_agents"):
-                # Use snapshot_type instead of isinstance for loose coupling
                 nearby_fish = cast(
                     "list[Fish]",
-                    [
-                        other
-                        for other in environment.nearby_evolving_agents(
-                            fish, radius=FISH_POKER_MAX_DISTANCE
-                        )
-                        if getattr(other, "snapshot_type", None) == "fish"
-                    ],
+                    environment.nearby_evolving_agents(fish, radius=FISH_POKER_MAX_DISTANCE),
                 )
             else:
                 nearby_fish = fish_list
