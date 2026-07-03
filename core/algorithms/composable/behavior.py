@@ -48,6 +48,10 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     _zigzag_phase: float = field(default=0.0, repr=False)
     _patrol_angle: float = field(default=0.0, repr=False)
 
+    # OPTIMIZATION: Cache the computed behavior_id string. The enum fields only
+    # change during mutate(), which explicitly clears this cache.
+    _cached_behavior_id: str | None = field(default=None, repr=False, compare=False)
+
     @staticmethod
     def _format_behavior_id(
         threat_response: ThreatResponse,
@@ -73,12 +77,18 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @property
     def behavior_id(self) -> str:
         """Get a unique string identifier for this behavior configuration."""
-        return self._format_behavior_id(
+        # OPTIMIZATION: Cache the computed string - it only changes during mutate()
+        cached = self._cached_behavior_id
+        if cached is not None:
+            return cached
+        result = self._format_behavior_id(
             self.threat_response,
             self.food_approach,
             self.social_mode,
             self.poker_engagement,
         )
+        self._cached_behavior_id = result
+        return result
 
     @classmethod
     def all_behavior_ids(cls) -> list[str]:
@@ -213,6 +223,9 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     ) -> None:
         """Mutate the composable behavior."""
         rng = require_rng_param(rng, "ComposableBehavior.mutate")
+
+        # Invalidate the behavior_id cache since enum fields may change below
+        self._cached_behavior_id = None
 
         # Mutate sub-behavior selections (discrete)
         if rng.random() < sub_behavior_switch_rate:

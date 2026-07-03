@@ -88,13 +88,19 @@ _trait_table: (
     | None
 ) = None
 
+# OPTIMIZATION: Precomputed per-kind index+weight lists for branch-free inner loops.
+# Built alongside _trait_table; each entry is a tuple of (index, weight) for that kind.
+_continuous_iw: list[tuple[int, float]] = []
+_discrete_iw: list[tuple[int, float]] = []
+_hue_iw: list[tuple[int, float]] = []
+
 
 def _get_trait_table() -> tuple[
     list[tuple[bool, str, int, float, float, float]],
     list[tuple[int, float]],
     float,
 ]:
-    global _trait_table
+    global _trait_table, _continuous_iw, _discrete_iw, _hue_iw
     if _trait_table is None:
         from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
         from core.genetics.physical import PHYSICAL_TRAIT_SPECS
@@ -118,6 +124,19 @@ def _get_trait_table() -> tuple[
         for _, weight in kind_weight_rows:
             base_total_weight += weight
         _trait_table = (rows, kind_weight_rows, base_total_weight)
+
+        # OPTIMIZATION: Build per-kind index+weight lists for branch-free distance loops.
+        _continuous_iw = []
+        _discrete_iw = []
+        _hue_iw = []
+        for i, (kind, weight) in enumerate(kind_weight_rows):
+            if kind == _KIND_CONTINUOUS:
+                _continuous_iw.append((i, weight))
+            elif kind == _KIND_DISCRETE:
+                _discrete_iw.append((i, weight))
+            else:
+                _hue_iw.append((i, weight))
+
     return _trait_table
 
 
@@ -190,18 +209,28 @@ def genetic_distance(genome1: Genome, genome2: Genome) -> float:
     Returns:
         Non-negative genetic distance (typically 0.0 to ~5.0)
     """
-    _, kind_weight_rows, total_weight = _get_trait_table()
+    _, _, total_weight = _get_trait_table()
     values1, behavior1 = _distance_profile(genome1)
     values2, behavior2 = _distance_profile(genome2)
 
+    # OPTIMIZATION: Three tight branch-free loops instead of one loop with
+    # a per-element `if kind` branch. Per-kind index+weight lists are built
+    # once at table build time and stored in module-level lists.
     distance_sq = 0.0
-    for (kind, weight), v1, v2 in zip(kind_weight_rows, values1, values2, strict=True):
-        if kind == _KIND_CONTINUOUS:
-            d = v1 - v2
-        elif kind == _KIND_DISCRETE:
-            d = 0.0 if v1 == v2 else 1.0
-        else:
-            d = _circular_distance(v1, v2)
+
+    # Continuous traits: squared Euclidean distance
+    for i, weight in _continuous_iw:
+        d = values1[i] - values2[i]
+        distance_sq += weight * d * d
+
+    # Discrete traits: mismatch penalty (0 or 1)
+    for i, weight in _discrete_iw:
+        if values1[i] != values2[i]:
+            distance_sq += weight
+
+    # Hue traits: circular distance
+    for i, weight in _hue_iw:
+        d = _circular_distance(values1[i], values2[i])
         distance_sq += weight * d * d
 
     # Composable behavior sub-behavior distances (discrete mismatches)

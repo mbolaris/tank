@@ -21,11 +21,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
 from core.config.fish import (
+    CRITICAL_ENERGY_THRESHOLD_RATIO,
     FLEE_SPEED_CRITICAL,
     FLEE_SPEED_NORMAL,
     FLEE_THRESHOLD_CRITICAL,
     FLEE_THRESHOLD_LOW,
     FLEE_THRESHOLD_NORMAL,
+    LOW_ENERGY_THRESHOLD_RATIO,
 )
 from core.config.food import BASE_FOOD_DETECTION_RANGE, PREDATOR_DEFAULT_FAR_DISTANCE
 from core.entities import Crab, Food
@@ -661,10 +663,13 @@ class BehaviorHelpersMixin:
             - is_low: True if fish has low energy level
             - energy_ratio: Current energy as ratio of max energy (0.0 to 1.0)
         """
-        is_critical = fish.is_critical_energy()
-        is_low = fish.is_low_energy()
-        energy_ratio = fish.get_energy_ratio()
-        return is_critical, is_low, energy_ratio
+        # OPTIMIZATION: Compute the ratio once and compare thresholds inline,
+        # avoiding allocation of two frozen EnergyState dataclasses per call.
+        max_e = fish.max_energy
+        ratio = fish.energy / max_e if max_e > 0 else 0.0
+        is_critical = ratio < CRITICAL_ENERGY_THRESHOLD_RATIO
+        is_low = ratio < LOW_ENERGY_THRESHOLD_RATIO
+        return is_critical, is_low, ratio
 
 
 @dataclass
