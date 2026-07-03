@@ -141,6 +141,11 @@ export interface EntityData {
     render_hint?: Record<string, unknown>;
 }
 
+export interface PokerRewardReproduction {
+    parent_id?: number | null;
+    baby_id?: number | null;
+}
+
 export interface PokerEventData {
     frame: number;
     winner_id: number;  // -1 for tie
@@ -150,6 +155,13 @@ export interface PokerEventData {
     energy_transferred: number;
     message: string;
     is_plant?: boolean;  // True if this is a plant poker game
+    plant_id?: number;
+    // Per-fish reward log detail (keys are stringified fish ids)
+    energy_deltas?: Record<string, number>;
+    repro_credit_deltas?: Record<string, number>;
+    pot?: number;
+    house_cut?: number;
+    reproduction?: PokerRewardReproduction | null;
 }
 
 export interface SoccerGoalEvent {

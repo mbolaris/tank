@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { PokerGame } from '../PokerGame';
 import { PokerLeaderboard } from '../PokerLeaderboard';
 import PokerEvents from '../PokerEvents';
+import { PokerRewardLog } from '../MinigameRewardLog';
 import { EvolutionBenchmarkDisplay } from '../EvolutionBenchmarkDisplay';
 import { Button, CardsIcon, PlantIcon, CollapsibleSection } from '../ui';
 import type {
@@ -445,6 +446,9 @@ export function TankPokerTab({
                         </div>
                     )}
                 </div>
+
+                {/* Reward log under the table: what each fish earned per hand */}
+                <PokerRewardLog events={pokerEvents} currentFrame={currentFrame} />
             </div>
 
             {/* Evolution Benchmark */}
