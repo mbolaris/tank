@@ -162,6 +162,27 @@ class TestAlgorithmicMovement:
         behavior.has_survival_priority = lambda f: True
         assert ball_pursuit_velocity(fish) is None
 
+    def test_ball_pursuit_requires_near_full_energy(self, simulation_env):
+        """Ball play should stay rare until a fish is genuinely surplus-rich."""
+        env, agents = simulation_env
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
+        agents.add(fish)
+        env.ball = Ball(env, 500, 500)
+
+        class FixedRng:
+            def random(self) -> float:
+                return 0.0
+
+        env._rng = FixedRng()
+
+        fish.energy = fish.max_energy * 0.95
+        assert ball_pursuit_velocity(fish) is None
+
+        fish.energy = fish.max_energy * 0.99
+        assert ball_pursuit_velocity(fish) is not None
+
     def test_isolated_full_fish_has_no_survival_priority(self, simulation_env):
         """A full fish with no predator or reachable food has no survival drive,
         so it is free to play (real has_survival_priority path, RNG-free)."""

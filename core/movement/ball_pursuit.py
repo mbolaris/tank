@@ -31,7 +31,7 @@ Velocity = tuple[float, float]
 # below max is still climbing toward its next birth - diverting it to the ball
 # burns the very energy that would fund offspring. Gate on near-max energy so
 # only fish at the overflow boundary spend genuine surplus on play.
-PLAY_ENERGY_THRESHOLD_RATIO = 0.90
+PLAY_ENERGY_THRESHOLD_RATIO = 0.98
 
 # Target magnitude for the pursuit velocity. The arbiter's velocity tail in
 # AlgorithmicMovement.move() re-scales by the fish's speed and clamps the
