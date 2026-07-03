@@ -277,5 +277,23 @@ def test_pot_payout_mode_still_works():
     assert total_shaped == 0.0, "pot_payout mode should not apply shaped bonuses"
 
 
+def test_shaped_bonuses_are_capped_per_player():
+    """Winning-related shaped bonuses stay bounded no matter how extreme the telemetry."""
+    from core.minigames.soccer.rewards import calculate_shaped_bonuses
+    from core.minigames.soccer.types import SoccerTelemetry
+
+    telemetry = SoccerTelemetry()
+    player = telemetry.get_player("left_1", "left")
+    player.touches = 10_000  # absurd activity should not mint unbounded energy
+    team = telemetry.get_team("left")
+    team.ball_progress = 100_000.0
+    team.shots_on_target = 500
+
+    cap = 10.0
+    bonuses = calculate_shaped_bonuses(telemetry, max_bonus_per_player=cap)
+
+    assert bonuses["left_1"] == cap
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

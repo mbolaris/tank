@@ -593,9 +593,8 @@ class PokerEventPayload:
     message: str
     is_plant: bool = False
     plant_id: int | None = None
-    # Per-fish reward log detail (keys are stringified fish ids)
+    # Per-fish reward detail (keys are stringified fish ids)
     energy_deltas: dict[str, float] = field(default_factory=dict)
-    repro_credit_deltas: dict[str, float] = field(default_factory=dict)
     pot: float = 0.0
     house_cut: float = 0.0
     reproduction: dict[str, Any] | None = None

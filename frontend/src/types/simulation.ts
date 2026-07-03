@@ -156,9 +156,8 @@ export interface PokerEventData {
     message: string;
     is_plant?: boolean;  // True if this is a plant poker game
     plant_id?: number;
-    // Per-fish reward log detail (keys are stringified fish ids)
+    // Per-fish reward detail (keys are stringified fish ids)
     energy_deltas?: Record<string, number>;
-    repro_credit_deltas?: Record<string, number>;
     pot?: number;
     house_cut?: number;
     reproduction?: PokerRewardReproduction | null;
@@ -247,10 +246,22 @@ export interface TeamAvailability {
     count: number;
 }
 
+export interface SoccerFishLeaderEntry {
+    fish_id: number;
+    matches: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    goals: number;
+    assists: number;
+    net_energy: number;
+}
+
 export interface SoccerLeagueLiveState {
     leaderboard: LeagueLeaderboardEntry[];
     availability: Record<string, TeamAvailability>;
     active_match: SoccerMatchState | null;
+    fish_leaders?: SoccerFishLeaderEntry[];
 }
 
 export interface PokerLeaderboardEntry {

@@ -84,6 +84,8 @@ class SoccerMatch:
         self.message = "Match starting..."
         self.view_mode = view_mode
         self._last_goal_event: dict[str, Any] | None = None
+        # Every goal event of the match (for per-player scoring stats)
+        self.goal_log: list[dict[str, Any]] = []
 
         # Convert entities to participants (entity-agnostic adapter)
         self.participants, self._entity_by_participant_id = create_participants(entities)
@@ -189,6 +191,7 @@ class SoccerMatch:
                     event = dict(event)
                     event["frame"] = self.current_frame
                     self._last_goal_event = event
+                    self.goal_log.append(event)
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
 

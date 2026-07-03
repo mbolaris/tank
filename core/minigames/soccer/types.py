@@ -87,6 +87,9 @@ class SoccerMinigameOutcome:
     skip_reason: str = ""
     last_goal: dict[str, Any] | None = None
     telemetry: SoccerTelemetry | None = None
+    # Per-fish scoring stats for leaderboards (keyed by entity/fish id)
+    goals_by_fish: dict[int, int] = field(default_factory=dict)
+    assists_by_fish: dict[int, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

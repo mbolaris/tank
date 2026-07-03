@@ -183,6 +183,20 @@ def finalize_soccer_match(
         fish_id = get_entity_id(entity)
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) + delta
 
+    # Per-fish scoring stats from the match's goal log (participant -> fish id)
+    goals_by_fish: dict[int, int] = {}
+    assists_by_fish: dict[int, int] = {}
+    for goal in getattr(match, "goal_log", []):
+        for key, counts in (("scorer_id", goals_by_fish), ("assist_id", assists_by_fish)):
+            participant_id = goal.get(key)
+            if not participant_id:
+                continue
+            entity = match.player_map.get(participant_id)
+            if entity is None:
+                continue
+            fish_id = get_entity_id(entity)
+            counts[fish_id] = counts.get(fish_id, 0) + 1
+
     return SoccerMinigameOutcome(
         match_id=match.match_id,
         match_counter=match_counter,
@@ -203,6 +217,8 @@ def finalize_soccer_match(
             "right": list(state.get("teams", {}).get("right", [])),
         },
         telemetry=match.telemetry,
+        goals_by_fish=goals_by_fish,
+        assists_by_fish=assists_by_fish,
     )
 
 

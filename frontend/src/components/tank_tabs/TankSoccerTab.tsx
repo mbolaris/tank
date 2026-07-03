@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
-import { SoccerRewardLog } from '../MinigameRewardLog';
+import { SoccerLeaders } from '../MinigameLeaders';
 
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
@@ -40,8 +40,8 @@ export function TankSoccerTab({
             {/* League Live Section */}
             <div className="glass-panel" style={{ padding: '16px' }}>
                 <SoccerLeagueLive liveState={liveState} />
-                {/* Reward log under the field: what each fish earned per match */}
-                <SoccerRewardLog events={events} currentFrame={currentFrame} />
+                {/* Standings under the field: the tank's best soccer players */}
+                <SoccerLeaders leaders={liveState?.fish_leaders ?? []} />
             </div>
 
             {/* League Events Section with Filter */}
@@ -128,10 +128,6 @@ function SoccerLeagueEventsFiltered({
                     (total, value) => total + value,
                     0
                 );
-                const reproDelta = Object.values(event.repro_credit_deltas ?? {}).reduce(
-                    (total, value) => total + value,
-                    0
-                );
                 const age = currentFrame >= event.frame ? currentFrame - event.frame : 0;
 
                 const winnerTeam = event.winner_team ?? null;
@@ -189,9 +185,6 @@ function SoccerLeagueEventsFiltered({
                             <span style={{ color: '#94a3b8' }}>Players: {participants}</span>
                             <span style={{ color: energyDelta >= 0 ? '#4ade80' : '#f87171' }}>
                                 Energy Delta {energyDelta >= 0 ? '+' : ''}{energyDelta.toFixed(1)}
-                            </span>
-                            <span style={{ color: reproDelta >= 0 ? '#38bdf8' : '#f87171' }}>
-                                Repro Delta {reproDelta >= 0 ? '+' : ''}{reproDelta.toFixed(1)}
                             </span>
                         </div>
 

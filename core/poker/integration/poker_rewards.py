@@ -1,9 +1,9 @@
 """Per-fish reward accounting for poker games.
 
-These helpers turn a completed poker interaction into the reward-log detail
-surfaced under the poker table in the UI: net energy per fish, reproduction
-credits banked by the winner, and any reproduction the win earned. They are
-kept out of PokerSystem so the system stays focused on orchestration.
+These helpers turn a completed poker interaction into per-fish reward detail
+attached to poker events: net energy per fish and any reproduction the win
+earned. They are kept out of PokerSystem so the system stays focused on
+orchestration.
 """
 
 from __future__ import annotations
@@ -30,39 +30,6 @@ def fish_energy_deltas(poker: Any) -> dict[str, float]:
             delta = float(getattr(player, "energy", 0.0)) - float(initial[idx])
             deltas[str(player.fish_id)] = delta
     return deltas
-
-
-def award_winner_repro_credits(poker: Any) -> dict[str, float]:
-    """Award reproduction credits to a winning fish (mirrors soccer rewards).
-
-    Returns:
-        Mapping of stringified fish id to credits awarded (empty on tie,
-        plant win, or when the award is disabled).
-    """
-    from core.config.poker import POKER_REPRO_CREDIT_AWARD
-
-    if POKER_REPRO_CREDIT_AWARD <= 0:
-        return {}
-
-    result = getattr(poker, "result", None)
-    if result is None or getattr(result, "is_tie", False):
-        return {}
-    if getattr(result, "winner_type", "") != "fish":
-        return {}
-
-    for player in getattr(poker, "fish_players", []):
-        if not hasattr(player, "fish_id"):
-            continue
-        if poker._get_player_id(player) != result.winner_id:
-            continue
-        component = getattr(player, "_reproduction_component", None)
-        if component is None or not hasattr(component, "add_repro_credits"):
-            return {}
-        applied = component.add_repro_credits(POKER_REPRO_CREDIT_AWARD)
-        if applied:
-            return {str(player.fish_id): float(applied)}
-        return {}
-    return {}
 
 
 def annotate_reproduction_reward(
