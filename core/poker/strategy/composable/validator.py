@@ -8,7 +8,10 @@ midpoint defaults, and random sampling within bounds.
 
 import random
 
-from core.poker.strategy.composable.definitions import POKER_SUB_BEHAVIOR_PARAMS
+from core.poker.strategy.composable.definitions import (
+    LEARNING_RATE_BOUNDS,
+    POKER_SUB_BEHAVIOR_PARAMS,
+)
 
 
 class PokerStrategyValidator:
@@ -66,3 +69,9 @@ class PokerStrategyValidator:
         return {
             key: rng.uniform(low, high) for key, (low, high) in POKER_SUB_BEHAVIOR_PARAMS.items()
         }
+
+    @staticmethod
+    def clamp_learning_rate(value: float) -> float:
+        """Clamp a CFR learning rate into its evolvable bounds."""
+        low, high = LEARNING_RATE_BOUNDS
+        return max(low, min(high, value))

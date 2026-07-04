@@ -56,28 +56,31 @@ def test_petri_energy_deltas_reference_real_entities():
         pytest.skip("No fish in Petri mode to test energy deltas")
 
     fish = fish_list[0]
-    initial_energy = fish.energy
 
     # Run update to process (should trigger metabolism burn)
     engine.update()
-
-    # Energy should have decreased (burn)
-    assert (
-        fish.energy < initial_energy
-    ), f"Fish energy should have decreased from {initial_energy}, but is {fish.energy}"
 
     # Check that energy delta record uses stable ID format
     from core.config.entities import FISH_ID_OFFSET
 
     expected_stable_id = str(fish.fish_id + FISH_ID_OFFSET)
 
-    # Look for delta relating to this fish
+    # Look for the metabolism delta relating to this fish. We assert on the
+    # metabolism burn directly rather than on net energy: a fish can also gain
+    # energy on the same frame from other sources (e.g. a poker win), so net
+    # energy is not a reliable proxy for "metabolism ran".
     energy_delta = next(
-        (d for d in engine._frame_energy_deltas if d.stable_id == expected_stable_id), None
+        (
+            d
+            for d in engine._frame_energy_deltas
+            if d.stable_id == expected_stable_id and d.source == "metabolism"
+        ),
+        None,
     )
 
-    assert energy_delta is not None, "Energy delta record not found"
+    assert energy_delta is not None, "Metabolism energy delta record not found"
     assert energy_delta.source == "metabolism"
+    assert energy_delta.delta < 0, "Metabolism should burn (negative) energy"
 
     # Verify the ID is in stable format (uses offset, not raw fish_id)
     assert energy_delta.entity_id == expected_stable_id, (

@@ -235,6 +235,11 @@ SOCCER_POLICY_PARAM_KEYS: tuple[str, ...] = (
     "stamina_floor",
     "hold_depth",
     "press_radius",
+    # On-ball / pursuit control. Neutral at raw 0.0 (they reproduce the old
+    # hard-coded steering constants), so the substrate widens without shifting
+    # the hand-tuned baseline; variation enters only via mutation.
+    "approach_precision",
+    "pursuit_commit",
 )
 
 # The engine only applies kicks when the ball center is within
@@ -275,17 +280,23 @@ def _steer_action(
     facing_angle: float,
     stamina_ratio: float,
     stamina_floor: float,
+    align_threshold: float = 0.25,
+    commit_dist: float = 0.4,
 ) -> dict[str, Any]:
     """Turn toward, then dash at, the relative target (tx, ty).
 
     Turning is far more effective at low speed (RCSS divides the turn moment
     by 1 + inertia_moment * speed), so we stop dashing while a large turn is
     needed instead of sliding past the target.
+
+    ``align_threshold`` (from the ``approach_precision`` gene) sets how tightly
+    the player aligns before dashing; ``commit_dist`` (``pursuit_commit``) is
+    how close to the target it keeps dashing before easing off.
     """
     dist = math.sqrt(tx * tx + ty * ty)
     angle_delta = _norm_angle(math.atan2(ty, tx) - facing_angle)
 
-    if abs(angle_delta) >= 0.25:
+    if abs(angle_delta) >= align_threshold:
         return {
             "turn": max(-1.0, min(1.0, (angle_delta * 1.5) / math.pi)),
             "dash": 0.0,
@@ -295,7 +306,7 @@ def _steer_action(
 
     # Full power while fresh; taper near the stamina floor so a long chase
     # doesn't crash through the RCSS effort floor.
-    if dist > 0.4:
+    if dist > commit_dist:
         dash = (
             1.0
             if stamina_ratio > stamina_floor
@@ -351,6 +362,11 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any
     stamina_floor = _scaled_param(params, "stamina_floor", 0.35, 0.04, 0.05, 0.85)
     hold_depth = _scaled_param(params, "hold_depth", 0.40, 0.035, 0.10, 0.80)
     press_radius = _scaled_param(params, "press_radius", 14.0, 1.6, 3.0, 40.0)
+    # On-ball pursuit control (raw 0.0 -> the old hard-coded 0.25 / 0.40).
+    # approach_precision uses a negative scale so a *higher* gene value means a
+    # *tighter* align-before-dash threshold (more precise), matching the name.
+    approach_precision = _scaled_param(params, "approach_precision", 0.25, -0.03, 0.08, 0.55)
+    pursuit_commit = _scaled_param(params, "pursuit_commit", 0.40, 0.05, 0.10, 0.90)
 
     # --- On the ball: shoot or dribble toward the opponent goal ---
     if ball_dist <= _ENGINE_KICKABLE_DIST:
@@ -397,7 +413,15 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any
     else:
         tx, ty = ix, iy
 
-    return _steer_action(tx, ty, facing_angle, stamina_ratio, stamina_floor)
+    return _steer_action(
+        tx,
+        ty,
+        facing_angle,
+        stamina_ratio,
+        stamina_floor,
+        align_threshold=approach_precision,
+        commit_dist=pursuit_commit,
+    )
 
 
 def default_soccer_policy_params(

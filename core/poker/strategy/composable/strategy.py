@@ -23,6 +23,7 @@ from core.poker.strategy.composable.definitions import (
     CFR_HAND_STRENGTH_BUCKETS,
     CFR_MAX_INFO_SETS,
     CFR_POT_RATIO_BUCKETS,
+    LEARNING_RATE_BOUNDS,
     BettingStyle,
     BluffingApproach,
     HandSelection,
@@ -37,6 +38,7 @@ from core.util.rng import require_rng_param
 
 _random_params = PokerStrategyValidator.random_parameters
 _blend_regret_tables = CFRInheritance.blend_tables
+_clamp_learning_rate = PokerStrategyValidator.clamp_learning_rate
 
 
 @dataclass
@@ -79,6 +81,9 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         """Initialize default parameters if not provided."""
         if not self.parameters:
             self.parameters = PokerStrategyValidator.default_parameters()
+        # Keep the learning rate inside its evolvable bounds even for hand-built
+        # or deserialized instances (an old save may predate these bounds).
+        self.learning_rate = _clamp_learning_rate(self.learning_rate)
 
     @classmethod
     def create_random(cls, rng: random.Random | None = None) -> "ComposablePokerStrategy":
@@ -98,6 +103,10 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             ),
             parameters=PokerStrategyValidator.random_parameters(rng),
         )
+        # learning_rate stays at its neutral default (1.0) for founders;
+        # variation enters via mutate(), not an extra RNG draw here (which would
+        # shift the whole genome-construction stream). Same neutral-default,
+        # diverge-via-mutation pattern the soccer params use.
 
     @classmethod
     def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
@@ -459,6 +468,14 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         for key, value in self.parameters.items():
             if isinstance(value, (int, float)):
                 self.parameters[key] = PokerStrategyValidator.clamp_known(key, value)
+
+        # Mutate the CFR learning rate (adaptation speed). Drawn last so this
+        # gene does not shift the RNG stream the mutations above consume, and
+        # gated on mutation_rate so a mutation_rate=0.0 clone stays untouched.
+        if rng.random() < mutation_rate:
+            lr_span = LEARNING_RATE_BOUNDS[1] - LEARNING_RATE_BOUNDS[0]
+            self.learning_rate += rng.gauss(0, mutation_strength * lr_span)
+        self.learning_rate = _clamp_learning_rate(self.learning_rate)
 
     # -------------------------------------------------------------------------
     # CFR Learning Methods (Lamarckian-inheritable)
