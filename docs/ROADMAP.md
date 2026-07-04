@@ -256,4 +256,16 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 
 ---
 
-*Last updated: June 2026*
+## Engineering Backlog
+
+Strategic milestones live above. The *engineering* work that makes the codebase
+faster, clearer, and safer to modify — the kind of scoped, pickup-able task a
+smaller agent can land — lives in
+[IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md). It now includes Themes 6–8
+distilled from an external code review (July 2026, 82/100): type-safety
+guardrails, frontend/backend contract drift, and product-facing reward
+semantics. Each item names its files and a step-by-step plan.
+
+---
+
+*Last updated: July 2026*
