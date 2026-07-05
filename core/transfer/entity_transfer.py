@@ -353,6 +353,9 @@ def capture_fish_mutable_state(fish: Any) -> dict[str, Any]:
         "reproduction_cooldown": fish._reproduction_component.reproduction_cooldown,
         "repro_credits": fish._reproduction_component.repro_credits,
         "genome_data": genome_data,
+        "tank_name": getattr(fish, "tank_name", None),
+        "tank_id": getattr(fish, "tank_id", None),
+        "offspring_count": getattr(fish, "offspring_count", 0),
     }
 
 
@@ -516,6 +519,18 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
         fish._reproduction_component.reproduction_cooldown = data.get("reproduction_cooldown", 0)
         if "repro_credits" in data:
             fish._reproduction_component.repro_credits = float(data.get("repro_credits", 0.0))
+
+        if "tank_name" in data:
+            fish.tank_name = data["tank_name"]
+        if "tank_id" in data:
+            fish.tank_id = data["tank_id"]
+
+        if getattr(fish, "tank_name", None) is None:
+            fish.tank_name = getattr(target_world.engine.environment, "tank_name", None)
+        if getattr(fish, "tank_id", None) is None:
+            fish.tank_id = getattr(target_world.engine.environment, "tank_id", None)
+
+        fish.offspring_count = data.get("offspring_count", 0)
 
         return fish
     except Exception as e:

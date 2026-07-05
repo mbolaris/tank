@@ -201,6 +201,10 @@ class ReproductionService:
         if required_credits > 0:
             winner._reproduction_component.consume_repro_credits(required_credits)
         baby.register_birth()
+        if hasattr(winner, "offspring_count"):
+            winner.offspring_count += 1
+        if hasattr(mate, "offspring_count"):
+            mate.offspring_count += 1
         lifecycle_system = self._engine.lifecycle_system
         if lifecycle_system is not None:
             lifecycle_system.record_birth()
@@ -229,6 +233,8 @@ class ReproductionService:
             baby.register_birth()
             if required_credits > 0:
                 winner_fish._reproduction_component.consume_repro_credits(required_credits)
+            if hasattr(winner_fish, "offspring_count"):
+                winner_fish.offspring_count += 1
             self._plant_asexual_reproductions += 1
             return baby
 
@@ -293,6 +299,8 @@ class ReproductionService:
 
             if self._engine.request_spawn(baby, reason="banked_asexual_reproduction"):
                 baby.register_birth()
+                if hasattr(fish, "offspring_count"):
+                    fish.offspring_count += 1
                 lifecycle_system = self._engine.lifecycle_system
                 if lifecycle_system is not None:
                     lifecycle_system.record_birth()
@@ -340,6 +348,8 @@ class ReproductionService:
                 if baby is not None:
                     if self._engine.request_spawn(baby, reason="asexual_reproduction"):
                         baby.register_birth()
+                        if hasattr(fish, "offspring_count"):
+                            fish.offspring_count += 1
                         if required_credits > 0:
                             fish._reproduction_component.consume_repro_credits(required_credits)
                         self._asexual_triggered += 1

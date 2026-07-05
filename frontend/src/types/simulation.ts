@@ -248,14 +248,23 @@ export interface TeamAvailability {
 
 export interface SoccerFishLeaderEntry {
     fish_id: number;
+    name?: string;
+    display_id?: string;
     matches: number;
+    matches_played?: number;
     wins: number;
     draws: number;
     losses: number;
     goals: number;
     assists: number;
     net_energy: number;
+    net_energy_earned?: number;
+    contribution_score?: number;
+    tank_id?: string;
+    tank_name?: string;
+    offspring_count?: number;
 }
+
 
 export interface SoccerLeagueLiveState {
     leaderboard: LeagueLeaderboardEntry[];
@@ -287,6 +296,9 @@ export interface PokerLeaderboardEntry {
     positional_advantage: number;  // Percentage (0-100)
     recent_win_rate: number;  // Recent win rate (0-100)
     skill_trend: string;  // "improving", "declining", or "stable"
+    tank_id?: string;
+    tank_name?: string;
+    offspring_count?: number;
 }
 
 export interface PokerStatsData {

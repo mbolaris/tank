@@ -88,6 +88,23 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_id = world_id or str(uuid.uuid4())
         self.world_name = world_name or f"World {self.world_id[:8]}"
 
+        self.world.tank_name = self.world_name
+        self.world.tank_id = self.world_id
+
+        env = None
+        if hasattr(self.world, "environment") and self.world.environment is not None:
+            env = self.world.environment
+        elif hasattr(self.world, "world") and self.world.world is not None:
+            env = self.world.world
+        else:
+            engine = getattr(self.world, "_engine", None)
+            if engine is not None and hasattr(engine, "environment"):
+                env = engine.environment
+
+        if env is not None:
+            env.tank_name = self.world_name
+            env.tank_id = self.world_id
+
         # Target frame rate
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps

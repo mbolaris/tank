@@ -137,6 +137,9 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         self.generation: int = generation
         self.species: str = species
         self.team: str | None = team  # Team affiliation ('A' or 'B' for soccer mode)
+        self.tank_name: str | None = getattr(environment, "tank_name", None)
+        self.tank_id: str | None = getattr(environment, "tank_id", None)
+        self.offspring_count: int = 0
         self.poker_stats: FishPokerStats | None = None
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
