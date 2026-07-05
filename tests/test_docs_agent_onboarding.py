@@ -12,6 +12,7 @@ PUBLIC_AGENT_DOCS = [
     ROOT / "docs" / "AGENT_FIELD_GUIDE.md",
     ROOT / "CLAUDE.md",
     ROOT / "SETUP.md",
+    ROOT / "docs" / "ALGORITHM_CATALOG.md",
 ]
 ARCHIVED_ADR_DIR = ROOT / "docs" / "adr"
 
@@ -248,3 +249,22 @@ def test_public_agent_docs_restrict_champion_update_guidance():
                 f"{doc_path.relative_to(ROOT)} mentions --update-champion without clear "
                 "maintainer/task authorization language nearby."
             )
+
+
+def test_algorithm_catalog_is_up_to_date():
+    from tools.generate_algorithm_catalog import generate_catalog
+
+    catalog_path = ROOT / "docs" / "ALGORITHM_CATALOG.md"
+    assert catalog_path.exists(), "ALGORITHM_CATALOG.md does not exist"
+
+    current_content = catalog_path.read_text(encoding="utf-8")
+    expected_content = generate_catalog()
+
+    # Normalize line endings to avoid OS-specific test failures
+    current_content = current_content.replace("\r\n", "\n")
+    expected_content = expected_content.replace("\r\n", "\n")
+
+    assert current_content == expected_content, (
+        "docs/ALGORITHM_CATALOG.md is out of date. "
+        "Run 'python tools/generate_algorithm_catalog.py' to update it."
+    )
