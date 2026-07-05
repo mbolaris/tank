@@ -69,12 +69,16 @@ def _repo_root() -> Path:
 
 def _get_core_python_files() -> list[Path]:
     """Get all Python files in the core directory."""
+    from tests.ast_utils import walk_python_files
+
     core_root = _repo_root() / "core"
-    return [path for path in core_root.rglob("*.py") if "__pycache__" not in path.parts]
+    return walk_python_files(core_root)
 
 
 def _line_count(path: Path) -> int:
-    return len(path.read_text(encoding="utf-8").splitlines())
+    from tests.ast_utils import get_file_content
+
+    return len(get_file_content(path).splitlines())
 
 
 def test_no_new_god_classes() -> None:

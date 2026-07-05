@@ -18,17 +18,17 @@ def _is_allowed_path(rel_path: str) -> bool:
 
 def test_soccer_only_uses_canonical_params():
     """Ensure only params.py/tests mention DEFAULT_RCSS_PARAMS."""
+    from tests.ast_utils import get_file_content, walk_python_files
+
+    repo_root = Path(__file__).resolve().parents[1]
     violations: list[str] = []
 
-    for path in sorted(Path(".").rglob("*.py")):
-        if any(part.startswith(".") for part in path.parts):
-            continue
-
-        rel_path = path.as_posix()
+    for path in sorted(walk_python_files(repo_root)):
+        rel_path = path.relative_to(repo_root).as_posix()
         if _is_allowed_path(rel_path):
             continue
 
-        content = path.read_text(encoding="utf-8")
+        content = get_file_content(path)
         if "DEFAULT_RCSS_PARAMS" in content:
             violations.append(rel_path)
 

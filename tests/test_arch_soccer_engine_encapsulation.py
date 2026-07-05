@@ -37,14 +37,16 @@ def _looks_like_soccer_engine_accessor(obj_path: str) -> bool:
 
 def test_soccer_engine_private_state_remains_encapsulated():
     """Surface any soccer module accessing RCSSLiteEngine private fields."""
+    from tests.ast_utils import get_file_content, walk_python_files
+
     root = Path("core/minigames/soccer")
     violations: list[str] = []
 
-    for path in sorted(root.rglob("*.py")):
+    for path in sorted(walk_python_files(root)):
         if path.name == "engine.py":
             continue
 
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = get_file_content(path).splitlines()
         for line_no, line in enumerate(lines, start=1):
             for field_name, pattern in PRIVATE_FIELD_PATTERNS:
                 for match in pattern.finditer(line):

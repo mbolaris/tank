@@ -43,12 +43,10 @@ def _module_name(path: Path, root: Path) -> str:
 
 
 def _iter_core_modules(root: Path) -> dict[str, Path]:
+    from tests.ast_utils import walk_python_files
+
     core_dir = root / CORE
-    return {
-        _module_name(path, root): path
-        for path in core_dir.rglob("*.py")
-        if "__pycache__" not in path.parts
-    }
+    return {_module_name(path, root): path for path in walk_python_files(core_dir)}
 
 
 def _is_type_checking(test: ast.expr) -> bool:
@@ -132,8 +130,12 @@ def _build_core_graph(mods: dict[str, Path]) -> dict[str, set[str]]:
     names = set(mods)
     graph: dict[str, set[str]] = {m: set() for m in names}
     for mod, path in mods.items():
+        from tests.ast_utils import get_ast
+
+        tree = get_ast(path)
+        if tree is None:
+            continue
         is_pkg = path.name == "__init__.py"
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in _module_load_imports(tree):
             for raw in _imported_targets(node, mod, is_pkg):
                 if raw != CORE and not raw.startswith(CORE + "."):

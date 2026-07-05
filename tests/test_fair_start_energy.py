@@ -5,12 +5,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from core.reproduction.reproduction_service import ReproductionService
-from tests.test_proximity_mating import (
-    _adult_fish,
-    _MiniEcosystem,
-    _MiniEngine,
-    _MiniEnvironment,
-)
+from tests.test_proximity_mating import _adult_fish, _MiniEcosystem, _MiniEngine, _MiniEnvironment
 
 
 def test_fair_start_energy_decoupling() -> None:

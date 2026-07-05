@@ -37,10 +37,7 @@ except ImportError:
         run_pytest_with_diagnostics,
         run_steps,
     )
-    from pre_pr_shards import (  # type: ignore[import-not-found,no-redef]
-        resolve_shards,
-        shard_names,
-    )
+    from pre_pr_shards import resolve_shards, shard_names  # type: ignore[import-not-found,no-redef]
 
 _MARKER_EXPR = "not slow and not integration and not manual"
 

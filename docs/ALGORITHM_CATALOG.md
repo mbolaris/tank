@@ -766,5 +766,3 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
   - `forward_speed`: range `[0.6, 1]`
   - `zigzag_amplitude`: range `[0.5, 1.2]`
   - `zigzag_frequency`: range `[0.02, 0.08]`
-
-

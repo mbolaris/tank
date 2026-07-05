@@ -11,10 +11,7 @@ from core.reproduction.asexual_factory import (
     maybe_create_banked_offspring,
 )
 from core.reproduction.mutation_controller import DiversityMutationController
-from core.reproduction.sexual_factory import (
-    create_post_poker_offspring,
-    run_proximity_mating_cycle,
-)
+from core.reproduction.sexual_factory import create_post_poker_offspring, run_proximity_mating_cycle
 
 if TYPE_CHECKING:
     from core.entities import Fish

@@ -57,12 +57,13 @@ def _find_isinstance_fish_calls(file_path: Path) -> list[tuple[int, str]]:
 
     Returns list of (line_number, line_content) tuples.
     """
+    from tests.ast_utils import get_ast, get_file_content
+
     violations: list[tuple[int, str]] = []
-    try:
-        source = file_path.read_text(encoding="utf-8")
-        tree = ast.parse(source, filename=str(file_path))
-    except (SyntaxError, UnicodeDecodeError):
+    tree = get_ast(file_path)
+    if tree is None:
         return violations
+    source = get_file_content(file_path)
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
@@ -118,9 +119,9 @@ def test_no_new_isinstance_concrete_entity_checks():
         if not dir_path.exists():
             continue
 
-        for py_file in dir_path.rglob("*.py"):
-            if "__pycache__" in str(py_file):
-                continue
+        from tests.ast_utils import walk_python_files
+
+        for py_file in walk_python_files(dir_path):
             if _is_allowed_path(py_file, repo_root):
                 continue
             # Skip legacy files - they're tracked separately

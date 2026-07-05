@@ -1,10 +1,7 @@
 import json
 from pathlib import Path
 
-from core.replay.fingerprint_stream import (
-    FingerprintStreamRecorder,
-    compare_fingerprint_streams,
-)
+from core.replay.fingerprint_stream import FingerprintStreamRecorder, compare_fingerprint_streams
 from tools.run_bench import second_fingerprint_path
 
 

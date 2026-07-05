@@ -7,11 +7,7 @@ import pytest
 
 pytest.importorskip("pytest_asyncio")
 
-from backend.broadcast import (
-    _broadcast_tasks,
-    start_broadcast_for_world,
-    stop_broadcast_for_world,
-)
+from backend.broadcast import _broadcast_tasks, start_broadcast_for_world, stop_broadcast_for_world
 from backend.connection_manager import ConnectionManager
 from backend.discovery_service import DiscoveryService
 from backend.server_client import ServerClient

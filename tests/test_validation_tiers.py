@@ -199,14 +199,16 @@ def test_no_unmarked_expensive_simulation_loops():
     slow/integration/manual markers.
     """
 
+    from tests.ast_utils import get_ast, walk_python_files
+
     tests_dir = ROOT / "tests"
     violations = []
 
-    for path in tests_dir.rglob("test_*.py"):
-        try:
-            content = path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
-        except Exception:
+    for path in walk_python_files(tests_dir):
+        if not path.name.startswith("test_"):
+            continue
+        tree = get_ast(path)
+        if tree is None:
             continue
 
         for test_name, node in _iter_unexcluded_test_functions(tree):

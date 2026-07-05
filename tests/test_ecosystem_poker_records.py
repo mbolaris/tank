@@ -1,4 +1,5 @@
 import math
+
 import pytest
 
 from core.ecosystem import EcosystemManager
@@ -55,8 +56,9 @@ def test_fish_poker_game_counter_advances_unit():
     """Verify that calling handle_poker_result on PokerSystem increments the ecosystem's
     total_fish_poker_games counter without needing a full 3000-frame simulation.
     """
-    from core.worlds.registry import WorldRegistry
     from types import SimpleNamespace
+
+    from core.worlds.registry import WorldRegistry
 
     world = WorldRegistry.create_world("tank", seed=42, config={})
     world.reset(seed=42, config={})

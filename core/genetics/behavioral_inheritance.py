@@ -23,10 +23,7 @@ from core.genetics.mate_preferences import (
     inherit_mate_preferences,
 )
 from core.genetics.policy_inheritance import inherit_single_policy
-from core.genetics.reproduction import (
-    DEFAULT_SUB_BEHAVIOR_SWITCH_RATE,
-    ReproductionMutationContext,
-)
+from core.genetics.reproduction import DEFAULT_SUB_BEHAVIOR_SWITCH_RATE, ReproductionMutationContext
 from core.genetics.trait import (
     GeneticTrait,
     TraitSpec,

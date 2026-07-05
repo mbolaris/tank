@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from backend.world_manager import WorldManager
     from core.entities import Fish
 
+from backend.commentary_store import CommentaryStore
+from backend.metrics_history import MetricsHistory
 from backend.runner import (
     CommandHandlerMixin,
     evolution_benchmark,
@@ -24,8 +26,6 @@ from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
-from backend.commentary_store import CommentaryStore
-from backend.metrics_history import MetricsHistory
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
 from core import entities

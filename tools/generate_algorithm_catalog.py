@@ -11,14 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from core.algorithms.base import ALGORITHM_PARAMETER_BOUNDS
-from core.algorithms.registry import ALL_ALGORITHMS, DEPRECATED_ALGORITHMS
 from core.algorithms.composable.definitions import (
-    ThreatResponse,
-    FoodApproach,
-    SocialMode,
-    PokerEngagement,
     SUB_BEHAVIOR_PARAMS,
+    FoodApproach,
+    PokerEngagement,
+    SocialMode,
+    ThreatResponse,
 )
+from core.algorithms.registry import ALL_ALGORITHMS, DEPRECATED_ALGORITHMS
 
 # High-quality descriptions for sub-behavior choices
 SUB_BEHAVIOR_DESCRIPTIONS = {
@@ -449,7 +449,7 @@ def generate_catalog() -> str:
 
         md.append("")
 
-    return "\n".join(md) + "\n"
+    return "\n".join(md).rstrip("\n") + "\n"
 
 
 def main() -> None:

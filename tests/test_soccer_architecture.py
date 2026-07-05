@@ -5,34 +5,18 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from tests.ast_utils import get_ast, walk_python_files
+
 
 def test_no_core_worlds_soccer_imports() -> None:
     """Ensure nothing imports core.worlds.soccer.* anymore."""
     repo_root = Path(__file__).resolve().parents[1]
-    excluded = {
-        ".git",
-        ".venv",
-        ".mypy_cache",
-        ".pytest_cache",
-        ".ruff_cache",
-        "__pycache__",
-        "node_modules",
-        "frontend",
-        "dist",
-        "build",
-    }
-
     offenders: list[str] = []
 
-    for path in repo_root.rglob("*.py"):
-        if any(part in excluded for part in path.parts):
+    for path in walk_python_files(repo_root):
+        tree = get_ast(path)
+        if tree is None:
             continue
-
-        source = path.read_text(encoding="utf-8")
-        try:
-            tree = ast.parse(source)
-        except SyntaxError as exc:
-            raise AssertionError(f"Failed to parse {path}") from exc
 
         bad_imports: list[str] = []
         for node in ast.walk(tree):

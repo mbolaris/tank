@@ -59,14 +59,20 @@ def test_energy_changes_use_modify_energy() -> None:
     """Direct energy writes outside approved files should not exist."""
     violations: list[tuple[Path, int, str]] = []
 
-    for path in CORE_DIR.rglob("*.py"):
+    from tests.ast_utils import get_ast, get_file_content, walk_python_files
+
+    for path in walk_python_files(CORE_DIR):
         rel_path = path.relative_to(ROOT)
         if rel_path in ALLOWLIST_PATHS:
             continue
 
-        source = path.read_text(encoding="utf-8")
+        tree = get_ast(path)
+        if tree is None:
+            continue
+
+        source = get_file_content(path)
         visitor = _EnergyAssignmentVisitor(source.splitlines())
-        visitor.visit(ast.parse(source, filename=str(rel_path)))
+        visitor.visit(tree)
 
         for lineno, line in visitor.matches:
             violations.append((rel_path, lineno, line))
