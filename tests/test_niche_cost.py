@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+
 from core.entities import Fish
 from core.reproduction.niche_cost import get_niche_cost_multiplier
 

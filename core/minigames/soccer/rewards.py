@@ -14,15 +14,15 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from core.config.soccer import (
+    SOCCER_ASSIST_ENERGY_REWARD,
+    SOCCER_GOAL_ENERGY_REWARD,
+    SOCCER_MAX_REWARD_PER_MATCH,
     SOCCER_SHAPED_PER_PLAYER_CAP,
     SOCCER_SHAPED_PROGRESS_WEIGHT,
     SOCCER_SHAPED_SHOT_WEIGHT,
     SOCCER_SHAPED_TEAM_BONUS_CAP,
     SOCCER_SHAPED_TOUCH_WEIGHT,
-    SOCCER_GOAL_ENERGY_REWARD,
-    SOCCER_ASSIST_ENERGY_REWARD,
     SOCCER_WIN_ENERGY_REWARD,
-    SOCCER_MAX_REWARD_PER_MATCH,
 )
 from core.minigames.soccer.selection import get_entity_id
 

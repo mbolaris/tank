@@ -4,7 +4,12 @@
 try:
     from tools.gate_common import exit_for_gate, print_gate_header, python_command, run_steps
 except ImportError:
-    from gate_common import exit_for_gate, print_gate_header, python_command, run_steps  # type: ignore[import-not-found,no-redef]
+    from gate_common import (  # type: ignore[import-not-found,no-redef]
+        exit_for_gate,
+        print_gate_header,
+        python_command,
+        run_steps,
+    )
 
 
 def main() -> None:

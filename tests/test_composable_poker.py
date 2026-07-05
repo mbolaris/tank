@@ -22,11 +22,11 @@ from core.poker.strategy.composable import (
     PositionAwareness,
     ShowdownTendency,
 )
+from core.poker.strategy.composable.cfr_decision import CFR_DECISION_MIN_VISITS
 from core.poker.strategy.composable.definitions import (
     CFR_INHERITANCE_DECAY,
     CFR_MIN_VISITS_FOR_INHERITANCE,
 )
-from core.poker.strategy.composable.cfr_decision import CFR_DECISION_MIN_VISITS
 from core.poker.strategy.implementations import crossover_poker_strategies
 
 

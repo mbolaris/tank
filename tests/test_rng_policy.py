@@ -1,12 +1,14 @@
 import ast
 from pathlib import Path
 
+from tests.ast_utils import get_ast, walk_python_files
+
 ALLOWED_RANDOM_ATTRS = {"Random", "SystemRandom"}
 
 
 def _iter_core_files() -> list[Path]:
     core_root = Path(__file__).resolve().parents[1] / "core"
-    return [path for path in core_root.rglob("*.py") if "__pycache__" not in path.parts]
+    return walk_python_files(core_root)
 
 
 def _collect_random_aliases(tree: ast.AST) -> set[str]:
@@ -63,8 +65,9 @@ def test_no_global_random_usage_in_core() -> None:
     """Core simulation should avoid global random module usage."""
     violations: list[str] = []
     for path in _iter_core_files():
-        source = path.read_text(encoding="utf-8", errors="ignore")
-        tree = ast.parse(source, filename=str(path))
+        tree = get_ast(path)
+        if tree is None:
+            continue
         aliases = _collect_random_aliases(tree)
         visitor = _RandomUsageVisitor(aliases)
         visitor.visit(tree)
@@ -141,8 +144,9 @@ def test_no_unseeded_random_in_core() -> None:
         if any(allowed in path_str for allowed in allowlist_paths):
             continue
 
-        source = path.read_text(encoding="utf-8", errors="ignore")
-        tree = ast.parse(source, filename=str(path))
+        tree = get_ast(path)
+        if tree is None:
+            continue
         aliases = _collect_random_aliases(tree)
         # Also check for "pyrandom" which is a common alias in this codebase
         aliases.add("pyrandom")

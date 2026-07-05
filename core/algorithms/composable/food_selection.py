@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Any
 
+from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.config.food import (
     BASE_FOOD_DETECTION_RANGE,
     CHASE_DISTANCE_LOW,
@@ -18,7 +19,6 @@ from core.config.food import (
     FOOD_QUALITY_DISTANCE_WEIGHT,
     FOOD_SINK_ACCELERATION,
 )
-from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.entities import Food as FoodClass
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept

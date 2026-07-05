@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from tests.ast_utils import get_file_content, walk_python_files
+
 
 def test_no_direct_tank_world_imports():
     """Ensure production code doesn't import core.tank_world directly."""
@@ -17,11 +19,9 @@ def test_no_direct_tank_world_imports():
     pattern = "from core.tank_world import"
     lines = []
 
-    for py_file in project_root.rglob("*.py"):
-        if "__pycache__" in str(py_file):
-            continue
+    for py_file in walk_python_files(project_root):
         try:
-            content = py_file.read_text(encoding="utf-8")
+            content = get_file_content(py_file)
             if pattern in content:
                 rel_path = py_file.relative_to(project_root)
                 for i, line in enumerate(content.splitlines(), 1):

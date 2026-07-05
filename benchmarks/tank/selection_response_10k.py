@@ -119,9 +119,7 @@ def score_samples(
 
     diversity_first = float(first.get("diversity_score", 0.0) or 0.0)
     diversity_last = float(last.get("diversity_score", 0.0) or 0.0)
-    diversity_retention = (
-        min(1.5, diversity_last / diversity_first) if diversity_first > 0 else 0.0
-    )
+    diversity_retention = min(1.5, diversity_last / diversity_first) if diversity_first > 0 else 0.0
     diversity_floor = min(1.0, diversity_last / 0.30) if diversity_last > 0 else 0.0
     diversity_component = math.sqrt(max(0.0, diversity_retention) * max(0.0, diversity_floor))
 
@@ -237,9 +235,7 @@ def _coefficient_of_variation(values: list[float]) -> float:
     return math.sqrt(variance) / mean
 
 
-def _run_fingerprint_pass(
-    seed: int, fingerprint_callback: Callable[[Any, int], None]
-) -> None:
+def _run_fingerprint_pass(seed: int, fingerprint_callback: Callable[[Any, int], None]) -> None:
     config = dict(WORLD_CONFIG)
     world = WorldRegistry.create_world("tank", seed=seed, config=config)
     world.reset(seed=seed, config=config)

@@ -320,10 +320,7 @@ def _mutate_code_policies(parent: Fish, offspring_genome, engine: SimulationEngi
     if pool is None:
         return
 
-    from core.genetics.code_policy_traits import (
-        mutate_code_policies,
-        validate_code_policy_ids,
-    )
+    from core.genetics.code_policy_traits import mutate_code_policies, validate_code_policy_ids
 
     mutate_code_policies(offspring_genome.behavioral, pool, engine.rng)
     validate_code_policy_ids(offspring_genome.behavioral, pool, engine.rng)

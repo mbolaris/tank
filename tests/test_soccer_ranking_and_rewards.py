@@ -1,16 +1,15 @@
 """Unit tests for soccer individual ranking, rewards, and caps."""
 
-from unittest.mock import Mock
-
 from typing import Any
+from unittest.mock import Mock
 
 from core.agents.components.reproduction_component import ReproductionComponent
 from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
-from core.minigames.soccer.types import SoccerMinigameOutcome
 from core.minigames.soccer.rewards import (
     apply_soccer_repro_rewards,
     calculate_soccer_individual_rewards,
 )
+from core.minigames.soccer.types import SoccerMinigameOutcome
 
 
 def _outcome(**overrides: Any) -> SoccerMinigameOutcome:
