@@ -54,6 +54,7 @@ class TestValidateImprovement(unittest.TestCase):
             "runtime_seconds": 10.0,
             "seed": 42,
             "benchmark_id": "test/bench",
+            "score_breakdown": {"metric_a": 10.5, "metric_b": 20.0},
         }
 
         updated = validate_improvement.update_champion_data(champion_data, new_result)
@@ -63,3 +64,6 @@ class TestValidateImprovement(unittest.TestCase):
         self.assertEqual(len(updated["history"]), 1)
         self.assertEqual(updated["history"][0]["score"], 100.0)
         self.assertEqual(updated["history"][0]["commit"], "old_commit")
+        self.assertEqual(
+            updated["champion"]["score_breakdown"], {"metric_a": 10.5, "metric_b": 20.0}
+        )

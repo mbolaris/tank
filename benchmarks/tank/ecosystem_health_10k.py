@@ -161,6 +161,12 @@ def run(
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": {
+            "generation_rate": generation_rate,
+            "diversity_bonus": round(diversity_bonus, 4),
+            "stability_bonus": round(stability_bonus, 4),
+            "starvation_penalty": round(starvation_penalty, 4),
+        },
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,

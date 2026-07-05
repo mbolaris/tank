@@ -126,6 +126,10 @@ def run(
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": {
+            "avg_energy": avg_fish_energy,
+            "avg_pop": avg_fish_pop,
+        },
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,
