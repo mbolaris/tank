@@ -130,19 +130,20 @@ def apply_soccer_rewards(
             applied = _apply_energy_delta(entity, fee, draw_refund_source)
             if applied != 0:
                 rewards[participant_id] = applied
+        return rewards
 
     if mode == "pot_payout":
-        # New soccer rewards: individual goal/assist/win rewards
-        indiv_rewards = calculate_soccer_individual_rewards(
-            player_map,
-            winner_team,
-            goals_by_fish,
-            assists_by_fish,
-        )
-        for participant_id, amount in indiv_rewards.items():
+        winner_ids = [pid for pid in player_map if pid.startswith(winner_team)]
+        if not winner_ids:
+            return rewards
+        pot = sum(fee for fee in entry_fees.values() if fee > 0.0)
+        pot *= reward_multiplier
+        if pot <= 0:
+            return rewards
+        share = pot / len(winner_ids)
+        for participant_id in winner_ids:
             entity = player_map[participant_id]
-            amount_scaled = amount * reward_multiplier
-            applied = _apply_energy_delta(entity, amount_scaled, reward_source)
+            applied = _apply_energy_delta(entity, share, reward_source)
             if applied != 0:
                 rewards[participant_id] = rewards.get(participant_id, 0.0) + applied
 
