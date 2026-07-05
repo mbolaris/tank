@@ -86,6 +86,10 @@ def run_proximity_mating_cycle(
 
         if engine.request_spawn(baby, reason="proximity_mating"):
             baby.register_birth()
+            if hasattr(parent, "offspring_count"):
+                parent.offspring_count += 1
+            if hasattr(mate, "offspring_count"):
+                mate.offspring_count += 1
             lifecycle_system = engine.lifecycle_system
             if lifecycle_system is not None:
                 lifecycle_system.record_birth()

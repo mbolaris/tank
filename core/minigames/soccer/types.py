@@ -90,6 +90,9 @@ class SoccerMinigameOutcome:
     # Per-fish scoring stats for leaderboards (keyed by entity/fish id)
     goals_by_fish: dict[int, int] = field(default_factory=dict)
     assists_by_fish: dict[int, int] = field(default_factory=dict)
+    tank_names_by_fish: dict[int, str] = field(default_factory=dict)
+    tank_ids_by_fish: dict[int, str] = field(default_factory=dict)
+    offspring_count_by_fish: dict[int, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

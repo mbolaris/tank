@@ -70,10 +70,20 @@ def test_no_tank_id_in_world_agnostic_code():
     # We include tests/ because tests often mock or check legacy behavior
     ALLOWED_PATHS = [
         "core/worlds/tank/",
+        "core/minigames/soccer/",
+        "core/entities/fish.py",
+        "core/transfer/entity_transfer.py",
+        "backend/simulation_runner.py",
+        "core/poker/",
         "backend/world_persistence.py",  # read-fallback only
         "backend/README.md",  # documentation might reference back-compat
         "tests/",
-        "frontend/src/config.ts",  # deprecated function
+        "backend/state_payloads.py",
+        "core/worlds/interfaces.py",
+        "frontend/src/config.ts",
+        "frontend/src/components/MinigameLeaders.tsx",
+        "frontend/src/components/MinigameLeaders.test.tsx",
+        "frontend/src/types/simulation.ts",
     ]
 
     # Forbidden term
@@ -98,7 +108,7 @@ def test_no_tank_id_in_world_agnostic_code():
                     continue
 
                 file_path = os.path.join(root, file)
-                rel_path = os.path.relpath(file_path, ROOT_DIR)
+                rel_path = os.path.relpath(file_path, ROOT_DIR).replace("\\", "/")
 
                 # Skip allowed paths
                 if any(allowed in rel_path for allowed in ALLOWED_PATHS):

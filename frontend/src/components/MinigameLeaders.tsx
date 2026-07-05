@@ -97,15 +97,19 @@ function LeaderRow({
 export function PokerLeaders({ leaders }: { leaders: PokerLeaderboardEntry[] }) {
     const rows = leaders
         .slice(0, TOP_N)
-        .map((entry, index) => (
-            <LeaderRow
-                key={entry.fish_id}
-                rank={index + 1}
-                fishId={entry.fish_id}
-                stats={`${entry.wins} wins · ${entry.total_games} hands · best: ${entry.best_hand || '—'}`}
-                energy={entry.net_energy}
-            />
-        ));
+        .map((entry, index) => {
+            const tankName = entry.tank_name || (entry.tank_id ? `Tank ${entry.tank_id}` : 'Unknown Tank');
+            const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
+            return (
+                <LeaderRow
+                    key={entry.fish_id}
+                    rank={index + 1}
+                    fishId={entry.fish_id}
+                    stats={` · ${tankName} — ${entry.wins} wins · ${entry.total_games} hands · best: ${entry.best_hand || '—'}${offspring}`}
+                    energy={entry.net_energy}
+                />
+            );
+        });
 
     return (
         <LeadersPanel
@@ -121,18 +125,17 @@ export function SoccerLeaders({ leaders }: { leaders: SoccerFishLeaderEntry[] })
     const rows = leaders
         .slice(0, TOP_N)
         .map((entry, index) => {
-            const parts = [`${entry.goals} goals`];
-            if (entry.assists > 0) parts.push(`${entry.assists} assists`);
-            parts.push(`${entry.wins} wins`);
-            parts.push(`${entry.matches} matches`);
+            const roundedEnergy = Math.round(entry.net_energy);
+            const energyText = `${roundedEnergy >= 0 ? '+' : ''}${roundedEnergy} net energy`;
+            const tankName = entry.tank_name || (entry.tank_id ? `Tank ${entry.tank_id}` : 'Unknown Tank');
+            const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
+            const stats = ` — ${entry.goals} goals — ${entry.assists} assists — ${energyText} — ${entry.wins} wins${offspring}`;
             return (
-                <LeaderRow
-                    key={entry.fish_id}
-                    rank={index + 1}
-                    fishId={entry.fish_id}
-                    stats={parts.join(' · ')}
-                    energy={entry.net_energy}
-                />
+                <div key={entry.fish_id} style={rowStyle}>
+                    <span style={{ color: rankColor(index + 1), fontWeight: 700, minWidth: '18px' }}>{index + 1}.</span>
+                    <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{`Fish #${entry.fish_id}`}</span>
+                    <span style={{ color: '#94a3b8' }}>{` · ${tankName}${stats}`}</span>
+                </div>
             );
         });
 

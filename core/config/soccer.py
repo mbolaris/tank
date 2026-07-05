@@ -43,6 +43,13 @@ SOCCER_LEAGUE_SELECTION_STRATEGY = "stratified"
 SOCCER_KICK_REWARD_ENERGY = 2.0  # Reward for a purposeful kick.
 SOCCER_GOAL_REWARD_ENERGY = 50.0  # Reward for scoring (dominant skill signal).
 
+# League soccer rewards (goal, assist, team win, and caps).
+SOCCER_GOAL_ENERGY_REWARD = 25.0
+SOCCER_ASSIST_ENERGY_REWARD = 15.0
+SOCCER_WIN_ENERGY_REWARD = 5.0
+SOCCER_MAX_REWARD_PER_MATCH = 70.0
+
+
 # Shaped-reward weights: dense, per-contribution learning signal derived from
 # match telemetry. Keep in sync with the benchmark fitness (match_runner.py uses
 # calculate_shaped_bonuses with these same defaults).

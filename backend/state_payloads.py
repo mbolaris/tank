@@ -652,6 +652,9 @@ class PokerLeaderboardEntryPayload:
     positional_advantage: float
     recent_win_rate: float = 0.0
     skill_trend: str = "stable"
+    tank_name: str = "Unknown Tank"
+    tank_id: str = "unknown"
+    offspring_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)

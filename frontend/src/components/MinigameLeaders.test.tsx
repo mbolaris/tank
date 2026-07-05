@@ -29,6 +29,9 @@ function pokerEntry(overrides: Partial<PokerLeaderboardEntry>): PokerLeaderboard
         positional_advantage: 0,
         recent_win_rate: 50,
         skill_trend: 'stable',
+        tank_name: 'Tank Blue',
+        tank_id: 'blue',
+        offspring_count: 2,
         ...overrides,
     };
 }
@@ -43,6 +46,9 @@ function soccerEntry(overrides: Partial<SoccerFishLeaderEntry>): SoccerFishLeade
         goals: 5,
         assists: 2,
         net_energy: 31,
+        tank_name: 'Tank Blue',
+        tank_id: 'blue',
+        offspring_count: 3,
         ...overrides,
     };
 }
@@ -58,8 +64,10 @@ describe('PokerLeaders', () => {
         expect(html).toContain('Fish #1');
         expect(html).toContain('Fish #5');
         expect(html).not.toContain('Fish #6'); // capped to top 5
+        expect(html).toContain('Tank Blue');
         expect(html).toContain('9 wins');
         expect(html).toContain('+99⚡');
+        expect(html).toContain('2 offspring');
         expect(html).not.toContain('repro credit');
         expect(html).not.toContain('LOSS');
     });
@@ -73,14 +81,16 @@ describe('PokerLeaders', () => {
 describe('SoccerLeaders', () => {
     it('renders goals, wins and energy per fish', () => {
         const html = renderToString(
-            <SoccerLeaders leaders={[soccerEntry({ fish_id: 117, goals: 5, wins: 3, net_energy: 42 })]} />
+            <SoccerLeaders leaders={[soccerEntry({ fish_id: 117, goals: 5, wins: 3, net_energy: 42, tank_name: 'Tank Blue' })]} />
         );
 
         expect(html).toContain('Soccer Leaders');
         expect(html).toContain('Fish #117');
+        expect(html).toContain('Tank Blue');
         expect(html).toContain('5 goals');
         expect(html).toContain('3 wins');
-        expect(html).toContain('+42⚡');
+        expect(html).toContain('+42 net energy');
+        expect(html).toContain('3 offspring');
         expect(html).not.toContain('repro credit');
     });
 
