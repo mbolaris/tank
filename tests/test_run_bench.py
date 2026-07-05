@@ -16,6 +16,7 @@ def create_fake_benchmark(tmp_path: Path) -> Path:
     content = """
 BENCHMARK_ID = "tank/survival_5k"
 CONFIG = {"frames": 2, "world_config": {}}
+EXPECTED_RUNTIME_SECONDS = 3.5
 
 def run(seed, fingerprint_callback=None):
     if fingerprint_callback is not None:
@@ -70,6 +71,8 @@ class TestRunBench:
         assert "score" in data
         assert "benchmark_id" in data
         assert data["benchmark_id"] == "tank/survival_5k"
+        assert data["expected_runtime_seconds"] == 3.5
+        assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
 
         Path(out_path).unlink()
 
@@ -102,6 +105,7 @@ class TestRunBench:
         with open(out_path) as f:
             data = json.load(f)
         assert "score" in data
+        assert data["expected_runtime_seconds"] == 3.5
 
         Path(out_path).unlink()
 
@@ -127,3 +131,4 @@ class TestRunBench:
             "Determinism check PASSED" in result.stderr
             or "Determinism check PASSED" in result.stdout
         )
+        assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout

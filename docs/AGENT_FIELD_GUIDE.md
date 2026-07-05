@@ -372,15 +372,18 @@ saves you a wasted PR.
 Only these exist today. Use them; do not reference benchmarks that aren't here
 (planned ones live in [ROADMAP.md](ROADMAP.md)).
 
-| Benchmark | What it measures |
-|-----------|------------------|
-| `benchmarks/tank/survival_5k.py` | Ecosystem stability over 5k frames (fish energy × fish population) |
-| `benchmarks/tank/ecosystem_health_10k.py` | Longer-horizon ecosystem health over 10k frames |
-| `benchmarks/soccer/training_3k.py` | Soccer-mode agent training, short |
-| `benchmarks/soccer/training_5k.py` | Soccer-mode agent training, longer |
+| Benchmark | Runtime budget | What it measures |
+|-----------|----------------|------------------|
+| `benchmarks/tank/survival_5k.py` | ~45s | Ecosystem stability over 5k frames (fish energy × fish population) |
+| `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Longer-horizon ecosystem health over 10k frames |
+| `benchmarks/tank/selection_response_10k.py` | ~90s | Frozen directional-selection response assay |
+| `benchmarks/soccer/training_3k.py` | ~5s | Soccer-mode agent training, short |
+| `benchmarks/soccer/training_5k.py` | ~5s | Soccer-mode agent training, longer |
 
-Each has a matching champion under `champions/tank/` or `champions/soccer/` that
-records the best known result. **Read them for reference; never hand-edit them.**
+`tools/run_bench.py` also prints the actual runtime against these budgets. Most
+benchmarks have a matching champion under `champions/tank/` or
+`champions/soccer/` that records the best known result. **Read them for
+reference; never hand-edit them.**
 
 ---
 

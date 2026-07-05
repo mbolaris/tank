@@ -32,6 +32,7 @@ from core.worlds.interfaces import FAST_STEP_ACTION
 BENCHMARK_ID = "tank/ecosystem_health_10k"
 FRAMES = 10000
 SAMPLE_INTERVAL = 100  # Sample every 100 frames for population stability tracking
+EXPECTED_RUNTIME_SECONDS = 75
 
 WORLD_CONFIG: dict[str, Any] = {
     "headless": True,

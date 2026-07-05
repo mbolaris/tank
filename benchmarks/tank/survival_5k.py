@@ -19,6 +19,7 @@ from core.worlds.interfaces import FAST_STEP_ACTION
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000
 METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
+EXPECTED_RUNTIME_SECONDS = 45
 
 # World configuration, replicating SimulationConfig.headless_fast() parameters.
 WORLD_CONFIG: dict[str, Any] = {

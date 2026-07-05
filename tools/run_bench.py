@@ -10,6 +10,7 @@ import inspect
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 # Add repo root to sys.path so benchmarks can import core regardless of cwd
@@ -41,6 +42,23 @@ def run_benchmark(bench_module, seed: int, fingerprint_recorder=None):
     if fingerprint_recorder is None:
         return bench_module.run(seed)
     return bench_module.run(seed, fingerprint_callback=fingerprint_recorder.record)
+
+
+def expected_runtime_seconds(bench_module) -> float | None:
+    """Return the benchmark's advertised wall-clock budget, if any."""
+    budget = getattr(bench_module, "EXPECTED_RUNTIME_SECONDS", None)
+    if budget is None:
+        return None
+    return float(budget)
+
+
+def format_runtime_summary(elapsed_seconds: float | None, budget_seconds: float | None) -> str:
+    """Format the benchmark runtime line printed after completion."""
+    if elapsed_seconds is None:
+        return "Runtime: unavailable"
+    if budget_seconds is None:
+        return f"Runtime: {elapsed_seconds:.1f}s (no budget recorded)"
+    return f"Runtime: {elapsed_seconds:.1f}s (budget ~{budget_seconds:g}s)"
 
 
 def create_fingerprint_recorder(path: str, bench_module, seed: int, interval: int):
@@ -87,6 +105,7 @@ def main():
             sys.exit(1)
 
         print(f"Running benchmark: {bench_module.BENCHMARK_ID} (Seed: {args.seed})...")
+        budget_seconds = expected_runtime_seconds(bench_module)
 
         # Run 1
         recorder = None
@@ -147,8 +166,15 @@ def main():
             # Compare metadata recursively if needed, but score is the main gate
             print("Determinism check PASSED.")
 
+        result1["expected_runtime_seconds"] = budget_seconds
+        elapsed_seconds = result1.get("runtime_seconds")
+        elapsed_for_summary = (
+            float(elapsed_seconds) if isinstance(elapsed_seconds, (int, float)) else None
+        )
+        print(format_runtime_summary(elapsed_for_summary, budget_seconds))
+
         # Add environment info
-        result1["timestamp"] = __import__("time").time()
+        result1["timestamp"] = time.time()
 
         # Stamp the effective-config hash so validators can refuse to compare
         # scores recorded under different configurations (see

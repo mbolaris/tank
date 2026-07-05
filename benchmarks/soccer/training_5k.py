@@ -19,6 +19,7 @@ BENCHMARK_ID = "soccer/training_5k"
 FRAMES = 5000
 DEFAULT_N_SEEDS = 3
 SCORE_SCALE = 0.1
+EXPECTED_RUNTIME_SECONDS = 5
 
 # Effective configuration captured by the champion config hash
 # (core/solutions/config_hash.py). Anything that changes the score belongs here.
