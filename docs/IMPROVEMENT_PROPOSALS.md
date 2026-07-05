@@ -19,8 +19,9 @@ files to touch and a step-by-step plan, so you can pick one and follow it
 literally without holding the whole codebase in your head. Prefer the `S`
 (small) items tagged **Layer 2** — they don't change simulation results, so
 they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first picks right now: **4.2** (`scripts/diagnose.py`), **4.3** (algorithm
-catalog), **1.5** (benchmark budgets), **6.2** (retire `Any` in one module).
+Good first picks right now: **4.3** (algorithm catalog), **1.5** (benchmark
+budgets), **6.2** (retire `Any` in one module), **4.4** (visible frontend
+connection status).
 Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
 change per PR.
 
@@ -152,8 +153,8 @@ because tools weren't installed, not because code was wrong.
 
 **Plan.** Make `tools/smoke_gate.py` (or a thin wrapper it calls) detect missing
 dev tools and either install them or print the exact one-liner to do so, so a
-green run is achievable from `git clone` + one command. Pairs naturally with
-4.2 (`scripts/diagnose.py`) — diagnose reports, this one repairs. **Layer 2.**
+green run is achievable from `git clone` + one command. Complements shipped
+`scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
 
 ---
 
@@ -196,24 +197,6 @@ consolidation so the ecosystem only pays the re-baseline cost once.
 ## Theme 4 — Developer & observer experience (the "fun" budget)
 
 This is where "fun to use" and "excellent example of software design" are won.
-
-### 4.2 `scripts/diagnose.py` health check — `S` · ★★★
-One command that verifies the environment and prints a green/red checklist:
-Python deps importable, core modules load, a 100-frame sim initializes, frontend
-deps installed. Turns "it's broken somewhere" into a precise pointer.
-
-**Concrete steps for a small agent.** Create `scripts/diagnose.py` that runs an
-ordered list of independent checks, each printing `✅`/`❌` plus a one-line
-remedy on failure, and exits non-zero if any check fails:
-1. `import core`, `import backend`, `import numpy`, `import fastapi` succeed.
-2. `from core.simulation.engine import ...` and a 100-frame headless sim
-   (`python main.py --headless --max-frames 100 --seed 42`) initialize and run.
-3. `black --version`, `ruff --version`, `mypy --version` resolve (the exact
-   gap the reviewer hit: "Ruff/black/mypy gate could not run — tools not
-   installed").
-4. `frontend/node_modules` exists (else print `cd frontend && npm install`).
-Model it on the existing gate scripts in `tools/` (they already shell out and
-aggregate pass/fail). **Layer 2, no simulation impact — pure ergonomics.**
 
 ### 4.3 Algorithm catalog doc — `S` · ★★
 Generate `docs/ALGORITHM_CATALOG.md` from the registry: each algorithm's file,
@@ -355,6 +338,11 @@ identity, and net energy.
 
 ## Shipped
 
+- **4.2 `scripts/diagnose.py` health check.** A setup-oriented diagnosis command
+  now checks core/backend imports, NumPy/FastAPI availability, a deterministic
+  100-frame headless sim, black/ruff/mypy resolution, and frontend dependencies.
+  It prints independent pass/fail rows with one-line remedies, so missing setup
+  is easier to distinguish from broken simulation code.
 - **4.1 One-command startup.** `start.py` launches backend + frontend together
   with sane defaults and a single Ctrl-C shutdown; the two-terminal onboarding
   friction is gone.
