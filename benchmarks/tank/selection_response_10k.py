@@ -141,6 +141,12 @@ def score_samples(
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": {
+            "selection_component": round(selection_component, 4),
+            "selected_trait_fraction": round(selected_fraction, 4),
+            "diversity_component": round(diversity_component, 4),
+            "quality_per_generation": round(quality_per_generation, 4),
+        },
         "runtime_seconds": runtime_seconds,
         "metadata": {
             "frames": FRAMES,

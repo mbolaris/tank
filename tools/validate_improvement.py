@@ -105,6 +105,8 @@ def update_champion_data(
         "timestamp": new_result.get("timestamp", time.time()),
         "metadata": new_result.get("metadata", {}),
     }
+    if "score_breakdown" in new_result:
+        new_champion["score_breakdown"] = new_result["score_breakdown"]
     if "config_hash" in new_result:
         new_champion["config_hash"] = new_result["config_hash"]
 
@@ -174,13 +176,74 @@ def main():
             print(f"Re-baselined {args.champion_path}: {old} -> {new_score:.6f}")
             return
 
+        new_breakdown = result.get("score_breakdown")
         if champion:
-            old_score = get_champion_record(champion)["score"]
+            old_record = get_champion_record(champion)
+            old_score = old_record["score"]
             diff = new_score - float(old_score)
 
             print(f"New Score: {new_score:.6f}")
             print(f"Old Score: {old_score:.6f}")
             print(f"Diff:      {diff:+.6f}")
+
+            # Extract old breakdown
+            old_breakdown = old_record.get("score_breakdown")
+            if not old_breakdown:
+                old_breakdown = old_record.get("metadata", {}).get("score_breakdown")
+            if not new_breakdown:
+                new_breakdown = result.get("metadata", {}).get("score_breakdown")
+
+            if new_breakdown or old_breakdown:
+                print("\nScore Breakdown:")
+                keys = sorted(set((new_breakdown or {}).keys()) | set((old_breakdown or {}).keys()))
+
+                weakest_key = None
+                weakest_pct = float("inf")
+                weakest_new = None
+                weakest_old = None
+
+                for key in keys:
+                    new_val = (new_breakdown or {}).get(key)
+                    old_val = (old_breakdown or {}).get(key)
+
+                    new_str = (
+                        f"{new_val:.4f}" if isinstance(new_val, (int, float)) else str(new_val)
+                    )
+                    old_str = (
+                        f"{old_val:.4f}" if isinstance(old_val, (int, float)) else str(old_val)
+                    )
+
+                    if new_val is not None and old_val is not None:
+                        if isinstance(new_val, (int, float)) and isinstance(old_val, (int, float)):
+                            diff_val = new_val - old_val
+                            diff_str = f" ({diff_val:+.4f})"
+                            # Track weakest component (lowest % change, or absolute diff if old_val is 0)
+                            if old_val != 0:
+                                pct_change = (new_val - old_val) / abs(old_val)
+                            else:
+                                pct_change = new_val - old_val
+                            if pct_change < weakest_pct:
+                                weakest_pct = pct_change
+                                weakest_key = key
+                                weakest_new = new_val
+                                weakest_old = old_val
+                        else:
+                            diff_str = ""
+                        print(f"  {key}: {new_str} (champion: {old_str}){diff_str}")
+                    elif new_val is not None:
+                        print(f"  {key}: {new_str} (champion: N/A)")
+                    elif old_val is not None:
+                        print(f"  {key}: N/A (champion: {old_str})")
+
+                if weakest_key is not None:
+                    if weakest_old != 0:
+                        pct_change_str = f"{weakest_pct * 100:+.2f}%"
+                    else:
+                        pct_change_str = f"{weakest_pct:+.4f}"
+                    print(
+                        f"Weakest component: {weakest_key} ({weakest_new:.4f} vs champion {weakest_old:.4f}, {pct_change_str})"
+                    )
+                print("")
 
             if diff < -args.tolerance:
                 print("FAILURE: Regression detected.")
@@ -191,6 +254,12 @@ def main():
                 print("SUCCESS: Improvement detected!")
         else:
             print(f"New Score: {new_score:.6f} (Initial Champion)")
+            if new_breakdown:
+                print("\nScore Breakdown:")
+                for key, val in sorted(new_breakdown.items()):
+                    val_str = f"{val:.4f}" if isinstance(val, (int, float)) else str(val)
+                    print(f"  {key}: {val_str}")
+                print("")
 
         # Update champion logic
         if args.update_champion:

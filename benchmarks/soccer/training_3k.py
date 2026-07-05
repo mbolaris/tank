@@ -180,6 +180,10 @@ def run(
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": {
+            "avg_fitness": base_seed_normal.get("avg_fitness", 0.0),
+            "total_goals": base_seed_normal.get("total_goals", 0.0),
+        },
         "runtime_seconds": runtime,
         "metadata": {
             # Legacy fields required for champion reproduction checks.
