@@ -23,6 +23,7 @@ This index provides a guide to all documentation in the Tank World project.
 | [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md) | Prioritized engineering backlog with implementation plans |
 | [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) | Must-implement UI roadmap, including soccer/poker skill-over-time tracking |
 | [MULTILEVEL_EVOLUTION_STRATEGY.md](MULTILEVEL_EVOLUTION_STRATEGY.md) | Multi-level evolutionary optimization strategy |
+| [MULTI_PROBLEM_SPACE_SEARCH.md](MULTI_PROBLEM_SPACE_SEARCH.md) | Assessment + plan for cross-domain transfer (searching many problem spaces at once) |
 
 ### Architecture
 
