@@ -315,20 +315,13 @@ elegance. **Layer 2.**
 ## Theme 8 — Product-facing meaning (external review, 2026-07)
 
 ### 8.1 Decide soccer reward semantics; bury repro-credit bookkeeping — `M` · ★★
-**Problem.** The reviewer flagged two related smells: (1) soccer reward code
-reaches into a private-ish component —
-`core/minigames/soccer/rewards.py:apply_soccer_repro_rewards` reads
-`entity._reproduction_component` and calls `add_repro_credits`; (2) "repro
-credit" is internal simulation bookkeeping leaking toward player-facing
-achievement. The player-facing model should be goals, assists, wins, tank
-identity, and net energy.
+**Problem.** The encapsulation half of this review item is shipped: soccer
+reward code now uses the public `reproduction_component` accessor. The
+remaining smell is semantic: "repro credit" is internal simulation bookkeeping
+leaking toward player-facing achievement. The player-facing model should be
+goals, assists, wins, tank identity, and net energy.
 
-**Plan (two separable steps).**
-- *Encapsulation (S):* give `ReproductionComponent` a public accessor so
-  `rewards.py` stops touching the underscore-prefixed attribute directly. Behavior
-  identical; champions must still reproduce exactly. Search first —
-  `_reproduction_component` and `repro_credit` appear in ~20 files, so scope the
-  rename carefully.
+**Remaining plan.**
 - *Semantics (M):* if repro-credit isn't a concept the project wants to keep,
   remove the `reward_mode="credits"` path decisively rather than hiding it from
   the UI. This is a design decision — **confirm with a maintainer before

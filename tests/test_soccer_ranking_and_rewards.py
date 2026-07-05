@@ -4,9 +4,11 @@ from unittest.mock import Mock
 
 from typing import Any
 
+from core.agents.components.reproduction_component import ReproductionComponent
 from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
 from core.minigames.soccer.types import SoccerMinigameOutcome
 from core.minigames.soccer.rewards import (
+    apply_soccer_repro_rewards,
     calculate_soccer_individual_rewards,
 )
 
@@ -212,6 +214,12 @@ def create_mock_fish(fish_id: int):
     return fish
 
 
+class PublicReproductionFish:
+    def __init__(self, fish_id: int) -> None:
+        self.fish_id = fish_id
+        self.reproduction_component = ReproductionComponent()
+
+
 def test_goal_rewards_applied():
     fish1 = create_mock_fish(1)
     player_map = {"left_0": fish1}
@@ -254,6 +262,23 @@ def test_rewards_capped():
         assists_by_fish={},
     )
     assert rewards["left_0"] == 70.0
+
+
+def test_repro_rewards_use_public_reproduction_component():
+    winner = PublicReproductionFish(1)
+    loser = PublicReproductionFish(2)
+
+    deltas = apply_soccer_repro_rewards(
+        {"left_0": winner, "right_0": loser},
+        "left",
+        reward_mode="credits",
+        credit_award=1.25,
+    )
+
+    assert deltas == {1: 1.25}
+    assert winner.reproduction_component.repro_credits == 1.25
+    assert loser.reproduction_component.repro_credits == 0.0
+    assert not hasattr(winner, "_reproduction_component")
 
 
 def test_tank_info_recorded_and_displayed():

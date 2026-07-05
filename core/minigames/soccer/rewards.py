@@ -356,7 +356,7 @@ def apply_soccer_repro_rewards(
     for participant_id, entity in player_map.items():
         if not participant_id.startswith(winner_team):
             continue
-        component = getattr(entity, "_reproduction_component", None)
+        component = getattr(entity, "reproduction_component", None)
         if component is None or not hasattr(component, "add_repro_credits"):
             continue
         applied = component.add_repro_credits(credit_award)
