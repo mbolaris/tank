@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Plant entity with evolving L-system genetics.
 
 This module implements plants that grow from root spots,
@@ -14,7 +16,7 @@ The Plant class now delegates to specialized components for better modularity:
 """
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.entities.base import Entity, EntityUpdateResult
 from core.entities.plant_nectar import PlantNectar
@@ -71,11 +73,11 @@ class Plant(Entity):
 
     def __init__(
         self,
-        environment: "World",
+        environment: World,
         genome: PlantGenome,
-        root_spot: Optional["RootSpot"],
+        root_spot: RootSpot | None,
         initial_energy: float = PLANT_INITIAL_ENERGY,
-        ecosystem: Optional["EcosystemManager"] = None,
+        ecosystem: EcosystemManager | None = None,
         *,
         plant_id: int,
     ) -> None:
@@ -338,7 +340,7 @@ class Plant(Entity):
         frame_count: int,
         time_modifier: float = 1.0,
         time_of_day: float | None = None,
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the plant state.
 
         Args:
@@ -391,7 +393,7 @@ class Plant(Entity):
         """
         return self._energy_comp.collect_energy(time_of_day)
 
-    def _try_produce_nectar(self, time_of_day: float | None) -> Optional["PlantNectar"]:
+    def _try_produce_nectar(self, time_of_day: float | None) -> PlantNectar | None:
         """Try to produce nectar if conditions are met.
 
         Args:
@@ -599,7 +601,7 @@ class Plant(Entity):
         """
         return self._poker_comp.get_poker_aggression()
 
-    def get_poker_strategy(self):
+    def get_poker_strategy(self) -> Any | None:
         """Get poker strategy for this plant.
 
         If this plant has a strategy_type set (baseline strategy plant),
