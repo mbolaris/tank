@@ -56,7 +56,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/solutions/tracker.py": 590,
     "core/spatial/grid.py": 795,
     "core/transfer/entity_transfer.py": 752,
-    "core/worlds/tank/backend.py": 631,
+    "core/worlds/tank/backend.py": 629,
 }
 
 # Maximum allowed lines for files not grandfathered in LEGACY_MAX_LINES.

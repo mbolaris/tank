@@ -6,8 +6,13 @@ Petri mode without duplicating simulation logic.
 
 from __future__ import annotations
 
-from typing import Any
+import random
 
+from core.config.simulation_config import SimulationConfig
+from core.ecosystem import EcosystemManager
+from core.entities import Entity
+from core.environment import Environment
+from core.simulation import SimulationEngine
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.tank.backend import TankWorldBackendAdapter
 
@@ -18,9 +23,9 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def __init__(
         self,
         seed: int | None = None,
-        config: Any | None = None,
+        config: SimulationConfig | dict[str, object] | None = None,
         tank_backend: TankWorldBackendAdapter | None = None,
-        **config_overrides: Any,
+        **config_overrides: object,
     ) -> None:
         if tank_backend is not None:
             self._tank_backend = tank_backend
@@ -31,14 +36,14 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
         self._last_step_result: StepResult | None = None
 
-    def _build_render_hint(self) -> dict[str, Any]:
+    def _build_render_hint(self) -> dict[str, object]:
         return {
             "style": "topdown",
             "entity_style": "microbe",
             "dish": self._get_dish_dict(),
         }
 
-    def _get_dish_dict(self) -> dict[str, Any]:
+    def _get_dish_dict(self) -> dict[str, object]:
         """Get dish geometry from environment as a dict for render_hint."""
         env = self._tank_backend.engine.environment
         dish = env.dish if env else None
@@ -61,7 +66,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             "r": PETRI_RADIUS,
         }
 
-    def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
+    def reset(self, seed: int | None = None, config: dict[str, object] | None = None) -> StepResult:
         from core.worlds.petri.pack import PetriPack
 
         # Create a PetriPack from current config or provided overrides
@@ -72,7 +77,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         self._last_step_result = self._patch_step_result(result)
         return self._last_step_result
 
-    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, object] | None = None) -> StepResult:
         result = self._tank_backend.step(actions_by_agent=actions_by_agent)
         self._last_step_result = self._patch_step_result(result)
         return self._last_step_result
@@ -80,7 +85,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
     def update(self) -> None:
         self.step({FAST_STEP_ACTION: True})
 
-    def get_current_snapshot(self) -> dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, object]:
         snapshot = self._tank_backend.get_current_snapshot()
         if snapshot:
             snapshot = dict(snapshot)
@@ -88,10 +93,10 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
             snapshot["render_hint"] = self._build_render_hint()
         return snapshot
 
-    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, object]:
         return self._tank_backend.get_current_metrics(include_distributions=include_distributions)
 
-    def get_debug_snapshot(self) -> dict[str, Any]:
+    def get_debug_snapshot(self) -> dict[str, object]:
         snapshot = self._tank_backend.get_debug_snapshot()
         if snapshot:
             snapshot = dict(snapshot)
@@ -105,7 +110,7 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         return "petri"
 
     @property
-    def entities_list(self) -> list[Any]:
+    def entities_list(self) -> list[Entity]:
         return self._tank_backend.entities_list
 
     @property
@@ -125,26 +130,26 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         self._tank_backend.paused = value
 
     @property
-    def world(self) -> Any:
+    def world(self) -> Environment | None:
         return self._tank_backend.world
 
     @property
-    def engine(self) -> Any:
+    def engine(self) -> SimulationEngine:
         return self._tank_backend.engine
 
     @property
-    def ecosystem(self) -> Any:
+    def ecosystem(self) -> EcosystemManager | None:
         return self._tank_backend.ecosystem
 
     @property
-    def config(self) -> Any:
+    def config(self) -> SimulationConfig:
         return self._tank_backend.config
 
     @property
-    def rng(self) -> Any:
+    def rng(self) -> random.Random:
         return self._tank_backend.rng
 
-    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, object]:
         return self._tank_backend.get_stats(include_distributions=include_distributions)
 
     def get_last_step_result(self) -> StepResult | None:
@@ -182,14 +187,14 @@ class PetriWorldBackendAdapter(MultiAgentWorldBackend):
         """Set the simulation paused state (protocol method)."""
         self._tank_backend.set_paused(value)
 
-    def get_entities_for_snapshot(self) -> list[Any]:
+    def get_entities_for_snapshot(self) -> list[Entity]:
         """Get entities for snapshot building (protocol method)."""
         return self._tank_backend.get_entities_for_snapshot()
 
-    def capture_state_for_save(self) -> dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, object]:
         """Capture complete world state for persistence (protocol method)."""
         return self._tank_backend.capture_state_for_save()
 
-    def restore_state_from_save(self, state: dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, object]) -> None:
         """Restore world state from a saved snapshot (protocol method)."""
         self._tank_backend.restore_state_from_save(state)
