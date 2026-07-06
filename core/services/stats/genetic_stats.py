@@ -6,7 +6,7 @@ for the simulation, extracting this logic from the main StatsCalculator.
 
 import logging
 import statistics
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ from core.config.fish import (
 )
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-from core.genetics.trait import GeneticTrait, TraitSpec
+from core.genetics.trait import TraitSpec
 from core.services.stats.utils import humanize_gene_label
 from core.statistics_utils import GeneDistribution, compute_meta_stats, create_histogram
 
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 # Values that flow into the flat (dynamically-keyed) stats dict, e.g.
 # "adult_size_min", "adult_size_bins", ...
 StatValue = float | list[int] | list[float]
-GeneStatsValue = StatValue | dict[str, list[dict[str, Any]]]
+GeneStatsValue = StatValue | dict[str, list[dict[str, object]]]
 
 
 def get_genetic_distribution_stats(fish_list: list["Fish"]) -> dict[str, GeneStatsValue]:
@@ -212,7 +212,7 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, list[GeneDis
 
         for spec in specs:
             # Collect traits
-            traits: list[GeneticTrait[Any]] = []
+            traits: list[object] = []
             for f in fish_list:
                 if not hasattr(f, "genome"):
                     continue
@@ -266,7 +266,7 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, list[GeneDis
         allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
         allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)
 
-        size_traits: list[GeneticTrait[Any]] = []
+        size_traits: list[object] = []
         adult_sizes = []
         for f in fish_list:
             if (
@@ -327,7 +327,7 @@ def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[Gene
 
     # 1. Threat Response
     threat_vals = []
-    threat_traits: list[GeneticTrait[Any]] = []
+    threat_traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):
@@ -364,7 +364,7 @@ def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[Gene
 
     # 2. Food Approach
     food_vals = []
-    food_traits: list[GeneticTrait[Any]] = []
+    food_traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):
@@ -415,7 +415,7 @@ def _get_poker_strategy_distributions(fish_list: list["Fish"]) -> list[GeneDistr
     betting_vals: list[int] = []
     hand_vals: list[int] = []
     bluff_vals: list[int] = []
-    traits: list[GeneticTrait[Any]] = []
+    traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):

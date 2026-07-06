@@ -245,8 +245,12 @@ safe, and it compounds. **Layer 2.**
   return/param tightened to `dict[str, float]`. Left `Callable[..., Any]`,
   `exec_locals`, and `to_dict`/`from_dict`/`metadata` alone (dynamically
   compiled callables and generic serialization - genuinely `Any`).
-- Next good candidates by hit count: `core/services/stats/genetic_stats.py`,
-  `core/worlds/tank/backend.py` / `core/worlds/petri/backend.py`. (Note: `core/transfer/entity_transfer.py` and `core/genetics/sanitization.py` are completed)
+- `core/services/stats/genetic_stats.py` (Completed) — replaced opaque
+  `GeneticTrait[Any]` lists with `list[object]` for meta-stat aggregation and
+  tightened the `gene_distributions` payload alias to `dict[str, object]`.
+- Next good candidates by hit count: `core/worlds/tank/backend.py` /
+  `core/worlds/petri/backend.py`. (Note: `core/transfer/entity_transfer.py` and
+  `core/genetics/sanitization.py` are completed)
 
 ---
 
