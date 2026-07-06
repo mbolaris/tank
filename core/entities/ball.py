@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Ball entity for soccer/sports gameplay in tank and Petri dish environments.
 
 Physics Model:
@@ -12,7 +14,7 @@ This enables realistic ball mechanics while being deterministic and predictable.
 
 from typing import TYPE_CHECKING
 
-from core.entities.base import Agent
+from core.entities.base import Agent, EntityUpdateResult
 from core.math_utils import Vector2
 
 if TYPE_CHECKING:
@@ -49,7 +51,7 @@ class Ball(Agent):
 
     def __init__(
         self,
-        environment: "World",
+        environment: World,
         x: float,
         y: float,
         decay_rate: float = DEFAULT_DECAY_RATE,
@@ -110,7 +112,7 @@ class Ball(Agent):
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ):
+    ) -> EntityUpdateResult:
         """Update ball physics (RCSS-Lite: accel→vel→pos→decay).
 
         Physics operates in RCSS units, then scales to pixels for position.
@@ -120,7 +122,6 @@ class Ball(Agent):
             time_modifier: Time scaling factor
             time_of_day: Current time of day (unused for ball)
         """
-        from core.entities.base import EntityUpdateResult
 
         # 1. Acceleration → Velocity (in RCSS units)
         self.vel += self.acceleration

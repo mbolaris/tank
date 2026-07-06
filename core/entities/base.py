@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Base entity classes for the simulation.
 
 Entity Hierarchy
@@ -44,7 +46,7 @@ class EntityUpdateResult:
         events: List of events emitted by this entity (e.g. death, interaction)
     """
 
-    spawned_entities: list["Entity"] = field(default_factory=list)
+    spawned_entities: list[Entity] = field(default_factory=list)
     events: list[Any] = field(default_factory=list)
 
 
@@ -58,11 +60,11 @@ class Rect:
         self.height = height
 
     @property
-    def topleft(self):
+    def topleft(self) -> tuple[float, float]:
         return (self.x, self.y)
 
     @topleft.setter
-    def topleft(self, value):
+    def topleft(self, value: tuple[float, float] | Vector2) -> None:
         if isinstance(value, Vector2):
             self.x = value.x
             self.y = value.y
@@ -70,11 +72,11 @@ class Rect:
             self.x, self.y = value
 
     @property
-    def center(self):
+    def center(self) -> tuple[float, float]:
         return (self.x + self.width / 2, self.y + self.height / 2)
 
     @center.setter
-    def center(self, value):
+    def center(self, value: tuple[float, float] | Vector2) -> None:
         if isinstance(value, Vector2):
             self.x = value.x - self.width / 2
             self.y = value.y - self.height / 2
@@ -82,7 +84,7 @@ class Rect:
             self.x = value[0] - self.width / 2
             self.y = value[1] - self.height / 2
 
-    def colliderect(self, other: "Rect") -> bool:
+    def colliderect(self, other: Rect) -> bool:
         """Check if this rect collides with another rect."""
         return (
             self.x < other.x + other.width
@@ -140,7 +142,7 @@ class Entity:
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the entity state (pure logic, no rendering).
 
         Returns:
@@ -148,7 +150,7 @@ class Entity:
         """
         return EntityUpdateResult()
 
-    def add_internal(self, group) -> None:
+    def add_internal(self, group: Any) -> None:
         """Track group for kill() method."""
         if group not in self._groups:
             self._groups.append(group)
@@ -311,7 +313,7 @@ class MobileEntity(Entity):
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the mobile entity state.
 
         Returns:
@@ -354,7 +356,7 @@ class Agent(MobileEntity):
         # Keep rect in sync with position
         self.rect.topleft = self.pos
 
-    def avoid(self, other_sprites: list["Agent"], min_distance: float) -> None:
+    def avoid(self, other_sprites: list[Agent], min_distance: float) -> None:
         """Avoid other agents."""
         any_sprite_close = False
 
@@ -384,7 +386,7 @@ class Agent(MobileEntity):
             if self.avoidance_velocity.length_squared() > max_avoidance * max_avoidance:
                 self.avoidance_velocity = self.avoidance_velocity.normalize() * max_avoidance
 
-    def align_near(self, other_sprites: list["Agent"], min_distance: float) -> None:
+    def align_near(self, other_sprites: list[Agent], min_distance: float) -> None:
         """Align with nearby agents."""
         if not other_sprites:
             return
@@ -395,12 +397,12 @@ class Agent(MobileEntity):
         if self.vel.x != 0 or self.vel.y != 0:  # Checking if it's a zero vector
             self.vel = self.vel.normalize() * abs(self.speed)
 
-    def get_average_position(self, other_sprites: list["Agent"]) -> Vector2:
+    def get_average_position(self, other_sprites: list[Agent]) -> Vector2:
         """Calculate the average position of other agents."""
         return sum((other.pos for other in other_sprites), Vector2()) / len(other_sprites)
 
     def adjust_velocity_towards_or_away_from_other_sprites(
-        self, other_sprites: list["Agent"], avg_pos: Vector2, min_distance: float
+        self, other_sprites: list[Agent], avg_pos: Vector2, min_distance: float
     ) -> None:
         """Adjust velocity based on the position of other agents."""
         for other in other_sprites:

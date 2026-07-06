@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 """Predator entity logic for crabs."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.config.entities import (
     CRAB_ATTACK_COOLDOWN,
@@ -26,8 +28,8 @@ class Crab(Agent):
 
     def __init__(
         self,
-        environment: "World",
-        genome: Optional["Genome"] = None,
+        environment: World,
+        genome: Genome | None = None,
         x: float = 100,
         y: float = 550,
     ) -> None:
@@ -83,14 +85,14 @@ class Crab(Agent):
         self.modify_energy(CRAB_ATTACK_ENERGY_TRANSFER, source="ate_fish")
         self.hunt_cooldown = CRAB_ATTACK_COOLDOWN
 
-    def eat_food(self, food: "Food") -> None:
+    def eat_food(self, food: Food) -> None:
         """Eat food and gain energy."""
         energy_gained = food.get_energy_value()
         self.modify_energy(energy_gained, source="ate_food")
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the crab state.
 
         Movement is world-aware:
@@ -162,7 +164,7 @@ class Crab(Agent):
                 self.rect.y = self.pos.y
 
     def _update_petri_orbit(
-        self, time_modifier: float, dish: "PetriDish", math, orbit_speed: float
+        self, time_modifier: float, dish: PetriDish, math: Any, orbit_speed: float
     ) -> None:
         """Petri mode: orbit along the dish perimeter."""
         # Calculate agent radius (approximate as half of width)

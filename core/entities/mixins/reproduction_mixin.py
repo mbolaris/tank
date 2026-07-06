@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from core.entities.fish import Fish
     from core.entities.visual_state import FishVisualState
     from core.genetics import Genome
+    from core.genetics.reproduction import ReproductionMutationContext
     from core.math_utils import Vector2
     from core.movement_strategy import MovementStrategy
     from core.world import World
@@ -124,7 +125,9 @@ class ReproductionMixin:
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(cast("Fish", self))
 
-    def _create_asexual_offspring(self, mutation_context=None) -> Fish | None:
+    def _create_asexual_offspring(
+        self, mutation_context: ReproductionMutationContext | None = None
+    ) -> Fish | None:
         """Create an offspring through asexual reproduction.
 
         Called when conditions are met for instant asexual reproduction.

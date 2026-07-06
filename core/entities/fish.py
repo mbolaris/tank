@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from random import Random
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -404,10 +404,10 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             Aggression value for poker decisions (0.0-1.0)
         """
         if hasattr(self.genome.behavioral, "aggression"):
-            return self.genome.behavioral.aggression.value
+            return float(self.genome.behavioral.aggression.value)
         return 0.5
 
-    def get_poker_strategy(self):
+    def get_poker_strategy(self) -> Any | None:
         """Get poker strategy for this fish (implements PokerPlayer protocol).
 
         Returns:
