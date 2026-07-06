@@ -305,8 +305,15 @@ safe, and it compounds. **Layer 2.**
 - `core/services/stats/genetic_stats.py` (Completed) — replaced opaque
   `GeneticTrait[Any]` lists with `list[object]` for meta-stat aggregation and
   tightened the `gene_distributions` payload alias to `dict[str, object]`.
-- Next good candidates by hit count: `core/worlds/tank/backend.py` /
-  `core/worlds/petri/backend.py`. (Note: `core/transfer/entity_transfer.py` and
+- `core/worlds/petri/backend.py` (Completed) — removed module-level `Any`
+  annotations by typing delegated config/runtime accessors and using
+  `dict[str, object]` for heterogeneous snapshot/action payloads.
+- `core/worlds/tank/backend.py` (Completed) — removed module-level `Any`
+  annotations by typing engine/environment/entity accessors and using
+  `dict[str, object]` for config, actions, snapshots, and recent events.
+- Next good candidate by hit count: re-run `rg -n "\bAny\b" core/` and pick one
+  small core module with mechanical annotations. (Note:
+  `core/transfer/entity_transfer.py` and
   `core/genetics/sanitization.py` are completed)
 
 ---
