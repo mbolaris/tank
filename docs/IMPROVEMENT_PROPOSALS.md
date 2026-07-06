@@ -311,6 +311,12 @@ safe, and it compounds. **Layer 2.**
 - `core/worlds/tank/backend.py` (Completed) — removed module-level `Any`
   annotations by typing engine/environment/entity accessors and using
   `dict[str, object]` for config, actions, snapshots, and recent events.
+- `core/agents_wrapper.py` (Completed) — replaced loose collection `Any`
+  annotations with an entity-backed engine protocol and typed mutable entity
+  sequence.
+- `core/entity_ids.py` (Completed) — changed rich-comparison parameters from
+  `Any` to `object`, matching Python's comparison protocol while preserving raw
+  integer compatibility.
 - Next good candidate by hit count: re-run `rg -n "\bAny\b" core/` and pick one
   small core module with mechanical annotations. (Note:
   `core/transfer/entity_transfer.py` and
