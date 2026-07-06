@@ -60,7 +60,7 @@ jobs:
     - name: Enforce coverage floor
       run: |
         pytest tests/ -m "not slow and not integration and not manual" \
-          --cov=core --cov=backend --cov-fail-under=70 -q
+          --cov=core --cov=backend --cov-fail-under=70 -n auto -q
 
   frontend-ci:
     runs-on: ubuntu-latest
@@ -137,7 +137,7 @@ jobs:
     - name: Enforce coverage floor
       run: |
         pytest tests/ -m "not slow and not integration and not manual" \
-          --cov=core --cov=backend --cov-fail-under=70 -q
+          --cov=core --cov=backend --cov-fail-under=70 -n auto -q
     - name: Upload champion verification results
       if: always()
       uses: actions/upload-artifact@v4
