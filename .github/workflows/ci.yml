@@ -37,6 +37,8 @@ jobs:
       env:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: python tools/smoke_gate.py
+    - name: Run wheel packaging check
+      run: python tools/check_wheel.py
 
   pre-pr-gate:
     runs-on: ubuntu-latest

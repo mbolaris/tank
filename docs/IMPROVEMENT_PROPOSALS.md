@@ -378,42 +378,7 @@ The review's one confirmed hard defect, and its lowest subscore (45/100).
 Reproducibility is central to the project, so "pip install the wheel and it
 imports" is table stakes.
 
-### 9.1 Fix broken wheel packaging + add a clean-install smoke test — `S` · ★★★
-**Problem (verified 2026-07-06 against `pyproject.toml`).** The build config is:
-
-```toml
-[tool.setuptools]
-packages = ["core", "backend"]
-```
-
-Setuptools treats this as an *explicit* package list — no recursion. A built
-wheel contains only top-level `core/*.py` and `backend/*.py` and **omits every
-subpackage**: `core.algorithms`, `core.genetics`, `core.entities`,
-`core.simulation`, `backend.routers`, etc. A wheel install then fails on
-imports like `core.simulation.engine` and `backend.routers.worlds`. The review
-reproduced this end-to-end (build → clean venv → import failure).
-
-**Plan.**
-1. Switch to package discovery in `pyproject.toml`:
-   ```toml
-   [tool.setuptools.packages.find]
-   where = ["."]
-   include = ["core*", "backend*"]
-   ```
-   Keep `py-modules = ["main"]` and the existing `package-data` (`py.typed`).
-   Make sure discovery does not accidentally pull in `tests*`, `tools*`,
-   `scripts*`, or `benchmarks*` (the `include` list above already excludes
-   them — verify with `python -m build` + `unzip -l` on the wheel).
-2. Add a CI job (or a step in an existing workflow) that builds the wheel,
-   installs it into a clean venv, and imports representative modules:
-   `core.algorithms.registry`, `core.genetics.genome`, `core.entities.fish`,
-   `core.simulation.engine`, `backend.routers.worlds`. A tiny
-   `tools/check_wheel.py` that does build+install+import keeps it runnable
-   locally too.
-3. Confirm `pip install -e .` still works (editable installs take a different
-   code path).
-
-No simulation code changes — pure **Layer 2**, `pre_pr_gate` is sufficient.
+*(All items shipped)*
 
 ---
 
@@ -494,6 +459,7 @@ budget" is the paper's headline figure. Depends on 10.1 and 10.2.
 
 ## Shipped
 
+- **9.1 Fix broken wheel packaging + add a clean-install smoke test.** Switched to package discovery in `pyproject.toml` (`[tool.setuptools.packages.find]`) to recursively package all subpackages of `core` and `backend`. Created `tools/check_wheel.py` to build the wheel, programmatically check the zip contents for correct package structure/exclusions, and verify representative imports inside a clean temporary virtual environment. Added this wheel packaging check as a step in the CI workflow's smoke-gate job.
 - **4.3 Algorithm catalog doc.** `tools/generate_algorithm_catalog.py`
   introspects `ALL_ALGORITHMS`/`ALGORITHM_PARAMETER_BOUNDS` and regenerates
   `docs/ALGORITHM_CATALOG.md` (file, tunable parameters + bounds coverage,
