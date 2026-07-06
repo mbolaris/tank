@@ -7,6 +7,7 @@ for agents in the simulation.
 from __future__ import annotations
 
 import random
+import time
 from collections.abc import Callable, Iterable
 from typing import Any, cast
 
@@ -73,6 +74,7 @@ class Environment:
         self.time_system = time_system
         self.event_bus = event_bus  # Domain event dispatch
         self.simulation_config = simulation_config  # Runtime config access
+        self.engine: Any = None
         self._rng = require_rng_param(rng, "__init__")
 
         # Default to GenomeCodePool with all builtins for better safety + determinism
@@ -223,10 +225,21 @@ class Environment:
 
     def rebuild_spatial_grid(self):
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
-        if self.agents is None:
-            self.spatial_grid.clear()
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            if self.agents is None:
+                self.spatial_grid.clear()
+            else:
+                self.spatial_grid.rebuild(self.agents)
+            engine.profiler.record_rebuild_grid(time.perf_counter() - start)
         else:
-            self.spatial_grid.rebuild(self.agents)
+            if self.agents is None:
+                self.spatial_grid.clear()
+            else:
+                self.spatial_grid.rebuild(self.agents)
         # Note: Type cache is NOT cleared here - it's only cleared on entity add/remove
 
     def invalidate_type_cache(self):
@@ -319,16 +332,40 @@ class Environment:
             raise TypeError(
                 "nearby_agents_by_type requires 'agent_type' (positional) or 'agent_class' (keyword)"
             )
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            res = self.spatial_grid.query_type(agent, float(radius), resolved_type)
+            engine.profiler.record_query(time.perf_counter() - start)
+            return res
         return self.spatial_grid.query_type(agent, float(radius), resolved_type)
 
     def nearby_evolving_agents(self, agent: Entity, radius: float) -> list[Entity]:
         """Get nearby evolving agents (entities that can reproduce)."""
         # Currently just fish
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            res = self.spatial_grid.query_fish(agent, float(radius))
+            engine.profiler.record_query(time.perf_counter() - start)
+            return res
         return self.spatial_grid.query_fish(agent, float(radius))
 
     def nearby_resources(self, agent: Entity, radius: float) -> list[Entity]:
         """Get nearby consumable resources."""
         # Currently just food
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            res = self.spatial_grid.query_food(agent, float(radius))
+            engine.profiler.record_query(time.perf_counter() - start)
+            return res
         return self.spatial_grid.query_food(agent, float(radius))
 
     def nearby_interaction_candidates(
@@ -337,12 +374,28 @@ class Environment:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            res = self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
+            engine.profiler.record_query(time.perf_counter() - start)
+            return res
         return self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
 
     def nearby_poker_entities(self, agent: Entity, radius: float) -> list[Entity]:
         """
         Optimized method to get nearby fish and Plant entities for poker.
         """
+        engine = getattr(self, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            start = time.perf_counter()
+            res = self.spatial_grid.query_poker_entities(agent, float(radius))
+            engine.profiler.record_query(time.perf_counter() - start)
+            return res
         return self.spatial_grid.query_poker_entities(agent, float(radius))
 
     # =========================================================================

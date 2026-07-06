@@ -214,6 +214,7 @@ class SimulationConfig:
     tank: TankConfig = field(default_factory=TankConfig)
     headless: bool = True
     enable_phase_debug: bool = False
+    profile_phases: bool = False
 
     def validate(self) -> None:
         """Validate the configuration for conflicting settings."""
