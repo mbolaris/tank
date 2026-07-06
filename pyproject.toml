@@ -3,8 +3,11 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["core", "backend"]
 py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "backend*"]
 
 [tool.setuptools.package-data]
 core = ["py.typed"]
