@@ -61,7 +61,12 @@ def run_web_server():
 
 
 def run_headless(
-    max_frames: int, stats_interval: int, seed=None, export_stats=None, trace_output=None
+    max_frames: int,
+    stats_interval: int,
+    seed=None,
+    export_stats=None,
+    trace_output=None,
+    profile_phases=False,
 ):
     """Run the simulation in headless mode (no visualization).
 
@@ -71,6 +76,7 @@ def run_headless(
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
         trace_output: Optional filename to export debug trace data (currently unused)
+        profile_phases: Profile and print cumulative time spent in update phases
     """
     import json
 
@@ -78,7 +84,9 @@ def run_headless(
     from core.worlds.interfaces import FAST_STEP_ACTION
 
     # Create world via the canonical WorldRegistry path
-    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world = WorldRegistry.create_world(
+        "tank", seed=seed, headless=True, profile_phases=profile_phases
+    )
     world.reset(seed=seed)
 
     world_update = getattr(world, "update", None)
@@ -102,10 +110,26 @@ def run_headless(
             pop = stats.get("population", len(world.get_entities_for_snapshot()))
             logger.info(f"Frame {frame + 1}/{max_frames}: population={pop}")
 
+    # Log profiling results if requested
+    if profile_phases and hasattr(world, "engine") and world.engine:
+        logger.info("=" * 60)
+        logger.info("PHASE PROFILING RESULTS (Cumulative Wall Time)")
+        logger.info("=" * 60)
+        total_time = sum(world.engine.profiler.times.values())
+        for phase, t in sorted(
+            world.engine.profiler.times.items(), key=lambda x: x[1], reverse=True
+        ):
+            pct = (t / total_time * 100) if total_time > 0 else 0
+            logger.info(f"  {phase:<20}: {t:8.4f}s ({pct:5.1f}%)")
+        logger.info(f"  {'TOTAL':<20}: {total_time:8.4f}s (100.0%)")
+        logger.info("=" * 60)
+
     # Export stats if requested
     if export_stats:
         stats = world.get_current_metrics(include_distributions=True)
         stats["frame"] = max_frames
+        if profile_phases and hasattr(world, "engine") and world.engine:
+            stats["phase_profiling"] = world.engine.profiler.times
         with open(export_stats, "w") as f:
             json.dump(stats, f, indent=2, default=str)
         logger.info(f"Stats exported to: {export_stats}")
@@ -143,6 +167,12 @@ Examples:
 
     parser.add_argument(
         "--headless", action="store_true", help="Run in headless mode (no UI, stats only)"
+    )
+
+    parser.add_argument(
+        "--profile-phases",
+        action="store_true",
+        help="Profile and print cumulative time spent in update phases",
     )
 
     parser.add_argument(
@@ -272,6 +302,7 @@ Examples:
             seed=args.seed,
             export_stats=args.export_stats,
             trace_output=args.trace_json,
+            profile_phases=args.profile_phases,
         )
     else:
         if args.record or args.replay:

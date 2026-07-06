@@ -51,6 +51,10 @@ class PhaseExecutor:
     def frame_start(self) -> None:
         """FRAME_START: Reset counters, increment frame."""
         engine = self._engine
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine):
+            engine.profiler.start_frame()
         self.current_phase = UpdatePhase.FRAME_START
         engine.frame_count += 1
 
@@ -91,12 +95,27 @@ class PhaseExecutor:
         engine = self._engine
         self.current_phase = UpdatePhase.ENTITY_ACT
 
-        new_entities, entities_to_remove = engine.coordinator.run_entity_act(
-            engine.frame_count,
-            time_modifier,
-            time_of_day,
-            engine,
-        )
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine):
+            import time
+
+            start = time.perf_counter()
+            with engine.profiler.context("entity_act"):
+                new_entities, entities_to_remove = engine.coordinator.run_entity_act(
+                    engine.frame_count,
+                    time_modifier,
+                    time_of_day,
+                    engine,
+                )
+            engine.profiler.record_entity_act(time.perf_counter() - start)
+        else:
+            new_entities, entities_to_remove = engine.coordinator.run_entity_act(
+                engine.frame_count,
+                time_modifier,
+                time_of_day,
+                engine,
+            )
         return new_entities, entities_to_remove
 
     def lifecycle(
@@ -122,8 +141,18 @@ class PhaseExecutor:
         # Update spatial grid for moved entities
         if engine.environment is not None:
             update_position = engine.environment.update_agent_position
-            for entity in engine.entity_manager.entities_list:
-                update_position(entity)
+            from core.simulation.profiler import is_profiling
+
+            if is_profiling(engine):
+                import time
+
+                start = time.perf_counter()
+                for entity in engine.entity_manager.entities_list:
+                    update_position(entity)
+                engine.profiler.record_spatial_grid_update(time.perf_counter() - start)
+            else:
+                for entity in engine.entity_manager.entities_list:
+                    update_position(entity)
 
     def collision(self) -> None:
         """COLLISION: Handle physical collisions between entities."""
@@ -155,6 +184,23 @@ class PhaseExecutor:
         engine = self._engine
         self.current_phase = UpdatePhase.FRAME_END
 
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine):
+            import time
+
+            start = time.perf_counter()
+            with engine.profiler.context("frame_end"):
+                self._run_frame_end_body()
+            engine.profiler.record_frame_end(time.perf_counter() - start)
+            engine.profiler.end_frame()
+        else:
+            self._run_frame_end_body()
+
+        self.current_phase = None
+
+    def _run_frame_end_body(self) -> None:
+        engine = self._engine
         if engine._phase_hooks:
             engine._phase_hooks.on_frame_end(engine)
 
@@ -176,5 +222,3 @@ class PhaseExecutor:
                     "End-of-frame invariant violated: pending entity mutations remain "
                     f"(spawns={pending_spawns}, removals={pending_removals})"
                 )
-
-        self.current_phase = None

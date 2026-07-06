@@ -49,6 +49,7 @@ from core.simulation.frame_aggregator import FrameAggregator, FrameOutputs
 from core.simulation.mutation import MutationTransaction
 from core.simulation.mutation_executor import MutationExecutor
 from core.simulation.phase_executor import PhaseExecutor
+from core.simulation.profiler import PhaseProfiler
 from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
@@ -205,9 +206,19 @@ class SimulationEngine:
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
         self.coordinator.set_phase_hooks(self._phase_hooks)
 
+        # Phase profiler
+        profile_phases_env = os.environ.get("TANK_PROFILE_PHASES", "0") == "1"
+        profile_phases_enabled = getattr(self.config, "profile_phases", False) or profile_phases_env
+        self.profiler = PhaseProfiler(enabled=profile_phases_enabled)
+
     def drain_frame_outputs(self) -> FrameOutputs:
         """Return this frame's outputs and clear internal buffers."""
         return self.frame_aggregator.drain()
+
+    @property
+    def profile_phases(self) -> bool:
+        """Whether phase profiling is enabled."""
+        return self.profiler.enabled
 
     # =========================================================================
     # Compatibility Properties

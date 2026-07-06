@@ -39,6 +39,8 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
 
     # 2. Let the pack build the environment
     engine.environment = cast(Environment, pack.build_environment(engine))
+    if engine.environment is not None:
+        engine.environment.engine = engine
 
     # Wire up energy delta recorder for immediate tracking
     if engine.environment and hasattr(engine.environment, "set_energy_delta_recorder"):

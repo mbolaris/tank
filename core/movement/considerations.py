@@ -114,6 +114,23 @@ class MovementArbiter:
 
     def decide(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
         """Return the first active consideration's velocity, or None if none fire."""
+        engine = getattr(fish.environment, "engine", None)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine) and engine is not None:
+            import time
+
+            start = time.perf_counter()
+            with engine.profiler.context("decision"):
+                res = None
+                for consideration in self._considerations:
+                    velocity = consideration.desired_velocity(strategy, fish)
+                    if velocity is not None:
+                        res = velocity
+                        break
+            engine.profiler.record_decide(time.perf_counter() - start)
+            return res
+
         for consideration in self._considerations:
             velocity = consideration.desired_velocity(strategy, fish)
             if velocity is not None:
