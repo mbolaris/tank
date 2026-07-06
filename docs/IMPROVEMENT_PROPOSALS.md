@@ -19,8 +19,8 @@ files to touch and a step-by-step plan, so you can pick one and follow it
 literally without holding the whole codebase in your head. Prefer the `S`
 (small) items tagged **Layer 2** — they don't change simulation results, so
 they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first picks right now: **6.2** (retire `Any` in one module), **4.4**
-(visible frontend connection status).
+Good first pick right now: **6.2** (retire `Any` in one module - see the
+"Progress / notes for the next agent" list under it before picking a file).
 Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
 change per PR.
 
@@ -184,14 +184,6 @@ consolidation so the ecosystem only pays the re-baseline cost once.
 
 This is where "fun to use" and "excellent example of software design" are won.
 
-### 4.4 Frontend connection status + FPS counter — `S` · ★★
-`frontend/src/hooks/useWebSocket.ts` already reconnects on drop; what's still
-missing is the *visible* half. Add (a) a small connection-status indicator
-driven by the hook's state (connecting / live / reconnecting), and (b) an FPS
-overlay on the render loop. Makes the live UI trustworthy and exposes rendering
-bottlenecks (fractal plants are the prime suspect). Upgrade the reconnect to
-true exponential backoff if it isn't already. **Layer 2.**
-
 ### 4.5 Debug-frame / debug-entity tracing — `M` · ★★
 Add `--debug-frame N` and `--debug-entity ID` flags to the headless runner that
 dump every energy delta and event for the targeted frame/entity. Cuts
@@ -350,6 +342,17 @@ goals, assists, wins, tank identity, and net energy.
 - **4.1 One-command startup.** `start.py` launches backend + frontend together
   with sane defaults and a single Ctrl-C shutdown; the two-terminal onboarding
   friction is gone.
+- **4.4 Frontend connection status + FPS counter.** `useWebSocket` exposes a
+  `connectionStatus` of `'connecting' | 'live' | 'reconnecting'` (alongside the
+  existing `isConnected` boolean) and reconnects with real exponential backoff
+  (`computeReconnectDelay`, 3s/6s/12s/24s capped at 30s) instead of a fixed
+  3s retry. `Canvas` tracks its own render-loop FPS independent of simulation
+  data and reports it via `onRenderFps`. `TankView` wires both into the
+  `canvas-hud`/`hud-group`/`hud-item` CSS in `App.css`, which already existed
+  but had no consumer. Manually verified: killing the backend flips the
+  indicator to RECONNECTING (pulsing) and disables controls; the FPS badge
+  measurably dropped when the browser tab lost focus (rAF throttling) and
+  recovered on refocus, confirming it reflects real render health.
 - **3.1 stage 1: monolithic food-seekers benchmarked and triaged (ADR-006).**
   `tools/benchmark_algorithms.py` pins every fish to one algorithm and runs
   seeded headless worlds; 14 monoliths + composable baseline x 3 seeds.
