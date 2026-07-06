@@ -19,8 +19,8 @@ files to touch and a step-by-step plan, so you can pick one and follow it
 literally without holding the whole codebase in your head. Prefer the `S`
 (small) items tagged **Layer 2** — they don't change simulation results, so
 they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first picks right now: **4.3** (algorithm catalog), **6.2** (retire `Any`
-in one module), **4.4** (visible frontend connection status).
+Good first picks right now: **6.2** (retire `Any` in one module), **4.4**
+(visible frontend connection status).
 Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
 change per PR.
 
@@ -184,12 +184,6 @@ consolidation so the ecosystem only pays the re-baseline cost once.
 
 This is where "fun to use" and "excellent example of software design" are won.
 
-### 4.3 Algorithm catalog doc — `S` · ★★
-Generate `docs/ALGORITHM_CATALOG.md` from the registry: each algorithm's file,
-tunable parameters, the niche it wins, and its known weakness. This is the map
-an AI agent needs to target improvements instead of guessing. Generate it from
-code so it never goes stale.
-
 ### 4.4 Frontend connection status + FPS counter — `S` · ★★
 `frontend/src/hooks/useWebSocket.ts` already reconnects on drop; what's still
 missing is the *visible* half. Add (a) a small connection-status indicator
@@ -317,6 +311,12 @@ goals, assists, wins, tank identity, and net energy.
 
 ## Shipped
 
+- **4.3 Algorithm catalog doc.** `tools/generate_algorithm_catalog.py`
+  introspects `ALL_ALGORITHMS`/`ALGORITHM_PARAMETER_BOUNDS` and regenerates
+  `docs/ALGORITHM_CATALOG.md` (file, tunable parameters + bounds coverage,
+  deprecation status). A freshness test in `test_docs_agent_onboarding.py`
+  (part of the smoke gate) fails if the checked-in doc drifts from the
+  generator's output.
 - **1.5 Benchmark runtime budgets.** Every live benchmark declares
   `EXPECTED_RUNTIME_SECONDS`; `tools/run_bench.py` prints `Runtime: <elapsed>s
   (budget ~<budget>s)` after each run, and `benchmarks/README.md` documents the
