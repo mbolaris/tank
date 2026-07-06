@@ -19,9 +19,8 @@ files to touch and a step-by-step plan, so you can pick one and follow it
 literally without holding the whole codebase in your head. Prefer the `S`
 (small) items tagged **Layer 2** — they don't change simulation results, so
 they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first picks right now: **4.3** (algorithm catalog), **1.5** (benchmark
-budgets), **6.2** (retire `Any` in one module), **4.4** (visible frontend
-connection status).
+Good first picks right now: **4.3** (algorithm catalog), **6.2** (retire `Any`
+in one module), **4.4** (visible frontend connection status).
 Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
 change per PR.
 
@@ -130,19 +129,6 @@ a single short run, where natural variance dwarfs the improvement signal.
 to beat the champion in a majority of seeds. Run `pytest -x` and `mypy` on the
 edited files *before* committing so the agent never pushes a syntax/import
 break.
-
-### 1.5 Publish benchmark runtime budgets — `S` · ★★
-**Problem (external review, 2026-07).** A reviewer could not tell whether a
-benchmark was hanging or just slow: "could not complete the 5k survival
-benchmark in this sandbox, and the full suite timed out." For an evolution
-platform, benchmark reproducibility needs to be *boringly obvious*.
-
-**Plan.** Record an expected wall-clock budget for each live benchmark (short /
-medium / 5k) and surface it. Concretely: add a `expected_runtime_s` field (or a
-short table in `benchmarks/README.md`) for `survival_5k`,
-`ecosystem_health_10k`, and the soccer trainings, measured on a known machine,
-and have `tools/run_bench.py` print `elapsed 41.2s (budget ~45s)` when it
-finishes. No scoring change — pure "is this normal?" visibility. **Layer 2.**
 
 ### 1.6 One health command that works from a clean checkout — `M` · ★★
 **Problem (external review, 2026-07).** The review's #1 next move: "make one
@@ -331,6 +317,11 @@ goals, assists, wins, tank identity, and net energy.
 
 ## Shipped
 
+- **1.5 Benchmark runtime budgets.** Every live benchmark declares
+  `EXPECTED_RUNTIME_SECONDS`; `tools/run_bench.py` prints `Runtime: <elapsed>s
+  (budget ~<budget>s)` after each run, and `benchmarks/README.md` documents the
+  budget table with reference champion runtimes. Pure visibility — no scoring
+  change.
 - **4.2 `scripts/diagnose.py` health check.** A setup-oriented diagnosis command
   now checks core/backend imports, NumPy/FastAPI availability, a deterministic
   100-frame headless sim, black/ruff/mypy resolution, and frontend dependencies.
