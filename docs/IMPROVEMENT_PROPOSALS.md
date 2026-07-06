@@ -411,15 +411,7 @@ commit/branch or diff stat if available. Wire the *writing* of records into
 that only sees wins is worthless, so log at the point of *evaluation*, not the
 point of merge.
 
-### 10.2 Multi-seed benchmark matrix tooling — `M` · ★★★
-Single-seed wins are too fragile for ALife claims (CLAUDE.md already warns
-seed-42 ecosystem scores swing several percent on trajectory noise). Add
-`tools/run_bench_matrix.py`: run one benchmark across a seed list (default e.g.
-42, 7, 123, plus N more), emit mean ± stddev and per-seed scores as one JSON
-summary, and exit nonzero if the candidate doesn't beat the champion on a
-majority of seeds. Then let `validate_improvement.py` accept a matrix summary
-as evidence. Complements 1.4 (which wires multi-seed into the agent script) —
-this is the shared tool both should call.
+
 
 ### 10.3 Held-out evaluators agents cannot edit — `L` · ★★★
 Agents can currently modify every benchmark they are scored against — the
@@ -541,6 +533,7 @@ budget" is the paper's headline figure. Depends on 10.1 and 10.2.
 - **6.1 Strict type checking for core/simulation, core/worlds, and core/genetics.** Enabled mypy strictness overrides (`disallow_untyped_defs = true`, `disallow_incomplete_defs = true`) for the `core/simulation`, `core/worlds` (excluding internal tests), and `core/genetics` packages. Resolved untyped functions, arguments, and annotations across these packages, keeping all CI gates green.
 - **1.2 Score decomposition in benchmark output.** Verified that benchmarks (`survival_5k`, `ecosystem_health_10k`, `selection_response_10k`, and `training_3k/5k`) emit a `score_breakdown` dict, and `validate_improvement.py` dynamically extracts it, displays side-by-side comparison, and reports the weakest component.
 - **6.2 Retired Any in core/transfer/entity_transfer.py and core/genetics/sanitization.py.** Tightened typing by removing generic `Any` annotations, introducing concrete entity classes, parameterizing generic `TransferOutcome[T]`, and utilizing generic `object` types for external untrusted inputs. Enabled strict typing checks override in `pyproject.toml` for `core/transfer/`.
+- **10.2 Multi-seed benchmark matrix tooling.** Created [run_bench_matrix.py](file:///c:/Users/mike/sandbox/tank/tools/run_bench_matrix.py) to run a benchmark across a seed list (default `42, 7, 123`), compute statistics (mean, min, max, stdev, n), support seed-by-seed comparison, and exit nonzero if the candidate doesn't beat the champion on a majority of seeds. Updated [validate_improvement.py](file:///c:/Users/mike/sandbox/tank/tools/validate_improvement.py) to support matrix-seed results and champion updates.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing

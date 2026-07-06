@@ -144,10 +144,16 @@ def log_attempt(
     }
 
     if ledger_path is None:
-        project_root = Path(__file__).resolve().parents[2]
-        research_dir = project_root / "research"
-        research_dir.mkdir(exist_ok=True)
-        final_ledger_path = research_dir / "attempts.jsonl"
+        env_path = os.environ.get("ATTEMPT_LEDGER_PATH")
+        if env_path:
+            final_ledger_path = Path(env_path)
+            if final_ledger_path.parent:
+                final_ledger_path.parent.mkdir(exist_ok=True, parents=True)
+        else:
+            project_root = Path(__file__).resolve().parents[2]
+            research_dir = project_root / "research"
+            research_dir.mkdir(exist_ok=True)
+            final_ledger_path = research_dir / "attempts.jsonl"
     else:
         final_ledger_path = Path(ledger_path)
         if final_ledger_path.parent:
