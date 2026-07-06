@@ -22,6 +22,7 @@ from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import MixedPokerInteraction
 from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
 from core.poker.integration.poker_interaction import PokerInteraction
+from core.poker.integration.post_poker_reproduction import handle_fish_post_poker_reproduction
 from core.poker.integration.poker_rewards import annotate_reproduction_reward, fish_energy_deltas
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
@@ -538,6 +539,8 @@ class PokerSystem(BaseSystem):
             emitter = getattr(self._engine, "_emit_poker_outcome", None)
             if emitter is not None:
                 emitter(result)
+
+        handle_fish_post_poker_reproduction(self._engine, poker, plant_event)
 
         # Trigger asexual reproduction if fish won against only plants
         # (fish_count == 1 means only the winner was a fish, all opponents were plants)

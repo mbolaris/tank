@@ -36,12 +36,7 @@ class CodePool:
         """Register a pre-compiled callable directly (for builtins).
 
         This bypasses validation and compilation since the function is already
-        a trusted Python callable. Useful for builtin policies like
-        seek_nearest_food that don't need sandboxing.
-
-        Args:
-            component_id: Unique identifier for this component
-            func: The callable to register
+        a trusted Python callable.
         """
         compiled = CompiledComponent(
             component_id=component_id,
@@ -454,15 +449,7 @@ def default_soccer_policy_params(
 def chase_ball_soccer_policy(
     observation: dict[str, Any], rng: random.Random | None
 ) -> dict[str, float]:
-    """Built-in soccer policy that intercepts the ball and works it toward goal.
-
-    Args:
-        observation: Soccer observation with position, ball_position, field dimensions
-        rng: Random number generator for slight variations
-
-    Returns:
-        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
-    """
+    """Built-in soccer policy that intercepts the ball and works it toward goal."""
     _ = rng
     try:
         return _soccer_policy_core(observation, role="chaser")
@@ -473,15 +460,7 @@ def chase_ball_soccer_policy(
 def defensive_soccer_policy(
     observation: dict[str, Any], rng: random.Random | None
 ) -> dict[str, float]:
-    """Built-in soccer policy that screens its own goal and clears the ball.
-
-    Args:
-        observation: Soccer observation with position, ball_position, field dimensions
-        rng: Random number generator
-
-    Returns:
-        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
-    """
+    """Built-in soccer policy that screens its own goal and clears the ball."""
     _ = rng
     try:
         return _soccer_policy_core(observation, role="defender")
@@ -492,15 +471,7 @@ def defensive_soccer_policy(
 def striker_soccer_policy(
     observation: dict[str, Any], rng: random.Random | None
 ) -> dict[str, float]:
-    """Built-in soccer policy that lurks upfield and presses in the offensive zone.
-
-    Args:
-        observation: Soccer observation with position, ball_position, field dimensions
-        rng: Random number generator
-
-    Returns:
-        Dict representing SoccerAction (normalized format: turn, dash, kick_power, kick_angle)
-    """
+    """Built-in soccer policy that lurks upfield and presses in the offensive zone."""
     _ = rng
     try:
         return _soccer_policy_core(observation, role="striker")
