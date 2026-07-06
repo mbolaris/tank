@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import random
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -169,7 +170,9 @@ class CodePool:
 # =============================================================================
 
 
-def seek_nearest_food_policy(observation: dict[str, Any], rng: Any) -> tuple[float, float]:
+def seek_nearest_food_policy(
+    observation: dict[str, Any], rng: random.Random | None
+) -> tuple[float, float]:
     """Simple built-in movement policy that heads toward the nearest food vector.
 
     Args:
@@ -195,7 +198,9 @@ def seek_nearest_food_policy(observation: dict[str, Any], rng: Any) -> tuple[flo
     return (0.0, 0.0)
 
 
-def flee_from_threat_policy(observation: dict[str, Any], rng: Any) -> tuple[float, float]:
+def flee_from_threat_policy(
+    observation: dict[str, Any], rng: random.Random | None
+) -> tuple[float, float]:
     """Built-in movement policy that flees from the nearest threat.
 
     Args:
@@ -259,7 +264,7 @@ def _norm_angle(angle: float) -> float:
 
 
 def _scaled_param(
-    params: dict[str, Any],
+    params: dict[str, float],
     key: str,
     base: float,
     scale: float,
@@ -282,7 +287,7 @@ def _steer_action(
     stamina_floor: float,
     align_threshold: float = 0.25,
     commit_dist: float = 0.4,
-) -> dict[str, Any]:
+) -> dict[str, float]:
     """Turn toward, then dash at, the relative target (tx, ty).
 
     Turning is far more effective at low speed (RCSS divides the turn moment
@@ -318,7 +323,7 @@ def _steer_action(
     return {"turn": 0.0, "dash": dash, "kick_power": 0.0, "kick_angle": 0.0}
 
 
-def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any]:
+def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, float]:
     """Shared param-driven core for the builtin soccer policies.
 
     Roles differ only in off-ball positioning:
@@ -331,7 +336,7 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any
     teams and in both halves.
     """
     params_raw = observation.get("params")
-    params: dict[str, Any] = params_raw if isinstance(params_raw, dict) else {}
+    params: dict[str, float] = params_raw if isinstance(params_raw, dict) else {}
 
     self_pos = observation.get("position", {})
     sx = float(self_pos.get("x", 0.0))
@@ -426,7 +431,7 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, Any
 
 def default_soccer_policy_params(
     policy_id: str | None = None,
-    rng: Any = None,
+    rng: random.Random | None = None,
     jitter: float = 0.0,
 ) -> dict[str, float]:
     """Default (zero) values for all evolvable soccer policy params.
@@ -446,7 +451,9 @@ def default_soccer_policy_params(
     return values
 
 
-def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+def chase_ball_soccer_policy(
+    observation: dict[str, Any], rng: random.Random | None
+) -> dict[str, float]:
     """Built-in soccer policy that intercepts the ball and works it toward goal.
 
     Args:
@@ -463,7 +470,9 @@ def chase_ball_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str,
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
-def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+def defensive_soccer_policy(
+    observation: dict[str, Any], rng: random.Random | None
+) -> dict[str, float]:
     """Built-in soccer policy that screens its own goal and clears the ball.
 
     Args:
@@ -480,7 +489,9 @@ def defensive_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, 
         return {"turn": 0.0, "dash": 0.0, "kick_power": 0.0, "kick_angle": 0.0}
 
 
-def striker_soccer_policy(observation: dict[str, Any], rng: Any) -> dict[str, Any]:
+def striker_soccer_policy(
+    observation: dict[str, Any], rng: random.Random | None
+) -> dict[str, float]:
     """Built-in soccer policy that lurks upfield and presses in the offensive zone.
 
     Args:
