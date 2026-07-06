@@ -4,6 +4,8 @@ This module handles serialization and deserialization of entities
 for transferring between tanks.
 """
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast

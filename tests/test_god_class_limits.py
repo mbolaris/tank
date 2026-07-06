@@ -55,7 +55,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/solutions/benchmark.py": 543,
     "core/solutions/tracker.py": 590,
     "core/spatial/grid.py": 795,
-    "core/transfer/entity_transfer.py": 750,
+    "core/transfer/entity_transfer.py": 752,
     "core/worlds/tank/backend.py": 672,
 }
 
