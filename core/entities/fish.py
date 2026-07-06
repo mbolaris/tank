@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from random import Random
+from typing import TYPE_CHECKING, TypedDict
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -27,6 +29,15 @@ from core.util.rng import require_rng
 from core.util.stable_hash import stable_algorithm_id
 
 logger = logging.getLogger(__name__)
+
+MovementPolicyOverride = Callable[[dict[str, object], Random], tuple[float, float]]
+
+
+class SoccerEffectState(TypedDict):
+    type: str
+    amount: float
+    timer: int
+
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
@@ -226,7 +237,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
-        self.soccer_effect_state: dict[str, Any] | None = None
+        self.soccer_effect_state: SoccerEffectState | None = None
 
         # Behavior execution - coordinates movement, turn costs, and cooldowns
         self._behavior_executor = BehaviorExecutor(movement_strategy)
@@ -270,15 +281,15 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         self.visual_state = FishVisualState()
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
-        self._movement_policy: Any | None = None
+        self._movement_policy: MovementPolicyOverride | None = None
 
     @property
-    def movement_policy(self) -> Any | None:
+    def movement_policy(self) -> MovementPolicyOverride | None:
         """Get the override movement policy, if any."""
         return self._movement_policy
 
     @movement_policy.setter
-    def movement_policy(self, policy: Any | None) -> None:
+    def movement_policy(self, policy: MovementPolicyOverride | None) -> None:
         """Set an override movement policy.
 
         If set, this policy will be used instead of the genome-based behavior.

@@ -58,7 +58,9 @@ from core.time_system import TimeSystem
 if TYPE_CHECKING:
     from core import entities, environment
     from core.collision_system import CollisionSystem
+    from core.code_pool import GenomeCodePool
     from core.ecosystem import EcosystemManager
+    from core.events import EventBus
     from core.object_pool import FoodPool
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
@@ -127,8 +129,8 @@ class SimulationEngine:
         self.view_mode: str = "side"
 
         # Optional wiring points populated by SystemPacks (typed for mypy)
-        self.event_bus: Any | None = None
-        self.genome_code_pool: Any | None = None
+        self.event_bus: EventBus | None = None
+        self.genome_code_pool: GenomeCodePool | None = None
 
         # Components (delegated to managers)
         self._entity_manager = EntityManager(
@@ -210,7 +212,6 @@ class SimulationEngine:
     # =========================================================================
     # Compatibility Properties
     # =========================================================================
-
     @property
     def entities_list(self) -> list[entities.Entity]:
         """All entities in the simulation (delegates to EntityManager)."""
@@ -269,7 +270,6 @@ class SimulationEngine:
     # =========================================================================
     # Setup (assembly sequence lives in core.simulation.engine_setup)
     # =========================================================================
-
     def setup(self, pack: SystemPack | None = None) -> None:
         """Setup the simulation using the provided SystemPack."""
         setup_engine(self, pack)
@@ -305,7 +305,7 @@ class SimulationEngine:
         """Get a system by name."""
         return self._system_registry.get(name)
 
-    def get_systems_debug_info(self) -> dict[str, Any]:
+    def get_systems_debug_info(self) -> dict[str, object]:
         """Get debug information from all registered systems."""
         return self._system_registry.get_debug_info()
 

@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.systems.base import BaseSystem
@@ -133,7 +133,7 @@ class SystemRegistry:
             return True
         return False
 
-    def get_debug_info(self) -> dict[str, Any]:
+    def get_debug_info(self) -> dict[str, object]:
         """Get debug information from all registered systems.
 
         Returns:
