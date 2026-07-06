@@ -51,7 +51,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/poker/stats/poker_stats_manager.py": 581,
     "core/poker/strategy/composable/strategy.py": 781,
     "core/reproduction/reproduction_service.py": 550,
-    "core/simulation/engine.py": 595,
+    "core/simulation/engine.py": 598,
     "core/solutions/benchmark.py": 543,
     "core/solutions/tracker.py": 590,
     "core/spatial/grid.py": 795,

@@ -11,7 +11,7 @@ from core.worlds.contracts import RemovalRequest, SpawnRequest
 class MutationTransaction:
     """Queues spawns/removals and commits them to the entity manager."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._queue = EntityMutationQueue()
 
     def request_spawn(

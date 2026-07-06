@@ -6,6 +6,7 @@ logic for the standard fish tank simulation.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
@@ -89,7 +90,7 @@ class TankPack(TankLikePackBase):
         # Initialize soccer components (ball and goals)
         self._initialize_soccer(engine, logger)
 
-    def _initialize_soccer(self, engine: SimulationEngine, logger) -> None:
+    def _initialize_soccer(self, engine: SimulationEngine, logger: logging.Logger) -> None:
         """Initialize ball and goal zones if enabled in config.
 
         Args:

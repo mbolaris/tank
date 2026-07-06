@@ -37,6 +37,7 @@ class PetriFoodSpawningSystem(FoodSpawningSystem):
 
         # Get food from pool or create new
         food_pool = self._engine.food_pool
+        food: entities.Food
         if is_live:
             # LiveFood requires: environment, x, y
             food = entities.LiveFood(environment, x, y)

@@ -32,6 +32,7 @@ import os
 import random
 import time
 import uuid
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import core.simulation.diagnostics as diagnostics
@@ -58,12 +59,14 @@ if TYPE_CHECKING:
     from core import entities, environment
     from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
+    from core.object_pool import FoodPool
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
     from core.poker.integration.poker_system import PokerSystem
     from core.reproduction.reproduction_service import ReproductionService
     from core.reproduction.reproduction_system import ReproductionSystem
     from core.root_spots import RootSpotManager
+    from core.simulation.entity_mutation_queue import EntityMutationQueue
     from core.simulation.pipeline import EnginePipeline
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem
@@ -214,7 +217,7 @@ class SimulationEngine:
         return self._entity_manager.entities_list
 
     @property
-    def food_pool(self):
+    def food_pool(self) -> FoodPool:
         """Food object pool (delegates to EntityManager)."""
         return self._entity_manager.food_pool
 
@@ -260,7 +263,7 @@ class SimulationEngine:
 
     # Expose mutation queue for tests that access private member
     @property
-    def _entity_mutations(self):
+    def _entity_mutations(self) -> EntityMutationQueue:
         return self.mutations._queue
 
     # =========================================================================
@@ -504,7 +507,7 @@ class SimulationEngine:
             return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
 
-    def _create_energy_recorder(self):
+    def _create_energy_recorder(self) -> Callable[[Any, float, str, dict[str, Any]], None]:
         """Create a recorder callback for energy delta tracking.
 
         Returns a function that can be passed to environment.set_energy_delta_recorder().
