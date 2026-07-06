@@ -33,8 +33,11 @@ This is a conscious trade-off: explicit phase calls are easier to debug than
 automatic phase-based execution, at the cost of some flexibility.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from core.systems.base import BaseSystem
@@ -67,7 +70,7 @@ class SystemRegistry:
         """Initialize an empty system registry."""
         self._systems: list[BaseSystem] = []
 
-    def register(self, system: "BaseSystem") -> None:
+    def register(self, system: BaseSystem) -> None:
         """Register a system for introspection and runtime control.
 
         Args:
@@ -76,7 +79,7 @@ class SystemRegistry:
         self._systems.append(system)
         logger.debug(f"Registered system: {system.name}")
 
-    def unregister(self, system: "BaseSystem") -> bool:
+    def unregister(self, system: BaseSystem) -> bool:
         """Remove a system from the registry.
 
         Args:
@@ -91,7 +94,7 @@ class SystemRegistry:
             return True
         return False
 
-    def get(self, name: str) -> Optional["BaseSystem"]:
+    def get(self, name: str) -> BaseSystem | None:
         """Get a system by name.
 
         Args:
@@ -105,7 +108,7 @@ class SystemRegistry:
                 return system
         return None
 
-    def get_all(self) -> list["BaseSystem"]:
+    def get_all(self) -> list[BaseSystem]:
         """Get all registered systems in inspection order.
 
         Returns:
@@ -142,7 +145,7 @@ class SystemRegistry:
         """Get the number of registered systems."""
         return len(self._systems)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[BaseSystem]:
         """Iterate over systems in inspection order."""
         return iter(self._systems)
 

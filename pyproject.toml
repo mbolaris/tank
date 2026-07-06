@@ -176,7 +176,30 @@ exclude = [
     "tools/archive/",
 ]
 
-# No overrides
+# Overrides
+[[tool.mypy.overrides]]
+module = "core.simulation.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.worlds.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.worlds.*.tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "core.genetics.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+
+
+
 
 [tool.coverage.run]
 source = ["core"]

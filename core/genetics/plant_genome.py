@@ -70,7 +70,7 @@ class PlantGenome:
 
     _production_rules: list[tuple[str, str, float]] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self._production_rules:
             self._production_rules = self._generate_default_rules()
 

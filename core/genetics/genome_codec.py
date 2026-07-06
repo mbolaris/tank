@@ -62,13 +62,13 @@ def genome_to_dict(
                 trait_meta[name] = meta
 
     # Helper to safely get policy value
-    def _get_policy_value(trait):
+    def _get_policy_value(trait: Any) -> Any:
         if trait is None:
             return None
         val = trait.value if hasattr(trait, "value") else trait
         return val if val else None
 
-    def _get_policy_params(trait):
+    def _get_policy_params(trait: Any) -> dict[str, Any] | None:
         if trait is None:
             return None
         val = trait.value if hasattr(trait, "value") else trait
@@ -213,7 +213,7 @@ def genome_from_dict(
         from core.genetics.trait import GeneticTrait
 
         # Helper to deserialize and validate policy params
-        def _deserialize_params(params_data):
+        def _deserialize_params(params_data: Any) -> dict[str, float] | None:
             if params_data is None or not isinstance(params_data, dict):
                 return None
             validated = {}

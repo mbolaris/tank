@@ -254,7 +254,7 @@ tighten the *core path* first, where a mistake is most expensive.
 mergeable PR. Instead, pick **one** package and add a per-module mypy override
 that turns on `disallow_untyped_defs = true` for just that path, then fix the
 fallout. Suggested order (highest leverage first):
-`core/simulation/`, `core/worlds/`, `core/genetics/`, then
+`core/simulation/` (Completed), `core/worlds/` (Completed), `core/genetics/` (Completed), then
 `backend/state_payloads.py`. One package per PR, Layer 2, `pre_pr_gate` green.
 The `# No overrides` line in `pyproject.toml`'s mypy section is where the
 per-module override block goes.
@@ -386,6 +386,8 @@ goals, assists, wins, tank identity, and net energy.
   re-runs every champion at its recorded seed (marked `slow`); wired into the
   nightly gate, and the CI `schedule` trigger that nightly-full expected now
   actually exists.
+
+- **6.1 Strict type checking for core/simulation, core/worlds, and core/genetics.** Enabled mypy strictness overrides (`disallow_untyped_defs = true`, `disallow_incomplete_defs = true`) for the `core/simulation`, `core/worlds` (excluding internal tests), and `core/genetics` packages. Resolved untyped functions, arguments, and annotations across these packages, keeping all CI gates green.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing

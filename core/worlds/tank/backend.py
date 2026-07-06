@@ -5,9 +5,11 @@ simulation. It directly uses the SimulationEngine with TankPack, providing
 a clean interface without any legacy wrappers.
 """
 
+from __future__ import annotations
+
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from core.config.simulation_config import SimulationConfig
 from core.exceptions import SimulationError
@@ -18,6 +20,7 @@ from core.worlds.tank.observation_builder import build_tank_observations
 from core.worlds.tank.pack import TankPack
 
 if TYPE_CHECKING:
+    from core import entities, environment
     from core.worlds.system_pack import SystemPack
 
 logger = logging.getLogger(__name__)
@@ -47,8 +50,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: int | None = None,
         config: SimulationConfig | dict[str, Any] | None = None,
-        **config_overrides,
-    ):
+        **config_overrides: Any,
+    ) -> None:
         """Initialize the Tank world backend adapter.
 
         Args:
@@ -80,7 +83,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
 
     @property
-    def environment(self):
+    def environment(self) -> environment.Environment | None:
         """Expose the underlying simulation environment."""
         return self._engine.environment if self._engine else None
 
@@ -89,7 +92,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         """Expose the underlying world (alias for environment)."""
         return self.environment
 
-    def add_entity(self, entity) -> None:
+    def add_entity(self, entity: entities.Entity) -> None:
         """Add an entity to the world (shim for tests)."""
         if self._engine is None:
             raise SimulationError("World not initialized. Call reset() before add_entity().")
@@ -99,7 +102,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self,
         seed: int | None = None,
         config: dict[str, Any] | None = None,
-        pack: Optional["SystemPack"] = None,
+        pack: SystemPack | None = None,
     ) -> StepResult:
         """Reset the tank world to initial state.
 
