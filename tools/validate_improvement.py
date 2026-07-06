@@ -63,14 +63,62 @@ def is_improvement(
         # If no champion exists, any valid result is an "improvement" (or rather, the new champion)
         return True
 
-    try:
-        new_score = float(new_result["score"])
-        old_score = float(get_champion_record(champion_data)["score"])
-    except (KeyError, TypeError, ValueError):
-        return False
+    champion_record = get_champion_record(champion_data)
 
-    # Check for strictly better score
-    return new_score - old_score > tolerance
+    # Check if either or both are matrix results (indicated by "per_seed" presence)
+    new_per_seed = new_result.get("per_seed")
+    old_per_seed = champion_record.get("per_seed")
+
+    if new_per_seed and old_per_seed:
+        # Compare overlapping seeds
+        overlapping = [s for s in new_per_seed if s in old_per_seed]
+        if overlapping:
+            wins = 0
+            for seed in overlapping:
+                if (
+                    float(new_per_seed[seed]["score"]) - float(old_per_seed[seed]["score"])
+                    > tolerance
+                ):
+                    wins += 1
+            # Majority of compared seeds must improve
+            return wins > len(overlapping) / 2
+        # Fallback if no overlap: compare primary seeds if matching, or fall back to score
+        champ_seed = champion_record.get("seed")
+        if champ_seed is not None and str(champ_seed) in new_per_seed:
+            return (
+                float(new_per_seed[str(champ_seed)]["score"]) - float(champion_record["score"])
+                > tolerance
+            )
+        return float(new_result["score"]) - float(champion_record["score"]) > tolerance
+
+    elif new_per_seed:
+        # Candidate is matrix, champion is single-seed
+        champ_seed = champion_record.get("seed")
+        if champ_seed is not None and str(champ_seed) in new_per_seed:
+            return (
+                float(new_per_seed[str(champ_seed)]["score"]) - float(champion_record["score"])
+                > tolerance
+            )
+        return float(new_result["score"]) - float(champion_record["score"]) > tolerance
+
+    elif old_per_seed:
+        # Candidate is single-seed, champion is matrix
+        cand_seed = new_result.get("seed")
+        if cand_seed is not None and str(cand_seed) in old_per_seed:
+            return (
+                float(new_result["score"]) - float(old_per_seed[str(cand_seed)]["score"])
+                > tolerance
+            )
+        return float(new_result["score"]) - float(champion_record["score"]) > tolerance
+
+    else:
+        # Standard flat format comparison
+        try:
+            new_score = float(new_result["score"])
+            old_score = float(champion_record["score"])
+        except (KeyError, TypeError, ValueError):
+            return False
+        return new_score - old_score > tolerance
 
 
 def update_champion_data(
@@ -109,6 +157,11 @@ def update_champion_data(
         new_champion["score_breakdown"] = new_result["score_breakdown"]
     if "config_hash" in new_result:
         new_champion["config_hash"] = new_result["config_hash"]
+
+    # Copy matrix fields if present
+    for field in ["seeds", "scores", "mean", "min", "max", "stdev", "n", "per_seed"]:
+        if field in new_result:
+            new_champion[field] = new_result[field]
 
     return {
         "benchmark_id": new_result.get("benchmark_id", "unknown"),
@@ -218,9 +271,51 @@ def main():
             old_score = old_record["score"]
             diff = new_score - float(old_score)
 
-            print(f"New Score: {new_score:.6f}")
-            print(f"Old Score: {old_score:.6f}")
+            # Print matrix/seed details if present
+            new_per_seed = result.get("per_seed")
+            old_per_seed = old_record.get("per_seed")
+
+            if new_per_seed:
+                print(f"New Score (Mean): {new_score:.6f}")
+                print(f"  Scores: {[round(s, 6) for s in result.get('scores', [])]}")
+                print(f"  Seeds:  {result.get('seeds', [])}")
+            else:
+                print(f"New Score: {new_score:.6f}")
+
+            if old_per_seed:
+                print(f"Old Score (Mean): {float(old_score):.6f}")
+                print(f"  Scores: {[round(s, 6) for s in old_record.get('scores', [])]}")
+                print(f"  Seeds:  {old_record.get('seeds', [])}")
+            else:
+                print(f"Old Score: {float(old_score):.6f}")
+
             print(f"Diff:      {diff:+.6f}")
+
+            # Print seed-by-seed table if there are overlapping seeds
+            wins = 0
+            losses = 0
+            ties = 0
+            if new_per_seed and old_per_seed:
+                overlapping = [s for s in new_per_seed if s in old_per_seed]
+                if overlapping:
+                    print("\nSeed-by-seed comparison:")
+                    for seed in overlapping:
+                        cand_s = float(new_per_seed[seed]["score"])
+                        champ_s = float(old_per_seed[seed]["score"])
+                        s_diff = cand_s - champ_s
+                        if s_diff > args.tolerance:
+                            status = "win"
+                            wins += 1
+                        elif s_diff < -args.tolerance:
+                            status = "loss"
+                            losses += 1
+                        else:
+                            status = "tie"
+                            ties += 1
+                        print(
+                            f"  Seed {seed}: Candidate={cand_s:.6f} vs Champion={champ_s:.6f} ({status}, diff={s_diff:+.6f})"
+                        )
+                    print(f"Comparison: {wins} wins, {losses} losses, {ties} ties")
 
             # Extract old breakdown
             old_breakdown = old_record.get("score_breakdown")
@@ -281,7 +376,20 @@ def main():
                     )
                 print("")
 
-            if diff < -args.tolerance:
+            # Evaluate success using the is_improvement function
+            is_better = is_improvement(result, champion, args.tolerance)
+
+            # Determine if this is a regression.
+            if new_per_seed and old_per_seed:
+                overlapping = [s for s in new_per_seed if s in old_per_seed]
+                if overlapping:
+                    is_regression = losses > wins
+                else:
+                    is_regression = diff < -args.tolerance
+            else:
+                is_regression = diff < -args.tolerance
+
+            if is_regression:
                 print("FAILURE: Regression detected.")
                 verdict = "rejected"
                 description = "Regression detected"
@@ -300,10 +408,10 @@ def main():
                 except Exception as le:
                     print(f"Warning: Failed to log attempt: {le}")
                 sys.exit(1)
-            elif abs(diff) <= args.tolerance:
-                print("Result matches champion (within tolerance).")
+            elif not is_better:
+                print("Result did not improve on champion (matches or below tolerance).")
                 verdict = "rejected"
-                description = "Result matches champion within tolerance"
+                description = "Result matches champion or did not improve"
             else:
                 print("SUCCESS: Improvement detected!")
                 verdict = "accepted"
