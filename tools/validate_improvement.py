@@ -56,7 +56,10 @@ def check_config_compatibility(
 
 
 def is_improvement(
-    new_result: dict[str, Any], champion_data: dict[str, Any] | None, tolerance: float = 1e-9
+    new_result: dict[str, Any],
+    champion_data: dict[str, Any] | None,
+    tolerance: float = 1e-9,
+    max_regression_pct: float = 0.10,
 ) -> bool:
     """Check if new result is strictly better than champion."""
     if not champion_data:
@@ -73,15 +76,32 @@ def is_improvement(
         # Compare overlapping seeds
         overlapping = [s for s in new_per_seed if s in old_per_seed]
         if overlapping:
+            mean_new = sum(float(new_per_seed[s]["score"]) for s in overlapping) / len(overlapping)
+            mean_old = sum(float(old_per_seed[s]["score"]) for s in overlapping) / len(overlapping)
+
+            # 1. Mean score must improve
+            if mean_new - mean_old <= tolerance:
+                return False
+
             wins = 0
             for seed in overlapping:
-                if (
-                    float(new_per_seed[seed]["score"]) - float(old_per_seed[seed]["score"])
-                    > tolerance
-                ):
+                cand_s = float(new_per_seed[seed]["score"])
+                chmp_s = float(old_per_seed[seed]["score"])
+
+                # 2. Check for catastrophic seed regression
+                if chmp_s > 0:
+                    regression_pct = (chmp_s - cand_s) / chmp_s
+                    if regression_pct > max_regression_pct:
+                        return False
+                elif cand_s < chmp_s:
+                    return False
+
+                if cand_s - chmp_s > tolerance:
                     wins += 1
-            # Majority of compared seeds must improve
+
+            # 3. Majority of compared seeds must improve
             return wins > len(overlapping) / 2
+
         # Fallback if no overlap: compare primary seeds if matching, or fall back to score
         champ_seed = champion_record.get("seed")
         if champ_seed is not None and str(champ_seed) in new_per_seed:
@@ -189,6 +209,12 @@ def main():
     )
     parser.add_argument(
         "--tolerance", type=float, default=1e-9, help="Floating point tolerance for equality"
+    )
+    parser.add_argument(
+        "--max-regression-pct",
+        type=float,
+        default=0.10,
+        help="Maximum relative drop allowed for any individual seed before it is considered a catastrophic regression (default: 0.10)",
     )
 
     args = parser.parse_args()
@@ -377,22 +403,58 @@ def main():
                 print("")
 
             # Evaluate success using the is_improvement function
-            is_better = is_improvement(result, champion, args.tolerance)
+            is_better = is_improvement(result, champion, args.tolerance, args.max_regression_pct)
 
             # Determine if this is a regression.
+            catastrophic_regression_found = False
+            mean_improved = True
             if new_per_seed and old_per_seed:
                 overlapping = [s for s in new_per_seed if s in old_per_seed]
                 if overlapping:
-                    is_regression = losses > wins
+                    mean_new = sum(float(new_per_seed[s]["score"]) for s in overlapping) / len(
+                        overlapping
+                    )
+                    mean_old = sum(float(old_per_seed[s]["score"]) for s in overlapping) / len(
+                        overlapping
+                    )
+                    if mean_new - mean_old <= args.tolerance:
+                        mean_improved = False
+
+                    for seed in overlapping:
+                        cand_s = float(new_per_seed[seed]["score"])
+                        chmp_s = float(old_per_seed[seed]["score"])
+                        if chmp_s > 0:
+                            regression_pct = (chmp_s - cand_s) / chmp_s
+                            if regression_pct > args.max_regression_pct:
+                                print(
+                                    f"CRITICAL: Catastrophic regression detected on seed {seed}: candidate={cand_s:.2f} vs champion={chmp_s:.2f} (drop of {regression_pct*100:.1f}%)"
+                                )
+                                catastrophic_regression_found = True
+                        elif cand_s < chmp_s:
+                            print(
+                                f"CRITICAL: Regression detected on seed {seed}: candidate={cand_s:.2f} vs champion={chmp_s:.2f}"
+                            )
+                            catastrophic_regression_found = True
+
+                    is_regression = (
+                        losses > wins or catastrophic_regression_found or not mean_improved
+                    )
                 else:
                     is_regression = diff < -args.tolerance
             else:
                 is_regression = diff < -args.tolerance
 
             if is_regression:
-                print("FAILURE: Regression detected.")
+                if catastrophic_regression_found:
+                    description = "Catastrophic regression detected"
+                    print("FAILURE: Catastrophic regression detected.")
+                elif not mean_improved:
+                    description = "Mean score did not improve"
+                    print("FAILURE: Mean score did not improve.")
+                else:
+                    description = "Regression detected (more losses than wins)"
+                    print("FAILURE: Regression detected.")
                 verdict = "rejected"
-                description = "Regression detected"
                 try:
                     from core.research.attempt_ledger import log_attempt
 
@@ -429,7 +491,7 @@ def main():
 
         # Update champion logic
         if args.update_champion:
-            if is_improvement(result, champion, args.tolerance):
+            if is_improvement(result, champion, args.tolerance, args.max_regression_pct):
                 new_champion_data = update_champion_data(champion, result)
 
                 with open(args.champion_path, "w", encoding="utf-8") as f:

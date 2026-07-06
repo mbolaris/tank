@@ -67,3 +67,84 @@ class TestValidateImprovement(unittest.TestCase):
         self.assertEqual(
             updated["champion"]["score_breakdown"], {"metric_a": 10.5, "metric_b": 20.0}
         )
+
+    def test_matrix_improvement_tightened_rules(self) -> None:
+        # Champion has matrix results: 3 seeds, score 100 on each
+        champion = {
+            "champion": {
+                "score": 100.0,
+                "per_seed": {
+                    "1": {"score": 100.0},
+                    "2": {"score": 100.0},
+                    "3": {"score": 100.0},
+                },
+                "scores": [100.0, 100.0, 100.0],
+                "seeds": [1, 2, 3],
+            }
+        }
+
+        # Case 1: 2 tiny wins + 1 huge loss (catastrophic regression)
+        # Seed 1: 101 (+1)
+        # Seed 2: 101 (+1)
+        # Seed 3: 10 (-90%) -> drops by > 10%
+        result_catastrophic = {
+            "score": 70.67,
+            "per_seed": {
+                "1": {"score": 101.0},
+                "2": {"score": 101.0},
+                "3": {"score": 10.0},
+            },
+            "scores": [101.0, 101.0, 10.0],
+            "seeds": [1, 2, 3],
+        }
+        self.assertFalse(validate_improvement.is_improvement(result_catastrophic, champion))
+
+        # Case 2: Mean did not improve
+        # Seed 1: 101 (+1)
+        # Seed 2: 101 (+1)
+        # Seed 3: 95 (-5%) -> acceptable drop under 10%, but mean is (101+101+95)/3 = 99 < 100
+        result_mean_worse = {
+            "score": 99.0,
+            "per_seed": {
+                "1": {"score": 101.0},
+                "2": {"score": 101.0},
+                "3": {"score": 95.0},
+            },
+            "scores": [101.0, 101.0, 95.0],
+            "seeds": [1, 2, 3],
+        }
+        self.assertFalse(validate_improvement.is_improvement(result_mean_worse, champion))
+
+        # Case 3: Majority did not win (1 win, 2 ties)
+        # Seed 1: 101 (+1)
+        # Seed 2: 100 (0)
+        # Seed 3: 100 (0)
+        # Mean is (101+100+100)/3 = 100.33 > 100
+        result_no_majority = {
+            "score": 100.33,
+            "per_seed": {
+                "1": {"score": 101.0},
+                "2": {"score": 100.0},
+                "3": {"score": 100.0},
+            },
+            "scores": [101.0, 100.0, 100.0],
+            "seeds": [1, 2, 3],
+        }
+        self.assertFalse(validate_improvement.is_improvement(result_no_majority, champion))
+
+        # Case 4: A real improvement (2 wins + 1 acceptable small loss, and mean improves)
+        # Seed 1: 105 (+5)
+        # Seed 2: 105 (+5)
+        # Seed 3: 95 (-5%) -> drop under 10%
+        # Mean is (105+105+95)/3 = 101.67 > 100
+        result_valid_improvement = {
+            "score": 101.67,
+            "per_seed": {
+                "1": {"score": 105.0},
+                "2": {"score": 105.0},
+                "3": {"score": 95.0},
+            },
+            "scores": [105.0, 105.0, 95.0],
+            "seeds": [1, 2, 3],
+        }
+        self.assertTrue(validate_improvement.is_improvement(result_valid_improvement, champion))

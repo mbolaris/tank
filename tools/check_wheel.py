@@ -29,6 +29,11 @@ def main():
     try:
         # 2. Build the wheel
         print("Building wheel...")
+        try:
+            import pip  # noqa: F401
+        except ImportError:
+            print("pip not found in current environment. Bootstrapping with ensurepip...")
+            subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], capture_output=True)
         # We use pip wheel to build without installing build package
         run_cmd(
             [sys.executable, "-m", "pip", "wheel", ".", "--no-deps", "-w", temp_dir], cwd=workspace
@@ -97,6 +102,11 @@ def main():
         else:
             venv_python = os.path.join(venv_dir, "bin", "python")
             venv_pip = os.path.join(venv_dir, "bin", "pip")
+
+        # Bootstrapping pip inside test venv if pip is missing (e.g. in uv envs)
+        if not os.path.exists(venv_pip):
+            print("pip not found in test venv. Bootstrapping via ensurepip...")
+            run_cmd([venv_python, "-m", "ensurepip", "--upgrade"])
 
         print("Installing wheel in venv...")
         run_cmd([venv_pip, "install", wheel_path])

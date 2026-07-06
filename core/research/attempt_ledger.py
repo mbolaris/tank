@@ -9,7 +9,9 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 import time
+import uuid
 from pathlib import Path
 
 
@@ -66,6 +68,19 @@ def log_attempt(
     description: str | None = None,
     timestamp: float | None = None,
     ledger_path: str | Path | None = None,
+    attempt_id: str | None = None,
+    parent_attempt_id: str | None = None,
+    base_commit: str | None = None,
+    agent_model: str | None = None,
+    prompt_template_id: str | None = None,
+    files_changed: list[str] | None = None,
+    tests_run: list[str] | str | None = None,
+    benchmark_command: str | None = None,
+    duration: float | None = None,
+    exit_code: int | None = None,
+    failure_reason: str | None = None,
+    accepted_by_gate: bool | None = None,
+    champion_updated: bool | None = None,
 ) -> None:
     """Log an evaluation attempt to the append-only ledger research/attempts.jsonl.
 
@@ -80,9 +95,92 @@ def log_attempt(
         description: Description of the change/attempt.
         timestamp: Unix timestamp for the log.
         ledger_path: Custom path to write the ledger. Defaults to research/attempts.jsonl under project root.
+        attempt_id: A generated UUID string or similar unique identifier.
+        parent_attempt_id: UUID of the parent attempt this build inherits from.
+        base_commit: Git commit hash of base commit before modification.
+        agent_model: Specific LLM/model descriptor used.
+        prompt_template_id: Specific template or version of the prompt/system message.
+        files_changed: List of files modified in this attempt.
+        tests_run: List/string of tests executed.
+        benchmark_command: Exact CLI command run for benchmark.
+        duration: Elapsed wall-clock execution time for this attempt.
+        exit_code: Final return code of run.
+        failure_reason: Error/failure description if candidate errored.
+        accepted_by_gate: Whether local/CI gates passed.
+        champion_updated: Whether this attempt successfully became the new champion.
     """
     if timestamp is None:
         timestamp = time.time()
+
+    # Generate attempt ID if not provided
+    if attempt_id is None:
+        attempt_id = str(uuid.uuid4())
+
+    # Detect base commit
+    if base_commit is None:
+        try:
+            res = subprocess.run(
+                ["git", "rev-parse", "HEAD~1"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res.returncode == 0:
+                base_commit = res.stdout.strip()
+        except Exception:
+            pass
+
+    # Detect files changed
+    if files_changed is None:
+        try:
+            files = []
+            # Modified and staged changes
+            res_diff = subprocess.run(
+                ["git", "diff", "--name-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res_diff.returncode == 0 and res_diff.stdout.strip():
+                files.extend(res_diff.stdout.strip().splitlines())
+
+            res_cached = subprocess.run(
+                ["git", "diff", "--cached", "--name-only"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res_cached.returncode == 0 and res_cached.stdout.strip():
+                files.extend(res_cached.stdout.strip().splitlines())
+
+            # Untracked files
+            res_status = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if res_status.returncode == 0 and res_status.stdout.strip():
+                for line in res_status.stdout.strip().splitlines():
+                    if line.startswith("?? "):
+                        files.append(line[3:])
+            files_changed = sorted(set(files))
+        except Exception:
+            pass
+
+    # Detect model
+    if not agent_model:
+        agent_model = os.environ.get("AGENT_MODEL") or os.environ.get("MODEL_NAME")
+
+    # Detect prompt template ID
+    if not prompt_template_id:
+        prompt_template_id = os.environ.get("PROMPT_TEMPLATE_ID") or os.environ.get(
+            "SYSTEM_PROMPT_VERSION"
+        )
+
+    # Detect benchmark command
+    if not benchmark_command:
+        benchmark_command = " ".join(sys.argv)
 
     # Attempt to auto-detect agent_id if not provided
     if not agent_id:
@@ -130,7 +228,12 @@ def log_attempt(
         "timestamp_iso": datetime.datetime.fromtimestamp(
             timestamp, tz=datetime.timezone.utc
         ).isoformat(),
+        "attempt_id": attempt_id,
+        "parent_attempt_id": parent_attempt_id,
+        "base_commit": base_commit,
         "agent_id": agent_id,
+        "agent_model": agent_model,
+        "prompt_template_id": prompt_template_id,
         "benchmark_id": benchmark_id,
         "seed": seed,
         "candidate_score": candidate_score,
@@ -141,6 +244,14 @@ def log_attempt(
         "branch": git_info["branch"],
         "commit": git_info["commit"],
         "diff_stat": git_info["diff_stat"],
+        "files_changed": files_changed,
+        "tests_run": tests_run,
+        "benchmark_command": benchmark_command,
+        "duration": duration,
+        "exit_code": exit_code,
+        "failure_reason": failure_reason,
+        "accepted_by_gate": accepted_by_gate,
+        "champion_updated": champion_updated,
     }
 
     if ledger_path is None:
