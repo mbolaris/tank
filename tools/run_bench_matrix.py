@@ -18,7 +18,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.run_bench import load_benchmark_module, run_benchmark, expected_runtime_seconds
-from tools.validate_improvement import get_champion_record, check_config_compatibility
+from tools.validate_improvement import (
+    get_champion_record,
+    check_config_compatibility,
+    is_improvement,
+)
 from core.solutions.config_hash import compute_config_hash
 from core.research.attempt_ledger import log_attempt
 
@@ -41,6 +45,12 @@ def main():
         type=float,
         default=1e-9,
         help="Floating point tolerance for score comparison",
+    )
+    parser.add_argument(
+        "--max-regression-pct",
+        type=float,
+        default=0.10,
+        help="Maximum relative drop allowed for any individual seed before it is considered a catastrophic regression (default: 0.10)",
     )
 
     args = parser.parse_args()
@@ -168,15 +178,17 @@ def main():
             )
             sys.exit(1)
 
-        # Compare scores
-        # We need to decide if we beat the champion on a majority of seeds.
-        # Let's see if the champion has multi-seed results recorded.
-        champ_per_seed = champion_record.get("per_seed", {})
+        # Compare scores using the unified is_improvement rules
+        is_better = is_improvement(result, champion_data, args.tolerance, args.max_regression_pct)
 
+        champ_per_seed = champion_record.get("per_seed", {})
         wins = 0
         losses = 0
         ties = 0
         compared_seeds = []
+
+        catastrophic_regression_found = False
+        mean_improved = True
 
         for seed in seeds:
             seed_str = str(seed)
@@ -192,7 +204,30 @@ def main():
                 else:
                     ties += 1
 
+                # Check for catastrophic regression
+                if champ_s > 0:
+                    regression_pct = (champ_s - cand_s) / champ_s
+                    if regression_pct > args.max_regression_pct:
+                        print(
+                            f"CRITICAL: Catastrophic regression detected on seed {seed}: candidate={cand_s:.2f} vs champion={champ_s:.2f} (drop of {regression_pct*100:.1f}%)"
+                        )
+                        catastrophic_regression_found = True
+                elif cand_s < champ_s:
+                    print(
+                        f"CRITICAL: Regression detected on seed {seed}: candidate={cand_s:.2f} vs champion={champ_s:.2f}"
+                    )
+                    catastrophic_regression_found = True
+
         if compared_seeds:
+            mean_new = sum(float(per_seed[str(s)]["score"]) for s in compared_seeds) / len(
+                compared_seeds
+            )
+            mean_old = sum(float(champ_per_seed[str(s)]["score"]) for s in compared_seeds) / len(
+                compared_seeds
+            )
+            if mean_new - mean_old <= args.tolerance:
+                mean_improved = False
+
             print(f"\nSeed-by-seed comparison (n={len(compared_seeds)} overlapping seeds):")
             for seed in compared_seeds:
                 seed_str = str(seed)
@@ -204,11 +239,11 @@ def main():
 
             n_compared = len(compared_seeds)
             print(f"Comparison summary: {wins} wins, {losses} losses, {ties} ties")
-
-            # Majority win is defined as wins > n_compared / 2
-            is_better = wins > (n_compared / 2)
-            verdict = "accepted" if is_better else "rejected"
             desc = f"Matrix: {wins}/{n_compared} wins, {losses} losses, {ties} ties"
+            if catastrophic_regression_found:
+                desc += " (Catastrophic regression detected)"
+            elif not mean_improved:
+                desc += " (Mean score did not improve)"
         else:
             # Fallback if no overlapping seeds:
             # Check if champion is single-seed on primary seed or seed 42
@@ -217,8 +252,6 @@ def main():
                 cand_s = per_seed[str(champ_seed)]["score"]
                 champ_s = float(champion_record["score"])
                 diff = cand_s - champ_s
-                is_better = diff > args.tolerance
-                verdict = "accepted" if is_better else "rejected"
                 desc = f"Matrix fallback (seed {champ_seed}): Candidate={cand_s:.6f} vs Champion={champ_s:.6f} (diff={diff:+.6f})"
                 print(f"\nComparing on matching seed {champ_seed}:")
                 print(f"  {desc}")
@@ -227,11 +260,11 @@ def main():
                 cand_s = mean_score
                 champ_s = float(champion_record["score"])
                 diff = cand_s - champ_s
-                is_better = diff > args.tolerance
-                verdict = "accepted" if is_better else "rejected"
                 desc = f"Matrix fallback (mean): Candidate mean={cand_s:.6f} vs Champion score={champ_s:.6f} (diff={diff:+.6f})"
                 print("\nComparing mean vs single champion score:")
                 print(f"  {desc}")
+
+        verdict = "accepted" if is_better else "rejected"
 
         log_attempt(
             benchmark_id=benchmark_id,
@@ -244,7 +277,16 @@ def main():
         )
 
         if not is_better:
-            print("\nFAILURE: Candidate failed to improve on the champion.")
+            if catastrophic_regression_found:
+                print(
+                    "\nFAILURE: Candidate failed to improve on the champion due to a catastrophic regression."
+                )
+            elif not mean_improved:
+                print(
+                    "\nFAILURE: Candidate failed to improve on the champion because the mean score did not improve."
+                )
+            else:
+                print("\nFAILURE: Candidate failed to improve on the champion.")
             sys.exit(1)
         else:
             print("\nSUCCESS: Candidate improved on the champion!")
