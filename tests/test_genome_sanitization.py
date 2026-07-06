@@ -2,6 +2,7 @@
 
 import math
 import random
+from typing import Any
 
 import pytest
 
@@ -105,7 +106,7 @@ class TestSanitizeDict:
 
     def test_deep_nesting_blocked(self):
         # Create deeply nested dict
-        d = {"leaf": 1}
+        d: dict[str, Any] = {"leaf": 1}
         for _ in range(20):
             d = {"nested": d}
         result = sanitize_dict(d, max_depth=3)

@@ -6,13 +6,16 @@ for transferring between tanks.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast
 
 from core.entities.fish import Fish
 from core.entities.plant import Plant
 from core.entities.predators import Crab
 from core.genetics import Genome, PlantGenome
 from core.movement_strategy import AlgorithmicMovement
+
+if TYPE_CHECKING:
+    from core.worlds.interfaces import MultiAgentWorldBackend
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +35,12 @@ class NoRootSpotsError(Exception):
     pass
 
 
+T = TypeVar("T")
+
+
 @dataclass(frozen=True)
-class TransferOutcome:
-    value: Any | None = None
+class TransferOutcome(Generic[T]):
+    value: T | None = None
     error: TransferError | None = None
 
     @property
@@ -54,39 +60,45 @@ class EntityTransferCodec(Protocol):
 
     type_name: str
 
-    def can_serialize(self, entity: Any) -> bool:
+    def can_serialize(self, entity: object) -> bool:
         """Return True if this codec can serialize *entity*."""
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
+    def serialize(self, entity: object, ctx: TransferContext) -> SerializedEntity:
         """Serialize *entity* into a JSON-compatible dict."""
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
+    def deserialize(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> Fish | Plant | Crab | None:
         """Deserialize *data* into an entity in *target_world*."""
 
 
 class FishTransferCodec:
     type_name = "fish"
 
-    def can_serialize(self, entity: Any) -> bool:
+    def can_serialize(self, entity: object) -> bool:
         return isinstance(entity, Fish)
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> dict[str, Any]:
-        return _serialize_fish(entity)
+    def serialize(self, entity: object, ctx: TransferContext) -> dict[str, Any]:
+        return _serialize_fish(cast(Fish, entity))
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
+    def deserialize(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> Fish | None:
         return _deserialize_fish(data, target_world)
 
 
 class PlantTransferCodec:
     type_name = "plant"
 
-    def can_serialize(self, entity: Any) -> bool:
+    def can_serialize(self, entity: object) -> bool:
         return isinstance(entity, Plant)
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
-        return _serialize_plant(entity, ctx.migration_direction)
+    def serialize(self, entity: object, ctx: TransferContext) -> SerializedEntity:
+        return _serialize_plant(cast(Plant, entity), ctx.migration_direction)
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
+    def deserialize(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> Plant | None:
         return _deserialize_plant(data, target_world)
 
 
@@ -95,13 +107,15 @@ class CrabTransferCodec:
 
     type_name = "crab"
 
-    def can_serialize(self, entity: Any) -> bool:
+    def can_serialize(self, entity: object) -> bool:
         return isinstance(entity, Crab)
 
-    def serialize(self, entity: Any, ctx: TransferContext) -> SerializedEntity:
-        return _serialize_crab(entity)
+    def serialize(self, entity: object, ctx: TransferContext) -> SerializedEntity:
+        return _serialize_crab(cast(Crab, entity))
 
-    def deserialize(self, data: SerializedEntity, target_world: Any) -> Any | None:
+    def deserialize(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> Crab | None:
         return _deserialize_crab(data, target_world)
 
 
@@ -144,7 +158,7 @@ class TransferRegistry:
         self.codecs.append(codec)
         self.codecs_by_type[codec.type_name] = codec
 
-    def codec_for_entity(self, entity: Any) -> EntityTransferCodec | None:
+    def codec_for_entity(self, entity: object) -> EntityTransferCodec | None:
         for codec in self.codecs:
             try:
                 if codec.can_serialize(entity):
@@ -158,7 +172,9 @@ class TransferRegistry:
                 )
         return None
 
-    def try_serialize_entity(self, entity: Any, ctx: TransferContext) -> TransferOutcome:
+    def try_serialize_entity(
+        self, entity: object, ctx: TransferContext
+    ) -> TransferOutcome[SerializedEntity]:
         codec = self.codec_for_entity(entity)
         if codec is None:
             return TransferOutcome(
@@ -200,7 +216,7 @@ class TransferRegistry:
         payload["type"] = codec.type_name
         return TransferOutcome(value=payload)
 
-    def serialize_entity(self, entity: Any, ctx: TransferContext) -> SerializedEntity | None:
+    def serialize_entity(self, entity: object, ctx: TransferContext) -> SerializedEntity | None:
         outcome = self.try_serialize_entity(entity, ctx)
         if not outcome.ok:
             logger.warning(
@@ -213,9 +229,11 @@ class TransferRegistry:
             return None
         if outcome.value is None:
             return None
-        return cast(SerializedEntity, outcome.value)
+        return outcome.value
 
-    def try_deserialize_entity(self, data: SerializedEntity, target_world: Any) -> TransferOutcome:
+    def try_deserialize_entity(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> TransferOutcome[Fish | Plant | Crab]:
         if not isinstance(data, dict):
             return TransferOutcome(
                 error=TransferError(
@@ -271,7 +289,9 @@ class TransferRegistry:
             )
         return TransferOutcome(value=entity)
 
-    def deserialize_entity(self, data: SerializedEntity, target_world: Any) -> Any | None:
+    def deserialize_entity(
+        self, data: SerializedEntity, target_world: MultiAgentWorldBackend
+    ) -> Fish | Plant | Crab | None:
         outcome = self.try_deserialize_entity(data, target_world)
         if not outcome.ok:
             if outcome.error and outcome.error.code == "no_root_spots":
@@ -309,7 +329,7 @@ def register_transfer_codec(codec: EntityTransferCodec) -> None:
 
 
 def serialize_entity_for_transfer(
-    entity: Any, migration_direction: str | None = None
+    entity: object, migration_direction: str | None = None
 ) -> SerializedEntity | None:
     """Serialize an entity for transfer to another tank.
 
@@ -325,19 +345,19 @@ def serialize_entity_for_transfer(
 
 
 def try_serialize_entity_for_transfer(
-    entity: Any, migration_direction: str | None = None
-) -> TransferOutcome:
+    entity: object, migration_direction: str | None = None
+) -> TransferOutcome[SerializedEntity]:
     ctx = TransferContext(migration_direction=_normalize_migration_direction(migration_direction))
     return DEFAULT_REGISTRY.try_serialize_entity(entity, ctx)
 
 
-def _serialize_fish(fish: Any) -> SerializedEntity:
+def _serialize_fish(fish: Fish) -> SerializedEntity:
     """Serialize a Fish entity."""
     mutable_state = capture_fish_mutable_state(fish)
     return finalize_fish_serialization(fish, mutable_state)
 
 
-def capture_fish_mutable_state(fish: Any) -> dict[str, Any]:
+def capture_fish_mutable_state(fish: Fish) -> dict[str, Any]:
     """Capture mutable state of a fish that must be read under lock."""
     # Capture genome parameters if they are mutable
     # We capture them as dicts here to ensure thread safety
@@ -359,7 +379,7 @@ def capture_fish_mutable_state(fish: Any) -> dict[str, Any]:
     }
 
 
-def finalize_fish_serialization(fish: Any, mutable_state: dict[str, Any]) -> SerializedEntity:
+def finalize_fish_serialization(fish: Fish, mutable_state: dict[str, Any]) -> SerializedEntity:
     """Construct full fish serialization using captured mutable state."""
     return {
         "type": "fish",
@@ -382,14 +402,14 @@ def finalize_fish_serialization(fish: Any, mutable_state: dict[str, Any]) -> Ser
     }
 
 
-def _serialize_plant(plant: Any, migration_direction: str | None = None) -> SerializedEntity:
+def _serialize_plant(plant: Plant, migration_direction: str | None = None) -> SerializedEntity:
     """Serialize a Plant entity."""
     mutable_state = capture_plant_mutable_state(plant, migration_direction)
     return finalize_plant_serialization(plant, mutable_state)
 
 
 def capture_plant_mutable_state(
-    plant: Any, migration_direction: str | None = None
+    plant: Plant, migration_direction: str | None = None
 ) -> dict[str, Any]:
     """Capture mutable state of a plant that must be read under lock."""
     root_spot_id = plant.root_spot.spot_id if plant.root_spot else None
@@ -410,7 +430,7 @@ def capture_plant_mutable_state(
     }
 
 
-def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> SerializedEntity:
+def finalize_plant_serialization(plant: Plant, mutable_state: dict[str, Any]) -> SerializedEntity:
     """Construct full plant serialization using captured mutable state."""
     return {
         "type": "plant",
@@ -455,7 +475,9 @@ def finalize_plant_serialization(plant: Any, mutable_state: dict[str, Any]) -> S
     }
 
 
-def deserialize_entity(data: dict[str, Any], target_world: Any) -> Any | None:
+def deserialize_entity(
+    data: SerializedEntity, target_world: MultiAgentWorldBackend
+) -> Fish | Plant | Crab | None:
     """Deserialize entity data and create a new entity in the target world.
 
     Args:
@@ -468,11 +490,13 @@ def deserialize_entity(data: dict[str, Any], target_world: Any) -> Any | None:
     return DEFAULT_REGISTRY.deserialize_entity(data, target_world)
 
 
-def try_deserialize_entity(data: dict[str, Any], target_world: Any) -> TransferOutcome:
+def try_deserialize_entity(
+    data: SerializedEntity, target_world: MultiAgentWorldBackend
+) -> TransferOutcome[Fish | Plant | Crab]:
     return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
-def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
+def _deserialize_fish(data: SerializedEntity, target_world: MultiAgentWorldBackend) -> Fish | None:
     """Deserialize and create a Fish entity."""
     try:
         if not _require_keys(
@@ -538,7 +562,9 @@ def _deserialize_fish(data: dict[str, Any], target_world: Any) -> Any | None:
         return None
 
 
-def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
+def _deserialize_plant(
+    data: SerializedEntity, target_world: MultiAgentWorldBackend
+) -> Plant | None:
     """Deserialize and create a Plant entity."""
     try:
         if not _require_keys(
@@ -644,7 +670,7 @@ def _deserialize_plant(data: dict[str, Any], target_world: Any) -> Any | None:
         return None
 
 
-def _serialize_crab(crab: Any) -> SerializedEntity:
+def _serialize_crab(crab: Crab) -> SerializedEntity:
     """Serialize a Crab entity."""
     return {
         "type": "crab",
@@ -660,7 +686,7 @@ def _serialize_crab(crab: Any) -> SerializedEntity:
     }
 
 
-def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Any | None:
+def _deserialize_crab(data: SerializedEntity, target_world: MultiAgentWorldBackend) -> Crab | None:
     """Deserialize and create a Crab entity."""
     try:
         if not _require_keys(data, ["x", "y"], entity_type="crab"):
@@ -668,8 +694,9 @@ def _deserialize_crab(data: dict[str, Any], target_world: Any) -> Any | None:
 
         # Resolve engine/environment from target_world
         engine = None
-        if hasattr(target_world, "world") and hasattr(target_world.world, "engine"):
-            engine = target_world.world.engine
+        world = getattr(target_world, "world", None)
+        if world is not None and hasattr(world, "engine"):
+            engine = world.engine
         elif hasattr(target_world, "engine"):
             engine = target_world.engine
 

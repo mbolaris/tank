@@ -111,15 +111,6 @@ with local runs. Use `tools/compare_fingerprint_streams.py` to report the first
 exact and rounded divergent frames.
 
 
-### 1.2 Score decomposition in benchmark output — `S` · ★★
-**Problem.** `survival_5k` reports a single opaque scalar
-(`avg_energy * avg_pop / 1000`). Agents can't tell whether to optimize energy or
-population.
-
-**Plan.** Have benchmarks emit a `score_breakdown` dict alongside the scalar
-(e.g. `{"energy": ..., "population": ..., "stability": ...}`), and surface the
-weakest component in `validate_improvement.py` output. No scoring change — just
-visibility.
 
 ### 1.4 Multi-seed validation for the AI agent — `M` · ★★
 **Problem.** `scripts/ai_code_evolution_agent.py` validates a proposed change on
@@ -254,9 +245,8 @@ safe, and it compounds. **Layer 2.**
   return/param tightened to `dict[str, float]`. Left `Callable[..., Any]`,
   `exec_locals`, and `to_dict`/`from_dict`/`metadata` alone (dynamically
   compiled callables and generic serialization - genuinely `Any`).
-- Next good candidates by hit count: `core/transfer/entity_transfer.py`,
-  `core/genetics/sanitization.py`, `core/services/stats/genetic_stats.py`,
-  `core/worlds/tank/backend.py` / `core/worlds/petri/backend.py`.
+- Next good candidates by hit count: `core/services/stats/genetic_stats.py`,
+  `core/worlds/tank/backend.py` / `core/worlds/petri/backend.py`. (Note: `core/transfer/entity_transfer.py` and `core/genetics/sanitization.py` are completed)
 
 ---
 
@@ -402,6 +392,8 @@ goals, assists, wins, tank identity, and net energy.
   actually exists.
 
 - **6.1 Strict type checking for core/simulation, core/worlds, and core/genetics.** Enabled mypy strictness overrides (`disallow_untyped_defs = true`, `disallow_incomplete_defs = true`) for the `core/simulation`, `core/worlds` (excluding internal tests), and `core/genetics` packages. Resolved untyped functions, arguments, and annotations across these packages, keeping all CI gates green.
+- **1.2 Score decomposition in benchmark output.** Verified that benchmarks (`survival_5k`, `ecosystem_health_10k`, `selection_response_10k`, and `training_3k/5k`) emit a `score_breakdown` dict, and `validate_improvement.py` dynamically extracts it, displays side-by-side comparison, and reports the weakest component.
+- **6.2 Retired Any in core/transfer/entity_transfer.py and core/genetics/sanitization.py.** Tightened typing by removing generic `Any` annotations, introducing concrete entity classes, parameterizing generic `TransferOutcome[T]`, and utilizing generic `object` types for external untrusted inputs. Enabled strict typing checks override in `pyproject.toml` for `core/transfer/`.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing

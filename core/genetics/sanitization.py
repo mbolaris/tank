@@ -14,7 +14,10 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from core.genetics.trait import TraitSpec
 
 MAX_STRING_LENGTH = 256
 MAX_DICT_DEPTH = 5
@@ -26,13 +29,13 @@ _SAFE_STRING_PATTERN = re.compile(r"^[a-zA-Z0-9_\-.:/ ]+$")
 
 
 def sanitize_float(
-    value: Any, default: float = 0.0, min_val: float = -1e6, max_val: float = 1e6
+    value: object, default: float = 0.0, min_val: float = -1e6, max_val: float = 1e6
 ) -> float:
     """Sanitize a value to a safe float. Handles None, NaN, Inf, strings, booleans."""
     if value is None or isinstance(value, bool):
         return default
     try:
-        f = float(value)
+        f = float(cast(Any, value))
     except (TypeError, ValueError, OverflowError):
         return default
     if math.isnan(f) or math.isinf(f):
@@ -40,18 +43,18 @@ def sanitize_float(
     return max(min_val, min(max_val, f))
 
 
-def sanitize_int(value: Any, default: int = 0, min_val: int = -1000, max_val: int = 1000) -> int:
+def sanitize_int(value: object, default: int = 0, min_val: int = -1000, max_val: int = 1000) -> int:
     """Sanitize a value to a safe integer."""
     if value is None or isinstance(value, bool):
         return default
     try:
-        i = int(value)
+        i = int(cast(Any, value))
     except (TypeError, ValueError, OverflowError):
         return default
     return max(min_val, min(max_val, i))
 
 
-def sanitize_string(value: Any, default: str = "", max_length: int = MAX_STRING_LENGTH) -> str:
+def sanitize_string(value: object, default: str = "", max_length: int = MAX_STRING_LENGTH) -> str:
     """Sanitize a value to a safe string. Rejects suspicious characters."""
     if not isinstance(value, str):
         return default
@@ -62,7 +65,7 @@ def sanitize_string(value: Any, default: str = "", max_length: int = MAX_STRING_
 
 
 def sanitize_dict(
-    value: Any,
+    value: object,
     max_keys: int = MAX_DICT_KEYS,
     max_depth: int = MAX_DICT_DEPTH,
     _current_depth: int = 0,
@@ -89,7 +92,7 @@ def sanitize_dict(
 
 
 def sanitize_float_params(
-    params: Any,
+    params: object,
     min_val: float = -10.0,
     max_val: float = 10.0,
     max_count: int = MAX_PARAM_COUNT,
@@ -108,7 +111,7 @@ def sanitize_float_params(
     return result if result else None
 
 
-def sanitize_mate_preferences(prefs: Any) -> dict[str, float]:
+def sanitize_mate_preferences(prefs: object) -> dict[str, float]:
     """Sanitize mate preference dictionary. Clamps weights to [0, 1]."""
     if not isinstance(prefs, dict):
         return {}
@@ -126,7 +129,7 @@ def sanitize_mate_preferences(prefs: Any) -> dict[str, float]:
     return result
 
 
-def sanitize_genome_dict(data: Any) -> dict[str, Any]:
+def sanitize_genome_dict(data: object) -> dict[str, Any]:
     """Sanitize an entire genome dictionary from an untrusted source.
 
     Main entry point for external genome data. Replaces invalid values with safe
@@ -148,7 +151,7 @@ def sanitize_genome_dict(data: Any) -> dict[str, Any]:
     return result
 
 
-def _sanitize_trait_from_spec(data: dict[str, Any], spec: Any) -> Any:
+def _sanitize_trait_from_spec(data: dict[str, Any], spec: TraitSpec) -> int | float:
     """Sanitize a single trait value using its TraitSpec."""
     mid = (spec.min_val + spec.max_val) / 2
     if spec.discrete:
@@ -277,7 +280,7 @@ def _sanitize_trait_meta(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def validate_external_genome(data: Any) -> dict[str, Any]:
+def validate_external_genome(data: object) -> dict[str, Any]:
     """Validate and report on an external genome contribution.
 
     Unlike sanitize_genome_dict which silently fixes problems, this reports
