@@ -240,11 +240,31 @@ The `# No overrides` line in `pyproject.toml`'s mypy section is where the
 per-module override block goes.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
-Grep `core/` for `: Any`, `-> Any`, and `[Any]` (306 hits today) and replace
-the easy ones with real types — start with the entity/state modules a benchmark
-touches every frame (`core/entities/fish.py`, `backend/state_payloads.py`).
+Grep `core/` for `: Any`, `-> Any`, and `[Any]` (324 hits re-measured 2026-07;
+note this pattern misses generic-parameterized forms like `dict[str, Any]` -
+a plain `\bAny\b` count is ~900) and replace the easy ones with real types.
 Each PR: pick one module, remove its `Any`s, keep `mypy core/` green. Small,
 safe, and it compounds. **Layer 2.**
+
+**Progress / notes for the next agent:**
+- `core/entities/fish.py` — already `Any`-free, nothing to do.
+- `backend/state_payloads.py` — checked 2026-07; nearly every remaining `Any`
+  is `to_dict() -> dict[str, Any]` or a `dict[str, Any]` field on a payload
+  dataclass that generically mirrors heterogeneous wire data (genome blobs,
+  render hints, gene distributions). `Any` is the honest type there; making it
+  precise means per-payload `TypedDict`s, which is really option (a) of 7.1
+  (generate TS types from the Python models), not a small mechanical fix. Don't
+  pick this file for 6.2 - pick it up under 7.1 instead.
+- `core/code_pool/pool.py` (Completed) — `rng: Any` on the builtin
+  movement/soccer policies tightened to `random.Random | None` (verified
+  against every call site); `_scaled_param`/`_steer_action`/
+  `_soccer_policy_core`/the three soccer policy functions' `dict[str, Any]`
+  return/param tightened to `dict[str, float]`. Left `Callable[..., Any]`,
+  `exec_locals`, and `to_dict`/`from_dict`/`metadata` alone (dynamically
+  compiled callables and generic serialization - genuinely `Any`).
+- Next good candidates by hit count: `core/transfer/entity_transfer.py`,
+  `core/genetics/sanitization.py`, `core/services/stats/genetic_stats.py`,
+  `core/worlds/tank/backend.py` / `core/worlds/petri/backend.py`.
 
 ---
 
