@@ -162,6 +162,10 @@ class Food(MobileEntity):
         """Check if food is fully consumed."""
         return self.energy <= 0.1  # Small threshold for float comparison
 
+    def is_consumed(self) -> bool:
+        """Check if food has been consumed (Consumable protocol)."""
+        return self.is_fully_consumed()
+
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
