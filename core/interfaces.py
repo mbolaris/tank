@@ -578,6 +578,7 @@ class Mortal(Protocol):
         ...
 
 
+@runtime_checkable
 class Reproducible(Protocol):
     """Any entity that can reproduce.
 

@@ -62,6 +62,11 @@ class ReproductionMixin:
     pos: Vector2
     visual_state: FishVisualState
 
+    @property
+    def reproduction_cooldown(self) -> int:
+        """Frames until this fish can reproduce again (Reproducible protocol)."""
+        return self._reproduction_component.reproduction_cooldown
+
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce (delegates to ReproductionComponent)."""
         fish = cast("Fish", self)
