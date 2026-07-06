@@ -8,7 +8,7 @@ import {
     type ChangeEvent,
     type ReactNode,
 } from 'react';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
 import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
@@ -51,9 +51,16 @@ const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
     { id: 'genetics', label: 'Genetics', icon: '🧬' },
 ];
 
+const CONNECTION_STATUS_DISPLAY: Record<ConnectionStatus, { label: string; color: string }> = {
+    live: { label: 'LIVE', color: 'var(--color-success)' },
+    connecting: { label: 'CONNECTING', color: 'var(--color-primary)' },
+    reconnecting: { label: 'RECONNECTING', color: 'var(--color-warning)' },
+};
+
 export function TankView({ worldId }: TankViewProps) {
-    const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
+    const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
+    const [renderFps, setRenderFps] = useState<number | null>(null);
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
@@ -190,13 +197,15 @@ export function TankView({ worldId }: TankViewProps) {
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
-                            className={`status-dot ${isConnected ? 'online' : 'offline'}`}
+                            className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
                             style={{
                                 width: 8,
                                 height: 8,
                                 borderRadius: '50%',
-                                background: isConnected ? 'var(--color-success)' : 'var(--color-warning)',
-                                boxShadow: isConnected ? '0 0 8px var(--color-success)' : 'none',
+                                background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
+                                boxShadow: connectionStatus === 'live'
+                                    ? '0 0 8px var(--color-success)'
+                                    : 'none',
                             }}
                         />
                         <span
@@ -207,7 +216,7 @@ export function TankView({ worldId }: TankViewProps) {
                                 letterSpacing: '0.05em',
                             }}
                         >
-                            {isConnected ? 'LIVE' : 'OFFLINE'}
+                            {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
                         </span>
                     </div>
 
@@ -371,8 +380,31 @@ export function TankView({ worldId }: TankViewProps) {
                         showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
+                        onRenderFps={setRenderFps}
                     />
                     <div className="canvas-glow" aria-hidden />
+                    <div className="canvas-hud">
+                        <div className="hud-group">
+                            <div className="hud-item">
+                                <span
+                                    className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
+                                    style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: '50%',
+                                        background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
+                                    }}
+                                />
+                                {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
+                            </div>
+                        </div>
+                        <div className="hud-group">
+                            <div className="hud-item">
+                                <span className="hud-label">Render</span>
+                                {renderFps !== null ? `${Math.round(renderFps)} fps` : '—'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

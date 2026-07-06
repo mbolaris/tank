@@ -20,13 +20,19 @@ interface CanvasProps {
     style?: CSSProperties;
     viewMode?: ViewMode;
     worldType?: string;  // Optional override for renderer selection (e.g., 'petri' for circular dish)
+    /** Reports the render loop's own draw rate (~2x/sec), independent of simulation FPS. */
+    onRenderFps?: (fps: number) => void;
 }
+
+// How often to report the render-loop FPS sample (ms). Frequent enough to feel
+// live, coarse enough that it never itself becomes the render bottleneck.
+const FPS_REPORT_INTERVAL_MS = 500;
 
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
 
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, onRenderFps }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -91,6 +97,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const showSoccerRef = useRef(showSoccer);
     const viewModeRef = useRef(viewMode);
     const worldTypePropRef = useRef(worldTypeProp);
+    const onRenderFpsRef = useRef(onRenderFps);
 
     useEffect(() => {
         stateRef.current = state;
@@ -100,7 +107,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         showSoccerRef.current = showSoccer;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
+        onRenderFpsRef.current = onRenderFps;
+    }, [state, imagesLoaded, selectedEntityId, showEffects, showSoccer, viewMode, worldTypeProp, onRenderFps]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -143,7 +151,26 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
 
         let animationFrameId: number;
 
+        // Render-loop FPS tracking: counts actual requestAnimationFrame calls,
+        // independent of whether there's simulation data to draw. This exposes
+        // rendering bottlenecks (e.g. fractal plants) even when the backend
+        // itself is ticking at full speed.
+        let fpsFrameCount = 0;
+        let fpsWindowStart = 0;
+
         const renderLoop = () => {
+            const nowMs = performance.now();
+            if (fpsWindowStart === 0) {
+                fpsWindowStart = nowMs;
+            }
+            fpsFrameCount += 1;
+            const fpsWindowElapsed = nowMs - fpsWindowStart;
+            if (fpsWindowElapsed >= FPS_REPORT_INTERVAL_MS) {
+                onRenderFpsRef.current?.((fpsFrameCount * 1000) / fpsWindowElapsed);
+                fpsFrameCount = 0;
+                fpsWindowStart = nowMs;
+            }
+
             const currentState = stateRef.current;
 
             if (currentState && !error) {
@@ -197,7 +224,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         canvas,
                         ctx,
                         dpr: window.devicePixelRatio || 1,
-                        nowMs: performance.now()
+                        nowMs
                     });
                 } catch (err) {
                     console.error("Render loop error:", err);

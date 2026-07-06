@@ -10,9 +10,28 @@ import { config, EXPECTED_SCHEMA_VERSION } from '../config';
 // At 30fps over long sessions, this prevents 100k+ short-lived allocations per hour.
 const sharedTextDecoder = new TextDecoder();
 
+/** Connection lifecycle as seen from outside the hook: first attempt, live, or
+ * retrying after a drop. Distinct from `isConnected` (a plain boolean) so the
+ * UI can tell "never connected yet" apart from "was live, now recovering". */
+export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting';
+
+// Cap exponential backoff so a long outage still retries periodically instead
+// of growing unbounded.
+const MAX_RECONNECT_DELAY_MS = 30_000;
+
+/** Exponential backoff delay for reconnect attempt N (0-indexed), capped at maxDelayMs. */
+export function computeReconnectDelay(
+    attempt: number,
+    baseDelayMs: number,
+    maxDelayMs: number = MAX_RECONNECT_DELAY_MS
+): number {
+    return Math.min(baseDelayMs * 2 ** Math.max(0, attempt), maxDelayMs);
+}
+
 export function useWebSocket(worldId?: string) {
     const [state, setState] = useState<SimulationUpdate | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
     const [schemaError, setSchemaError] = useState<string | null>(null);
     const [connectedWorldId, setConnectedWorldId] = useState<string | null>(worldId ?? null);
     const wsRef = useRef<WebSocket | null>(null);
@@ -22,6 +41,8 @@ export function useWebSocket(worldId?: string) {
     const schemaMismatchRef = useRef(false);
     const responseCallbacksRef = useRef<Map<string, (data: CommandResponse) => void>>(new Map());
     const unmountedRef = useRef(false);  // Track if component is unmounted
+    const hasConnectedOnceRef = useRef(false);
+    const reconnectAttemptRef = useRef(0);
 
     const handleSchemaMismatch = useCallback((receivedVersion: unknown) => {
         if (schemaMismatchRef.current) return;
@@ -105,6 +126,9 @@ export function useWebSocket(worldId?: string) {
                     return;
                 }
                 setIsConnected(true);
+                setConnectionStatus('live');
+                hasConnectedOnceRef.current = true;
+                reconnectAttemptRef.current = 0;
             };
 
             ws.onmessage = (event) => {
@@ -150,11 +174,14 @@ export function useWebSocket(worldId?: string) {
 
                 // Only attempt to reconnect if component is still mounted
                 if (!unmountedRef.current && !schemaMismatchRef.current) {
+                    setConnectionStatus(hasConnectedOnceRef.current ? 'reconnecting' : 'connecting');
+                    const delay = computeReconnectDelay(reconnectAttemptRef.current, config.wsReconnectDelay);
+                    reconnectAttemptRef.current += 1;
                     reconnectTimeoutRef.current = window.setTimeout(() => {
                         if (connectRef.current && !unmountedRef.current) {
                             connectRef.current();
                         }
-                    }, config.wsReconnectDelay);
+                    }, delay);
                 }
             };
 
@@ -231,6 +258,7 @@ export function useWebSocket(worldId?: string) {
     return {
         state,
         isConnected,
+        connectionStatus,
         schemaError,
         sendCommand,
         sendCommandWithResponse,

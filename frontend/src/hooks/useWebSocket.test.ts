@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { SimulationUpdate, StatsData } from '../types/simulation';
-import { applyFullUpdate, routeCommandResponse } from './useWebSocket';
+import { applyFullUpdate, routeCommandResponse, computeReconnectDelay } from './useWebSocket';
 
 /**
  * Pure function to normalize a WorldUpdatePayload into SimulationUpdate format.
@@ -184,6 +184,26 @@ describe('WebSocket Update Normalization', () => {
         expect(result.metrics_history).toBe(history);
     });
 
+});
+
+describe('computeReconnectDelay', () => {
+    it('returns the base delay for the first attempt', () => {
+        expect(computeReconnectDelay(0, 3000)).toBe(3000);
+    });
+
+    it('doubles the delay for each subsequent attempt', () => {
+        expect(computeReconnectDelay(1, 3000)).toBe(6000);
+        expect(computeReconnectDelay(2, 3000)).toBe(12000);
+        expect(computeReconnectDelay(3, 3000)).toBe(24000);
+    });
+
+    it('caps the delay at maxDelayMs', () => {
+        expect(computeReconnectDelay(10, 3000, 30000)).toBe(30000);
+    });
+
+    it('treats negative attempts as the first attempt', () => {
+        expect(computeReconnectDelay(-1, 3000)).toBe(3000);
+    });
 });
 
 describe('Command response routing', () => {
