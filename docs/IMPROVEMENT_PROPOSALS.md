@@ -19,8 +19,10 @@ files to touch and a step-by-step plan, so you can pick one and follow it
 literally without holding the whole codebase in your head. Prefer the `S`
 (small) items tagged **Layer 2** — they don't change simulation results, so
 they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first pick right now: **6.2** (retire `Any` in one module - see the
-"Progress / notes for the next agent" list under it before picking a file).
+Good first pick right now: **9.1** (fix the broken wheel packaging — small,
+Layer 2, and it's the one confirmed hard defect in the repo). After that: **6.2**
+(retire `Any` in one module - see the "Progress / notes for the next agent"
+list under it before picking a file).
 Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
 change per PR.
 
@@ -31,6 +33,17 @@ change per PR.
 > exactly what those themes turn into concrete, pickup-able tasks. Counts cited
 > in them (`Any` usage, file lengths, test-file ratio) were re-measured against
 > the tree when the tasks were written; re-check before trusting a stale number.
+
+> **Themes 9–10, task 1.7, and the Theme 2 "round 2" list come from a second
+> external review (2026-07, also 82/100).** Its verdict: "Tank World is already
+> impressive as software. It is not yet defensible as a scientific paper until
+> the data pipeline catches up with the vision." It verified the smoke gate,
+> agent gate, mypy, black/ruff, frontend build/tests, and soccer benchmark
+> determinism all pass, and identified one hard defect (wheel packaging, 9.1)
+> plus the missing research instrumentation (Theme 10). Subscores: architecture
+> 84, test discipline 88, determinism 86, maintainability 74, research
+> readiness 72, **packaging 45**. File-size claims were re-verified against the
+> tree 2026-07-06 when these tasks were written.
 
 ---
 
@@ -133,15 +146,59 @@ dev tools and either install them or print the exact one-liner to do so, so a
 green run is achievable from `git clone` + one command. Complements shipped
 `scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
 
+### 1.7 Where does `survival_5k` time actually go? — `M` · ★★
+**Problem (external review #2, 2026-07).** The reviewer's sandbox could run
+short headless sims and the soccer benchmarks fine, but `tank/survival_5k` did
+not complete within a 5-minute limit — while its declared
+`EXPECTED_RUNTIME_SECONDS` is 45 and CI's benchmark gate assumes similar. Either
+the benchmark has a performance cliff on some environments (CPU, no-SIMD libm,
+cold caches), or its runtime scales badly with something population-dependent.
+Since this benchmark is a selection gate, an unexplained 10x+ runtime spread is
+a reliability problem, not just an annoyance.
+
+**Plan.**
+1. Add opt-in phase telemetry to the headless runner (`--profile-phases` or
+   env var): per-phase cumulative wall time (perception, decision, action,
+   resolution, stats collection, spatial grid, poker, soccer, reproduction),
+   printed at the end and included in `--export-stats` output. Layer 2 —
+   measurement only, no behavior change.
+2. Run `survival_5k` with it on a fast and a slow machine; identify the
+   dominant phase and whether cost grows superlinearly with population.
+3. Only then decide: optimize the hotspot (separate Layer 1/Layer 2 call
+   depending on whether trajectories change), or correct the declared budget
+   and CI timeout so the gate reflects reality.
+
+Builds on shipped 1.5 (runtime budgets) — that made runtime *visible*; this
+explains it. **Start with step 1 as its own PR.**
+
 ---
 
 ## Theme 2 — Tame the god files
 
-All three planned splits shipped (see the Shipped section), plus two more that
-turned out to be the worst offenders: `core/ecosystem.py` and
-`backend/simulation_runner.py`. Future splits should follow the same pattern:
-extracted collaborators + thin delegating facades, verified by the full fast
-gate and exact champion reproduction.
+Round 1 shipped (see the Shipped section): the three planned splits plus
+`core/ecosystem.py` and `backend/simulation_runner.py`. Future splits should
+follow the same pattern: extracted collaborators + thin delegating facades,
+verified by the full fast gate and exact champion reproduction.
+
+### 2.6 Round 2: the next worst offenders — `M` each · ★★
+**External review #2 (2026-07)** flagged a new crop; line counts re-verified
+against the tree 2026-07-06. Long files are "where AI-agent codebases start to
+rot": agents over-edit, duplicate logic, and miss invariants. One file per PR,
+same discipline as round 1. Ordered by leverage (how often agents touch it),
+not raw size:
+
+| File / item | Lines | Notes |
+| --- | ---: | --- |
+| `core/entities/fish.py` | 767 | `Fish.__init__` alone is ~190 lines; extract construction/wiring helpers. Champions must reproduce exactly. |
+| `core/mixed_poker/interaction.py::play_poker` | ~360-line method | Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
+| `backend/routers/worlds.py::setup_worlds_router` | ~300-line function | Split endpoint groups into module-level handlers or sub-routers. Layer 2. |
+| `core/algorithms/base.py` | 805 | Agents read this constantly when writing behaviors — clarity here compounds. |
+| `backend/state_payloads.py` | 804 | Coordinate with 7.1 (contract test / generated types) — don't split before deciding that. |
+| `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
+| `tools/evolution_report.py` | 1,032 | Lowest risk (tooling, no sim impact). Good warm-up split. Layer 2. |
+| `core/poker/human_poker_game.py` | 863 | Low traffic; do last. |
+
+Frontend renderers (`renderer.ts` 1,658, etc.) are already covered by **7.3**.
 
 ## Theme 3 — Consolidate the algorithm library
 
@@ -312,6 +369,126 @@ goals, assists, wins, tank identity, and net energy.
   remove the `reward_mode="credits"` path decisively rather than hiding it from
   the UI. This is a design decision — **confirm with a maintainer before
   deleting**, and keep it a separate PR from the encapsulation fix (Rule 1).
+
+---
+
+## Theme 9 — Packaging & release hygiene (external review #2, 2026-07)
+
+The review's one confirmed hard defect, and its lowest subscore (45/100).
+Reproducibility is central to the project, so "pip install the wheel and it
+imports" is table stakes.
+
+### 9.1 Fix broken wheel packaging + add a clean-install smoke test — `S` · ★★★
+**Problem (verified 2026-07-06 against `pyproject.toml`).** The build config is:
+
+```toml
+[tool.setuptools]
+packages = ["core", "backend"]
+```
+
+Setuptools treats this as an *explicit* package list — no recursion. A built
+wheel contains only top-level `core/*.py` and `backend/*.py` and **omits every
+subpackage**: `core.algorithms`, `core.genetics`, `core.entities`,
+`core.simulation`, `backend.routers`, etc. A wheel install then fails on
+imports like `core.simulation.engine` and `backend.routers.worlds`. The review
+reproduced this end-to-end (build → clean venv → import failure).
+
+**Plan.**
+1. Switch to package discovery in `pyproject.toml`:
+   ```toml
+   [tool.setuptools.packages.find]
+   where = ["."]
+   include = ["core*", "backend*"]
+   ```
+   Keep `py-modules = ["main"]` and the existing `package-data` (`py.typed`).
+   Make sure discovery does not accidentally pull in `tests*`, `tools*`,
+   `scripts*`, or `benchmarks*` (the `include` list above already excludes
+   them — verify with `python -m build` + `unzip -l` on the wheel).
+2. Add a CI job (or a step in an existing workflow) that builds the wheel,
+   installs it into a clean venv, and imports representative modules:
+   `core.algorithms.registry`, `core.genetics.genome`, `core.entities.fish`,
+   `core.simulation.engine`, `backend.routers.worlds`. A tiny
+   `tools/check_wheel.py` that does build+install+import keeps it runnable
+   locally too.
+3. Confirm `pip install -e .` still works (editable installs take a different
+   code path).
+
+No simulation code changes — pure **Layer 2**, `pre_pr_gate` is sufficient.
+
+---
+
+## Theme 10 — Research instrumentation: make the paper defensible (external review #2, 2026-07)
+
+The review's core message: the "AI agents as evolutionary operators" story is
+currently *a hypothesis plus a system design, not yet a dataset*. Accepted
+champions are recorded; rejected attempts are not. Single-seed wins are
+fragile. Agents can edit every ruler they are scored against. Until these
+close, reviewers will call the project an engineering artifact, not a
+scientific result. These are the highest-leverage improvements in the repo for
+the stated research goal.
+
+None of these change simulation behavior — all **Layer 2** — but they touch
+scoring/CI infrastructure, so keep each one a separate PR (Rule: Layer 2
+changes stay separate from Layer 1 improvements).
+
+### 10.1 Attempt ledger: log every attempt, not just wins — `M` · ★★★
+**The single highest-leverage research improvement.** Create
+`core/research/attempt_ledger.py` (path suggested by the review; adjust if a
+better home exists) plus an append-only data file (e.g.
+`research/attempts.jsonl`, one JSON object per line — merge-friendly).
+
+Each record: timestamp, agent/model identifier, benchmark id, seed(s),
+candidate score(s), champion score at the time, config hash, verdict
+(accepted / rejected / error), one-line description of the change, and the
+commit/branch or diff stat if available. Wire the *writing* of records into
+`tools/validate_improvement.py` (every comparison is an attempt) and
+`scripts/ai_code_evolution_agent.py`. Selection bias is the enemy: a ledger
+that only sees wins is worthless, so log at the point of *evaluation*, not the
+point of merge.
+
+### 10.2 Multi-seed benchmark matrix tooling — `M` · ★★★
+Single-seed wins are too fragile for ALife claims (CLAUDE.md already warns
+seed-42 ecosystem scores swing several percent on trajectory noise). Add
+`tools/run_bench_matrix.py`: run one benchmark across a seed list (default e.g.
+42, 7, 123, plus N more), emit mean ± stddev and per-seed scores as one JSON
+summary, and exit nonzero if the candidate doesn't beat the champion on a
+majority of seeds. Then let `validate_improvement.py` accept a matrix summary
+as evidence. Complements 1.4 (which wires multi-seed into the agent script) —
+this is the shared tool both should call.
+
+### 10.3 Held-out evaluators agents cannot edit — `L` · ★★★
+Agents can currently modify every benchmark they are scored against — the
+Goodhart loophole in "CI is selection" (the ecosystem_health objective is
+already known to be gameable; see EVOLVABILITY.md). Two parts:
+
+1. `benchmarks/heldout/` — evaluators that measure the same qualities via
+   different proxies than the visible benchmarks, run in CI but *not*
+   documented as optimization targets.
+2. `tools/check_locked_paths.py` + a CI step — fail any PR that touches a
+   locked path list (`benchmarks/heldout/`, champion metadata, the checker
+   itself) unless the PR carries an explicit maintainer override label.
+
+This is a *policy* mechanism, not cryptography — the goal is that an agent
+cannot silently move the goalposts in the same PR that claims a win. Design
+the locked-path list with a maintainer before implementing.
+
+### 10.4 Patch taxonomy: classify what mutations agents actually produce — `M` · ★★
+For the "Git as heredity" paper you need to know what kinds of mutations
+agents produce. Add `tools/classify_patch.py`: given a commit range or diff,
+classify it (parameter-tuning / logic-change / new-algorithm / refactor /
+benchmark-or-meta / docs) from the paths and diff shape, heuristics first.
+Emit JSON; store the label in the attempt ledger (10.1). Once the ledger
+exists, backfilling history via `git log` is a bonus follow-up. Depends on
+10.1 landing first.
+
+### 10.5 A non-AI baseline search method — `L` · ★★
+The paper's claim "AI agents are effective evolutionary operators" needs a
+control arm. Implement a dumb-but-honest baseline that proposes parameter
+perturbations within `ALGORITHM_PARAMETER_BOUNDS` (random search or a simple
+evolutionary strategy over `core/config/` + composable parameters), run
+through the *same* validation pipeline and logged to the *same* attempt
+ledger. The comparison "agent attempts vs. random-search attempts, same
+budget" is the paper's headline figure. Depends on 10.1 and 10.2.
 
 ---
 
