@@ -157,6 +157,22 @@ def main():
         config_error = check_config_compatibility(result, champion)
         if config_error:
             print(config_error)
+            try:
+                from core.research.attempt_ledger import log_attempt
+
+                log_attempt(
+                    benchmark_id=result.get("benchmark_id", "unknown"),
+                    verdict="error",
+                    candidate_score=float(result["score"]) if "score" in result else None,
+                    champion_score=(
+                        float(get_champion_record(champion)["score"]) if champion else None
+                    ),
+                    seed=result.get("seed"),
+                    config_hash=result.get("config_hash"),
+                    description=f"Config error: {config_error.splitlines()[0]}",
+                )
+            except Exception as le:
+                print(f"Warning: Failed to log attempt: {le}")
             sys.exit(1)
 
         new_score = float(result["score"])
@@ -174,9 +190,29 @@ def main():
                 json.dump(new_champion_data, f, indent=2)
             old = f"{float(get_champion_record(champion)['score']):.6f}" if champion else "none"
             print(f"Re-baselined {args.champion_path}: {old} -> {new_score:.6f}")
+            try:
+                from core.research.attempt_ledger import log_attempt
+
+                log_attempt(
+                    benchmark_id=result.get("benchmark_id", "unknown"),
+                    verdict="accepted",
+                    candidate_score=new_score,
+                    champion_score=(
+                        float(get_champion_record(champion)["score"]) if champion else None
+                    ),
+                    seed=result.get("seed"),
+                    config_hash=result.get("config_hash"),
+                    description=reason,
+                )
+            except Exception as le:
+                print(f"Warning: Failed to log attempt: {le}")
             return
 
         new_breakdown = result.get("score_breakdown")
+        champion_score = float(get_champion_record(champion)["score"]) if champion else None
+        verdict = "rejected"
+        description = "No improvement (matches or below tolerance)"
+
         if champion:
             old_record = get_champion_record(champion)
             old_score = old_record["score"]
@@ -247,13 +283,35 @@ def main():
 
             if diff < -args.tolerance:
                 print("FAILURE: Regression detected.")
+                verdict = "rejected"
+                description = "Regression detected"
+                try:
+                    from core.research.attempt_ledger import log_attempt
+
+                    log_attempt(
+                        benchmark_id=result.get("benchmark_id", "unknown"),
+                        verdict=verdict,
+                        candidate_score=new_score,
+                        champion_score=champion_score,
+                        seed=result.get("seed"),
+                        config_hash=result.get("config_hash"),
+                        description=description,
+                    )
+                except Exception as le:
+                    print(f"Warning: Failed to log attempt: {le}")
                 sys.exit(1)
             elif abs(diff) <= args.tolerance:
                 print("Result matches champion (within tolerance).")
+                verdict = "rejected"
+                description = "Result matches champion within tolerance"
             else:
                 print("SUCCESS: Improvement detected!")
+                verdict = "accepted"
+                description = "Improvement detected"
         else:
             print(f"New Score: {new_score:.6f} (Initial Champion)")
+            verdict = "accepted"
+            description = "Initial champion"
             if new_breakdown:
                 print("\nScore Breakdown:")
                 for key, val in sorted(new_breakdown.items()):
@@ -271,6 +329,21 @@ def main():
                 print(f"Updated champion at {args.champion_path}")
             else:
                 print("Not updating champion (not strictly better).")
+
+        try:
+            from core.research.attempt_ledger import log_attempt
+
+            log_attempt(
+                benchmark_id=result.get("benchmark_id", "unknown"),
+                verdict=verdict,
+                candidate_score=new_score,
+                champion_score=champion_score,
+                seed=result.get("seed"),
+                config_hash=result.get("config_hash"),
+                description=description,
+            )
+        except Exception as le:
+            print(f"Warning: Failed to log attempt: {le}")
 
     except Exception as e:
         print(f"Validation failed: {e}")
