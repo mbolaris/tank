@@ -1,13 +1,11 @@
 """Helpers for routing entity mutations through the engine."""
 
-from typing import Any
-
 
 def request_spawn(
-    entity: Any,
+    entity: object,
     *,
     reason: str = "",
-    metadata: dict[str, Any] | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> bool:
     """Request a spawn via the engine-backed mutation queue."""
     environment = getattr(entity, "environment", None)
@@ -26,11 +24,11 @@ def request_spawn(
 
 
 def request_spawn_in(
-    environment: Any,
-    entity: Any,
+    environment: object | None,
+    entity: object,
     *,
     reason: str = "",
-    metadata: dict[str, Any] | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> bool:
     """Request a spawn via the engine-backed mutation queue.
 
@@ -62,10 +60,10 @@ def request_spawn_in(
 
 
 def request_remove(
-    entity: Any,
+    entity: object,
     *,
     reason: str = "",
-    metadata: dict[str, Any] | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> bool:
     """Request a removal via the engine-backed mutation queue."""
     environment = getattr(entity, "environment", None)

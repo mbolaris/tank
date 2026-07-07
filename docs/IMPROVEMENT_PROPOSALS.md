@@ -284,17 +284,17 @@ Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
 mypy section is where the per-module override block goes.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
-Grep `core/` for `: Any`, `-> Any`, and `[Any]` (247 hits re-measured
-2026-07-06; note this pattern misses generic-parameterized forms like
-`dict[str, Any]`; a plain `\bAny\b` count is 778) and replace the easy ones
+Grep `core/` for `: Any`, `-> Any`, and `[Any]` (225 hits re-measured
+2026-07-07; note this pattern misses generic-parameterized forms like
+`dict[str, Any]`; a plain `\bAny\b` count is 716) and replace the easy ones
 with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
 green. Small, safe, and it compounds. **Layer 2.**
 
-**Already checked / completed:** `core/entities/fish.py` is already `Any`-free.
-Completed cleanup passes include `core/code_pool/pool.py`,
+**Already checked / completed:** Completed cleanup passes include `core/code_pool/pool.py`,
 `core/services/stats/genetic_stats.py`, `core/worlds/petri/backend.py`,
 `core/worlds/tank/backend.py`, `core/agents_wrapper.py`, `core/entity_ids.py`,
-`core/transfer/entity_transfer.py`, and `core/genetics/sanitization.py`.
+`core/entities/fish.py`, `core/transfer/entity_transfer.py`,
+`core/genetics/sanitization.py`, `core/util/rng.py`, and `core/util/mutations.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
 nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a
