@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
 
 from core.config.display import FRAME_RATE, SCREEN_HEIGHT, SCREEN_WIDTH
 from core.config.ecosystem import CRITICAL_POPULATION_THRESHOLD, MAX_POPULATION
@@ -21,7 +21,7 @@ TANK_MODE_DEFAULTS = {
 
 
 def normalize_tank_config(config: ModeConfig) -> ModeConfig:
-    normalized: dict[str, Any] = dict(config)
+    normalized: ModeConfig = dict(config)
 
     for key, default in TANK_MODE_DEFAULTS.items():
         normalized.setdefault(key, default)
@@ -31,7 +31,7 @@ def normalize_tank_config(config: ModeConfig) -> ModeConfig:
 
 def create_tank_mode_pack(
     *,
-    snapshot_builder_factory: Any | None = None,
+    snapshot_builder_factory: Callable[[], object] | None = None,
 ) -> ModePackDefinition:
     """Create the Tank mode pack with optional snapshot builder hook."""
     return ModePackDefinition(

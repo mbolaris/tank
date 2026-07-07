@@ -7,9 +7,10 @@ any world with tank-like agents (Tank, Petri, etc.).
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import SupportsFloat, SupportsIndex, cast
 
-from core.actions.action_registry import ActionSpace
+from core.actions.action_registry import ActionSpace, RawAction
 from core.brains.contracts import BrainAction
 
 # Backward-compatibility alias
@@ -51,7 +52,7 @@ class TankLikeActionTranslator:
             },
         }
 
-    def translate_action(self, agent_id: str, raw_action: Any) -> Action:
+    def translate_action(self, agent_id: str, raw_action: RawAction) -> Action:
         """Translate raw action to Action.
 
         Handles multiple input formats:
@@ -71,18 +72,22 @@ class TankLikeActionTranslator:
             return raw_action
 
         # Extract velocity from dict
-        if isinstance(raw_action, dict):
+        if isinstance(raw_action, Mapping):
             # Support both "target_velocity" and "velocity" keys
             velocity = raw_action.get(
                 "target_velocity",
                 raw_action.get("velocity", (0.0, 0.0)),
             )
-            extra = raw_action.get("extra", {})
+            extra = cast(dict[str, object], raw_action.get("extra", {}))
 
             # Ensure velocity is a tuple of floats
-            if isinstance(velocity, (list, tuple)) and len(velocity) >= 2:
-                vx = self._clamp(float(velocity[0]))
-                vy = self._clamp(float(velocity[1]))
+            if (
+                isinstance(velocity, Sequence)
+                and not isinstance(velocity, str)
+                and len(velocity) >= 2
+            ):
+                vx = self._clamp_numeric(velocity[0])
+                vy = self._clamp_numeric(velocity[1])
             else:
                 vx, vy = 0.0, 0.0
 
@@ -94,8 +99,8 @@ class TankLikeActionTranslator:
 
         # Handle tuple/list directly as velocity
         if isinstance(raw_action, (list, tuple)) and len(raw_action) >= 2:
-            vx = self._clamp(float(raw_action[0]))
-            vy = self._clamp(float(raw_action[1]))
+            vx = self._clamp_numeric(raw_action[0])
+            vy = self._clamp_numeric(raw_action[1])
             return Action(
                 entity_id=agent_id,
                 target_velocity=(vx, vy),
@@ -107,3 +112,8 @@ class TankLikeActionTranslator:
     def _clamp(self, value: float) -> float:
         """Clamp velocity component to valid range."""
         return max(-self.max_velocity, min(self.max_velocity, value))
+
+    def _clamp_numeric(self, value: object) -> float:
+        """Convert a raw velocity component to float and clamp it."""
+        numeric = cast(str | SupportsFloat | SupportsIndex, value)
+        return self._clamp(float(numeric))

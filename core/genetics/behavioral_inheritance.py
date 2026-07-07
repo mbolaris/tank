@@ -13,7 +13,7 @@ split): RNG call order is determinism-critical and must not change.
 """
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.genetics.mate_preferences import (
     DEFAULT_MATE_PREFERENCES,
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 def inherit_trait_meta(
     parent1_trait: GeneticTrait | None,
     parent2_trait: GeneticTrait | None,
-    value: Any,
+    value: object,
     rng: pyrandom.Random,
 ) -> GeneticTrait:
     """Create a GeneticTrait with inherited meta-values from parents.

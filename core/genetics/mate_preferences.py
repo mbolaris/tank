@@ -10,7 +10,7 @@ compatibility.
 """
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional, SupportsFloat, SupportsIndex, cast
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -62,9 +62,9 @@ def default_preference_value(spec: TraitSpec) -> float:
     return float(midpoint)
 
 
-def coerce_preference_value(value: Any, spec: TraitSpec) -> float:
+def coerce_preference_value(value: object, spec: TraitSpec) -> float:
     try:
-        numeric = float(value)
+        numeric = float(cast(str | SupportsFloat | SupportsIndex, value))
     except (TypeError, ValueError):
         numeric = default_preference_value(spec)
     if spec.discrete:

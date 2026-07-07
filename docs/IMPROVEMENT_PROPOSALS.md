@@ -266,8 +266,8 @@ algorithm-count bug is exactly the failure this prevents.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Current state (measured 2026-07): ~64% of Python functions fully typed;
-after several cleanup passes, a quick re-count shows **247 simple `Any`
-annotation hits** (`: Any`, `-> Any`, `[Any]`) and **778 plain `Any`
+after several cleanup passes, a quick re-count shows **209 simple `Any`
+annotation hits** (`: Any`, `-> Any`, `[Any]`) and **688 plain `Any`
 occurrences** across `core/`. Mypy config is deliberately relaxed
 (`disallow_untyped_defs = false`, `check_untyped_defs = true`). These tasks
 tighten the *core path* first, where a mistake is most expensive.
@@ -284,9 +284,9 @@ Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
 mypy section is where the per-module override block goes.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
-Grep `core/` for `: Any`, `-> Any`, and `[Any]` (225 hits re-measured
+Grep `core/` for `: Any`, `-> Any`, and `[Any]` (209 hits re-measured
 2026-07-07; note this pattern misses generic-parameterized forms like
-`dict[str, Any]`; a plain `\bAny\b` count is 716) and replace the easy ones
+`dict[str, Any]`; a plain `\bAny\b` count is 688) and replace the easy ones
 with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
 green. Small, safe, and it compounds. **Layer 2.**
 
@@ -294,7 +294,12 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/services/stats/genetic_stats.py`, `core/worlds/petri/backend.py`,
 `core/worlds/tank/backend.py`, `core/agents_wrapper.py`, `core/entity_ids.py`,
 `core/entities/fish.py`, `core/transfer/entity_transfer.py`,
-`core/genetics/sanitization.py`, `core/util/rng.py`, and `core/util/mutations.py`.
+`core/genetics/sanitization.py`, `core/util/rng.py`, `core/util/mutations.py`,
+`core/spatial/bounds.py`, `core/actions/action_registry.py`,
+`core/energy/energy_utils.py`, `core/entities/base.py`, `core/modes/tank.py`,
+`core/modes/petri.py`, `core/worlds/shared/action_translator.py`,
+`core/genetics/mate_preferences.py`, `core/genetics/behavioral_inheritance.py`,
+`core/minigames/soccer/seeds.py`, and `core/policies/movement_policy_runner.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
 nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a

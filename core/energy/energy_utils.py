@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 
 @runtime_checkable
@@ -13,8 +13,20 @@ class EnergyModifier(Protocol):
         """Apply an energy delta and return the actual change."""
 
 
+class EnergyAttributeHolder(Protocol):
+    """Object with mutable direct energy storage."""
+
+    energy: float
+
+
+class BoundedEnergyAttributeHolder(EnergyAttributeHolder, Protocol):
+    """Object with direct energy storage and a maximum energy cap."""
+
+    max_energy: float
+
+
 def apply_energy_delta(
-    entity: Any,
+    entity: object,
     delta: float,
     *,
     source: str = "unknown",
@@ -46,13 +58,18 @@ def apply_energy_delta(
     if not hasattr(entity, "energy"):
         raise AttributeError("Cannot apply energy delta without energy attribute.")
 
-    old_energy = float(entity.energy)
-    max_energy = getattr(entity, "max_energy", None)
+    energy_holder = cast(EnergyAttributeHolder, entity)
+    old_energy = float(energy_holder.energy)
+    max_energy = (
+        cast(BoundedEnergyAttributeHolder, entity).max_energy
+        if hasattr(entity, "max_energy")
+        else None
+    )
     new_energy = old_energy + delta
     if max_energy is not None:
         new_energy = max(0.0, min(new_energy, float(max_energy)))
     else:
         new_energy = max(0.0, new_energy)
 
-    entity.energy = new_energy
+    energy_holder.energy = new_energy
     return float(new_energy - old_energy)
