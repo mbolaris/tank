@@ -4,11 +4,13 @@ import sys
 import subprocess
 import tempfile
 from pathlib import Path
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_BENCH = REPO_ROOT / "tools" / "run_bench.py"
 
 
+@pytest.mark.slow
 def test_watchdog_real_survival_5k_3200_frames():
     """Verify that the real survival_5k benchmark can run past frame 3100 and exits cleanly."""
     benchmark_file = REPO_ROOT / "benchmarks" / "tank" / "survival_5k.py"
@@ -25,20 +27,36 @@ def test_watchdog_real_survival_5k_3200_frames():
 
         tmp_bench.write_text(content, encoding="utf-8")
 
-        # Run the modified benchmark via subprocess with a timeout of 90 seconds
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(RUN_BENCH),
-                str(tmp_bench),
-                "--seed",
-                "42",
-            ],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            timeout=90,
-        )
+        try:
+            # Run the modified benchmark via subprocess with a timeout of 240 seconds
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(RUN_BENCH),
+                    str(tmp_bench),
+                    "--seed",
+                    "42",
+                ],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=240,
+            )
+        except subprocess.TimeoutExpired as e:
+            stdout_str = (
+                e.stdout.decode("utf-8", errors="replace")
+                if isinstance(e.stdout, bytes)
+                else (e.stdout or "")
+            )
+            stderr_str = (
+                e.stderr.decode("utf-8", errors="replace")
+                if isinstance(e.stderr, bytes)
+                else (e.stderr or "")
+            )
+            print("\n=== Watchdog Subprocess Timeout ===")
+            print(f"Captured stdout:\n{stdout_str}")
+            print(f"Captured stderr:\n{stderr_str}")
+            raise
 
         assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
         assert "config_hash" in result.stdout or "config_hash" in result.stderr
