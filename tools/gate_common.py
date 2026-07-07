@@ -293,9 +293,13 @@ def run_steps(steps: Sequence[tuple[list[str], str]]) -> bool:
 def exit_for_gate(name: str, passed: bool) -> None:
     if passed:
         print(f"\n[PASS] {name} gate passed.", flush=True)
-        raise SystemExit(0)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        os._exit(0)
     print(f"\n[FAIL] {name} gate failed.", flush=True)
-    raise SystemExit(1)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(1)
 
 
 def python_command(*args: str) -> list[str]:

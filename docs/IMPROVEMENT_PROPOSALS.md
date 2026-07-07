@@ -531,6 +531,8 @@ same budget" is the paper's headline figure. Depends on shipped **10.1** and
   beat the champion on a majority of seeds. Updated
   [validate_improvement.py](../tools/validate_improvement.py) to support
   matrix-seed results and champion updates.
+- **Fix benchmark and gate process hangs.** Optimized clean-exit checks to use a lightweight 1-frame real-world benchmark in `tests/test_run_bench.py` to prevent CI timeouts. Changed validation gates in `tools/gate_common.py` to use `os._exit()` to prevent parent process hangs. Created `tests/test_watchdog_survival.py` to verify the real `survival_5k` benchmark running to 3200 frames exits cleanly, and wired a CI smoke check step verifying `pre_pr_gate.py` exit cleanliness.
+- **CI / Formatting hardening.** Configured Ruff/Black checks to cover `benchmarks/` in `tools/smoke_gate.py`. Swapped parallel pytest-xdist execution for serial by default in the pre-PR gate. Added held-out benchmarks path checker to PR workflows. Cleaned up unused config values in benchmarks.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing
