@@ -25,20 +25,26 @@ def test_watchdog_real_survival_5k_3200_frames():
 
         tmp_bench.write_text(content, encoding="utf-8")
 
-        # Run the modified benchmark via subprocess with a timeout of 90 seconds
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(RUN_BENCH),
-                str(tmp_bench),
-                "--seed",
-                "42",
-            ],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            timeout=90,
-        )
+        try:
+            # Run the modified benchmark via subprocess with a timeout of 90 seconds
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(RUN_BENCH),
+                    str(tmp_bench),
+                    "--seed",
+                    "42",
+                ],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=90,
+            )
+        except subprocess.TimeoutExpired as e:
+            print("\n=== Watchdog Subprocess Timeout ===")
+            print(f"Captured stdout:\n{e.stdout}")
+            print(f"Captured stderr:\n{e.stderr}")
+            raise
 
         assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
         assert "config_hash" in result.stdout or "config_hash" in result.stderr
