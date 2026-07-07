@@ -1,8 +1,23 @@
 """World boundary management and collision resolution."""
 
-from typing import Any
+from typing import Protocol
 
 from core.entities import Agent
+
+
+class BoundaryHandler(Protocol):
+    """Boundary object capable of clamping and reflecting moving agents."""
+
+    def clamp_and_reflect(
+        self,
+        x: float,
+        y: float,
+        vx: float,
+        vy: float,
+        radius: float,
+    ) -> tuple[float, float, float, float, bool]:
+        """Return adjusted center, velocity, and collision status."""
+        ...
 
 
 class WorldBounds:
@@ -24,9 +39,9 @@ class WorldBounds:
         self.width = width
         self.height = height
         # Optional custom boundary handler (e.g., PetriDish)
-        self._custom_boundary: Any = None
+        self._custom_boundary: BoundaryHandler | None = None
 
-    def set_custom_boundary(self, boundary_handler: Any) -> None:
+    def set_custom_boundary(self, boundary_handler: BoundaryHandler | None) -> None:
         """Set a custom boundary handler (e.g. for Petri Dish mode)."""
         self._custom_boundary = boundary_handler
 

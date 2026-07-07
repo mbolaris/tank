@@ -25,7 +25,7 @@ non-steering movers don't inherit AI behaviors.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Protocol
 
 from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
@@ -47,7 +47,15 @@ class EntityUpdateResult:
     """
 
     spawned_entities: list[Entity] = field(default_factory=list)
-    events: list[Any] = field(default_factory=list)
+    events: list[object] = field(default_factory=list)
+
+
+class SpriteGroup(Protocol):
+    """Minimal group protocol needed for entity removal."""
+
+    def remove(self, entity: Entity) -> object:
+        """Remove an entity from the group."""
+        ...
 
 
 class Rect:
@@ -122,7 +130,7 @@ class Entity:
         self.blocks_root_spots: bool = False
 
         self.rect: Rect = Rect(x, y, self.width, self.height)
-        self._groups: list = []  # Track sprite groups for kill() method
+        self._groups: list[SpriteGroup] = []  # Track sprite groups for kill() method
 
         # Lifecycle state machine (Active -> Dead/Removed)
         self.state = create_entity_state_machine(track_history=True)
@@ -150,7 +158,7 @@ class Entity:
         """
         return EntityUpdateResult()
 
-    def add_internal(self, group: Any) -> None:
+    def add_internal(self, group: SpriteGroup) -> None:
         """Track group for kill() method."""
         if group not in self._groups:
             self._groups.append(group)

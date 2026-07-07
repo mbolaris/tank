@@ -12,7 +12,7 @@ Usage:
         def get_action_space(self) -> ActionSpace:
             return {"movement": {"type": "continuous", "shape": (2,)}}
 
-        def translate_action(self, agent_id: str, raw_action: Any) -> Action:
+        def translate_action(self, agent_id: str, raw_action: RawAction) -> Action:
             return Action(entity_id=agent_id, target_velocity=raw_action["velocity"])
 
     register_action_translator("tank", TankActionTranslator())
@@ -27,7 +27,8 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any, Protocol
+from collections.abc import Mapping, Sequence
+from typing import Protocol
 
 from core.brains.contracts import BrainAction
 
@@ -36,8 +37,10 @@ Action = BrainAction
 
 logger = logging.getLogger(__name__)
 
-# Type alias for action space descriptors
-ActionSpace = dict[str, Any]
+RawAction = Action | Mapping[str, object] | Sequence[object]
+"""Raw action payload accepted from external brain/policy code."""
+
+ActionSpace = dict[str, object]
 """Describes valid actions for a world type.
 
 Example:
@@ -72,7 +75,7 @@ class ActionTranslator(Protocol):
         """
         ...
 
-    def translate_action(self, agent_id: str, raw_action: Any) -> Action:
+    def translate_action(self, agent_id: str, raw_action: RawAction) -> Action:
         """Translate a raw action to a domain Action.
 
         Args:
@@ -138,7 +141,7 @@ def get_action_space(world_type: str) -> ActionSpace | None:
 def translate_action(
     world_type: str,
     agent_id: str,
-    raw_action: Any,
+    raw_action: RawAction,
 ) -> Action:
     """Translate a raw action using the registered translator.
 

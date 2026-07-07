@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, SupportsFloat, SupportsIndex, cast
 
 from core.math_utils import Vector2
 from core.policies.interfaces import MovementAction
@@ -129,11 +130,11 @@ def _extract_frame(observation: dict[str, Any]) -> int | None:
         return None
 
 
-def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
+def _parse_and_validate_output(output: object) -> VelocityComponents | None:
     """Parse policy output into (vx, vy) and validate.
 
     Contract:
-    - Input: Any object returned by policy
+    - Input: arbitrary object returned by policy
     - Output: (vx, vy) tuple of floats, clamped to [-1.0, 1.0], or None if invalid
 
     Supported formats:
@@ -142,24 +143,25 @@ def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
     - tuple/list [vx, vy]
     - dict {"vx": vx, "vy": vy} or {"x": vx, "y": vy} or {"target_velocity": [vx, vy]}
     """
-    vx, vy = 0.0, 0.0
+    vx_raw: object
+    vy_raw: object
 
     # Extract raw values
     if isinstance(output, MovementAction):
-        vx, vy = output.vx, output.vy
+        vx_raw, vy_raw = output.vx, output.vy
     elif isinstance(output, Vector2):
-        vx, vy = output.x, output.y
+        vx_raw, vy_raw = output.x, output.y
     elif isinstance(output, (tuple, list)) and len(output) == 2:
-        vx, vy = output[0], output[1]
-    elif isinstance(output, dict):
+        vx_raw, vy_raw = output[0], output[1]
+    elif isinstance(output, Mapping):
         if "vx" in output and "vy" in output:
-            vx, vy = output["vx"], output["vy"]
+            vx_raw, vy_raw = output["vx"], output["vy"]
         elif "x" in output and "y" in output:
-            vx, vy = output["x"], output["y"]
+            vx_raw, vy_raw = output["x"], output["y"]
         elif "target_velocity" in output:
             val = output["target_velocity"]
             if isinstance(val, (list, tuple)) and len(val) == 2:
-                vx, vy = val[0], val[1]
+                vx_raw, vy_raw = val[0], val[1]
             else:
                 return None
         else:
@@ -169,8 +171,8 @@ def _parse_and_validate_output(output: Any) -> VelocityComponents | None:
 
     # Convert to float and check for finiteness
     try:
-        vx = float(vx)
-        vy = float(vy)
+        vx = float(cast(str | SupportsFloat | SupportsIndex, vx_raw))
+        vy = float(cast(str | SupportsFloat | SupportsIndex, vy_raw))
     except (TypeError, ValueError):
         return None
 
