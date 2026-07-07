@@ -3,7 +3,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 from core.algorithms.base import BehaviorAlgorithm
-from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.algorithms.food_seeking import OpportunisticFeeder
 from core.entities import Agent, Fish, Food
 from core.math_utils import Vector2
 
@@ -79,7 +79,7 @@ def test_algorithm_works_with_mock_world():
     world.agents.append(food)
 
     # Execute Algorithm
-    algorithm = GreedyFoodSeeker()
+    algorithm = OpportunisticFeeder()
 
     # This should work without error and return a steering vector
     # internally it calls _find_nearest_food -> nearby_resources (on MockWorld)

@@ -34,22 +34,12 @@ from core.algorithms.energy_management import (
     SustainableCruiser,
 )
 
-# Import all food-seeking algorithms
+# Import surviving food-seeking algorithms (ADR-006 stage 2:
+# 11 deprecated monoliths removed; 3 winners retained)
 from core.algorithms.food_seeking import (
-    AggressiveHunter,
-    AmbushFeeder,
-    BottomFeeder,
-    CircularHunter,
     CooperativeForager,
-    EnergyAwareFoodSeeker,
-    FoodMemorySeeker,
     FoodQualityOptimizer,
-    GreedyFoodSeeker,
     OpportunisticFeeder,
-    PatrolFeeder,
-    SpiralForager,
-    SurfaceSkimmer,
-    ZigZagForager,
 )
 
 # Import all poker interaction algorithms
@@ -105,45 +95,15 @@ from core.algorithms.territory import (
 )
 from core.util.rng import require_rng_param
 
-# Monolithic food-seekers slated for removal (metadata only - selection is
-# untouched because excluding entries from ALL_ALGORITHMS changes rng.choice
-# outcomes and invalidates every recorded champion). Removal + champion
-# re-baselining happen together in a future release.
-# See docs/adr/006-deprecate-monolithic-food-seekers.md for the benchmark
-# data behind this list.
-DEPRECATED_ALGORITHMS: frozenset[str] = frozenset(
-    {
-        "aggressive_hunter",
-        "ambush_feeder",
-        "bottom_feeder",
-        "circular_hunter",
-        "energy_aware_food_seeker",
-        "food_memory_seeker",
-        "greedy_food_seeker",
-        "patrol_feeder",
-        "spiral_forager",
-        "surface_skimmer",
-        "zigzag_forager",
-    }
-)
-
 # All available algorithms (stable ordering for deterministic indexing)
+# ADR-006 stage 2: 11 deprecated monolithic food-seekers removed;
+# 3 winners retained (FoodQualityOptimizer, OpportunisticFeeder,
+# CooperativeForager). See docs/adr/006-deprecate-monolithic-food-seekers.md.
 ALL_ALGORITHMS = [
-    # Food seeking
-    GreedyFoodSeeker,
-    EnergyAwareFoodSeeker,
+    # Food seeking (survivors only — see ADR-006)
     OpportunisticFeeder,
     FoodQualityOptimizer,
-    AmbushFeeder,
-    PatrolFeeder,
-    SurfaceSkimmer,
-    BottomFeeder,
-    ZigZagForager,
-    CircularHunter,
-    FoodMemorySeeker,
     CooperativeForager,
-    AggressiveHunter,  # NEW: High-speed food pursuit
-    SpiralForager,  # NEW: Systematic spiral search pattern
     # Predator avoidance
     PanicFlee,
     StealthyAvoider,
@@ -706,21 +666,10 @@ __all__ = [
     "BehaviorHelpersMixin",
     "ALGORITHM_PARAMETER_BOUNDS",
     "Vector2",
-    # Food seeking
-    "GreedyFoodSeeker",
-    "EnergyAwareFoodSeeker",
+    # Food seeking (survivors — ADR-006)
     "OpportunisticFeeder",
     "FoodQualityOptimizer",
-    "AmbushFeeder",
-    "PatrolFeeder",
-    "SurfaceSkimmer",
-    "BottomFeeder",
-    "ZigZagForager",
-    "CircularHunter",
-    "FoodMemorySeeker",
     "CooperativeForager",
-    "AggressiveHunter",
-    "SpiralForager",
     # Predator avoidance
     "PanicFlee",
     "StealthyAvoider",
@@ -772,7 +721,6 @@ __all__ = [
     "PokerConservative",
     # Utilities
     "ALL_ALGORITHMS",
-    "DEPRECATED_ALGORITHMS",
     "get_algorithm_index",
     "get_algorithm_name",
     "get_random_algorithm",

@@ -18,7 +18,7 @@ from core.algorithms.composable.definitions import (
     SocialMode,
     ThreatResponse,
 )
-from core.algorithms.registry import ALL_ALGORITHMS, DEPRECATED_ALGORITHMS
+from core.algorithms.registry import ALL_ALGORITHMS
 
 # High-quality descriptions for sub-behavior choices
 SUB_BEHAVIOR_DESCRIPTIONS = {
@@ -422,10 +422,7 @@ def generate_catalog() -> str:
             doc = (algo.__doc__ or "No description available.").strip().split("\n")[0]
             file_path = get_relative_file_path(algo)
 
-            is_deprecated = algo_id in DEPRECATED_ALGORITHMS
-            status_badge = " ⚠️ **[DEPRECATED]**" if is_deprecated else ""
-
-            md.append(f"#### {class_name}{status_badge}")
+            md.append(f"#### {class_name}")
             md.append(f"- **ID**: `{algo_id}`")
             md.append(f"- **Source File**: [{file_path}](../{file_path})")
             md.append(f"- **Description**: {doc}")

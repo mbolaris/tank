@@ -28,14 +28,14 @@ def test_poker_game_creation():
             "fish_id": 1,
             "name": "GreedySeeker Gen 5",
             "energy": 120,
-            "algorithm": "GreedyFoodSeeker",
+            "algorithm": "OpportunisticFeeder",
             "aggression": 0.3,
         },
         {
             "fish_id": 2,
-            "name": "AmbushFeeder Gen 3",
+            "name": "FoodQualityOptimizer Gen 3",
             "energy": 95,
-            "algorithm": "AmbushFeeder",
+            "algorithm": "FoodQualityOptimizer",
             "aggression": 0.7,
         },
         {
