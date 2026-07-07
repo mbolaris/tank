@@ -156,6 +156,30 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
 
 - 2026-07-01 | Panic Button -- diversity-triggered hypermutation (plasticity of evolvability) | lever §3.1 | hypothesis: a population-level panic reflex that scales mutation rate and strength exactly when diversity collapses prevents premature convergence without degrading directional selection | result: `run_selection_response_assay.py` seeds 42/7/123, mean composite score 48.99 → 53.20 (+8.6%), mean selected trait fraction 0.78 → 0.89 (+14%), mean drift-per-generation 3.45% → 3.62% (+4.9%), diversity delta maintained (0.02), min final diversity 0.249 | verdict: adopted | lesson: seeded clamping of mutation parameters during hypermutation prevents destructive runaway dynamics while successfully boosting selection response.
 
+- 2026-07-07 | Reproductive Side-Game Coupling — sexual selection on poker skill (decision-board
+  Proposal #12) | lever §3.6 + §3.3 | hypothesis: adding a phenotypic mate-choice bonus in
+  `sexual_factory._find_proximity_mate` for mates with a strong recent poker win rate
+  (`FishPokerStats.get_recent_win_rate`, weight 0.20 on attraction's 0..1 scale) would make
+  side-game skill a heritable selection channel and skew reproduction toward skilled lineages |
+  result: measured ON (0.20) vs OFF (0.0) on the standard `ecosystem_health_10k` config, seeds
+  42/7/123. Reproductive skew (offspring-weighted minus unweighted mean skill among fish with
+  ≥5 games) **fell on all three seeds**: 42 +0.102→+0.032, 7 −0.012→−0.037, 123 +0.061→+0.010.
+  `ecosystem_health_10k` regressed −16.5% (42) and −19.7% (7), +2.0% (123); diversity −0.013
+  (42), −0.040 (7), +0.022 (123) | verdict: **rejected** — fails the proposal's own kill
+  criterion (no increase in reproductive skew; skew *decreased*) and regresses health/diversity
+  on 2/3 seeds | lessons: (1) **`poker_activity_enabled=False` does NOT disable fish-fish
+  poker** — poker still runs in every tank benchmark and populates `FishPokerStats` (54/60 fish
+  reach ≥5 games in `ecosystem_health_10k`), so the standard assays DO exercise any
+  poker-coupled mechanism (correcting the board's assumption that side-games are off in the
+  assays). (2) A side-game→reproduction channel **already exists** via energy: baseline skew is
+  already positive (+0.10/+0.06 on seeds 42/123) because poker winners bank energy and reproduce
+  more. (3) Bolting an explicit mate-choice bonus on top *disrupted* that energy-mediated skew
+  rather than amplifying it — `recent_win_rate` (last-10) is noisy, and under a
+  starvation-dominated regime (starv≈1.0) spending mate choice on poker skill trades away
+  foraging/genetic-compatibility selection. Before re-coupling reproduction to a side-game
+  signal, first confirm the signal is (a) heritable/correlated with a genome trait and (b) not
+  already captured by the existing energy pathway.
+
 ---
 
 ## 6. Open problem — a frozen evolvability benchmark
