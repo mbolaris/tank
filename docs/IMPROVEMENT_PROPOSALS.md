@@ -146,25 +146,7 @@ dev tools and either install them or print the exact one-liner to do so, so a
 green run is achievable from `git clone` + one command. Complements shipped
 `scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
 
-### 1.8 Align survival_5k benchmark scoring with healthy ecosystem indicators — `M` · ★★
-**Problem.** The `survival_5k` benchmark champion (version 5) shows a starvation
-rate of 99.47% of deaths. According to `CLAUDE.md`/`AGENTS.md` health indicators,
-a starvation rate above 95% indicates that food-seeking is broken/unhealthy.
-Additionally, the champion reaches `max_generation: 4` over 5k frames, falling
-short of the target of `>5 per 10k` frames. The current benchmark rewards a state
-that is documented as unhealthy because it relies solely on the product of average
-energy and average population, without penalizing high starvation rates or
-rewarding generation turnover.
 
-**Plan.**
-- Refactor the score formula in `benchmarks/tank/survival_5k.py` to incorporate
-  starvation rate and generation count.
-  - Apply a penalty multiplier when the starvation rate exceeds 95% (e.g., scaling down the score).
-  - Add a bonus or multiplier for achieving a higher max generation.
-- Re-baseline/re-run the benchmark to establish a new healthy champion version.
-- Keep benchmark scoring changes separate from Layer 1 algorithm changes (Rule 2).
-
----
 
 ## Theme 2 — Tame the god files
 
@@ -412,6 +394,12 @@ same budget" is the paper's headline figure. Depends on shipped **10.1** and
 
 ## Shipped
 
+- **1.8 Align `survival_5k` benchmark scoring with healthy ecosystem indicators.**
+  Refactored the score formula in `benchmarks/tank/survival_5k.py` to apply a
+  starvation penalty when the starvation rate exceeds 95% (scaling down the score
+  linearly to 0.5 at 1.0 starvation rate) and a bonus multiplier for achieving a
+  higher max generation (`1.0 + max_generation * 0.05`). Re-baselined the
+  champion to version 6 with the new scoring structure under seed 42.
 - **1.7 Optimize `survival_5k` runtime & reliability.** Solved the benchmark
   execution performance cliff. Replaced the expensive frame-by-frame
   `world.get_stats()` calculator with direct, cheap list comprehensions over
