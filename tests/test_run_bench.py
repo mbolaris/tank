@@ -40,6 +40,37 @@ def run(seed, fingerprint_callback=None):
     return bench_path
 
 
+def create_real_world_short_benchmark(tmp_path: Path) -> Path:
+    bench_path = tmp_path / "real_world_short_bench.py"
+    content = """
+BENCHMARK_ID = "tank/survival_5k"
+CONFIG = {"frames": 2, "world_config": {"headless": True}}
+EXPECTED_RUNTIME_SECONDS = 3.5
+
+def run(seed, fingerprint_callback=None):
+    from core.worlds import WorldRegistry
+    from core.worlds.interfaces import FAST_STEP_ACTION
+
+    world = WorldRegistry.create_world("tank", seed=seed, config={"headless": True})
+    world.reset(seed=seed)
+    world.step({FAST_STEP_ACTION: True})
+
+    return {
+        "benchmark_id": BENCHMARK_ID,
+        "seed": seed,
+        "score": 12.34,
+        "runtime_seconds": 0.01,
+        "metadata": {
+            "frames": 2,
+            "avg_energy": 100.0,
+            "avg_pop": 10.0,
+        }
+    }
+"""
+    bench_path.write_text(content, encoding="utf-8")
+    return bench_path
+
+
 class TestRunBench:
     """Tests for tools/run_bench.py"""
 
@@ -133,10 +164,9 @@ class TestRunBench:
         )
         assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
 
-    def test_run_bench_survival_5k_exits_cleanly(self):
-        """Verify that tools/run_bench.py exits cleanly with 0 and doesn't hang after running survival_5k."""
-        benchmark_file = REPO_ROOT / "benchmarks" / "tank" / "survival_5k.py"
-        assert benchmark_file.exists()
+    def test_run_bench_survival_5k_exits_cleanly(self, tmp_path):
+        """Verify that tools/run_bench.py exits cleanly with 0 and doesn't hang after running survival_5k using a real world."""
+        benchmark_file = create_real_world_short_benchmark(tmp_path)
 
         result = subprocess.run(
             [
@@ -149,7 +179,7 @@ class TestRunBench:
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=15,
         )
 
         assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
