@@ -103,11 +103,11 @@ class TestSolutionRecord:
 
         solution = SolutionRecord(
             metadata=metadata,
-            behavior_algorithm={"class": "GreedyFoodSeeker", "parameters": {}},
+            behavior_algorithm={"class": "OpportunisticFeeder", "parameters": {}},
         )
 
         assert solution.metadata.solution_id == "test_123"
-        assert solution.behavior_algorithm["class"] == "GreedyFoodSeeker"
+        assert solution.behavior_algorithm["class"] == "OpportunisticFeeder"
 
     def test_solution_hash(self):
         """Test solution hash computation."""

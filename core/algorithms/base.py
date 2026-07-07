@@ -46,11 +46,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "alignment_radius": (60.0, 120.0),
         "alignment_strength": (0.5, 1.0),
     },
-    "ambush_feeder": {
-        "patience": (0.5, 1.0),
-        "strike_distance": (30.0, 80.0),
-        "strike_speed": (1.0, 1.5),
-    },
     "boids_behavior": {
         "alignment_weight": (0.3, 0.7),
         "cohesion_weight": (0.3, 0.7),
@@ -58,10 +53,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
     },
     "border_hugger": {
         "hug_speed": (0.7, 1.1),
-    },
-    "bottom_feeder": {
-        "preferred_depth": (0.7, 0.9),
-        "search_speed": (0.4, 0.8),
     },
     "boundary_explorer": {
         "edge_preference": (0.6, 1.0),
@@ -75,11 +66,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
     "center_hugger": {
         "orbit_radius": (50.0, 120.0),
         "return_strength": (0.5, 0.9),
-    },
-    "circular_hunter": {
-        "circle_radius": (40.0, 100.0),
-        "circle_speed": (0.05, 0.15),
-        "strike_threshold": (0.3, 0.6),
     },
     "cooperative_forager": {
         "follow_strength": (0.5, 0.9),
@@ -98,12 +84,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "danger_cohesion": (0.8, 1.2),
         "danger_threshold": (150.0, 250.0),
     },
-    "energy_aware_food_seeker": {
-        "calm_speed": (0.3, 0.6),
-        "search_speed": (0.4, 0.8),
-        "urgency_threshold": (0.3, 0.7),
-        "urgent_speed": (0.8, 1.2),
-    },
     "energy_balancer": {
         "max_energy_ratio": (0.7, 0.9),
         "min_energy_ratio": (0.3, 0.5),
@@ -117,10 +97,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "randomness": (0.5, 1.0),
         "threat_range": (100.0, 180.0),
     },
-    "food_memory_seeker": {
-        "exploration_rate": (0.2, 0.5),
-        "memory_strength": (0.5, 1.0),
-    },
     "food_quality_optimizer": {
         "distance_weight": (0.3, 0.7),
         "quality_weight": (0.5, 1.0),
@@ -132,10 +108,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
     "front_runner": {
         "independence": (0.5, 0.9),
         "leadership_strength": (0.7, 1.2),
-    },
-    "greedy_food_seeker": {
-        "detection_range": (0.5, 1.0),
-        "speed_multiplier": (0.7, 1.3),
     },
     "group_defender": {
         "group_strength": (0.6, 1.0),
@@ -174,11 +146,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "flee_speed": (1.2, 1.8),
         "panic_distance": (100.0, 200.0),
     },
-    "patrol_feeder": {
-        "food_priority": (0.6, 1.0),
-        "patrol_radius": (50.0, 150.0),
-        "patrol_speed": (0.5, 1.0),
-    },
     "perimeter_guard": {
         "orbit_radius": (70.0, 130.0),
         "orbit_speed": (0.5, 0.9),
@@ -210,10 +177,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
         "awareness_range": (150.0, 250.0),
         "stealth_speed": (0.3, 0.6),
     },
-    "surface_skimmer": {
-        "horizontal_speed": (0.5, 1.0),
-        "preferred_depth": (0.1, 0.3),
-    },
     "sustainable_cruiser": {
         "consistency": (0.7, 1.0),
         "cruise_speed": (0.4, 0.7),
@@ -232,11 +195,6 @@ ALGORITHM_PARAMETER_BOUNDS = {
     "wall_follower": {
         "follow_speed": (0.5, 0.8),
         "wall_distance": (20.0, 60.0),
-    },
-    "zigzag_forager": {
-        "forward_speed": (0.6, 1.0),
-        "zigzag_amplitude": (0.5, 1.2),
-        "zigzag_frequency": (0.02, 0.08),
     },
     # Poker interaction algorithms
     "poker_challenger": {

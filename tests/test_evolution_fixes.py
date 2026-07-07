@@ -117,21 +117,21 @@ def test_same_algorithm_parameter_blending():
     print("=" * 60)
 
     # Create two parents with same algorithm type but different parameters
-    from core.algorithms.food_seeking import GreedyFoodSeeker
+    from core.algorithms.food_seeking import OpportunisticFeeder
 
-    algo1 = GreedyFoodSeeker()
-    algo1.parameters = {"speed_multiplier": 0.8, "detection_range": 0.6}
+    algo1 = OpportunisticFeeder()
+    algo1.parameters = {"speed": 0.8, "max_pursuit_distance": 160.0}
 
-    algo2 = GreedyFoodSeeker()
-    algo2.parameters = {"speed_multiplier": 1.2, "detection_range": 0.9}
+    algo2 = OpportunisticFeeder()
+    algo2.parameters = {"speed": 1.2, "max_pursuit_distance": 250.0}
 
     print(
-        f"Parent 1: speed={algo1.parameters['speed_multiplier']}, "
-        + f"detection={algo1.parameters['detection_range']}"
+        f"Parent 1: speed={algo1.parameters['speed']}, "
+        + f"pursuit_dist={algo1.parameters['max_pursuit_distance']}"
     )
     print(
-        f"Parent 2: speed={algo2.parameters['speed_multiplier']}, "
-        + f"detection={algo2.parameters['detection_range']}"
+        f"Parent 2: speed={algo2.parameters['speed']}, "
+        + f"pursuit_dist={algo2.parameters['max_pursuit_distance']}"
     )
     print()
 

@@ -13,7 +13,7 @@ import random
 
 import pytest
 
-from core.algorithms.food_seeking import GreedyFoodSeeker
+from core.algorithms.food_seeking import OpportunisticFeeder
 from core.algorithms.registry import crossover_algorithms
 from core.evolution.crossover import CrossoverMode, blend_discrete, blend_values
 from core.evolution.mutation import (
@@ -720,11 +720,11 @@ class TestComplexIntegration:
     def test_algorithm_evolution_preserves_functionality(self):
         """Test that evolved algorithms remain functional."""
         rng = random.Random(42)
-        parent1_algo = GreedyFoodSeeker(rng=rng)
-        parent2_algo = GreedyFoodSeeker(rng=rng)
+        parent1_algo = OpportunisticFeeder(rng=rng)
+        parent2_algo = OpportunisticFeeder(rng=rng)
 
-        # Mutate parameters slightly (detection_range not search_radius)
-        parent2_algo.parameters["detection_range"] = 0.8
+        # Mutate parameters slightly
+        parent2_algo.parameters["max_pursuit_distance"] = 250.0
 
         # Crossover (disable algorithm_switch_rate to ensure type preservation)
         rng = random.Random(42)
@@ -737,12 +737,12 @@ class TestComplexIntegration:
             rng=rng,
         )
 
-        # Should still be GreedyFoodSeeker
-        assert isinstance(child_algo, GreedyFoodSeeker)
+        # Should still be OpportunisticFeeder
+        assert isinstance(child_algo, OpportunisticFeeder)
 
         # Should have valid parameters
-        assert "detection_range" in child_algo.parameters
-        assert 0.5 <= child_algo.parameters["detection_range"] <= 1.0
+        assert "max_pursuit_distance" in child_algo.parameters
+        assert child_algo.parameters["max_pursuit_distance"] >= 50.0
 
 
 if __name__ == "__main__":

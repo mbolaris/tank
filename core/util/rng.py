@@ -86,7 +86,7 @@ def require_rng_param(rng: random.Random | None, context: str) -> random.Random:
 
     Example:
         def __init__(self, rng: Optional[random.Random] = None):
-            _rng = require_rng_param(rng, "AggressiveHunter.__init__")
+            _rng = require_rng_param(rng, "OpportunisticFeeder.__init__")
             self.parameters = {"speed": _rng.uniform(1.0, 2.0)}
     """
     if rng is not None:

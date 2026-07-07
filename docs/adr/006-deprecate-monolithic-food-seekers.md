@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted (2026-06) — **stage 1 of 2** (metadata only; removal requires
-champion re-baselining, see "Staged removal" below)
+Accepted (2026-06) — **both stages complete** (stage 1: metadata, stage 2:
+removal + champion re-baseline)
 
 ## Context
 
@@ -76,32 +76,24 @@ Deprecation is recorded in `core/algorithms/registry.py` as
 `DEPRECATED_ALGORITHMS` (a `frozenset` of algorithm ids) plus a deprecation
 note in each module docstring.
 
-## Staged removal (why nothing is excluded yet)
+## Staged removal
 
-`ALL_ALGORITHMS` feeds `rng.choice` during genome creation. Removing (or
-reordering) entries changes every seeded trajectory and invalidates all
-recorded champions. Stage 1 (this ADR) is therefore metadata-only and
-champion-safe — all four champions reproduce exactly.
+Stage 1 (metadata-only deprecation) landed first to keep champions safe.
+Stage 2 landed as a single bundled change:
 
-Stage 2, a single future change bundled so the ecosystem pays the
-re-baseline cost once:
-
-1. Port the three KEEP algorithms' tactics into the composable framework.
-2. Remove the 11 deprecated modules and drop all monoliths from
-   `ALL_ALGORITHMS`.
-3. Fix the bounds-table drift documented in the backlog (11 algorithms with
-   missing/mismatched `ALGORITHM_PARAMETER_BOUNDS` entries) — moot for
-   removed modules, required for survivors.
-4. Re-baseline all champions in the same PR, with before/after scores in the
-   commit message.
+1. ✅ Three KEEP algorithms retained: `FoodQualityOptimizer`,
+   `OpportunisticFeeder`, `CooperativeForager`.
+2. ✅ 11 deprecated modules deleted from `core/algorithms/food_seeking/`.
+3. ✅ All monoliths removed from `ALL_ALGORITHMS` (58 → 47 algorithms).
+4. ✅ Corresponding `ALGORITHM_PARAMETER_BOUNDS` entries removed.
+5. ✅ `DEPRECATED_ALGORITHMS` frozenset removed (no longer needed).
+6. ✅ All 4 champions re-baselined with new scores under seed 42.
+7. ✅ Algorithm catalog regenerated.
 
 ## Consequences
 
-- The algorithm library's effective search space is documented honestly:
-  one framework (composable), three proven tactics to absorb, eleven modules
-  on a removal path.
+- The algorithm library is consolidated: one framework (composable) plus
+  three proven standalone foragers, 47 total algorithms.
 - `tools/benchmark_algorithms.py` remains as the harness for any future
-  algorithm-vs-baseline question (it is what "benchmark which monoliths are
-  still winners" turned into).
-- Until stage 2 lands, the deprecated modules still exist and still mutate;
-  nothing behavioral changed in this stage.
+  algorithm-vs-baseline question.
+- Seeded trajectories changed; all champions re-baselined in the same PR.

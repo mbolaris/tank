@@ -7,25 +7,14 @@
 ## Table of Contents
 1. [The Composable Behavior Framework](#the-composable-behavior-framework)
 2. [Specialized/Monolithic Behavior Algorithms](#specializedmonolithic-behavior-algorithms)
-   - [Aggressive](#aggressive)
-   - [Ambush](#ambush)
-   - [Bottom](#bottom)
-   - [Circular](#circular)
    - [Cooperative](#cooperative)
-   - [Energy Aware](#energy-aware)
    - [Energy Management](#energy-management)
-   - [Greedy](#greedy)
-   - [Memory](#memory)
    - [Opportunistic](#opportunistic)
-   - [Patrol](#patrol)
    - [Poker](#poker)
    - [Predator Avoidance](#predator-avoidance)
    - [Quality](#quality)
    - [Schooling](#schooling)
-   - [Spiral](#spiral)
-   - [Surface](#surface)
    - [Territory](#territory)
-   - [Zigzag](#zigzag)
 
 ---
 
@@ -113,58 +102,6 @@ These continuous parameters tune the execution of the selected sub-behaviors.
 
 Specialized behavior algorithms are dedicated, self-contained implementations. While Composable Behavior is usually the active choice, these algorithms provide baseline performance references and specialized test configurations.
 
-### Aggressive
-
-#### AggressiveHunter ⚠️ **[DEPRECATED]**
-- **ID**: `aggressive_hunter`
-- **Source File**: [core/algorithms/food_seeking/aggressive.py](../core/algorithms/food_seeking/aggressive.py)
-- **Description**: Aggressively pursue food with high-speed interception.
-- **Evolutionary Niche**: Highly competitive settings with fast moving prey or high fish counts, where getting to the food first at all costs is required.
-- **Known Weakness**: Extreme energy drain due to constant high-speed sprints; dies of starvation quickly if food is missed.
-- **Parameters**: None
-
-
-### Ambush
-
-#### AmbushFeeder ⚠️ **[DEPRECATED]**
-- **ID**: `ambush_feeder`
-- **Source File**: [core/algorithms/food_seeking/ambush.py](../core/algorithms/food_seeking/ambush.py)
-- **Description**: Wait in one spot for food to come close.
-- **Evolutionary Niche**: High food spawn rates where sitting still and letting food drift close conserves maximum energy.
-- **Known Weakness**: Extremely vulnerable to starvation if food spawn rate is low or if food is stationary.
-- **Parameters**:
-  - `patience`: range `[0.5, 1]`
-  - `strike_distance`: range `[30, 80]`
-  - `strike_speed`: range `[1, 1.5]`
-
-
-### Bottom
-
-#### BottomFeeder ⚠️ **[DEPRECATED]**
-- **ID**: `bottom_feeder`
-- **Source File**: [core/algorithms/food_seeking/bottom.py](../core/algorithms/food_seeking/bottom.py)
-- **Description**: Stay near bottom to catch sinking food.
-- **Evolutionary Niche**: Deep/sinking food environments where food drops to the bottom.
-- **Known Weakness**: High starvation when food stays near the surface, plus low exploration range.
-- **Parameters**:
-  - `preferred_depth`: range `[0.7, 0.9]`
-  - `search_speed`: range `[0.4, 0.8]`
-
-
-### Circular
-
-#### CircularHunter ⚠️ **[DEPRECATED]**
-- **ID**: `circular_hunter`
-- **Source File**: [core/algorithms/food_seeking/circular.py](../core/algorithms/food_seeking/circular.py)
-- **Description**: Circle around food before striking - IMPROVED for better survival.
-- **Evolutionary Niche**: Circling moving food/prey before striking to optimize intercept angle.
-- **Known Weakness**: Unnecessary rotation costs when food is static, delaying feeding.
-- **Parameters**:
-  - `circle_radius`: range `[40, 100]`
-  - `circle_speed`: range `[0.05, 0.15]`
-  - `strike_threshold`: range `[0.3, 0.6]`
-
-
 ### Cooperative
 
 #### CooperativeForager
@@ -176,21 +113,6 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
 - **Parameters**:
   - `follow_strength`: range `[0.5, 0.9]`
   - `independence`: range `[0.2, 0.5]`
-
-
-### Energy Aware
-
-#### EnergyAwareFoodSeeker ⚠️ **[DEPRECATED]**
-- **ID**: `energy_aware_food_seeker`
-- **Source File**: [core/algorithms/food_seeking/energy_aware.py](../core/algorithms/food_seeking/energy_aware.py)
-- **Description**: Seek food more aggressively when energy is low.
-- **Evolutionary Niche**: Medium-to-sparse food environments where conserving energy when full and rushing for food when hungry is necessary.
-- **Known Weakness**: Suboptimal speed transition thresholds can result in starvation if it waits too long to start moving quickly.
-- **Parameters**:
-  - `calm_speed`: range `[0.3, 0.6]`
-  - `search_speed`: range `[0.4, 0.8]`
-  - `urgency_threshold`: range `[0.3, 0.7]`
-  - `urgent_speed`: range `[0.8, 1.2]`
 
 
 ### Energy Management
@@ -278,32 +200,6 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
   - `energy_influence`: range `[0.3, 0.7]`
 
 
-### Greedy
-
-#### GreedyFoodSeeker ⚠️ **[DEPRECATED]**
-- **ID**: `greedy_food_seeker`
-- **Source File**: [core/algorithms/food_seeking/greedy.py](../core/algorithms/food_seeking/greedy.py)
-- **Description**: Always move directly toward nearest food.
-- **Evolutionary Niche**: High food density environments where immediate exploitation of close resources is optimal.
-- **Known Weakness**: In sparse environments, gets stuck walking in straight lines or gets outcompeted by wider search patterns.
-- **Parameters**:
-  - `detection_range`: range `[0.5, 1]`
-  - `speed_multiplier`: range `[0.7, 1.3]`
-
-
-### Memory
-
-#### FoodMemorySeeker ⚠️ **[DEPRECATED]**
-- **ID**: `food_memory_seeker`
-- **Source File**: [core/algorithms/food_seeking/memory.py](../core/algorithms/food_seeking/memory.py)
-- **Description**: Remember where food was found before.
-- **Evolutionary Niche**: Stationary or clustering food spawns where remembering previous food locations pays off.
-- **Known Weakness**: Memory can become stale in dynamically shifting environments, leading to empty searches.
-- **Parameters**:
-  - `exploration_rate`: range `[0.2, 0.5]`
-  - `memory_strength`: range `[0.5, 1]`
-
-
 ### Opportunistic
 
 #### OpportunisticFeeder
@@ -315,20 +211,6 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
 - **Parameters**:
   - `max_pursuit_distance`: range `[50, 200]`
   - `speed`: range `[0.6, 1]`
-
-
-### Patrol
-
-#### PatrolFeeder ⚠️ **[DEPRECATED]**
-- **ID**: `patrol_feeder`
-- **Source File**: [core/algorithms/food_seeking/patrol.py](../core/algorithms/food_seeking/patrol.py)
-- **Description**: Patrol in a pattern looking for food - IMPROVED with better detection.
-- **Evolutionary Niche**: Predictable food spawning grounds, moving in a local area to capture food as soon as it appears.
-- **Known Weakness**: Misses food that spawns outside its patrol radius.
-- **Parameters**:
-  - `food_priority`: range `[0.6, 1]`
-  - `patrol_radius`: range `[50, 150]`
-  - `patrol_speed`: range `[0.5, 1]`
 
 
 ### Poker
@@ -648,30 +530,6 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
   - `danger_threshold`: range `[150, 250]`
 
 
-### Spiral
-
-#### SpiralForager ⚠️ **[DEPRECATED]**
-- **ID**: `spiral_forager`
-- **Source File**: [core/algorithms/food_seeking/spiral.py](../core/algorithms/food_seeking/spiral.py)
-- **Description**: NEW: Spiral outward from center to systematically cover area - replaces weak algorithms.
-- **Evolutionary Niche**: Systematic search in uniform environments where food is sparse and evenly distributed.
-- **Known Weakness**: Fixed geometric pattern makes it highly predictable and unable to dynamically pivot to nearby threats/opportunities.
-- **Parameters**: None
-
-
-### Surface
-
-#### SurfaceSkimmer ⚠️ **[DEPRECATED]**
-- **ID**: `surface_skimmer`
-- **Source File**: [core/algorithms/food_seeking/surface.py](../core/algorithms/food_seeking/surface.py)
-- **Description**: Stay near surface to catch falling food - IMPROVED for better survival.
-- **Evolutionary Niche**: Shallow/surface food environments where food floats at the top.
-- **Known Weakness**: Completely ignores food in the bottom half of the tank.
-- **Parameters**:
-  - `horizontal_speed`: range `[0.5, 1]`
-  - `preferred_depth`: range `[0.1, 0.3]`
-
-
 ### Territory
 
 #### TerritorialDefender
@@ -752,17 +610,3 @@ Specialized behavior algorithms are dedicated, self-contained implementations. W
 - **Parameters**:
   - `direction_change_rate`: range `[0.01, 0.05]`
   - `wander_strength`: range `[0.5, 0.9]`
-
-
-### Zigzag
-
-#### ZigZagForager ⚠️ **[DEPRECATED]**
-- **ID**: `zigzag_forager`
-- **Source File**: [core/algorithms/food_seeking/zigzag.py](../core/algorithms/food_seeking/zigzag.py)
-- **Description**: Move in zigzag pattern to maximize food discovery.
-- **Evolutionary Niche**: Wide exploration in empty tanks to search for sparse, randomly distributed food.
-- **Known Weakness**: Inefficient travel path (longer distance) when pursuing a specific, visible food item.
-- **Parameters**:
-  - `forward_speed`: range `[0.6, 1]`
-  - `zigzag_amplitude`: range `[0.5, 1.2]`
-  - `zigzag_frequency`: range `[0.02, 0.08]`
