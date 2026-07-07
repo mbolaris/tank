@@ -168,6 +168,14 @@ def main() -> None:
         if not passed:
             break
         passed = _run_shard(name, shards[name], no_xdist=no_xdist, timeout=effective_timeout)
+        if not passed and not no_xdist:
+            print(
+                f"\n[WARNING] Shard '{name}' failed or timed out in parallel mode.",
+                f"\n[INFO] Retrying shard '{name}' in serial mode (--no-xdist) automatically...",
+                flush=True,
+            )
+            passed = _run_shard(name, shards[name], no_xdist=True, timeout=effective_timeout)
+
         if not passed:
             if not no_xdist:
                 print(

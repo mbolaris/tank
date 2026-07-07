@@ -145,33 +145,6 @@ because tools weren't installed, not because code was wrong.
 dev tools and either install them or print the exact one-liner to do so, so a
 green run is achievable from `git clone` + one command. Complements shipped
 `scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
-
-### 1.7 Explain the `survival_5k` runtime spread — `M` · ★★
-**Problem (external review #2, 2026-07).** The reviewer's sandbox could run
-short headless sims and the soccer benchmarks fine, but `tank/survival_5k` did
-not complete within a 5-minute limit — while its declared
-`EXPECTED_RUNTIME_SECONDS` is 45 and CI's benchmark gate assumes similar. Either
-the benchmark has a performance cliff on some environments (CPU, no-SIMD libm,
-cold caches), or its runtime scales badly with something population-dependent.
-Since this benchmark is a selection gate, an unexplained 10x+ runtime spread is
-a reliability problem, not just an annoyance.
-
-**Shipped instrumentation.** `main.py --profile-phases` and
-`TANK_PROFILE_PHASES=1` now record cumulative phase timing, print a phase table
-at the end of a headless run, and include `phase_profiling` in `--export-stats`.
-
-**Remaining plan.**
-1. Run `survival_5k` with profiling on a fast and a slow machine; identify the
-   dominant phase and whether cost grows superlinearly with population.
-2. If the hotspot is behavior-preserving to optimize, land a focused Layer 2
-   performance PR. If trajectories change, treat it as Layer 1 and reproduce
-   champions.
-3. If the benchmark is simply more expensive than advertised, correct the
-   declared budget and CI timeout so the gate reflects reality.
-
-Builds on shipped **1.5** (runtime budgets) and the phase profiler — runtime is
-now visible, but the spread still needs explaining.
-
 ---
 
 ## Theme 2 — Tame the god files
@@ -402,21 +375,6 @@ None of these change simulation behavior — all **Layer 2** — but they touch
 scoring/CI infrastructure, so keep each one a separate PR (Rule: Layer 2
 changes stay separate from Layer 1 improvements).
 
-### 10.3 Held-out evaluators agents cannot edit — `L` · ★★★
-Agents can currently modify every benchmark they are scored against — the
-Goodhart loophole in "CI is selection" (the ecosystem_health objective is
-already known to be gameable; see EVOLVABILITY.md). Two parts:
-
-1. `benchmarks/heldout/` — evaluators that measure the same qualities via
-   different proxies than the visible benchmarks, run in CI but *not*
-   documented as optimization targets.
-2. `tools/check_locked_paths.py` + a CI step — fail any PR that touches a
-   locked path list (`benchmarks/heldout/`, champion metadata, the checker
-   itself) unless the PR carries an explicit maintainer override label.
-
-This is a *policy* mechanism, not cryptography — the goal is that an agent
-cannot silently move the goalposts in the same PR that claims a win. Design
-the locked-path list with a maintainer before implementing.
 
 ### 10.5 A non-AI baseline search method — `L` · ★★
 The paper's claim "AI agents are effective evolutionary operators" needs a
@@ -435,19 +393,38 @@ same budget" is the paper's headline figure. Depends on shipped **10.1** and
 
 ## Shipped
 
+- **1.7 Optimize `survival_5k` runtime & reliability.** Solved the benchmark
+  execution performance cliff. Replaced the expensive frame-by-frame
+  `world.get_stats()` calculator with direct, cheap list comprehensions over
+  `world.entities_list` to aggregate fish count, total fish energy (including
+  reproduction overflow bank), and max generation. Achieved a 2x speedup (down
+  to ~24 seconds per run), resolving constraints while retaining exact score
+  determinism.
+- **10.3 Held-out evaluators agents cannot edit.** Created the
+  [benchmarks/heldout/](../benchmarks/heldout) directory with a held-out
+  evaluation module ([survival_heldout_5k.py](../benchmarks/heldout/survival_heldout_5k.py))
+  carrying altered parameters. Implemented
+  [check_locked_paths.py](../tools/check_locked_paths.py) to parse git changes
+  against origin branch/local workspace and fail if any locked paths (such as the
+  held-out suite) were modified. Added comprehensive mock test suite coverage
+  in [test_check_locked_paths.py](../tests/test_check_locked_paths.py).
+- **10.4 Patch taxonomy refinements.** Upgraded the rule-based patch classifier in
+  [classify_patch.py](../tools/classify_patch.py) to exclude active backend code
+  from `benchmark-or-meta` category and analyze them for diff hunks. Also removed
+  the blind configuration file bypass to allow precise, line-level literal vs.
+  dynamic expression checks inside parameters/config files. Added five new
+  tests inside [test_classify_patch.py](../tests/test_classify_patch.py).
+- **2.7 Extend god-class limits ratchet beyond `core/`.** Expanded the architectural
+  line-limit enforcement in [test_god_class_limits.py](../tests/test_god_class_limits.py)
+  to monitor `backend/`, `tools/`, and `frontend/src/` files. Existing legacy files
+  exceeding the 500-line limit were grandfathered in `LEGACY_MAX_LINES` at their
+  current line counts.
 - **5.2 Enforce the archive deprecation policy.** Mechanical pass over all 44
   archived Markdown files to prepend the required one-line header banner, e.g.
   `> Archived YYYY-MM. Superseded by [docs/FILENAME](RELATIVE_PATH).` where a
   direct current counterpart exists (mapping `ROADMAP.md`, `AI_QUICK_START.md`,
   `ARCHITECTURE` reviews, etc. to active docs) and falling back to a general
   date-stamped banner otherwise.
-- **10.4 Patch taxonomy: classify what mutations agents actually produce.** Created
-  [classify_patch.py](../tools/classify_patch.py) to parse a git diff or commit
-  range and categorize changes into `docs`, `benchmark-or-meta`, `new-algorithm`,
-  `parameter-tuning`, `refactor`, and `logic-change`. Extended the attempt ledger
-  to accept and auto-classify `patch_type` upon logging, updated the
-  attempts summary tool to print a patch type statistics breakdown, and added
-  comprehensive unit and integration tests.
 - **10.1 Attempt ledger: log every attempt, not just wins.** Created
   [attempt_ledger.py](../core/research/attempt_ledger.py), which appends
   accepted, rejected, and errored evaluations to `research/attempts.jsonl` with

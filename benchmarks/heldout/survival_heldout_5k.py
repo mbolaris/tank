@@ -1,11 +1,7 @@
-"""Tank Survival Benchmark (5k frames).
+"""Held-out Tank Survival Benchmark (5k frames).
 
 Measures the stability and robustness of the ecosystem over a medium duration.
-Score is calculated based on integral **fish** energy and **fish** population
-stability.
-
-IMPORTANT: Population is measured as the number of *fish* entities only, not
-all entities in the world (which would include food, crabs, balls, etc.).
+This is a held-out benchmark that agents are not permitted to edit.
 """
 
 import sys
@@ -16,45 +12,31 @@ from typing import Any
 from core.worlds import WorldRegistry
 from core.worlds.interfaces import FAST_STEP_ACTION
 
-BENCHMARK_ID = "tank/survival_5k"
+BENCHMARK_ID = "heldout/survival_heldout_5k"
 FRAMES = 5000
-METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
 EXPECTED_RUNTIME_SECONDS = 45
 
-# World configuration, replicating SimulationConfig.headless_fast() parameters.
+# Held-out configuration: slightly different from the public survival_5k
 WORLD_CONFIG: dict[str, Any] = {
     "headless": True,
-    "screen_width": 2000,
-    "screen_height": 2000,
-    "max_population": 60,
-    "critical_population_threshold": 5,
-    "emergency_spawn_cooldown": 90,
+    "screen_width": 1800,  # 1800 instead of 2000
+    "screen_height": 1800,  # 1800 instead of 2000
+    "max_population": 50,   # 50 instead of 60
+    "critical_population_threshold": 4,  # 4 instead of 5
+    "emergency_spawn_cooldown": 100,  # 100 instead of 90
     "poker_activity_enabled": False,
     "plants_enabled": False,
-    "auto_food_spawn_rate": 9,
-    # Pin soccer league off so default-config changes cannot shift the score.
-    # Ball+goals remain (tank_practice_enabled defaults to True) for the
-    # SoccerSystem kick/goal energy path, but the league never schedules
-    # matches and therefore never injects refill-to-max rewards.
+    "auto_food_spawn_rate": 10,  # 10 instead of 9
     "soccer_enabled": False,
 }
 
-# Effective configuration captured by the champion config hash
-# (core/solutions/config_hash.py). Anything that changes the score belongs here.
 CONFIG: dict[str, Any] = {"frames": FRAMES, "world_config": WORLD_CONFIG}
 
 
 def run(
     seed: int, fingerprint_callback: Callable[[Any, int], None] | None = None
 ) -> dict[str, Any]:
-    """Run the benchmark deterministically.
-
-    Args:
-        seed: Random seed for the simulation
-
-    Returns:
-        Result dictionary with score, metrics, and metadata
-    """
+    """Run the benchmark deterministically."""
     start_time = time.time()
 
     config = dict(WORLD_CONFIG)
@@ -71,10 +53,6 @@ def run(
     samples = 0
     max_generation = 0
 
-    # Run loop
-    # Every frame here already re-fetches stats explicitly below, so step()'s
-    # own internal metrics/event computation would be entirely wasted work -
-    # skip it via the fast-step path (see core/worlds/tank/backend.py::step).
     for i in range(FRAMES):
         world.step({FAST_STEP_ACTION: True})
         if fingerprint_callback is not None:
@@ -115,13 +93,8 @@ def run(
     diversity_stats = final_stats.get("diversity_stats", {})
 
     # Calculate Score
-    # Average fish energy per frame * Average fish population per frame / 1000
-    # (Penalizing early extinction heavily since integrals will be small)
     avg_fish_energy = total_fish_energy_integral / FRAMES
     avg_fish_pop = total_fish_pop_integral / FRAMES
-
-    # Score definition: (Avg Fish Energy * Avg Fish Pop) / 1000
-    # Higher is better.
     score = (avg_fish_energy * avg_fish_pop) / 1000.0
 
     return {
@@ -139,7 +112,6 @@ def run(
             "avg_pop": avg_fish_pop,
             "extinct": extinctions > 0,
             "samples": samples,
-            # --- Score breakdown (new) ---
             "max_generation": max_generation,
             "extinction_frames": extinctions,
             "starvation_rate": round(starvation_rate, 4),
