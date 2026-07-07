@@ -118,9 +118,17 @@ def run(
     avg_fish_energy = total_fish_energy_integral / FRAMES
     avg_fish_pop = total_fish_pop_integral / FRAMES
 
-    # Score definition: (Avg Fish Energy * Avg Fish Pop) / 1000
-    # Higher is better.
-    score = (avg_fish_energy * avg_fish_pop) / 1000.0
+    # Apply starvation penalty when starvation rate exceeds 95%
+    starvation_penalty = 1.0
+    if starvation_rate > 0.95:
+        # Scales down linearly from 1.0 at 0.95 starvation rate to 0.5 at 1.0 starvation rate
+        starvation_penalty = max(0.1, 1.0 - (starvation_rate - 0.95) * 10.0)
+
+    # Add a bonus multiplier for achieving a higher max generation (evolutionary progress)
+    generation_multiplier = 1.0 + (max_generation * 0.05)
+
+    raw_score = (avg_fish_energy * avg_fish_pop) / 1000.0
+    score = raw_score * starvation_penalty * generation_multiplier
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -129,6 +137,9 @@ def run(
         "score_breakdown": {
             "avg_energy": avg_fish_energy,
             "avg_pop": avg_fish_pop,
+            "raw_score": raw_score,
+            "starvation_penalty": starvation_penalty,
+            "generation_multiplier": generation_multiplier,
         },
         "runtime_seconds": runtime,
         "metadata": {
