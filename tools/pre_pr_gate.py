@@ -59,14 +59,10 @@ def _parse_args() -> argparse.Namespace:
         help="list shard names with their test-file counts and exit",
     )
     parser.add_argument(
-        "--no-xdist",
+        "--xdist",
         action="store_true",
         default=False,
-        help=(
-            "run shards serially instead of in parallel (drops -n auto). "
-            "Use in sandboxed / resource-constrained environments where "
-            "pytest-xdist hangs. Also honoured via env var PRE_PR_NO_XDIST=1."
-        ),
+        help="run shards in parallel using pytest-xdist (runs serially by default).",
     )
     parser.add_argument(
         "--timeout",
@@ -143,7 +139,7 @@ def main() -> None:
             print(f"{name}: {len(shards[name])} test files")
         raise SystemExit(0)
 
-    no_xdist = args.no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
+    no_xdist = not args.xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
     selected = [args.shard] if args.shard else shard_names()
     effective_timeout: float | None = args.timeout if args.timeout > 0 else None
 
@@ -159,7 +155,7 @@ def main() -> None:
         excludes="integration/manual/slow tests, champion reproduction, and 5k/10k benchmarks",
     )
     if no_xdist:
-        print("[INFO] Running in serial mode (--no-xdist / PRE_PR_NO_XDIST).", flush=True)
+        print("[INFO] Running in serial mode (default / PRE_PR_NO_XDIST).", flush=True)
     if effective_timeout:
         print(f"[INFO] Per-shard timeout: {timeout_label}.", flush=True)
 
@@ -171,7 +167,7 @@ def main() -> None:
         if not passed and not no_xdist:
             print(
                 f"\n[WARNING] Shard '{name}' failed or timed out in parallel mode.",
-                f"\n[INFO] Retrying shard '{name}' in serial mode (--no-xdist) automatically...",
+                f"\n[INFO] Retrying shard '{name}' in serial mode automatically...",
                 flush=True,
             )
             passed = _run_shard(name, shards[name], no_xdist=True, timeout=effective_timeout)
@@ -180,15 +176,15 @@ def main() -> None:
             if not no_xdist:
                 print(
                     f"\nHint: re-run just this shard with:"
+                    f"\n  python tools/pre_pr_gate.py --shard {name} --xdist"
+                    f"\nIf the failure looks like an xdist hang or worker crash, run serially instead:"
                     f"\n  python tools/pre_pr_gate.py --shard {name}"
-                    f"\nIf the failure looks like an xdist hang or worker crash, try:"
-                    f"\n  python tools/pre_pr_gate.py --shard {name} --no-xdist"
                     f"\nIf the shard timed out, increase the limit with --timeout <seconds>.",
                     flush=True,
                 )
             else:
                 print(
-                    f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name} --no-xdist`"
+                    f"\nHint: re-run just this shard with `python tools/pre_pr_gate.py --shard {name}`"
                     f"\nIf the shard timed out, increase the limit with --timeout <seconds>.",
                     flush=True,
                 )

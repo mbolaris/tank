@@ -132,3 +132,30 @@ class TestRunBench:
             or "Determinism check PASSED" in result.stdout
         )
         assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
+
+    def test_run_bench_survival_5k_exits_cleanly(self):
+        """Verify that tools/run_bench.py exits cleanly with 0 and doesn't hang after running survival_5k."""
+        benchmark_file = REPO_ROOT / "benchmarks" / "tank" / "survival_5k.py"
+        assert benchmark_file.exists()
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH),
+                str(benchmark_file),
+                "--seed",
+                "42",
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        # Output should be printed, and config_hash / expected_runtime_seconds should be populated
+        assert (
+            "expected_runtime_seconds" in result.stdout
+            or "expected_runtime_seconds" in result.stderr
+        )
+        assert "config_hash" in result.stdout or "config_hash" in result.stderr

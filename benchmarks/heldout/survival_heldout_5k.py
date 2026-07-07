@@ -21,7 +21,7 @@ WORLD_CONFIG: dict[str, Any] = {
     "headless": True,
     "screen_width": 1800,  # 1800 instead of 2000
     "screen_height": 1800,  # 1800 instead of 2000
-    "max_population": 50,   # 50 instead of 60
+    "max_population": 50,  # 50 instead of 60
     "critical_population_threshold": 4,  # 4 instead of 5
     "emergency_spawn_cooldown": 100,  # 100 instead of 90
     "poker_activity_enabled": False,
@@ -132,6 +132,7 @@ def run(
 if __name__ == "__main__":
     import argparse
     import json
+    import subprocess
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=42)
@@ -139,13 +140,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.verify_determinism:
-        res1 = run(args.seed)
-        res2 = run(args.seed)
-        if res1["score"] == res2["score"]:
-            print(f"DETERMINISM PASSED: {res1['score']}")
+        cmd = [sys.executable, __file__, "--seed", str(args.seed)]
+        res1 = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        res2 = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        data1 = json.loads(res1.stdout)
+        data2 = json.loads(res2.stdout)
+        if data1["score"] == data2["score"]:
+            print(f"DETERMINISM PASSED: {data1['score']}")
             sys.exit(0)
         else:
-            print(f"DETERMINISM FAILED: {res1['score']} != {res2['score']}")
+            print(f"DETERMINISM FAILED: {data1['score']} != {data2['score']}")
             sys.exit(1)
 
     result = run(args.seed)

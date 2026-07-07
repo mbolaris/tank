@@ -21,7 +21,9 @@ def main() -> None:
     )
     steps = [
         (
-            python_command("-m", "ruff", "check", "core", "tests", "tools", "backend", "main.py"),
+            python_command(
+                "-m", "ruff", "check", "core", "tests", "tools", "backend", "benchmarks", "main.py"
+            ),
             "Ruff lint",
         ),
         (
@@ -38,6 +40,7 @@ def main() -> None:
                 "tests",
                 "tools",
                 "backend",
+                "benchmarks",
                 "main.py",
             ),
             "Black formatting",

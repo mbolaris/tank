@@ -11,6 +11,8 @@ import json
 import os
 import sys
 import time
+import subprocess
+import tempfile
 from pathlib import Path
 
 # Add repo root to sys.path so benchmarks can import core regardless of cwd
@@ -126,29 +128,69 @@ def main():
             raise
 
         if args.verify_determinism:
-            print("Verifying determinism (Run 2)...")
-            recorder2 = None
+            print("Verifying determinism (subprocess-vs-subprocess)...", flush=True)
+            temp_out1 = tempfile.NamedTemporaryFile(suffix=".json", delete=False)  # noqa: SIM115
+            temp_out2 = tempfile.NamedTemporaryFile(suffix=".json", delete=False)  # noqa: SIM115
+            temp_out1.close()
+            temp_out2.close()
+
+            cmd_base = [sys.executable, __file__, args.benchmark_path, "--seed", str(args.seed)]
+
+            # Run 1
+            cmd1 = cmd_base + ["--out", temp_out1.name]
             if args.fingerprint_out:
-                recorder2 = create_fingerprint_recorder(
-                    second_fingerprint_path(args.fingerprint_out),
-                    bench_module,
-                    args.seed,
-                    args.fingerprint_every,
+                cmd1 += [
+                    "--fingerprint-out",
+                    args.fingerprint_out,
+                    "--fingerprint-every",
+                    str(args.fingerprint_every),
+                ]
+            print("Running determinism check: Run 1...", flush=True)
+            res1 = subprocess.run(cmd1, capture_output=True, text=True)
+            if res1.returncode != 0:
+                print(
+                    f"Error: Run 1 failed with exit code {res1.returncode}\nSTDOUT:\n{res1.stdout}\nSTDERR:\n{res1.stderr}",
+                    file=sys.stderr,
                 )
+                sys.exit(res1.returncode)
+
+            # Run 2
+            cmd2 = cmd_base + ["--out", temp_out2.name]
+            if args.fingerprint_out:
+                cmd2 += [
+                    "--fingerprint-out",
+                    second_fingerprint_path(args.fingerprint_out),
+                    "--fingerprint-every",
+                    str(args.fingerprint_every),
+                ]
+            print("Running determinism check: Run 2...", flush=True)
+            res2 = subprocess.run(cmd2, capture_output=True, text=True)
+            if res2.returncode != 0:
+                print(
+                    f"Error: Run 2 failed with exit code {res2.returncode}\nSTDOUT:\n{res2.stdout}\nSTDERR:\n{res2.stderr}",
+                    file=sys.stderr,
+                )
+                sys.exit(res2.returncode)
+
+            # Parse output JSONs
+            with open(temp_out1.name) as f:
+                result1 = json.load(f)
+            with open(temp_out2.name) as f:
+                result2 = json.load(f)
+
+            # Cleanup temp files
             try:
-                result2 = run_benchmark(bench_module, args.seed, recorder2)
-                if recorder2 is not None:
-                    recorder2.finish(result2)
+                os.unlink(temp_out1.name)
+                os.unlink(temp_out2.name)
             except Exception:
-                if recorder2 is not None:
-                    recorder2.close()
-                raise
+                pass
 
             # Compare critical fields
             score_diff = abs(result1["score"] - result2["score"])
             if score_diff > 1e-9:
                 print(
-                    f"FATAL: Non-deterministic result! Score {result1['score']} != {result2['score']}"
+                    f"FATAL: Non-deterministic result! Score {result1['score']} != {result2['score']}",
+                    file=sys.stderr,
                 )
                 sys.exit(1)
 
@@ -160,10 +202,9 @@ def main():
                 )
                 print(f"Fingerprint comparison: {json.dumps(comparison, sort_keys=True)}")
                 if comparison["rounded"] is not None:
-                    print("FATAL: Rounded snapshot fingerprints diverged.")
+                    print("FATAL: Rounded snapshot fingerprints diverged.", file=sys.stderr)
                     sys.exit(1)
 
-            # Compare metadata recursively if needed, but score is the main gate
             print("Determinism check PASSED.")
 
         result1["expected_runtime_seconds"] = budget_seconds
