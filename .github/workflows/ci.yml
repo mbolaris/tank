@@ -57,6 +57,8 @@ jobs:
       env:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: python tools/pre_pr_gate.py
+    - name: CI smoke check for pre_pr_gate exit cleanliness
+      run: python tools/pre_pr_gate.py --shard worlds --timeout 60
     - name: Type check with mypy
       run: python -m mypy core/ backend/ tools/
     - name: Enforce coverage floor
