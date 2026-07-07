@@ -13,6 +13,10 @@ import random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 from core.poker.evaluation.benchmark_eval import BenchmarkEvalConfig, evaluate_vs_benchmark_suite
 from core.poker.evaluation.elo_rating import compute_elo_from_benchmarks, rating_to_skill_tier
@@ -279,7 +283,7 @@ class SolutionBenchmark:
         """Run a deterministic head-to-head match between two solutions."""
         return self._run_head_to_head(sol1, sol2, num_hands, verbose)
 
-    def _create_strategy_from_solution(self, solution: SolutionRecord):
+    def _create_strategy_from_solution(self, solution: SolutionRecord) -> PokerStrategyAlgorithm:
         """Create a poker strategy from a solution record.
 
         Returns a PokerStrategyAlgorithm that can be used in benchmarks.
@@ -317,7 +321,9 @@ class SolutionBenchmark:
 
                     strategy_class = getattr(impl, poker_config["class"], None)
                     if strategy_class and issubclass(strategy_class, PokerStrategyAlgorithm):
-                        return strategy_class(rng=rng)
+                        inst = strategy_class(rng=rng)
+                        assert isinstance(inst, PokerStrategyAlgorithm)
+                        return inst
                 except Exception:
                     logger.debug(
                         "Failed to instantiate poker strategy class '%s'",
