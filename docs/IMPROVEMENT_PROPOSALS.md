@@ -10,21 +10,23 @@ this file tracks the *engineering* work that makes the codebase more fun to
 use and a better example of software design.
 
 **How to use it:** proposals are grouped by theme and tagged with effort
-(S / M / L) and impact (★ low → ★★★ high). Start with high-impact, low-effort
-items. When you complete one, move it to the "Shipped" section at the bottom
-with the PR link.
+(`S` / `M` / `L`) and impact (`★` low to `★★★` high). Start with
+high-impact, low-effort items. When you complete one, move it to the
+"Shipped" section at the bottom with the PR link.
 
-**For smaller / less expensive agents:** every proposal below names the exact
-files to touch and a step-by-step plan, so you can pick one and follow it
-literally without holding the whole codebase in your head. Prefer the `S`
-(small) items tagged **Layer 2** — they don't change simulation results, so
-they can't regress a champion, and `pre_pr_gate` is enough to prove them safe.
-Good first pick right now: **9.1** (fix the broken wheel packaging — small,
-Layer 2, and it's the one confirmed hard defect in the repo). After that: **6.2**
-(retire `Any` in one module - see the "Progress / notes for the next agent"
-list under it before picking a file).
-Follow the recipe in [AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md) — one focused
-change per PR.
+**Best current starter picks:**
+
+- **5.2** — enforce the archive deprecation policy and make stale docs obvious
+  (small, Layer 2).
+- **6.2** — retire `Any` in one small core module, after re-running the grep
+  and skipping files already checked in the notes below.
+- **10.4** — add patch taxonomy labels now that the attempt ledger exists
+  (medium, Layer 2, research-instrumentation).
+
+For smaller / less expensive agents: pick one `S` task tagged **Layer 2**. Those
+changes do not alter simulation results, cannot regress a champion trajectory,
+and are usually proven by the normal docs/tooling gates. Follow the recipe in
+[AGENT_FIELD_GUIDE.md](AGENT_FIELD_GUIDE.md): one focused change per PR.
 
 > **Themes 6–8 come from an external code review (2026-07, overall 82/100).**
 > The review praised the vision, architecture, test discipline, and determinism
@@ -39,11 +41,11 @@ change per PR.
 > impressive as software. It is not yet defensible as a scientific paper until
 > the data pipeline catches up with the vision." It verified the smoke gate,
 > agent gate, mypy, black/ruff, frontend build/tests, and soccer benchmark
-> determinism all pass, and identified one hard defect (wheel packaging, 9.1)
-> plus the missing research instrumentation (Theme 10). Subscores: architecture
-> 84, test discipline 88, determinism 86, maintainability 74, research
-> readiness 72, **packaging 45**. File-size claims were re-verified against the
-> tree 2026-07-06 when these tasks were written.
+> determinism all pass, identified one hard defect (wheel packaging, now shipped
+> as 9.1), and identified the missing research instrumentation in Theme 10.
+> Subscores: architecture 84, test discipline 88, determinism 86,
+> maintainability 74, research readiness 72, **packaging 45**. File-size claims
+> were re-verified against the tree 2026-07-06 when these tasks were written.
 
 ---
 
@@ -109,13 +111,6 @@ machine-dependent float details flip.
   by time.time(); engine.start_time), runner CPU model differences, glibc
   version differences between runner images.
 
-**Plan.** Add a fingerprint-dump mode to the replay harness that records a
-per-frame (or every-100-frames) fingerprint stream as a CI artifact; run it on
-CI twice and locally, diff to find the first divergent frame, inspect that
-frame's code path, eliminate the environment input. Then re-land the
-food-targeting improvement (the revert preserved it in git history at
-e1fed26; it beat both tank champions on every local environment).
-
 **Instrumentation status.** Benchmark fingerprint streams now record exact and
 6-decimal-rounded snapshot hashes, entity-type component hashes/counts, and an
 environment manifest every 100 frames. Ecosystem champion verification runs
@@ -123,16 +118,25 @@ twice, compares the streams within CI, and uploads both streams for comparison
 with local runs. Use `tools/compare_fingerprint_streams.py` to report the first
 exact and rounded divergent frames.
 
-
+**Remaining plan.** Use the uploaded fingerprint streams to compare two CI runs
+and a local run, find the first divergent frame, inspect that frame's code path,
+and eliminate the environment input. Then re-land the food-targeting
+improvement (the revert preserved it in git history at `e1fed26`; it beat both
+tank champions on every local environment).
 
 ### 1.4 Multi-seed validation for the AI agent — `M` · ★★
 **Problem.** `scripts/ai_code_evolution_agent.py` validates a proposed change on
 a single short run, where natural variance dwarfs the improvement signal.
 
-**Plan.** Validate across ≥3 seeds, report mean ± stddev, and require the change
-to beat the champion in a majority of seeds. Run `pytest -x` and `mypy` on the
-edited files *before* committing so the agent never pushes a syntax/import
-break.
+**Shipped building block.** `tools/run_bench_matrix.py` and
+`tools/validate_improvement.py` already understand multi-seed benchmark results
+and majority-of-seeds comparison.
+
+**Remaining plan.** Wire `scripts/ai_code_evolution_agent.py` to validate across
+≥3 seeds instead of the current hard-coded seed `42`, report mean ± stddev, log
+the seed list to the attempt ledger, and require the change to beat the champion
+in a majority of seeds. Run `pytest -x` and `mypy` on the edited files *before*
+committing so the agent never pushes a syntax/import break.
 
 ### 1.6 One health command that works from a clean checkout — `M` · ★★
 **Problem (external review, 2026-07).** The review's #1 next move: "make one
@@ -146,7 +150,7 @@ dev tools and either install them or print the exact one-liner to do so, so a
 green run is achievable from `git clone` + one command. Complements shipped
 `scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
 
-### 1.7 Where does `survival_5k` time actually go? — `M` · ★★
+### 1.7 Explain the `survival_5k` runtime spread — `M` · ★★
 **Problem (external review #2, 2026-07).** The reviewer's sandbox could run
 short headless sims and the soccer benchmarks fine, but `tank/survival_5k` did
 not complete within a 5-minute limit — while its declared
@@ -156,20 +160,21 @@ cold caches), or its runtime scales badly with something population-dependent.
 Since this benchmark is a selection gate, an unexplained 10x+ runtime spread is
 a reliability problem, not just an annoyance.
 
-**Plan.**
-1. Add opt-in phase telemetry to the headless runner (`--profile-phases` or
-   env var): per-phase cumulative wall time (perception, decision, action,
-   resolution, stats collection, spatial grid, poker, soccer, reproduction),
-   printed at the end and included in `--export-stats` output. Layer 2 —
-   measurement only, no behavior change.
-2. Run `survival_5k` with it on a fast and a slow machine; identify the
-   dominant phase and whether cost grows superlinearly with population.
-3. Only then decide: optimize the hotspot (separate Layer 1/Layer 2 call
-   depending on whether trajectories change), or correct the declared budget
-   and CI timeout so the gate reflects reality.
+**Shipped instrumentation.** `main.py --profile-phases` and
+`TANK_PROFILE_PHASES=1` now record cumulative phase timing, print a phase table
+at the end of a headless run, and include `phase_profiling` in `--export-stats`.
 
-Builds on shipped 1.5 (runtime budgets) — that made runtime *visible*; this
-explains it. **Start with step 1 as its own PR.**
+**Remaining plan.**
+1. Run `survival_5k` with profiling on a fast and a slow machine; identify the
+   dominant phase and whether cost grows superlinearly with population.
+2. If the hotspot is behavior-preserving to optimize, land a focused Layer 2
+   performance PR. If trajectories change, treat it as Layer 1 and reproduce
+   champions.
+3. If the benchmark is simply more expensive than advertised, correct the
+   declared budget and CI timeout so the gate reflects reality.
+
+Builds on shipped **1.5** (runtime budgets) and the phase profiler — runtime is
+now visible, but the spread still needs explaining.
 
 ---
 
@@ -181,24 +186,24 @@ follow the same pattern: extracted collaborators + thin delegating facades,
 verified by the full fast gate and exact champion reproduction.
 
 ### 2.6 Round 2: the next worst offenders — `M` each · ★★
-**External review #2 (2026-07)** flagged a new crop; line counts re-verified
-against the tree 2026-07-06. Long files are "where AI-agent codebases start to
-rot": agents over-edit, duplicate logic, and miss invariants. One file per PR,
-same discipline as round 1. Ordered by leverage (how often agents touch it),
-not raw size:
+**External review #2 (2026-07)** flagged a new crop; line counts below were
+re-measured against the tree 2026-07-06 after several follow-up cleanups. Long
+files are "where AI-agent codebases start to rot": agents over-edit, duplicate
+logic, and miss invariants. One file per PR, same discipline as round 1.
+Ordered by leverage (how often agents touch it), not raw size:
 
 | File / item | Lines | Notes |
 | --- | ---: | --- |
-| `core/entities/fish.py` | 767 | `Fish.__init__` alone is ~190 lines; extract construction/wiring helpers. Champions must reproduce exactly. |
-| `core/mixed_poker/interaction.py::play_poker` | ~360-line method | Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
+| `core/entities/fish.py` | 625 | `Fish.__init__` still dominates the file; extract construction/wiring helpers. Champions must reproduce exactly. |
+| `core/mixed_poker/interaction.py::play_poker` | ~336-line method | Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
 | `backend/routers/worlds.py::setup_worlds_router` | ~300-line function | Split endpoint groups into module-level handlers or sub-routers. Layer 2. |
-| `core/algorithms/base.py` | 805 | Agents read this constantly when writing behaviors — clarity here compounds. |
-| `backend/state_payloads.py` | 804 | Coordinate with 7.1 (contract test / generated types) — don't split before deciding that. |
-| `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
-| `tools/evolution_report.py` | 1,032 | Lowest risk (tooling, no sim impact). Good warm-up split. Layer 2. |
-| `core/poker/human_poker_game.py` | 863 | Low traffic; do last. |
+| `core/algorithms/base.py` | 705 | Agents read this constantly when writing behaviors — clarity here compounds. |
+| `backend/state_payloads.py` | 741 | Coordinate with 7.1 (contract test / generated types) — don't split before deciding that. |
+| `core/spatial/grid.py` | 652 | Hot path — split only if a clean seam exists; never at a performance cost. |
+| `tools/evolution_report.py` | 904 | Lowest risk (tooling, no sim impact). Good warm-up split. Layer 2. |
+| `core/poker/human_poker_game.py` | 741 | Low traffic; do last. |
 
-Frontend renderers (`renderer.ts` 1,658, etc.) are already covered by **7.3**.
+Frontend renderers (`renderer.ts` 1,431, etc.) are already covered by **7.3**.
 
 ## Theme 3 — Consolidate the algorithm library
 
@@ -247,15 +252,21 @@ a running tank, plus the evolution-loop and three-layer diagrams (Mermaid is
 already rendered inline — see the README). A reader should *see* the tank in the
 first scroll.
 
-### 5.2 Archive deprecation policy — `S` · ★★
-43 archived docs sit beside active ones with no retention rule. Adopt a short
-policy (see [archive/README.md](archive/README.md)): archived docs get a header
-banner linking to their current replacement; the index never links stale docs as
-if current.
+### 5.2 Enforce the archive deprecation policy — `S` · ★★
+The retention policy now exists in [archive/README.md](archive/README.md), and
+the docs index labels archived material as historical. The remaining cleanup is
+mechanical: 44 archived Markdown files still lack the one-line banner prescribed
+by the policy. Add banners in small batches, each pointing to the current
+replacement when one exists, and keep active docs from linking to archived docs
+as if they were current.
 
 ### 5.3 Generated docs stay generated — `S` · ★
-Anything that mirrors code (algorithm count, catalog, benchmark list) should be
-generated by a script run in CI, so docs can't drift from reality. The 48-vs-58
+Anything that mirrors code should be generated by a script run in CI, so docs
+can't drift from reality. The algorithm catalog half is shipped:
+`tools/generate_algorithm_catalog.py` regenerates `docs/ALGORITHM_CATALOG.md`,
+and the smoke gate checks freshness. Remaining candidates: generate the live
+benchmark list/runtime-budget table from benchmark modules, and keep docs that
+quote registry counts from hand-maintaining those numbers. The old 48-vs-58
 algorithm-count bug is exactly the failure this prevents.
 
 ---
@@ -265,7 +276,9 @@ algorithm-count bug is exactly the failure this prevents.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Current state (measured 2026-07): ~64% of Python functions fully typed;
-**306 `Any` annotations in `core/`**; mypy config is deliberately relaxed
+after several cleanup passes, a quick re-count shows **247 simple `Any`
+annotation hits** (`: Any`, `-> Any`, `[Any]`) and **778 plain `Any`
+occurrences** across `core/`. Mypy config is deliberately relaxed
 (`disallow_untyped_defs = false`, `check_untyped_defs = true`). These tasks
 tighten the *core path* first, where a mistake is most expensive.
 
@@ -273,68 +286,50 @@ tighten the *core path* first, where a mistake is most expensive.
 **Do not flip strict mode globally** — it will produce hundreds of errors and no
 mergeable PR. Instead, pick **one** package and add a per-module mypy override
 that turns on `disallow_untyped_defs = true` for just that path, then fix the
-fallout. Suggested order (highest leverage first):
-`core/simulation/` (Completed), `core/worlds/` (Completed), `core/genetics/` (Completed), then
-`backend/state_payloads.py`. One package per PR, Layer 2, `pre_pr_gate` green.
-The `# No overrides` line in `pyproject.toml`'s mypy section is where the
-per-module override block goes.
+fallout. Shipped so far: `core/simulation/`, `core/worlds/`, `core/genetics/`,
+and `core/transfer/`. The next candidate is `backend/state_payloads.py`, but
+coordinate it with **7.1** first because the honest types may be generated
+payload contracts rather than hand-written annotations. One package per PR,
+Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
+mypy section is where the per-module override block goes.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
-Grep `core/` for `: Any`, `-> Any`, and `[Any]` (324 hits re-measured 2026-07;
-note this pattern misses generic-parameterized forms like `dict[str, Any]` -
-a plain `\bAny\b` count is ~900) and replace the easy ones with real types.
-Each PR: pick one module, remove its `Any`s, keep `mypy core/` green. Small,
-safe, and it compounds. **Layer 2.**
+Grep `core/` for `: Any`, `-> Any`, and `[Any]` (247 hits re-measured
+2026-07-06; note this pattern misses generic-parameterized forms like
+`dict[str, Any]`; a plain `\bAny\b` count is 778) and replace the easy ones
+with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
+green. Small, safe, and it compounds. **Layer 2.**
 
-**Progress / notes for the next agent:**
-- `core/entities/fish.py` — already `Any`-free, nothing to do.
-- `backend/state_payloads.py` — checked 2026-07; nearly every remaining `Any`
-  is `to_dict() -> dict[str, Any]` or a `dict[str, Any]` field on a payload
-  dataclass that generically mirrors heterogeneous wire data (genome blobs,
-  render hints, gene distributions). `Any` is the honest type there; making it
-  precise means per-payload `TypedDict`s, which is really option (a) of 7.1
-  (generate TS types from the Python models), not a small mechanical fix. Don't
-  pick this file for 6.2 - pick it up under 7.1 instead.
-- `core/code_pool/pool.py` (Completed) — `rng: Any` on the builtin
-  movement/soccer policies tightened to `random.Random | None` (verified
-  against every call site); `_scaled_param`/`_steer_action`/
-  `_soccer_policy_core`/the three soccer policy functions' `dict[str, Any]`
-  return/param tightened to `dict[str, float]`. Left `Callable[..., Any]`,
-  `exec_locals`, and `to_dict`/`from_dict`/`metadata` alone (dynamically
-  compiled callables and generic serialization - genuinely `Any`).
-- `core/services/stats/genetic_stats.py` (Completed) — replaced opaque
-  `GeneticTrait[Any]` lists with `list[object]` for meta-stat aggregation and
-  tightened the `gene_distributions` payload alias to `dict[str, object]`.
-- `core/worlds/petri/backend.py` (Completed) — removed module-level `Any`
-  annotations by typing delegated config/runtime accessors and using
-  `dict[str, object]` for heterogeneous snapshot/action payloads.
-- `core/worlds/tank/backend.py` (Completed) — removed module-level `Any`
-  annotations by typing engine/environment/entity accessors and using
-  `dict[str, object]` for config, actions, snapshots, and recent events.
-- `core/agents_wrapper.py` (Completed) — replaced loose collection `Any`
-  annotations with an entity-backed engine protocol and typed mutable entity
-  sequence.
-- `core/entity_ids.py` (Completed) — changed rich-comparison parameters from
-  `Any` to `object`, matching Python's comparison protocol while preserving raw
-  integer compatibility.
-- Next good candidate by hit count: re-run `rg -n "\bAny\b" core/` and pick one
-  small core module with mechanical annotations. (Note:
-  `core/transfer/entity_transfer.py` and
-  `core/genetics/sanitization.py` are completed)
+**Already checked / completed:** `core/entities/fish.py` is already `Any`-free.
+Completed cleanup passes include `core/code_pool/pool.py`,
+`core/services/stats/genetic_stats.py`, `core/worlds/petri/backend.py`,
+`core/worlds/tank/backend.py`, `core/agents_wrapper.py`, `core/entity_ids.py`,
+`core/transfer/entity_transfer.py`, and `core/genetics/sanitization.py`.
+
+**Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
+nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a
+heterogeneous wire-payload field. That file belongs under **7.1** unless the
+contract strategy changes.
+
+**Next step:** re-run `rg -n "\bAny\b" core/`, pick one small core module with
+mechanical annotations, and keep `mypy core/` green.
 
 ---
 
 ## Theme 7 — Frontend contracts & performance (external review, 2026-07)
 
-The reviewer rated the frontend the weakest surface relative to its ~26k LOC:
-thin tests (13 test files vs. 91 source files) and several 1,000+ line
-renderers/components. These are the tractable pieces.
+The reviewer rated the frontend the weakest surface relative to its size:
+22,381 source lines re-measured 2026-07-06, thin tests (13 test files vs. 91
+source files), and several 1,000+ line renderers/components. These are the
+tractable pieces.
 
 ### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★
 **Problem.** `backend/state_payloads.py` (Python) and
-`frontend/src/types/simulation.ts` (TypeScript, ~876 lines) describe the same
-wire format and can silently drift. The frontend already detects *schema
-version* mismatch at runtime, but nothing checks field-level shape.
+`frontend/src/types/simulation.ts` (TypeScript, 824 lines) describe the same
+wire format and can silently drift. The frontend detects *schema version*
+mismatch at runtime, and `tests/test_websocket_payload_v1.py` guards the basic
+full/delta V1 keys, but nothing checks the field-level Python DTO shape against
+the TypeScript interfaces.
 
 **Plan (two options, pick the smaller that fits).** Either (a) generate the TS
 types from the Python dataclasses/pydantic models as a build step so they cannot
@@ -342,29 +337,33 @@ drift, or (b) add a contract test that serializes a representative payload from
 `state_payloads.py` and asserts every key is present in the TS type (a JSON
 fixture checked by both sides). Option (b) is the smaller first step. **Layer 2.**
 
-### 7.2 Make the delta state path actually delta — `M` · ★★
-**Problem.** `StateSnapshot.to_delta_dict()` in `backend/state_payloads.py`
-(line ~223) exists, but the reviewer notes the path "appears not truly delta in
-spirit — the backend can send updates for every entity, and the frontend applies
-maps/filtering over the full entity list." Fine at today's entity counts, a
-likely future bottleneck.
+### 7.2 Measure whether delta updates are truly sparse — `M` · ★★
+**Problem.** `EntitySnapshot.to_delta_dict()` in `backend/state_payloads.py`
+(line ~223) emits only fast-changing fields, and the wire payload already has
+`updates`, `added`, and `removed`. `useWebSocket.applyDelta()` patches entities
+by id, and `tests/test_delta_identity_is_stable.py` guards stable IDs. The
+remaining suspicion is narrower: `backend/runner/state_publisher.py` currently
+builds `updates = [e.to_delta_dict() for e in entities]`, which may still send
+every existing entity every delta frame.
 
-**Plan.** First *measure*: log delta-frame payload size and the count of entities
-sent vs. changed at a few population levels. Only if it's actually sending
-unchanged entities, make `to_delta_dict()` emit changed entities plus a removal
-list, and have the frontend patch its entity map instead of rebuilding it. Land
-the measurement as its own small PR first — don't optimize on a hunch. **Layer 2**
-(wire-format change — bump the schema version and keep the mismatch detector
-happy).
+**Plan.** First *measure*: log delta-frame payload size and the count of
+entities sent vs. actually changed at a few population levels. Only if it is
+sending unchanged entities, track the last sent per-entity delta state and emit
+only changed updates plus the existing `added`/`removed` lists. Land the
+measurement as its own small PR first — don't optimize on a hunch. **Layer 2**
+(if the wire-format shape changes, bump the schema version and keep the
+mismatch detector happy).
 
 ### 7.3 Split the 1,000+ line renderers — `M` · ★
-`frontend/src/utils/renderer.ts` (1,658), `PetriTopDownRenderer.ts` (1,392),
-`EvolutionBenchmarkDisplay.tsx` (1,297), and `TankTopDownRenderer.ts` (1,263)
-are the top offenders. Same discipline as Theme 2's Python god-file splits:
-extract *obvious* collaborators (e.g. per-entity draw helpers, a legend/HUD
-module) behind a thin facade, verified by `npm run build` + existing tests.
-Split only where the responsibility boundary is clear — no abstraction for
-elegance. **Layer 2.**
+`frontend/src/utils/renderer.ts` (1,431),
+`frontend/src/renderers/petri/PetriTopDownRenderer.ts` (1,226),
+`frontend/src/components/EvolutionBenchmarkDisplay.tsx` (1,203), and
+`frontend/src/renderers/tank/TankTopDownRenderer.ts` (1,122) are the top
+offenders. Same discipline as Theme 2's Python god-file splits: extract
+*obvious* collaborators (e.g. per-entity draw helpers, a legend/HUD module)
+behind a thin facade, verified by `npm run build` + existing tests. Split only
+where the responsibility boundary is clear — no abstraction for elegance.
+**Layer 2.**
 
 ---
 
@@ -379,52 +378,34 @@ goals, assists, wins, tank identity, and net energy.
 
 **Remaining plan.**
 - *Semantics (M):* if repro-credit isn't a concept the project wants to keep,
-  remove the `reward_mode="credits"` path decisively rather than hiding it from
-  the UI. This is a design decision — **confirm with a maintainer before
+  remove the `repro_reward_mode="credits"` path decisively rather than hiding it
+  from the UI. Reconcile the public docs/API at the same time: backend command
+  validation currently accepts only `"credits"` for `repro_reward_mode`, while
+  product-facing copy should talk in goals, assists, wins, tank identity, and
+  net energy. This is a design decision — **confirm with a maintainer before
   deleting**, and keep it a separate PR from the encapsulation fix (Rule 1).
 
 ---
 
 ## Theme 9 — Packaging & release hygiene (external review #2, 2026-07)
 
-The review's one confirmed hard defect, and its lowest subscore (45/100).
-Reproducibility is central to the project, so "pip install the wheel and it
-imports" is table stakes.
-
-*(All items shipped)*
+The review's one confirmed hard defect was fixed in **9.1**. No active Theme 9
+proposals remain; see the Shipped section for the wheel packaging smoke test.
 
 ---
 
 ## Theme 10 — Research instrumentation: make the paper defensible (external review #2, 2026-07)
 
 The review's core message: the "AI agents as evolutionary operators" story is
-currently *a hypothesis plus a system design, not yet a dataset*. Accepted
-champions are recorded; rejected attempts are not. Single-seed wins are
-fragile. Agents can edit every ruler they are scored against. Until these
-close, reviewers will call the project an engineering artifact, not a
-scientific result. These are the highest-leverage improvements in the repo for
-the stated research goal.
+not defensible until the data pipeline is as real as the system design. The
+attempt ledger and multi-seed matrix tooling have landed, so accepted and
+rejected attempts can now be recorded. Remaining gaps: agents can still edit
+every ruler they are scored against, patches are not yet classified into a
+mutation taxonomy, and there is no non-AI control arm.
 
 None of these change simulation behavior — all **Layer 2** — but they touch
 scoring/CI infrastructure, so keep each one a separate PR (Rule: Layer 2
 changes stay separate from Layer 1 improvements).
-
-### 10.1 Attempt ledger: log every attempt, not just wins — `M` · ★★★
-**The single highest-leverage research improvement.** Create
-`core/research/attempt_ledger.py` (path suggested by the review; adjust if a
-better home exists) plus an append-only data file (e.g.
-`research/attempts.jsonl`, one JSON object per line — merge-friendly).
-
-Each record: timestamp, agent/model identifier, benchmark id, seed(s),
-candidate score(s), champion score at the time, config hash, verdict
-(accepted / rejected / error), one-line description of the change, and the
-commit/branch or diff stat if available. Wire the *writing* of records into
-`tools/validate_improvement.py` (every comparison is an attempt) and
-`scripts/ai_code_evolution_agent.py`. Selection bias is the enemy: a ledger
-that only sees wins is worthless, so log at the point of *evaluation*, not the
-point of merge.
-
-
 
 ### 10.3 Held-out evaluators agents cannot edit — `L` · ★★★
 Agents can currently modify every benchmark they are scored against — the
@@ -447,23 +428,45 @@ For the "Git as heredity" paper you need to know what kinds of mutations
 agents produce. Add `tools/classify_patch.py`: given a commit range or diff,
 classify it (parameter-tuning / logic-change / new-algorithm / refactor /
 benchmark-or-meta / docs) from the paths and diff shape, heuristics first.
-Emit JSON; store the label in the attempt ledger (10.1). Once the ledger
-exists, backfilling history via `git log` is a bonus follow-up. Depends on
-10.1 landing first.
+Emit JSON. Then extend the shipped attempt ledger (**10.1**) with a
+`patch_type` or `mutation_type` field, have `tools/summarize_attempts.py` break
+attempts down by that label, and add focused tests for both the classifier and
+ledger serialization. Backfilling history via `git log` is a bonus follow-up.
 
 ### 10.5 A non-AI baseline search method — `L` · ★★
 The paper's claim "AI agents are effective evolutionary operators" needs a
 control arm. Implement a dumb-but-honest baseline that proposes parameter
 perturbations within `ALGORITHM_PARAMETER_BOUNDS` (random search or a simple
-evolutionary strategy over `core/config/` + composable parameters), run
-through the *same* validation pipeline and logged to the *same* attempt
-ledger. The comparison "agent attempts vs. random-search attempts, same
-budget" is the paper's headline figure. Depends on 10.1 and 10.2.
+evolutionary strategy over `core/config/` + composable parameters). Build on
+`tools/param_mutator.py`, which already creates deterministic mutation plans
+for composable and per-algorithm parameter bounds. Run the baseline through the
+*same* validation pipeline, log it to the *same* attempt ledger with an explicit
+non-AI `agent_id`, and compare against agent attempts under the same benchmark
+and seed budget. The comparison "agent attempts vs. random-search attempts,
+same budget" is the paper's headline figure. Depends on shipped **10.1** and
+**10.2**.
 
 ---
 
 ## Shipped
 
+- **10.1 Attempt ledger: log every attempt, not just wins.** Created
+  [attempt_ledger.py](../core/research/attempt_ledger.py), which appends
+  accepted, rejected, and errored evaluations to `research/attempts.jsonl` with
+  benchmark id, seed(s), candidate/champion scores, config hash, verdict,
+  agent/model metadata, git branch/commit/diff stat, changed files, command,
+  duration, and gate/champion-update flags. Wired logging into
+  [validate_improvement.py](../tools/validate_improvement.py),
+  [run_bench_matrix.py](../tools/run_bench_matrix.py), and
+  [ai_code_evolution_agent.py](../scripts/ai_code_evolution_agent.py). Added
+  [summarize_attempts.py](../tools/summarize_attempts.py) for ledger reporting
+  and [test_attempt_ledger.py](../tests/test_attempt_ledger.py) coverage.
+- **1.7 phase profiling instrumentation.** Added `main.py --profile-phases` and
+  `TANK_PROFILE_PHASES=1` support backed by
+  [profiler.py](../core/simulation/profiler.py). Headless runs print cumulative
+  phase timings and include `phase_profiling` in `--export-stats`; coverage in
+  [test_phase_profiling.py](../tests/test_phase_profiling.py) verifies default
+  off behavior, config/env enablement, and phase bucket accounting.
 - **9.1 Fix broken wheel packaging + add a clean-install smoke test.** Switched to package discovery in `pyproject.toml` (`[tool.setuptools.packages.find]`) to recursively package all subpackages of `core` and `backend`. Created `tools/check_wheel.py` to build the wheel, programmatically check the zip contents for correct package structure/exclusions, and verify representative imports inside a clean temporary virtual environment. Added this wheel packaging check as a step in the CI workflow's smoke-gate job.
 - **4.3 Algorithm catalog doc.** `tools/generate_algorithm_catalog.py`
   introspects `ALL_ALGORITHMS`/`ALGORITHM_PARAMETER_BOUNDS` and regenerates
@@ -546,7 +549,13 @@ budget" is the paper's headline figure. Depends on 10.1 and 10.2.
 - **6.1 Strict type checking for core/simulation, core/worlds, and core/genetics.** Enabled mypy strictness overrides (`disallow_untyped_defs = true`, `disallow_incomplete_defs = true`) for the `core/simulation`, `core/worlds` (excluding internal tests), and `core/genetics` packages. Resolved untyped functions, arguments, and annotations across these packages, keeping all CI gates green.
 - **1.2 Score decomposition in benchmark output.** Verified that benchmarks (`survival_5k`, `ecosystem_health_10k`, `selection_response_10k`, and `training_3k/5k`) emit a `score_breakdown` dict, and `validate_improvement.py` dynamically extracts it, displays side-by-side comparison, and reports the weakest component.
 - **6.2 Retired Any in core/transfer/entity_transfer.py and core/genetics/sanitization.py.** Tightened typing by removing generic `Any` annotations, introducing concrete entity classes, parameterizing generic `TransferOutcome[T]`, and utilizing generic `object` types for external untrusted inputs. Enabled strict typing checks override in `pyproject.toml` for `core/transfer/`.
-- **10.2 Multi-seed benchmark matrix tooling.** Created [run_bench_matrix.py](file:///c:/Users/mike/sandbox/tank/tools/run_bench_matrix.py) to run a benchmark across a seed list (default `42, 7, 123`), compute statistics (mean, min, max, stdev, n), support seed-by-seed comparison, and exit nonzero if the candidate doesn't beat the champion on a majority of seeds. Updated [validate_improvement.py](file:///c:/Users/mike/sandbox/tank/tools/validate_improvement.py) to support matrix-seed results and champion updates.
+- **10.2 Multi-seed benchmark matrix tooling.** Created
+  [run_bench_matrix.py](../tools/run_bench_matrix.py) to run a benchmark across
+  a seed list (default `42, 7, 123`), compute statistics (mean, min, max, stdev,
+  n), support seed-by-seed comparison, and exit nonzero if the candidate doesn't
+  beat the champion on a majority of seeds. Updated
+  [validate_improvement.py](../tools/validate_improvement.py) to support
+  matrix-seed results and champion updates.
 
 - **Docs: fixed stale algorithm count (48 → 58) and completed the docs index.**
   Verified the count against `core/algorithms/registry.py` and added the missing
