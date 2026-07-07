@@ -29,9 +29,9 @@ def main():
     try:
         # 2. Build the wheel
         print("Building wheel...")
-        try:
-            import pip  # noqa: F401
-        except ImportError:
+        import importlib.util
+
+        if importlib.util.find_spec("pip") is None:
             print("pip not found in current environment. Bootstrapping with ensurepip...")
             subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], capture_output=True)
         # We use pip wheel to build without installing build package

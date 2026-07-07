@@ -94,3 +94,67 @@ def test_classify_logic_change():
 +        fish.swim_fast()
 """
     assert classify_diff(diff, changed_files) == "logic-change"
+
+
+def test_classify_dict_literal_changed():
+    changed_files = ["core/config/fish.py"]
+    diff = """diff --git a/core/config/fish.py b/core/config/fish.py
+--- a/core/config/fish.py
++++ b/core/config/fish.py
+@@ -10,3 +10,3 @@
+-    "threshold": 10.5,
++    "threshold": 20.0,
+"""
+    assert classify_diff(diff, changed_files) == "parameter-tuning"
+
+
+def test_classify_dict_dynamic_changed():
+    changed_files = ["core/config/fish.py"]
+    diff = """diff --git a/core/config/fish.py b/core/config/fish.py
+--- a/core/config/fish.py
++++ b/core/config/fish.py
+@@ -10,3 +10,3 @@
+-    "threshold": 10.5,
++    "threshold": SOME_DYNAMIC_FUNCTION(),
+"""
+    assert classify_diff(diff, changed_files) == "logic-change"
+
+
+def test_classify_backend_behavior_change():
+    changed_files = ["backend/world_manager.py"]
+    diff = """diff --git a/backend/world_manager.py b/backend/world_manager.py
+--- a/backend/world_manager.py
++++ b/backend/world_manager.py
+@@ -5,4 +5,4 @@
+-    def run(self):
+-        self.tick()
++    def run(self):
++        self.tick_new()
+"""
+    assert classify_diff(diff, changed_files) == "logic-change"
+
+
+def test_classify_test_only_change():
+    changed_files = ["tests/test_some_feature.py"]
+    diff = """diff --git a/tests/test_some_feature.py b/tests/test_some_feature.py
+--- a/tests/test_some_feature.py
++++ b/tests/test_some_feature.py
+@@ -1,3 +1,4 @@
+ def test_foo():
+-    assert True
++    assert 1 == 1
+"""
+    assert classify_diff(diff, changed_files) == "benchmark-or-meta"
+
+
+def test_classify_new_benchmark_file():
+    changed_files = ["benchmarks/tank/new_benchmark.py"]
+    diff = """diff --git a/benchmarks/tank/new_benchmark.py b/benchmarks/tank/new_benchmark.py
+new file mode 100644
+--- /dev/null
++++ b/benchmarks/tank/new_benchmark.py
+@@ -0,0 +1,5 @@
++def run(seed):
++    pass
+"""
+    assert classify_diff(diff, changed_files) == "benchmark-or-meta"

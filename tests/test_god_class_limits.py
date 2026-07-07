@@ -25,6 +25,11 @@ from pathlib import Path
 # keyed by repo-relative path. The ratchet only tightens: shrink a file and
 # lower its pin; drop it from this dict once it is under the limit.
 LEGACY_MAX_LINES: dict[str, int] = {
+    "backend/simulation_runner.py": 647,
+    "backend/startup_manager.py": 626,
+    "backend/state_payloads.py": 804,
+    "backend/world_manager.py": 712,
+    "backend/world_persistence.py": 619,
     "core/algorithms/base.py": 805,
     "core/algorithms/energy_management.py": 567,
     "core/algorithms/poker.py": 752,
@@ -57,6 +62,24 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/spatial/grid.py": 795,
     "core/transfer/entity_transfer.py": 752,
     "core/worlds/tank/backend.py": 629,
+    "frontend/src/components/AutoEvaluateDisplay.tsx": 656,
+    "frontend/src/components/EcosystemStats.tsx": 513,
+    "frontend/src/components/EvolutionBenchmarkDisplay.tsx": 1297,
+    "frontend/src/components/TankNetworkMap.tsx": 725,
+    "frontend/src/components/TankView.tsx": 599,
+    "frontend/src/components/tank_tabs/TankPokerTab.tsx": 532,
+    "frontend/src/components/tank_tabs/TankTrendsTab.tsx": 943,
+    "frontend/src/pages/NetworkDashboard.tsx": 1046,
+    "frontend/src/renderers/avatar_renderer.ts": 555,
+    "frontend/src/renderers/petri/PetriTopDownRenderer.ts": 1392,
+    "frontend/src/renderers/tank/TankTopDownRenderer.ts": 1263,
+    "frontend/src/types/simulation.ts": 888,
+    "frontend/src/utils/plants/nectar.ts": 616,
+    "frontend/src/utils/plants/renderers.ts": 1042,
+    "frontend/src/utils/renderer.ts": 1658,
+    "tools/evolution_report.py": 1032,
+    "tools/evolve.py": 554,
+    "tools/validate_improvement.py": 527,
 }
 
 # Maximum allowed lines for files not grandfathered in LEGACY_MAX_LINES.
@@ -67,12 +90,39 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _get_core_python_files() -> list[Path]:
-    """Get all Python files in the core directory."""
-    from tests.ast_utils import walk_python_files
+def _get_monitored_source_files() -> list[Path]:
+    """Get all monitored Python and Frontend source files."""
+    import os
 
-    core_root = _repo_root() / "core"
-    return walk_python_files(core_root)
+    repo_root = _repo_root()
+    source_files: list[Path] = []
+
+    # Python source roots
+    py_roots = [repo_root / "core", repo_root / "backend", repo_root / "tools"]
+    for root in py_roots:
+        if root.exists():
+            for r, dirs, files in os.walk(root):
+                # Prune excluded directories like __pycache__, tests/
+                dirs[:] = [
+                    d
+                    for d in dirs
+                    if d not in ("__pycache__", "tests", "node_modules", ".venv", ".git")
+                ]
+                for f in files:
+                    if f.endswith(".py"):
+                        source_files.append(Path(r) / f)
+
+    # Frontend source roots
+    fe_root = repo_root / "frontend" / "src"
+    if fe_root.exists():
+        fe_exts = (".ts", ".tsx", ".js", ".jsx", ".css")
+        for r, dirs, files in os.walk(fe_root):
+            dirs[:] = [d for d in dirs if d not in ("node_modules", "dist", "build")]
+            for f in files:
+                if f.lower().endswith(fe_exts):
+                    source_files.append(Path(r) / f)
+
+    return source_files
 
 
 def _line_count(path: Path) -> int:
@@ -91,7 +141,7 @@ def test_no_new_god_classes() -> None:
     repo_root = _repo_root()
     violations: list[str] = []
 
-    for path in _get_core_python_files():
+    for path in _get_monitored_source_files():
         rel = path.relative_to(repo_root).as_posix()
         try:
             line_count = _line_count(path)

@@ -52,7 +52,7 @@ def classify_diff(diff_text: str, changed_files: list[str]) -> str:
         "tests/",
         "tools/",
         "benchmarks/",
-        "backend/",
+        "backend/tests/",
         "research/",
         "scripts/",
         ".github/",
@@ -74,6 +74,7 @@ def classify_diff(diff_text: str, changed_files: list[str]) -> str:
     def is_meta(f: str) -> bool:
         return (
             any(f.startswith(p) for p in meta_prefixes)
+            or f.startswith("backend/test_")
             or f in meta_files
             or os.path.basename(f) in meta_files
         )
@@ -98,25 +99,17 @@ def classify_diff(diff_text: str, changed_files: list[str]) -> str:
     if new_algo:
         return "new-algorithm"
 
-    # 5. Analyze python/code changes in core/
-    core_files = [f for f in changed_files if f.startswith("core/") and not is_meta(f)]
-    if not core_files:
-        # Modified files are not strictly docs, not strictly meta, but nothing in core.
+    # 5. Analyze python/code changes in core/ and backend/
+    code_files = [
+        f
+        for f in changed_files
+        if (f.startswith("core/") or f.startswith("backend/")) and not is_meta(f)
+    ]
+    if not code_files:
+        # Modified files are not strictly docs, not strictly meta, but nothing in core/backend.
         return "benchmark-or-meta"
 
-    # If only config/parameter files are changed in core/
-    def is_config_file(f: str) -> bool:
-        return (
-            f.startswith("core/config/")
-            or f.startswith("core/parameters/")
-            or "config" in f
-            or "parameter" in f
-        )
-
-    if all(is_config_file(f) for f in core_files):
-        return "parameter-tuning"
-
-    # Extract changed lines from the diff for core_files
+    # Extract changed lines from the diff for code_files
     added_lines = []
     removed_lines = []
 
@@ -133,7 +126,7 @@ def classify_diff(diff_text: str, changed_files: list[str]) -> str:
             if not match:
                 continue
         fname = match.group(1).replace("\\", "/")
-        if fname not in core_files:
+        if fname not in code_files:
             continue
 
         # Extract the added and removed lines from the hunks of this file
