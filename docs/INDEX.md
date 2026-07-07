@@ -24,6 +24,8 @@ This index provides a guide to all documentation in the Tank World project.
 | [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) | Must-implement UI roadmap, including soccer/poker skill-over-time tracking |
 | [MULTILEVEL_EVOLUTION_STRATEGY.md](MULTILEVEL_EVOLUTION_STRATEGY.md) | Multi-level evolutionary optimization strategy |
 | [MULTI_PROBLEM_SPACE_SEARCH.md](MULTI_PROBLEM_SPACE_SEARCH.md) | Assessment + plan for cross-domain transfer (searching many problem spaces at once) |
+| [FEDERATION.md](FEDERATION.md) | Design for connecting tanks online: data-only genome wire format, sealed vs open mode, cross-tank lineage |
+| [MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md) | Minigames as a plugin API + making entertainment net-positive for evolution |
 
 ### Architecture
 

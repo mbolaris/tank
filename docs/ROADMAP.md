@@ -237,12 +237,37 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 - [ ] Cross-experiment knowledge transfer
 - [ ] Collaboration features for distributed research
 
-### Distributed Compute
+### Distributed Compute & Federation
+
+*See [FEDERATION.md](FEDERATION.md) for the full design.*
 
 - [ ] Browser-based client for compute contributions
-- [ ] Multi-tank network with algorithm migration
+- [ ] **Genome wire format v1** — data-only, versioned, adversarially validated
+      (do this before two incompatible tanks exist in the wild)
+- [ ] Export/import round-trip in Sealed mode (reuse `core/transfer/entity_transfer.py`)
+- [ ] Open mode + replayable migration event log (built on [REPLAY.md](REPLAY.md))
+- [ ] Multi-tank network with data-only fish/genome migration
+- [ ] Cross-tank lineage service + federated Hall of Fame
 - [ ] Fair credit system for compute contributions
 - [ ] Engagement-optimized visualizations
+
+### Entertainment & Community (Adoption)
+
+*Poker/soccer are the adoption engine, not scope creep. See
+[MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md).*
+
+- [ ] Fix the energy economy so minigames are net-positive for reproduction
+      (today they burn the overflow energy that funds offspring — see `CLAUDE.md`)
+- [ ] Add an **engagement × ecosystem-health** benchmark so the Layer 1 loop cannot
+      raise fitness by making fish boring
+- [ ] Promote minigames to a `MinigameProtocol` plugin API (completes
+      [ADR-011](adr/011-minigames-out-of-core.md)); poker + soccer become the first
+      two plugins
+- [ ] Reference minigame plugin + contributor docs for the ALife hobbyist community
+- [ ] Story layer: named lineages, fish "trading cards" (behavior + stats +
+      ancestry), match highlights, Hall of Fame fed by `champions/`
+- [ ] Lower the front door: cut releases, `pip install tankworld && tankworld` to a
+      running tank in under a minute, lead the README with the aquarium
 
 ---
 
