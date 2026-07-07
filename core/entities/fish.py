@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from random import Random
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from core.entities.resources import Food
     from core.fish.poker_stats_component import FishPokerStats
     from core.movement_strategy import MovementStrategy
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
     from core.world import World
 
 # Runtime imports (moved from local scopes)
@@ -407,7 +408,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             return float(self.genome.behavioral.aggression.value)
         return 0.5
 
-    def get_poker_strategy(self) -> Any | None:
+    def get_poker_strategy(self) -> PokerStrategyAlgorithm | None:
         """Get poker strategy for this fish (implements PokerPlayer protocol).
 
         Returns:

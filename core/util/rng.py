@@ -6,7 +6,6 @@ silently creating an unseeded fallback.
 """
 
 import random
-from typing import Any
 
 
 class MissingRNGError(RuntimeError):
@@ -26,7 +25,7 @@ def _is_test_environment() -> bool:
     return "pytest" in sys.modules or "unittest" in sys.modules
 
 
-def require_rng(environment: Any, context: str = "unknown") -> random.Random:
+def require_rng(environment: object | None, context: str = "unknown") -> random.Random:
     """Get the RNG from an environment, failing loudly if unavailable.
 
     Use this instead of `getattr(env, "rng", None) or random.Random()`
@@ -102,7 +101,7 @@ def require_rng_param(rng: random.Random | None, context: str) -> random.Random:
 
 
 def get_rng_or_default(
-    environment: Any,
+    environment: object | None,
     fallback_rng: random.Random | None = None,
     context: str = "unknown",
 ) -> random.Random:
