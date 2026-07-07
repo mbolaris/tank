@@ -48,6 +48,7 @@ def main() -> None:
     verdicts = Counter(e.get("verdict") for e in entries)
     agents = Counter(e.get("agent_id") for e in entries)
     benchmarks = Counter(e.get("benchmark_id") for e in entries)
+    patch_types = Counter(e.get("patch_type", "unknown") for e in entries)
 
     durations = [e["duration"] for e in entries if e.get("duration") is not None]
     total_duration = sum(durations)
@@ -64,6 +65,12 @@ def main() -> None:
     for verdict, count in sorted(verdicts.items()):
         pct = (count / total_attempts) * 100
         print(f"  - {verdict:<12}: {count:3} ({pct:5.1f}%)")
+    print("-" * 60)
+
+    print("Patch / Mutation Type Breakdown:")
+    for patch_type, count in sorted(patch_types.items(), key=lambda x: x[1], reverse=True):
+        pct = (count / total_attempts) * 100
+        print(f"  - {patch_type!s:<25}: {count:3} ({pct:5.1f}%)")
     print("-" * 60)
 
     print("Agent / Model Activity:")
@@ -92,6 +99,7 @@ def main() -> None:
         verdict = entry.get("verdict", "unknown")
         bench = entry.get("benchmark_id", "unknown")
         desc = entry.get("description", "No description")
+        patch_type = entry.get("patch_type", "unknown")
 
         # Handle score delta
         cand = entry.get("candidate_score")
@@ -100,7 +108,7 @@ def main() -> None:
         if cand is not None and chmp is not None:
             score_info = f" (cand={cand}, chmp={chmp})"
 
-        print(f"[{ts}] {agent} -> {verdict.upper()} on {bench}{score_info}")
+        print(f"[{ts}] {agent} -> {verdict.upper()} on {bench} ({patch_type}){score_info}")
         print(f"  Description: {desc}")
         print("-" * 60)
 

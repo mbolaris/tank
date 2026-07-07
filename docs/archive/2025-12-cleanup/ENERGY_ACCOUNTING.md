@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/adr/005-energy-state-pattern.md](../adr/005-energy-state-pattern.md).
+
 # Energy accounting
 
 This project tracks **fish** and **plant** energy changes with explicit, windowed ledgers so we can:

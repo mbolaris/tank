@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/AGENT_QUICKSTART.md](../AGENT_QUICKSTART.md).
+
 # AI Code Evolution - Quick Start Guide
 
 **Automatically improve fish behaviors using AI in 5 minutes!**

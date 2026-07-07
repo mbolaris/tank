@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Tank World: Project Philosophy
 
 This document captures the core beliefs and principles that guide Tank World development.

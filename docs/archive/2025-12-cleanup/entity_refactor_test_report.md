@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Entity Refactor Test Report
 
 To confirm the refactored entity package continues to work as expected, the following focused test suites were executed locally:

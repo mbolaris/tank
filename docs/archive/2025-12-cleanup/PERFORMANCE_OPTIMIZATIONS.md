@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Performance Optimizations Summary
 
 This document describes the performance optimizations implemented to improve the fish tank simulation performance.

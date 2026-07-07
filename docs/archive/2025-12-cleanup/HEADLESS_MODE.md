@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Headless Simulation Mode
 
 The fish tank simulation supports running in headless mode without any graphical visualization. This is useful for:

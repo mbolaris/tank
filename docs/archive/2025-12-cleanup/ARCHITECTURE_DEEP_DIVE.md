@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+
 # Architecture Deep Dive: Tank Simulation
 **Date:** 2024-12-24
 **Focus:** Software design excellence, maintainability, and extensibility

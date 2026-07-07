@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Distributed Tank World Net Architecture
 
 ## Table of Contents

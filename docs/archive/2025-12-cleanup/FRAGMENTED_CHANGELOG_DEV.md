@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 Safe fixes to commit (dev-focused):
 
 1) `frontend/src/utils/fractalPlant.ts`

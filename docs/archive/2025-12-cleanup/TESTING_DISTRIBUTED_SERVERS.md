@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Testing Distributed Server Discovery
 
 This guide explains how to test the distributed server discovery and communication infrastructure.

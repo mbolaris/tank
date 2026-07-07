@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # LLM Fractal Plant Beauty Contest
 
 ## Overview

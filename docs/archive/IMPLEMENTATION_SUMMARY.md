@@ -1,3 +1,5 @@
+> Archived 2026-07.
+
 # Tank World Soccer Feature - Implementation Summary
 
 ## Overview

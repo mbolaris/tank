@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Tank World Net - Phase 4 Planning Document
 
 ## Overview
