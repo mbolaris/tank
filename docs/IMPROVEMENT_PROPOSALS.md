@@ -145,6 +145,25 @@ because tools weren't installed, not because code was wrong.
 dev tools and either install them or print the exact one-liner to do so, so a
 green run is achievable from `git clone` + one command. Complements shipped
 `scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
+
+### 1.8 Align survival_5k benchmark scoring with healthy ecosystem indicators — `M` · ★★
+**Problem.** The `survival_5k` benchmark champion (version 5) shows a starvation
+rate of 99.47% of deaths. According to `CLAUDE.md`/`AGENTS.md` health indicators,
+a starvation rate above 95% indicates that food-seeking is broken/unhealthy.
+Additionally, the champion reaches `max_generation: 4` over 5k frames, falling
+short of the target of `>5 per 10k` frames. The current benchmark rewards a state
+that is documented as unhealthy because it relies solely on the product of average
+energy and average population, without penalizing high starvation rates or
+rewarding generation turnover.
+
+**Plan.**
+- Refactor the score formula in `benchmarks/tank/survival_5k.py` to incorporate
+  starvation rate and generation count.
+  - Apply a penalty multiplier when the starvation rate exceeds 95% (e.g., scaling down the score).
+  - Add a bonus or multiplier for achieving a higher max generation.
+- Re-baseline/re-run the benchmark to establish a new healthy champion version.
+- Keep benchmark scoring changes separate from Layer 1 algorithm changes (Rule 2).
+
 ---
 
 ## Theme 2 — Tame the god files
@@ -539,6 +558,14 @@ same budget" is the paper's headline figure. Depends on shipped **10.1** and
   `REPLAY.md` / `UI_SPEC.md` entries. (commit `380a6c0`)
 - **Docs: refreshed ROADMAP status** — marked `validate_improvement.py` and
   `bench.yml` as shipped, clarified which tank benchmarks actually exist.
+- **6.3 Tightened type safety on core packages.** Enabled mypy strictness overrides
+  (`disallow_untyped_defs = true`, `disallow_incomplete_defs = true`) for `core.spatial.*`,
+  `core.solutions.*`, and `core.util.*`. Resolved all missing type annotations, returning
+  types, and generic function signatures in these packages, maintaining fully green type checks.
+- **9.2 Repo Hygiene and Package Versioning.** Bumped project version in `pyproject.toml`
+  from `0.1.0` to `1.0.0` after 1,800+ commits. Cleaned up and deleted stray runtime results
+  and profile stats (`results.json`, `improved_results.json`, `profile_stats.txt`) from the
+  workspace root.
 
 ---
 

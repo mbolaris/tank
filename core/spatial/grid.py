@@ -618,7 +618,7 @@ class SpatialGrid:
 
         return result
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all agents from the grid."""
         self.grid.clear()
         self.fish_grid.clear()

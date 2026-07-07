@@ -14,7 +14,7 @@ core = ["py.typed"]
 
 [project]
 name = "tankworld"
-version = "0.1.0"
+version = "1.0.0"
 description = "An artificial life research framework with evolving agent behaviors, modes, and deterministic benchmarking"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -207,6 +207,21 @@ disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
 module = "core.entities.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.spatial.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.solutions.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.util.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
