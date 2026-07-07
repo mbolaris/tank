@@ -1,3 +1,5 @@
+> Archived 2026-07. Superseded by [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+
 # Comprehensive Codebase Analysis - Fish Tank Simulation
 
 ## Executive Summary

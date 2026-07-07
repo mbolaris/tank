@@ -1,3 +1,5 @@
+> Archived 2026-07.
+
 # Soccer System Integration - COMPLETE ✅
 
 ## Status: FULLY INTEGRATED AND TESTED

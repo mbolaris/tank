@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Deployment Guide - React Web UI
 
 ## Quick Start (Local Development)

@@ -74,6 +74,7 @@ def log_attempt(
     agent_model: str | None = None,
     prompt_template_id: str | None = None,
     files_changed: list[str] | None = None,
+    patch_type: str | None = None,
     tests_run: list[str] | str | None = None,
     benchmark_command: str | None = None,
     duration: float | None = None,
@@ -98,6 +99,7 @@ def log_attempt(
         attempt_id: A generated UUID string or similar unique identifier.
         parent_attempt_id: UUID of the parent attempt this build inherits from.
         base_commit: Git commit hash of base commit before modification.
+        patch_type: The taxonomy category of the change (e.g., 'parameter-tuning', 'logic-change').
         agent_model: Specific LLM/model descriptor used.
         prompt_template_id: Specific template or version of the prompt/system message.
         files_changed: List of files modified in this attempt.
@@ -167,6 +169,21 @@ def log_attempt(
             files_changed = sorted(set(files))
         except Exception:
             pass
+
+    # Detect patch_type
+    if patch_type is None:
+        try:
+            project_root_str = str(Path(__file__).resolve().parents[2])
+            if project_root_str not in sys.path:
+                sys.path.insert(0, project_root_str)
+            from tools.classify_patch import classify_diff, get_current_workspace_changes
+
+            diff_text, detected_files = get_current_workspace_changes()
+            if not files_changed:
+                files_changed = detected_files
+            patch_type = classify_diff(diff_text, files_changed or [])
+        except Exception:
+            patch_type = "logic-change"
 
     # Detect model
     if not agent_model:
@@ -245,6 +262,7 @@ def log_attempt(
         "commit": git_info["commit"],
         "diff_stat": git_info["diff_stat"],
         "files_changed": files_changed,
+        "patch_type": patch_type,
         "tests_run": tests_run,
         "benchmark_command": benchmark_command,
         "duration": duration,

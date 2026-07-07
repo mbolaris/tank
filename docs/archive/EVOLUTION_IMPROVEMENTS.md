@@ -1,3 +1,5 @@
+> Archived 2026-07. Superseded by [docs/VISION.md](../VISION.md).
+
 # Evolution System Improvements
 
 ## Summary

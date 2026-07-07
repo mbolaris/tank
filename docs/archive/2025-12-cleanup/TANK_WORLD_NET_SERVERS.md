@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Tank World Net Server Metadata
 
 This note describes how the backend exposes server information in a way that works across

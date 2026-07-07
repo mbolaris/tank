@@ -1,3 +1,5 @@
+> Archived 2026-07. Superseded by [docs/VISION.md](../VISION.md).
+
 # Fish Evolution and Behavior System Improvements
 
 This document describes the comprehensive improvements made to the fish evolution system and behavior algorithms.

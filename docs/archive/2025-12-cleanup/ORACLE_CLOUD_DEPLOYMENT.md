@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Deploying Fish Tank to Oracle Cloud Always Free
 
 This guide walks you through deploying your Fish Tank simulation to Oracle Cloud's Always Free tier.

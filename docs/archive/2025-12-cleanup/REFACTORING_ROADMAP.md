@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Architecture Refactoring Roadmap
 
 This document tracks architectural improvements made to the simulation codebase.

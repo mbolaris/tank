@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/ARCHITECTURE_REVIEW.md](../ARCHITECTURE_REVIEW.md).
+
 # Architectural Review: Tank Simulation
 
 ## Executive Summary

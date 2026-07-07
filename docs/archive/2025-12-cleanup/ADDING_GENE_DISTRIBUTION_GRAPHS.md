@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Adding Gene Distribution Graphs
 
 This guide explains how to add a new gene trait distribution graph to the Gene Distribution panel. Follow this checklist to ensure all required changes are made.

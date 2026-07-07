@@ -114,3 +114,97 @@ def test_log_attempt(tmp_path: Path) -> None:
     assert record2["config_hash"] == "abc123hash"
     assert record2["agent_id"] == "test-agent"
     assert record2["description"] == "Regressed speed"
+
+
+def test_log_attempt_patch_type(tmp_path: Path) -> None:
+    ledger_file = tmp_path / "attempts.jsonl"
+
+    # Log with explicit patch_type
+    log_attempt(
+        benchmark_id="test_bench",
+        verdict="accepted",
+        candidate_score=1.1,
+        champion_score=1.0,
+        ledger_path=ledger_file,
+        patch_type="parameter-tuning",
+    )
+
+    # Log without patch_type (triggers auto-detection)
+    log_attempt(
+        benchmark_id="test_bench",
+        verdict="rejected",
+        candidate_score=0.9,
+        champion_score=1.0,
+        ledger_path=ledger_file,
+    )
+
+    with open(ledger_file, encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    assert len(lines) == 2
+    rec1 = json.loads(lines[0])
+    rec2 = json.loads(lines[1])
+
+    assert rec1["patch_type"] == "parameter-tuning"
+    assert "patch_type" in rec2
+    assert isinstance(rec2["patch_type"], str)
+
+
+def test_summarize_attempts(tmp_path: Path, monkeypatch) -> None:
+    ledger_file = tmp_path / "attempts.jsonl"
+
+    # Log different attempt types
+    log_attempt(
+        benchmark_id="bench1",
+        verdict="accepted",
+        candidate_score=1.2,
+        champion_score=1.0,
+        ledger_path=ledger_file,
+        patch_type="parameter-tuning",
+        duration=1.5,
+    )
+    log_attempt(
+        benchmark_id="bench2",
+        verdict="rejected",
+        candidate_score=0.8,
+        champion_score=1.0,
+        ledger_path=ledger_file,
+        patch_type="logic-change",
+        duration=2.5,
+    )
+    log_attempt(
+        benchmark_id="bench1",
+        verdict="error",
+        candidate_score=None,
+        champion_score=1.0,
+        ledger_path=ledger_file,
+        duration=0.5,
+    )
+
+    # Use monkeypatch to set ATTEMPT_LEDGER_PATH environment variable
+    monkeypatch.setenv("ATTEMPT_LEDGER_PATH", str(ledger_file))
+
+    # Call summarize_attempts main and capture output
+    from tools.summarize_attempts import main as summarize_main
+    import io
+    from contextlib import redirect_stdout
+
+    f = io.StringIO()
+    with redirect_stdout(f):
+        try:
+            summarize_main()
+        except SystemExit:
+            pass
+
+    output = f.getvalue()
+
+    # Assertions on stdout
+    assert "TANK WORLD ATTEMPT LEDGER SUMMARY" in output
+    assert "Total Attempts Recorded: 3" in output
+    assert "Verdict Breakdown:" in output
+    assert "accepted" in output
+    assert "rejected" in output
+    assert "error" in output
+    assert "Patch / Mutation Type Breakdown:" in output
+    assert "parameter-tuning" in output
+    assert "logic-change" in output

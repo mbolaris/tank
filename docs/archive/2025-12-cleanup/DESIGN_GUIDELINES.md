@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [AGENTS.md](../../AGENTS.md).
+
 ## Design Guidelines (concise)
 
 Goal: keep the codebase easy to understand, extend, test, and refactor.

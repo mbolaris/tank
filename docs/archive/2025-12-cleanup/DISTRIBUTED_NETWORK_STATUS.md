@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Tank World Distributed Network - Implementation Status
 
 ## ✅ Completed Features
