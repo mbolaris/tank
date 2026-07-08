@@ -180,6 +180,33 @@ A living log so the board doesn't re‑propose dead ends. **Builders: append out
   signal, first confirm the signal is (a) heritable/correlated with a genome trait and (b) not
   already captured by the existing energy pathway.
 
+- 2026-07-07 | Two-Resource Tank -- trait-differentiated food niches for disruptive selection
+  (decision-board Proposal #55), with assortative-mating and long-horizon iterations | lever
+  §3.8 + §3.4 + §3.6 | hypothesis: two intermixed food types with a body-size trade-off ("tough"
+  food's extracted energy scales UP with the eater's `size_modifier`; "fast" food scales up as
+  the eater is SMALLER) create two niches -> disruptive selection -> sustained bimodal size /
+  sympatric speciation | result (standard `ecosystem_health_10k` config, seeds 42/7/123, ON vs
+  OFF, all behind default-off no-op flags so baseline stays byte-identical -- verified score
+  9.081249753268745 unchanged): **FOOD-ONLY @10k** -- each seed slides to ONE niche and
+  re-converges (Sarle bimodality coeff down on 2/3; size mean 1.61->1.16 on seed 42 but
+  1.67->1.73 on seed 123; no small+large coexistence). **+ forced SIZE-ASSORTATIVE MATING @10k**
+  (bonus 0.5 in `_find_proximity_mate`) made it WORSE -- BC down on 3/3, size std collapsed
+  (0.30->0.17 on seed 42): from a unimodal start, assortative mating is a variance-REDUCER that
+  reinforces the majority cluster, it does not split it. **LONG-HORIZON @30k** (does bimodality
+  build over time?) -- NO: the small (<1.0) subpopulation is EXTINCT on all 3 seeds by 30k, and
+  seed 7 collapsed to a size monoculture (std 0.32->0.06, all 60 fish large). Baseline itself
+  converges toward large over 30k and the mechanism does not counteract it | verdict: rejected
+  (horizon was NOT the limiter) | lessons: (1) a STATIC resource trade-off (a fixed size->energy
+  curve) has no rare-type advantage, so whichever niche gets ahead wins outright. Stable niche
+  coexistence needs **negative frequency-dependent selection** -- e.g. consumable/depletable food
+  where a crowded niche's resource is drawn down and the rarer niche's accumulates. Retest #55
+  only with frequency-dependent food dynamics, not a fixed curve. (2) Assortative mating on a
+  trait only sustains niches if the population is ALREADY bimodal on that trait; it locks in
+  clusters, it does not create them. (3) Measurement caveat: Sarle's bimodality coefficient reads
+  HIGH for tight/skewed unimodal distributions (seed 7 @30k: BC 0.80 with std 0.06 = a
+  monoculture), so gate any bimodality claim on BOTH sub-population counts (small AND large
+  populated) and trait std, never BC alone.
+
 ---
 
 ## 6. Open problem — a frozen evolvability benchmark
