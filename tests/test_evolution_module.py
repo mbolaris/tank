@@ -222,12 +222,11 @@ class TestAlgorithmInheritance:
 
     def test_inherit_algorithm_from_parents(self):
         """Should inherit algorithm from one of the parents."""
-        from core.algorithms.energy_management import EnergyConserver
-        from core.algorithms.food_seeking import OpportunisticFeeder
+        from core.algorithms.food_seeking import CooperativeForager, OpportunisticFeeder
 
         rng = random.Random(42)
         alg1 = OpportunisticFeeder.random_instance(rng=rng)
-        alg2 = EnergyConserver.random_instance(rng=rng)
+        alg2 = CooperativeForager.random_instance(rng=rng)
 
         # Run multiple times to verify inheritance works
         types_seen = set()

@@ -54,7 +54,7 @@ reward hacking. You'd need a held-out evaluator the agent cannot edit. Treat as 
 section of T1 rather than a standalone paper unless results are clean.
 
 ### T4. Interpretable vs. black-box: what kinds of improvements do LLM agents find?
-**Question.** Tank World deliberately uses explicit, named strategies (58 composable
+**Question.** Tank World deliberately uses explicit, named strategies (composable
 algorithms) rather than neural nets. Do LLM agents exploit that interpretability — e.g.
 recombining existing named behaviors, tuning bounded parameters, or authoring genuinely novel
 sub-behaviors? Categorize the *mutation types* the agent produces and which yield the durable

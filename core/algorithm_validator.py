@@ -256,14 +256,10 @@ class AlgorithmValidator:
         import importlib
         import sys
 
-        # Modules that need reloading
+        # Modules that need reloading (survivor foragers + composable — ADR-016)
         modules_to_reload = [
             "core.algorithms.food_seeking",
-            "core.algorithms.predator_avoidance",
-            "core.algorithms.schooling",
-            "core.algorithms.energy_management",
-            "core.algorithms.territory",
-            "core.algorithms.poker_behavior",
+            "core.algorithms.composable",
             "core.algorithms",
         ]
 
