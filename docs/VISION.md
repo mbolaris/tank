@@ -29,7 +29,7 @@ Tank World operates as a three-layer evolutionary system. Each layer has measura
 
 ### Layer 0: In-World Evolution (Inside the Simulation)
 
-Traditional evolutionary computation. Fish compete for survival using 58 parametrizable behavior algorithms encoded in their genome:
+Traditional evolutionary computation. Fish compete for survival using parametrizable composable behaviors encoded in their genome:
 
 - Natural selection optimizes combinations of algorithms and parameters
 - Better strategies lead to more reproduction and survival
@@ -160,7 +160,7 @@ The goal: AI proposes "this simulation would be more engaging with X" and genera
 
 ### Phase 0: Foundation -- Complete
 
-- 58 parametrizable behavior algorithms with registry
+- Parametrizable behavior algorithm library with registry (later consolidated into the composable framework - see ADR-006/ADR-016)
 - Deterministic simulation with headless mode (10-300x speedup)
 - Fish tank visualization with fractal plants and predators
 - Basic AI code evolution workflow

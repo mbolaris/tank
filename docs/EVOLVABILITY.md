@@ -74,7 +74,7 @@ points at directions worth a proposal.
 - **Bold directions:** fitness sharing / niching; **novelty search**; **speciation** that protects young or novel lineages from being out‑competed before they bloom; a **MAP‑Elites** archive that keeps the champion of each behavior niche.
 
 ### 3.5 Genotype → phenotype map (the encoding)
-- **Code:** `core/genetics/genome.py`, `core/genetics/expression.py`, `core/genetics/behavioral.py`, `core/genetics/physical.py`; the behavior space in `core/algorithms/composable/definitions.py` (the 58 strategies and their parameter bounds), `behavior.py`, `actions.py`.
+- **Code:** `core/genetics/genome.py`, `core/genetics/expression.py`, `core/genetics/behavioral.py`, `core/genetics/physical.py`; the behavior space in `core/algorithms/composable/definitions.py` (the sub-behavior space and its parameter bounds), `behavior.py`, `actions.py`.
 - **Why it matters:** evolvability is largely a property of the *map*. A more evolvable encoding makes good variation cheap to reach.
 - **Bold directions:** indirect/**developmental encoding** (CPPN‑style) so one gene reshapes many correlated traits; modular/hierarchical genomes; widen the morphospace or behavior‑primitive set so there is more to discover.
 

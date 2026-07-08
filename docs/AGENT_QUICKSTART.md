@@ -4,7 +4,7 @@ This document provides a clear, consistent on-ramp for AI agents (and human deve
 
 ## What is Tank World?
 
-Tank World is an artificial life research framework where fish compete for survival and reproduce under 58 parametrizable behavior algorithms. The codebase itself evolves using Git as heredity:
+Tank World is an artificial life research framework where fish compete for survival and reproduce using parametrizable, genetically tuned composable behaviors. The codebase itself evolves using Git as heredity:
 - **PRs are mutations**: A code change is a genetic variant.
 - **CI is natural selection**: Automated validation (tests, determinism, scoring) filters out regressions.
 - **Merged PRs are offspring**: Merged code becomes the baseline for future agent runs.

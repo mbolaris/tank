@@ -37,15 +37,15 @@ A **behavior algorithm** is a decision-making strategy that controls how a fish 
 5. Multiple behaviors coexist in the ecosystem
 ```
 
-### Current Algorithm Count
+### Current Algorithm Library
 
-**58 algorithms** across 6 categories (see `core/algorithms/registry.py` for the authoritative list):
-- Food Seeking (14)
-- Predator Avoidance (10)
-- Schooling/Social (10)
-- Energy Management (8)
-- Territory/Exploration (8)
-- Poker Interactions (8)
+Production fish behavior is the **composable framework**
+(`core/algorithms/composable/`) — new behavior work should extend its
+sub-behaviors and parameters, not add standalone algorithm classes. Three
+standalone forager strategies remain registered as benchmark comparison
+candidates (ADR-006 survivors; the vestigial monolith categories were removed
+in ADR-016). See [ALGORITHM_CATALOG.md](ALGORITHM_CATALOG.md) for the
+generated, authoritative list.
 
 ---
 

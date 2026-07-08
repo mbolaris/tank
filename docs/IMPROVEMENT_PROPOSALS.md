@@ -177,29 +177,16 @@ Frontend renderers (`renderer.ts` 1,431, etc.) are already covered by **7.3**.
 
 ## Theme 3 — Consolidate the algorithm library
 
-### 3.1 Stage 2: remove deprecated food-seekers + re-baseline — `M` · ★★
-Stage 1 shipped (see Shipped + ADR-006): benchmark data collected, KEEP/
-DEPRECATE decided, `DEPRECATED_ALGORITHMS` metadata added. Stage 2, one
-bundled change: port the three winners' tactics (quality-weighted targeting,
-opportunistic switching, shared-target avoidance) into the composable
-framework, remove the 11 deprecated modules, drop monoliths from
-`ALL_ALGORITHMS`, fix the 3.2 bounds-table drift for survivors, and
-re-baseline all champions in the same PR.
-
-### 3.2 Bounds-table drift: 11 algorithms mutate unbounded parameters — `S` · ★★
-**Found while shipping the ParameterRegistry** (see Shipped): 11 algorithms have
-runtime parameters with no (or mismatched) entries in
-`ALGORITHM_PARAMETER_BOUNDS`, so those parameters mutate via the unbounded
-fallback (floor 0.0 only) and have no design range to clamp to. Worst cases:
-`AggressiveHunter` and `SpiralForager` (no table entry at all),
-`CircularHunter` (table names don't match its actual params). Partial misses:
-CooperativeForager, EnergyConserver, FreezeResponse, OpportunisticFeeder,
-OpportunisticRester, PerpendicularEscape, SurfaceSkimmer, VerticalEscaper.
-
-**Decision needed**: declaring bounds changes the mutation math (span-based vs
-scale-based) and therefore seed-42 trajectories - champions must be
-re-baselined in the same change. Bundle this with 3.1's algorithm
-consolidation so the ecosystem only pays the re-baseline cost once.
+Complete. Stage 1 (metadata deprecation) and stage 2 (11 food-seekers removed,
+champions re-baselined) shipped under ADR-006; ADR-016 then removed the five
+remaining vestigial monolith categories (44 algorithms — predator avoidance,
+schooling, energy management, territory, poker interaction), which an
+independent reachability audit confirmed no production code path ever
+selected. `ALL_ALGORITHMS` is now the three proven foragers; production fish
+behavior is the composable framework. The old 3.2 bounds-drift task is
+resolved by removal: every algorithm still in `ALGORITHM_PARAMETER_BOUNDS`
+has a complete, matching entry. Remaining survivor-bounds gaps (if any
+surface) belong to normal maintenance, not a theme.
 
 ---
 
@@ -394,6 +381,17 @@ same budget" is the paper's headline figure. Depends on shipped **10.1** and
 
 ## Shipped
 
+- **ADR-016: removed the five vestigial monolith algorithm categories.**
+  Deleted `predator_avoidance.py`, `schooling.py`, `energy_management.py`,
+  `territory.py`, and `poker.py` from `core/algorithms/` (44 algorithms,
+  ~3,100 lines) after a reachability audit confirmed no production path ever
+  selects a monolith: `Fish.movement_policy` is never set outside
+  tooling/tests, the genome carries only `ComposableBehavior` +
+  `PokerStrategyAlgorithm`, and `inherit_algorithm` had zero production
+  callers. `ALL_ALGORITHMS` is now the three ADR-006 survivor foragers;
+  their `ALGORITHM_PARAMETER_BOUNDS` entries are complete (resolving 3.2).
+  Acceptance: all four champions reproduce bit-exactly at their recorded
+  seeds before and after removal — no re-baseline.
 - **1.8 Align `survival_5k` benchmark scoring with healthy ecosystem indicators.**
   Refactored the score formula in `benchmarks/tank/survival_5k.py` to apply a
   starvation penalty when the starvation rate exceeds 95% (scaling down the score
