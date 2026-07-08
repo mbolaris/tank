@@ -209,7 +209,7 @@ class AlgorithmValidator:
         Returns:
             Performance metrics for the algorithm
         """
-        from core.registry import get_algorithm_metadata
+        from core.algorithms.introspection import get_algorithm_metadata
 
         # Get the source file path
         metadata = get_algorithm_metadata()

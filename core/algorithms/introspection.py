@@ -3,6 +3,13 @@
 This module provides metadata and source file location utilities for algorithms.
 Used by AI tooling and stats exporters to introspect algorithm definitions.
 
+Discovery here walks the ``core.algorithms`` package and collects every
+``BehaviorStrategyBase`` subclass it finds. That is a *different* (broader) set
+than the canonical, hand-curated ``ALL_ALGORITHMS`` list in
+``core.algorithms.registry``, which defines the stable algorithm-id space used
+by genomes and stats. Introspection results are for tooling and reporting only
+and must never be used for algorithm-id assignment (see ADR-014).
+
 For runtime algorithm operations (crossover, mutation, instantiation), see:
     core.algorithms.registry
 """
@@ -10,24 +17,47 @@ For runtime algorithm operations (crossover, mutation, instantiation), see:
 import inspect
 import os
 import pkgutil
-from collections.abc import Iterable
+import random
+from collections.abc import Callable, Iterable
 from importlib import import_module
+from typing import cast
 
 import core.algorithms as algorithms
 from core.algorithms.base import BehaviorAlgorithm, BehaviorStrategyBase
+from core.util.rng import MissingRNGError
+
+
+def _instantiate_for_metadata(algorithm_class: type[BehaviorStrategyBase]) -> BehaviorStrategyBase:
+    """Instantiate an algorithm class just to read its metadata.
+
+    Classes that randomize initial parameters refuse a bare constructor call
+    (``MissingRNGError``); a throwaway seeded RNG is fine here because the
+    instance is only inspected for its ``algorithm_id``, never simulated.
+    """
+    try:
+        return algorithm_class()
+    except MissingRNGError:
+        # Subclasses accept rng=...; the base class signature does not declare it.
+        ctor = cast(Callable[..., BehaviorStrategyBase], algorithm_class)
+        return ctor(rng=random.Random(0))
 
 
 def _iter_algorithm_modules() -> Iterable[str]:
     """Yield fully qualified algorithm module paths within core.algorithms."""
     for module_info in pkgutil.walk_packages(algorithms.__path__, prefix="core.algorithms."):
         stem = module_info.name.rsplit(".", 1)[-1]
-        if stem.startswith("__") or stem in {"base", "BEHAVIOR_TEMPLATE"}:
+        if stem.startswith("__") or stem in {"base", "BEHAVIOR_TEMPLATE", "introspection"}:
             continue
         yield module_info.name
 
 
-def _discover_algorithms() -> list[type[BehaviorStrategyBase]]:
-    """Dynamically import and collect behavior strategy classes."""
+def discover_algorithm_classes() -> list[type[BehaviorStrategyBase]]:
+    """Dynamically import and collect behavior strategy classes.
+
+    Returns every ``BehaviorStrategyBase`` subclass defined under
+    ``core.algorithms``, in module-walk order. This is a tooling view of the
+    package contents, not the canonical registry ordering.
+    """
 
     discovered: list[type[BehaviorStrategyBase]] = []
     seen: set[type[BehaviorStrategyBase]] = set()
@@ -48,9 +78,6 @@ def _discover_algorithms() -> list[type[BehaviorStrategyBase]]:
     return discovered
 
 
-ALL_ALGORITHMS: list[type[BehaviorStrategyBase]] = _discover_algorithms()
-
-
 def get_algorithm_metadata() -> dict[str, dict[str, str]]:
     """Get comprehensive metadata about all algorithms.
 
@@ -64,12 +91,12 @@ def get_algorithm_metadata() -> dict[str, dict[str, str]]:
     """
     metadata = {}
 
-    for algorithm_class in ALL_ALGORITHMS:
+    for algorithm_class in discover_algorithm_classes():
         class_name = algorithm_class.__name__
 
         try:
             # Get instance for algorithm_id
-            instance = algorithm_class()
+            instance = _instantiate_for_metadata(algorithm_class)
             algo_id = instance.algorithm_id
 
             # Get source file info

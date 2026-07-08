@@ -137,7 +137,7 @@ loop were removed as inert duplicates (see ADR-009).
 - Deterministic list (`ALL_ALGORITHMS`) for serialization and indexing
 - Adaptive mutation utilities (`inherit_algorithm_with_mutation`, `calculate_adaptive_mutation_factor`)
 - Sub-behavior controls in `core/algorithms/composable/` for hybrid behaviors (threat response, food approach, energy style, social mode, poker engagement)
-`core/registry.py` is a separate introspection helper used by AI tooling to map algorithms to source files.
+`core/algorithms/introspection.py` is a separate discovery/metadata helper used by AI tooling to map algorithms to source files; it is a tooling view only and does not define the algorithm-id space.
 
 ### Poker Systems
 
