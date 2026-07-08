@@ -1,4 +1,4 @@
-"""Enhanced statistics tracking for evolutionary dynamics.
+"""Evolution analytics: population-level statistics over evolutionary dynamics.
 
 This module provides advanced population analytics including:
 - Time series tracking (historical trends)
@@ -164,7 +164,7 @@ def _trait_correlations(
     return correlations
 
 
-class EnhancedStatisticsTracker:
+class EvolutionAnalyticsTracker:
     """Advanced statistics tracking for evolutionary analysis.
 
     This class extends the basic EcosystemManager statistics with:
@@ -181,7 +181,7 @@ class EnhancedStatisticsTracker:
     MAX_EXTINCTIONS = 100
 
     def __init__(self, max_history_length: int = 1000):
-        """Initialize the enhanced statistics tracker.
+        """Initialize the evolution analytics tracker.
 
         Args:
             max_history_length: Maximum number of frames to keep in history
@@ -602,7 +602,7 @@ class EnhancedStatisticsTracker:
         """Generate a comprehensive statistics report.
 
         Returns:
-            Dictionary with all enhanced statistics
+            Dictionary with all evolution analytics
         """
         return {
             "time_series_summary": self.get_time_series_summary(),

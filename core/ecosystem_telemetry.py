@@ -135,7 +135,7 @@ class EcosystemTelemetryRouter:
         """Record nectar consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("nectar", energy_gained)
 
     def record_live_food_eaten(
@@ -148,9 +148,9 @@ class EcosystemTelemetryRouter:
         """Record live food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         if genome is not None:
-            self._manager.enhanced_stats.record_live_food_capture(
+            self._manager.evolution_analytics.record_live_food_capture(
                 algorithm_id, energy_gained, genome, generation
             )
         self._manager.record_energy_gain("live_food", energy_gained)
@@ -159,12 +159,12 @@ class EcosystemTelemetryRouter:
         """Record falling food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("falling_food", energy_gained)
 
     def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record generic food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("food", energy_gained)
