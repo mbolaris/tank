@@ -210,6 +210,27 @@ class TestBenchmarkEvaluation(unittest.TestCase):
             self.assertEqual(res.benchmark_id, pid)
 
 
+class TestPokerLadderBenchmarkDeterminism(unittest.TestCase):
+    """Smoke tests for poker ladder benchmark determinism (fast config)."""
+
+    def test_ladder_20k_is_deterministic_smoke(self):
+        import benchmarks.poker.ladder_20k as bench
+
+        res1 = bench.run(42, num_duplicate_sets=1, hands_per_match=10)
+        res2 = bench.run(42, num_duplicate_sets=1, hands_per_match=10)
+
+        self.assertAlmostEqual(res1["score"], res2["score"], places=9)
+
+    def test_ladder_20k_reports_all_rungs(self):
+        import benchmarks.poker.ladder_20k as bench
+
+        res = bench.run(42, num_duplicate_sets=1, hands_per_match=10)
+
+        rung_ids = [r["rung_id"] for r in res["metadata"]["per_rung_results"]]
+        self.assertEqual(rung_ids, list(bench.LADDER_RUNGS))
+        self.assertEqual(set(res["score_breakdown"]), set(bench.LADDER_RUNGS))
+
+
 class TestSoccerBenchmarkDeterminism(unittest.TestCase):
     """Smoke tests for soccer benchmark determinism (fast config)."""
 

@@ -1,0 +1,90 @@
+{
+  "benchmark_id": "poker/ladder_20k",
+  "version": 1,
+  "champion": {
+    "score": 676.1522815496628,
+    "seed": 42,
+    "timestamp": 1783540002.1273735,
+    "metadata": {
+      "hero": "composable_default",
+      "ladder_rungs": [
+        "random",
+        "loose_passive",
+        "tight_aggressive",
+        "gto_expert"
+      ],
+      "rungs_beaten": 4,
+      "total_rungs": 4,
+      "total_hands": 12764,
+      "num_duplicate_sets": 25,
+      "hands_per_match": 100,
+      "small_blind": 50,
+      "big_blind": 100,
+      "starting_stack": 10000,
+      "score_mode": "mean bb/100 across ladder rungs (duplicate-deal HU)",
+      "vs_sota_bb_per_100": 588.7031373582917,
+      "per_rung_results": [
+        {
+          "rung": "L0",
+          "rung_id": "random",
+          "bb_per_100": 1063.2414975845409,
+          "bb_per_100_ci_95": [
+            945.2107299412481,
+            1291.7658783404113
+          ],
+          "hands_played": 2070,
+          "sample_variance": 187578.82790811025,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L1",
+          "rung_id": "loose_passive",
+          "bb_per_100": 667.4797334986057,
+          "bb_per_100_ci_95": [
+            641.6584189178593,
+            754.4506294520384
+          ],
+          "hands_played": 3227,
+          "sample_variance": 19869.975151790743,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L2",
+          "rung_id": "tight_aggressive",
+          "bb_per_100": 385.1847577572128,
+          "bb_per_100_ci_95": [
+            322.5392995576424,
+            565.5104556825169
+          ],
+          "hands_played": 3674,
+          "sample_variance": 92203.74225633814,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L3",
+          "rung_id": "gto_expert",
+          "bb_per_100": 588.7031373582917,
+          "bb_per_100_ci_95": [
+            526.9655034013663,
+            747.9906168731418
+          ],
+          "hands_played": 3793,
+          "sample_variance": 76299.61597023836,
+          "statistically_significant": true,
+          "beaten": true
+        }
+      ]
+    },
+    "score_breakdown": {
+      "random": 1063.2414975845409,
+      "loose_passive": 667.4797334986057,
+      "tight_aggressive": 385.1847577572128,
+      "gto_expert": 588.7031373582917
+    },
+    "config_hash": "b80b0eb402b070fe"
+  },
+  "history": []
+}
