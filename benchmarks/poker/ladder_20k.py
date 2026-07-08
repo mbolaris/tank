@@ -12,7 +12,10 @@ Ladder rungs (weak to strong):
     L0 random         - random legal actions (skill floor)
     L1 loose_passive  - calling station
     L2 tight_aggressive - solid rule-based TAG
-    L3 gto_expert     - strongest scripted opponent (state-of-the-art proxy)
+    L3 gto_expert     - strongest scripted opponent. Despite the strategy id,
+                        this is a GTO-inspired heuristic, not a solver-verified
+                        GTO agent; it is the best scripted ruler available, not
+                        an unexploitable ceiling.
 
 Each rung is evaluated with duplicate deals (same cards, both seats) via
 core/poker/evaluation/benchmark_eval.py, which cancels card luck and seat
@@ -156,7 +159,12 @@ def run(
             "big_blind": BIG_BLIND,
             "starting_stack": STARTING_STACK,
             "score_mode": "mean bb/100 across ladder rungs (duplicate-deal HU)",
-            "vs_sota_bb_per_100": rung_scores.get(LADDER_RUNGS[-1], 0.0),
+            "top_rung_note": (
+                "gto_expert is a GTO-inspired scripted heuristic, not a "
+                "solver-verified GTO agent; treat it as the strongest scripted "
+                "ruler, not an unexploitable ceiling."
+            ),
+            "vs_top_rung_bb_per_100": rung_scores.get(LADDER_RUNGS[-1], 0.0),
             "per_rung_results": per_rung,
         },
     }
