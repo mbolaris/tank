@@ -4,7 +4,7 @@
   "champion": {
     "score": 676.1522815496628,
     "seed": 42,
-    "timestamp": 1783540002.1273735,
+    "timestamp": 1783542987.4836917,
     "metadata": {
       "hero": "composable_default",
       "ladder_rungs": [
@@ -22,7 +22,8 @@
       "big_blind": 100,
       "starting_stack": 10000,
       "score_mode": "mean bb/100 across ladder rungs (duplicate-deal HU)",
-      "vs_sota_bb_per_100": 588.7031373582917,
+      "top_rung_note": "gto_expert is a GTO-inspired scripted heuristic, not a solver-verified GTO agent; treat it as the strongest scripted ruler, not an unexploitable ceiling.",
+      "vs_top_rung_bb_per_100": 588.7031373582917,
       "per_rung_results": [
         {
           "rung": "L0",
