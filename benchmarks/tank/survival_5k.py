@@ -177,11 +177,36 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.verify_determinism:
+        # Run both checks as fresh subprocesses so in-process global state
+        # (threads, WorldRegistry, asyncio loops) cannot prevent clean exit.
+        # Timeout is generous (3× expected runtime) but finite so CI cannot hang.
+        timeout_s = int(EXPECTED_RUNTIME_SECONDS * 3)
         cmd = [sys.executable, __file__, "--seed", str(args.seed)]
-        res1 = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        res2 = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        data1 = json.loads(res1.stdout)
-        data2 = json.loads(res2.stdout)
+        for run_num in (1, 2):
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_s,
+                )
+            except subprocess.TimeoutExpired:
+                print(
+                    f"DETERMINISM FAILED: Run {run_num} timed out after {timeout_s}s",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if proc.returncode != 0:
+                print(
+                    f"DETERMINISM FAILED: Run {run_num} exited {proc.returncode}\n"
+                    f"STDERR: {proc.stderr}",
+                    file=sys.stderr,
+                )
+                sys.exit(proc.returncode)
+            if run_num == 1:
+                data1 = json.loads(proc.stdout)
+            else:
+                data2 = json.loads(proc.stdout)
         if data1["score"] == data2["score"]:
             print(f"DETERMINISM PASSED: {data1['score']}")
             sys.exit(0)
