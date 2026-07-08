@@ -108,26 +108,31 @@ def main():
 
         print(f"Running benchmark: {bench_module.BENCHMARK_ID} (Seed: {args.seed})...")
         budget_seconds = expected_runtime_seconds(bench_module)
+        # Timeout for each subprocess: 3× budget if available, else 10 minutes.
+        subprocess_timeout = int(budget_seconds * 3) if budget_seconds else 600
 
-        # Run 1
-        recorder = None
-        if args.fingerprint_out:
-            recorder = create_fingerprint_recorder(
-                args.fingerprint_out,
-                bench_module,
-                args.seed,
-                args.fingerprint_every,
-            )
-        try:
-            result1 = run_benchmark(bench_module, args.seed, recorder)
-            if recorder is not None:
-                recorder.finish(result1)
-        except Exception:
-            if recorder is not None:
-                recorder.close()
-            raise
-
-        if args.verify_determinism:
+        if not args.verify_determinism:
+            # Normal single run (in-process).
+            recorder = None
+            if args.fingerprint_out:
+                recorder = create_fingerprint_recorder(
+                    args.fingerprint_out,
+                    bench_module,
+                    args.seed,
+                    args.fingerprint_every,
+                )
+            try:
+                result1 = run_benchmark(bench_module, args.seed, recorder)
+                if recorder is not None:
+                    recorder.finish(result1)
+            except Exception:
+                if recorder is not None:
+                    recorder.close()
+                raise
+        else:
+            # Determinism verification: run both checks as fresh subprocesses
+            # so in-process global state (threads, WorldRegistry, asyncio loops)
+            # cannot prevent clean exit. Explicit timeouts prevent CI from hanging.
             print("Verifying determinism (subprocess-vs-subprocess)...", flush=True)
             temp_out1 = tempfile.NamedTemporaryFile(suffix=".json", delete=False)  # noqa: SIM115
             temp_out2 = tempfile.NamedTemporaryFile(suffix=".json", delete=False)  # noqa: SIM115
@@ -146,7 +151,16 @@ def main():
                     str(args.fingerprint_every),
                 ]
             print("Running determinism check: Run 1...", flush=True)
-            res1 = subprocess.run(cmd1, capture_output=True, text=True)
+            try:
+                res1 = subprocess.run(
+                    cmd1, capture_output=True, text=True, timeout=subprocess_timeout
+                )
+            except subprocess.TimeoutExpired:
+                print(
+                    f"Error: Run 1 timed out after {subprocess_timeout}s",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             if res1.returncode != 0:
                 print(
                     f"Error: Run 1 failed with exit code {res1.returncode}\nSTDOUT:\n{res1.stdout}\nSTDERR:\n{res1.stderr}",
@@ -164,7 +178,16 @@ def main():
                     str(args.fingerprint_every),
                 ]
             print("Running determinism check: Run 2...", flush=True)
-            res2 = subprocess.run(cmd2, capture_output=True, text=True)
+            try:
+                res2 = subprocess.run(
+                    cmd2, capture_output=True, text=True, timeout=subprocess_timeout
+                )
+            except subprocess.TimeoutExpired:
+                print(
+                    f"Error: Run 2 timed out after {subprocess_timeout}s",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             if res2.returncode != 0:
                 print(
                     f"Error: Run 2 failed with exit code {res2.returncode}\nSTDOUT:\n{res2.stdout}\nSTDERR:\n{res2.stderr}",
@@ -172,7 +195,7 @@ def main():
                 )
                 sys.exit(res2.returncode)
 
-            # Parse output JSONs
+            # Parse output JSONs (result1 comes from the subprocess, not in-process)
             with open(temp_out1.name) as f:
                 result1 = json.load(f)
             with open(temp_out2.name) as f:
