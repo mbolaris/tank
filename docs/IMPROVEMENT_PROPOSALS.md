@@ -16,6 +16,9 @@ high-impact, low-effort items. When you complete one, move it to the
 
 **Best current starter picks:**
 
+- **11.3** — the foraging gym with an oracle ceiling: the first absolute
+  foraging skill measure, self-contained, and the template for Theme 11's
+  remaining rulers.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
 
@@ -376,6 +379,106 @@ non-AI `agent_id`, and compare against agent attempts under the same benchmark
 and seed budget. The comparison "agent attempts vs. random-search attempts,
 same budget" is the paper's headline figure. Depends on shipped **10.1** and
 **10.2**.
+
+---
+
+## Theme 11 — Skill measurement & visualization: frozen rulers (2026-07)
+
+How well do the agents actually play poker, forage, and play soccer — in
+absolute terms, over time, and relative to state of the art? Today the answer
+is mostly unknowable, for structural reasons:
+
+1. **Champion scores are not comparable over time.** Every determinism fix or
+   scoring change re-baselines the registry; `survival_5k`'s history reads
+   1161 → 1299 → 127 → 68 → 512 → 388 — a log of re-baselining events, not a
+   skill trajectory. Five of its six retirements say "re-baselined", not
+   "superseded by better".
+2. **Self-play measures nothing absolute.** In-sim poker stats are fish vs
+   fish (zero-sum, aggregate win rate ≈ 50% by definition); the soccer score
+   is one evolving population playing itself; foraging is only visible through
+   ecosystem composites (`avg_energy × avg_pop × penalties`) that conflate
+   skill with config and trajectory noise.
+3. **Nothing defines a ceiling.** There is no reference anywhere for "how good
+   could this possibly be", so "how close are we to SOTA" has no answer.
+
+The design principle that fixes all three: **measure against frozen rulers**.
+For each domain, commit a ladder of immutable reference opponents/oracles —
+a floor (random/trivial), intermediate rungs (scripted heuristics), and a
+ceiling (oracle or strongest scripted opponent) — and express skill as
+position on that ladder. Rulers never change (append new rungs, never edit
+existing ones), so ladder metrics stay comparable across re-baselines and
+config changes. This also directly answers Theme 10's critique that "agents
+can edit every ruler they are scored against".
+
+All tasks are **Layer 2** (benchmark/CI/tooling only; no simulation behavior).
+Keep each a separate PR.
+
+### 11.1 Fix soccer benchmark insensitivity — `S` · ★★★ — SHIPPED (PR #759)
+The training benchmarks pinned every genome to the parameterless default
+soccer policy (`soccer_policy_params=None`), so seeds 42/43/44 and the
+side-swapped lineup produced byte-identical matches — the multi-seed and
+side-swap machinery were no-ops and the benchmark had zero sensitivity to the
+evolvable param substrate. Fixed by seeding jitter-0.5 founding-population
+params per genome (matching `assign_random_policy`); both champions
+re-baselined.
+
+### 11.2 Poker ladder benchmark — `M` · ★★★ — SHIPPED (PR #760)
+The `poker/ladder_20k` benchmark (PR #760): the evolvable poker substrate
+(`ComposablePokerStrategy` neutral defaults) plays duplicate-deal heads-up
+matches against a frozen ladder — L0 `random`, L1 `loose_passive`,
+L2 `tight_aggressive`, L3 `gto_expert` (all from `BASELINE_STRATEGIES`).
+Metric: bb/100 per rung with 95% CIs; score = mean bb/100 across rungs.
+First absolute, longitudinally comparable poker skill measure. Seed-42
+baseline: 676.15 mean bb/100, all four rungs beaten — including the
+non-monotonic finding that the default hero wins more from `gto_expert`
+(+589) than from `tight_aggressive` (+385), which the ladder makes visible
+for the first time.
+
+### 11.3 Foraging gym with an oracle ceiling — `M` · ★★★
+An isolated foraging benchmark: one fish (later a small cohort variant), no
+reproduction/poker/ball, a fixed scripted food-spawn schedule per seed.
+Compute the **oracle ceiling** on the same spawn script (full-knowledge
+greedy planner with energy accounting) and a random-walk floor. Metric:
+`energy_collected / oracle_energy_collected` ∈ [0, 1] — pure food-seeking
+competence with SOTA = 1.0 by construction, independent of ecosystem config.
+The existing ecosystem benchmarks keep measuring the ecosystem; this measures
+the skill. Start from `scripts/diagnose_food_seeking.py` for the isolation
+setup.
+
+### 11.4 Soccer reference-team ladder — `M` · ★★
+After 11.1, self-play soccer scores are sensitive but still relative. Add
+frozen reference teams: L0 stationary, L1 random walkers, L2 scripted
+chase-and-shoot, L3 a committed snapshot of the best evolved team (fixture,
+e.g. `fixtures/soccer/champion_team_2026_07.json`). Metric: goal difference
+per 5k frames vs each rung, side-swapped and multi-seed. Skill = highest rung
+beaten + margin.
+
+### 11.5 Longitudinal skill ledger + nightly CI append — `M` · ★★★
+`research/skill_history.jsonl`: one row per
+`(timestamp, git_sha, config_hash, domain, rung, metric, seeds, skill_index)`
+appended by the nightly benchmark job and by `tools/run_bench.py
+--record-skill`. Sits beside `research/attempts.jsonl`; purely observational,
+so it never needs re-baselining. This is the dataset every trend
+visualization reads. Policy: rulers are immutable — changing one mints a new
+rung ID; old rows stay valid.
+
+### 11.6 Skill dashboards: static report + UI panel — `M` · ★★
+Three views over `skill_history.jsonl`:
+(a) **skill trajectory** per domain — x = date/commit, y = normalized skill,
+horizontal bands per ladder rung, config-hash changes as vertical markers;
+(b) **ladder matrix** — domains × rungs heatmap (loses / competitive /
+beats); (c) **domain radar** — the three skill indices, current vs 30 days
+ago. Deliver as `tools/skill_report.py` (self-contained HTML for PRs and
+nightly artifacts) first, then a "Skill Trends" panel in the web UI next to
+`EvolutionBenchmarkDisplay`. Depends on 11.5.
+
+### 11.7 Freeze the rulers in CI — `S` · ★★
+Add the reference-opponent implementations
+(`core/poker/strategy/implementations/baseline.py`, `standard.py`,
+`expert.py`, and future soccer reference teams / foraging oracles) to the
+locked-paths check (`tools/check_locked_paths.py`) so a PR that edits a ruler
+fails loudly unless explicitly acknowledged. Complements Theme 10's
+ruler-integrity goals.
 
 ---
 
