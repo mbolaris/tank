@@ -16,10 +16,6 @@ class TestMovementActions(unittest.TestCase):
         self.fish.environment.world_type = "tank"
         self.fish.environment.rng = MagicMock()
 
-        # IMPORTANT: MagicMock will auto-create _entity attribute, confusing the safe-unwrap logic
-        # in MovementStrategy. We must explicitly delete it to simulate a raw Fish object.
-        del self.fish._entity
-
         # AlgorithmicMovement instance
         from core.movement_strategy import AlgorithmicMovement
 
