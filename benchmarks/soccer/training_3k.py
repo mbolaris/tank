@@ -19,6 +19,9 @@ BENCHMARK_ID = "soccer/training_3k"
 FRAMES = 3000
 DEFAULT_N_SEEDS = 5
 SCORE_SCALE = 0.1
+# Founding-population param jitter, matching production founders
+# (core/genetics/code_policy_traits.py::assign_random_policy).
+POPULATION_PARAM_JITTER = 0.5
 EXPECTED_RUNTIME_SECONDS = 5
 
 # Effective configuration captured by the champion config hash
@@ -28,6 +31,7 @@ CONFIG: dict[str, Any] = {
     "n_seeds": DEFAULT_N_SEEDS,
     "score_scale": SCORE_SCALE,
     "team_size": 3,
+    "population_param_jitter": POPULATION_PARAM_JITTER,
 }
 
 
@@ -38,17 +42,25 @@ def _create_default_population(
 ) -> list[Genome]:
     import random
 
+    from core.code_pool import default_soccer_policy_params
+    from core.genetics.trait import GeneticTrait
+
     rng = random.Random(seed)
 
     population: list[Genome] = []
     default_id = genome_code_pool.get_default("soccer_policy")
-    if default_id:
-        from core.genetics.trait import GeneticTrait
 
     for _ in range(population_size):
         genome = Genome.random(use_algorithm=False, rng=rng)
         if default_id:
             genome.behavioral.soccer_policy_id = GeneticTrait(default_id)
+            # Genome.random leaves soccer_policy_params at None, which made every
+            # player the identical parameterless baseline: seeds and the team
+            # swap had no effect on the match. Jittered params give each player
+            # (and each seed's population) distinct heritable material.
+            genome.behavioral.soccer_policy_params = GeneticTrait(
+                default_soccer_policy_params(default_id, rng=rng, jitter=POPULATION_PARAM_JITTER)
+            )
         population.append(genome)
 
     return population
