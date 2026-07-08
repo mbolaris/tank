@@ -126,7 +126,7 @@ class PopulationTracker:
         algorithm_id: int | None = None,
         color: str | None = None,
         lineage_log: list[dict[str, Any]] | None = None,
-        enhanced_stats: Any | None = None,
+        evolution_analytics: Any | None = None,
     ) -> None:
         """Record a fish birth.
 
@@ -137,7 +137,7 @@ class PopulationTracker:
             algorithm_id: Algorithm ID of the fish
             color: Color hex string for visualization
             lineage_log: List to append lineage record to
-            enhanced_stats: EnhancedStatisticsTracker for additional recording
+            evolution_analytics: EvolutionAnalyticsTracker for additional recording
         """
         self.total_births += 1
 
@@ -154,8 +154,8 @@ class PopulationTracker:
             self.algorithm_stats[algorithm_id].total_births += 1
             self.algorithm_stats[algorithm_id].current_population += 1
 
-        if enhanced_stats is not None:
-            enhanced_stats.record_offspring_birth(energy_cost=0.0)
+        if evolution_analytics is not None:
+            evolution_analytics.record_offspring_birth(energy_cost=0.0)
 
         # Build lineage record
         parent_id = parent_ids[0] if parent_ids else None
@@ -201,7 +201,7 @@ class PopulationTracker:
         genome: Genome | None = None,
         algorithm_id: int | None = None,
         remaining_energy: float = 0.0,
-        enhanced_stats: Any | None = None,
+        evolution_analytics: Any | None = None,
         record_energy_burn: Callable[[str, float], None] | None = None,
     ) -> None:
         """Record a fish death.
@@ -214,7 +214,7 @@ class PopulationTracker:
             genome: Fish's genome (for tracking)
             algorithm_id: Algorithm ID of the fish
             remaining_energy: Energy remaining at death
-            enhanced_stats: EnhancedStatisticsTracker for additional recording
+            evolution_analytics: EvolutionAnalyticsTracker for additional recording
             record_energy_burn: Callback to record energy burn
         """
         self.total_deaths += 1
@@ -245,8 +245,8 @@ class PopulationTracker:
             elif cause == "predation":
                 algo_stats.deaths_predation += 1
 
-        if enhanced_stats is not None:
-            enhanced_stats.record_death_energy_loss(remaining_energy)
+        if evolution_analytics is not None:
+            evolution_analytics.record_death_energy_loss(remaining_energy)
 
         if record_energy_burn is not None:
             record_energy_burn(f"death_{cause}", remaining_energy)
@@ -267,13 +267,13 @@ class PopulationTracker:
     def update_population_stats(
         self,
         fish_list: list[Fish],
-        enhanced_stats: Any | None = None,
+        evolution_analytics: Any | None = None,
     ) -> None:
         """Update population statistics from current fish list.
 
         Args:
             fish_list: List of all living fish
-            enhanced_stats: EnhancedStatisticsTracker for snapshots
+            evolution_analytics: EvolutionAnalyticsTracker for snapshots
         """
         gen_fish: dict[int, list[Fish]] = defaultdict(list)
         for fish in fish_list:
@@ -302,8 +302,8 @@ class PopulationTracker:
                 stats.avg_energy = stats.avg_size  # Max energy is based on size
 
         # Record snapshots periodically
-        if enhanced_stats is not None and self._get_frame() % 10 == 0:
-            enhanced_stats.record_frame_snapshot(
+        if evolution_analytics is not None and self._get_frame() % 10 == 0:
+            evolution_analytics.record_frame_snapshot(
                 frame=self._get_frame(),
                 fish_list=fish_list,
                 births_this_frame=0,

@@ -7,13 +7,13 @@ data structures remain capped at their expected limits.
 from unittest.mock import MagicMock
 
 
-class TestEnhancedStatisticsTrackerBounds:
-    """Verify that EnhancedStatisticsTracker data structures stay bounded."""
+class TestEvolutionAnalyticsTrackerBounds:
+    """Verify that EvolutionAnalyticsTracker data structures stay bounded."""
 
     def _make_tracker(self):
-        from core.enhanced_statistics import EnhancedStatisticsTracker
+        from core.evolution_analytics import EvolutionAnalyticsTracker
 
-        return EnhancedStatisticsTracker(max_history_length=100)
+        return EvolutionAnalyticsTracker(max_history_length=100)
 
     def test_live_food_trait_samples_bounded(self):
         """Simulate 2000 live food captures; deque should stay at MAX_TRAIT_SAMPLES."""
@@ -41,7 +41,7 @@ class TestEnhancedStatisticsTrackerBounds:
 
     def test_extinct_algorithms_bounded(self):
         """Verify extinct_algorithms list is capped at MAX_EXTINCTIONS."""
-        from core.enhanced_statistics import ExtinctionEvent
+        from core.evolution_analytics import ExtinctionEvent
 
         tracker = self._make_tracker()
 
