@@ -181,7 +181,7 @@ class Positionable(Protocol):
     """Any entity with a position in 2D space."""
 
     @property
-    def pos(self) -> Any:
+    def pos(self) -> "Vector2":
         """Position vector with x and y attributes."""
         ...
 
@@ -322,9 +322,9 @@ class BehaviorStrategy(Protocol):
     """Contract for behavior algorithm implementation.
 
     This is the **Strategy Pattern** applied to fish behavior. Each fish
-    has a behavior algorithm (strategy) that determines how it moves and
-    makes decisions. There are 48+ different behavior algorithms in the
-    simulation, each with unique characteristics.
+    has a behavior strategy that determines how it moves and makes
+    decisions. In production this is the genome's ``ComposableBehavior``
+    (``core/algorithms/composable/``); this protocol is its contract.
 
     Design Philosophy:
         - Behaviors are **stateless**: they make decisions based only on
