@@ -53,4 +53,7 @@ jobs:
       - name: Run Soccer Benchmark (determinism check)
         timeout-minutes: 5
         run: python benchmarks/soccer/training_5k.py --verify-determinism
+      - name: Run Poker Ladder Benchmark (determinism check)
+        timeout-minutes: 5
+        run: python benchmarks/poker/ladder_20k.py --verify-determinism
 
