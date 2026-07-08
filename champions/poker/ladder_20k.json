@@ -4,7 +4,7 @@
   "champion": {
     "score": 676.1522815496628,
     "seed": 42,
-    "timestamp": 1783542987.4836917,
+    "timestamp": 1783543837.2208123,
     "metadata": {
       "hero": "composable_default",
       "ladder_rungs": [
@@ -77,7 +77,70 @@
           "statistically_significant": true,
           "beaten": true
         }
-      ]
+      ],
+      "skill": {
+        "domain": "poker",
+        "benchmark_id": "poker/ladder_20k",
+        "metric_name": "bb_per_100",
+        "skill_index": 100.0,
+        "rungs_beaten": 4,
+        "total_rungs": 4,
+        "rungs": [
+          {
+            "rung": "L0",
+            "rung_id": "random",
+            "metric": 1063.2414975845409,
+            "beaten": true,
+            "ci_95": [
+              945.2107299412481,
+              1291.7658783404113
+            ],
+            "detail": {
+              "hands_played": 2070
+            }
+          },
+          {
+            "rung": "L1",
+            "rung_id": "loose_passive",
+            "metric": 667.4797334986057,
+            "beaten": true,
+            "ci_95": [
+              641.6584189178593,
+              754.4506294520384
+            ],
+            "detail": {
+              "hands_played": 3227
+            }
+          },
+          {
+            "rung": "L2",
+            "rung_id": "tight_aggressive",
+            "metric": 385.1847577572128,
+            "beaten": true,
+            "ci_95": [
+              322.5392995576424,
+              565.5104556825169
+            ],
+            "detail": {
+              "hands_played": 3674
+            }
+          },
+          {
+            "rung": "L3",
+            "rung_id": "gto_expert",
+            "metric": 588.7031373582917,
+            "beaten": true,
+            "ci_95": [
+              526.9655034013663,
+              747.9906168731418
+            ],
+            "detail": {
+              "hands_played": 3793
+            }
+          }
+        ],
+        "notes": "Ladder-position index: 100 = beats every current rung (ceiling saturated, add a taller rung). gto_expert is a GTO-inspired scripted heuristic, not solver-verified GTO."
+      }
     },
     "score_breakdown": {
       "random": 1063.2414975845409,

@@ -307,6 +307,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
         discovery,
         metrics,
         servers,
+        skill,
         transfers,
         websocket,
     )
@@ -357,5 +358,9 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup agent commentary router (the "Insights" feed)
     commentary_router = commentary.setup_router(ctx.world_manager)
     app.include_router(commentary_router)
+
+    # Setup skill-ladder standings router (reads the champion registry)
+    skill_router = skill.setup_router()
+    app.include_router(skill_router)
 
     ctx.logger.info("All API routers configured successfully")

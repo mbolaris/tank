@@ -33,6 +33,10 @@ from core.poker.evaluation.benchmark_eval import (
     evaluate_vs_single_benchmark_duplicate,
 )
 from core.poker.strategy.composable.strategy import ComposablePokerStrategy
+from core.skill import RungResult, SkillLadderSummary, ladder_position_index
+
+SKILL_DOMAIN = "poker"
+SKILL_METRIC_NAME = "bb_per_100"
 
 BENCHMARK_ID = "poker/ladder_20k"
 
@@ -96,6 +100,7 @@ def run(
     start_time = time.time()
 
     per_rung: list[dict[str, Any]] = []
+    rung_results: list[RungResult] = []
     rung_scores: dict[str, float] = {}
     rungs_beaten = 0
     total_hands = 0
@@ -137,9 +142,32 @@ def run(
                 "beaten": beaten,
             }
         )
+        rung_results.append(
+            RungResult(
+                rung=f"L{rung_index}",
+                rung_id=rung_id,
+                metric=result.bb_per_100,
+                ci_95=result.bb_per_100_ci_95,
+                beaten=beaten,
+                detail={"hands_played": result.hands_played},
+            )
+        )
 
     score = sum(rung_scores.values()) / max(len(rung_scores), 1)
     runtime = time.time() - start_time
+
+    skill = SkillLadderSummary(
+        domain=SKILL_DOMAIN,
+        benchmark_id=BENCHMARK_ID,
+        metric_name=SKILL_METRIC_NAME,
+        skill_index=ladder_position_index(tuple(rung_results)),
+        rungs=tuple(rung_results),
+        notes=(
+            "Ladder-position index: 100 = beats every current rung (ceiling "
+            "saturated, add a taller rung). gto_expert is a GTO-inspired "
+            "scripted heuristic, not solver-verified GTO."
+        ),
+    )
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -166,6 +194,7 @@ def run(
             ),
             "vs_top_rung_bb_per_100": rung_scores.get(LADDER_RUNGS[-1], 0.0),
             "per_rung_results": per_rung,
+            "skill": skill.to_dict(),
         },
     }
 
