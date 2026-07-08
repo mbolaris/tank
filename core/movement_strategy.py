@@ -54,40 +54,30 @@ VelocityComponents = tuple[float, float]
 class MovementStrategy:
     """Base class for movement strategies."""
 
-    def move(self, sprite: Fish) -> None:
-        """Move a sprite according to the strategy."""
-        self.check_collision_with_food(sprite)
+    def move(self, fish: Fish) -> None:
+        """Move a fish according to the strategy."""
+        self.check_collision_with_food(fish)
 
-    def check_collision_with_food(self, sprite: Fish) -> None:
-        """Check if sprite collides with food and stop it if so.
+    def check_collision_with_food(self, fish: Fish) -> None:
+        """Check if the fish collides with food and stop it if so.
 
         Args:
-            sprite: The fish sprite to check for collisions
+            fish: The fish entity to check for collisions
         """
-        # Get the sprite entity (unwrap if it's a sprite wrapper)
-        sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
-
         # Optimize: Use spatial query to only check nearby food
         # Radius of 50 is sufficient for collision detection (fish size + food size)
-        # Use optimized nearby_resources query if available
-        if hasattr(sprite.environment, "nearby_resources"):
-            nearby_food = sprite.environment.nearby_resources(sprite_entity, 50)
-        else:
-            nearby_food = sprite.environment.nearby_agents_by_type(sprite_entity, 50, Food)
+        nearby_food = fish.environment.nearby_resources(fish, 50)
 
         for candidate in nearby_food:
-            # Get the food entity (unwrap if it's a sprite wrapper)
-            candidate_entity = candidate._entity if hasattr(candidate, "_entity") else candidate
-            if not isinstance(candidate_entity, Food):
+            if not isinstance(candidate, Food):
                 continue
-            food_entity = candidate_entity
 
             # Use the collision detector for consistent collision detection
-            if default_collision_detector.collides(sprite_entity, food_entity):
+            if default_collision_detector.collides(fish, candidate):
                 # Only stop if the fish can actually consume food
-                if hasattr(sprite_entity, "can_eat") and not sprite_entity.can_eat():
+                if not fish.can_eat():
                     continue
-                sprite.vel = Vector2(0, 0)  # Set velocity to 0
+                fish.vel = Vector2(0, 0)  # Set velocity to 0
 
 
 class AlgorithmicMovement(MovementStrategy):
@@ -118,7 +108,7 @@ class AlgorithmicMovement(MovementStrategy):
         # See ADR-010 and core.movement.considerations.
         self._arbiter = MovementArbiter(default_considerations())
 
-    def move(self, sprite: Fish) -> None:
+    def move(self, fish: Fish) -> None:
         """Move the fish by resolving its competing drives.
 
         Drives (explicit policy override, ball pursuit, genome code policy, and
@@ -127,17 +117,13 @@ class AlgorithmicMovement(MovementStrategy):
         fires (the genome has no composable behavior), fall back to random
         movement.
         """
-        sprite_entity: Fish = sprite._entity if hasattr(sprite, "_entity") else sprite
-
-        desired_velocity = self._arbiter.decide(self, sprite_entity)
+        desired_velocity = self._arbiter.decide(self, fish)
 
         if desired_velocity is None:
             # No drive produced a velocity (genome has no composable behavior):
             # fall back to simple random movement.
-            sprite_entity.add_random_velocity_change(
-                RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
-            )
-            super().move(sprite_entity)
+            fish.add_random_velocity_change(RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR)
+            super().move(fish)
             return
 
         # Clamp the desired velocity to the kinematic action bound, then scale by
@@ -149,12 +135,12 @@ class AlgorithmicMovement(MovementStrategy):
         desired_vy = _clamp_action_velocity(float(desired_velocity[1]))
 
         # Apply algorithm decision - scale by speed to get actual velocity
-        speed = sprite_entity.speed
+        speed = fish.speed
         target_vx = desired_vx * speed
         target_vy = desired_vy * speed
 
         # Smoothly interpolate toward desired velocity - inline for performance
-        vel = sprite_entity.vel
+        vel = fish.vel
         vel.x += (target_vx - vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
         vel.y += (target_vy - vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
 
@@ -167,7 +153,7 @@ class AlgorithmicMovement(MovementStrategy):
         # Anti-stuck mechanism: if velocity is very low, add small random nudge
         # This prevents fish from getting permanently stuck at (0,0)
         if vel_length_sq < 0.01:
-            rng = sprite_entity.environment.rng
+            rng = fish.environment.rng
             angle = rng.random() * 6.283185307
             nudge_speed = speed * 0.3  # Small nudge to get unstuck
             vel.x = nudge_speed * math.cos(angle)
@@ -184,7 +170,7 @@ class AlgorithmicMovement(MovementStrategy):
                 vel.x = vel_x * scale
                 vel.y = vel_y * scale
 
-        super().move(sprite_entity)
+        super().move(fish)
 
     def _get_policy_override_velocity(self, fish: Fish) -> VelocityComponents | None:
         """Explicit movement-policy override, if one is set on the fish.
@@ -205,7 +191,7 @@ class AlgorithmicMovement(MovementStrategy):
         except Exception:
             logger.debug(
                 "Movement policy failed for fish %s, falling back to genome behavior",
-                getattr(fish, "fish_id", "?"),
+                fish.fish_id,
                 exc_info=True,
             )
             return None
@@ -236,31 +222,21 @@ class AlgorithmicMovement(MovementStrategy):
 
         # OPTIMIZATION: Check if policy is configured before doing expensive setup
         # This avoids building observations (which runs spatial queries) for fish without policies
-        behavioral = fish.genome.behavioral
-
-        # Quick check: extract value and see if it's set
-        trait = getattr(behavioral, "movement_policy_id", None)
-        if trait is not None and hasattr(trait, "value"):
-            trait = trait.value
-
-        if not trait:
+        trait = fish.genome.behavioral.movement_policy_id
+        policy_id = trait.value if trait is not None else None
+        if not policy_id:
             return None
 
         # We need a reference to a code pool
-        genome_code_pool = getattr(fish.environment, "genome_code_pool", None)
-
+        genome_code_pool = fish.environment.genome_code_pool
         if genome_code_pool is None:
-            # Fallback to legacy behavior or just return None
-            # If we really want to support raw CodePool without GenomeCodePool wrapper,
-            # we'd need to adapt the runner or keep legacy logic.
-            # Given the goal is "Use GenomeCodePool", we focus on that path.
             return None
 
         # Build observation
         observation = build_movement_observation(fish)
 
-        # Extract explicit dt and frame for deterministic execution
-        env_dt = getattr(fish.environment, "dt", 1.0)
+        # Environments have no dt attribute: the simulation is fixed-timestep.
+        env_dt = 1.0
         fish_frame = fish.age
 
         # Execute via runner
@@ -270,7 +246,7 @@ class AlgorithmicMovement(MovementStrategy):
             code_pool=genome_code_pool,
             observation=observation,
             rng=fish.environment.rng,
-            fish_id=getattr(fish, "fish_id", None),
+            fish_id=fish.fish_id,
             dt=env_dt,
             frame=fish_frame,
         )
