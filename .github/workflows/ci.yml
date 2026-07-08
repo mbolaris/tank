@@ -79,7 +79,7 @@ jobs:
         python-version: '3.10'
     - name: Check locked paths
       run: |
-        python tools/check_locked_paths.py --locked benchmarks/heldout tools/check_locked_paths.py --base origin/${{ github.base_ref }}
+        python tools/check_locked_paths.py --locked benchmarks/heldout tools/check_locked_paths.py core/poker/strategy/implementations/baseline.py core/poker/strategy/implementations/standard.py core/poker/strategy/implementations/expert.py --base origin/${{ github.base_ref }}
 
   frontend-ci:
     runs-on: ubuntu-latest
