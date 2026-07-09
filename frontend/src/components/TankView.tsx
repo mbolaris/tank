@@ -60,7 +60,6 @@ const CONNECTION_STATUS_DISPLAY: Record<ConnectionStatus, { label: string; color
 export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
-    const [renderFps, setRenderFps] = useState<number | null>(null);
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
@@ -264,7 +263,7 @@ export function TankView({ worldId }: TankViewProps) {
                                         letterSpacing: '0.05em',
                                     }}
                                 >
-                                    FPS
+                                    SIM FPS
                                 </span>
                                 <span
                                     style={{
@@ -380,7 +379,6 @@ export function TankView({ worldId }: TankViewProps) {
                         showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
-                        onRenderFps={setRenderFps}
                     />
                     <div className="canvas-glow" aria-hidden />
                     <div className="canvas-hud">
@@ -396,12 +394,6 @@ export function TankView({ worldId }: TankViewProps) {
                                     }}
                                 />
                                 {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
-                            </div>
-                        </div>
-                        <div className="hud-group">
-                            <div className="hud-item">
-                                <span className="hud-label">Render</span>
-                                {renderFps !== null ? `${Math.round(renderFps)} fps` : '—'}
                             </div>
                         </div>
                     </div>
