@@ -263,7 +263,10 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/energy/energy_utils.py`, `core/entities/base.py`, `core/modes/tank.py`,
 `core/modes/petri.py`, `core/worlds/shared/action_translator.py`,
 `core/genetics/mate_preferences.py`, `core/genetics/behavioral_inheritance.py`,
-`core/minigames/soccer/seeds.py`, and `core/policies/movement_policy_runner.py`.
+`core/minigames/soccer/seeds.py`, `core/policies/movement_policy_runner.py`,
+`core/ecosystem_telemetry.py`, `core/interfaces.py` (all but the legacy
+`record_poker_outcome result: Any` param), `core/entities/plant.py`,
+`core/plant/poker_component.py`, and `core/plants/plant_strategy_types.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
 nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a
