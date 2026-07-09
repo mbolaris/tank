@@ -18,5 +18,6 @@ the environment or investigate a regression.
 | `benchmarks/tank/survival_5k.py` | ~45s | Champion runtime ~35s |
 | `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Champion runtime ~63s |
 | `benchmarks/tank/selection_response_10k.py` | ~90s | 10k-frame selection assay |
+| `benchmarks/tank/foraging_gym.py` | ~2s | Isolated foraging skill, random floor, attainable oracle ceiling |
 | `benchmarks/soccer/training_3k.py` | ~5s | Champion runtime ~3s |
 | `benchmarks/soccer/training_5k.py` | ~5s | Champion runtime ~3s |

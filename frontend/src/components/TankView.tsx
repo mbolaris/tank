@@ -9,10 +9,11 @@ import {
     type ReactNode,
 } from 'react';
 import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
-import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
+import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
+import { PanelToggleBar } from './PanelToggleBar';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
@@ -32,6 +33,9 @@ const TankSoccerTab = lazy(() =>
 const TankPokerTab = lazy(() =>
     import('./tank_tabs/TankPokerTab').then((module) => ({ default: module.TankPokerTab }))
 );
+const TankSkillsTab = lazy(() =>
+    import('./tank_tabs/TankSkillsTab').then((module) => ({ default: module.TankSkillsTab }))
+);
 const TankEcosystemTab = lazy(() =>
     import('./tank_tabs/TankEcosystemTab').then((module) => ({ default: module.TankEcosystemTab }))
 );
@@ -41,15 +45,6 @@ const TankGeneticsTab = lazy(() =>
 const TankTrendsTab = lazy(() =>
     import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
 );
-
-const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
-    { id: 'insights', label: 'Insights', icon: '💬' },
-    { id: 'soccer', label: 'Soccer', icon: '⚽' },
-    { id: 'poker', label: 'Poker', icon: '♠' },
-    { id: 'trends', label: 'Trends', icon: '📈' },
-    { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
-    { id: 'genetics', label: 'Genetics', icon: '🧬' },
-];
 
 const CONNECTION_STATUS_DISPLAY: Record<ConnectionStatus, { label: string; color: string }> = {
     live: { label: 'LIVE', color: 'var(--color-success)' },
@@ -64,7 +59,7 @@ export function TankView({ worldId }: TankViewProps) {
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
-    const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem', 'insights']);
+    const { visible, toggle, isVisible } = useVisiblePanels(['skills', 'soccer', 'ecosystem', 'insights']);
 
     // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
@@ -409,20 +404,7 @@ export function TankView({ worldId }: TankViewProps) {
             </div>
 
             {/* Panel Toggle Bar */}
-            <div className={styles.panelToggleBar}>
-                <span className={styles.panelToggleLabel}>Show panels:</span>
-                {PANEL_CONFIG.map(({ id, label, icon }) => (
-                    <button
-                        key={id}
-                        className={`${styles.panelToggle} ${isVisible(id) ? styles.active : ''}`}
-                        onClick={() => toggle(id)}
-                        aria-pressed={isVisible(id)}
-                    >
-                        <span className={styles.panelToggleIcon}>{icon}</span>
-                        <span>{label}</span>
-                    </button>
-                ))}
-            </div>
+            <PanelToggleBar visible={visible} onToggle={toggle} />
 
             {/* Panel Grid */}
             {visible.length > 0 && (
@@ -430,6 +412,14 @@ export function TankView({ worldId }: TankViewProps) {
                     {isVisible('insights') && (
                         <CollapsiblePanel title="Insights" icon="💬">
                             <CommentaryFeed worldId={effectiveWorldId} />
+                        </CollapsiblePanel>
+                    )}
+
+                    {isVisible('skills') && (
+                        <CollapsiblePanel title="Skills & Benchmarks" icon="🎯">
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankSkillsTab />
+                            </Suspense>
                         </CollapsiblePanel>
                     )}
 

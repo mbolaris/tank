@@ -25,3 +25,28 @@ export interface SkillLaddersResponse {
     schema_version: number;
     ladders: SkillLadder[];
 }
+
+export interface ForagingGymEpisode {
+    energy_collected: number;
+    food_collected: number;
+    energy_spent: number;
+    travel_distance: number;
+}
+
+export interface ForagingGymResult {
+    benchmark_id: 'tank/foraging_gym';
+    seed: number;
+    score: number;
+    score_breakdown: {
+        composable_energy_ratio: number;
+        random_walk_energy_ratio: number;
+        oracle_energy_ratio: number;
+    };
+    metadata: {
+        oracle_energy: number;
+        composable: ForagingGymEpisode;
+        random_walk: ForagingGymEpisode;
+        oracle: ForagingGymEpisode;
+        skill: SkillLadder;
+    };
+}
