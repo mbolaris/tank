@@ -56,7 +56,8 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
             justifyContent: 'space-between',
             padding: '12px 24px',
             flex: 1,
-            gap: '24px',
+            gap: '12px 24px',
+            flexWrap: 'wrap',
         }}>
             {/* Primary Actions */}
             <div style={{ display: 'flex', gap: '12px' }}>

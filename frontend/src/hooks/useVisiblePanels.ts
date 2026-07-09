@@ -48,12 +48,17 @@ export function useVisiblePanels(defaultPanels: PanelId[] = ['soccer', 'poker'])
 
     const isVisible = useCallback((id: PanelId) => visible.includes(id), [visible]);
 
-    const toggle = useCallback(
-        (id: PanelId) => {
-            persist(visible.includes(id) ? visible.filter((p) => p !== id) : [...visible, id]);
-        },
-        [persist, visible]
-    );
+    const toggle = useCallback((id: PanelId) => {
+        setVisibleState((prev) => {
+            const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            } catch {
+                // ignore storage failures (private mode, quota, etc.)
+            }
+            return next;
+        });
+    }, []);
 
     const setVisible = useCallback(
         (ids: PanelId[]) => {

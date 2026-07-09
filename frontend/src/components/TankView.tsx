@@ -187,7 +187,7 @@ export function TankView({ worldId }: TankViewProps) {
             >
                 <div
                     className="glass-panel"
-                    style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}
+                    style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px 32px', flexWrap: 'wrap' }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
@@ -402,21 +402,21 @@ export function TankView({ worldId }: TankViewProps) {
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
                     {isVisible('insights') && (
-                        <CollapsiblePanel title="Insights" icon="💬">
+                        <Panel title="Insights" icon="💬" onClose={() => toggle('insights')}>
                             <CommentaryFeed worldId={effectiveWorldId} />
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('skills') && (
-                        <CollapsiblePanel title="Skills & Benchmarks" icon="🎯">
+                        <Panel title="Skills & Benchmarks" icon="🎯" onClose={() => toggle('skills')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankSkillsTab />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('soccer') && (
-                        <CollapsiblePanel title="Soccer League" icon="⚽">
+                        <Panel title="Soccer League" icon="⚽" onClose={() => toggle('soccer')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankSoccerTab
                                     liveState={state?.soccer_league_live ?? null}
@@ -424,11 +424,11 @@ export function TankView({ worldId }: TankViewProps) {
                                     currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
                                 />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('poker') && (
-                        <CollapsiblePanel title="Poker" icon="♠">
+                        <Panel title="Poker" icon="♠" onClose={() => toggle('poker')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankPokerTab
                                     worldId={effectiveWorldId}
@@ -441,34 +441,34 @@ export function TankView({ worldId }: TankViewProps) {
                                     worldType={effectiveWorldType}
                                 />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('trends') && (
-                        <CollapsiblePanel title="Trends" icon="📈">
+                        <Panel title="Trends" icon="📈" onClose={() => toggle('trends')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankTrendsTab history={state?.metrics_history ?? null} />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('ecosystem') && (
-                        <CollapsiblePanel title="Ecosystem" icon="🌿">
+                        <Panel title="Ecosystem" icon="🌿" onClose={() => toggle('ecosystem')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankEcosystemTab
                                     stats={state?.stats ?? null}
                                     autoEvaluation={state?.auto_evaluation}
                                 />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
 
                     {isVisible('genetics') && (
-                        <CollapsiblePanel title="Genetics" icon="🧬">
+                        <Panel title="Genetics" icon="🧬" onClose={() => toggle('genetics')}>
                             <Suspense fallback={<PanelLoading />}>
                                 <TankGeneticsTab worldId={effectiveWorldId} />
                             </Suspense>
-                        </CollapsiblePanel>
+                        </Panel>
                     )}
                 </div>
             )}
@@ -534,48 +534,34 @@ function PanelLoading() {
     );
 }
 
-function CollapsiblePanel({ title, icon, children }: { title: string; icon: string; children: ReactNode }) {
-    const [isOpen, setIsOpen] = useState(true);
-
+function Panel({
+    title,
+    icon,
+    onClose,
+    children,
+}: {
+    title: string;
+    icon: string;
+    onClose: () => void;
+    children: ReactNode;
+}) {
     return (
         <div className={styles.dashboardPanel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: 'none',
-                    borderBottom: isOpen ? '1px solid var(--card-border)' : 'none',
-                    color: 'var(--color-text-main)',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className={styles.panelHeader}>
+                <div className={styles.panelHeaderTitle}>
                     <span style={{ fontSize: '16px' }}>{icon}</span>
                     <span>{title}</span>
                 </div>
-                <div style={{
-                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                    opacity: 0.5
-                }}>
-                    ▼
-                </div>
-            </button>
-            {isOpen && (
-                <div style={{ padding: '16px' }}>
-                    {children}
-                </div>
-            )}
+                <button
+                    className={styles.panelClose}
+                    onClick={onClose}
+                    aria-label={`Hide ${title} panel`}
+                    title={`Hide ${title} panel`}
+                >
+                    ×
+                </button>
+            </div>
+            <div className={styles.panelBody}>{children}</div>
         </div>
     );
 }

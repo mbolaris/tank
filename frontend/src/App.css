@@ -15,6 +15,7 @@
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 /* Glass Panel Utility */
@@ -34,6 +35,7 @@
     width: 100%;
     max-width: 1200px;
     padding: 4px;
+    box-sizing: border-box;
     /* Slim border for the "tank glass" effect */
     border-radius: 20px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
