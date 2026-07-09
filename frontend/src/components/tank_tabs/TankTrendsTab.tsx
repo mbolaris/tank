@@ -50,6 +50,7 @@ interface AggregatedPoint {
     soccer: { goals_per_1k_frames: number };
     diversity_score: number;
     traits?: Record<string, number>;
+    death_causes?: Record<string, number>;
 }
 
 interface TrendPoint extends AggregatedPoint {
@@ -58,6 +59,7 @@ interface TrendPoint extends AggregatedPoint {
     mean_energy: number;
     // Trait means indexed to their first recorded value, as % change.
     traits_idx?: Record<string, number>;
+    death_causes_interval?: Record<string, number>;
 }
 
 // Helper to calculate trend delta and percentage change between first and last quartiles
@@ -346,6 +348,66 @@ function LegendKey({ items }: { items: { label: string; color: string }[] }) {
     );
 }
 
+type ReadoutTone = 'positive' | 'neutral' | 'warning' | 'danger';
+
+interface ReadoutCardProps {
+    label: string;
+    value: string;
+    detail: string;
+    tone: ReadoutTone;
+}
+
+function ReadoutCard({ label, value, detail, tone }: ReadoutCardProps) {
+    const palette: Record<ReadoutTone, { accent: string; background: string }> = {
+        positive: { accent: '#4ade80', background: 'rgba(74, 222, 128, 0.08)' },
+        neutral: { accent: '#94a3b8', background: 'rgba(148, 163, 184, 0.08)' },
+        warning: { accent: '#fbbf24', background: 'rgba(251, 191, 36, 0.08)' },
+        danger: { accent: '#f87171', background: 'rgba(248, 113, 113, 0.08)' },
+    };
+    const colors = palette[tone];
+
+    return (
+        <div style={{
+            padding: '12px 14px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--card-border)',
+            borderTop: `2px solid ${colors.accent}`,
+            background: `linear-gradient(135deg, ${colors.background}, var(--card-bg))`,
+            minWidth: 0,
+        }}>
+            <div style={{
+                color: 'var(--color-text-dim)',
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: '5px',
+            }}>
+                {label}
+            </div>
+            <div style={{
+                color: colors.accent,
+                fontSize: '15px',
+                fontWeight: 700,
+                lineHeight: 1.2,
+                marginBottom: '5px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+            }}>
+                {value}
+            </div>
+            <div style={{
+                color: 'var(--color-text-muted)',
+                fontSize: '11px',
+                lineHeight: 1.35,
+            }}>
+                {detail}
+            </div>
+        </div>
+    );
+}
+
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -372,6 +434,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                 diversitySum: number;
                 traitsSum: Record<string, number>;
                 traitsCount: Record<string, number>;
+                deathCausesSum: Record<string, number>;
             }> = {};
 
             samples.forEach(s => {
@@ -388,6 +451,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                         diversitySum: 0,
                         traitsSum: {},
                         traitsCount: {},
+                        deathCausesSum: {},
                     };
                 }
                 const g = genMap[gen];
@@ -403,6 +467,11 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                     for (const [k, v] of Object.entries(s.traits)) {
                         g.traitsSum[k] = (g.traitsSum[k] ?? 0) + v;
                         g.traitsCount[k] = (g.traitsCount[k] ?? 0) + 1;
+                    }
+                }
+                if (s.death_causes) {
+                    for (const [k, v] of Object.entries(s.death_causes)) {
+                        g.deathCausesSum[k] = (g.deathCausesSum[k] ?? 0) + v;
                     }
                 }
             });
@@ -425,6 +494,12 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                             Object.keys(g.traitsSum).map(k => [
                                 k,
                                 Number((g.traitsSum[k] / g.traitsCount[k]).toFixed(5)),
+                            ])
+                        ),
+                        death_causes: Object.fromEntries(
+                            Object.keys(g.deathCausesSum).map(k => [
+                                k,
+                                Number((g.deathCausesSum[k] / g.count).toFixed(2)),
                             ])
                         ),
                     };
@@ -456,12 +531,21 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                 }
             }
 
+            const causesInterval: Record<string, number> = {};
+            const keys = ['starvation', 'old_age', 'predation', 'migration', 'unknown'];
+            keys.forEach(k => {
+                const curVal = d.death_causes?.[k] ?? 0;
+                const prevVal = prev?.death_causes?.[k] ?? 0;
+                causesInterval[k] = Math.max(0, curVal - prevVal);
+            });
+
             return {
                 ...d,
                 births_interval: birthsInterval,
                 deaths_neg: -deathsInterval,
                 mean_energy: d.population > 0 ? Number((d.fish_energy / d.population).toFixed(1)) : 0,
                 traits_idx: traitsIdx,
+                death_causes_interval: causesInterval,
             };
         });
     }, [samples, xAxisMode]);
@@ -545,6 +629,65 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
     );
     const hasTraitData = presentTraitSeries.length > 0;
 
+    // A small diagnosis layer makes the charts easier to read at a glance. It
+    // deliberately treats trait drift as the selection signal: generation
+    // count alone can rise through churn without improving the population.
+    const strongestTrait = presentTraitSeries
+        .map(trait => ({
+            ...trait,
+            drift: processedData[processedData.length - 1]?.traits_idx?.[trait.key] ?? 0,
+        }))
+        .sort((a, b) => Math.abs(b.drift) - Math.abs(a.drift))[0];
+    const strongestDrift = strongestTrait?.drift ?? 0;
+    const selectionReadout = !hasTraitData
+        ? { value: 'Waiting for signal', detail: 'Trait telemetry is not in this history yet.', tone: 'neutral' as ReadoutTone }
+        : samples.length < 4
+            ? { value: 'Collecting signal', detail: 'A few more samples will make drift meaningful.', tone: 'neutral' as ReadoutTone }
+            : Math.abs(strongestDrift) >= 5
+                ? {
+                    value: 'Directional drift',
+                    detail: `${strongestTrait?.label ?? 'Trait'} is ${strongestDrift >= 0 ? 'up' : 'down'} ${Math.abs(strongestDrift).toFixed(1)}% since the first sample.`,
+                    tone: 'positive' as ReadoutTone,
+                }
+                : {
+                    value: 'Mostly churn',
+                    detail: 'Trait means are under 5% from start; turnover is not yet a clear quality signal.',
+                    tone: 'warning' as ReadoutTone,
+                };
+
+    const diversityValue = last.diversity_score ?? 0;
+    const diversityReadout = diversityValue >= 0.15
+        ? {
+            value: 'Room to explore',
+            detail: `Diversity is ${(diversityValue * 100).toFixed(0)}% — above the 15% healthy floor.`,
+            tone: 'positive' as ReadoutTone,
+        }
+        : diversityValue >= 0.1
+            ? {
+                value: 'Watch convergence',
+                detail: `Diversity is ${(diversityValue * 100).toFixed(0)}% — keep an eye on the next generations.`,
+                tone: 'warning' as ReadoutTone,
+            }
+            : {
+                value: 'Converging',
+                detail: `Diversity is only ${(diversityValue * 100).toFixed(0)}% — novelty may be getting squeezed out.`,
+                tone: 'danger' as ReadoutTone,
+            };
+
+    const momentumReadout = {
+        value: `${genRate.toFixed(1)} gen / 10k`,
+        detail: genRate >= HEALTHY_GEN_RATE
+            ? 'Fast turnover; check trait drift before calling it progress.'
+            : genRate >= WARNING_GEN_RATE
+                ? 'Moderate turnover; the trend needs more runway.'
+                : 'Slow turnover; this history may be too short for selection to act.',
+        tone: genRate >= HEALTHY_GEN_RATE
+            ? 'positive' as ReadoutTone
+            : genRate < WARNING_GEN_RATE
+                ? 'danger' as ReadoutTone
+                : 'warning' as ReadoutTone,
+    };
+
     // Poker/soccer charts only earn a slot when those systems have produced signal;
     // otherwise they're flat lines crowding out the ecosystem story.
     const hasPokerSignal = samples.some(s => (s.poker?.total_games ?? 0) > 0);
@@ -591,6 +734,32 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{
+                padding: '14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--card-border)',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.08), var(--card-bg) 45%)',
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                    <div>
+                        <div style={{ color: 'var(--color-text-main)', fontSize: '13px', fontWeight: 700 }}>
+                            Evolution readout
+                        </div>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: '11px', marginTop: '3px' }}>
+                            Fast generations are not automatically better generations — trait drift is the quality signal.
+                        </div>
+                    </div>
+                    <span style={{ color: 'var(--color-text-dim)', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
+                        {frameSpan.toLocaleString()} frames observed
+                    </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))', gap: '8px' }}>
+                    <ReadoutCard label="Selection" {...selectionReadout} />
+                    <ReadoutCard label="Diversity" {...diversityReadout} />
+                    <ReadoutCard label="Momentum" {...momentumReadout} />
+                </div>
+            </div>
+
             {/* Toggle Bar */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <button
@@ -656,6 +825,27 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                         : divTrend.delta > 0 ? 'var(--color-success)' : 'var(--color-warning)'}
                     spark={sparkWindow.map(s => s.diversity_score ?? 0)}
                     sparkColor="#8b5cf6"
+                />
+                <StatTile
+                    label="Starvation Rate"
+                    value={`${(() => {
+                        const starvationCount = last.death_causes?.starvation ?? 0;
+                        const totalDeathCount = Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0);
+                        return totalDeathCount > 0 ? ((starvationCount / totalDeathCount) * 100).toFixed(1) : '0.0';
+                    })()}%`}
+                    sub={`${(last.death_causes?.starvation ?? 0).toLocaleString()} / ${Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0).toLocaleString()} deaths`}
+                    subColor={(() => {
+                        const starvationCount = last.death_causes?.starvation ?? 0;
+                        const totalDeathCount = Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0);
+                        const starvationPct = totalDeathCount > 0 ? (starvationCount / totalDeathCount) * 100 : 0;
+                        return starvationPct >= 90 ? 'var(--color-danger)' : starvationPct < 80 ? 'var(--color-success)' : 'var(--color-warning)';
+                    })()}
+                    spark={sparkWindow.map(s => {
+                        const sc = s.death_causes?.starvation ?? 0;
+                        const tc = Object.values(s.death_causes ?? {}).reduce((a, b) => a + b, 0);
+                        return tc > 0 ? (sc / tc) * 100 : 0;
+                    })}
+                    sparkColor="#ef4444"
                 />
             </div>
 
@@ -755,13 +945,83 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                     </ResponsiveContainer>
                 </ChartCard>
 
+                {/* Mortality Causes Trend */}
+                <ChartCard
+                    title="☠️ Mortality Causes"
+                    subtitle="deaths per interval by cause"
+                    right={<LegendKey items={[
+                        { label: 'Starvation', color: '#ef4444' },
+                        { label: 'Old Age', color: '#22c55e' },
+                        { label: 'Predation', color: '#fb923c' },
+                        { label: 'Migration', color: '#3b82f6' },
+                    ]} />}
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={processedData} margin={chartMargin}>
+                            <CartesianGrid stroke={gridStroke} vertical={false} />
+                            <XAxis {...xAxisProps} />
+                            <YAxis stroke="rgba(255,255,255,0.3)" fontSize={10} domain={[0, 'auto']} />
+                            <Tooltip content={<CustomTooltip xAxisMode={xAxisMode} />} />
+                            {genMarkerLines()}
+                            <Area
+                                type="monotone"
+                                dataKey="death_causes_interval.starvation"
+                                stroke="#ef4444"
+                                strokeWidth={1.5}
+                                fill="#ef4444"
+                                fillOpacity={0.1}
+                                name="Starvation"
+                                dot={false}
+                                stackId="deaths"
+                                isAnimationActive={false}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="death_causes_interval.old_age"
+                                stroke="#22c55e"
+                                strokeWidth={1.5}
+                                fill="#22c55e"
+                                fillOpacity={0.1}
+                                name="Old Age"
+                                dot={false}
+                                stackId="deaths"
+                                isAnimationActive={false}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="death_causes_interval.predation"
+                                stroke="#fb923c"
+                                strokeWidth={1.5}
+                                fill="#fb923c"
+                                fillOpacity={0.1}
+                                name="Predation"
+                                dot={false}
+                                stackId="deaths"
+                                isAnimationActive={false}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="death_causes_interval.migration"
+                                stroke="#3b82f6"
+                                strokeWidth={1.5}
+                                fill="#3b82f6"
+                                fillOpacity={0.1}
+                                name="Migration"
+                                dot={false}
+                                stackId="deaths"
+                                isAnimationActive={false}
+                            />
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                </ChartCard>
+
                 {/* Trait Selection: population trait means indexed to their starting
                     value, so directional selection reads as a slope away from 0%
                     on one comparable axis. Hidden when no trait data is present. */}
                 {hasTraitData && (
                     <ChartCard
-                        title="🧬 Trait Selection"
-                        subtitle="% change of population mean since start"
+                        title="Trait drift · selection signal"
+                        subtitle="population mean indexed to first sample · ≥5% is a directional signal"
                         right={<LegendKey items={presentTraitSeries} />}
                     >
                         <ResponsiveContainer width="100%" height="100%">

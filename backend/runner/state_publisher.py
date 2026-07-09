@@ -299,6 +299,7 @@ class StatePublisher:
                     soccer=MetricsSoccerSamplePayload(**s["soccer"]),
                     diversity_score=s.get("diversity_score", 0.0),
                     traits=s.get("traits", {}),
+                    death_causes=s.get("death_causes", {}),
                 )
 
         return DeltaStatePayload(
