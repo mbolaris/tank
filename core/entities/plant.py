@@ -16,7 +16,7 @@ The Plant class now delegates to specialized components for better modularity:
 """
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from core.entities.base import Entity, EntityUpdateResult
 from core.entities.plant_nectar import PlantNectar
@@ -32,6 +32,7 @@ from core.state_machine import EntityState
 
 if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
+    from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
     from core.root_spots import RootSpot
     from core.world import World
 
@@ -601,7 +602,7 @@ class Plant(Entity):
         """
         return self._poker_comp.get_poker_aggression()
 
-    def get_poker_strategy(self) -> Any | None:
+    def get_poker_strategy(self) -> PokerStrategyAlgorithm | None:
         """Get poker strategy for this plant.
 
         If this plant has a strategy_type set (baseline strategy plant),

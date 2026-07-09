@@ -12,6 +12,7 @@ from core.config.plants import PLANT_MIN_POKER_ENERGY
 
 if TYPE_CHECKING:
     from core.genetics import PlantGenome
+    from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
     from core.world import World
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,7 @@ class PlantPokerComponent:
         """
         return self._get_genome().aggression
 
-    def get_poker_strategy(self):
+    def get_poker_strategy(self) -> "PokerStrategyAlgorithm | None":
         """Get poker strategy for this plant.
 
         If this plant has a strategy_type set (baseline strategy plant),

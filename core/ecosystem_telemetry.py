@@ -7,7 +7,7 @@ delegating facades, and all calls go back through the manager so
 monkeypatched manager methods are honored.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.constants import SOURCE_POKER_FISH
 from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.events import EventBus
     from core.genetics import Genome
+    from core.telemetry.events import TelemetryEvent
+    from core.worlds.contracts import EnergyDeltaRecord
 
 
 class EcosystemTelemetryRouter:
@@ -72,7 +74,7 @@ class EcosystemTelemetryRouter:
         """Handle reproduction events."""
         self._manager.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
 
-    def record_event(self, event: Any) -> None:
+    def record_event(self, event: "TelemetryEvent") -> None:
         """Record a telemetry event emitted by domain entities.
 
         This delegates to the specific event handlers to ensure consistent logic
@@ -89,7 +91,7 @@ class EcosystemTelemetryRouter:
         elif isinstance(event, ReproductionEvent):
             self.on_reproduction(event)
 
-    def ingest_energy_deltas(self, deltas: list[Any]) -> None:
+    def ingest_energy_deltas(self, deltas: list["EnergyDeltaRecord"]) -> None:
         """Process a batch of energy deltas from the engine recorder.
 
         This replaces the old event-based telemetry for energy.
