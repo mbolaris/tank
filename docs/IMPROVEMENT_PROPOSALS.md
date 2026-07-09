@@ -625,6 +625,11 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **6.2 Retired `Any` in composable food selection.** Replaced the broad food
+  target and selection annotations in
+  `core/algorithms/composable/food_selection.py` with the concrete `Food`
+  entity type, preserving the selector's existing runtime behavior while making
+  the composable foraging contract visible to static analysis.
 - **ADR-016: removed the five vestigial monolith algorithm categories.**
   Deleted `predator_avoidance.py`, `schooling.py`, `energy_management.py`,
   `territory.py`, and `poker.py` from `core/algorithms/` (44 algorithms,
