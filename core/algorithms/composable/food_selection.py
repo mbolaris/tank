@@ -9,7 +9,7 @@ and where to intercept it (:func:`predict_food_target`).
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, cast
 
 from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.config.food import (
@@ -19,7 +19,7 @@ from core.config.food import (
     FOOD_QUALITY_DISTANCE_WEIGHT,
     FOOD_SINK_ACCELERATION,
 )
-from core.entities import Food as FoodClass
+from core.entities import Food
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
@@ -61,7 +61,9 @@ def _food_chase_distance_for_energy(fish: Fish) -> float:
     return float(CHASE_DISTANCE_SAFE_BASE)
 
 
-def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill: float) -> Vector2:
+def predict_food_target(
+    fish: Fish, food: Food, distance: float, prediction_skill: float
+) -> Vector2:
     """Return the predicted intercept position for a food item.
 
     Falls back to the food's current position when it isn't moving.
@@ -78,7 +80,7 @@ def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill
         return target_pos
 
     if hasattr(food, "food_properties"):
-        sink_multiplier = food.food_properties.get("sink_multiplier", 1.0)
+        sink_multiplier = cast(float, food.food_properties.get("sink_multiplier", 1.0))
         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
         if acceleration > 0 and food_vel.y >= 0:
             predicted_pos, _ = predict_falling_intercept(
@@ -104,7 +106,7 @@ def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill
     )
 
 
-def select_food_target(fish: Fish) -> Any | None:
+def select_food_target(fish: Fish) -> Food | None:
     """Pick the best food to pursue within detection range.
 
     Unlike the proximity-only ``_find_nearest_food`` helper (kept for the cheap
@@ -132,9 +134,9 @@ def select_food_target(fish: Fish) -> Any | None:
     max_distance_sq = max_distance * max_distance
 
     if hasattr(env, "nearby_resources"):
-        nearby = env.nearby_resources(fish, int(max_distance) + 1)
+        nearby = cast(list[Food], env.nearby_resources(fish, int(max_distance) + 1))
     else:
-        nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, FoodClass)
+        nearby = cast(list[Food], env.nearby_agents_by_type(fish, int(max_distance) + 1, Food))
     if not nearby:
         return None
 
