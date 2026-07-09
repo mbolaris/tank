@@ -482,6 +482,144 @@ ruler-integrity goals.
 
 ---
 
+## Theme 12 — A shared behavioral substrate for cross-domain reuse (2026-07)
+
+A major project goal is **multi-goal evolution**: a capability evolved for one
+problem should be reusable or adaptable in another. Today it structurally
+cannot be. The genome carries **three disjoint behavior encodings**, one per
+domain, with their own vocabularies, parameter dicts, mutation/crossover code,
+and inheritance paths:
+
+| Domain | Substrate | Discrete part | Continuous part | Learned part |
+| --- | --- | --- | --- | --- |
+| Foraging | `ComposableBehavior` (`core/algorithms/composable/`) | 4 enums (threat/food/social/poker-engage) | ~40 keys (`SUB_BEHAVIOR_PARAMS`) | — |
+| Poker | `ComposablePokerStrategy` (`core/poker/strategy/composable/`) | 5 enums (hand/bet/bluff/position/showdown) | ~14 keys | CFR regret table |
+| Soccer | `soccer_policy_id` + params (`core/code_pool/pool.py`) | policy-ID swap (chaser/striker/defender) | 8 keys (`SOCCER_POLICY_PARAM_KEYS`) | — |
+
+The "pursue a target" concept is `pursuit_speed`/`pursuit_aggression` in
+foraging, `pursuit_commit`/`approach_precision` in soccer, and `risk_tolerance`
++ the aggression trait in poker — different keys, different dicts, different
+code. There is no gene a genome could carry that means "how hard I chase"
+*across* domains, so selection cannot transfer a good subcomponent from one
+problem to another. Meanwhile the underlying computations are the same
+primitives, and several are **already pure functions**: `select_food_target`
+and `predict_food_target` (`core/algorithms/composable/food_selection.py`) are
+a target selector + intercept predictor; `_boids_behavior`/`_safe_normalize`
+(`actions.py`) and soccer's `_steer_action` (`pool.py`) are steering; the
+`MovementArbiter` (`core/movement/considerations.py`) is a priority action
+selector. They are just not lifted into a shared library or exposed to the
+genome.
+
+**The bet.** Lift those primitives into a shared, typed library
+(`sensors → target selectors → steering/decision → arbiter`), and let a genome
+wire them into an evolvable **behavior graph** where only the first hop
+(sensor binding) and last hop (actuator) are domain-specific. The middle is
+domain-agnostic: a "seek the highest-value target and intercept it" subgraph is
+the same nodes in foraging (target = food) and soccer (target = ball). This is
+the modular/subtree-crossover lever (EVOLVABILITY §3.2) and the
+genotype→phenotype encoding lever (§3.5) made concrete.
+
+**The guardrails (do not violate these):**
+- **Interpretability is a Crown Jewel.** Keep the node set small, typed, and
+  human-named; cap graph size; keep a `short_description`/render. If you can't
+  read a champion graph and say what it does, the change is a regression even if
+  a number went up.
+- **Determinism is non-negotiable.** Introduce every step behind neutral
+  defaults so the baseline stays byte-identical and champions reproduce exactly
+  (the pattern soccer params and the two-resource-food flag already use).
+  Decouple the gene set from RNG draw order — iterate nodes/ports in a stable
+  topological + id-sorted order, never dict/hash order (the `SUB_BEHAVIOR_PARAMS`
+  "dict-order = RNG schedule" coupling is the anti-pattern to escape; ADR-012 is
+  the precedent). No wall-clock (see Theme 1.0).
+- **Layer 1 vs Layer 2 stay separate.** The representation change alters
+  simulation results (**Layer 1**) — its own PRs, validated against champions.
+  Module-lineage / benchmark-schema additions are **Layer 2** — separate PRs.
+
+**Recommended direction.** Do the low-risk half first — **Option B**: extract
+the primitives (12.1) and add a shared gene namespace so one evolved
+modulator feeds all three domains. Treat the full evolvable graph — **Option
+A** (12.5–12.6) — as *earned* by a falsifiable evolvability result on
+`benchmarks/tank/selection_response_10k.py` across seeds 42/7/123, with a kill
+criterion. A universal policy net is **Option C** and is rejected: it destroys
+the interpretability that is the project's best advertisement.
+
+**Best starter pick: 12.1** — a byte-identical refactor that makes the shared
+primitives real without touching the genome. The ADR (`docs/adr/`) recording
+the encoding decision is written when **12.3/12.4** commit, not before.
+
+### 12.1 Extract steering/sensor primitives into a shared library — `M` · ★★★
+**Layer 1 (byte-identical refactor).** Create `core/behavior/primitives/`
+(`steering.py`: seek/flee/arrive/wander/intercept/boids/turn-then-dash) and move
+the math out of `actions.py`, `food_selection.py`, and `_steer_action` into
+shared pure functions that the existing call sites invoke for *identical*
+output. Acceptance: all four champions reproduce bit-exactly. Highest
+value-per-risk — it makes the "reusable primitive" story real with zero
+behavior change. Keep every new file under the god-class ceiling from the start.
+
+### 12.2 Typed node interfaces + registry — `S` · ★★
+**Layer 2 (no sim change).** Define the shared type vocabulary (`Scalar`,
+`Vector`/`UnitVector` in a normalized frame, `EntityRef`, `Bool`) and the
+`Sensor`/`Selector`/`Steering`/`Memory`/`Arbiter` node Protocols in
+`core/behavior/nodes.py`, plus a registry. Interfaces + unit tests only; no
+genome wiring yet. This is the type discipline that prevents "graph soup": a
+domain pulls in only the node *types* it needs (poker never grows steering;
+soccer never grows a poker branch), and the registry treats every node
+uniformly for serialization/mutation/crossover.
+
+### 12.3 Dormant `behavior_graph` genome field + interpreter — `M` · ★★
+**Layer 1.** Add an optional `behavior_graph` trait to `BehavioralTraits`
+(default `None`) with serialization (bump `GENOME_SCHEMA_VERSION` in
+`genome_codec.py`), validation, and a graph interpreter that **no fish selects
+yet**. Baseline byte-identical (field absent = today's path). Ship a golden
+replay fixture that exercises the interpreter in isolation. The interpreter must
+compile each genome's graph to a flat callable *once* (not per tick) — the move
+loop and `core/spatial/grid.py` are hot paths.
+
+### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★
+**Layer 1 (the risky step — isolate it).** Build a graph over the 12.1
+primitives that reproduces `ComposableBehavior.execute()` for foraging
+(priority arbiter: threat > food > social > explore). Validate on the **Theme
+11.3 foraging gym** (absolute skill, not ecosystem noise). Aim for
+bit-identical; if impossible, re-baseline the foraging champions **once**,
+atomically, with a documented `retired_reason`, and lean on the Theme 11 frozen
+rulers, which survive re-baselines by design. Keep `ComposableBehavior` as the
+reference oracle throughout — do not delete it here.
+
+### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
+**Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
+enum switch / policy-ID swap), and low-probability *structural* mutation
+(add/remove/rewire an edge, splice a subgraph) behind a heritable
+`structural_mutation_rate` meta-gene (reuse `core/genetics/trait.py`). Add
+type-safe subgraph crossover — spliceable only where port types match, which
+avoids the classic GP nonsensical-recombination failure. **Go/no-go gate:** does
+the graph encoding raise directional trait drift on
+`benchmarks/tank/selection_response_10k.py` (seeds 42/7/123) vs. the flat
+encoding, with a pre-registered kill criterion? The graveyard is full of
+plausible ideas that landed flat — prove this one before Theme 12.6.
+
+### 12.6 Cross-domain binding: soccer + poker share the middle — `L` · ★★
+**Layer 1.** Add a soccer actuator adapter and bind the *same* interception
+subgraph to the ball (first genuine cross-domain reuse) → measure on the Theme
+11.4 soccer ladder. Add a poker decision-selector + memory node and bind
+hand/pot sensors → measure on `benchmarks/poker/ladder_20k.py`. Make a single
+`aggression`/`commit` modulator node feed `InterceptMoving.speed`,
+`ScoredOptionSelector.raise_bias`, and `TurnThenDash.commit_dist` so one evolved
+gene means the same thing in all three domains (pleiotropy = the transfer we
+want). Retire the old per-domain substrates only after graphs demonstrably
+dominate every domain and champions are re-baselined (mirror ADR-006/016: prove
+no production path selects the old thing, then delete).
+
+### 12.7 Module lineage + cross-domain skill matrix — `M` · ★★
+**Layer 2 (observational).** Tag each behavioral module with a provenance id and
+record, per champion, which modules it carries and where they came from —
+"this interception module descends from the foraging champion and now appears in
+the soccer champion" is the headline figure for the transfer story. Score a
+shared module on multiple ladders (foraging gym / soccer / poker) to produce a
+**module skill matrix** (which modules are good where). Sits beside
+`research/skill_history.jsonl` (Theme 11.5); never needs re-baselining.
+
+---
+
 ## Shipped
 
 - **ADR-016: removed the five vestigial monolith algorithm categories.**
