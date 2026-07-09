@@ -377,6 +377,7 @@ Only these exist today. Use them; do not reference benchmarks that aren't here
 | `benchmarks/tank/survival_5k.py` | ~45s | Ecosystem stability over 5k frames (fish energy × fish population) |
 | `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Longer-horizon ecosystem health over 10k frames |
 | `benchmarks/tank/selection_response_10k.py` | ~90s | Frozen directional-selection response assay |
+| `benchmarks/tank/foraging_gym.py` | ~2s | Isolated foraging skill against random and oracle frozen rulers |
 | `benchmarks/soccer/training_3k.py` | ~5s | Soccer-mode agent training, short |
 | `benchmarks/soccer/training_5k.py` | ~5s | Soccer-mode agent training, longer |
 

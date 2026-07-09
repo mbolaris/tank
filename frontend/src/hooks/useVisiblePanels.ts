@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 
-export type PanelId = 'soccer' | 'poker' | 'ecosystem' | 'genetics' | 'trends' | 'insights';
+export type PanelId = 'skills' | 'soccer' | 'poker' | 'ecosystem' | 'genetics' | 'trends' | 'insights';
 
-const STORAGE_KEY = 'tankview.visiblePanels.v1';
-const ALL_PANELS: PanelId[] = ['soccer', 'poker', 'ecosystem', 'genetics', 'trends', 'insights'];
+const STORAGE_KEY = 'tankview.visiblePanels.v2';
+const LEGACY_STORAGE_KEY = 'tankview.visiblePanels.v1';
+const ALL_PANELS: PanelId[] = ['skills', 'soccer', 'poker', 'ecosystem', 'genetics', 'trends', 'insights'];
 
 function sanitizePanels(value: unknown, fallback: PanelId[]): PanelId[] {
     if (!Array.isArray(value)) return fallback;
@@ -23,8 +24,14 @@ export function useVisiblePanels(defaultPanels: PanelId[] = ['soccer', 'poker'])
     const [visible, setVisibleState] = useState<PanelId[]>(() => {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return defaultPanels;
-            return sanitizePanels(JSON.parse(raw), defaultPanels);
+            if (raw) return sanitizePanels(JSON.parse(raw), defaultPanels);
+
+            // Preserve existing panel choices while surfacing the new Skills
+            // panel once after the navigation migration.
+            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (!legacyRaw) return defaultPanels;
+            const legacyPanels = sanitizePanels(JSON.parse(legacyRaw), defaultPanels);
+            return legacyPanels.includes('skills') ? legacyPanels : [...legacyPanels, 'skills'];
         } catch {
             return defaultPanels;
         }

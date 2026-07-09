@@ -58,3 +58,14 @@ def test_ladders_endpoint_handles_empty_dir(tmp_path):
     resp = _client_for(tmp_path).get("/api/skill/ladders")
     assert resp.status_code == 200
     assert resp.json()["ladders"] == []
+
+
+def test_foraging_gym_endpoint_evaluates_current_substrate(tmp_path):
+    response = _client_for(tmp_path).get("/api/skill/foraging-gym?seed=42")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["benchmark_id"] == "tank/foraging_gym"
+    assert 0.0 <= body["score"] <= 1.0
+    assert body["score_breakdown"]["oracle_energy_ratio"] == 1.0
+    assert body["metadata"]["skill"]["domain"] == "foraging"

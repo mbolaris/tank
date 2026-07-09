@@ -437,7 +437,7 @@ non-monotonic finding that the default hero wins more from `gto_expert`
 (+589) than from `tight_aggressive` (+385), which the ladder makes visible
 for the first time.
 
-### 11.3 Foraging gym with an oracle ceiling — `M` · ★★★
+### 11.3 Foraging gym with an oracle ceiling — `M` · ★★★ — SHIPPED
 An isolated foraging benchmark: one fish (later a small cohort variant), no
 reproduction/poker/ball, a fixed scripted food-spawn schedule per seed.
 Compute the **oracle ceiling** on the same spawn script (full-knowledge
@@ -625,6 +625,14 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **11.3 Foraging gym with an oracle ceiling.** Added
+  [`benchmarks/tank/foraging_gym.py`](../benchmarks/tank/foraging_gym.py), a
+  deterministic single-fish ruler that runs the production neutral
+  `ComposableBehavior` food path against a fixed seeded food schedule. It
+  reports gross energy collected / attainable oracle energy, plus the frozen
+  `random_walk_v1` floor and `full_information_greedy_v1` ceiling in standard
+  skill-ladder metadata. The oracle collects every scripted food item under the
+  same speed, bounds, and capture rules, so the score's 1.0 ceiling is real.
 - **6.2 Retired `Any` in composable food selection.** Replaced the broad food
   target and selection annotations in
   `core/algorithms/composable/food_selection.py` with the concrete `Food`
