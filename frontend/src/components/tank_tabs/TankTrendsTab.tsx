@@ -852,7 +852,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
             {/* Charts Grid */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(450px, 100%), 1fr))',
                 gap: '16px'
             }}>
                 {/* Population */}

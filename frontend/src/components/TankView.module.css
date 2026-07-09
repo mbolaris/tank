@@ -297,6 +297,7 @@
     padding: 8px 12px;
     max-width: 1140px;
     width: 100%;
+    box-sizing: border-box;
     background: rgba(15, 23, 42, 0.6);
     border-radius: 12px;
     border: 1px solid rgba(51, 65, 85, 0.4);
@@ -348,7 +349,7 @@
     line-height: 1;
 }
 
-/* Panel Grid */
+/* Panel Grid (single column by design) */
 .panelGrid {
     display: grid;
     grid-template-columns: 1fr;
@@ -362,13 +363,61 @@
     min-width: 0; /* Prevent overflow */
 }
 
-/* Responsive adjustments */
-@media (max-width: 1100px) {
-    .panelGrid {
-        grid-template-columns: 1fr;
-    }
+.panelGrid > * {
+    min-width: 0; /* Let panel content (charts, tables) shrink with the column */
 }
 
+/* Panel header: title + hide button (visibility is owned by the toggle bar) */
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 6px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.panelHeaderTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    color: var(--color-text-main);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.panelClose {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.panelClose:hover {
+    background: rgba(51, 65, 85, 0.6);
+    color: #e2e8f0;
+}
+
+.panelBody {
+    padding: 16px;
+    min-width: 0;
+    /* Intrinsically wide content (poker table, event logs) scrolls inside
+       the panel instead of widening the page on small screens */
+    overflow-x: auto;
+}
+
+/* Responsive adjustments */
 @media (max-width: 600px) {
     .panelToggleBar {
         justify-content: center;
@@ -378,6 +427,26 @@
         width: 100%;
         text-align: center;
         margin-bottom: 4px;
+    }
+
+    /* Comfortable touch targets on small screens */
+    .panelToggle {
+        padding: 10px 14px;
+        min-height: 40px;
+    }
+
+    .panelClose {
+        width: 40px;
+        height: 40px;
+    }
+
+    .panelGrid {
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .panelBody {
+        padding: 12px;
     }
 }
 

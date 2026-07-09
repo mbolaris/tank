@@ -19,7 +19,7 @@ interface PanelToggleBarProps {
 export function PanelToggleBar({ visible, onToggle }: PanelToggleBarProps) {
     return (
         <div className={styles.panelToggleBar}>
-            <span className={styles.panelToggleLabel}>Show panels:</span>
+            <span className={styles.panelToggleLabel}>Panels</span>
             {PANEL_CONFIG.map(({ id, label, icon }) => {
                 const isVisible = visible.includes(id);
                 return (

@@ -260,6 +260,8 @@ function NavBar() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px 16px',
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                 <Link
@@ -301,7 +303,6 @@ function NavBar() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
-                minWidth: '150px',
                 justifyContent: 'flex-end',
             }}>
                 {isNetwork ? (
