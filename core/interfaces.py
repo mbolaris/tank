@@ -88,6 +88,7 @@ if TYPE_CHECKING:
     from core.genetics import Genome
     from core.math_utils import Vector2
     from core.poker.core import PokerHand
+    from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
     from core.telemetry.events import TelemetryEvent
 
 
@@ -308,7 +309,7 @@ class PokerPlayer(EnergyHolder, Positionable, Protocol):
         """Get aggression level for poker decisions (0.0-1.0)."""
         ...
 
-    def get_poker_strategy(self) -> Any | None:
+    def get_poker_strategy(self) -> "PokerStrategyAlgorithm | None":
         """Get poker strategy algorithm, or None to use aggression-based play."""
         ...
 
@@ -348,7 +349,7 @@ class BehaviorStrategy(Protocol):
                 pass  # No evolvable parameters
     """
 
-    def execute(self, fish: Any) -> tuple[float, float]:
+    def execute(self, fish: "Entity") -> tuple[float, float]:
         """Execute the behavior and return movement direction.
 
         Args:
@@ -529,11 +530,11 @@ class CollisionHandler(Protocol):
 class PokerCoordinator(Protocol):
     """Interface for poker game coordination."""
 
-    def find_poker_groups(self) -> list[list[Any]]:
+    def find_poker_groups(self) -> list[list["PokerPlayer"]]:
         """Find groups of entities eligible for poker games."""
         ...
 
-    def play_game(self, players: list[Any]) -> Any | None:
+    def play_game(self, players: list["PokerPlayer"]) -> object | None:
         """
         Play a poker game between the given players.
 
@@ -590,7 +591,7 @@ class Reproducible(Protocol):
         """Check if the entity can currently reproduce."""
         ...
 
-    def try_mate(self, partner: Any) -> bool:
+    def try_mate(self, partner: "Reproducible") -> bool:
         """Attempt to mate with a partner.
 
         Returns:
@@ -628,7 +629,7 @@ class MigrationHandler(Protocol):
 
     def attempt_entity_migration(
         self,
-        entity: Any,
+        entity: object,
         direction: str,
         source_world_id: str,
     ) -> bool:
