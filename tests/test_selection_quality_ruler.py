@@ -347,9 +347,9 @@ def test_metrics_history_sample_has_boot_id() -> None:
     assert sample["boot_id"] == mh.boot_id
 
 
-def test_metrics_history_schema_version_is_3() -> None:
-    """After the Proposal #27 change, SCHEMA_VERSION should be 3."""
+def test_metrics_history_schema_version_is_4() -> None:
+    """After the Proposal #2 change, SCHEMA_VERSION should be 4."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from backend.metrics_history import SCHEMA_VERSION
 
-    assert SCHEMA_VERSION == 3, f"Expected SCHEMA_VERSION=3, got {SCHEMA_VERSION}"
+    assert SCHEMA_VERSION == 4, f"Expected SCHEMA_VERSION=4, got {SCHEMA_VERSION}"

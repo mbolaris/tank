@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 # running UI/API can show directional selection over time, not just churn.
 # Bumped to 3 when boot_id was added to each sample so evolution_report.py can
 # detect code-epoch mixing across server restarts (Proposal #27).
-SCHEMA_VERSION = 3
+# Bumped to 4 when cumulative death_causes were added to track starvation trends (Proposal #2).
+SCHEMA_VERSION = 4
 
 # ---------------------------------------------------------------------------
 # Boot-ID counter
@@ -158,6 +159,7 @@ class MetricsHistory:
                     },
                     "diversity_score": round(get_val(stats, "diversity_score", 0.0), 4),
                     "traits": dict(trait_means) if trait_means else {},
+                    "death_causes": dict(get_val(stats, "death_causes", {}) or {}),
                 }
 
                 self.samples.append(sample)

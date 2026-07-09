@@ -71,6 +71,7 @@ class MetricsSamplePayload:
     # Population mean of tracked heritable traits at this sample (may be empty
     # for pre-trait history or non-fish worlds). See trait_trends.py.
     traits: dict[str, float] = field(default_factory=dict)
+    death_causes: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data = _to_dict(self)
