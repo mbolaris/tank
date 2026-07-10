@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from core.code_pool.genome_code_pool import GenomeCodePool
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
+GENOME_SCHEMA_VERSION = 3  # Bumped from 2: added optional dormant behavior_graph.
 
 
 class GeneticCrossoverMode(Enum):
@@ -100,9 +100,16 @@ class Genome:
 
         This is intended as a stable boundary format for persistence and transfer.
         """
+        has_behavior_graph = bool(
+            self.behavioral.behavior_graph and self.behavioral.behavior_graph.value is not None
+        )
         return genome_to_dict(
             self,
-            schema_version=GENOME_SCHEMA_VERSION,
+            # Preserve the exact v2 payload for the dormant default.  Version
+            # 3 is reserved for genomes that actually carry the new graph.
+            schema_version=(
+                GENOME_SCHEMA_VERSION if has_behavior_graph else GENOME_SCHEMA_VERSION - 1
+            ),
         )
 
     @classmethod
@@ -141,6 +148,18 @@ class Genome:
                 BEHAVIORAL_TRAIT_SPECS, self.behavioral, path="genome.behavioral"
             )
         )
+
+        behavior_graph = self.behavioral.behavior_graph
+        if behavior_graph is not None and behavior_graph.value is not None:
+            from core.behavior.graph import BehaviorGraph
+
+            if not isinstance(behavior_graph.value, BehaviorGraph):
+                issues.append("genome.behavioral.behavior_graph: expected BehaviorGraph")
+            else:
+                issues.extend(
+                    f"genome.behavioral.behavior_graph: {issue}"
+                    for issue in behavior_graph.value.validate()
+                )
 
         # Validate per-kind policy params fields
         for kind, id_attr, params_attr in [
