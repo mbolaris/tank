@@ -2,6 +2,8 @@
  * TypeScript types for simulation data
  */
 
+import type { DeltaStateSnapshot, FullStateSnapshot } from './payload';
+
 export interface FishGenomeData {
     speed: number;
     size: number;
@@ -522,6 +524,7 @@ export interface StatsData {
     fish_health_low: number;       // 15-30% energy
     fish_health_healthy: number;   // 30-80% energy
     fish_health_full: number;      // >80% energy
+    diversity_score: number;
     poker_stats: PokerStatsData;
     total_sexual_births: number;
     total_asexual_births: number;
@@ -543,19 +546,7 @@ export interface SimulationUpdate {
     render_hint?: Record<string, unknown>;
 
     // V1 schema: All data flows through nested snapshot
-    snapshot: {
-        frame: number;
-        elapsed_time: number;
-        entities: EntityData[];
-        stats: StatsData;
-        poker_events: PokerEventData[];
-        soccer_events: SoccerEventData[];
-        soccer_league_live?: SoccerLeagueLiveState | null;
-        poker_leaderboard: PokerLeaderboardEntry[];
-        auto_evaluation?: AutoEvaluateStats;
-        render_hint?: Record<string, unknown>;
-        metrics_history?: MetricsHistory | null;
-    };
+    snapshot: FullStateSnapshot;
 
     // Convenience fields (populated by useWebSocket from snapshot)
     frame?: number;
@@ -580,30 +571,7 @@ export interface DeltaUpdate {
     tank_soccer_enabled?: boolean;  // Whether tank practice soccer (ball/goals) is enabled
 
     // V1 schema: All data flows through nested snapshot
-    snapshot: {
-        frame: number;
-        elapsed_time: number;
-        updates: Pick<
-            EntityData,
-            'id'
-            | 'x'
-            | 'y'
-            | 'vel_x'
-            | 'vel_y'
-            | 'poker_effect_state'
-            | 'birth_effect_timer'
-            | 'death_effect_state'
-            | 'soccer_effect_state'
-        >[];
-        added: EntityData[];
-        removed: number[];
-        poker_events: PokerEventData[];
-        soccer_events?: SoccerEventData[];
-        soccer_league_live?: SoccerLeagueLiveState | null;
-        stats?: StatsData;
-        render_hint?: Record<string, unknown>;
-        new_metrics_sample?: MetricsSample | null;
-    };
+    snapshot: DeltaStateSnapshot;
 }
 
 export interface Command {
