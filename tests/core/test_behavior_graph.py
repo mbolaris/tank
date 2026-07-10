@@ -54,6 +54,20 @@ class _Threshold:
         return Bool(float(inputs["value"]) >= float(self.parameters["minimum"]))
 
 
+@dataclass
+class _InvalidEnergySensor:
+    node_id: str
+    node_type: str
+    category: NodeCategory
+    parameters: Mapping[str, NodeParameter]
+
+    def to_parameters(self) -> Mapping[str, NodeParameter]:
+        return self.parameters
+
+    def sense(self, context: object) -> NodeValue:
+        return Bool(True)
+
+
 def _registry(factory_calls: list[str] | None = None) -> NodeRegistry:
     registry = NodeRegistry()
 
@@ -78,6 +92,18 @@ def _registry(factory_calls: list[str] | None = None) -> NodeRegistry:
             ValueType.BOOL,
             threshold_factory,
         )
+    )
+    return registry
+
+
+def _invalid_output_registry() -> NodeRegistry:
+    registry = NodeRegistry()
+
+    def sensor_factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
+        return _InvalidEnergySensor(node_id, "energy_sensor", NodeCategory.SENSOR, parameters)
+
+    registry.register(
+        NodeDefinition("energy_sensor", NodeCategory.SENSOR, {}, ValueType.SCALAR, sensor_factory)
     )
     return registry
 
@@ -121,6 +147,29 @@ def test_compile_rejects_unknown_node_type_and_mismatched_port_type():
     )
     with pytest.raises(BehaviorGraphError, match="no input port"):
         mismatch.compile(_registry())
+
+
+def test_graph_rejects_missing_required_input_port():
+    graph = BehaviorGraph(
+        (
+            GraphNode("energy", "energy_sensor", {"field": "energy"}),
+            GraphNode("fed", "threshold", {"minimum": 0.5}),
+        ),
+        (),
+        "fed",
+    )
+
+    assert "required input 'fed'.value has no source" in graph.validate(_registry())
+    with pytest.raises(BehaviorGraphError, match=r"required input 'fed'\.value"):
+        graph.compile(_registry())
+
+
+def test_compile_can_validate_runtime_output_contracts():
+    graph = BehaviorGraph((GraphNode("energy", "energy_sensor", {}),), (), "energy")
+    compiled = graph.compile(_invalid_output_registry(), validate_outputs=True)
+
+    with pytest.raises(BehaviorGraphError, match="invalid scalar output"):
+        compiled.evaluate({})
 
 
 def test_graph_rejects_cycles_and_duplicate_input_sources():
