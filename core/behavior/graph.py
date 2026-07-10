@@ -22,11 +22,55 @@ from core.behavior.nodes import (
     NodeRegistry,
     NodeValue,
     Scalar,
+    ValueType,
 )
 
 
 class BehaviorGraphError(ValueError):
     """Raised when graph data cannot be validated or compiled."""
+
+
+def _is_vector(value: object) -> bool:
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and all(type(component) is float and math.isfinite(component) for component in value)
+    )
+
+
+def _matches_value_type(value: object, value_type: ValueType) -> bool:
+    if value_type is ValueType.SCALAR:
+        return type(value) is float and math.isfinite(value)
+    if value_type is ValueType.BOOL:
+        return type(value) is bool
+    if value_type is ValueType.ENTITY_REF:
+        return type(value) is str
+    if value_type is ValueType.VECTOR:
+        return _is_vector(value)
+    if value_type is ValueType.UNIT_VECTOR:
+        if not _is_vector(value):
+            return False
+        vector = cast(tuple[float, float], value)
+        length = math.hypot(vector[0], vector[1])
+        return length == 0.0 or math.isclose(length, 1.0, rel_tol=1e-6, abs_tol=1e-6)
+    return False
+
+
+def _checked_evaluator(
+    evaluator: Callable[[object, Mapping[str, NodeValue]], NodeValue],
+    node_id: str,
+    output_type: ValueType,
+) -> Callable[[object, Mapping[str, NodeValue]], NodeValue]:
+    def evaluate(context: object, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        value = evaluator(context, inputs)
+        if not _matches_value_type(value, output_type):
+            raise BehaviorGraphError(
+                f"Node {node_id!r} returned an invalid {output_type.value} output "
+                f"(got {type(value).__name__})."
+            )
+        return value
+
+    return evaluate
 
 
 def _parameters_from_dict(value: object) -> dict[str, NodeParameter]:
@@ -239,11 +283,26 @@ class BehaviorGraph:
             issues.extend(self._topology_issues(nodes_by_id))
 
         if registry is not None:
+            definitions = {}
             for node in sorted(self.nodes, key=lambda item: item.node_id):
                 try:
-                    registry.get(node.node_type)
+                    definitions[node.node_id] = registry.get(node.node_type)
                 except KeyError:
                     issues.append(f"node {node.node_id!r} uses unknown type {node.node_type!r}")
+
+            for node in sorted(self.nodes, key=lambda item: item.node_id):
+                definition = definitions.get(node.node_id)
+                if definition is None:
+                    continue
+                connected_ports = {
+                    connection.target_port
+                    for connection in self.connections
+                    if connection.target_id == node.node_id
+                }
+                for port_name in sorted(definition.input_ports):
+                    if port_name not in connected_ports:
+                        issues.append(f"required input {node.node_id!r}.{port_name} has no source")
+
             for connection in self.connections:
                 source = nodes_by_id.get(connection.source_id)
                 target = nodes_by_id.get(connection.target_id)
@@ -277,8 +336,17 @@ class BehaviorGraph:
                     ready.sort()
         return [] if visited == len(nodes_by_id) else ["graph contains a cycle"]
 
-    def compile(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
-        """Instantiate and bind an immutable flat execution plan once."""
+    def compile(
+        self,
+        registry: NodeRegistry = NODE_REGISTRY,
+        *,
+        validate_outputs: bool = False,
+    ) -> CompiledBehaviorGraph:
+        """Instantiate and bind an immutable flat execution plan once.
+
+        Set ``validate_outputs`` for debug or benchmark runs that should enforce
+        each node's declared runtime value type.
+        """
         issues = self.validate(registry)
         if issues:
             raise BehaviorGraphError("Cannot compile behavior graph: " + "; ".join(issues))
@@ -293,6 +361,7 @@ class BehaviorGraph:
         steps: list[_CompiledStep] = []
         for node_id in order:
             graph_node = nodes_by_id[node_id]
+            definition = registry.get(graph_node.node_type)
             node = registry.create(graph_node.node_type, graph_node.node_id, graph_node.parameters)
             inputs = tuple(
                 (connection.target_port, indices[connection.source_id])
@@ -300,7 +369,10 @@ class BehaviorGraph:
                     incoming[node_id], key=lambda connection: connection.target_port
                 )
             )
-            steps.append(_CompiledStep(_evaluator_for(node), inputs))
+            evaluator = _evaluator_for(node)
+            if validate_outputs:
+                evaluator = _checked_evaluator(evaluator, node_id, definition.output_type)
+            steps.append(_CompiledStep(evaluator, inputs))
         return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
 
     def _topological_order(self, nodes_by_id: Mapping[str, GraphNode]) -> tuple[str, ...]:
