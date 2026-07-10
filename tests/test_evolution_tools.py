@@ -25,6 +25,33 @@ class TestRunBench(unittest.TestCase):
 
 
 class TestValidateImprovement(unittest.TestCase):
+    def test_invalid_result_cannot_compare_or_update_champion(self):
+        result = {
+            "benchmark_id": "tank/survival_5k",
+            "score": 999.0,
+            "seed": 42,
+            "metadata": {"score_valid": False},
+        }
+
+        self.assertIn("score_valid=false", validate_improvement.result_eligibility_error(result))
+        self.assertFalse(validate_improvement.is_improvement(result, None))
+        with self.assertRaises(ValueError):
+            validate_improvement.update_champion_data(None, result)
+
+    def test_matrix_with_invalid_seed_is_ineligible(self):
+        result = {
+            "score": 100.0,
+            "per_seed": {
+                "42": {"score": 100.0, "metadata": {"score_valid": True}},
+                "7": {"score": 100.0, "metadata": {"score_valid": False}},
+            },
+        }
+
+        self.assertEqual(
+            validate_improvement.result_eligibility_error(result),
+            "result is not eligible for champion use: score_valid=false (seed(s): 7)",
+        )
+
     def test_detect_improvement(self):
         champion = {"champion": {"score": 100.0, "algorithm": "OldAlgo"}}
         result = {"score": 110.0, "metadata": {"algorithm": "NewAlgo"}}

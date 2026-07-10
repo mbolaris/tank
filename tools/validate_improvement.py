@@ -8,7 +8,13 @@ import argparse
 import json
 import sys
 import time
+from pathlib import Path
 from typing import Any
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.champion_eligibility import result_eligibility_error
 
 
 def get_champion_record(champion_data: dict[str, Any]) -> dict[str, Any]:
@@ -62,6 +68,9 @@ def is_improvement(
     max_regression_pct: float = 0.10,
 ) -> bool:
     """Check if new result is strictly better than champion."""
+    if result_eligibility_error(new_result) is not None:
+        return False
+
     if not champion_data:
         # If no champion exists, any valid result is an "improvement" (or rather, the new champion)
         return True
@@ -147,6 +156,10 @@ def update_champion_data(
     retired_reason: str = "Superseded by a higher-scoring champion.",
 ) -> dict[str, Any]:
     """Create updated champion data structure."""
+    eligibility_error = result_eligibility_error(new_result)
+    if eligibility_error:
+        raise ValueError(eligibility_error)
+
     version = 1
     history = []
 
@@ -204,7 +217,7 @@ def main():
         help=(
             "Record this result as the new champion regardless of score, archiving the "
             "old one. Use when the existing champion no longer reproduces (e.g. after a "
-            "determinism fix). Still requires a matching config_hash."
+            "determinism fix). An explicit re-baseline may record a new config_hash."
         ),
     )
     parser.add_argument(
@@ -233,8 +246,29 @@ def main():
                 f"No existing champion found at {args.champion_path}. Treating result as new champion."
             )
 
+        eligibility_error = result_eligibility_error(result)
+        if eligibility_error:
+            print(f"REJECTED: {eligibility_error}")
+            try:
+                from core.research.attempt_ledger import log_attempt
+
+                log_attempt(
+                    benchmark_id=result.get("benchmark_id", "unknown"),
+                    verdict="rejected",
+                    candidate_score=float(result["score"]) if "score" in result else None,
+                    champion_score=(
+                        float(get_champion_record(champion)["score"]) if champion else None
+                    ),
+                    seed=result.get("seed"),
+                    config_hash=result.get("config_hash"),
+                    description=eligibility_error,
+                )
+            except Exception as le:
+                print(f"Warning: Failed to log attempt: {le}")
+            sys.exit(1)
+
         config_error = check_config_compatibility(result, champion)
-        if config_error:
+        if config_error and not args.rebaseline:
             print(config_error)
             try:
                 from core.research.attempt_ledger import log_attempt
@@ -253,12 +287,17 @@ def main():
             except Exception as le:
                 print(f"Warning: Failed to log attempt: {le}")
             sys.exit(1)
+        if config_error and args.rebaseline:
+            print(
+                "Re-baseline requested; accepting the config change and recording "
+                "the new result as the champion."
+            )
 
         new_score = float(result["score"])
 
         # Re-baseline: forcibly record the result as the new champion. Used when
-        # the existing champion no longer reproduces (config_hash still matches,
-        # checked above). Bypasses the strictly-better requirement.
+        # the existing champion no longer reproduces. Bypasses the strictly-better
+        # requirement, but still requires an eligible result.
         if args.rebaseline:
             reason = (
                 "Re-baselined: prior champion no longer reproduced on current "
