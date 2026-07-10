@@ -19,6 +19,11 @@ from core.worlds.interfaces import FAST_STEP_ACTION
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000
 EXPECTED_RUNTIME_SECONDS = 45
+SCORING_VERSION = 2
+# A survival benchmark must measure organisms that can find food, not merely
+# population turnover.  A candidate at or above this mortality share is
+# invalid and cannot become a champion under this ruler.
+MAX_VALID_STARVATION_RATE = 0.95
 
 # World configuration, replicating SimulationConfig.headless_fast() parameters.
 WORLD_CONFIG: dict[str, Any] = {
@@ -40,7 +45,55 @@ WORLD_CONFIG: dict[str, Any] = {
 
 # Effective configuration captured by the champion config hash
 # (core/solutions/config_hash.py). Anything that changes the score belongs here.
-CONFIG: dict[str, Any] = {"frames": FRAMES, "world_config": WORLD_CONFIG}
+CONFIG: dict[str, Any] = {
+    "frames": FRAMES,
+    "scoring_version": SCORING_VERSION,
+    "max_valid_starvation_rate": MAX_VALID_STARVATION_RATE,
+    "world_config": WORLD_CONFIG,
+}
+
+
+def calculate_score(
+    *,
+    avg_fish_energy: float,
+    avg_fish_pop: float,
+    max_generation: int,
+    starvation_rate: float,
+) -> tuple[float, dict[str, float], bool, str | None]:
+    """Calculate the survival score and report benchmark validity.
+
+    The hard starvation gate prevents an ecology whose deaths are primarily
+    starvation from ranking as a survival champion.  Keeping this calculation
+    pure makes the scoring contract cheap to test without running a world.
+    """
+    raw_score = (avg_fish_energy * avg_fish_pop) / 1000.0
+    score_valid = starvation_rate < MAX_VALID_STARVATION_RATE
+    starvation_penalty = 1.0
+    if starvation_rate > MAX_VALID_STARVATION_RATE:
+        starvation_penalty = max(0.1, 1.0 - (starvation_rate - MAX_VALID_STARVATION_RATE) * 10.0)
+
+    generation_multiplier = 1.0 + (max_generation * 0.05)
+    validity_gate = 1.0 if score_valid else 0.0
+    score = raw_score * starvation_penalty * generation_multiplier * validity_gate
+    invalid_reason = (
+        f"starvation_rate {starvation_rate:.4f} >= "
+        f"maximum valid rate {MAX_VALID_STARVATION_RATE:.4f}"
+        if not score_valid
+        else None
+    )
+    return (
+        score,
+        {
+            "avg_energy": avg_fish_energy,
+            "avg_pop": avg_fish_pop,
+            "raw_score": raw_score,
+            "starvation_penalty": starvation_penalty,
+            "generation_multiplier": generation_multiplier,
+            "validity_gate": validity_gate,
+        },
+        score_valid,
+        invalid_reason,
+    )
 
 
 def run(
@@ -117,30 +170,18 @@ def run(
     # (Penalizing early extinction heavily since integrals will be small)
     avg_fish_energy = total_fish_energy_integral / FRAMES
     avg_fish_pop = total_fish_pop_integral / FRAMES
-
-    # Apply starvation penalty when starvation rate exceeds 95%
-    starvation_penalty = 1.0
-    if starvation_rate > 0.95:
-        # Scales down linearly from 1.0 at 0.95 starvation rate to 0.5 at 1.0 starvation rate
-        starvation_penalty = max(0.1, 1.0 - (starvation_rate - 0.95) * 10.0)
-
-    # Add a bonus multiplier for achieving a higher max generation (evolutionary progress)
-    generation_multiplier = 1.0 + (max_generation * 0.05)
-
-    raw_score = (avg_fish_energy * avg_fish_pop) / 1000.0
-    score = raw_score * starvation_penalty * generation_multiplier
+    score, score_breakdown, score_valid, invalid_reason = calculate_score(
+        avg_fish_energy=avg_fish_energy,
+        avg_fish_pop=avg_fish_pop,
+        max_generation=max_generation,
+        starvation_rate=starvation_rate,
+    )
 
     return {
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
-        "score_breakdown": {
-            "avg_energy": avg_fish_energy,
-            "avg_pop": avg_fish_pop,
-            "raw_score": raw_score,
-            "starvation_penalty": starvation_penalty,
-            "generation_multiplier": generation_multiplier,
-        },
+        "score_breakdown": score_breakdown,
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,
@@ -152,6 +193,8 @@ def run(
             "max_generation": max_generation,
             "extinction_frames": extinctions,
             "starvation_rate": round(starvation_rate, 4),
+            "score_valid": score_valid,
+            "score_invalid_reason": invalid_reason,
             "starvation_deaths": starvation_deaths,
             "total_deaths": total_deaths,
             "death_causes": death_causes,
