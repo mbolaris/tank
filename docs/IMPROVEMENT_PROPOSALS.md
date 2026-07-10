@@ -650,9 +650,10 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
   ecology cannot become a champion, plus a bonus multiplier for achieving a
   higher max generation (`1.0 + max_generation * 0.05`). The scoring version is
   included in `CONFIG`, forcing an explicit re-baseline instead of silently
-  comparing old champion scores. The current seed-42 champion is intentionally
-  invalid under this ruler (`starvation_rate=1.0`, score `0.0`); re-baselining
-  remains a maintainer decision after a valid candidate is found.
+  comparing old champion scores. The stale seed-42 champion was retired from
+  the active registry because its reproduced result is intentionally invalid
+  under this ruler (`starvation_rate=1.0`, score `0.0`); a new active champion
+  must come from an eligible result.
 - **1.7 Optimize `survival_5k` runtime & reliability.** Solved the benchmark
   execution performance cliff. Replaced the expensive frame-by-frame
   `world.get_stats()` calculator with direct, cheap list comprehensions over

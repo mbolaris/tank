@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.run_bench import load_benchmark_module, run_benchmark, expected_runtime_seconds
+from tools.champion_eligibility import result_eligibility_error
 from tools.validate_improvement import (
     get_champion_record,
     check_config_compatibility,
@@ -149,6 +150,20 @@ def main():
         with open(args.out, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2)
         print(f"Matrix results written to {args.out}")
+
+    eligibility_error = result_eligibility_error(result)
+    if eligibility_error:
+        print(f"REJECTED: {eligibility_error}")
+        log_attempt(
+            benchmark_id=benchmark_id,
+            verdict="rejected",
+            candidate_score=mean_score,
+            champion_score=None,
+            seed=seeds,
+            config_hash=config_hash,
+            description=eligibility_error,
+        )
+        sys.exit(1)
 
     # If champion comparison is requested
     if args.champion:
