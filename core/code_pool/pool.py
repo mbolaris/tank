@@ -7,6 +7,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from core.behavior.primitives.steering import (
+    flee_components,
+    lead_target,
+    normalize_angle,
+    normalized_components,
+    turn_then_dash,
+)
+
 from .models import CodeComponent, CompilationError, ComponentNotFoundError
 from .sandbox import build_restricted_globals, parse_and_validate
 
@@ -186,10 +194,7 @@ def seek_nearest_food_policy(
         except (TypeError, ValueError):
             dx = 0.0
             dy = 0.0
-        length_sq = dx * dx + dy * dy
-        if length_sq > 0:
-            length = math.sqrt(length_sq)
-            return (dx / length, dy / length)
+        return normalized_components(dx, dy)
     return (0.0, 0.0)
 
 
@@ -214,11 +219,7 @@ def flee_from_threat_policy(
         except (TypeError, ValueError):
             dx = 0.0
             dy = 0.0
-        length_sq = dx * dx + dy * dy
-        if length_sq > 0:
-            length = math.sqrt(length_sq)
-            # Flee in opposite direction
-            return (-dx / length, -dy / length)
+        return flee_components(dx, dy)
     return (0.0, 0.0)
 
 
@@ -251,11 +252,7 @@ _ENGINE_KICKABLE_DIST = 0.98
 
 def _norm_angle(angle: float) -> float:
     """Normalize an angle to [-pi, pi]."""
-    while angle > math.pi:
-        angle -= 2 * math.pi
-    while angle < -math.pi:
-        angle += 2 * math.pi
-    return angle
+    return normalize_angle(angle)
 
 
 def _scaled_param(
@@ -293,29 +290,16 @@ def _steer_action(
     the player aligns before dashing; ``commit_dist`` (``pursuit_commit``) is
     how close to the target it keeps dashing before easing off.
     """
-    dist = math.sqrt(tx * tx + ty * ty)
-    angle_delta = _norm_angle(math.atan2(ty, tx) - facing_angle)
-
-    if abs(angle_delta) >= align_threshold:
-        return {
-            "turn": max(-1.0, min(1.0, (angle_delta * 1.5) / math.pi)),
-            "dash": 0.0,
-            "kick_power": 0.0,
-            "kick_angle": 0.0,
-        }
-
-    # Full power while fresh; taper near the stamina floor so a long chase
-    # doesn't crash through the RCSS effort floor.
-    if dist > commit_dist:
-        dash = (
-            1.0
-            if stamina_ratio > stamina_floor
-            else max(0.3, stamina_ratio / max(stamina_floor, 1e-6))
-        )
-    else:
-        dash = 0.0
-
-    return {"turn": 0.0, "dash": dash, "kick_power": 0.0, "kick_angle": 0.0}
+    turn, dash = turn_then_dash(
+        tx,
+        ty,
+        facing_angle,
+        stamina_ratio,
+        stamina_floor,
+        align_threshold=align_threshold,
+        commit_dist=commit_dist,
+    )
+    return {"turn": turn, "dash": dash, "kick_power": 0.0, "kick_angle": 0.0}
 
 
 def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, float]:
@@ -382,8 +366,7 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, flo
 
     # --- Off the ball: role-specific positioning ---
     # Lead the ball's velocity to intercept where it is going, not where it is.
-    ix = brx + ball_vx * intercept_lead
-    iy = bry + ball_vy * intercept_lead
+    ix, iy = lead_target(brx, bry, ball_vx, ball_vy, intercept_lead)
 
     if role == "striker":
         # Ball in the offensive zone (near opponent goal) or close by: press.
