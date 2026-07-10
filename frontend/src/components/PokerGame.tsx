@@ -11,8 +11,8 @@ import styles from './PokerGame.module.css';
 
 interface PokerGameProps {
     onClose: () => void;
-    onAction: (action: string, amount?: number) => void;
-    onNewRound: () => void;
+    onAction: (action: string, amount?: number) => void | Promise<void>;
+    onNewRound: () => void | Promise<void>;
     onGetAutopilotAction: () => Promise<{ success: boolean; action: string; amount: number }>;
     gameState: PokerGameState | null;
     loading: boolean;
@@ -28,6 +28,12 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
     const isProcessingRef = useRef(false);
     const lastActionTimeRef = useRef(0);
     const { errors, addError, clearError } = useErrorNotification();
+    
+    // Store latest gameState in a ref to avoid stale closure issues during async delays
+    const gameStateRef = useRef(gameState);
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
 
     // Autopilot polling effect
     useEffect(() => {
@@ -37,18 +43,23 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
             // Skip if already processing or loading
             if (isProcessingRef.current || loading) return;
 
+            // Use the latest gameState from the ref
+            const currentGameState = gameStateRef.current;
+            if (!currentGameState) return;
+
             // Skip polling if session is over (waiting for auto-restart)
-            if (gameState.session_over) return;
+            if (currentGameState.session_over) return;
 
             // Skip polling if it's not our turn (AI turns are being processed)
             // This prevents spamming the server with "wait" responses
-            if (!gameState.is_your_turn && !gameState.game_over) return;
+            if (!currentGameState.is_your_turn && !currentGameState.game_over) return;
 
             // Enforce minimum delay between actions
             const now = Date.now();
             if (now - lastActionTimeRef.current < AUTOPILOT_POLL_INTERVAL) return;
 
             isProcessingRef.current = true;
+            let actionSent = false;
 
             try {
                 const result = await onGetAutopilotAction();
@@ -68,23 +79,44 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                 } else if (action === 'new_round') {
                     // Delay before new round for readability
                     await new Promise(resolve => setTimeout(resolve, AUTOPILOT_NEW_ROUND_DELAY));
-                    lastActionTimeRef.current = Date.now();
-                    onNewRound();
+                    
+                    // Verify the game state is still game_over before starting a new round
+                    const freshGameState = gameStateRef.current;
+                    if (freshGameState && freshGameState.game_over && !freshGameState.session_over) {
+                        lastActionTimeRef.current = Date.now();
+                        actionSent = true;
+                        await onNewRound();
+                    }
                 } else if (action === 'wait') {
                     // Not our turn, just wait for next poll
                     // (This shouldn't happen now since we check is_your_turn above)
                 } else {
                     // Execute the action (fold, check, call, raise) with delay
                     await new Promise(resolve => setTimeout(resolve, AUTOPILOT_ACTION_DELAY));
-                    lastActionTimeRef.current = Date.now();
-                    onAction(action, amount);
+                    
+                    // Verify it's still our turn after the delay and before sending the action
+                    const freshGameState = gameStateRef.current;
+                    if (freshGameState && freshGameState.is_your_turn && !freshGameState.game_over && !freshGameState.session_over) {
+                        lastActionTimeRef.current = Date.now();
+                        actionSent = true;
+                        await onAction(action, amount);
+                    } else {
+                        console.log("Autopilot action cancelled: state changed during delay", {
+                            is_your_turn: freshGameState?.is_your_turn,
+                            game_over: freshGameState?.game_over,
+                            session_over: freshGameState?.session_over
+                        });
+                    }
                 }
             } catch (error) {
                 addError(error, 'Autopilot error');
                 setAutopilot(false); // Disable autopilot on error
+                isProcessingRef.current = false;
             }
 
-            isProcessingRef.current = false;
+            if (!actionSent) {
+                isProcessingRef.current = false;
+            }
         };
 
         // Poll immediately and then on interval
@@ -93,6 +125,11 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
 
         return () => clearInterval(intervalId);
     }, [autopilot, gameState, loading, onGetAutopilotAction, onAction, onNewRound, addError]);
+
+    // Reset processing flag when gameState updates (action response received and processed)
+    useEffect(() => {
+        isProcessingRef.current = false;
+    }, [gameState]);
 
     // Reset autopilot to true when a new game session starts
     const lastGameIdRef = useRef<string | null>(null);
@@ -117,23 +154,32 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
     }
 
     const handleFold = () => {
+        if (loading || isProcessingRef.current) return;
         // audioManager.playFold();
         onAction('fold');
     };
 
     const handleCheck = () => {
+        if (loading || isProcessingRef.current) return;
         // audioManager.playCheck();
         onAction('check');
     };
 
     const handleCall = () => {
+        if (loading || isProcessingRef.current) return;
         // audioManager.playCall();
         onAction('call');
     };
 
     const handleRaise = (amount: number) => {
+        if (loading || isProcessingRef.current) return;
         // audioManager.playRaise();
         onAction('raise', amount);
+    };
+
+    const handlePlayAgain = () => {
+        if (loading || isProcessingRef.current) return;
+        onNewRound();
     };
 
     const humanPlayer = gameState.players.find(p => p.is_human);
@@ -243,7 +289,7 @@ export function PokerGame({ onClose, onAction, onNewRound, onGetAutopilotAction,
                         ) : (
                             /* Play Again button - Same position as action buttons */
                             !gameState.session_over && (
-                                <button onClick={onNewRound} className={styles.inlinePlayAgainButton} disabled={loading}>
+                                <button onClick={handlePlayAgain} className={styles.inlinePlayAgainButton} disabled={loading}>
                                     {loading ? 'Dealing...' : 'Play Again'}
                                 </button>
                             )
