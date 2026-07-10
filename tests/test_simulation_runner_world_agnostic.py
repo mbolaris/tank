@@ -125,8 +125,6 @@ class TestNonTankWorldAgnosticism:
         """Non-tank worlds should support universal commands."""
         runner = SimulationRunner(world_type="petri", seed=42)
 
-        runner.start()
-
         # Universal commands should work
         result = runner.handle_command("pause")
         assert result is None
@@ -136,11 +134,11 @@ class TestNonTankWorldAgnosticism:
         assert result is None
         assert runner.world.paused is False
 
-        # Stepping should work without errors
+        # Use the runner's synchronized stepping API. Calling world.step()
+        # directly while a background runner thread is active races the
+        # mutation queue and can leave a removal pending at frame end.
         for _ in range(10):
-            runner.world.step()
-
-        runner.stop()
+            runner.step()
 
     def test_non_tank_rejects_tank_commands(self):
         """Non-tank worlds should reject tank-specific commands gracefully."""
