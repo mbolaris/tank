@@ -1,6 +1,7 @@
 import math
 from typing import TYPE_CHECKING, Any
 
+from core.behavior.primitives.steering import boids_steering, flee_direction, seek_direction
 from core.entities import Crab
 from core.entities import Fish as FishClass
 from core.math_utils import Vector2
@@ -100,7 +101,7 @@ class BehaviorActionsMixin:
         if distance > flee_threshold:
             return 0.0, 0.0, False
 
-        escape_dir = self._safe_normalize(fish.pos - predator.pos)
+        escape_dir = flee_direction(fish.pos, predator.pos)
 
         # Aggression modulates flee speed: low aggression = faster flee,
         # high aggression = slower (more defiant) escape
@@ -169,7 +170,7 @@ class BehaviorActionsMixin:
         target_pos = predict_food_target(fish, nearest_food, distance, prediction_skill)
 
         # Now calculate direction to predicted target position
-        direction = self._safe_normalize(target_pos - fish.pos)
+        direction = seek_direction(fish.pos, target_pos)
         predicted_distance = (target_pos - fish.pos).length()
 
         # hunting_stamina provides sustained speed boost for longer chases
@@ -209,7 +210,7 @@ class BehaviorActionsMixin:
                     math.sin(self._circle_angle) * circle_radius,
                 )
                 circle_target = Vector2(target_pos.x + offset.x, target_pos.y + offset.y)
-                circle_dir = self._safe_normalize(circle_target - fish.pos)
+                circle_dir = seek_direction(fish.pos, circle_target)
                 return circle_dir.x * base_speed * 0.8, circle_dir.y * base_speed * 0.8
             else:
                 # Too far - approach predicted position
@@ -327,7 +328,7 @@ class BehaviorActionsMixin:
                     leader = other
 
             if leader:
-                direction = self._safe_normalize(leader.pos - fish.pos)
+                direction = seek_direction(fish.pos, leader.pos)
                 dist = (leader.pos - fish.pos).length()
                 if dist > follow_dist:
                     return direction.x * 0.6, direction.y * 0.6
@@ -361,7 +362,7 @@ class BehaviorActionsMixin:
             if nearby:
                 # Move away from nearest fish
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(fish.pos - nearest.pos)
+                direction = flee_direction(fish.pos, nearest.pos)
                 return direction.x * 0.5, direction.y * 0.5, True
             return 0.0, 0.0, False
 
@@ -377,7 +378,7 @@ class BehaviorActionsMixin:
             engage_chance = 0.2 + aggression * 0.2
             if nearby and fish.environment.rng.random() < engage_chance:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(nearest.pos - fish.pos)
+                direction = seek_direction(fish.pos, nearest.pos)
                 speed = 0.5 + aggression * 0.2  # 0.5 to 0.7
                 return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
@@ -389,7 +390,7 @@ class BehaviorActionsMixin:
             nearby = self._find_nearby_fish(fish, seek_radius)
             if nearby:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(nearest.pos - fish.pos)
+                direction = seek_direction(fish.pos, nearest.pos)
                 speed = 0.7 + aggression * 0.3  # 0.7 to 1.0
                 return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
@@ -463,37 +464,4 @@ class BehaviorActionsMixin:
         separation: float,
     ) -> tuple[float, float]:
         """Classic boids algorithm for schooling."""
-        if not neighbors:
-            return 0.0, 0.0
-
-        # Cohesion: steer toward center of neighbors
-        center_x = sum(f.pos.x for f in neighbors) / len(neighbors)
-        center_y = sum(f.pos.y for f in neighbors) / len(neighbors)
-        cohesion_dir = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
-
-        # Alignment: match average heading (approximate from positions)
-        # Simplified: move toward where neighbors are heading (their forward direction)
-        align_x, align_y = 0.0, 0.0
-        for neighbor in neighbors:
-            if hasattr(neighbor, "vel"):
-                align_x += neighbor.vel.x
-                align_y += neighbor.vel.y
-        if len(neighbors) > 0:
-            align_x /= len(neighbors)
-            align_y /= len(neighbors)
-        align_dir = self._safe_normalize(Vector2(align_x, align_y))
-
-        # Separation: steer away from very close neighbors
-        sep_x, sep_y = 0.0, 0.0
-        for neighbor in neighbors:
-            dist = (neighbor.pos - fish.pos).length()
-            if dist < separation and dist > 0:
-                away = self._safe_normalize(fish.pos - neighbor.pos)
-                sep_x += away.x / dist
-                sep_y += away.y / dist
-
-        # Combine forces
-        vx = cohesion_dir.x * cohesion + align_dir.x * alignment + sep_x * 0.5
-        vy = cohesion_dir.y * cohesion + align_dir.y * alignment + sep_y * 0.5
-
-        return vx, vy
+        return boids_steering(fish.pos, neighbors, cohesion, alignment, separation)

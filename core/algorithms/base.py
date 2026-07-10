@@ -29,6 +29,7 @@ from core.config.fish import (
 )
 from core.config.food import BASE_FOOD_DETECTION_RANGE, PREDATOR_DEFAULT_FAR_DISTANCE
 from core.entities import Crab, Food
+from core.behavior.primitives.steering import safe_normalize
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
 
@@ -270,10 +271,7 @@ class BehaviorHelpersMixin:
         Returns:
             Normalized vector or Vector2(0, 0) if vector length is zero or near-zero
         """
-        length = vector.length()
-        if length < 1e-6:  # Use small epsilon to handle floating point errors
-            return Vector2(0, 0)
-        return vector.normalize()
+        return safe_normalize(vector)
 
     def _get_predator_threat(
         self, fish: "Fish", max_distance: float = float("inf")
