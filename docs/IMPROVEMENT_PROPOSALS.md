@@ -14,11 +14,8 @@ use and a better example of software design.
 high-impact, low-effort items. When you complete one, move it to the
 "Shipped" section at the bottom with the PR link.
 
-**Best current starter picks:**
+**Best current starter pick:**
 
-- **11.3** — the foraging gym with an oracle ceiling: the first absolute
-  foraging skill measure, self-contained, and the template for Theme 11's
-  remaining rulers.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
 
@@ -559,25 +556,6 @@ output. Acceptance: all four champions reproduce bit-exactly. Highest
 value-per-risk — it makes the "reusable primitive" story real with zero
 behavior change. Keep every new file under the god-class ceiling from the start.
 
-### 12.2 Typed node interfaces + registry — `S` · ★★
-**Layer 2 (no sim change).** Define the shared type vocabulary (`Scalar`,
-`Vector`/`UnitVector` in a normalized frame, `EntityRef`, `Bool`) and the
-`Sensor`/`Selector`/`Steering`/`Memory`/`Arbiter` node Protocols in
-`core/behavior/nodes.py`, plus a registry. Interfaces + unit tests only; no
-genome wiring yet. This is the type discipline that prevents "graph soup": a
-domain pulls in only the node *types* it needs (poker never grows steering;
-soccer never grows a poker branch), and the registry treats every node
-uniformly for serialization/mutation/crossover.
-
-### 12.3 Dormant `behavior_graph` genome field + interpreter — `M` · ★★
-**Layer 1.** Add an optional `behavior_graph` trait to `BehavioralTraits`
-(default `None`) with serialization (bump `GENOME_SCHEMA_VERSION` in
-`genome_codec.py`), validation, and a graph interpreter that **no fish selects
-yet**. Baseline byte-identical (field absent = today's path). Ship a golden
-replay fixture that exercises the interpreter in isolation. The interpreter must
-compile each genome's graph to a flat callable *once* (not per tick) — the move
-loop and `core/spatial/grid.py` are hot paths.
-
 ### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★
 **Layer 1 (the risky step — isolate it).** Build a graph over the 12.1
 primitives that reproduces `ComposableBehavior.execute()` for foraging
@@ -625,6 +603,23 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **12.3 Dormant `behavior_graph` genome field + interpreter.** Added
+  [`core/behavior/graph.py`](../core/behavior/graph.py), an immutable acyclic
+  graph format with typed registry validation and a compiler that binds a flat
+  execution plan once, outside the per-tick path. `BehavioralTraits` now carries
+  an optional graph trait, persisted under schema version 3 only when present
+  and inherited without consuming extra RNG for graph-free genomes. The golden
+  replay fixture ([`scalar_threshold_v1.json`](../tests/fixtures/behavior_graphs/scalar_threshold_v1.json))
+  proves deterministic isolated graph execution. No production fish selects the
+  graph yet; existing `ComposableBehavior` remains the live path.
+- **12.2 Typed node interfaces + registry.** Added
+  [`core/behavior/nodes.py`](../core/behavior/nodes.py), defining the closed
+  `Scalar`/`Vector`/`UnitVector`/`EntityRef`/`Bool` vocabulary; the five
+  readable node-role Protocols; and a deterministic `NodeRegistry`. The
+  registry stores immutable port contracts, validates exact type-compatible
+  connections, and serializes every node through one stable envelope. No
+  production node, genome, or simulation path is wired yet; focused unit tests
+  cover metadata, factory validation, serialization, and connection rejection.
 - **11.3 Foraging gym with an oracle ceiling.** Added
   [`benchmarks/tank/foraging_gym.py`](../benchmarks/tank/foraging_gym.py), a
   deterministic single-fish ruler that runs the production neutral

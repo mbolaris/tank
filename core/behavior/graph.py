@@ -1,0 +1,332 @@
+"""Dormant, typed behavior-graph data and its compiled interpreter.
+
+Graphs are genome data only in this stage: no production fish asks this module
+for a movement decision.  Compiling validates the graph and turns it into a
+flat sequence of callables once, so activating graph-backed behavior later
+does not add graph traversal to the per-frame hot path.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import cast
+
+from core.behavior.nodes import (
+    NODE_REGISTRY,
+    BehaviorNode,
+    Bool,
+    NodeCategory,
+    NodeParameter,
+    NodeRegistry,
+    NodeValue,
+    Scalar,
+)
+
+
+class BehaviorGraphError(ValueError):
+    """Raised when graph data cannot be validated or compiled."""
+
+
+def _parameters_from_dict(value: object) -> dict[str, NodeParameter]:
+    if not isinstance(value, dict):
+        raise BehaviorGraphError("Node parameters must be an object.")
+
+    parameters: dict[str, NodeParameter] = {}
+    for name, parameter in value.items():
+        if not isinstance(name, str) or not name.isidentifier():
+            raise BehaviorGraphError(f"Invalid node parameter name {name!r}.")
+        if isinstance(parameter, (bool, str)):
+            parameters[name] = Bool(parameter) if isinstance(parameter, bool) else parameter
+        elif isinstance(parameter, (int, float)) and math.isfinite(float(parameter)):
+            parameters[name] = Scalar(float(parameter))
+        else:
+            raise BehaviorGraphError(
+                f"Node parameter {name!r} must be a finite scalar, bool, or string."
+            )
+    return parameters
+
+
+@dataclass(frozen=True)
+class GraphNode:
+    """One serializable node instance in a behavior graph."""
+
+    node_id: str
+    node_type: str
+    parameters: Mapping[str, NodeParameter]
+
+    def __post_init__(self) -> None:
+        if not self.node_id or not self.node_id.isidentifier():
+            raise BehaviorGraphError(f"Invalid graph node id {self.node_id!r}.")
+        if not self.node_type or not self.node_type.isidentifier():
+            raise BehaviorGraphError(f"Invalid graph node type {self.node_type!r}.")
+        object.__setattr__(self, "parameters", _parameters_from_dict(dict(self.parameters)))
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.node_id,
+            "type": self.node_type,
+            "parameters": dict(sorted(self.parameters.items())),
+        }
+
+    @classmethod
+    def from_dict(cls, data: object) -> GraphNode:
+        if not isinstance(data, dict):
+            raise BehaviorGraphError("Graph nodes must be objects.")
+        return cls(
+            node_id=data.get("id", ""),
+            node_type=data.get("type", ""),
+            parameters=_parameters_from_dict(data.get("parameters", {})),
+        )
+
+
+@dataclass(frozen=True)
+class GraphConnection:
+    """A typed edge from one node output to a named target input port."""
+
+    source_id: str
+    target_id: str
+    target_port: str
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("source", self.source_id),
+            ("target", self.target_id),
+            ("target port", self.target_port),
+        ):
+            if not value or not value.isidentifier():
+                raise BehaviorGraphError(f"Invalid graph {label} {value!r}.")
+
+    def to_dict(self) -> dict[str, str]:
+        return {"source": self.source_id, "target": self.target_id, "port": self.target_port}
+
+    @classmethod
+    def from_dict(cls, data: object) -> GraphConnection:
+        if not isinstance(data, dict):
+            raise BehaviorGraphError("Graph connections must be objects.")
+        return cls(
+            source_id=data.get("source", ""),
+            target_id=data.get("target", ""),
+            target_port=data.get("port", ""),
+        )
+
+
+@dataclass(frozen=True)
+class _CompiledStep:
+    evaluate: Callable[[object, Mapping[str, NodeValue]], NodeValue]
+    inputs: tuple[tuple[str, int], ...]
+
+    def run(self, context: object, values: list[NodeValue]) -> NodeValue:
+        return self.evaluate(context, {port: values[index] for port, index in self.inputs})
+
+
+@dataclass(frozen=True)
+class CompiledBehaviorGraph:
+    """Flat, prevalidated execution plan for a :class:`BehaviorGraph`."""
+
+    steps: tuple[_CompiledStep, ...]
+    output_index: int
+
+    def evaluate(self, context: object) -> NodeValue:
+        """Run the precompiled plan without parsing or traversing graph topology."""
+        values: list[NodeValue] = []
+        for step in self.steps:
+            values.append(step.run(context, values))
+        return values[self.output_index]
+
+
+def _evaluator_for(node: BehaviorNode) -> Callable[[object, Mapping[str, NodeValue]], NodeValue]:
+    """Bind a node's category-specific method once at compile time."""
+    if node.category is NodeCategory.SENSOR:
+        sense = getattr(node, "sense", None)
+        if not callable(sense):
+            raise BehaviorGraphError(f"Sensor node {node.node_id!r} must provide sense(context).")
+        return lambda context, _inputs: cast(NodeValue, sense(context))
+
+    method_name = {
+        NodeCategory.SELECTOR: "select",
+        NodeCategory.STEERING: "steer",
+        NodeCategory.MEMORY: "update",
+        NodeCategory.ARBITER: "arbitrate",
+    }[node.category]
+    method = getattr(node, method_name, None)
+    if not callable(method):
+        raise BehaviorGraphError(
+            f"{node.category.value.title()} node {node.node_id!r} must provide {method_name}(inputs)."
+        )
+    return lambda _context, inputs: cast(NodeValue, method(inputs))
+
+
+@dataclass(frozen=True)
+class BehaviorGraph:
+    """An immutable, acyclic behavior graph with an explicit output node."""
+
+    nodes: tuple[GraphNode, ...]
+    connections: tuple[GraphConnection, ...]
+    output_node_id: str
+
+    def __post_init__(self) -> None:
+        if not self.nodes:
+            raise BehaviorGraphError("A behavior graph must contain at least one node.")
+        if not self.output_node_id or not self.output_node_id.isidentifier():
+            raise BehaviorGraphError(f"Invalid graph output node {self.output_node_id!r}.")
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a stable JSON-compatible graph representation."""
+        return {
+            "nodes": [node.to_dict() for node in sorted(self.nodes, key=lambda node: node.node_id)],
+            "connections": [
+                connection.to_dict()
+                for connection in sorted(
+                    self.connections,
+                    key=lambda connection: (
+                        connection.target_id,
+                        connection.target_port,
+                        connection.source_id,
+                    ),
+                )
+            ],
+            "output": self.output_node_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: object) -> BehaviorGraph:
+        if not isinstance(data, dict):
+            raise BehaviorGraphError("Behavior graph must be an object.")
+        raw_nodes = data.get("nodes")
+        raw_connections = data.get("connections", [])
+        if not isinstance(raw_nodes, list) or not isinstance(raw_connections, list):
+            raise BehaviorGraphError("Behavior graph nodes and connections must be lists.")
+        graph = cls(
+            nodes=tuple(GraphNode.from_dict(node) for node in raw_nodes),
+            connections=tuple(
+                GraphConnection.from_dict(connection) for connection in raw_connections
+            ),
+            output_node_id=data.get("output", ""),
+        )
+        issues = graph.validate()
+        if issues:
+            raise BehaviorGraphError("Invalid behavior graph: " + "; ".join(issues))
+        return graph
+
+    def validate(self, registry: NodeRegistry | None = None) -> tuple[str, ...]:
+        """Return deterministic structural and optional registry-contract issues."""
+        issues: list[str] = []
+        nodes_by_id: dict[str, GraphNode] = {}
+        for node in self.nodes:
+            if node.node_id in nodes_by_id:
+                issues.append(f"duplicate node id {node.node_id!r}")
+            nodes_by_id[node.node_id] = node
+
+        if self.output_node_id not in nodes_by_id:
+            issues.append(f"output node {self.output_node_id!r} does not exist")
+
+        incoming: set[tuple[str, str]] = set()
+        for connection in self.connections:
+            if connection.source_id not in nodes_by_id:
+                issues.append(f"connection source {connection.source_id!r} does not exist")
+            if connection.target_id not in nodes_by_id:
+                issues.append(f"connection target {connection.target_id!r} does not exist")
+            key = (connection.target_id, connection.target_port)
+            if key in incoming:
+                issues.append(
+                    f"input {connection.target_id!r}.{connection.target_port} has multiple sources"
+                )
+            incoming.add(key)
+
+        if not issues:
+            issues.extend(self._topology_issues(nodes_by_id))
+
+        if registry is not None:
+            for node in sorted(self.nodes, key=lambda item: item.node_id):
+                try:
+                    registry.get(node.node_type)
+                except KeyError:
+                    issues.append(f"node {node.node_id!r} uses unknown type {node.node_type!r}")
+            for connection in self.connections:
+                source = nodes_by_id.get(connection.source_id)
+                target = nodes_by_id.get(connection.target_id)
+                if source is None or target is None:
+                    continue
+                try:
+                    registry.validate_connection(
+                        source.node_type, target.node_type, connection.target_port
+                    )
+                except (KeyError, TypeError) as exc:
+                    issues.append(str(exc))
+
+        return tuple(issues)
+
+    def _topology_issues(self, nodes_by_id: Mapping[str, GraphNode]) -> list[str]:
+        incoming_count = dict.fromkeys(nodes_by_id, 0)
+        outgoing: dict[str, list[str]] = {node_id: [] for node_id in nodes_by_id}
+        for connection in self.connections:
+            incoming_count[connection.target_id] += 1
+            outgoing[connection.source_id].append(connection.target_id)
+
+        ready = sorted(node_id for node_id, count in incoming_count.items() if count == 0)
+        visited = 0
+        while ready:
+            node_id = ready.pop(0)
+            visited += 1
+            for target in sorted(outgoing[node_id]):
+                incoming_count[target] -= 1
+                if incoming_count[target] == 0:
+                    ready.append(target)
+                    ready.sort()
+        return [] if visited == len(nodes_by_id) else ["graph contains a cycle"]
+
+    def compile(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
+        """Instantiate and bind an immutable flat execution plan once."""
+        issues = self.validate(registry)
+        if issues:
+            raise BehaviorGraphError("Cannot compile behavior graph: " + "; ".join(issues))
+
+        nodes_by_id = {node.node_id: node for node in self.nodes}
+        order = self._topological_order(nodes_by_id)
+        indices = {node_id: index for index, node_id in enumerate(order)}
+        incoming: dict[str, list[GraphConnection]] = {node_id: [] for node_id in order}
+        for connection in self.connections:
+            incoming[connection.target_id].append(connection)
+
+        steps: list[_CompiledStep] = []
+        for node_id in order:
+            graph_node = nodes_by_id[node_id]
+            node = registry.create(graph_node.node_type, graph_node.node_id, graph_node.parameters)
+            inputs = tuple(
+                (connection.target_port, indices[connection.source_id])
+                for connection in sorted(
+                    incoming[node_id], key=lambda connection: connection.target_port
+                )
+            )
+            steps.append(_CompiledStep(_evaluator_for(node), inputs))
+        return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
+
+    def _topological_order(self, nodes_by_id: Mapping[str, GraphNode]) -> tuple[str, ...]:
+        incoming_count = dict.fromkeys(nodes_by_id, 0)
+        outgoing: dict[str, list[str]] = {node_id: [] for node_id in nodes_by_id}
+        for connection in self.connections:
+            incoming_count[connection.target_id] += 1
+            outgoing[connection.source_id].append(connection.target_id)
+
+        ready = sorted(node_id for node_id, count in incoming_count.items() if count == 0)
+        order: list[str] = []
+        while ready:
+            node_id = ready.pop(0)
+            order.append(node_id)
+            for target in sorted(outgoing[node_id]):
+                incoming_count[target] -= 1
+                if incoming_count[target] == 0:
+                    ready.append(target)
+                    ready.sort()
+        return tuple(order)
+
+
+__all__ = [
+    "BehaviorGraph",
+    "BehaviorGraphError",
+    "CompiledBehaviorGraph",
+    "GraphConnection",
+    "GraphNode",
+]

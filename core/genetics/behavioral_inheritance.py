@@ -177,6 +177,32 @@ def inherit_poker_strategy(
         return ComposablePokerStrategy.create_random(rng=rng)
 
 
+def inherit_behavior_graph(
+    parent1_trait: GeneticTrait | None,
+    parent2_trait: GeneticTrait | None,
+    *,
+    weight1: float,
+    rng: pyrandom.Random,
+) -> GeneticTrait | None:
+    """Inherit dormant graph data without perturbing graph-free RNG schedules."""
+    graph1 = parent1_trait.value if parent1_trait is not None else None
+    graph2 = parent2_trait.value if parent2_trait is not None else None
+    if graph1 is None and graph2 is None:
+        return None
+
+    if graph1 is None:
+        chosen = graph2
+    elif graph2 is None:
+        chosen = graph1
+    else:
+        chosen = graph1 if rng.random() < weight1 else graph2
+    assert chosen is not None
+    # Graph mutation is deliberately deferred to Theme 12.5.  Cloning avoids
+    # aliasing a mutable trait container across parent and offspring genomes.
+    copied = type(chosen).from_dict(chosen.to_dict())
+    return inherit_trait_meta(parent1_trait, parent2_trait, copied, rng)
+
+
 def inherit_behavioral_traits(
     specs: list[TraitSpec],
     parent1: "BehavioralTraits",
@@ -261,6 +287,10 @@ def inherit_behavioral_traits(
     )
     inherited["mate_preferences"] = inherit_trait_meta(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
+    )
+
+    inherited["behavior_graph"] = inherit_behavior_graph(
+        parent1.behavior_graph, parent2.behavior_graph, weight1=weight1, rng=rng
     )
 
     # Inherit per-kind policy traits (new multi-policy system)
@@ -376,6 +406,16 @@ def recombine_behavioral_traits(
     inherited["mate_preferences"] = inherit_trait_meta(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
+
+    graph1 = parent1.behavior_graph.value if parent1.behavior_graph is not None else None
+    graph2 = parent2.behavior_graph.value if parent2.behavior_graph is not None else None
+    if graph1 is None and graph2 is None:
+        inherited["behavior_graph"] = None
+    else:
+        graph_weight = 1.0 if rng.random() < parent1_probability else 0.0
+        inherited["behavior_graph"] = inherit_behavior_graph(
+            parent1.behavior_graph, parent2.behavior_graph, weight1=graph_weight, rng=rng
+        )
 
     # Inherit per-kind policy traits (new multi-policy system)
     for kind in ("movement_policy", "poker_policy", "soccer_policy"):

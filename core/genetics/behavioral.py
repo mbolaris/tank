@@ -53,6 +53,7 @@ from core.genetics.trait import GeneticTrait, TraitSpec, random_genetic_trait
 
 if TYPE_CHECKING:
     from core.algorithms.composable import ComposableBehavior
+    from core.behavior.graph import BehaviorGraph
     from core.genetics.physical import PhysicalTraits
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -171,6 +172,10 @@ class BehavioralTraits:
     # Soccer policy (soccer training world behavior)
     soccer_policy_id: GeneticTrait[str | None] | None = None
     soccer_policy_params: GeneticTrait[dict[str, float] | None] | None = None
+
+    # Dormant graph substrate.  A missing trait deliberately keeps the current
+    # composable behavior path and consumes no additional RNG during founding.
+    behavior_graph: GeneticTrait["BehaviorGraph | None"] | None = None
 
     @classmethod
     def random(

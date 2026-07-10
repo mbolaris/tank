@@ -41,6 +41,12 @@ def genome_to_dict(
         genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None
     )
     poker_strategy_dict = poker_strategy.to_dict() if poker_strategy is not None else None
+    behavior_graph = genome.behavioral.behavior_graph
+    behavior_graph_dict = (
+        behavior_graph.value.to_dict()
+        if behavior_graph is not None and behavior_graph.value
+        else None
+    )
 
     values: dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
@@ -55,6 +61,7 @@ def genome_to_dict(
         ("behavior", genome.behavioral.behavior),
         ("poker_strategy", genome.behavioral.poker_strategy),
         ("mate_preferences", genome.behavioral.mate_preferences),
+        ("behavior_graph", genome.behavioral.behavior_graph),
     ):
         if trait is not None:
             meta = trait_meta_for_trait(trait)
@@ -96,7 +103,7 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
-    return {
+    result = {
         "schema_version": schema_version,
         **values,
         # Behavior (new system - replaces behavior_algorithm + poker_algorithm)
@@ -117,6 +124,11 @@ def genome_to_dict(
         "soccer_policy_params": soccer_policy_params,
         "trait_meta": trait_meta,
     }
+    # Omit the dormant field when absent so existing genome payloads retain
+    # their shape apart from the explicit schema-version bump.
+    if behavior_graph_dict is not None:
+        result["behavior_graph"] = behavior_graph_dict
+    return result
 
 
 def genome_from_dict(
@@ -207,6 +219,25 @@ def genome_from_dict(
                 genome.behavioral.poker_strategy.value = strat
     except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
+
+    # Dormant behavior graph.  Loading it does not activate it; the movement
+    # path remains the existing composable behavior until a later graph adapter
+    # explicitly opts in.
+    try:
+        from core.behavior.graph import BehaviorGraph
+        from core.genetics.trait import GeneticTrait
+
+        graph_data = data.get("behavior_graph")
+        if isinstance(graph_data, dict):
+            graph = BehaviorGraph.from_dict(graph_data)
+            graph_trait = GeneticTrait(graph)
+            if isinstance(trait_meta, dict):
+                graph_meta = trait_meta.get("behavior_graph")
+                if isinstance(graph_meta, dict):
+                    apply_trait_meta_to_trait(graph_trait, graph_meta)
+            genome.behavioral.behavior_graph = graph_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing behavior_graph; keeping default", exc_info=True)
 
     # New per-kind policy fields
     try:
