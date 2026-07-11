@@ -183,6 +183,16 @@ class TankSnapshotBuilder:
         snapshot.age = fish.age
         snapshot.species = fish.species
 
+        snapshot.taxonomy = {
+            "taxon_id": getattr(fish, "taxon_id", ""),
+            "common_name": getattr(fish, "common_name", ""),
+            "scientific_name": getattr(fish, "scientific_name", ""),
+            "strain_id": getattr(fish, "strain_id", None),
+            "species_confidence": getattr(fish, "species_confidence", ""),
+            "origin_tank_id": getattr(fish, "origin_tank_id", None),
+            "type_specimen_id": getattr(fish, "type_specimen_id", None),
+        }
+
         # Render hints & Genome Data
         if hasattr(fish, "genome"):
             gd = fish.genome.to_dict()

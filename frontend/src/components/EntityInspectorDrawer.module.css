@@ -127,6 +127,20 @@
     color: var(--color-text-dim);
 }
 
+.commonName,
+.scientificName {
+    margin: 0;
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scientificName {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
 .energyBar {
     height: 6px;
     border-radius: var(--radius-full);

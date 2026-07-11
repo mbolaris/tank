@@ -102,6 +102,7 @@ def _fish_details(fish: Any) -> dict[str, Any]:
         "life_stage": life_stage.name.lower() if life_stage is not None else None,
         "generation": int(fish.generation),
         "species": getattr(fish, "species", None),
+        "taxonomy": _taxonomy_details(fish),
         "lineage": {
             "parent_id": parent_id,
             "is_soup_spawn": parent_id is None,
@@ -118,6 +119,20 @@ def _fish_details(fish: Any) -> dict[str, Any]:
             "is_gravid": bool(getattr(fish, "is_gravid", False)),
         }
     return details
+
+
+def _taxonomy_details(fish: Any) -> dict[str, Any] | None:
+    """Return the read-only display taxonomy, if this fish has been classified."""
+    taxon_id = getattr(fish, "taxon_id", "")
+    if not taxon_id:
+        return None
+    return {
+        "taxon_id": taxon_id,
+        "common_name": getattr(fish, "common_name", ""),
+        "scientific_name": getattr(fish, "scientific_name", ""),
+        "status": getattr(fish, "species_confidence", "provisional"),
+        "strain_id": getattr(fish, "strain_id", None),
+    }
 
 
 def _energy_status(energy_ratio: float) -> str:

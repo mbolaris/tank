@@ -401,6 +401,14 @@ def finalize_fish_serialization(fish: Fish, mutable_state: dict[str, Any]) -> Se
         "genome_data": mutable_state["genome_data"],
         "reproduction_cooldown": mutable_state["reproduction_cooldown"],
         "repro_credits": mutable_state["repro_credits"],
+        # Taxonomy fields
+        "taxon_id": fish.taxon_id,
+        "common_name": fish.common_name,
+        "scientific_name": fish.scientific_name,
+        "strain_id": fish.strain_id,
+        "species_confidence": fish.species_confidence,
+        "origin_tank_id": fish.origin_tank_id or mutable_state.get("tank_id"),
+        "type_specimen_id": fish.type_specimen_id,
     }
 
 
@@ -557,6 +565,22 @@ def _deserialize_fish(data: SerializedEntity, target_world: MultiAgentWorldBacke
             fish.tank_id = getattr(target_world.engine.environment, "tank_id", None)
 
         fish.offspring_count = data.get("offspring_count", 0)
+
+        # Restore taxonomy fields
+        if "taxon_id" in data:
+            fish.taxon_id = data["taxon_id"]
+        if "common_name" in data:
+            fish.common_name = data["common_name"]
+        if "scientific_name" in data:
+            fish.scientific_name = data["scientific_name"]
+        if "strain_id" in data:
+            fish.strain_id = data["strain_id"]
+        if "species_confidence" in data:
+            fish.species_confidence = data["species_confidence"]
+        if "origin_tank_id" in data:
+            fish.origin_tank_id = data["origin_tank_id"]
+        if "type_specimen_id" in data:
+            fish.type_specimen_id = data["type_specimen_id"]
 
         return fish
     except Exception as e:

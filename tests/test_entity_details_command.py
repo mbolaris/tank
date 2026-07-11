@@ -45,6 +45,15 @@ def test_fish_details_success(runner: SimulationRunner) -> None:
     assert details["life_stage"] is not None
     assert details["generation"] >= 0
 
+    # Taxonomy is observational metadata: it is present for classified fish
+    # and distinguishes an informal lineage from an established species.
+    taxonomy = details["taxonomy"]
+    assert snapshot.taxonomy is not None
+    assert taxonomy["taxon_id"] == snapshot.taxonomy["taxon_id"]
+    assert taxonomy["common_name"] == snapshot.taxonomy["common_name"]
+    assert taxonomy["scientific_name"] == snapshot.taxonomy["scientific_name"]
+    assert taxonomy["status"] in {"provisional", "established", "extinct"}
+
     # Lineage
     lineage = details["lineage"]
     assert "parent_id" in lineage
