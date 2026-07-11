@@ -6,8 +6,13 @@
 >
 > Visual/design rules live in [UI_SPEC.md](UI_SPEC.md) — everything here must conform
 > to that spec. Smaller engineering items are tracked in
-> [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md); this document is the strategic
-> UI roadmap and cross-references those proposals where they overlap.
+> [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md); this document is the tactical
+> must-implement list and cross-references those proposals where they overlap.
+>
+> For the *strategic* experience vision — replacing click-to-transfer with an entity
+> inspector, Living History event detection, Observe/Design/Lab presentation modes, and
+> ecosystem trust states — see [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md). It folds
+> in and resequences several items below (notably item 4, Entity Inspector).
 
 ---
 
