@@ -86,13 +86,22 @@ def is_path_locked(file_path: str, locked_paths: list[str]) -> bool:
     return False
 
 
+DEFAULT_LOCKED_PATHS = [
+    "benchmarks/heldout",
+    "tools/check_locked_paths.py",
+    "core/poker/strategy/implementations/baseline.py",
+    "core/poker/strategy/implementations/standard.py",
+    "core/poker/strategy/implementations/expert.py",
+    "core/foraging/gym.py",
+]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check for changes to locked paths.")
     parser.add_argument(
         "--locked",
         nargs="+",
-        required=True,
-        help="List of locked paths (directories or files) to protect.",
+        help="List of locked paths (directories or files) to protect. If not specified, uses defaults.",
     )
     parser.add_argument(
         "--base",
@@ -102,11 +111,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    locked_paths = DEFAULT_LOCKED_PATHS
+    if args.locked:
+        locked_paths = list(set(DEFAULT_LOCKED_PATHS + args.locked))
+
     changed_files = get_changed_files(base=args.base)
     violations = []
 
     for filepath in changed_files:
-        if is_path_locked(filepath, args.locked):
+        if is_path_locked(filepath, locked_paths):
             violations.append(filepath)
 
     if violations:

@@ -141,3 +141,80 @@ def boids_steering(
         cohesion_direction.x * cohesion + alignment_direction.x * alignment + separation_x * 0.5,
         cohesion_direction.y * cohesion + alignment_direction.y * alignment + separation_y * 0.5,
     )
+
+
+def wander_step(
+    angle: float, random_val: float, max_change: float = 0.3
+) -> tuple[float, float, float]:
+    """Calculate next wander angle and unit direction components.
+
+    Returns:
+        (dx, dy, new_angle) where (dx, dy) is the unit direction.
+    """
+    new_angle = angle + (random_val - 0.5) * max_change
+    return math.cos(new_angle), math.sin(new_angle), new_angle
+
+
+def erratic_evade(
+    escape_dir: Vector2, speed: float, random_val: float, amplitude: float
+) -> tuple[float, float]:
+    """Calculate erratic escape velocity vector components."""
+    perp = Vector2(-escape_dir.y, escape_dir.x)
+    erratic = (random_val - 0.5) * 2 * amplitude
+    vx = escape_dir.x * speed + perp.x * erratic
+    vy = escape_dir.y * speed + perp.y * erratic
+    return vx, vy
+
+
+def circling_target(center: Vector2, angle: float, radius: float) -> Vector2:
+    """Return a target coordinate on a circle around a center point."""
+    return Vector2(
+        center.x + math.cos(angle) * radius,
+        center.y + math.sin(angle) * radius,
+    )
+
+
+def zigzag_steering(
+    direction: Vector2, speed: float, phase: float, amplitude: float
+) -> tuple[float, float]:
+    """Calculate zigzag search velocity components, capped by speed."""
+    perp = Vector2(-direction.y, direction.x)
+    zigzag = math.sin(phase) * amplitude
+    vx = direction.x * speed + perp.x * zigzag
+    vy = direction.y * speed + perp.y * zigzag
+    magnitude = math.hypot(vx, vy)
+    if magnitude > speed > 0:
+        scale = speed / magnitude
+        vx, vy = vx * scale, vy * scale
+    return vx, vy
+
+
+def blend_patrol_steering(
+    direction: Vector2, patrol_angle: float, food_priority: float, speed: float
+) -> tuple[float, float]:
+    """Blend food direction and patrol circle direction."""
+    patrol_dir = Vector2(math.cos(patrol_angle), math.sin(patrol_angle))
+    blend = min(1.0, food_priority)
+    vx = direction.x * blend + patrol_dir.x * (1 - blend)
+    vy = direction.y * blend + patrol_dir.y * (1 - blend)
+    return vx * speed, vy * speed
+
+
+def predict_linear_intercept(
+    origin: Vector2, speed: float, target_pos: Vector2, target_vel: Vector2, distance: float
+) -> Vector2:
+    """Predict where a constant-velocity target will be when intercepted."""
+    time_to_reach = min(distance / max(speed, 0.1), 60.0)
+    return Vector2(
+        target_pos.x + target_vel.x * time_to_reach,
+        target_pos.y + target_vel.y * time_to_reach,
+    )
+
+
+def blend_prediction(current_pos: Vector2, predicted_pos: Vector2, skill: float) -> Vector2:
+    """Blend current and predicted positions based on skill."""
+    skill_factor = 0.30 + skill * 0.70
+    return Vector2(
+        current_pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
+        current_pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
+    )

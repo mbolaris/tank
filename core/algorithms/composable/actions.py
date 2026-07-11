@@ -1,7 +1,16 @@
-import math
 from typing import TYPE_CHECKING, Any
 
-from core.behavior.primitives.steering import boids_steering, flee_direction, seek_direction
+
+from core.behavior.primitives.steering import (
+    boids_steering,
+    flee_direction,
+    seek_direction,
+    wander_step,
+    erratic_evade,
+    circling_target,
+    zigzag_steering,
+    blend_patrol_steering,
+)
 from core.entities import Crab
 from core.entities import Fish as FishClass
 from core.math_utils import Vector2
@@ -125,12 +134,8 @@ class BehaviorActionsMixin:
         elif self.threat_response == ThreatResponse.ERRATIC_EVADE:
             speed = self.parameters.get("flee_speed", 1.0) * aggression_speed_mod
             amplitude = self.parameters.get("erratic_amplitude", 0.5)
-            # Add random perpendicular component (use environment RNG for determinism)
-            perp = Vector2(-escape_dir.y, escape_dir.x)
             rng = fish.environment.rng
-            erratic = (rng.random() - 0.5) * 2 * amplitude
-            vx = escape_dir.x * speed + perp.x * erratic
-            vy = escape_dir.y * speed + perp.y * erratic
+            vx, vy = erratic_evade(escape_dir, speed, rng.random(), amplitude)
             return vx, vy, True
 
         return 0.0, 0.0, False
@@ -205,12 +210,8 @@ class BehaviorActionsMixin:
             elif predicted_distance < circle_radius * 2:
                 # Circle around predicted food position
                 self._circle_angle += circle_speed
-                offset = Vector2(
-                    math.cos(self._circle_angle) * circle_radius,
-                    math.sin(self._circle_angle) * circle_radius,
-                )
-                circle_target = Vector2(target_pos.x + offset.x, target_pos.y + offset.y)
-                circle_dir = seek_direction(fish.pos, circle_target)
+                target_circle_pos = circling_target(target_pos, self._circle_angle, circle_radius)
+                circle_dir = seek_direction(fish.pos, target_circle_pos)
                 return circle_dir.x * base_speed * 0.8, circle_dir.y * base_speed * 0.8
             else:
                 # Too far - approach predicted position
@@ -238,17 +239,8 @@ class BehaviorActionsMixin:
             amplitude = self.parameters.get("zigzag_amplitude", 0.6)
             frequency = self.parameters.get("zigzag_frequency", 0.05)
             self._zigzag_phase += frequency
-            # Zigzag toward predicted position - stamina helps maintain pattern
             speed = base_speed * stamina_boost
-            perp = Vector2(-direction.y, direction.x)
-            zigzag = math.sin(self._zigzag_phase) * amplitude
-            vx = direction.x * speed + perp.x * zigzag
-            vy = direction.y * speed + perp.y * zigzag
-            magnitude = math.hypot(vx, vy)
-            if magnitude > speed > 0:
-                scale = speed / magnitude
-                vx, vy = vx * scale, vy * scale
-            return vx, vy
+            return zigzag_steering(direction, speed, self._zigzag_phase, amplitude)
 
         elif self.food_approach == FoodApproach.PATROL_ROUTE:
             patrol_radius = self.parameters.get("patrol_radius", 100.0)
@@ -263,12 +255,8 @@ class BehaviorActionsMixin:
             # Otherwise, blend patrol with predicted food direction
             # Increase food_priority weighting so patrol doesn't ignore visible food
             self._patrol_angle += 0.02
-            patrol_dir = Vector2(math.cos(self._patrol_angle), math.sin(self._patrol_angle))
-            blend = min(1.0, food_priority)  # Clamp to avoid > 1.0
-            vx = direction.x * blend + patrol_dir.x * (1 - blend)
-            vy = direction.y * blend + patrol_dir.y * (1 - blend)
             speed = base_speed * 0.8 * stamina_boost
-            return vx * speed, vy * speed
+            return blend_patrol_steering(direction, self._patrol_angle, food_priority, speed)
 
         # Default fallback - apply genomic boosts
         speed = base_speed * stamina_boost
@@ -424,8 +412,7 @@ class BehaviorActionsMixin:
         """
         # Use environment RNG for determinism
         rng = fish.environment.rng
-        # Wider turning angle for more area coverage
-        self._patrol_angle += (rng.random() - 0.5) * 0.3
+        dx, dy, self._patrol_angle = wander_step(self._patrol_angle, rng.random(), max_change=0.3)
 
         # Scale exploration speed by energy urgency
         # Raised thresholds and speeds to help fish find food before starvation.
@@ -438,9 +425,7 @@ class BehaviorActionsMixin:
         else:
             speed = 0.35  # Comfortable: gentle exploration
 
-        vx = math.cos(self._patrol_angle) * speed
-        vy = math.sin(self._patrol_angle) * speed
-        return vx, vy
+        return dx * speed, dy * speed
 
     def _find_nearby_fish(self, fish: "Fish", radius: float) -> list["Fish"]:
         """Find nearby fish within radius."""

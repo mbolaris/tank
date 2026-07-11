@@ -1,6 +1,6 @@
 from unittest import mock
 import pytest
-from tools.check_locked_paths import is_path_locked, get_changed_files, main
+from tools.check_locked_paths import is_path_locked, get_changed_files, main, DEFAULT_LOCKED_PATHS
 
 
 def test_is_path_locked():
@@ -82,3 +82,39 @@ def test_main_fail():
         with pytest.raises(SystemExit) as excinfo:
             main()
         assert excinfo.value.code == 1
+
+
+def test_main_uses_default_locked_paths():
+    with (
+        mock.patch(
+            "tools.check_locked_paths.get_changed_files", return_value=["main.py", "core/engine.py"]
+        ),
+        mock.patch("sys.exit", side_effect=exit_side_effect),
+        mock.patch("sys.argv", ["check_locked_paths.py"]),
+    ):
+        with pytest.raises(SystemExit) as excinfo:
+            main()
+        assert excinfo.value.code == 0
+
+
+def test_main_uses_default_locked_paths_fail():
+    with (
+        mock.patch(
+            "tools.check_locked_paths.get_changed_files",
+            return_value=["main.py", "core/poker/strategy/implementations/baseline.py"],
+        ),
+        mock.patch("sys.exit", side_effect=exit_side_effect),
+        mock.patch("sys.argv", ["check_locked_paths.py"]),
+    ):
+        with pytest.raises(SystemExit) as excinfo:
+            main()
+        assert excinfo.value.code == 1
+
+
+def test_default_locked_paths_contents():
+    assert "benchmarks/heldout" in DEFAULT_LOCKED_PATHS
+    assert "tools/check_locked_paths.py" in DEFAULT_LOCKED_PATHS
+    assert "core/poker/strategy/implementations/baseline.py" in DEFAULT_LOCKED_PATHS
+    assert "core/poker/strategy/implementations/standard.py" in DEFAULT_LOCKED_PATHS
+    assert "core/poker/strategy/implementations/expert.py" in DEFAULT_LOCKED_PATHS
+    assert "core/foraging/gym.py" in DEFAULT_LOCKED_PATHS
