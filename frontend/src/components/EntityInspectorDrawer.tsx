@@ -14,6 +14,8 @@ import {
     STATUS_COPY,
     energyBarColor,
     entityTypeLabel,
+    formatOrigin,
+    formatSpecies,
     formatTraitName,
 } from './entityInspectorFormat';
 import styles from './EntityInspectorDrawer.module.css';
@@ -225,13 +227,11 @@ export function EntityInspectorDrawer({
                         <h3 className={styles.sectionTitle}>Lineage</h3>
                         <StatRow
                             label="Origin"
-                            value={
-                                details.lineage.is_soup_spawn
-                                    ? 'Primordial spawn'
-                                    : `Offspring of fish #${details.lineage.parent_id}`
-                            }
+                            value={formatOrigin(details.lineage.parent_id, details.generation)}
                         />
-                        {details.species && <StatRow label="Species" value={details.species} />}
+                        {details.species && (
+                            <StatRow label="Species" value={formatSpecies(details.species)} />
+                        )}
                     </section>
                 )}
 

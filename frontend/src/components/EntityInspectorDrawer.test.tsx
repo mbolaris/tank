@@ -12,7 +12,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { EntityData } from '../types/simulation';
 import { EntityInspectorDrawer } from './EntityInspectorDrawer';
-import { energyBarColor, entityTypeLabel, formatTraitName } from './entityInspectorFormat';
+import {
+    energyBarColor,
+    entityTypeLabel,
+    formatOrigin,
+    formatSpecies,
+    formatTraitName,
+} from './entityInspectorFormat';
 
 const fishEntity: EntityData = {
     id: 42,
@@ -102,5 +108,18 @@ describe('inspector display helpers', () => {
         expect(energyBarColor(0.1)).toBe('var(--color-danger)');
         expect(energyBarColor(0.45)).toBe('var(--color-warning)');
         expect(energyBarColor(0.9)).toBe('var(--color-success)');
+    });
+
+    it('strips sprite filenames from species values', () => {
+        expect(formatSpecies('school.png')).toBe('school');
+        expect(formatSpecies('schooling')).toBe('schooling');
+    });
+
+    it('only claims primordial origin for generation 0', () => {
+        expect(formatOrigin(12, 5)).toBe('Offspring of fish #12');
+        expect(formatOrigin(null, 0)).toBe('Primordial spawn');
+        // Restored worlds do not persist parent ids: an old generation with no
+        // parent must not be presented as a primordial spawn.
+        expect(formatOrigin(null, 2100)).toBe('Unknown (lineage not recorded)');
     });
 });

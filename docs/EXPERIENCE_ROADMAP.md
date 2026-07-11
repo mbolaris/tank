@@ -108,7 +108,7 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | Order | ID | Deliverable | Status | Depends on |
 |---:|---|---|---|---|
 | 1 | E0 | Remove the inactive `TankTabs` / `TankPlayTab` navigation fork | DONE | — |
-| 2 | E1 | Fish inspector; transfer becomes secondary | NEXT | — |
+| 2 | E1 | Fish inspector; transfer becomes secondary | DONE | — |
 | 3 | E2 | Selection persistence, highlight, and follow camera | QUEUED | E1 |
 | 4 | E3 | Structured story-event schema, store, API, and first three detectors | QUEUED | — |
 | 5 | E4 | Living History feed and event timeline markers | QUEUED | E1, E3 |
