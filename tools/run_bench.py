@@ -94,6 +94,16 @@ def main():
         default=100,
         help="Fingerprint interval in frames (default: 100)",
     )
+    parser.add_argument(
+        "--record-skill",
+        action="store_true",
+        help="Append frozen-ruler skill rows to the longitudinal skill ledger",
+    )
+    parser.add_argument(
+        "--skill-ledger",
+        default="research/skill_history.jsonl",
+        help="Skill ledger path used with --record-skill",
+    )
 
     args = parser.parse_args()
 
@@ -248,6 +258,25 @@ def main():
         result1["config_hash"] = compute_config_hash(
             bench_module.BENCHMARK_ID, args.seed, getattr(bench_module, "CONFIG", None)
         )
+
+        if args.record_skill:
+            from core.research.skill_ledger import append_skill_history
+            from core.skill import SkillLadderSummary
+
+            skill_data = result1.get("metadata", {}).get("skill")
+            if not isinstance(skill_data, dict):
+                raise ValueError(
+                    f"{bench_module.BENCHMARK_ID} did not emit metadata.skill; "
+                    "--record-skill requires a frozen-ruler benchmark"
+                )
+            rows = append_skill_history(
+                SkillLadderSummary.from_dict(skill_data),
+                seeds=[args.seed],
+                config_hash=result1["config_hash"],
+                ledger_path=args.skill_ledger,
+                command=" ".join(sys.argv),
+            )
+            print(f"Skill history appended: {rows} rows to {args.skill_ledger}")
 
         # Output
         if args.out:

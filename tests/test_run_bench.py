@@ -71,6 +71,34 @@ def run(seed, fingerprint_callback=None):
     return bench_path
 
 
+def create_skill_benchmark(tmp_path: Path) -> Path:
+    bench_path = tmp_path / "skill_bench.py"
+    content = """
+BENCHMARK_ID = "tank/foraging_gym"
+CONFIG = {"fixture": True}
+EXPECTED_RUNTIME_SECONDS = 1
+
+def run(seed, fingerprint_callback=None):
+    return {
+        "benchmark_id": BENCHMARK_ID,
+        "seed": seed,
+        "score": 0.5,
+        "runtime_seconds": 0.01,
+        "metadata": {
+            "skill": {
+                "domain": "foraging",
+                "benchmark_id": BENCHMARK_ID,
+                "metric_name": "energy_ratio",
+                "skill_index": 50.0,
+                "rungs": [{"rung": "L0", "rung_id": "random", "metric": 0.1, "beaten": True}],
+            }
+        },
+    }
+"""
+    bench_path.write_text(content, encoding="utf-8")
+    return bench_path
+
+
 class TestRunBench:
     """Tests for tools/run_bench.py"""
 
@@ -163,6 +191,31 @@ class TestRunBench:
             or "Determinism check PASSED" in result.stdout
         )
         assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
+
+    def test_record_skill_appends_history(self, tmp_path):
+        fake_bench = create_skill_benchmark(tmp_path)
+        ledger = tmp_path / "skill_history.jsonl"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH),
+                str(fake_bench),
+                "--seed",
+                "42",
+                "--record-skill",
+                "--skill-ledger",
+                str(ledger),
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert "Skill history appended: 1 rows" in result.stdout
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert rows[0]["benchmark_id"] == "tank/foraging_gym"
+        assert rows[0]["seeds"] == [42]
 
     def test_run_bench_survival_5k_exits_cleanly(self, tmp_path):
         """Verify that tools/run_bench.py exits cleanly with 0 and doesn't hang after running survival_5k using a real world."""

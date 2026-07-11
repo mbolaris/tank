@@ -603,6 +603,27 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **11.5 Longitudinal skill ledger.** Added
+  `core/research/skill_ledger.py` and `tools/run_bench.py --record-skill`.
+  Frozen-ruler benchmarks now emit append-only per-rung rows containing the
+  commit, config hash, seed set, metric, and normalized skill index.
+- **11.6 Static skill report.** Added `tools/skill_report.py`, which renders
+  the current skill index, first-to-latest change, config transitions, and
+  latest rung standings as text, JSON, or dependency-free HTML.
+- **11.7 Frozen-ruler CI protection.** The poker ladder and foraging gym are
+  now included in the CI locked-path invocation; nightly benchmark CI records
+  both histories and uploads the ledger plus HTML report as an artifact.
+- **4.5 Headless debug-frame/entity tracing.** Added opt-in
+  `main.py --debug-frame N` and `--debug-entity ID` tracing. The observable
+  path records energy deltas, lifecycle mutations, current-frame events, and
+  matching entity snapshots as a versioned JSON document, while ordinary
+  headless runs retain the cheap update path.
+- **10.5 Non-AI baseline search control arm.** Added
+  `tools/non_ai_baseline.py`, which evaluates deterministic parameter mutation
+  proposals across a seed matrix using the normal benchmark contract, applies
+  mean-plus-majority-of-seeds acceptance, and logs baseline/candidate attempts
+  as `non-ai-random-search` without editing source or ruler files.
+
 - **1.4 Multi-seed AI-agent validation.** The code-evolution agent now runs a
   fresh baseline and candidate validation on at least three unique deterministic
   seeds, reports per-seed results plus mean and standard deviation, requires a
