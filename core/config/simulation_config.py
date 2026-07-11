@@ -198,6 +198,9 @@ class TankConfig:
     """
 
     brain_mode: str = "builtin"  # "builtin" | "external"
+    # Experimental fixed-topology behavior graph controller.  Disabled by
+    # default so existing replays retain their exact RNG schedule.
+    graph_behavior_enabled: bool = False
 
 
 @dataclass
@@ -350,6 +353,9 @@ class SimulationConfig:
         for flat_key, attr in server_map.items():
             if flat_key in config_dict:
                 setattr(cfg.server, attr, config_dict[flat_key])
+
+        if "graph_behavior_enabled" in config_dict:
+            cfg.tank.graph_behavior_enabled = bool(config_dict["graph_behavior_enabled"])
 
         # Soccer evaluator
         soccer_map = {

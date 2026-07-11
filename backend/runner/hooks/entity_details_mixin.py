@@ -170,11 +170,66 @@ def _behavior_details(fish: Any) -> dict[str, Any]:
                 k: round(v, 4) if isinstance(v, float) else v for k, v in raw_params.items()
             }
 
-    return {
+    details = {
         "algorithm": algorithm_name,
         "behavior_id": str(behavior_id) if behavior_id else None,
         "parameters": parameters,
     }
+    graph_trait = getattr(fish.genome.behavioral, "behavior_graph", None)
+    graph = graph_trait.value if graph_trait is not None else None
+    if graph is not None:
+        details["lens"] = _graph_behavior_lens(fish, graph)
+    return details
+
+
+def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
+    """Explain one selected fish's current graph decision without retaining traces."""
+    from core.behavior.tank_adapter import build_tank_behavior_observation
+
+    observation = build_tank_behavior_observation(fish)
+    output, trace = graph.compile_cached().evaluate_with_trace(observation.values)
+    outputs = {node_id: _display_node_value(value) for node_id, value in trace}
+    threat = observation.values["threat_away_vector"]
+    has_target = bool(observation.values["has_target"])
+    cohesion = observation.values["cohesion_vector"]
+    if _nonzero_vector(threat):
+        intent = "Fleeing threat"
+    elif has_target:
+        intent = "Chasing food"
+    elif _nonzero_vector(cohesion):
+        intent = "Following the group"
+    else:
+        intent = "Searching"
+    blend_node = next((node for node in graph.nodes if node.node_id == "blend"), None)
+    blend_params = dict(getattr(blend_node, "parameters", {}))
+    return {
+        "intent": intent,
+        "target": observation.target_label,
+        "inputs": {name: _display_node_value(value) for name, value in observation.values.items()},
+        "outputs": outputs,
+        "output": _display_node_value(output),
+        "contributions": {
+            "threat_response": 1.0 if _nonzero_vector(threat) else 0.0,
+            "food_pursuit": float(blend_params.get("first_weight", 1.0)) if has_target else 0.0,
+            "school_cohesion": (
+                float(blend_params.get("second_weight", 0.2)) if _nonzero_vector(cohesion) else 0.0
+            ),
+        },
+        "fingerprint": graph.fingerprint(),
+        "graph": graph.to_dict(),
+    }
+
+
+def _display_node_value(value: Any) -> Any:
+    if isinstance(value, tuple):
+        return [round(float(component), 3) for component in value]
+    if isinstance(value, float):
+        return round(value, 3)
+    return value
+
+
+def _nonzero_vector(value: Any) -> bool:
+    return isinstance(value, tuple) and len(value) == 2 and (value[0] != 0.0 or value[1] != 0.0)
 
 
 def _trait_details(fish: Any) -> dict[str, float]:

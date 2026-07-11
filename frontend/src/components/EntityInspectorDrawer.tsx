@@ -219,6 +219,39 @@ export function EntityInspectorDrawer({
                 {details?.behavior && (
                     <section className={styles.section} aria-label="Behavior">
                         <h3 className={styles.sectionTitle}>Behavior</h3>
+                        {details.behavior.lens && (
+                            <div className={styles.behaviorLens} aria-label="Current decision">
+                                <p className={styles.intent}>{details.behavior.lens.intent}</p>
+                                <StatRow
+                                    label="Target"
+                                    value={details.behavior.lens.target ?? 'No current target'}
+                                />
+                                <StatRow
+                                    label="Output"
+                                    value={formatVector(details.behavior.lens.output)}
+                                />
+                                {Object.entries(details.behavior.lens.contributions)
+                                    .filter(([, weight]) => weight > 0)
+                                    .map(([module, weight]) => (
+                                        <StatRow
+                                            key={module}
+                                            label={formatTraitName(module)}
+                                            value={`${Math.round(weight * 100)}% contribution`}
+                                        />
+                                    ))}
+                                <details className={styles.graphDetails}>
+                                    <summary>Behavior graph</summary>
+                                    <p className={styles.graphFingerprint}>
+                                        Graph {details.behavior.lens.fingerprint}
+                                    </p>
+                                    <ul>
+                                        {details.behavior.lens.graph.nodes.map((node) => (
+                                            <li key={node.id}>{`${node.id}: ${node.type}`}</li>
+                                        ))}
+                                    </ul>
+                                </details>
+                            </div>
+                        )}
                         {details.behavior.algorithm && (
                             <StatRow label="Algorithm" value={details.behavior.algorithm} />
                         )}
@@ -322,4 +355,11 @@ export function EntityInspectorDrawer({
             )}
         </div>
     );
+}
+
+function formatVector(value: unknown): string {
+    if (Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === 'number')) {
+        return `${value[0].toFixed(2)}, ${value[1].toFixed(2)}`;
+    }
+    return String(value ?? '—');
 }

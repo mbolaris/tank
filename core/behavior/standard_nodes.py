@@ -15,6 +15,7 @@ from core.behavior.nodes import (
     NodeCategory,
     NodeDefinition,
     NodeParameter,
+    NodeParameterSpec,
     NodeRegistry,
     NodeValue,
     Scalar,
@@ -110,6 +111,37 @@ class _NormalizeVectorSteering:
 
 
 @dataclass
+class _InvertVectorSteering:
+    node_id: str
+    node_type: str
+    category: NodeCategory
+    parameters: Mapping[str, NodeParameter]
+
+    def to_parameters(self) -> Mapping[str, NodeParameter]:
+        return self.parameters
+
+    def steer(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        x, y = _vector_components(inputs, "vector", self.node_type)
+        return Scalar(-x), Scalar(-y)
+
+
+@dataclass
+class _ScaleVectorSteering:
+    node_id: str
+    node_type: str
+    category: NodeCategory
+    parameters: Mapping[str, NodeParameter]
+
+    def to_parameters(self) -> Mapping[str, NodeParameter]:
+        return self.parameters
+
+    def steer(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        x, y = _vector_components(inputs, "vector", self.node_type)
+        scale = _parameter_float(self.parameters, "scale", 1.0)
+        return Scalar(x * scale), Scalar(y * scale)
+
+
+@dataclass
 class _WeightedVectorSteering:
     node_id: str
     node_type: str
@@ -132,6 +164,27 @@ class _WeightedVectorSteering:
 
 
 @dataclass
+class _WeightedVectorBlend:
+    node_id: str
+    node_type: str
+    category: NodeCategory
+    parameters: Mapping[str, NodeParameter]
+
+    def to_parameters(self) -> Mapping[str, NodeParameter]:
+        return self.parameters
+
+    def steer(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        first_x, first_y = _vector_components(inputs, "first", self.node_type)
+        second_x, second_y = _vector_components(inputs, "second", self.node_type)
+        first_weight = _parameter_float(self.parameters, "first_weight", 1.0)
+        second_weight = _parameter_float(self.parameters, "second_weight", 1.0)
+        return (
+            Scalar(first_x * first_weight + second_x * second_weight),
+            Scalar(first_y * first_weight + second_y * second_weight),
+        )
+
+
+@dataclass
 class _ThresholdVectorSelector:
     node_id: str
     node_type: str
@@ -151,6 +204,23 @@ class _ThresholdVectorSelector:
             else "when_false"
         )
         return _vector_value(inputs, selected_port, self.node_type)
+
+
+@dataclass
+class _PriorityVectorSelector:
+    node_id: str
+    node_type: str
+    category: NodeCategory
+    parameters: Mapping[str, NodeParameter]
+
+    def to_parameters(self) -> Mapping[str, NodeParameter]:
+        return self.parameters
+
+    def select(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        primary = _vector_value(inputs, "primary", self.node_type)
+        if primary != (0.0, 0.0):
+            return primary
+        return _vector_value(inputs, "fallback", self.node_type)
 
 
 def _context_value(
@@ -229,10 +299,39 @@ def _normalize_vector_factory(
     )
 
 
+def _invert_vector_factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
+    return _InvertVectorSteering(
+        node_id,
+        "invert_vector",
+        NodeCategory.STEERING,
+        MappingProxyType(dict(parameters)),
+    )
+
+
+def _scale_vector_factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
+    return _ScaleVectorSteering(
+        node_id,
+        "scale_vector",
+        NodeCategory.STEERING,
+        MappingProxyType(dict(parameters)),
+    )
+
+
 def _weighted_vector_factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
     return _WeightedVectorSteering(
         node_id,
         "weighted_vector",
+        NodeCategory.STEERING,
+        MappingProxyType(dict(parameters)),
+    )
+
+
+def _weighted_vector_blend_factory(
+    node_id: str, parameters: Mapping[str, NodeParameter]
+) -> BehaviorNode:
+    return _WeightedVectorBlend(
+        node_id,
+        "weighted_vector_blend",
         NodeCategory.STEERING,
         MappingProxyType(dict(parameters)),
     )
@@ -244,6 +343,15 @@ def _threshold_vector_factory(
     return _ThresholdVectorSelector(
         node_id,
         "threshold_vector_selector",
+        NodeCategory.SELECTOR,
+        MappingProxyType(dict(parameters)),
+    )
+
+
+def _priority_vector_factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
+    return _PriorityVectorSelector(
+        node_id,
+        "priority_vector_selector",
         NodeCategory.SELECTOR,
         MappingProxyType(dict(parameters)),
     )
@@ -285,11 +393,41 @@ def register_standard_nodes(registry: NodeRegistry = NODE_REGISTRY) -> None:
             _normalize_vector_factory,
         ),
         NodeDefinition(
+            "invert_vector",
+            NodeCategory.STEERING,
+            {"vector": ValueType.VECTOR},
+            ValueType.VECTOR,
+            _invert_vector_factory,
+        ),
+        NodeDefinition(
+            "scale_vector",
+            NodeCategory.STEERING,
+            {"vector": ValueType.VECTOR},
+            ValueType.VECTOR,
+            _scale_vector_factory,
+            {"scale": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0))},
+        ),
+        NodeDefinition(
             "weighted_vector",
             NodeCategory.STEERING,
             {"first": ValueType.VECTOR, "second": ValueType.VECTOR},
             ValueType.UNIT_VECTOR,
             _weighted_vector_factory,
+            {
+                "first_weight": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0)),
+                "second_weight": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0)),
+            },
+        ),
+        NodeDefinition(
+            "weighted_vector_blend",
+            NodeCategory.STEERING,
+            {"first": ValueType.VECTOR, "second": ValueType.VECTOR},
+            ValueType.VECTOR,
+            _weighted_vector_blend_factory,
+            {
+                "first_weight": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0)),
+                "second_weight": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0)),
+            },
         ),
         NodeDefinition(
             "threshold_vector_selector",
@@ -301,6 +439,14 @@ def register_standard_nodes(registry: NodeRegistry = NODE_REGISTRY) -> None:
             },
             ValueType.VECTOR,
             _threshold_vector_factory,
+            {"threshold": NodeParameterSpec(Scalar(0.5), Scalar(0.0), Scalar(1.0))},
+        ),
+        NodeDefinition(
+            "priority_vector_selector",
+            NodeCategory.SELECTOR,
+            {"primary": ValueType.VECTOR, "fallback": ValueType.VECTOR},
+            ValueType.VECTOR,
+            _priority_vector_factory,
         ),
     )
     for definition in definitions:

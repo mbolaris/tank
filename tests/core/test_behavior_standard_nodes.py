@@ -18,14 +18,19 @@ def test_standard_nodes_register_once_and_have_typed_contracts() -> None:
         "context_bool_sensor",
         "context_scalar_sensor",
         "context_vector_sensor",
+        "invert_vector",
         "normalize_vector",
+        "priority_vector_selector",
+        "scale_vector",
         "threshold_vector_selector",
         "weighted_vector",
+        "weighted_vector_blend",
     ]
     assert registry.get("normalize_vector").input_ports["vector"].value == "vector"
     assert registry.get("normalize_vector").output_type.value == "unit_vector"
     assert registry.get("weighted_vector").input_ports["first"].value == "vector"
     assert registry.get("threshold_vector_selector").output_type.value == "vector"
+    assert registry.get("scale_vector").parameter_specs["scale"].maximum == 3.0
 
 
 def test_standard_graph_replays_context_vector_into_normalized_steering() -> None:

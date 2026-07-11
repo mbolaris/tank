@@ -32,6 +32,7 @@ __all__ = [
     "PolicyOverrideConsideration",
     "BallPursuitConsideration",
     "CodePolicyConsideration",
+    "GraphBehaviorConsideration",
     "ComposableBehaviorConsideration",
     "MovementArbiter",
     "default_considerations",
@@ -101,6 +102,15 @@ class ComposableBehaviorConsideration:
         return strategy._get_composable_velocity(fish)
 
 
+class GraphBehaviorConsideration:
+    """Experimental fixed-topology graph controller for graph-carrying fish."""
+
+    name = "behavior_graph"
+
+    def desired_velocity(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
+        return strategy._get_graph_velocity(fish)
+
+
 class MovementArbiter:
     """Selects a desired velocity from an ordered list of considerations."""
 
@@ -148,6 +158,7 @@ def default_considerations() -> list[MovementConsideration]:
     """
     return [
         PolicyOverrideConsideration(),
+        GraphBehaviorConsideration(),
         BallPursuitConsideration(),
         CodePolicyConsideration(),
         ComposableBehaviorConsideration(),
