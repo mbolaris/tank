@@ -181,6 +181,19 @@ def test_pre_pr_gate_reports_collection_and_module_diagnostics():
     assert "def collect_only_counts(" in gate_common_source
 
 
+def test_pre_pr_gate_accepts_documented_serial_mode_flag():
+    source = (ROOT / "tools" / "pre_pr_gate.py").read_text(encoding="utf-8")
+
+    assert '"--no-xdist"' in source
+
+
+def test_smoke_gate_reports_a_reproducible_dev_install_command():
+    source = (ROOT / "tools" / "smoke_gate.py").read_text(encoding="utf-8")
+
+    assert "missing_dev_tools" in source
+    assert 'pip install -e "{REPO_ROOT}[dev]"' in source
+
+
 def test_agent_gate_composes_smoke_gate_and_uses_curated_tests():
     source = (ROOT / "tools" / "agent_gate.py").read_text(encoding="utf-8")
 

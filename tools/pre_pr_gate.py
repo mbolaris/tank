@@ -65,6 +65,11 @@ def _parse_args() -> argparse.Namespace:
         help="run shards in parallel using pytest-xdist (runs serially by default).",
     )
     parser.add_argument(
+        "--no-xdist",
+        action="store_true",
+        help="explicitly request serial shard execution (the default).",
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=_DEFAULT_SHARD_TIMEOUT,
@@ -139,7 +144,11 @@ def main() -> None:
             print(f"{name}: {len(shards[name])} test files")
         raise SystemExit(0)
 
-    no_xdist = not args.xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
+    no_xdist = (
+        args.no_xdist
+        or not args.xdist
+        or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
+    )
     selected = [args.shard] if args.shard else shard_names()
     effective_timeout: float | None = args.timeout if args.timeout > 0 else None
 

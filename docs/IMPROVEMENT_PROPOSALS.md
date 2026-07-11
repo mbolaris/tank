@@ -603,6 +603,24 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **1.4 Multi-seed AI-agent validation.** The code-evolution agent now runs a
+  fresh baseline and candidate validation on at least three unique deterministic
+  seeds, reports per-seed results plus mean and standard deviation, requires a
+  majority of seeds to pass, and records the complete seed list in the attempt
+  ledger. The seed matrix is configurable through `--validation-seeds`.
+- **7.2 Sparse websocket deltas and wire telemetry.** Delta frames now emit
+  only entities whose delta-visible fields changed; newly added entities are
+  sent once through their full payload. `StatePublisher.delta_metrics()` and
+  debug logging expose total/changed/added/removed entity counts and serialized
+  bytes, making the bandwidth win measurable without changing the wire schema.
+- **1.6 Smoke-gate dependency diagnostics.** A clean checkout now reports the
+  missing development modules and the exact `pip install -e ".[dev]"` command
+  needed to make the health check runnable.
+- **5.3 Generated benchmark catalog.** Benchmark IDs, module paths, and runtime
+  budgets are now extracted from live benchmark modules into
+  `docs/BENCHMARK_CATALOG.md`; docs tests fail when the generated catalog is
+  stale, and public onboarding points to the generated source of truth.
+
 - **12.3 Dormant `behavior_graph` genome field + interpreter.** Added
   [`core/behavior/graph.py`](../core/behavior/graph.py), an immutable acyclic
   graph format with typed registry validation and a compiler that binds a flat

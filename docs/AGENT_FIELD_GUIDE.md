@@ -369,17 +369,11 @@ saves you a wasted PR.
 
 ## 8. The live benchmarks you can use right now
 
-Only these exist today. Use them; do not reference benchmarks that aren't here
-(planned ones live in [ROADMAP.md](ROADMAP.md)).
-
-| Benchmark | Runtime budget | What it measures |
-|-----------|----------------|------------------|
-| `benchmarks/tank/survival_5k.py` | ~45s | Ecosystem stability over 5k frames (fish energy × fish population) |
-| `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Longer-horizon ecosystem health over 10k frames |
-| `benchmarks/tank/selection_response_10k.py` | ~90s | Frozen directional-selection response assay |
-| `benchmarks/tank/foraging_gym.py` | ~2s | Isolated foraging skill against random and oracle frozen rulers |
-| `benchmarks/soccer/training_3k.py` | ~5s | Soccer-mode agent training, short |
-| `benchmarks/soccer/training_5k.py` | ~5s | Soccer-mode agent training, longer |
+The authoritative live list, runtime budgets, module paths, and descriptions are
+generated in [BENCHMARK_CATALOG.md](BENCHMARK_CATALOG.md). Use only entries in
+that catalog; planned rulers live in [ROADMAP.md](ROADMAP.md). The catalog is
+regenerated from benchmark module metadata and checked for freshness by the
+docs tests.
 
 `tools/run_bench.py` also prints the actual runtime against these budgets. Most
 benchmarks have a matching champion under `champions/tank/` or
