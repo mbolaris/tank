@@ -144,6 +144,7 @@ class EntitySnapshot:
     can_hunt: bool | None = None
     # Rendering metadata hints
     render_hint: dict[str, Any] | None = None
+    taxonomy: dict[str, Any] | None = None
 
     def to_full_dict(self) -> dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -218,6 +219,9 @@ class EntitySnapshot:
             data["render_hint"] = self.render_hint
         if self.soccer_effect_state is not None:
             data["soccer_effect_state"] = self.soccer_effect_state
+
+        if self.taxonomy is not None:
+            data.update(self.taxonomy)
 
         return data
 

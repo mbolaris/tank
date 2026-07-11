@@ -120,6 +120,14 @@ class EcosystemManager:
         if event_bus is not None:
             self._subscribe_to_events(event_bus)
 
+        self.environment: Any | None = None
+        from core.taxonomy.system import TaxonomySystem
+
+        # Taxonomy is observational state owned by this ecosystem.  Loading a
+        # process-wide file here would leak classifications between worlds and
+        # make a seeded run depend on stale local files.
+        self.taxonomy = TaxonomySystem()
+
     def _subscribe_to_events(self, event_bus: "EventBus") -> None:
         """Subscribe handlers to domain events on the EventBus."""
         self.telemetry.subscribe(event_bus)
@@ -279,6 +287,9 @@ class EcosystemManager:
         # Check for population extinction
         self.population.check_for_extinction(frame)
 
+        # Update taxonomy system
+        self.taxonomy.update(self.environment, frame)
+
     def generate_new_fish_id(self) -> int:
         """Generate a new unique fish ID."""
         return self.population.generate_new_fish_id()
@@ -383,6 +394,7 @@ class EcosystemManager:
             evolution_analytics=self.evolution_analytics,
             record_energy_burn=self.record_energy_burn,
         )
+        self.taxonomy.record_death(fish_id)
 
     def update_population_stats(self, fish_list: list["Fish"]) -> None:
         """Update population statistics from current fish list."""

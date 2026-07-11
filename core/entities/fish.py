@@ -148,6 +148,15 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
 
         self.generation: int = generation
         self.species: str = species
+        # Taxonomy fields (observational only)
+        self.taxon_id: str = ""
+        self.common_name: str = ""
+        self.scientific_name: str = ""
+        self.strain_id: str | None = None
+        self.species_confidence: str = ""
+        self.origin_tank_id: str | None = None
+        self.type_specimen_id: int | None = None
+
         self.team: str | None = team  # Team affiliation ('A' or 'B' for soccer mode)
         self.tank_name: str | None = getattr(environment, "tank_name", None)
         self.tank_id: str | None = getattr(environment, "tank_id", None)
@@ -458,6 +467,12 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         """
         if self.ecosystem is None:
             return
+
+        try:
+            self.ecosystem.taxonomy.register_birth(self)
+        except AttributeError:
+            # Lightweight test ecosystems predate observational taxonomy.
+            pass
 
         # Get behavior ID from behavior for tracking
         algorithm_id = None

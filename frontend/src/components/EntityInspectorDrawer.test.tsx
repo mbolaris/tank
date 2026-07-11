@@ -31,6 +31,10 @@ const fishEntity: EntityData = {
     max_energy: 100,
     age: 1234,
     generation: 7,
+    taxon_id: 'prov_42',
+    common_name: 'Azure Schooling Sailfin',
+    scientific_name: 'Synpinna gregaria',
+    species_confidence: 'provisional',
 };
 
 const noop = () => undefined;
@@ -63,6 +67,9 @@ describe('EntityInspectorDrawer', () => {
         expect(html).toContain('55 / 100');
         expect(html).toContain('role="meter"');
         expect(html).toContain('aria-label="Close inspector"');
+        expect(html).toContain('Azure Schooling Sailfin');
+        expect(html).toContain('Synpinna gregaria');
+        expect(html).toContain('Taxonomy');
     });
 
     it('offers transfer as an explicit secondary action for fish', () => {

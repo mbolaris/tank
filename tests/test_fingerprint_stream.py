@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from core.replay.fingerprint_stream import FingerprintStreamRecorder, compare_fingerprint_streams
+from core.replay.fingerprint import fingerprint_snapshot
 from tools.run_bench import second_fingerprint_path
 
 
@@ -68,6 +69,26 @@ def test_compare_reports_exact_jitter_before_rounded_divergence(tmp_path):
 
 def test_second_fingerprint_path_preserves_jsonl_suffix():
     assert Path(second_fingerprint_path("results/run.jsonl")) == Path("results/run.run2.jsonl")
+
+
+def test_taxonomy_presentation_metadata_does_not_change_a_replay_fingerprint():
+    baseline = {"frame": 1, "entities": [{"id": 7, "type": "fish", "x": 3.0}]}
+    taxonomy_enriched = {
+        "frame": 1,
+        "entities": [
+            {
+                "id": 7,
+                "type": "fish",
+                "x": 3.0,
+                "taxon_id": "taxon_7",
+                "common_name": "Azure Sailfin",
+                "scientific_name": "Synpinna caeruleus",
+                "species_confidence": "established",
+            }
+        ],
+    }
+
+    assert fingerprint_snapshot(baseline) == fingerprint_snapshot(taxonomy_enriched)
 
 
 def test_compare_rejects_streams_without_checkpoints(tmp_path):

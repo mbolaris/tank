@@ -116,6 +116,13 @@ export function EntityInspectorDrawer({
             : details?.energy_ratio;
     const age = entity?.age ?? details?.age;
     const generation = entity?.generation ?? details?.generation;
+    const taxonomy = details?.taxonomy ?? (entity?.taxon_id ? {
+        taxon_id: entity.taxon_id,
+        common_name: entity.common_name ?? '',
+        scientific_name: entity.scientific_name ?? '',
+        status: entity.species_confidence ?? 'provisional',
+        strain_id: entity.strain_id ?? null,
+    } : null);
 
     return (
         <div
@@ -236,6 +243,19 @@ export function EntityInspectorDrawer({
                         {details.species && (
                             <StatRow label="Species" value={formatSpecies(details.species)} />
                         )}
+                    </section>
+                )}
+
+                {taxonomy && (
+                    <section className={styles.section} aria-label="Taxonomy">
+                        <h3 className={styles.sectionTitle}>Taxonomy</h3>
+                        {taxonomy.common_name && <p className={styles.commonName}>{taxonomy.common_name}</p>}
+                        {taxonomy.scientific_name && (
+                            <p className={styles.scientificName}>{taxonomy.scientific_name}</p>
+                        )}
+                        <StatRow label="Status" value={taxonomy.status} />
+                        <StatRow label="Taxon" value={taxonomy.taxon_id} />
+                        {taxonomy.strain_id && <StatRow label="Strain" value={taxonomy.strain_id} />}
                     </section>
                 )}
 

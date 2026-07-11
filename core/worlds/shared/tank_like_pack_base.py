@@ -164,6 +164,7 @@ class TankLikePackBase(ABC):
             max_population=eco_config.max_population,
             event_bus=engine.event_bus,
         )
+        engine.ecosystem.environment = environment
 
         # 2. Initialize PlantManager
         if self.config.server.plants_enabled:

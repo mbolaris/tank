@@ -28,6 +28,14 @@ export interface EntityDetailsReproduction {
     is_gravid: boolean;
 }
 
+export interface EntityDetailsTaxonomy {
+    taxon_id: string;
+    common_name: string;
+    scientific_name: string;
+    status: 'provisional' | 'established' | 'extinct' | string;
+    strain_id: string | null;
+}
+
 export type EntityEnergyStatus = 'critical' | 'hungry' | 'content' | 'full';
 
 export interface EntityDetails {
@@ -45,6 +53,7 @@ export interface EntityDetails {
     life_stage?: string | null;
     generation?: number;
     species?: string | null;
+    taxonomy?: EntityDetailsTaxonomy | null;
     lineage?: EntityDetailsLineage;
     behavior?: EntityDetailsBehavior;
     traits?: Record<string, number>;

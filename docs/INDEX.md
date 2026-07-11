@@ -34,6 +34,7 @@ This index provides a guide to all documentation in the Tank World project.
 |----------|-------------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and module layout |
 | [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) | Architecture review and analysis |
+| [TAXONOMY.md](TAXONOMY.md) | Species classification, stable naming, and taxonomy lifecycle |
 | [WORLDS.md](WORLDS.md) | World types and backend implementations |
 
 ### Development Guides

@@ -85,6 +85,14 @@ export interface EntityData {
     species?: 'solo' | 'algorithmic' | 'neural' | 'schooling';
     generation?: number;
     age?: number;
+    taxon_id?: string;
+    common_name?: string;
+    scientific_name?: string;
+    strain_id?: string | null;
+    species_confidence?: string;
+    origin_tank_id?: string | null;
+    type_specimen_id?: number | null;
+    taxonomy?: Record<string, string | number | null>;
     genome_data?: FishGenomeData;
     poker_effect_state?: {
         status: 'playing' | 'won' | 'lost' | 'tie';
