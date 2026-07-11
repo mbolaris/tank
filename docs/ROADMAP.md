@@ -254,7 +254,9 @@ Multi-world support is valuable, but **only after Evolution Loop MVP is complete
 ### Entertainment & Community (Adoption)
 
 *Poker/soccer are the adoption engine, not scope creep. See
-[MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md).*
+[MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md). The product-experience plan that makes the
+tank fun to watch — entity inspector, Living History, Observe/Design/Lab modes, ecosystem
+trust states — lives in [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md).*
 
 - [ ] Fix the energy economy so minigames are net-positive for reproduction
       (today they burn the overflow energy that funds offspring — see `CLAUDE.md`)
