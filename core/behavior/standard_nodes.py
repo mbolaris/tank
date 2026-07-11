@@ -178,7 +178,7 @@ def _parameter_float(parameters: Mapping[str, NodeParameter], name: str, default
 
 def _vector_value(
     inputs: Mapping[str, NodeValue], port: str, node_type: str
-) -> tuple[float, float]:
+) -> tuple[Scalar, Scalar]:
     value = inputs.get(port)
     if (
         not isinstance(value, tuple)
@@ -186,7 +186,7 @@ def _vector_value(
         or not all(type(component) is float and math.isfinite(component) for component in value)
     ):
         raise TypeError(f"{node_type} requires a finite two-component vector '{port}'")
-    return float(value[0]), float(value[1])
+    return Scalar(float(value[0])), Scalar(float(value[1]))
 
 
 def _vector_components(

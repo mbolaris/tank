@@ -13,6 +13,7 @@ PUBLIC_AGENT_DOCS = [
     ROOT / "CLAUDE.md",
     ROOT / "SETUP.md",
     ROOT / "docs" / "ALGORITHM_CATALOG.md",
+    ROOT / "docs" / "BENCHMARK_CATALOG.md",
 ]
 ARCHIVED_ADR_DIR = ROOT / "docs" / "adr"
 
@@ -267,4 +268,19 @@ def test_algorithm_catalog_is_up_to_date():
     assert current_content == expected_content, (
         "docs/ALGORITHM_CATALOG.md is out of date. "
         "Run 'python tools/generate_algorithm_catalog.py' to update it."
+    )
+
+
+def test_benchmark_catalog_is_up_to_date():
+    from tools.generate_benchmark_catalog import generate_catalog
+
+    catalog_path = ROOT / "docs" / "BENCHMARK_CATALOG.md"
+    assert catalog_path.exists(), "BENCHMARK_CATALOG.md does not exist"
+
+    current_content = catalog_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    expected_content = generate_catalog().replace("\r\n", "\n")
+
+    assert current_content == expected_content, (
+        "docs/BENCHMARK_CATALOG.md is out of date. "
+        "Run 'python tools/generate_benchmark_catalog.py' to update it."
     )

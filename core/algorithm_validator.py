@@ -186,6 +186,14 @@ class AlgorithmValidator:
             metrics_improved=metrics_improved,
         )
 
+    def measure_baseline(self, algorithm_id: str, seed: int = 42) -> dict[str, float]:
+        """Measure the current algorithm without installing candidate code.
+
+        This public wrapper lets callers build a same-seed baseline matrix
+        without depending on the validator's simulation implementation.
+        """
+        return self._run_headless_simulation(algorithm_id, seed)
+
     def _run_test_simulation(
         self,
         algorithm_id: str,
