@@ -22,6 +22,8 @@ from core.config.food import (
 from core.entities import Food
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
+from core.behavior.primitives.steering import predict_linear_intercept, blend_prediction
+
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -87,23 +89,13 @@ def predict_food_target(
                 fish.pos, fish.speed, food.pos, food_vel, acceleration
             )
         else:
-            time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
-            predicted_pos = Vector2(
-                food.pos.x + food_vel.x * time_to_reach,
-                food.pos.y + food_vel.y * time_to_reach,
+            predicted_pos = predict_linear_intercept(
+                fish.pos, fish.speed, food.pos, food_vel, distance
             )
     else:
-        time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
-        predicted_pos = Vector2(
-            food.pos.x + food_vel.x * time_to_reach,
-            food.pos.y + food_vel.y * time_to_reach,
-        )
+        predicted_pos = predict_linear_intercept(fish.pos, fish.speed, food.pos, food_vel, distance)
 
-    skill_factor = 0.30 + prediction_skill * 0.70
-    return Vector2(
-        food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
-        food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
-    )
+    return blend_prediction(food.pos, predicted_pos, prediction_skill)
 
 
 def select_food_target(fish: Fish) -> Food | None:
