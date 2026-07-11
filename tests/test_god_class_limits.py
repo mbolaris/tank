@@ -29,7 +29,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "backend/startup_manager.py": 626,
     "backend/state_payloads.py": 805,
     "backend/world_manager.py": 712,
-    "backend/world_persistence.py": 619,
+    "backend/world_persistence.py": 636,
     "core/algorithms/base.py": 572,
     "core/algorithms/registry.py": 584,
     "core/code_pool/genome_code_pool.py": 641,

@@ -1,6 +1,8 @@
 from unittest import mock
+
 import pytest
-from tools.check_locked_paths import is_path_locked, get_changed_files, main, DEFAULT_LOCKED_PATHS
+
+from tools.check_locked_paths import DEFAULT_LOCKED_PATHS, get_changed_files, is_path_locked, main
 
 
 def test_is_path_locked():

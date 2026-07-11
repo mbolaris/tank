@@ -61,7 +61,14 @@ def _bootstrap_transient_elements(engine: Any) -> None:
 
         # Respawn Ball if configured and not already present
         if soccer_cfg.tank_ball_visible:
+            ball_exists = False
             if hasattr(env, "ball") and env.ball is not None:
+                if env.ball in engine.entities_list:
+                    ball_exists = True
+                else:
+                    env.ball = None
+
+            if ball_exists:
                 # Ball already exists, just register with soccer system
                 soccer_system.set_ball(env.ball)
                 logger.info("SOCCER: Ball already exists, using existing")
@@ -75,7 +82,17 @@ def _bootstrap_transient_elements(engine: Any) -> None:
 
         # Respawn Goals if configured and not already present
         if soccer_cfg.tank_goals_visible:
+            goals_exist = False
             if hasattr(env, "goal_manager") and env.goal_manager is not None:
+                temp_manager = env.goal_manager
+                if temp_manager.zones and all(
+                    zone in engine.entities_list for zone in temp_manager.zones.values()
+                ):
+                    goals_exist = True
+                else:
+                    env.goal_manager = None
+
+            if goals_exist:
                 # Goals already exist, just register with soccer system
                 soccer_system.set_goal_manager(env.goal_manager)
                 logger.info("SOCCER: Goals already exist, using existing")

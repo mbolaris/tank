@@ -9,10 +9,10 @@ import importlib.util
 import inspect
 import json
 import os
-import sys
-import time
 import subprocess
+import sys
 import tempfile
+import time
 from pathlib import Path
 
 # Add repo root to sys.path so benchmarks can import core regardless of cwd

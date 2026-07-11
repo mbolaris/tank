@@ -14,7 +14,6 @@ from enum import Enum
 from types import MappingProxyType
 from typing import NewType, Protocol, TypeAlias
 
-
 # These are semantic types, not runtime wrappers.  Keeping vectors in a
 # normalized, domain-neutral frame prevents a tank coordinate or soccer field
 # coordinate from leaking into the graph's shared middle layer.

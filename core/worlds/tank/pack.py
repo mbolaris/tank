@@ -122,7 +122,14 @@ class TankPack(TankLikePackBase):
 
             # 1. Handle Ball
             ball = None
+            ball_exists = False
             if hasattr(engine.environment, "ball") and engine.environment.ball is not None:
+                if engine.environment.ball in engine.entities_list:
+                    ball_exists = True
+                else:
+                    engine.environment.ball = None
+
+            if ball_exists:
                 # Existing ball: update size for consistency
                 ball = engine.environment.ball
                 ball.set_size(20, 20)  # 10px radius
@@ -143,10 +150,23 @@ class TankPack(TankLikePackBase):
 
             # 2. Handle Goals
             goal_manager = None
-            if hasattr(engine.environment, "goal_manager") and engine.environment.goal_manager:
+            goals_exist = False
+            if (
+                hasattr(engine.environment, "goal_manager")
+                and engine.environment.goal_manager is not None
+            ):
+                temp_manager = engine.environment.goal_manager
+                if temp_manager.zones and all(
+                    zone in engine.entities_list for zone in temp_manager.zones.values()
+                ):
+                    goals_exist = True
+                else:
+                    engine.environment.goal_manager = None
+
+            if goals_exist:
                 # Existing goals: ensure correct sizes/positions
                 goal_manager = engine.environment.goal_manager
-                for zone in goal_manager.zones:
+                for zone in goal_manager.zones.values():
                     zone.set_size(80, 80)  # 40px radius
                     zone.radius = 40.0
                     if zone.goal_id == "goal_left":

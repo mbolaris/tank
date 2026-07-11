@@ -1,15 +1,14 @@
 from typing import TYPE_CHECKING, Any
 
-
 from core.behavior.primitives.steering import (
+    blend_patrol_steering,
     boids_steering,
+    circling_target,
+    erratic_evade,
     flee_direction,
     seek_direction,
     wander_step,
-    erratic_evade,
-    circling_target,
     zigzag_steering,
-    blend_patrol_steering,
 )
 from core.entities import Crab
 from core.entities import Fish as FishClass

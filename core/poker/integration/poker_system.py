@@ -22,8 +22,8 @@ from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import MixedPokerInteraction
 from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
 from core.poker.integration.poker_interaction import PokerInteraction
-from core.poker.integration.post_poker_reproduction import handle_fish_post_poker_reproduction
 from core.poker.integration.poker_rewards import annotate_reproduction_reward, fish_energy_deltas
+from core.poker.integration.post_poker_reproduction import handle_fish_post_poker_reproduction
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 

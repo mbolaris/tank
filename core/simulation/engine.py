@@ -49,8 +49,8 @@ from core.simulation.frame_aggregator import FrameAggregator, FrameOutputs
 from core.simulation.mutation import MutationTransaction
 from core.simulation.mutation_executor import MutationExecutor
 from core.simulation.phase_executor import PhaseExecutor
-from core.simulation.profiler import PhaseProfiler
 from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
+from core.simulation.profiler import PhaseProfiler
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.systems.food_spawning import SpawnRateConfig
@@ -58,8 +58,8 @@ from core.time_system import TimeSystem
 
 if TYPE_CHECKING:
     from core import entities, environment
-    from core.collision_system import CollisionSystem
     from core.code_pool import GenomeCodePool
+    from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
     from core.events import EventBus
     from core.object_pool import FoodPool
