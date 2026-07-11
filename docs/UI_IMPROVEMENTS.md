@@ -14,7 +14,7 @@ incorrectly described several shipped foundations as future work.
 | U0 | Persistent metrics history and REST/WebSocket delivery | DONE | Ring buffer, persistence, deltas, and tests exist |
 | U1 | Ecosystem and skill Trends view | DONE | Frame/generation axes, ecosystem health, trait drift, poker ELO, and soccer rate exist |
 | U2 | One-command development startup | DONE | `python start.py` is implemented and documented |
-| U3 | Remove inactive navigation fork | NEXT | Delete unused `TankTabs` / `TankPlayTab` files and orphaned tests/styles |
+| U3 | Remove inactive navigation fork | DONE | Delete unused `TankTabs` / `TankPlayTab` files and orphaned tests/styles |
 | U4 | Fish inspector replacing click-to-transfer | NEXT | Highest-value user-facing task |
 | U5 | Persistent selection and follow camera | QUEUED | Depends on U4 |
 | U6 | Structured story-event service | QUEUED | Backend/contract task; independent of U4 |
