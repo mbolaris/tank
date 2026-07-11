@@ -1,0 +1,54 @@
+/**
+ * On-demand entity detail payload returned by the `get_entity_details`
+ * WebSocket command (fish inspector, U4/E1).
+ *
+ * The 30fps broadcast intentionally strips these heavy fields; the inspector
+ * requests them for a single entity instead. Mirrors the payload built in
+ * backend/runner/hooks/entity_details_mixin.py.
+ */
+
+export interface EntityDetailsLineage {
+    parent_id: number | null;
+    is_soup_spawn: boolean;
+}
+
+export interface EntityDetailsBehavior {
+    algorithm: string | null;
+    behavior_id: string | null;
+    parameters: Record<string, number | string> | null;
+}
+
+export interface EntityDetailsGames {
+    poker: { eligible: boolean; cooldown_frames: number };
+    soccer: { ball_present: boolean; eligible: boolean };
+}
+
+export interface EntityDetailsReproduction {
+    overflow_energy_bank: number;
+    is_gravid: boolean;
+}
+
+export type EntityEnergyStatus = 'critical' | 'hungry' | 'content' | 'full';
+
+export interface EntityDetails {
+    id: number;
+    type: string;
+    frame: number;
+    // Present for fish; absent for plants/crabs/castles (which get energy only).
+    fish_id?: number | null;
+    energy?: number;
+    max_energy?: number;
+    energy_ratio?: number;
+    status?: EntityEnergyStatus;
+    age?: number;
+    max_age?: number;
+    life_stage?: string | null;
+    generation?: number;
+    species?: string | null;
+    lineage?: EntityDetailsLineage;
+    behavior?: EntityDetailsBehavior;
+    traits?: Record<string, number>;
+    games?: EntityDetailsGames;
+    reproduction?: EntityDetailsReproduction;
+    detail_error?: string;
+}

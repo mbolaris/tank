@@ -9,6 +9,7 @@ import {
     type ReactNode,
 } from 'react';
 import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
+import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
@@ -26,6 +27,9 @@ interface TankViewProps {
 
 const TransferDialog = lazy(() =>
     import('./TransferDialog').then((module) => ({ default: module.TransferDialog }))
+);
+const EntityInspectorDrawer = lazy(() =>
+    import('./EntityInspectorDrawer').then((module) => ({ default: module.EntityInspectorDrawer }))
 );
 const TankSoccerTab = lazy(() =>
     import('./tank_tabs/TankSoccerTab').then((module) => ({ default: module.TankSoccerTab }))
@@ -82,14 +86,9 @@ export function TankView({ worldId }: TankViewProps) {
         [sendCommand]
     );
 
-    // Entity transfer state
-    const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
-    const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
-    const [showTransferDialog, setShowTransferDialog] = useState(false);
-    const [transferMessage, setTransferMessage] = useState<{
-        type: 'success' | 'error';
-        text: string;
-    } | null>(null);
+    // Entity selection: a click opens the inspector; transfer is an explicit
+    // secondary action inside it (U4/E1).
+    const selection = useEntitySelection();
 
     const serverViewMode =
         state?.view_mode === 'side' || state?.view_mode === 'topdown'
@@ -108,24 +107,11 @@ export function TankView({ worldId }: TankViewProps) {
     // Effective world ID - use connected ID which is available immediately
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
-    const handleEntityClick = (entityId: number, entityType: string) => {
-        setSelectedEntityId(entityId);
-        setSelectedEntityType(entityType);
-        setShowTransferDialog(true);
-    };
-
-    const handleTransferComplete = (success: boolean, message: string) => {
-        setTransferMessage({ type: success ? 'success' : 'error', text: message });
-        setSelectedEntityId(null);
-        setSelectedEntityType(null);
-        setTimeout(() => setTransferMessage(null), 5000);
-    };
-
-    const handleCloseTransferDialog = () => {
-        setShowTransferDialog(false);
-        setSelectedEntityId(null);
-        setSelectedEntityType(null);
-    };
+    const liveEntities = state?.snapshot?.entities ?? state?.entities ?? [];
+    const selectedEntity =
+        selection.selectedEntityId !== null
+            ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
+            : null;
 
     return (
         <>
@@ -368,8 +354,8 @@ export function TankView({ worldId }: TankViewProps) {
                         state={state}
                         width={1088}
                         height={612}
-                        onEntityClick={handleEntityClick}
-                        selectedEntityId={selectedEntityId}
+                        onEntityClick={selection.selectEntity}
+                        selectedEntityId={selection.selectedEntityId}
                         showEffects={showEffects}
                         showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
@@ -473,25 +459,42 @@ export function TankView({ worldId }: TankViewProps) {
                 </div>
             )}
 
-            {/* Transfer Dialog */}
-            {showTransferDialog &&
-                selectedEntityId !== null &&
-                selectedEntityType !== null &&
+            {/* Entity Inspector Drawer */}
+            {selection.inspectorOpen &&
+                selection.selectedEntityId !== null &&
+                selection.selectedEntityType !== null && (
+                    <Suspense fallback={null}>
+                        <EntityInspectorDrawer
+                            entityId={selection.selectedEntityId}
+                            entityType={selection.selectedEntityType}
+                            entity={selectedEntity}
+                            isConnected={isConnected}
+                            sendCommandWithResponse={sendCommandWithResponse}
+                            onClose={selection.closeInspector}
+                            onRequestTransfer={selection.openTransfer}
+                        />
+                    </Suspense>
+                )}
+
+            {/* Transfer Dialog (explicit secondary action from the inspector) */}
+            {selection.transferOpen &&
+                selection.selectedEntityId !== null &&
+                selection.selectedEntityType !== null &&
                 state?.world_id && (
                     <Suspense fallback={null}>
                         <TransferDialog
-                            entityId={selectedEntityId}
-                            entityType={selectedEntityType}
+                            entityId={selection.selectedEntityId}
+                            entityType={selection.selectedEntityType}
                             sourceWorldId={state.world_id}
                             sourceWorldName={state.world_id}
-                            onClose={handleCloseTransferDialog}
-                            onTransferComplete={handleTransferComplete}
+                            onClose={selection.closeTransfer}
+                            onTransferComplete={selection.completeTransfer}
                         />
                     </Suspense>
                 )}
 
             {/* Transfer Notification */}
-            {transferMessage && (
+            {selection.transferMessage && (
                 <div
                     style={{
                         position: 'fixed',
@@ -500,16 +503,16 @@ export function TankView({ worldId }: TankViewProps) {
                         padding: '16px 20px',
                         borderRadius: '8px',
                         backgroundColor:
-                            transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
-                        color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
-                        border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                            selection.transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
+                        color: selection.transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
+                        border: `1px solid ${selection.transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                         zIndex: 1001,
                         maxWidth: '400px',
                         fontWeight: 500,
                     }}
                 >
-                    {transferMessage.text}
+                    {selection.transferMessage.text}
                 </div>
             )}
         </>

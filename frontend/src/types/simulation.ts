@@ -3,6 +3,7 @@
  */
 
 import type { DeltaStateSnapshot, FullStateSnapshot } from './payload';
+import type { EntityDetails } from './entityDetails';
 
 export interface FishGenomeData {
     speed: number;
@@ -595,7 +596,8 @@ export interface Command {
     | 'start_soccer'
     | 'soccer_step'
     | 'end_soccer'
-    | 'set_tank_soccer_enabled';
+    | 'set_tank_soccer_enabled'
+    | 'get_entity_details';
     data?: Record<string, unknown>;
 }
 
@@ -714,6 +716,7 @@ export interface CommandResponse {
     state?: PokerGameState;
     stats?: AutoEvaluateStats;
     action_taken?: boolean;
+    details?: EntityDetails;
 }
 
 // Evolution Benchmark Types
