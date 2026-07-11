@@ -29,6 +29,8 @@ interface EntityInspectorDrawerProps {
     sendCommandWithResponse: (command: Command) => Promise<CommandResponse>;
     onClose: () => void;
     onRequestTransfer: () => void;
+    followEnabled: boolean;
+    onToggleFollow: () => void;
 }
 
 type FetchState =
@@ -47,6 +49,8 @@ export function EntityInspectorDrawer({
     sendCommandWithResponse,
     onClose,
     onRequestTransfer,
+    followEnabled,
+    onToggleFollow,
 }: EntityInspectorDrawerProps) {
     const [fetchState, setFetchState] = useState<FetchState>({ phase: 'loading' });
     const drawerRef = useRef<HTMLDivElement>(null);
@@ -273,6 +277,15 @@ export function EntityInspectorDrawer({
 
             {TRANSFERABLE_TYPES.has(entityType) && (
                 <footer className={styles.footer}>
+                    <Button
+                        variant={followEnabled ? 'primary' : 'secondary'}
+                        onClick={onToggleFollow}
+                        disabled={isGone}
+                        aria-pressed={followEnabled}
+                        title={followEnabled ? 'Stop following this organism' : 'Keep this organism in view'}
+                    >
+                        {followEnabled ? 'Following' : 'Follow'}
+                    </Button>
                     <Button
                         variant="secondary"
                         onClick={onRequestTransfer}

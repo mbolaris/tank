@@ -20,6 +20,10 @@ export interface EntitySelectionState {
     inspectorOpen: boolean;
     transferOpen: boolean;
     transferMessage: TransferMessage | null;
+    /** Following is opt-in: selecting a fish must never move the camera by itself. */
+    followEnabled: boolean;
+    /** The selected entity left the latest reconciled world state. */
+    selectedEntityMissing: boolean;
 }
 
 export type EntitySelectionAction =
@@ -28,7 +32,10 @@ export type EntitySelectionAction =
     | { type: 'open_transfer' }
     | { type: 'close_transfer' }
     | { type: 'transfer_complete'; success: boolean; message: string }
-    | { type: 'clear_transfer_message' };
+    | { type: 'clear_transfer_message' }
+    | { type: 'toggle_follow' }
+    | { type: 'reconcile_entities'; entityIds: number[] }
+    | { type: 'clear_selection' };
 
 export const initialEntitySelectionState: EntitySelectionState = {
     selectedEntityId: null,
@@ -36,6 +43,8 @@ export const initialEntitySelectionState: EntitySelectionState = {
     inspectorOpen: false,
     transferOpen: false,
     transferMessage: null,
+    followEnabled: false,
+    selectedEntityMissing: false,
 };
 
 export function entitySelectionReducer(
@@ -51,6 +60,8 @@ export function entitySelectionReducer(
                 selectedEntityType: action.entityType,
                 inspectorOpen: true,
                 transferOpen: false,
+                followEnabled: state.followEnabled,
+                selectedEntityMissing: false,
             };
         case 'close_inspector':
             return { ...initialEntitySelectionState, transferMessage: state.transferMessage };
@@ -70,6 +81,25 @@ export function entitySelectionReducer(
             };
         case 'clear_transfer_message':
             return { ...state, transferMessage: null };
+        case 'toggle_follow':
+            // A missing entity cannot be followed; this also keeps keyboard and
+            // touch toggles harmless while an inspector displays the death state.
+            return state.selectedEntityId === null || state.selectedEntityMissing
+                ? state
+                : { ...state, followEnabled: !state.followEnabled };
+        case 'reconcile_entities':
+            if (
+                state.selectedEntityId === null ||
+                action.entityIds.includes(state.selectedEntityId) ||
+                state.selectedEntityMissing
+            ) {
+                return state;
+            }
+            // Keep the inspector open long enough to explain what happened,
+            // while clearing the visual selection and stopping the camera.
+            return { ...state, selectedEntityMissing: true, followEnabled: false, transferOpen: false };
+        case 'clear_selection':
+            return { ...initialEntitySelectionState, transferMessage: state.transferMessage };
     }
 }
 
@@ -100,6 +130,12 @@ export function useEntitySelection() {
             dispatch({ type: 'transfer_complete', success, message }),
         []
     );
+    const toggleFollow = useCallback(() => dispatch({ type: 'toggle_follow' }), []);
+    const reconcileEntities = useCallback(
+        (entityIds: number[]) => dispatch({ type: 'reconcile_entities', entityIds }),
+        []
+    );
+    const clearSelection = useCallback(() => dispatch({ type: 'clear_selection' }), []);
 
     return {
         ...state,
@@ -108,5 +144,8 @@ export function useEntitySelection() {
         openTransfer,
         closeTransfer,
         completeTransfer,
+        toggleFollow,
+        reconcileEntities,
+        clearSelection,
     };
 }

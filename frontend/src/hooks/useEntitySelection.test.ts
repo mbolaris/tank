@@ -105,4 +105,33 @@ describe('entitySelectionReducer', () => {
         expect(state.selectedEntityId).toBe(9);
         expect(state.inspectorOpen).toBe(true);
     });
+
+    it('keeps following opt-in and transfers it to a newly selected entity', () => {
+        let state = select(initialEntitySelectionState);
+        state = entitySelectionReducer(state, { type: 'toggle_follow' });
+        expect(state.followEnabled).toBe(true);
+
+        state = select(state, 77, 'fish');
+        expect(state.selectedEntityId).toBe(77);
+        expect(state.followEnabled).toBe(true);
+    });
+
+    it('stops following and explains when the selected entity disappears', () => {
+        let state = select(initialEntitySelectionState);
+        state = entitySelectionReducer(state, { type: 'toggle_follow' });
+        state = entitySelectionReducer(state, { type: 'reconcile_entities', entityIds: [1, 2, 3] });
+
+        expect(state.selectedEntityMissing).toBe(true);
+        expect(state.followEnabled).toBe(false);
+        expect(state.inspectorOpen).toBe(true);
+        expect(state.transferOpen).toBe(false);
+    });
+
+    it('does not treat a full-state resync containing the selected entity as a disappearance', () => {
+        let state = select(initialEntitySelectionState);
+        state = entitySelectionReducer(state, { type: 'reconcile_entities', entityIds: [42, 99] });
+
+        expect(state.selectedEntityMissing).toBe(false);
+        expect(state.selectedEntityId).toBe(42);
+    });
 });

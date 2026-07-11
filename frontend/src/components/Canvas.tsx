@@ -8,6 +8,7 @@ import type { Renderer, ViewMode } from '../rendering/types';
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
+import { FOLLOW_ZOOM, getFollowViewport } from './followViewport';
 
 interface CanvasProps {
     state: SimulationUpdate | null;
@@ -15,6 +16,8 @@ interface CanvasProps {
     height?: number;
     onEntityClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
+    /** Opt-in camera target. The renderer still receives the full world state. */
+    followEntityId?: number | null;
     showEffects?: boolean;
     showSoccer?: boolean;
     style?: CSSProperties;
@@ -25,12 +28,12 @@ interface CanvasProps {
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
-
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const followCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
     // Use ref to track if error has been set to avoid repeated setState calls
     const errorSetRef = useRef(false);
@@ -53,8 +56,17 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        const clickX = (event.clientX - rect.left) * scaleX;
-        const clickY = (event.clientY - rect.top) * scaleY;
+        let clickX = (event.clientX - rect.left) * scaleX;
+        let clickY = (event.clientY - rect.top) * scaleY;
+
+        const followed = followEntityId !== null && followEntityId !== undefined
+            ? (state.snapshot?.entities ?? state.entities ?? []).find((entity) => entity.id === followEntityId)
+            : undefined;
+        if (followed) {
+            const viewport = getFollowViewport(followed, canvas.width, canvas.height);
+            clickX = viewport.sourceX + clickX / FOLLOW_ZOOM;
+            clickY = viewport.sourceY + clickY / FOLLOW_ZOOM;
+        }
 
         // Account for world-to-canvas scaling
         const worldScaleX = WORLD_WIDTH / width;
@@ -87,6 +99,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const stateRef = useRef(state);
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
+    const followEntityIdRef = useRef(followEntityId);
     const showEffectsRef = useRef(showEffects);
     const showSoccerRef = useRef(showSoccer);
     const viewModeRef = useRef(viewMode);
@@ -96,11 +109,12 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         stateRef.current = state;
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
+        followEntityIdRef.current = followEntityId;
         showEffectsRef.current = showEffects;
         showSoccerRef.current = showSoccer;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
+    }, [state, imagesLoaded, selectedEntityId, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -185,6 +199,28 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         currentViewMode = effectiveViewMode;
                     }
 
+                    const followTargetId = followEntityIdRef.current;
+                    const followTarget = followTargetId !== null && followTargetId !== undefined
+                        ? (currentState.snapshot?.entities ?? currentState.entities ?? []).find(
+                            (entity) => entity.id === followTargetId
+                        )
+                        : undefined;
+                    const renderCanvas = followTarget
+                        ? (followCanvasRef.current ?? document.createElement('canvas'))
+                        : canvas;
+                    if (followTarget && !followCanvasRef.current) {
+                        followCanvasRef.current = renderCanvas;
+                    }
+                    if (renderCanvas.width !== canvas.width || renderCanvas.height !== canvas.height) {
+                        renderCanvas.width = canvas.width;
+                        renderCanvas.height = canvas.height;
+                    }
+                    const renderCtx = followTarget ? renderCanvas.getContext('2d') : ctx;
+                    if (!renderCtx) {
+                        setErrorOnce('Failed to get follow camera context');
+                        return;
+                    }
+
                     currentRenderer.render({
                         worldType,
                         viewMode: effectiveViewMode,
@@ -195,11 +231,27 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                             selectedEntityId: selectedEntityIdRef.current,
                         },
                     }, {
-                        canvas,
-                        ctx,
+                        canvas: renderCanvas,
+                        ctx: renderCtx,
                         dpr: window.devicePixelRatio || 1,
                         nowMs
                     });
+
+                    if (followTarget) {
+                        const viewport = getFollowViewport(followTarget, canvas.width, canvas.height);
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(
+                            renderCanvas,
+                            viewport.sourceX,
+                            viewport.sourceY,
+                            viewport.sourceWidth,
+                            viewport.sourceHeight,
+                            0,
+                            0,
+                            canvas.width,
+                            canvas.height
+                        );
+                    }
                 } catch (err) {
                     console.error("Render loop error:", err);
                 }
@@ -219,6 +271,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                 currentRenderer.dispose();
                 currentRenderer = null;
                 rendererRef.current = null;
+            }
+            if (followCanvasRef.current) {
+                followCanvasRef.current.width = 0;
+                followCanvasRef.current.height = 0;
+                followCanvasRef.current = null;
             }
         };
     }, [width, height, setErrorOnce, error, viewMode]); // Stable dependencies only
