@@ -46,6 +46,8 @@ function renderDrawer(overrides: Partial<Parameters<typeof EntityInspectorDrawer
             sendCommandWithResponse={neverResolves}
             onClose={noop}
             onRequestTransfer={noop}
+            followEnabled={false}
+            onToggleFollow={noop}
             {...overrides}
         />
     );
@@ -65,6 +67,7 @@ describe('EntityInspectorDrawer', () => {
 
     it('offers transfer as an explicit secondary action for fish', () => {
         const html = renderDrawer();
+        expect(html).toContain('Follow');
         expect(html).toContain('Transfer to another world');
     });
 

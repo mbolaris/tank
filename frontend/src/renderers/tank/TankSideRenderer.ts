@@ -124,6 +124,22 @@ export class TankSideRenderer implements Renderer {
                 this.drawSoccerEffect(ctx, entity);
             });
 
+            const selected = frame.options?.selectedEntityId;
+            if (selected !== undefined && selected !== null) {
+                const entity = renderedEntities.find((candidate) => candidate.id === selected);
+                if (entity) {
+                    const radius = Math.max(entity.width, entity.height) / 2 + 6;
+                    ctx.save();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(entity.x + entity.width / 2, entity.y + entity.height / 2, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
         } finally {
             ctx.restore();
         }

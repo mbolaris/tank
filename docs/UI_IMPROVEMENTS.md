@@ -16,7 +16,7 @@ incorrectly described several shipped foundations as future work.
 | U2 | One-command development startup | DONE | `python start.py` is implemented and documented |
 | U3 | Remove inactive navigation fork | DONE | Delete unused `TankTabs` / `TankPlayTab` files and orphaned tests/styles |
 | U4 | Fish inspector replacing click-to-transfer | DONE | Inspector drawer + on-demand `get_entity_details`; transfer is a secondary action |
-| U5 | Persistent selection and follow camera | QUEUED | Depends on U4 |
+| U5 | Persistent selection and follow camera | DONE | Selection reconciles across merged deltas/full resync; follow is opt-in and stops when an entity disappears |
 | U6 | Structured story-event service | QUEUED | Backend/contract task; independent of U4 |
 | U7 | Living History feed and timeline | QUEUED | Depends on U4 and U6 |
 | U8 | Return recap and legends | QUEUED | Depends on U6 and U7; split into separate PRs |

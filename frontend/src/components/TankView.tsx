@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
 import { useEntitySelection } from '../hooks/useEntitySelection';
+import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
@@ -112,6 +113,8 @@ export function TankView({ worldId }: TankViewProps) {
         selection.selectedEntityId !== null
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
             : null;
+
+    useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
     return (
         <>
@@ -355,7 +358,12 @@ export function TankView({ worldId }: TankViewProps) {
                         width={1088}
                         height={612}
                         onEntityClick={selection.selectEntity}
-                        selectedEntityId={selection.selectedEntityId}
+                        selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
+                        followEntityId={
+                            selection.followEnabled && !selection.selectedEntityMissing
+                                ? selection.selectedEntityId
+                                : null
+                        }
                         showEffects={showEffects}
                         showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
@@ -472,6 +480,8 @@ export function TankView({ worldId }: TankViewProps) {
                             sendCommandWithResponse={sendCommandWithResponse}
                             onClose={selection.closeInspector}
                             onRequestTransfer={selection.openTransfer}
+                            followEnabled={selection.followEnabled}
+                            onToggleFollow={selection.toggleFollow}
                         />
                     </Suspense>
                 )}
