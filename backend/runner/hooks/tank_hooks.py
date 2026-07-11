@@ -8,13 +8,17 @@ import logging
 from typing import Any
 
 from backend.runner.hooks.benchmark_mixin import BenchmarkMixin
+from backend.runner.hooks.entity_details_mixin import (
+    GET_ENTITY_DETAILS_COMMAND,
+    EntityDetailsMixin,
+)
 from backend.runner.hooks.poker_mixin import PokerMixin
 from backend.runner.hooks.soccer_mixin import SoccerMixin
 
 logger = logging.getLogger(__name__)
 
 
-class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
+class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin, EntityDetailsMixin):
     """Hooks for Tank world mode - provides poker, benchmarking, and tank-specific features.
 
     This encapsulates all tank-specific logic that was previously embedded
@@ -39,6 +43,7 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
             "stop_human_poker",
             "auto_evaluate_poker",
             "cancel_auto_evaluate",
+            GET_ENTITY_DETAILS_COMMAND,
         }
         return command in tank_commands
 
@@ -61,6 +66,8 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
             return self._handle_auto_evaluate_poker(runner, data)
         elif command == "cancel_auto_evaluate":
             return self._handle_cancel_auto_evaluate(runner, data)
+        elif command == GET_ENTITY_DETAILS_COMMAND:
+            return self._handle_get_entity_details(runner, data)
         return None
 
     def build_world_extras(self, runner: Any) -> dict[str, Any]:
