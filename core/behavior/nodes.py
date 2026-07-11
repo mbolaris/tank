@@ -8,8 +8,9 @@ compatibility before an interpreter is introduced.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from types import MappingProxyType
 from typing import NewType, Protocol, TypeAlias
@@ -101,6 +102,29 @@ class ArbiterNode(BehaviorNode, Protocol):
 NodeFactory: TypeAlias = Callable[[str, Mapping[str, NodeParameter]], BehaviorNode]
 
 
+@dataclass(frozen=True)
+class NodeParameterSpec:
+    """Mutation and validation contract for one numeric node parameter."""
+
+    default: Scalar
+    minimum: Scalar
+    maximum: Scalar
+
+    def __post_init__(self) -> None:
+        values = (float(self.default), float(self.minimum), float(self.maximum))
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("Node parameter bounds must be finite.")
+        if self.minimum > self.maximum:
+            raise ValueError("Node parameter minimum must not exceed its maximum.")
+        if not self.minimum <= self.default <= self.maximum:
+            raise ValueError("Node parameter default must be within its bounds.")
+
+    def clamp(self, value: object) -> Scalar:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return self.default
+        return Scalar(max(float(self.minimum), min(float(self.maximum), float(value))))
+
+
 def _normalized_ports(ports: Mapping[str, ValueType]) -> Mapping[str, ValueType]:
     """Validate and freeze port metadata supplied by a node definition."""
     normalized = dict(ports)
@@ -121,6 +145,7 @@ class NodeDefinition:
     input_ports: Mapping[str, ValueType]
     output_type: ValueType
     factory: NodeFactory
+    parameter_specs: Mapping[str, NodeParameterSpec] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.node_type or not self.node_type.isidentifier():
@@ -134,10 +159,15 @@ class NodeDefinition:
         if not callable(self.factory):
             raise TypeError(f"Node {self.node_type!r} must provide a factory.")
         object.__setattr__(self, "input_ports", _normalized_ports(self.input_ports))
+        specs = dict(self.parameter_specs)
+        for name, spec in specs.items():
+            if not name or not name.isidentifier() or not isinstance(spec, NodeParameterSpec):
+                raise TypeError(f"Invalid parameter specification {name!r} for {self.node_type!r}.")
+        object.__setattr__(self, "parameter_specs", MappingProxyType(specs))
 
     def to_dict(self) -> dict[str, object]:
         """Return stable metadata for graph serialization and inspection."""
-        return {
+        payload: dict[str, object] = {
             "node_type": self.node_type,
             "category": self.category.value,
             "input_ports": {
@@ -145,6 +175,16 @@ class NodeDefinition:
             },
             "output_type": self.output_type.value,
         }
+        if self.parameter_specs:
+            payload["parameters"] = {
+                name: {
+                    "default": float(spec.default),
+                    "minimum": float(spec.minimum),
+                    "maximum": float(spec.maximum),
+                }
+                for name, spec in sorted(self.parameter_specs.items())
+            }
+        return payload
 
 
 class NodeRegistry:
@@ -239,6 +279,7 @@ __all__ = [
     "NodeDefinition",
     "NodeFactory",
     "NodeParameter",
+    "NodeParameterSpec",
     "NodeRegistry",
     "NodeValue",
     "Scalar",

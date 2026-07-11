@@ -16,6 +16,22 @@ export interface EntityDetailsBehavior {
     algorithm: string | null;
     behavior_id: string | null;
     parameters: Record<string, number | string> | null;
+    lens?: EntityDetailsBehaviorLens;
+}
+
+export interface EntityDetailsBehaviorLens {
+    intent: string;
+    target: string | null;
+    inputs: Record<string, unknown>;
+    outputs: Record<string, unknown>;
+    output: unknown;
+    contributions: Record<string, number>;
+    fingerprint: string;
+    graph: {
+        nodes: Array<{ id: string; type: string; parameters: Record<string, unknown> }>;
+        connections: Array<{ source: string; target: string; port: string }>;
+        output: string;
+    };
 }
 
 export interface EntityDetailsGames {

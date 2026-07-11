@@ -9,6 +9,9 @@ does not add graph traversal to the per-frame hot path.
 from __future__ import annotations
 
 import math
+import hashlib
+import json
+import random as pyrandom
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import cast
@@ -24,6 +27,8 @@ from core.behavior.nodes import (
     Scalar,
     ValueType,
 )
+
+_COMPILED_GRAPH_CACHE: dict[str, CompiledBehaviorGraph] = {}
 
 
 class BehaviorGraphError(ValueError):
@@ -158,6 +163,7 @@ class GraphConnection:
 
 @dataclass(frozen=True)
 class _CompiledStep:
+    node_id: str
     evaluate: Callable[[object, Mapping[str, NodeValue]], NodeValue]
     inputs: tuple[tuple[str, int], ...]
 
@@ -178,6 +184,21 @@ class CompiledBehaviorGraph:
         for step in self.steps:
             values.append(step.run(context, values))
         return values[self.output_index]
+
+    def evaluate_with_trace(
+        self, context: object
+    ) -> tuple[NodeValue, tuple[tuple[str, NodeValue], ...]]:
+        """Evaluate once and return ordered intermediate values for an inspector.
+
+        This is intentionally opt-in: normal simulation execution stores no
+        per-fish trace, while a selected fish can be explained on demand.
+        """
+        values: list[NodeValue] = []
+        for step in self.steps:
+            values.append(step.run(context, values))
+        return values[self.output_index], tuple(
+            (step.node_id, values[index]) for index, step in enumerate(self.steps)
+        )
 
 
 def _evaluator_for(node: BehaviorNode) -> Callable[[object, Mapping[str, NodeValue]], NodeValue]:
@@ -233,6 +254,11 @@ class BehaviorGraph:
             ],
             "output": self.output_node_id,
         }
+
+    def fingerprint(self) -> str:
+        """Stable content fingerprint suitable for graph cache and provenance."""
+        encoded = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
     @classmethod
     def from_dict(cls, data: object) -> BehaviorGraph:
@@ -302,6 +328,17 @@ class BehaviorGraph:
                 for port_name in sorted(definition.input_ports):
                     if port_name not in connected_ports:
                         issues.append(f"required input {node.node_id!r}.{port_name} has no source")
+                for parameter_name, spec in definition.parameter_specs.items():
+                    if parameter_name in node.parameters:
+                        value = node.parameters[parameter_name]
+                        if isinstance(value, bool) or not isinstance(value, (int, float)):
+                            issues.append(
+                                f"node {node.node_id!r} parameter {parameter_name!r} must be numeric"
+                            )
+                        elif not float(spec.minimum) <= float(value) <= float(spec.maximum):
+                            issues.append(
+                                f"node {node.node_id!r} parameter {parameter_name!r} is outside bounds"
+                            )
 
             for connection in self.connections:
                 source = nodes_by_id.get(connection.source_id)
@@ -347,6 +384,10 @@ class BehaviorGraph:
         Set ``validate_outputs`` for debug or benchmark runs that should enforce
         each node's declared runtime value type.
         """
+        if registry is NODE_REGISTRY:
+            from core.behavior.standard_nodes import register_standard_nodes
+
+            register_standard_nodes(registry)
         issues = self.validate(registry)
         if issues:
             raise BehaviorGraphError("Cannot compile behavior graph: " + "; ".join(issues))
@@ -372,8 +413,60 @@ class BehaviorGraph:
             evaluator = _evaluator_for(node)
             if validate_outputs:
                 evaluator = _checked_evaluator(evaluator, node_id, definition.output_type)
-            steps.append(_CompiledStep(evaluator, inputs))
+            steps.append(_CompiledStep(node_id, evaluator, inputs))
         return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
+
+    def compile_cached(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
+        """Compile once per stable graph fingerprint for the simulation hot path."""
+        key = self.fingerprint()
+        compiled = _COMPILED_GRAPH_CACHE.get(key)
+        if compiled is None:
+            compiled = self.compile(registry)
+            _COMPILED_GRAPH_CACHE[key] = compiled
+        return compiled
+
+    def crossed_over(
+        self,
+        other: BehaviorGraph,
+        *,
+        weight1: float,
+        mutation_rate: float,
+        mutation_strength: float,
+        rng: pyrandom.Random,
+        registry: NodeRegistry = NODE_REGISTRY,
+    ) -> BehaviorGraph:
+        """Blend matching-node parameters and mutate only declared numeric values.
+
+        Topology is intentionally retained.  Structural mutation belongs to a
+        later milestone, after this representation has demonstrated selection.
+        """
+        if registry is NODE_REGISTRY:
+            from core.behavior.standard_nodes import register_standard_nodes
+
+            register_standard_nodes(registry)
+        other_nodes = {node.node_id: node for node in other.nodes}
+        evolved_nodes: list[GraphNode] = []
+        for node in self.nodes:
+            parameters = dict(node.parameters)
+            counterpart = other_nodes.get(node.node_id)
+            definition = registry.get(node.node_type)
+            if counterpart is not None and counterpart.node_type == node.node_type:
+                for name in sorted(definition.parameter_specs):
+                    left = parameters.get(name, definition.parameter_specs[name].default)
+                    right = counterpart.parameters.get(
+                        name, definition.parameter_specs[name].default
+                    )
+                    parameters[name] = Scalar(
+                        float(left) * weight1 + float(right) * (1.0 - weight1)
+                    )
+            for name, spec in sorted(definition.parameter_specs.items()):
+                value = spec.clamp(parameters.get(name, spec.default))
+                if rng.random() < mutation_rate:
+                    span = float(spec.maximum) - float(spec.minimum)
+                    value = spec.clamp(float(value) + rng.gauss(0.0, mutation_strength * span))
+                parameters[name] = value
+            evolved_nodes.append(GraphNode(node.node_id, node.node_type, parameters))
+        return BehaviorGraph(tuple(evolved_nodes), self.connections, self.output_node_id)
 
     def _topological_order(self, nodes_by_id: Mapping[str, GraphNode]) -> tuple[str, ...]:
         incoming_count = dict.fromkeys(nodes_by_id, 0)

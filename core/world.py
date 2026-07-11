@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from core.code_pool.genome_code_pool import GenomeCodePool
+    from core.config.simulation_config import SimulationConfig
     from core.entities.base import Entity
 
 
@@ -53,6 +54,8 @@ class World(Protocol):
     """
 
     # --- Spatial Queries ---
+
+    simulation_config: "SimulationConfig | None"
 
     def nearby_agents(self, agent: "Entity", radius: float) -> list["Entity"]:
         """Find all agents within a radius of the given agent.

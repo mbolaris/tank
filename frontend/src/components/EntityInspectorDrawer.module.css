@@ -127,6 +127,40 @@
     color: var(--color-text-dim);
 }
 
+.behaviorLens {
+    padding: var(--spacing-sm);
+    border-left: 2px solid var(--color-primary);
+    background: rgba(6, 182, 212, 0.06);
+}
+
+.intent {
+    margin: 0 0 var(--spacing-xs);
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.graphDetails {
+    margin-top: var(--spacing-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.graphDetails summary {
+    cursor: pointer;
+    color: var(--color-primary);
+}
+
+.graphDetails ul {
+    margin: var(--spacing-xs) 0 0;
+    padding-left: var(--spacing-md);
+}
+
+.graphFingerprint {
+    margin: var(--spacing-xs) 0;
+    font-family: var(--font-mono);
+}
+
 .commonName,
 .scientificName {
     margin: 0;

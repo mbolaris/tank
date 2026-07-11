@@ -182,25 +182,47 @@ def inherit_behavior_graph(
     parent2_trait: GeneticTrait | None,
     *,
     weight1: float,
+    mutation_rate: float,
+    mutation_strength: float,
     rng: pyrandom.Random,
 ) -> GeneticTrait | None:
-    """Inherit dormant graph data without perturbing graph-free RNG schedules."""
+    """Cross matching-node parameters while preserving the fixed topology."""
     graph1 = parent1_trait.value if parent1_trait is not None else None
     graph2 = parent2_trait.value if parent2_trait is not None else None
     if graph1 is None and graph2 is None:
         return None
 
     if graph1 is None:
-        chosen = graph2
+        assert graph2 is not None
+        copied = type(graph2).from_dict(graph2.to_dict())
+        evolved = copied.crossed_over(
+            copied,
+            weight1=1.0,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
     elif graph2 is None:
-        chosen = graph1
+        copied = type(graph1).from_dict(graph1.to_dict())
+        evolved = copied.crossed_over(
+            copied,
+            weight1=1.0,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
     else:
-        chosen = graph1 if rng.random() < weight1 else graph2
-    assert chosen is not None
-    # Graph mutation is deliberately deferred to Theme 12.5.  Cloning avoids
-    # aliasing a mutable trait container across parent and offspring genomes.
-    copied = type(chosen).from_dict(chosen.to_dict())
-    return inherit_trait_meta(parent1_trait, parent2_trait, copied, rng)
+        # Keep topology from a parent, then crossover parameters by matching
+        # node id/type.  No add/remove/rewire mutation occurs in this stage.
+        base, mate = (graph1, graph2) if rng.random() < weight1 else (graph2, graph1)
+        evolved = base.crossed_over(
+            mate,
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+    return inherit_trait_meta(parent1_trait, parent2_trait, evolved, rng)
 
 
 def inherit_behavioral_traits(
@@ -290,7 +312,12 @@ def inherit_behavioral_traits(
     )
 
     inherited["behavior_graph"] = inherit_behavior_graph(
-        parent1.behavior_graph, parent2.behavior_graph, weight1=weight1, rng=rng
+        parent1.behavior_graph,
+        parent2.behavior_graph,
+        weight1=weight1,
+        mutation_rate=mutation_rate,
+        mutation_strength=mutation_strength,
+        rng=rng,
     )
 
     # Inherit per-kind policy traits (new multi-policy system)
@@ -414,7 +441,12 @@ def recombine_behavioral_traits(
     else:
         graph_weight = 1.0 if rng.random() < parent1_probability else 0.0
         inherited["behavior_graph"] = inherit_behavior_graph(
-            parent1.behavior_graph, parent2.behavior_graph, weight1=graph_weight, rng=rng
+            parent1.behavior_graph,
+            parent2.behavior_graph,
+            weight1=graph_weight,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
         )
 
     # Inherit per-kind policy traits (new multi-policy system)

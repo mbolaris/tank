@@ -210,6 +210,24 @@ class AlgorithmicMovement(MovementStrategy):
             return None
         return composable_behavior.execute(fish)
 
+    def _get_graph_velocity(self, fish: Fish) -> VelocityComponents | None:
+        """Evaluate a graph-backed controller when the experimental flag is on."""
+        config = fish.environment.simulation_config
+        if config is None or not config.tank.graph_behavior_enabled:
+            return None
+        graph_trait = fish.genome.behavioral.behavior_graph
+        graph = graph_trait.value if graph_trait is not None else None
+        if graph is None:
+            return None
+        from core.behavior.tank_adapter import build_tank_behavior_observation
+
+        observation = build_tank_behavior_observation(fish)
+        output = graph.compile_cached().evaluate(observation.values)
+        if not isinstance(output, tuple) or len(output) != 2:
+            logger.warning("Graph behavior for fish %s returned a non-vector", fish.fish_id)
+            return None
+        return float(output[0]), float(output[1])
+
     def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         """Execute movement policy from genome if configured.
 
