@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import sys
 import os
 import shutil
-import tempfile
 import subprocess
+import sys
+import tempfile
 import zipfile
 
 

@@ -5,10 +5,7 @@ This file holds recommendations mapping and human-readable string formatting.
 
 from typing import Any
 
-from tools.evolution_report_analyzer import (
-    GEN_RATE_HEALTHY_PER_10K,
-    STARVATION_STRAINED,
-)
+from tools.evolution_report_analyzer import GEN_RATE_HEALTHY_PER_10K, STARVATION_STRAINED
 
 
 def recommend(

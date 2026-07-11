@@ -20,6 +20,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
+from core.behavior.primitives.steering import safe_normalize
 from core.config.fish import (
     FLEE_SPEED_CRITICAL,
     FLEE_SPEED_NORMAL,
@@ -29,7 +30,6 @@ from core.config.fish import (
 )
 from core.config.food import BASE_FOOD_DETECTION_RANGE, PREDATOR_DEFAULT_FAR_DISTANCE
 from core.entities import Crab, Food
-from core.behavior.primitives.steering import safe_normalize
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
 

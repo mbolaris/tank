@@ -6,7 +6,6 @@ selection quality scoring, and health assessment logic.
 
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Thresholds (kept in sync with the "Healthy Ecosystem Indicators" table and the
 # "Common Gotchas" notes in CLAUDE.md). Centralised so the verdict logic and the

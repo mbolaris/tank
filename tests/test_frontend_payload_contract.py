@@ -28,7 +28,6 @@ from backend.state_payloads import (
     StatsPayload,
 )
 
-
 TYPE_SOURCES = (
     Path(__file__).resolve().parents[1] / "frontend" / "src" / "types" / "simulation.ts",
     Path(__file__).resolve().parents[1] / "frontend" / "src" / "types" / "payload.ts",

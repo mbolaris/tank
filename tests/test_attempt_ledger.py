@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 from core.research.attempt_ledger import log_attempt
 
 
@@ -185,9 +186,10 @@ def test_summarize_attempts(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("ATTEMPT_LEDGER_PATH", str(ledger_file))
 
     # Call summarize_attempts main and capture output
-    from tools.summarize_attempts import main as summarize_main
     import io
     from contextlib import redirect_stdout
+
+    from tools.summarize_attempts import main as summarize_main
 
     f = io.StringIO()
     with redirect_stdout(f):

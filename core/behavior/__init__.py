@@ -1,8 +1,8 @@
 """Shared, domain-neutral building blocks for organism behavior."""
 
+from core.behavior.graph import BehaviorGraph, BehaviorGraphError, CompiledBehaviorGraph
 from core.behavior.nodes import NODE_REGISTRY, NodeCategory, NodeDefinition, NodeRegistry, ValueType
 from core.behavior.standard_nodes import register_standard_nodes
-from core.behavior.graph import BehaviorGraph, BehaviorGraphError, CompiledBehaviorGraph
 
 register_standard_nodes()
 

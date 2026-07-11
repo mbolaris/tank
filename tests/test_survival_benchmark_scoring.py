@@ -1,9 +1,6 @@
 """Regression tests for the survival benchmark's ecological validity gate."""
 
-from benchmarks.tank.survival_5k import (
-    MAX_VALID_STARVATION_RATE,
-    calculate_score,
-)
+from benchmarks.tank.survival_5k import MAX_VALID_STARVATION_RATE, calculate_score
 
 
 def test_valid_starvation_rate_keeps_normal_score_contract():

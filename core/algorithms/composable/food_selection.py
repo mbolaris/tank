@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, cast
 
+from core.behavior.primitives.steering import blend_prediction, predict_linear_intercept
 from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.config.food import (
     BASE_FOOD_DETECTION_RANGE,
@@ -22,8 +23,6 @@ from core.config.food import (
 from core.entities import Food
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
-from core.behavior.primitives.steering import predict_linear_intercept, blend_prediction
-
 
 if TYPE_CHECKING:
     from core.entities import Fish

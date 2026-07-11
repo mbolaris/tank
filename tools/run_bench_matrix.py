@@ -17,15 +17,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.run_bench import load_benchmark_module, run_benchmark, expected_runtime_seconds
+from core.research.attempt_ledger import log_attempt
+from core.solutions.config_hash import compute_config_hash
 from tools.champion_eligibility import result_eligibility_error
+from tools.run_bench import expected_runtime_seconds, load_benchmark_module, run_benchmark
 from tools.validate_improvement import (
-    get_champion_record,
     check_config_compatibility,
+    get_champion_record,
     is_improvement,
 )
-from core.solutions.config_hash import compute_config_hash
-from core.research.attempt_ledger import log_attempt
 
 
 def main():
