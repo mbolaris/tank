@@ -31,13 +31,12 @@ def install_default_pursuit_module_if_enabled(
 ) -> None:
     """Give founders a shared pursuit module only in explicitly enabled experiments.
 
-    Independently opt-in from the foraging graph itself (both flags must be on
-    for the module to actually steer movement - see core.behavior.tank_adapter
-    and core.movement.ball_pursuit). No random draws occur here.
+    Independently opt-in from the foraging graph itself. This supports clean
+    graph/module ablations and lets the module be evaluated by soccer without
+    installing the foraging controller. No random draws occur here.
     """
     if (
         config is not None
-        and config.tank.graph_behavior_enabled
         and config.tank.target_pursuit_module_enabled
         and genome.behavioral.target_pursuit_module is None
     ):

@@ -276,6 +276,15 @@ export function EntityInspectorDrawer({
                                         {details.behavior.lens.graph.nodes.map((node) => (
                                             <li key={node.id}>{`${node.id}: ${node.type}`}</li>
                                         ))}
+                                        {Object.entries(details.behavior.lens.explanations).map(
+                                            ([node, explanation]) => (
+                                                <li key={`${node}-explanation`}>
+                                                    {`${node}: ${Object.entries(explanation)
+                                                        .map(([key, value]) => `${key}=${String(value)}`)
+                                                        .join(', ')}`}
+                                                </li>
+                                            ),
+                                        )}
                                     </ul>
                                 </details>
                             </div>
@@ -330,8 +339,8 @@ export function EntityInspectorDrawer({
                         <p className={styles.intent}>{details.modules.name}</p>
                         <StatRow label="Used for" value={details.modules.used_for.join(', ')} />
                         <StatRow
-                            label="Assumed speed"
-                            value={details.modules.parameters.assumed_speed.toFixed(2)}
+                            label="Speed calibration"
+                            value={details.modules.parameters.speed_multiplier.toFixed(2)}
                         />
                         <StatRow
                             label="Prediction strength"

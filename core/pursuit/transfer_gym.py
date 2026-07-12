@@ -132,6 +132,7 @@ def run_interception_episode(
                 "target_vector": target_vector,
                 "target_velocity": (target_velocity.x, target_velocity.y),
                 "self_velocity": (pursuer_vel.x, pursuer_vel.y),
+                "self_speed": PURSUER_SPEED,
             }
         )
         vx, vy = (float(output[0]), float(output[1])) if isinstance(output, tuple) else (0.0, 0.0)

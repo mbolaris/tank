@@ -40,6 +40,7 @@ class ForagingIntentKind(str, Enum):
     THREAT = "threat_avoidance"
     FOOD = "food_pursuit"
     COHESION = "social_cohesion"
+    SEARCH = "searching"
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,7 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
         target_exists=food is not None,
         threat_vector=threat_away_vector,
         self_velocity=(float(fish.vel.x), float(fish.vel.y)),
+        self_speed=max(0.0, float(fish.speed)),
         energy_ratio=energy_ratio,
     )
     pursuit_vector = _pursuit_module_vector(fish, target_observation)
@@ -95,11 +97,7 @@ def _pursuit_module_vector(
     behavior in that case.
     """
     config = fish.environment.simulation_config
-    if (
-        config is None
-        or not config.tank.graph_behavior_enabled
-        or not config.tank.target_pursuit_module_enabled
-    ):
+    if config is None or not config.tank.target_pursuit_module_enabled:
         return None
     module_trait = fish.genome.behavioral.target_pursuit_module
     module = module_trait.value if module_trait is not None else None
@@ -145,6 +143,8 @@ def classify_foraging_intent(
     threat = observation.values["threat_away_vector"]
     if isinstance(threat, tuple) and len(threat) == 2 and (threat[0] != 0.0 or threat[1] != 0.0):
         return ForagingIntentKind.THREAT
+    if observation.values.get("target_exists") is False:
+        return ForagingIntentKind.SEARCH
     raw_energy_ratio = observation.values["energy_ratio"]
     energy_ratio = float(raw_energy_ratio) if isinstance(raw_energy_ratio, (int, float)) else 0.0
     if energy_ratio < _urgency_threshold(graph):

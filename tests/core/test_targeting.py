@@ -13,6 +13,7 @@ def test_interception_uses_relative_target_velocity() -> None:
         target_exists=True,
         threat_vector=(0.0, 0.0),
         self_velocity=(1.0, 0.0),
+        self_speed=5.0,
         energy_ratio=0.5,
     )
 
@@ -31,5 +32,28 @@ def test_soccer_adapter_uses_the_shared_target_contract() -> None:
 
     assert observation.target_vector == (6.0, 4.0)
     assert observation.target_velocity == (0.5, -0.5)
+    assert observation.self_speed == 1.0
     assert observation.energy_ratio == 1.0
     assert observation.to_values()["target_exists"] is True
+
+
+def test_missing_food_is_not_classified_as_food_pursuit_when_hungry() -> None:
+    from core.behavior.tank_adapter import (
+        ForagingIntentKind,
+        TankBehaviorObservation,
+        classify_foraging_intent,
+        default_foraging_graph,
+    )
+
+    observation = TankBehaviorObservation(
+        values={
+            "threat_away_vector": (0.0, 0.0),
+            "energy_ratio": 0.1,
+            "target_exists": False,
+        },
+        target_label=None,
+    )
+
+    assert (
+        classify_foraging_intent(observation, default_foraging_graph()) is ForagingIntentKind.SEARCH
+    )

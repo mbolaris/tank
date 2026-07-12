@@ -141,7 +141,7 @@ class GraphBehaviorConsideration:
         if decision is None:
             return None
         velocity, kind = decision
-        if kind is ForagingIntentKind.COHESION:
+        if kind in (ForagingIntentKind.COHESION, ForagingIntentKind.SEARCH):
             return None
         return MovementIntent.from_velocity(
             velocity,

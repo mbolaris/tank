@@ -99,18 +99,25 @@ def test_intercept_target_node_is_domain_neutral() -> None:
             GraphNode("target", "context_vector_sensor", {"field": "target_vector"}),
             GraphNode("target_velocity", "context_vector_sensor", {"field": "target_velocity"}),
             GraphNode("self_velocity", "context_vector_sensor", {"field": "self_velocity"}),
-            GraphNode("intercept", "intercept_target", {"speed": 5.0}),
+            GraphNode("self_speed", "context_scalar_sensor", {"field": "self_speed"}),
+            GraphNode("intercept", "intercept_target", {"speed_multiplier": 1.0}),
         ),
         (
             GraphConnection("target", "intercept", "target_vector"),
             GraphConnection("target_velocity", "intercept", "target_velocity"),
             GraphConnection("self_velocity", "intercept", "self_velocity"),
+            GraphConnection("self_speed", "intercept", "self_speed"),
         ),
         "intercept",
     )
 
     assert graph.compile(NODE_REGISTRY, validate_outputs=True).evaluate(
-        {"target_vector": (10, 0), "target_velocity": (2, 0), "self_velocity": (1, 0)}
+        {
+            "target_vector": (10, 0),
+            "target_velocity": (2, 0),
+            "self_velocity": (1, 0),
+            "self_speed": 5.0,
+        }
     ) == (12.0, 0.0)
 
 

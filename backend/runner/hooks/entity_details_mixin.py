@@ -222,6 +222,11 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
     observation = build_tank_behavior_observation(fish)
     output, node_trace = graph.compile_cached().evaluate_with_node_trace(observation.values)
     outputs = {entry.node_id: _display_node_value(entry.output) for entry in node_trace}
+    explanations = {
+        entry.node_id: _display_node_value(entry.explanation)
+        for entry in node_trace
+        if entry.explanation is not None
+    }
     cohesion = observation.values["cohesion_vector"]
     # Single source of truth for what the graph selected - shared with movement
     # arbitration (GraphBehaviorConsideration) so the Lens can never disagree
@@ -231,6 +236,8 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
         intent = "Fleeing threat"
     elif kind is ForagingIntentKind.FOOD:
         intent = "Chasing food"
+    elif kind is ForagingIntentKind.SEARCH:
+        intent = "Searching"
     elif _nonzero_vector(cohesion):
         intent = "Following the group"
     else:
@@ -246,6 +253,7 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
         "target": observation.target_label,
         "inputs": {name: _display_node_value(value) for name, value in observation.values.items()},
         "outputs": outputs,
+        "explanations": explanations,
         "output": _display_node_value(output),
         "contributions": contributions,
         "cancellation": cancellation,
@@ -255,6 +263,10 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
 
 
 def _display_node_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _display_node_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_display_node_value(item) for item in value]
     if isinstance(value, tuple):
         return [round(float(component), 3) for component in value]
     if isinstance(value, float):
@@ -387,7 +399,7 @@ def _pursuit_module_parameters(module: Any) -> dict[str, float]:
     intercept_params = dict(getattr(by_id.get("intercept"), "parameters", {}))
     pursuit_params = dict(getattr(by_id.get("pursuit"), "parameters", {}))
     return {
-        "assumed_speed": round(float(intercept_params.get("speed", 1.0)), 3),
+        "speed_multiplier": round(float(intercept_params.get("speed_multiplier", 1.0)), 3),
         "prediction_strength": round(float(intercept_params.get("prediction_strength", 1.0)), 3),
         "max_prediction_horizon": round(
             float(intercept_params.get("max_prediction_horizon", 100.0)), 3

@@ -36,7 +36,7 @@ def test_modules_reports_parameters_and_current_food_target() -> None:
     assert modules["name"] == "Target Pursuit v1"
     assert modules["used_for"] == ["Food", "Soccer"]
     assert set(modules["parameters"]) == {
-        "assumed_speed",
+        "speed_multiplier",
         "prediction_strength",
         "max_prediction_horizon",
         "pursuit_commitment",

@@ -12,6 +12,7 @@ def build_soccer_target_observation(
     ball_position: Vector | None,
     ball_velocity: Vector = (0.0, 0.0),
     threat_vector: Vector = (0.0, 0.0),
+    self_speed: float | None = None,
     energy_ratio: float = 1.0,
 ) -> TargetObservation:
     """Adapt ball state to the same contract used by food pursuit."""
@@ -27,6 +28,11 @@ def build_soccer_target_observation(
         target_exists=target_exists,
         threat_vector=threat_vector,
         self_velocity=self_velocity,
+        self_speed=(
+            max(0.0, float(self_speed))
+            if self_speed is not None
+            else max(0.0, (self_velocity[0] ** 2 + self_velocity[1] ** 2) ** 0.5)
+        ),
         energy_ratio=max(0.0, min(1.0, energy_ratio)),
     )
 

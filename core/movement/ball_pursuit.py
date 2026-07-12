@@ -121,11 +121,7 @@ def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
     regardless of whether the module path is taken.
     """
     config = fish.environment.simulation_config
-    if (
-        config is None
-        or not config.tank.graph_behavior_enabled
-        or not config.tank.target_pursuit_module_enabled
-    ):
+    if config is None or not config.tank.target_pursuit_module_enabled:
         return None
     module_trait = fish.genome.behavioral.target_pursuit_module
     module = module_trait.value if module_trait is not None else None
@@ -137,6 +133,7 @@ def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
     observation = build_soccer_target_observation(
         self_position=(fish.pos.x, fish.pos.y),
         self_velocity=(fish.vel.x, fish.vel.y),
+        self_speed=fish.speed,
         ball_position=(ball.pos.x, ball.pos.y),
         ball_velocity=(ball.vel.x, ball.vel.y),
     )
