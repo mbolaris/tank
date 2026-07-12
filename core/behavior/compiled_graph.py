@@ -9,13 +9,26 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import cast
+from typing import Protocol, cast, runtime_checkable
 
 from core.behavior.nodes import BehaviorNode, NodeCategory, NodeValue
 
 
 class BehaviorGraphError(ValueError):
     """Raised when graph data cannot be validated or compiled."""
+
+
+@runtime_checkable
+class ExplainableNode(Protocol):
+    """A node that can self-report which input port it selected and why.
+
+    Opt-in and checked structurally (not every node implements it) - see
+    ``CompiledStep.explain``.
+    """
+
+    def explain(self, inputs: Mapping[str, NodeValue]) -> Mapping[str, object]:
+        """Describe this node's decision for the given inputs."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -38,11 +51,10 @@ class CompiledStep:
         stays correct as evolvable parameters change, instead of a caller
         re-deriving the same decision externally by hardcoding a node id.
         """
-        explain = getattr(self.node, "explain", None)
-        if not callable(explain):
+        if not isinstance(self.node, ExplainableNode):
             return None
         inputs = {port: values[index] for port, index in self.inputs}
-        return cast(Mapping[str, object], explain(inputs))
+        return self.node.explain(inputs)
 
 
 @dataclass(frozen=True)
