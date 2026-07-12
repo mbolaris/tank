@@ -348,7 +348,7 @@ class BehaviorGraph:
             evaluator = evaluator_for(node)
             if validate_outputs:
                 evaluator = _checked_evaluator(evaluator, node_id, definition.output_type)
-            steps.append(CompiledStep(node_id, evaluator, inputs))
+            steps.append(CompiledStep(node_id, evaluator, inputs, node))
         return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
 
     def compile_cached(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:

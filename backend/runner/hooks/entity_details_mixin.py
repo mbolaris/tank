@@ -219,8 +219,8 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
     )
 
     observation = build_tank_behavior_observation(fish)
-    output, trace = graph.compile_cached().evaluate_with_trace(observation.values)
-    outputs = {node_id: _display_node_value(value) for node_id, value in trace}
+    output, node_trace = graph.compile_cached().evaluate_with_node_trace(observation.values)
+    outputs = {entry.node_id: _display_node_value(entry.output) for entry in node_trace}
     cohesion = observation.values["cohesion_vector"]
     # Single source of truth for what the graph selected - shared with movement
     # arbitration (GraphBehaviorConsideration) so the Lens can never disagree
