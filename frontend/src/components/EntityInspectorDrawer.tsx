@@ -56,9 +56,9 @@ export function EntityInspectorDrawer({
     const drawerRef = useRef<HTMLDivElement>(null);
     const requestSeqRef = useRef(0);
 
-    const fetchDetails = useCallback(() => {
+    const fetchDetails = useCallback((quiet = false) => {
         const seq = ++requestSeqRef.current;
-        setFetchState({ phase: 'loading' });
+        if (!quiet) setFetchState({ phase: 'loading' });
         sendCommandWithResponse({
             command: 'get_entity_details',
             data: { entity_id: entityId },
@@ -83,6 +83,12 @@ export function EntityInspectorDrawer({
     useEffect(() => {
         fetchDetails();
     }, [fetchDetails]);
+
+    useEffect(() => {
+        if (!isConnected || entityType !== 'fish') return;
+        const timer = window.setInterval(() => fetchDetails(true), 500);
+        return () => window.clearInterval(timer);
+    }, [entityType, fetchDetails, isConnected]);
 
     // Focus the drawer on open; hand focus back where it was on close.
     useEffect(() => {
@@ -210,7 +216,7 @@ export function EntityInspectorDrawer({
                 {fetchState.phase === 'error' && (
                     <div className={styles.stateMessage} role="alert">
                         <p>Could not load details: {fetchState.message}</p>
-                        <Button variant="secondary" onClick={fetchDetails} disabled={!isConnected}>
+                        <Button variant="secondary" onClick={() => fetchDetails()} disabled={!isConnected}>
                             Retry
                         </Button>
                     </div>
@@ -239,6 +245,12 @@ export function EntityInspectorDrawer({
                                             value={`${Math.round(weight * 100)}% contribution`}
                                         />
                                     ))}
+                                {(details.behavior.lens.cancellation ?? 0) > 0 && (
+                                    <StatRow
+                                        label="Vector cancellation"
+                                        value={`${Math.round((details.behavior.lens.cancellation ?? 0) * 100)}%`}
+                                    />
+                                )}
                                 <details className={styles.graphDetails}>
                                     <summary>Behavior graph</summary>
                                     <p className={styles.graphFingerprint}>

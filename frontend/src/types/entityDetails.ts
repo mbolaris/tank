@@ -40,6 +40,7 @@ export interface EntityDetailsBehaviorLens {
     outputs: Record<string, unknown>;
     output: unknown;
     contributions: Record<string, number>;
+    cancellation?: number;
     fingerprint: string;
     graph: {
         nodes: Array<{ id: string; type: string; parameters: Record<string, unknown> }>;

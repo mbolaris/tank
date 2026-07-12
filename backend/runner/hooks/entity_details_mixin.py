@@ -14,6 +14,7 @@ is backend bookkeeping, not simulation state.
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -227,21 +228,23 @@ def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
         intent = "Following the group"
     else:
         intent = "Searching"
-    blend_node = next((node for node in graph.nodes if node.node_id == "blend"), None)
-    blend_params = dict(getattr(blend_node, "parameters", {}))
+    raw_energy_ratio = observation.values["energy_ratio"]
+    energy_ratio = float(raw_energy_ratio) if isinstance(raw_energy_ratio, (int, float)) else 0.0
+    contributions, cancellation = _graph_contributions(
+        threat=threat,
+        food=observation.values["food_vector"],
+        cohesion=cohesion,
+        energy_ratio=energy_ratio,
+        graph=graph,
+    )
     return {
         "intent": intent,
         "target": observation.target_label,
         "inputs": {name: _display_node_value(value) for name, value in observation.values.items()},
         "outputs": outputs,
         "output": _display_node_value(output),
-        "contributions": {
-            "threat_response": 1.0 if _nonzero_vector(threat) else 0.0,
-            "food_pursuit": float(blend_params.get("first_weight", 1.0)) if has_target else 0.0,
-            "school_cohesion": (
-                float(blend_params.get("second_weight", 0.2)) if _nonzero_vector(cohesion) else 0.0
-            ),
-        },
+        "contributions": contributions,
+        "cancellation": cancellation,
         "fingerprint": graph.fingerprint(),
         "graph": graph.to_dict(),
     }
@@ -253,6 +256,39 @@ def _display_node_value(value: Any) -> Any:
     if isinstance(value, float):
         return round(value, 3)
     return value
+
+
+def _graph_contributions(
+    *, threat: Any, food: Any, cohesion: Any, energy_ratio: float, graph: Any
+) -> tuple[dict[str, float], float]:
+    """Calculate weighted-vector influence rather than displaying raw weights."""
+    if _nonzero_vector(threat):
+        return {"threat_response": 1.0, "food_pursuit": 0.0, "school_cohesion": 0.0}, 0.0
+    blend = next((node for node in graph.nodes if node.node_id == "blend"), None)
+    parameters = dict(getattr(blend, "parameters", {}))
+    first_name, first = (
+        ("school_cohesion", cohesion) if energy_ratio >= 0.35 else ("food_pursuit", food)
+    )
+    first_weight, second_weight = float(parameters.get("first_weight", 1.0)), float(
+        parameters.get("second_weight", 0.2)
+    )
+    first_magnitude = first_weight * _vector_magnitude(first)
+    second_magnitude = second_weight * _vector_magnitude(cohesion)
+    total = first_magnitude + second_magnitude
+    contributions = {"food_pursuit": 0.0, "school_cohesion": 0.0, "threat_response": 0.0}
+    if total:
+        contributions[first_name] += first_magnitude / total
+        contributions["school_cohesion"] += second_magnitude / total
+    blended = (
+        first_weight * float(first[0]) + second_weight * float(cohesion[0]),
+        first_weight * float(first[1]) + second_weight * float(cohesion[1]),
+    )
+    cancellation = 1.0 - math.hypot(*blended) / total if total else 0.0
+    return contributions, max(0.0, cancellation)
+
+
+def _vector_magnitude(value: Any) -> float:
+    return math.hypot(float(value[0]), float(value[1])) if _nonzero_vector(value) else 0.0
 
 
 def _nonzero_vector(value: Any) -> bool:

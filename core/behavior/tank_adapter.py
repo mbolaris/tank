@@ -14,6 +14,7 @@ from typing import Any
 from core.algorithms.composable.food_selection import select_food_target
 from core.behavior.graph import BehaviorGraph
 from core.behavior.standard_nodes import register_standard_nodes
+from core.behavior.targeting import TargetObservation
 from core.entities import Crab, Fish
 
 _SOCIAL_RADIUS = 120.0
@@ -35,6 +36,14 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     threat_away_vector = _negated(_offset(fish, threat))
     cohesion, alignment, separation = _school_vectors(fish)
     energy_ratio = fish.energy / max(fish.max_energy, 1.0)
+    target_observation = TargetObservation(
+        target_vector=food_vector,
+        target_velocity=(float(food.vel.x), float(food.vel.y)) if food is not None else (0.0, 0.0),
+        target_exists=food is not None,
+        threat_vector=threat_away_vector,
+        self_velocity=(float(fish.vel.x), float(fish.vel.y)),
+        energy_ratio=float(max(0.0, min(1.0, energy_ratio))),
+    )
     target_label = "Food" if food is not None else None
     return TankBehaviorObservation(
         values={
@@ -46,6 +55,7 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
             "separation_vector": separation,
             "current_velocity": (float(fish.vel.x), float(fish.vel.y)),
             "has_target": food is not None,
+            **target_observation.to_values(),
         },
         target_label=target_label,
     )

@@ -6,6 +6,7 @@ import random
 
 from backend.simulation_runner import SimulationRunner
 from core.behavior.graph import BehaviorGraph, GraphNode
+from core.behavior.nodes import NODE_REGISTRY
 from core.behavior.tank_adapter import default_foraging_graph
 from core.entities import Fish
 from core.genetics.behavioral_inheritance import inherit_behavior_graph
@@ -66,6 +67,30 @@ def test_graph_inheritance_crosses_matching_parameters_without_rewiring() -> Non
     assert child.output_node_id == left.output_node_id
     blend = next(node for node in child.nodes if node.node_id == "blend")
     assert blend.parameters["first_weight"] == 1.0
+
+
+def test_graph_parameter_mutation_is_deterministic_and_stays_within_declared_bounds() -> None:
+    graph = default_foraging_graph()
+    first = graph.crossed_over(
+        graph,
+        weight1=0.5,
+        mutation_rate=1.0,
+        mutation_strength=10.0,
+        rng=random.Random(23),
+    )
+    second = graph.crossed_over(
+        graph,
+        weight1=0.5,
+        mutation_rate=1.0,
+        mutation_strength=10.0,
+        rng=random.Random(23),
+    )
+
+    assert first == second
+    for node in first.nodes:
+        definition = NODE_REGISTRY.get(node.node_type)
+        for name, spec in definition.parameter_specs.items():
+            assert float(spec.minimum) <= float(node.parameters[name]) <= float(spec.maximum)
 
 
 def test_graph_feature_flag_installs_graphs_and_exposes_an_on_demand_lens() -> None:
