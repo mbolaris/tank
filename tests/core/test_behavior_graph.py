@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+import core.behavior.compiled_cache as cache_module
 from core.behavior.graph import BehaviorGraph, BehaviorGraphError, GraphConnection, GraphNode
 from core.behavior.nodes import (
     BehaviorNode,
@@ -108,6 +109,12 @@ def _invalid_output_registry() -> NodeRegistry:
     return registry
 
 
+def _cached_graph(field: str) -> BehaviorGraph:
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    payload["graph"]["nodes"][0]["parameters"]["field"] = field
+    return BehaviorGraph.from_dict(payload["graph"])
+
+
 def test_golden_graph_replay_compiles_once_and_replays_expected_outputs():
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
     graph = BehaviorGraph.from_dict(payload["graph"])
@@ -119,6 +126,45 @@ def test_golden_graph_replay_compiles_once_and_replays_expected_outputs():
         frame["output"] for frame in payload["replay"]
     ]
     assert factory_calls == ["energy", "fed"]
+
+
+def test_compiled_cache_isolated_by_registry_identity() -> None:
+    cache_module._COMPILED_GRAPH_CACHE.clear()
+    graph = _cached_graph("energy")
+    first_calls: list[str] = []
+    second_calls: list[str] = []
+    first_registry = _registry(first_calls)
+    second_registry = _registry(second_calls)
+
+    first = graph.compile_cached(first_registry)
+    second = graph.compile_cached(second_registry)
+
+    assert first is not second
+    assert first_calls == ["energy", "fed"]
+    assert second_calls == ["energy", "fed"]
+    cache_module._COMPILED_GRAPH_CACHE.clear()
+
+
+def test_compiled_cache_evicts_least_recently_used_plan(monkeypatch) -> None:
+    monkeypatch.setattr(cache_module, "_COMPILED_GRAPH_CACHE_MAXSIZE", 2)
+    cache_module._COMPILED_GRAPH_CACHE.clear()
+    factory_calls: list[str] = []
+    registry = _registry(factory_calls)
+    first, second, third = (
+        _cached_graph("energy_1"),
+        _cached_graph("energy_2"),
+        _cached_graph("energy_3"),
+    )
+
+    first.compile_cached(registry)
+    second.compile_cached(registry)
+    first.compile_cached(registry)  # Promote first; second is now the LRU entry.
+    third.compile_cached(registry)
+    second.compile_cached(registry)
+
+    assert factory_calls == ["energy", "fed"] * 4
+    assert len(cache_module._COMPILED_GRAPH_CACHE) == 2
+    cache_module._COMPILED_GRAPH_CACHE.clear()
 
 
 def test_graph_round_trip_is_canonical():

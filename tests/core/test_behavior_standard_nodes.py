@@ -18,6 +18,7 @@ def test_standard_nodes_register_once_and_have_typed_contracts() -> None:
         "context_bool_sensor",
         "context_scalar_sensor",
         "context_vector_sensor",
+        "intercept_target",
         "invert_vector",
         "normalize_vector",
         "priority_vector_selector",
@@ -90,3 +91,24 @@ def test_context_scalar_sensor_rejects_boolean_values() -> None:
 
     with pytest.raises(TypeError, match="numeric scalar"):
         compiled.evaluate({"energy": True})
+
+
+def test_intercept_target_node_is_domain_neutral() -> None:
+    graph = BehaviorGraph(
+        (
+            GraphNode("target", "context_vector_sensor", {"field": "target_vector"}),
+            GraphNode("target_velocity", "context_vector_sensor", {"field": "target_velocity"}),
+            GraphNode("self_velocity", "context_vector_sensor", {"field": "self_velocity"}),
+            GraphNode("intercept", "intercept_target", {"speed": 5.0}),
+        ),
+        (
+            GraphConnection("target", "intercept", "target_vector"),
+            GraphConnection("target_velocity", "intercept", "target_velocity"),
+            GraphConnection("self_velocity", "intercept", "self_velocity"),
+        ),
+        "intercept",
+    )
+
+    assert graph.compile(NODE_REGISTRY, validate_outputs=True).evaluate(
+        {"target_vector": (10, 0), "target_velocity": (2, 0), "self_velocity": (1, 0)}
+    ) == (12.0, 0.0)

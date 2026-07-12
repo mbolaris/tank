@@ -1,9 +1,7 @@
-"""Typed, domain-neutral contracts for future behavior-graph nodes.
+"""Typed, domain-neutral contracts for behavior-graph nodes.
 
-The behavior graph is deliberately not wired into genomes or the simulation yet.
-This module defines the small vocabulary that any future graph node must use,
-and a registry that makes node metadata deterministic and validates graph-port
-compatibility before an interpreter is introduced.
+The graph controller is opt-in, while this shared vocabulary keeps node
+metadata deterministic and validates graph-port compatibility before execution.
 """
 
 from __future__ import annotations

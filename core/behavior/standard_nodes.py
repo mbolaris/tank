@@ -22,6 +22,7 @@ from core.behavior.nodes import (
     UnitVector,
     ValueType,
 )
+from core.behavior.pursuit_nodes import intercept_target_definition
 from core.behavior.primitives.steering import normalized_components
 
 
@@ -429,6 +430,7 @@ def register_standard_nodes(registry: NodeRegistry = NODE_REGISTRY) -> None:
                 "second_weight": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(3.0)),
             },
         ),
+        intercept_target_definition(),
         NodeDefinition(
             "threshold_vector_selector",
             NodeCategory.SELECTOR,

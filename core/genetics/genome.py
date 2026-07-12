@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from core.code_pool.genome_code_pool import GenomeCodePool
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 3  # Bumped from 2: added optional dormant behavior_graph.
+GENOME_SCHEMA_VERSION = 3  # Bumped from 2: added optional opt-in behavior_graph.
 
 
 class GeneticCrossoverMode(Enum):

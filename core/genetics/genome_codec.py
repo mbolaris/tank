@@ -220,7 +220,7 @@ def genome_from_dict(
     except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
 
-    # Dormant behavior graph.  Loading it does not activate it; the movement
+    # Opt-in behavior graph. Loading it does not activate it; the movement
     # path remains the existing composable behavior until a later graph adapter
     # explicitly opts in.
     try:

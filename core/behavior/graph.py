@@ -1,9 +1,7 @@
-"""Dormant, typed behavior-graph data and its compiled interpreter.
+"""Typed behavior-graph data and its compiled interpreter.
 
-Graphs are genome data only in this stage: no production fish asks this module
-for a movement decision.  Compiling validates the graph and turns it into a
-flat sequence of callables once, so activating graph-backed behavior later
-does not add graph traversal to the per-frame hot path.
+Graph-backed movement is an opt-in experiment. Compiling validates the graph
+and turns it into a flat sequence of callables outside the per-frame hot path.
 """
 
 from __future__ import annotations
@@ -27,8 +25,7 @@ from core.behavior.nodes import (
     Scalar,
     ValueType,
 )
-
-_COMPILED_GRAPH_CACHE: dict[str, CompiledBehaviorGraph] = {}
+from core.behavior.compiled_cache import get_compiled_plan
 
 
 class BehaviorGraphError(ValueError):
@@ -417,13 +414,8 @@ class BehaviorGraph:
         return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
 
     def compile_cached(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
-        """Compile once per stable graph fingerprint for the simulation hot path."""
-        key = self.fingerprint()
-        compiled = _COMPILED_GRAPH_CACHE.get(key)
-        if compiled is None:
-            compiled = self.compile(registry)
-            _COMPILED_GRAPH_CACHE[key] = compiled
-        return compiled
+        """Return a bounded, registry-specific cached plan for the hot path."""
+        return get_compiled_plan(registry, self.fingerprint(), lambda: self.compile(registry))
 
     def crossed_over(
         self,
