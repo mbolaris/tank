@@ -29,6 +29,29 @@ logger = logging.getLogger(__name__)
 GENOME_DECODE_ERRORS = (AttributeError, ImportError, KeyError, TypeError, ValueError)
 
 
+def _has_graph_value(trait: Any) -> bool:
+    """True when an optional BehaviorGraph-valued trait actually carries one."""
+    return bool(trait and trait.value is not None)
+
+
+def genome_schema_version_for(genome: Any, max_version: int) -> int:
+    """Compute the schema version a genome should serialize at.
+
+    A genome using neither opt-in graph trait serializes at the original
+    (pre-graph) payload shape; ``behavior_graph`` alone bumps one version,
+    and ``target_pursuit_module`` (independently opt-in, added after it)
+    bumps to ``max_version`` - so an old save/replay that never touches
+    either trait stays byte-identical to its original payload.
+    """
+    has_pursuit_module = _has_graph_value(genome.behavioral.target_pursuit_module)
+    has_behavior_graph = _has_graph_value(genome.behavioral.behavior_graph)
+    if has_pursuit_module:
+        return max_version
+    if has_behavior_graph:
+        return max_version - 1
+    return max_version - 2
+
+
 def genome_to_dict(
     genome: Any,
     *,
@@ -43,9 +66,11 @@ def genome_to_dict(
     poker_strategy_dict = poker_strategy.to_dict() if poker_strategy is not None else None
     behavior_graph = genome.behavioral.behavior_graph
     behavior_graph_dict = (
-        behavior_graph.value.to_dict()
-        if behavior_graph is not None and behavior_graph.value
-        else None
+        behavior_graph.value.to_dict() if _has_graph_value(behavior_graph) else None
+    )
+    pursuit_module = genome.behavioral.target_pursuit_module
+    pursuit_module_dict = (
+        pursuit_module.value.to_dict() if _has_graph_value(pursuit_module) else None
     )
 
     values: dict[str, Any] = {}
@@ -62,6 +87,7 @@ def genome_to_dict(
         ("poker_strategy", genome.behavioral.poker_strategy),
         ("mate_preferences", genome.behavioral.mate_preferences),
         ("behavior_graph", genome.behavioral.behavior_graph),
+        ("target_pursuit_module", genome.behavioral.target_pursuit_module),
     ):
         if trait is not None:
             meta = trait_meta_for_trait(trait)
@@ -124,10 +150,12 @@ def genome_to_dict(
         "soccer_policy_params": soccer_policy_params,
         "trait_meta": trait_meta,
     }
-    # Omit the dormant field when absent so existing genome payloads retain
+    # Omit dormant fields when absent so existing genome payloads retain
     # their shape apart from the explicit schema-version bump.
     if behavior_graph_dict is not None:
         result["behavior_graph"] = behavior_graph_dict
+    if pursuit_module_dict is not None:
+        result["target_pursuit_module"] = pursuit_module_dict
     return result
 
 
@@ -238,6 +266,25 @@ def genome_from_dict(
             genome.behavioral.behavior_graph = graph_trait
     except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing behavior_graph; keeping default", exc_info=True)
+
+    # Opt-in target pursuit module (independent of behavior_graph). Loading it
+    # does not activate it; each adapter gates its own use on the trait plus
+    # its own config flags (see core.behavior.feature_flags).
+    try:
+        from core.behavior.graph import BehaviorGraph
+        from core.genetics.trait import GeneticTrait
+
+        pursuit_data = data.get("target_pursuit_module")
+        if isinstance(pursuit_data, dict):
+            pursuit_graph = BehaviorGraph.from_dict(pursuit_data)
+            pursuit_trait = GeneticTrait(pursuit_graph)
+            if isinstance(trait_meta, dict):
+                pursuit_meta = trait_meta.get("target_pursuit_module")
+                if isinstance(pursuit_meta, dict):
+                    apply_trait_meta_to_trait(pursuit_trait, pursuit_meta)
+            genome.behavioral.target_pursuit_module = pursuit_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing target_pursuit_module; keeping default", exc_info=True)
 
     # New per-kind policy fields
     try:

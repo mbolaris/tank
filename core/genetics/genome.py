@@ -18,18 +18,23 @@ from core.genetics.behavioral import (
     validate_policy_fields,
 )
 from core.genetics.code_policy_traits import SOCCER_POLICY
-from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
+from core.genetics.genome_codec import (
+    genome_debug_snapshot,
+    genome_from_dict,
+    genome_schema_version_for,
+    genome_to_dict,
+)
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
 from core.genetics.trait import GeneticTrait
-from core.genetics.validation import validate_traits_from_specs
+from core.genetics.validation import validate_graph_trait, validate_traits_from_specs
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.code_pool.genome_code_pool import GenomeCodePool
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 3  # Bumped from 2: added optional opt-in behavior_graph.
+GENOME_SCHEMA_VERSION = 4  # Bumped from 3: added optional opt-in target_pursuit_module.
 
 
 class GeneticCrossoverMode(Enum):
@@ -100,16 +105,8 @@ class Genome:
 
         This is intended as a stable boundary format for persistence and transfer.
         """
-        has_behavior_graph = bool(
-            self.behavioral.behavior_graph and self.behavioral.behavior_graph.value is not None
-        )
         return genome_to_dict(
-            self,
-            # Preserve the exact v2 payload for the dormant default.  Version
-            # 3 is reserved for genomes that actually carry the new graph.
-            schema_version=(
-                GENOME_SCHEMA_VERSION if has_behavior_graph else GENOME_SCHEMA_VERSION - 1
-            ),
+            self, schema_version=genome_schema_version_for(self, GENOME_SCHEMA_VERSION)
         )
 
     @classmethod
@@ -149,17 +146,8 @@ class Genome:
             )
         )
 
-        behavior_graph = self.behavioral.behavior_graph
-        if behavior_graph is not None and behavior_graph.value is not None:
-            from core.behavior.graph import BehaviorGraph
-
-            if not isinstance(behavior_graph.value, BehaviorGraph):
-                issues.append("genome.behavioral.behavior_graph: expected BehaviorGraph")
-            else:
-                issues.extend(
-                    f"genome.behavioral.behavior_graph: {issue}"
-                    for issue in behavior_graph.value.validate()
-                )
+        for label in ("behavior_graph", "target_pursuit_module"):
+            issues.extend(validate_graph_trait(label, getattr(self.behavioral, label)))
 
         # Validate per-kind policy params fields
         for kind, id_attr, params_attr in [
