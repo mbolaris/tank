@@ -120,14 +120,32 @@ class ComposableBehaviorConsideration:
 
 
 class GraphBehaviorConsideration:
-    """Experimental fixed-topology graph controller for graph-carrying fish."""
+    """Experimental fixed-topology graph controller for graph-carrying fish.
+
+    Yields (returns None) on a leisure-tier classification - social cohesion
+    with no live threat or hunger - so a lower-priority drive such as
+    soccer-ball pursuit gets evaluated instead of being unconditionally
+    preempted by a graph that merely wants to keep station with the school.
+    Threat and food classifications are survival-relevant and still preempt
+    everything below, matching how ``ball_pursuit``/``code_policy`` already
+    yield to survival via ``has_survival_priority`` despite their own list
+    position.
+    """
 
     name = "behavior_graph"
 
     def intent(self, strategy: AlgorithmicMovement, fish: Fish) -> MovementIntent | None:
+        from core.behavior.tank_adapter import ForagingIntentKind
+
+        decision = strategy._get_graph_decision(fish)
+        if decision is None:
+            return None
+        velocity, kind = decision
+        if kind is ForagingIntentKind.COHESION:
+            return None
         return MovementIntent.from_velocity(
-            strategy._get_graph_velocity(fish),
-            kind="graph_behavior",
+            velocity,
+            kind=f"graph_{kind.value}",
             source=self.name,
             allow_zero=False,
         )
@@ -191,7 +209,11 @@ def default_considerations() -> list[MovementConsideration]:
     ``ball_pursuit`` and ``code_policy`` are listed above the composable
     behavior, but neither pre-empts survival: each drive yields to threat/food
     via ``ComposableBehavior.has_survival_priority`` (ADR-010 step 2), so list
-    position here is leisure-vs-leisure only.
+    position here is leisure-vs-leisure only. ``behavior_graph`` is listed
+    above ``ball_pursuit`` for the same reason: it yields on a leisure-tier
+    (social cohesion) classification rather than unconditionally winning on
+    any nonzero output, so soccer gets a turn instead of being structurally
+    outranked by a graph that just wants to keep station with the school.
     """
     return [
         PolicyOverrideConsideration(),

@@ -277,10 +277,7 @@ export function EntityInspectorDrawer({
                                     label="Urgency"
                                     value={`${Math.round(details.behavior.movement_intent.chosen.urgency * 100)}%`}
                                 />
-                                <StatRow
-                                    label="Confidence"
-                                    value={`${Math.round(details.behavior.movement_intent.chosen.confidence * 100)}%`}
-                                />
+                                {/* Confidence omitted: no controller computes a defensible value yet. */}
                                 {details.behavior.movement_intent.chosen.target_id !== null && (
                                     <StatRow
                                         label="Target"
