@@ -133,6 +133,19 @@
     background: rgba(6, 182, 212, 0.06);
 }
 
+.movementIntent {
+    padding: var(--spacing-sm);
+    border-left: 2px solid var(--color-success);
+    background: rgba(34, 197, 94, 0.06);
+}
+
+.suppressedSources {
+    margin: var(--spacing-xs) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+}
+
 .intent {
     margin: 0 0 var(--spacing-xs);
     color: var(--color-text-main);

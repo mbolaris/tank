@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from core.movement.considerations import MovementArbiter, default_considerations
+from core.movement.intents import MovementArbitration
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,12 @@ class AlgorithmicMovement(MovementStrategy):
         # DATA (the arbiter's list), not statement order spread through move().
         # See ADR-010 and core.movement.considerations.
         self._arbiter = MovementArbiter(default_considerations())
+        self._last_arbitration = MovementArbitration(None)
+
+    @property
+    def last_arbitration(self) -> MovementArbitration:
+        """Most recent decision, retained for the selected-fish inspector."""
+        return self._last_arbitration
 
     def move(self, fish: Fish) -> None:
         """Move the fish by resolving its competing drives.
@@ -117,7 +124,9 @@ class AlgorithmicMovement(MovementStrategy):
         fires (the genome has no composable behavior), fall back to random
         movement.
         """
-        desired_velocity = self._arbiter.decide(self, fish)
+        self._last_arbitration = self._arbiter.arbitrate(self, fish)
+        selected_intent = self._last_arbitration.selected
+        desired_velocity = selected_intent.velocity if selected_intent is not None else None
 
         if desired_velocity is None:
             # No drive produced a velocity (genome has no composable behavior):

@@ -19,6 +19,7 @@ import math
 from typing import TYPE_CHECKING
 
 from core.entities.ball import Ball
+from core.movement.intents import MovementIntent
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -113,5 +114,10 @@ class BallPursuitConsideration:
 
     name = "ball_pursuit"
 
-    def desired_velocity(self, strategy: AlgorithmicMovement, fish: Fish) -> Velocity | None:
-        return ball_pursuit_velocity(fish)
+    def intent(self, strategy: AlgorithmicMovement, fish: Fish) -> MovementIntent | None:
+        return MovementIntent.from_velocity(
+            ball_pursuit_velocity(fish),
+            kind="soccer_pursuit",
+            source=self.name,
+            urgency=0.42,
+        )

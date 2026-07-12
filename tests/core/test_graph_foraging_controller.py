@@ -74,12 +74,22 @@ def test_graph_feature_flag_installs_graphs_and_exposes_an_on_demand_lens() -> N
     fish = next(entity for entity in runner.world.entities_list if isinstance(entity, Fish))
     assert fish.genome.behavioral.behavior_graph is not None
 
+    fish.movement_policy = lambda _observation, _rng: (1.0, 0.0)
+    fish.movement_strategy.move(fish)
     rng_state = runner.world.rng.getstate()
     result = runner.handle_command("get_entity_details", {"entity_id": snapshot.id})
     lens = result["details"]["behavior"]["lens"]
+    movement_intent = result["details"]["behavior"]["movement_intent"]
 
     assert result["success"] is True
     assert lens["intent"] in {"Chasing food", "Fleeing threat", "Following the group", "Searching"}
     assert lens["graph"]["output"] == "movement"
     assert len(lens["fingerprint"]) == 16
+    assert movement_intent["chosen"]["source"] == "policy_override"
+    assert movement_intent["suppressed_sources"] == [
+        "behavior_graph",
+        "ball_pursuit",
+        "code_policy",
+        "composable_behavior",
+    ]
     assert runner.world.rng.getstate() == rng_state
