@@ -10,6 +10,7 @@
 | `soccer/training_5k` | `benchmarks/soccer/training_5k.py` | ~5s | Soccer Training Benchmark (5k frames). |
 | `tank/ecosystem_health_10k` | `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Tank Ecosystem Health Benchmark (10k frames). |
 | `tank/foraging_gym` | `benchmarks/tank/foraging_gym.py` | ~2s | Frozen-ruler foraging benchmark with an attainable oracle ceiling. |
+| `tank/pursuit_transfer` | `benchmarks/tank/pursuit_transfer.py` | ~2s | Zero-shot pursuit-transfer benchmark for the shared Target Pursuit Module. |
 | `tank/selection_response_10k` | `benchmarks/tank/selection_response_10k.py` | ~90s | Frozen selection-response assay for Tank World evolvability. |
 | `tank/survival_5k` | `benchmarks/tank/survival_5k.py` | ~45s | Tank Survival Benchmark (5k frames). |
 
