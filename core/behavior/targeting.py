@@ -21,6 +21,7 @@ class TargetObservation:
     target_exists: bool
     threat_vector: Vector
     self_velocity: Vector
+    self_speed: float
     energy_ratio: float
 
     @property
@@ -35,6 +36,7 @@ class TargetObservation:
             "target_exists": self.target_exists,
             "threat_vector": self.threat_vector,
             "self_velocity": self.self_velocity,
+            "self_speed": self.self_speed,
             "energy_ratio": self.energy_ratio,
         }
 

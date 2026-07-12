@@ -46,7 +46,11 @@ def _observation(
     energy_ratio: float, threat_away_vector: tuple[float, float] = (0.0, 0.0)
 ) -> TankBehaviorObservation:
     return TankBehaviorObservation(
-        values={"threat_away_vector": threat_away_vector, "energy_ratio": energy_ratio},
+        values={
+            "threat_away_vector": threat_away_vector,
+            "energy_ratio": energy_ratio,
+            "target_exists": True,
+        },
         target_label=None,
     )
 
@@ -135,6 +139,7 @@ def test_graph_feature_flag_installs_graphs_and_exposes_an_on_demand_lens() -> N
     assert result["success"] is True
     assert lens["intent"] in {"Chasing food", "Fleeing threat", "Following the group", "Searching"}
     assert lens["graph"]["output"] == "movement"
+    assert lens["explanations"]["urgency"]["selected_port"] in {"when_true", "when_false"}
     assert len(lens["fingerprint"]) == 16
     assert movement_intent["chosen"]["source"] == "policy_override"
     assert movement_intent["suppressed_sources"] == [

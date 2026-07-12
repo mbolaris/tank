@@ -9,9 +9,10 @@ and evolvability in isolation, independent of either domain.
 from __future__ import annotations
 
 import random
+from types import SimpleNamespace
 
 from backend.simulation_runner import SimulationRunner
-from core.behavior.graph import BehaviorGraph
+from core.behavior.graph import BehaviorGraph, GraphNode
 from core.behavior.nodes import NODE_REGISTRY
 from core.behavior.pursuit_nodes import default_pursuit_module_graph
 from core.entities import Fish
@@ -26,10 +27,20 @@ def test_default_module_reproduces_direct_pursuit_at_default_parameters() -> Non
     compiled = module.compile_cached()
 
     assert compiled.evaluate(
-        {"target_vector": (10.0, 0.0), "target_velocity": (0.0, 0.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (10.0, 0.0),
+            "target_velocity": (0.0, 0.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     ) == (1.0, 0.0)
     assert compiled.evaluate(
-        {"target_vector": (0.0, 0.0), "target_velocity": (0.0, 0.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (0.0, 0.0),
+            "target_velocity": (0.0, 0.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     ) == (0.0, 0.0)
 
 
@@ -40,10 +51,20 @@ def test_default_module_leads_a_moving_target() -> None:
     compiled = module.compile_cached()
 
     direct = compiled.evaluate(
-        {"target_vector": (10.0, 0.0), "target_velocity": (0.0, 0.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (10.0, 0.0),
+            "target_velocity": (0.0, 0.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     )
     led = compiled.evaluate(
-        {"target_vector": (10.0, 0.0), "target_velocity": (0.0, 5.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (10.0, 0.0),
+            "target_velocity": (0.0, 5.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     )
     assert direct == (1.0, 0.0)
     assert led != direct
@@ -65,10 +86,20 @@ def test_pursuit_commitment_scales_output_magnitude() -> None:
     committed = BehaviorGraph(nodes, base.connections, base.output_node_id)
 
     full = base.compile_cached().evaluate(
-        {"target_vector": (10.0, 0.0), "target_velocity": (0.0, 0.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (10.0, 0.0),
+            "target_velocity": (0.0, 0.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     )
     half = committed.compile_cached().evaluate(
-        {"target_vector": (10.0, 0.0), "target_velocity": (0.0, 0.0), "self_velocity": (0.0, 0.0)}
+        {
+            "target_vector": (10.0, 0.0),
+            "target_velocity": (0.0, 0.0),
+            "self_velocity": (0.0, 0.0),
+            "self_speed": 3.0,
+        }
     )
     assert full == (1.0, 0.0)
     assert half == (0.5, 0.0)
@@ -133,9 +164,8 @@ def test_target_pursuit_module_absent_for_both_parents_stays_none_in_offspring()
     assert recombined.target_pursuit_module is None
 
 
-def test_founders_get_the_module_only_when_both_flags_are_enabled() -> None:
-    """The installer double-gates on graph_behavior_enabled AND
-    target_pursuit_module_enabled - neither flag alone installs the module."""
+def test_founders_get_the_module_when_its_flag_is_enabled_independently() -> None:
+    """The pursuit module flag is an independent graph/module ablation."""
     graph_only = SimulationRunner(seed=42, config={"graph_behavior_enabled": True})
     fish = next(e for e in graph_only.world.entities_list if isinstance(e, Fish))
     assert fish.genome.behavioral.behavior_graph is not None
@@ -152,7 +182,8 @@ def test_founders_get_the_module_only_when_both_flags_are_enabled() -> None:
 
     module_flag_only = SimulationRunner(seed=42, config={"target_pursuit_module_enabled": True})
     fish = next(e for e in module_flag_only.world.entities_list if isinstance(e, Fish))
-    assert fish.genome.behavioral.target_pursuit_module is None
+    assert fish.genome.behavioral.behavior_graph is None
+    assert fish.genome.behavioral.target_pursuit_module is not None
 
 
 def test_same_module_instance_serves_both_food_and_soccer_domains() -> None:
@@ -170,6 +201,7 @@ def test_same_module_instance_serves_both_food_and_soccer_domains() -> None:
     fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
     module = fish.genome.behavioral.target_pursuit_module.value
     assert module is not None
+    fish.vel.x = fish.vel.y = 0.0
 
     # Food adapter: build_tank_behavior_observation consults this exact trait.
     build_tank_behavior_observation(fish)  # exercises the food path without error
@@ -187,7 +219,81 @@ def test_same_module_instance_serves_both_food_and_soccer_domains() -> None:
     ball_observation = build_soccer_target_observation(
         self_position=(fish.pos.x, fish.pos.y),
         self_velocity=(fish.vel.x, fish.vel.y),
+        self_speed=fish.speed,
         ball_position=(fish.pos.x + 10.0, fish.pos.y),
         ball_velocity=(0.0, 0.0),
     )
     assert module.compile_cached().evaluate(ball_observation.to_values()) == (1.0, 0.0)
+
+
+def test_prediction_mutation_changes_moving_food_and_ball_decisions_identically(
+    monkeypatch,
+) -> None:
+    """The same parameter mutation must affect both domain adapters.
+
+    This deliberately enables only the pursuit flag: the result is an ablation
+    of the full foraging graph, and the moving target makes prediction visible.
+    """
+    from core.behavior.tank_adapter import build_tank_behavior_observation
+    from core.behavior.soccer_adapter import build_soccer_target_observation
+    from core.movement.ball_pursuit import _pursuit_module_vector
+    from core.entities.ball import Ball
+
+    runner = SimulationRunner(seed=42, config={"target_pursuit_module_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    module = fish.genome.behavioral.target_pursuit_module.value
+    assert module is not None
+
+    target = SimpleNamespace(
+        pos=SimpleNamespace(x=fish.pos.x + 10.0, y=fish.pos.y),
+        vel=SimpleNamespace(x=0.0, y=2.0),
+    )
+    monkeypatch.setattr("core.behavior.tank_adapter.select_food_target", lambda _fish: target)
+
+    def with_prediction_strength(strength: float) -> BehaviorGraph:
+        return BehaviorGraph(
+            tuple(
+                GraphNode(
+                    node.node_id,
+                    node.node_type,
+                    (
+                        {**node.parameters, "prediction_strength": strength}
+                        if node.node_id == "intercept"
+                        else node.parameters
+                    ),
+                )
+                for node in module.nodes
+            ),
+            module.connections,
+            module.output_node_id,
+        )
+
+    ball = Ball(runner.world, x=target.pos.x, y=target.pos.y)
+    ball.vel.x, ball.vel.y = target.vel.x, target.vel.y
+
+    def decisions(graph: BehaviorGraph) -> tuple[tuple[float, float], tuple[float, float]]:
+        fish.genome.behavioral.target_pursuit_module.value = graph
+        food = build_tank_behavior_observation(fish).values["food_vector"]
+        soccer = _pursuit_module_vector(fish, ball)
+        assert isinstance(food, tuple) and isinstance(soccer, tuple)
+        return food, soccer
+
+    direct_food, direct_ball = decisions(with_prediction_strength(0.0))
+    predicted_food, predicted_ball = decisions(with_prediction_strength(1.0))
+
+    assert direct_food == direct_ball
+    assert predicted_food == predicted_ball
+    assert predicted_food != direct_food
+    assert predicted_food[1] > direct_food[1]
+
+    observation = build_soccer_target_observation(
+        self_position=(fish.pos.x, fish.pos.y),
+        self_velocity=(fish.vel.x, fish.vel.y),
+        self_speed=fish.speed,
+        ball_position=(ball.pos.x, ball.pos.y),
+        ball_velocity=(ball.vel.x, ball.vel.y),
+    )
+    assert (
+        with_prediction_strength(1.0).compile_cached().evaluate(observation.to_values())
+        == predicted_ball
+    )

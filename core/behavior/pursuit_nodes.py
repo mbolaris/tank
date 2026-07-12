@@ -34,7 +34,9 @@ class _InterceptTargetSteering:
         target_x, target_y = _components(inputs["target_vector"])
         target_vx, target_vy = _components(inputs["target_velocity"])
         self_vx, self_vy = _components(inputs["self_velocity"])
-        speed = float(self.parameters.get("speed", Scalar(1.0)))
+        self_speed = _scalar(inputs["self_speed"])
+        speed_multiplier = float(self.parameters.get("speed_multiplier", Scalar(1.0)))
+        speed = max(0.0, self_speed * speed_multiplier)
         if speed <= 0.0:
             return Scalar(0.0), Scalar(0.0)
         prediction_strength = float(self.parameters.get("prediction_strength", Scalar(1.0)))
@@ -54,6 +56,15 @@ def _components(value: NodeValue) -> tuple[float, float]:
     return x, y
 
 
+def _scalar(value: NodeValue) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError("intercept_target requires a finite scalar self_speed")
+    result = float(value)
+    if not math.isfinite(result):
+        raise TypeError("intercept_target requires a finite scalar self_speed")
+    return result
+
+
 def _factory(node_id: str, parameters: Mapping[str, NodeParameter]) -> BehaviorNode:
     return _InterceptTargetSteering(
         node_id, "intercept_target", NodeCategory.STEERING, MappingProxyType(dict(parameters))
@@ -69,11 +80,12 @@ def intercept_target_definition() -> NodeDefinition:
             "target_vector": ValueType.VECTOR,
             "target_velocity": ValueType.VECTOR,
             "self_velocity": ValueType.VECTOR,
+            "self_speed": ValueType.SCALAR,
         },
         ValueType.VECTOR,
         _factory,
         {
-            "speed": NodeParameterSpec(Scalar(1.0), Scalar(0.1), Scalar(10.0)),
+            "speed_multiplier": NodeParameterSpec(Scalar(1.0), Scalar(0.5), Scalar(1.5)),
             "prediction_strength": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(2.0)),
             "max_prediction_horizon": NodeParameterSpec(Scalar(100.0), Scalar(1.0), Scalar(500.0)),
         },
@@ -88,7 +100,7 @@ def default_pursuit_module_graph() -> BehaviorGraph:
     inherited/mutated graph with their own domain's ``TargetObservation`` -
     the module does not know or care which domain it is steering for. Its
     four evolvable parameters map onto the reusable-pursuit-module spec:
-    assumed speed and prediction strength/horizon live on ``intercept_target``;
+    speed calibration and prediction strength/horizon live on ``intercept_target``;
     pursuit commitment is ``scale_vector``'s existing ``scale`` parameter.
     """
     from core.behavior.standard_nodes import register_standard_nodes
@@ -113,15 +125,17 @@ def default_pursuit_module_graph() -> BehaviorGraph:
                     "parameters": {"field": "self_velocity"},
                 },
                 {
+                    "id": "self_speed",
+                    "type": "context_scalar_sensor",
+                    "parameters": {"field": "self_speed"},
+                },
+                {
                     "id": "intercept",
                     "type": "intercept_target",
                     "parameters": {
-                        # Comfortably above observed fish speeds (~1.1-3.3):
-                        # the steer() formula subtracts self_velocity*travel_time,
-                        # so an assumed speed below the pursuer's actual velocity
-                        # overcorrects and can flip the aim direction entirely for
-                        # a slow-moving target directly ahead.
-                        "speed": 3.5,
+                        # Calibrate the domain adapter's actual speed rather than
+                        # embedding a fish-specific assumed speed in the module.
+                        "speed_multiplier": 1.0,
                         "prediction_strength": 1.0,
                         "max_prediction_horizon": 100.0,
                     },
@@ -133,6 +147,7 @@ def default_pursuit_module_graph() -> BehaviorGraph:
                 {"source": "target", "target": "intercept", "port": "target_vector"},
                 {"source": "target_velocity", "target": "intercept", "port": "target_velocity"},
                 {"source": "self_velocity", "target": "intercept", "port": "self_velocity"},
+                {"source": "self_speed", "target": "intercept", "port": "self_speed"},
                 {"source": "intercept", "target": "aimed", "port": "vector"},
                 {"source": "aimed", "target": "pursuit", "port": "vector"},
             ],

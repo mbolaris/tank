@@ -38,6 +38,7 @@ export interface EntityDetailsBehaviorLens {
     target: string | null;
     inputs: Record<string, unknown>;
     outputs: Record<string, unknown>;
+    explanations: Record<string, Record<string, unknown>>;
     output: unknown;
     contributions: Record<string, number>;
     cancellation?: number;
@@ -73,7 +74,7 @@ export interface EntityDetailsPursuitModule {
     name: string;
     used_for: string[];
     parameters: {
-        assumed_speed: number;
+        speed_multiplier: number;
         prediction_strength: number;
         max_prediction_horizon: number;
         pursuit_commitment: number;
