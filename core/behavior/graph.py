@@ -16,9 +16,7 @@ from typing import cast
 
 from core.behavior.nodes import (
     NODE_REGISTRY,
-    BehaviorNode,
     Bool,
-    NodeCategory,
     NodeParameter,
     NodeRegistry,
     NodeValue,
@@ -26,10 +24,12 @@ from core.behavior.nodes import (
     ValueType,
 )
 from core.behavior.compiled_cache import get_compiled_plan
-
-
-class BehaviorGraphError(ValueError):
-    """Raised when graph data cannot be validated or compiled."""
+from core.behavior.compiled_graph import (
+    BehaviorGraphError,
+    CompiledBehaviorGraph,
+    CompiledStep,
+    evaluator_for,
+)
 
 
 def _is_vector(value: object) -> bool:
@@ -156,68 +156,6 @@ class GraphConnection:
             target_id=data.get("target", ""),
             target_port=data.get("port", ""),
         )
-
-
-@dataclass(frozen=True)
-class _CompiledStep:
-    node_id: str
-    evaluate: Callable[[object, Mapping[str, NodeValue]], NodeValue]
-    inputs: tuple[tuple[str, int], ...]
-
-    def run(self, context: object, values: list[NodeValue]) -> NodeValue:
-        return self.evaluate(context, {port: values[index] for port, index in self.inputs})
-
-
-@dataclass(frozen=True)
-class CompiledBehaviorGraph:
-    """Flat, prevalidated execution plan for a :class:`BehaviorGraph`."""
-
-    steps: tuple[_CompiledStep, ...]
-    output_index: int
-
-    def evaluate(self, context: object) -> NodeValue:
-        """Run the precompiled plan without parsing or traversing graph topology."""
-        values: list[NodeValue] = []
-        for step in self.steps:
-            values.append(step.run(context, values))
-        return values[self.output_index]
-
-    def evaluate_with_trace(
-        self, context: object
-    ) -> tuple[NodeValue, tuple[tuple[str, NodeValue], ...]]:
-        """Evaluate once and return ordered intermediate values for an inspector.
-
-        This is intentionally opt-in: normal simulation execution stores no
-        per-fish trace, while a selected fish can be explained on demand.
-        """
-        values: list[NodeValue] = []
-        for step in self.steps:
-            values.append(step.run(context, values))
-        return values[self.output_index], tuple(
-            (step.node_id, values[index]) for index, step in enumerate(self.steps)
-        )
-
-
-def _evaluator_for(node: BehaviorNode) -> Callable[[object, Mapping[str, NodeValue]], NodeValue]:
-    """Bind a node's category-specific method once at compile time."""
-    if node.category is NodeCategory.SENSOR:
-        sense = getattr(node, "sense", None)
-        if not callable(sense):
-            raise BehaviorGraphError(f"Sensor node {node.node_id!r} must provide sense(context).")
-        return lambda context, _inputs: cast(NodeValue, sense(context))
-
-    method_name = {
-        NodeCategory.SELECTOR: "select",
-        NodeCategory.STEERING: "steer",
-        NodeCategory.MEMORY: "update",
-        NodeCategory.ARBITER: "arbitrate",
-    }[node.category]
-    method = getattr(node, method_name, None)
-    if not callable(method):
-        raise BehaviorGraphError(
-            f"{node.category.value.title()} node {node.node_id!r} must provide {method_name}(inputs)."
-        )
-    return lambda _context, inputs: cast(NodeValue, method(inputs))
 
 
 @dataclass(frozen=True)
@@ -396,7 +334,7 @@ class BehaviorGraph:
         for connection in self.connections:
             incoming[connection.target_id].append(connection)
 
-        steps: list[_CompiledStep] = []
+        steps: list[CompiledStep] = []
         for node_id in order:
             graph_node = nodes_by_id[node_id]
             definition = registry.get(graph_node.node_type)
@@ -407,10 +345,10 @@ class BehaviorGraph:
                     incoming[node_id], key=lambda connection: connection.target_port
                 )
             )
-            evaluator = _evaluator_for(node)
+            evaluator = evaluator_for(node)
             if validate_outputs:
                 evaluator = _checked_evaluator(evaluator, node_id, definition.output_type)
-            steps.append(_CompiledStep(node_id, evaluator, inputs))
+            steps.append(CompiledStep(node_id, evaluator, inputs))
         return CompiledBehaviorGraph(tuple(steps), indices[self.output_node_id])
 
     def compile_cached(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
