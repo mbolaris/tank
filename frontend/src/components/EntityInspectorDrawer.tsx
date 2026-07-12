@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Command, CommandResponse, EntityData } from '../types/simulation';
 import type { EntityDetails } from '../types/entityDetails';
+import type { PursuitOverlayData } from '../rendering/types';
 import { Button, StatRow } from './ui';
 import {
     STATUS_COPY,
@@ -31,6 +32,8 @@ interface EntityInspectorDrawerProps {
     onRequestTransfer: () => void;
     followEnabled: boolean;
     onToggleFollow: () => void;
+    /** Fires whenever fetched pursuit-module vectors change, for the canvas overlay. */
+    onPursuitOverlayChange?: (data: PursuitOverlayData | null) => void;
 }
 
 type FetchState =
@@ -51,6 +54,7 @@ export function EntityInspectorDrawer({
     onRequestTransfer,
     followEnabled,
     onToggleFollow,
+    onPursuitOverlayChange,
 }: EntityInspectorDrawerProps) {
     const [fetchState, setFetchState] = useState<FetchState>({ phase: 'loading' });
     const drawerRef = useRef<HTMLDivElement>(null);
@@ -67,8 +71,15 @@ export function EntityInspectorDrawer({
                 if (seq !== requestSeqRef.current) return; // stale response
                 if (response.success && response.details) {
                     setFetchState({ phase: 'loaded', details: response.details });
+                    const modules = response.details.modules;
+                    onPursuitOverlayChange?.(
+                        modules
+                            ? { targetVector: modules.target_vector, aimVector: modules.aim_vector }
+                            : null
+                    );
                 } else if (response.error === 'entity_not_found') {
                     setFetchState({ phase: 'not_found' });
+                    onPursuitOverlayChange?.(null);
                 } else {
                     setFetchState({ phase: 'error', message: response.error ?? 'Unknown error' });
                 }
@@ -78,11 +89,16 @@ export function EntityInspectorDrawer({
                 const message = err instanceof Error ? err.message : 'Request failed';
                 setFetchState({ phase: 'error', message });
             });
-    }, [entityId, sendCommandWithResponse]);
+    }, [entityId, sendCommandWithResponse, onPursuitOverlayChange]);
 
     useEffect(() => {
         fetchDetails();
     }, [fetchDetails]);
+
+    // Clear the overlay when the drawer closes or switches to a different entity.
+    useEffect(() => {
+        return () => onPursuitOverlayChange?.(null);
+    }, [entityId, onPursuitOverlayChange]);
 
     useEffect(() => {
         if (!isConnected || entityType !== 'fish') return;
@@ -305,6 +321,44 @@ export function EntityInspectorDrawer({
                                     value={typeof value === 'number' ? value.toFixed(2) : String(value)}
                                 />
                             ))}
+                    </section>
+                )}
+
+                {details?.modules && (
+                    <section className={styles.section} aria-label="Modules">
+                        <h3 className={styles.sectionTitle}>Modules</h3>
+                        <p className={styles.intent}>{details.modules.name}</p>
+                        <StatRow label="Used for" value={details.modules.used_for.join(', ')} />
+                        <StatRow
+                            label="Assumed speed"
+                            value={details.modules.parameters.assumed_speed.toFixed(2)}
+                        />
+                        <StatRow
+                            label="Prediction strength"
+                            value={details.modules.parameters.prediction_strength.toFixed(2)}
+                        />
+                        <StatRow
+                            label="Max prediction horizon"
+                            value={details.modules.parameters.max_prediction_horizon.toFixed(0)}
+                        />
+                        <StatRow
+                            label="Pursuit commitment"
+                            value={details.modules.parameters.pursuit_commitment.toFixed(2)}
+                        />
+                        <StatRow
+                            label="Current target"
+                            value={details.modules.current_target ?? 'None'}
+                        />
+                        {details.modules.aim_vector && (
+                            <StatRow
+                                label="Predicted intercept vector"
+                                value={formatVector(details.modules.aim_vector)}
+                            />
+                        )}
+                        <StatRow
+                            label="Inherited from"
+                            value={formatOrigin(details.modules.inherited_from, details.generation)}
+                        />
                     </section>
                 )}
 

@@ -69,6 +69,23 @@ export interface EntityDetailsTaxonomy {
 
 export type EntityEnergyStatus = 'critical' | 'hungry' | 'content' | 'full';
 
+export interface EntityDetailsPursuitModule {
+    name: string;
+    used_for: string[];
+    parameters: {
+        assumed_speed: number;
+        prediction_strength: number;
+        max_prediction_horizon: number;
+        pursuit_commitment: number;
+    };
+    current_target: string | null;
+    /** Raw, non-predictive offset to the current target (world units). */
+    target_vector: [number, number] | null;
+    /** The module's predicted-intercept steering output (world-unit direction). */
+    aim_vector: [number, number] | null;
+    inherited_from: number | null;
+}
+
 export interface EntityDetails {
     id: number;
     type: string;
@@ -90,5 +107,6 @@ export interface EntityDetails {
     traits?: Record<string, number>;
     games?: EntityDetailsGames;
     reproduction?: EntityDetailsReproduction;
+    modules?: EntityDetailsPursuitModule | null;
     detail_error?: string;
 }

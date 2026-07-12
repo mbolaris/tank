@@ -12,11 +12,18 @@ export interface RenderContext {
     nowMs: number;
 }
 
+/** The selected fish's shared Target Pursuit Module vectors, for the overlay. */
+export interface PursuitOverlayData {
+    targetVector: [number, number] | null;
+    aimVector: [number, number] | null;
+}
+
 export interface RenderOptions {
     showEffects?: boolean;
     showSoccer?: boolean;
     selectedEntityId?: number | null;
     viewMode?: ViewMode;
+    pursuitOverlay?: PursuitOverlayData | null;
 }
 
 export interface RenderFrame {
