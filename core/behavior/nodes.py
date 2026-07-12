@@ -236,14 +236,21 @@ class NodeRegistry:
     def validate_connection(
         self, source_node_type: str, target_node_type: str, target_port: str
     ) -> None:
-        """Require a source output to exactly match a target input port's type."""
+        """Require a source output to match a target input port's type.
+
+        A ``UNIT_VECTOR`` output may satisfy a ``VECTOR``-typed port (every
+        unit vector is a valid vector); all other pairs must match exactly.
+        """
         source = self.get(source_node_type)
         target = self.get(target_node_type)
         try:
             expected = target.input_ports[target_port]
         except KeyError as exc:
             raise KeyError(f"Node {target_node_type!r} has no input port {target_port!r}.") from exc
-        if source.output_type is not expected:
+        compatible = source.output_type is expected or (
+            source.output_type is ValueType.UNIT_VECTOR and expected is ValueType.VECTOR
+        )
+        if not compatible:
             raise TypeError(
                 f"Cannot connect {source_node_type!r} ({source.output_type.value}) to "
                 f"{target_node_type!r}.{target_port} ({expected.value})."

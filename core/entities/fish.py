@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 from core.agent_memory import AgentMemorySystem, MemoryType
 from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.behavior.feature_flags import install_default_graph_if_enabled
+from core.behavior.feature_flags import install_default_behavior_graph_features
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
@@ -144,7 +144,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             code_pool=getattr(environment, "genome_code_pool", None),
             soccer_enabled=getattr(_soccer_cfg, "enabled", False),
         )
-        install_default_graph_if_enabled(self.genome, _sim_config)
+        install_default_behavior_graph_features(self.genome, _sim_config)
 
         self.generation: int = generation
         self.species: str = species

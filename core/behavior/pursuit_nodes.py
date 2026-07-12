@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from core.behavior.graph import BehaviorGraph
 from core.behavior.nodes import (
     BehaviorNode,
     NodeCategory,
@@ -36,11 +37,12 @@ class _InterceptTargetSteering:
         speed = float(self.parameters.get("speed", Scalar(1.0)))
         if speed <= 0.0:
             return Scalar(0.0), Scalar(0.0)
-        travel_time = math.hypot(target_x, target_y) / speed
-        return (
-            Scalar(target_x + (target_vx - self_vx) * travel_time),
-            Scalar(target_y + (target_vy - self_vy) * travel_time),
-        )
+        prediction_strength = float(self.parameters.get("prediction_strength", Scalar(1.0)))
+        max_horizon = float(self.parameters.get("max_prediction_horizon", Scalar(100.0)))
+        travel_time = min(math.hypot(target_x, target_y) / speed, max_horizon)
+        lead_x = (target_vx - self_vx) * travel_time * prediction_strength
+        lead_y = (target_vy - self_vy) * travel_time * prediction_strength
+        return Scalar(target_x + lead_x), Scalar(target_y + lead_y)
 
 
 def _components(value: NodeValue) -> tuple[float, float]:
@@ -70,8 +72,73 @@ def intercept_target_definition() -> NodeDefinition:
         },
         ValueType.VECTOR,
         _factory,
-        {"speed": NodeParameterSpec(Scalar(1.0), Scalar(0.1), Scalar(10.0))},
+        {
+            "speed": NodeParameterSpec(Scalar(1.0), Scalar(0.1), Scalar(10.0)),
+            "prediction_strength": NodeParameterSpec(Scalar(1.0), Scalar(0.0), Scalar(2.0)),
+            "max_prediction_horizon": NodeParameterSpec(Scalar(100.0), Scalar(1.0), Scalar(500.0)),
+        },
     )
 
 
-__all__ = ["intercept_target_definition"]
+def default_pursuit_module_graph() -> BehaviorGraph:
+    """Fixed topology for the shared, independently-evolvable pursuit module.
+
+    Both the food adapter (``tank_adapter.build_tank_behavior_observation``)
+    and the soccer-ball adapter (``movement.ball_pursuit``) evaluate this SAME
+    inherited/mutated graph with their own domain's ``TargetObservation`` -
+    the module does not know or care which domain it is steering for. Its
+    four evolvable parameters map onto the reusable-pursuit-module spec:
+    assumed speed and prediction strength/horizon live on ``intercept_target``;
+    pursuit commitment is ``scale_vector``'s existing ``scale`` parameter.
+    """
+    from core.behavior.standard_nodes import register_standard_nodes
+
+    register_standard_nodes()
+    return BehaviorGraph.from_dict(
+        {
+            "nodes": [
+                {
+                    "id": "target",
+                    "type": "context_vector_sensor",
+                    "parameters": {"field": "target_vector"},
+                },
+                {
+                    "id": "target_velocity",
+                    "type": "context_vector_sensor",
+                    "parameters": {"field": "target_velocity"},
+                },
+                {
+                    "id": "self_velocity",
+                    "type": "context_vector_sensor",
+                    "parameters": {"field": "self_velocity"},
+                },
+                {
+                    "id": "intercept",
+                    "type": "intercept_target",
+                    "parameters": {
+                        # Comfortably above observed fish speeds (~1.1-3.3):
+                        # the steer() formula subtracts self_velocity*travel_time,
+                        # so an assumed speed below the pursuer's actual velocity
+                        # overcorrects and can flip the aim direction entirely for
+                        # a slow-moving target directly ahead.
+                        "speed": 3.5,
+                        "prediction_strength": 1.0,
+                        "max_prediction_horizon": 100.0,
+                    },
+                },
+                {"id": "aimed", "type": "normalize_vector", "parameters": {}},
+                {"id": "pursuit", "type": "scale_vector", "parameters": {"scale": 1.0}},
+            ],
+            "connections": [
+                {"source": "target", "target": "intercept", "port": "target_vector"},
+                {"source": "target_velocity", "target": "intercept", "port": "target_velocity"},
+                {"source": "self_velocity", "target": "intercept", "port": "self_velocity"},
+                {"source": "intercept", "target": "aimed", "port": "vector"},
+                {"source": "aimed", "target": "pursuit", "port": "vector"},
+            ],
+            "output": "pursuit",
+        }
+    )
+
+
+__all__ = ["default_pursuit_module_graph", "intercept_target_definition"]

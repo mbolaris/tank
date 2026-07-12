@@ -311,14 +311,19 @@ def inherit_behavioral_traits(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
 
-    inherited["behavior_graph"] = inherit_behavior_graph(
-        parent1.behavior_graph,
-        parent2.behavior_graph,
-        weight1=weight1,
-        mutation_rate=mutation_rate,
-        mutation_strength=mutation_strength,
-        rng=rng,
-    )
+    # behavior_graph and target_pursuit_module are both an optional
+    # GeneticTrait[BehaviorGraph | None]; inherit_behavior_graph is generic
+    # over either, and already no-ops without consuming RNG when neither
+    # parent has a given field (see its own graph1/graph2 None check).
+    for graph_field in ("behavior_graph", "target_pursuit_module"):
+        inherited[graph_field] = inherit_behavior_graph(
+            getattr(parent1, graph_field),
+            getattr(parent2, graph_field),
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
 
     # Inherit per-kind policy traits (new multi-policy system)
     for kind in ("movement_policy", "poker_policy", "soccer_policy"):
@@ -434,15 +439,22 @@ def recombine_behavioral_traits(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
 
-    graph1 = parent1.behavior_graph.value if parent1.behavior_graph is not None else None
-    graph2 = parent2.behavior_graph.value if parent2.behavior_graph is not None else None
-    if graph1 is None and graph2 is None:
-        inherited["behavior_graph"] = None
-    else:
+    # Each graph field gets its own recombination weight and its own RNG-free
+    # short-circuit when neither parent has it, matching the per-kind policy
+    # loop below - so an old genome without target_pursuit_module draws no
+    # extra RNG here (it only reaches the "both None" branch).
+    for graph_field in ("behavior_graph", "target_pursuit_module"):
+        parent1_trait = getattr(parent1, graph_field)
+        parent2_trait = getattr(parent2, graph_field)
+        graph1 = parent1_trait.value if parent1_trait is not None else None
+        graph2 = parent2_trait.value if parent2_trait is not None else None
+        if graph1 is None and graph2 is None:
+            inherited[graph_field] = None
+            continue
         graph_weight = 1.0 if rng.random() < parent1_probability else 0.0
-        inherited["behavior_graph"] = inherit_behavior_graph(
-            parent1.behavior_graph,
-            parent2.behavior_graph,
+        inherited[graph_field] = inherit_behavior_graph(
+            parent1_trait,
+            parent2_trait,
             weight1=graph_weight,
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,

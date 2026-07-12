@@ -53,25 +53,27 @@ class TankBehaviorObservation:
 def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     """Build deterministic graph inputs without consuming simulation RNG."""
     food = select_food_target(fish) if fish.can_eat() else None
-    food_vector = _offset(fish, food)
+    offset_vector = _offset(fish, food)
     threat = _nearest_threat(fish)
     threat_away_vector = _negated(_offset(fish, threat))
     cohesion, alignment, separation = _school_vectors(fish)
-    energy_ratio = fish.energy / max(fish.max_energy, 1.0)
+    energy_ratio = float(max(0.0, min(1.0, fish.energy / max(fish.max_energy, 1.0))))
     target_observation = TargetObservation(
-        target_vector=food_vector,
+        target_vector=offset_vector,
         target_velocity=(float(food.vel.x), float(food.vel.y)) if food is not None else (0.0, 0.0),
         target_exists=food is not None,
         threat_vector=threat_away_vector,
         self_velocity=(float(fish.vel.x), float(fish.vel.y)),
-        energy_ratio=float(max(0.0, min(1.0, energy_ratio))),
+        energy_ratio=energy_ratio,
     )
+    pursuit_vector = _pursuit_module_vector(fish, target_observation)
+    food_vector = pursuit_vector if pursuit_vector is not None else offset_vector
     target_label = "Food" if food is not None else None
     return TankBehaviorObservation(
         values={
             "food_vector": food_vector,
             "threat_away_vector": threat_away_vector,
-            "energy_ratio": float(max(0.0, min(1.0, energy_ratio))),
+            "energy_ratio": energy_ratio,
             "cohesion_vector": cohesion,
             "alignment_vector": alignment,
             "separation_vector": separation,
@@ -81,6 +83,32 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
         },
         target_label=target_label,
     )
+
+
+def _pursuit_module_vector(
+    fish: Fish, target_observation: TargetObservation
+) -> tuple[float, float] | None:
+    """Evaluate the shared Target Pursuit Module for food, if active for this fish.
+
+    None when the module isn't active (flags off or no trait), signaling the
+    caller to fall back to the raw offset - byte-identical to pre-module
+    behavior in that case.
+    """
+    config = fish.environment.simulation_config
+    if (
+        config is None
+        or not config.tank.graph_behavior_enabled
+        or not config.tank.target_pursuit_module_enabled
+    ):
+        return None
+    module_trait = fish.genome.behavioral.target_pursuit_module
+    module = module_trait.value if module_trait is not None else None
+    if module is None:
+        return None
+    output = module.compile_cached().evaluate(target_observation.to_values())
+    if not isinstance(output, tuple) or len(output) != 2:
+        return None
+    return float(output[0]), float(output[1])
 
 
 def _urgency_threshold(graph: BehaviorGraph, default: float = _DEFAULT_URGENCY_THRESHOLD) -> float:

@@ -26,4 +26,37 @@ def install_default_graph_if_enabled(genome: Genome, config: SimulationConfig | 
         genome.behavioral.behavior_graph = GeneticTrait(default_foraging_graph())
 
 
-__all__ = ["install_default_graph_if_enabled"]
+def install_default_pursuit_module_if_enabled(
+    genome: Genome, config: SimulationConfig | None
+) -> None:
+    """Give founders a shared pursuit module only in explicitly enabled experiments.
+
+    Independently opt-in from the foraging graph itself (both flags must be on
+    for the module to actually steer movement - see core.behavior.tank_adapter
+    and core.movement.ball_pursuit). No random draws occur here.
+    """
+    if (
+        config is not None
+        and config.tank.graph_behavior_enabled
+        and config.tank.target_pursuit_module_enabled
+        and genome.behavioral.target_pursuit_module is None
+    ):
+        from core.behavior.pursuit_nodes import default_pursuit_module_graph
+        from core.genetics.trait import GeneticTrait
+
+        genome.behavioral.target_pursuit_module = GeneticTrait(default_pursuit_module_graph())
+
+
+def install_default_behavior_graph_features(
+    genome: Genome, config: SimulationConfig | None
+) -> None:
+    """Install every opt-in graph-experiment founder default in one call."""
+    install_default_graph_if_enabled(genome, config)
+    install_default_pursuit_module_if_enabled(genome, config)
+
+
+__all__ = [
+    "install_default_behavior_graph_features",
+    "install_default_graph_if_enabled",
+    "install_default_pursuit_module_if_enabled",
+]

@@ -133,6 +133,35 @@ def test_registry_accepts_only_exactly_typed_connections():
         registry.validate_connection("energy_sensor", "threshold", "missing")
 
 
+def test_registry_lets_a_unit_vector_satisfy_a_plain_vector_port_but_not_reverse():
+    registry = NodeRegistry()
+    registry.register(_definition("aim", NodeCategory.STEERING, ValueType.UNIT_VECTOR))
+    registry.register(_definition("offset", NodeCategory.SENSOR, ValueType.VECTOR))
+    registry.register(
+        _definition(
+            "scale",
+            NodeCategory.STEERING,
+            ValueType.VECTOR,
+            {"vector": ValueType.VECTOR},
+        )
+    )
+    registry.register(
+        _definition(
+            "normalize",
+            NodeCategory.STEERING,
+            ValueType.UNIT_VECTOR,
+            {"vector": ValueType.UNIT_VECTOR},
+        )
+    )
+
+    # A unit vector is a valid vector, so it may feed a plain-vector port -
+    # this is what lets a pursuit module scale a normalized direction.
+    registry.validate_connection("aim", "scale", "vector")
+    # A plain vector does not guarantee unit length, so the reverse still fails.
+    with pytest.raises(TypeError, match="Cannot connect"):
+        registry.validate_connection("offset", "normalize", "vector")
+
+
 @pytest.mark.parametrize("node_type", ["", "not a node", "with-dash", "1starts_with_digit"])
 def test_definition_rejects_invalid_node_type_names(node_type: str):
     with pytest.raises(ValueError, match="identifiers"):

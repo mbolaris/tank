@@ -97,11 +97,53 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
     if dist < 10:  # Already at ball
         return None
 
+    module_vector = _pursuit_module_vector(fish, ball)
+    if module_vector is not None:
+        return (
+            module_vector[0] * BALL_PURSUIT_TARGET_SPEED,
+            module_vector[1] * BALL_PURSUIT_TARGET_SPEED,
+        )
+
     # Normalize and scale to the pursuit target magnitude (re-scaled downstream).
     vx = (dx / dist) * BALL_PURSUIT_TARGET_SPEED
     vy = (dy / dist) * BALL_PURSUIT_TARGET_SPEED
 
     return (vx, vy)
+
+
+def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
+    """Evaluate the shared Target Pursuit Module for the ball, if active.
+
+    None when the module isn't active for this fish (flags off or no trait),
+    signaling the caller to fall back to the naive direct-line pursuit above,
+    unchanged. Reachable only after the energy gate, RNG roll, and survival
+    yield above have already run, so RNG draw order/outcome is identical
+    regardless of whether the module path is taken.
+    """
+    config = fish.environment.simulation_config
+    if (
+        config is None
+        or not config.tank.graph_behavior_enabled
+        or not config.tank.target_pursuit_module_enabled
+    ):
+        return None
+    module_trait = fish.genome.behavioral.target_pursuit_module
+    module = module_trait.value if module_trait is not None else None
+    if module is None:
+        return None
+
+    from core.behavior.soccer_adapter import build_soccer_target_observation
+
+    observation = build_soccer_target_observation(
+        self_position=(fish.pos.x, fish.pos.y),
+        self_velocity=(fish.vel.x, fish.vel.y),
+        ball_position=(ball.pos.x, ball.pos.y),
+        ball_velocity=(ball.vel.x, ball.vel.y),
+    )
+    output = module.compile_cached().evaluate(observation.to_values())
+    if not isinstance(output, tuple) or len(output) != 2:
+        return None
+    return float(output[0]), float(output[1])
 
 
 class BallPursuitConsideration:

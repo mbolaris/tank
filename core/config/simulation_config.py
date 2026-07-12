@@ -201,6 +201,9 @@ class TankConfig:
     # Experimental fixed-topology behavior graph controller.  Disabled by
     # default so existing replays retain their exact RNG schedule.
     graph_behavior_enabled: bool = False
+    # Shared Target Pursuit Module for food AND soccer-ball pursuit. Requires
+    # graph_behavior_enabled too (see core.behavior.feature_flags).
+    target_pursuit_module_enabled: bool = False
 
 
 @dataclass
@@ -356,6 +359,10 @@ class SimulationConfig:
 
         if "graph_behavior_enabled" in config_dict:
             cfg.tank.graph_behavior_enabled = bool(config_dict["graph_behavior_enabled"])
+        if "target_pursuit_module_enabled" in config_dict:
+            cfg.tank.target_pursuit_module_enabled = bool(
+                config_dict["target_pursuit_module_enabled"]
+            )
 
         # Soccer evaluator
         soccer_map = {

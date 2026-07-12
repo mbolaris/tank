@@ -177,6 +177,12 @@ class BehavioralTraits:
     # composable behavior path and consumes no additional RNG during founding.
     behavior_graph: GeneticTrait["BehaviorGraph | None"] | None = None
 
+    # Independently evolvable Target Pursuit Module: food and soccer-ball
+    # pursuit evaluate this SAME inherited/mutated graph (see
+    # core.behavior.pursuit_nodes.default_pursuit_module_graph). Dormant by
+    # default, mirroring behavior_graph's opt-in founding contract.
+    target_pursuit_module: GeneticTrait["BehaviorGraph | None"] | None = None
+
     @classmethod
     def random(
         cls,
