@@ -36,6 +36,12 @@ class TestMovementActions(unittest.TestCase):
         # vel.x += (2.0 - 0) * 0.1 = 0.2; vel.y += (1.0 - 0) * 0.1 = 0.1
         self.assertAlmostEqual(self.fish.vel.x, 0.2)
         self.assertAlmostEqual(self.fish.vel.y, 0.1)
+        assert self.strategy.last_arbitration.selected is not None
+        self.assertEqual(self.strategy.last_arbitration.selected.source, "policy_override")
+        self.assertEqual(
+            self.strategy.last_arbitration.suppressed_sources,
+            ("behavior_graph", "ball_pursuit", "code_policy", "composable_behavior"),
+        )
 
     @patch("core.movement_strategy.build_movement_observation")
     def test_move_clamps_desired_velocity_to_action_bound(self, mock_build_obs):

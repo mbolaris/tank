@@ -179,7 +179,34 @@ def _behavior_details(fish: Any) -> dict[str, Any]:
     graph = graph_trait.value if graph_trait is not None else None
     if graph is not None:
         details["lens"] = _graph_behavior_lens(fish, graph)
+    details["movement_intent"] = _movement_intent_details(fish)
     return details
+
+
+def _movement_intent_details(fish: Any) -> dict[str, Any] | None:
+    """Return the last real arbitration result without re-running controllers.
+
+    Lower-priority drives are deliberately not evaluated after a winner because
+    a controller may consume simulation RNG.  They are therefore reported as
+    suppressed, rather than fabricated as rejected intents.
+    """
+    arbitration = getattr(getattr(fish, "movement_strategy", None), "last_arbitration", None)
+    if arbitration is None:
+        return None
+    selected = getattr(arbitration, "selected", None)
+    if selected is None:
+        return {"chosen": None, "suppressed_sources": []}
+    return {
+        "chosen": {
+            "velocity": _display_node_value(selected.velocity),
+            "kind": selected.kind,
+            "urgency": round(float(selected.urgency), 3),
+            "confidence": round(float(selected.confidence), 3),
+            "target_id": selected.target_id,
+            "source": selected.source,
+        },
+        "suppressed_sources": list(getattr(arbitration, "suppressed_sources", ())),
+    }
 
 
 def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:

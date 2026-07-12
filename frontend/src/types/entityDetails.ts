@@ -17,6 +17,20 @@ export interface EntityDetailsBehavior {
     behavior_id: string | null;
     parameters: Record<string, number | string> | null;
     lens?: EntityDetailsBehaviorLens;
+    movement_intent?: EntityDetailsMovementIntent | null;
+}
+
+export interface EntityDetailsMovementIntent {
+    chosen: {
+        velocity: [number, number];
+        kind: string;
+        urgency: number;
+        confidence: number;
+        target_id: number | null;
+        source: string;
+    } | null;
+    /** Lower-priority sources skipped to preserve deterministic arbitration. */
+    suppressed_sources: string[];
 }
 
 export interface EntityDetailsBehaviorLens {

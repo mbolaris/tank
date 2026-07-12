@@ -252,6 +252,39 @@ export function EntityInspectorDrawer({
                                 </details>
                             </div>
                         )}
+                        {details.behavior.movement_intent?.chosen && (
+                            <div className={styles.movementIntent} aria-label="Chosen movement intent">
+                                <p className={styles.intent}>
+                                    {formatTraitName(details.behavior.movement_intent.chosen.kind)}
+                                </p>
+                                <StatRow
+                                    label="Source"
+                                    value={formatTraitName(details.behavior.movement_intent.chosen.source)}
+                                />
+                                <StatRow
+                                    label="Urgency"
+                                    value={`${Math.round(details.behavior.movement_intent.chosen.urgency * 100)}%`}
+                                />
+                                <StatRow
+                                    label="Confidence"
+                                    value={`${Math.round(details.behavior.movement_intent.chosen.confidence * 100)}%`}
+                                />
+                                {details.behavior.movement_intent.chosen.target_id !== null && (
+                                    <StatRow
+                                        label="Target"
+                                        value={`#${details.behavior.movement_intent.chosen.target_id}`}
+                                    />
+                                )}
+                                {details.behavior.movement_intent.suppressed_sources.length > 0 && (
+                                    <p className={styles.suppressedSources}>
+                                        Lower-priority sources not evaluated:{' '}
+                                        {details.behavior.movement_intent.suppressed_sources
+                                            .map(formatTraitName)
+                                            .join(', ')}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         {details.behavior.algorithm && (
                             <StatRow label="Algorithm" value={details.behavior.algorithm} />
                         )}
