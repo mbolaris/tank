@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 
 from core.algorithms.composable.food_selection import select_food_target
@@ -18,6 +19,27 @@ from core.behavior.targeting import TargetObservation
 from core.entities import Crab, Fish
 
 _SOCIAL_RADIUS = 120.0
+
+# Fallback for _urgency_threshold when a graph has no "urgency" node (or the
+# node's threshold parameter is missing) - matches default_foraging_graph()'s
+# own default so behavior is unchanged for the standard topology.
+_DEFAULT_URGENCY_THRESHOLD = 0.35
+
+
+class ForagingIntentKind(str, Enum):
+    """What the default foraging graph's fixed topology actually selected.
+
+    Mirrors the graph's own decision structure: the ``priority`` node always
+    picks threat when it is nonzero; otherwise the ``urgency`` node picks
+    food below its threshold and cohesion at or above it. THREAT and FOOD are
+    survival-relevant; COHESION is leisure-tier (see
+    ``core.movement.considerations.GraphBehaviorConsideration``, which yields
+    to lower-priority drives such as soccer on COHESION).
+    """
+
+    THREAT = "threat_avoidance"
+    FOOD = "food_pursuit"
+    COHESION = "social_cohesion"
 
 
 @dataclass(frozen=True)
@@ -59,6 +81,47 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
         },
         target_label=target_label,
     )
+
+
+def _urgency_threshold(graph: BehaviorGraph, default: float = _DEFAULT_URGENCY_THRESHOLD) -> float:
+    """Read the foraging graph's own mutable urgency threshold, if present.
+
+    ``urgency`` is a ``threshold_vector_selector`` whose ``threshold``
+    parameter is a mutable, evolvable ``NodeParameterSpec`` - it drifts away
+    from its 0.35 default once graph-carrying fish are actually selected for.
+    Reading it dynamically (rather than hardcoding 0.35) is what keeps
+    classification correct as evolution proceeds.
+    """
+    node = next((candidate for candidate in graph.nodes if candidate.node_id == "urgency"), None)
+    if node is None:
+        return default
+    value = node.parameters.get("threshold")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    return float(value)
+
+
+def classify_foraging_intent(
+    observation: TankBehaviorObservation, graph: BehaviorGraph
+) -> ForagingIntentKind:
+    """Classify what the foraging graph's fixed topology currently selects.
+
+    Mirrors the graph's own node structure exactly (see ``default_foraging_graph``):
+    the ``priority`` node picks threat whenever it is nonzero; otherwise the
+    ``urgency`` node picks food below its threshold and cohesion at or above
+    it. This is the single source of truth for that classification - both
+    movement arbitration (``core.movement.considerations.GraphBehaviorConsideration``)
+    and the inspector's Behavior Lens call this instead of independently
+    re-deriving it, so they cannot disagree.
+    """
+    threat = observation.values["threat_away_vector"]
+    if isinstance(threat, tuple) and len(threat) == 2 and (threat[0] != 0.0 or threat[1] != 0.0):
+        return ForagingIntentKind.THREAT
+    raw_energy_ratio = observation.values["energy_ratio"]
+    energy_ratio = float(raw_energy_ratio) if isinstance(raw_energy_ratio, (int, float)) else 0.0
+    if energy_ratio < _urgency_threshold(graph):
+        return ForagingIntentKind.FOOD
+    return ForagingIntentKind.COHESION
 
 
 def default_foraging_graph() -> BehaviorGraph:
@@ -174,4 +237,10 @@ def _distance_squared(fish: Fish, entity: Any) -> float:
     return float(dx * dx + dy * dy)
 
 
-__all__ = ["TankBehaviorObservation", "build_tank_behavior_observation", "default_foraging_graph"]
+__all__ = [
+    "ForagingIntentKind",
+    "TankBehaviorObservation",
+    "build_tank_behavior_observation",
+    "classify_foraging_intent",
+    "default_foraging_graph",
+]

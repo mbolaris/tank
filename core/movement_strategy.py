@@ -17,6 +17,7 @@ from core.math_utils import Vector2
 from core.policies.interfaces import build_movement_observation
 
 if TYPE_CHECKING:
+    from core.behavior.tank_adapter import ForagingIntentKind
     from core.entities import Fish
 
 from core.movement.considerations import MovementArbiter, default_considerations
@@ -219,8 +220,16 @@ class AlgorithmicMovement(MovementStrategy):
             return None
         return composable_behavior.execute(fish)
 
-    def _get_graph_velocity(self, fish: Fish) -> VelocityComponents | None:
-        """Evaluate a graph-backed controller when the experimental flag is on."""
+    def _get_graph_decision(
+        self, fish: Fish
+    ) -> tuple[VelocityComponents, ForagingIntentKind] | None:
+        """Evaluate a graph-backed controller when the experimental flag is on.
+
+        Returns the desired velocity plus a classification of what the
+        graph's fixed topology actually selected (threat / food / cohesion),
+        so ``GraphBehaviorConsideration`` can decide whether this is
+        survival-relevant (preempts soccer) or leisure-tier (yields to it).
+        """
         config = fish.environment.simulation_config
         if config is None or not config.tank.graph_behavior_enabled:
             return None
@@ -228,14 +237,18 @@ class AlgorithmicMovement(MovementStrategy):
         graph = graph_trait.value if graph_trait is not None else None
         if graph is None:
             return None
-        from core.behavior.tank_adapter import build_tank_behavior_observation
+        from core.behavior.tank_adapter import (
+            build_tank_behavior_observation,
+            classify_foraging_intent,
+        )
 
         observation = build_tank_behavior_observation(fish)
         output = graph.compile_cached().evaluate(observation.values)
         if not isinstance(output, tuple) or len(output) != 2:
             logger.warning("Graph behavior for fish %s returned a non-vector", fish.fish_id)
             return None
-        return float(output[0]), float(output[1])
+        velocity = (float(output[0]), float(output[1]))
+        return velocity, classify_foraging_intent(observation, graph)
 
     def _execute_policy_if_present(self, fish: Fish) -> VelocityComponents | None:
         """Execute movement policy from genome if configured.

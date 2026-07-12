@@ -7,7 +7,12 @@ import random
 from backend.simulation_runner import SimulationRunner
 from core.behavior.graph import BehaviorGraph, GraphNode
 from core.behavior.nodes import NODE_REGISTRY
-from core.behavior.tank_adapter import default_foraging_graph
+from core.behavior.tank_adapter import (
+    ForagingIntentKind,
+    TankBehaviorObservation,
+    classify_foraging_intent,
+    default_foraging_graph,
+)
 from core.entities import Fish
 from core.genetics.behavioral_inheritance import inherit_behavior_graph
 from core.genetics.trait import GeneticTrait
@@ -23,6 +28,27 @@ def _with_blend_weight(graph: BehaviorGraph, weight: float) -> BehaviorGraph:
         for node in graph.nodes
     )
     return BehaviorGraph(nodes, graph.connections, graph.output_node_id)
+
+
+def _with_urgency_threshold(graph: BehaviorGraph, threshold: float) -> BehaviorGraph:
+    nodes = tuple(
+        (
+            GraphNode(node.node_id, node.node_type, {**node.parameters, "threshold": threshold})
+            if node.node_id == "urgency"
+            else node
+        )
+        for node in graph.nodes
+    )
+    return BehaviorGraph(nodes, graph.connections, graph.output_node_id)
+
+
+def _observation(
+    energy_ratio: float, threat_away_vector: tuple[float, float] = (0.0, 0.0)
+) -> TankBehaviorObservation:
+    return TankBehaviorObservation(
+        values={"threat_away_vector": threat_away_vector, "energy_ratio": energy_ratio},
+        target_label=None,
+    )
 
 
 def test_graph_controller_has_stable_fingerprint_cached_plan_and_readable_trace() -> None:
@@ -118,3 +144,39 @@ def test_graph_feature_flag_installs_graphs_and_exposes_an_on_demand_lens() -> N
         "composable_behavior",
     ]
     assert runner.world.rng.getstate() == rng_state
+
+
+def test_classify_foraging_intent_reads_the_graphs_own_mutable_threshold() -> None:
+    graph = _with_urgency_threshold(default_foraging_graph(), 0.6)
+
+    assert (
+        classify_foraging_intent(_observation(0.9, threat_away_vector=(1.0, 0.0)), graph)
+        is ForagingIntentKind.THREAT
+    )
+    # 0.5 sits between the module's 0.35 default and this graph's mutated 0.6 threshold:
+    # FOOD here proves the classifier reads the graph's own parameter, not a hardcoded 0.35.
+    assert classify_foraging_intent(_observation(0.5), graph) is ForagingIntentKind.FOOD
+    assert classify_foraging_intent(_observation(0.9), graph) is ForagingIntentKind.COHESION
+
+
+def test_graph_yields_to_soccer_when_classified_as_cohesion() -> None:
+    """The review's explicit case: graph, food pressure, and soccer active together.
+
+    No movement_policy override is set (unlike the lens test above), so
+    GraphBehaviorConsideration is actually exercised rather than short-circuited by
+    PolicyOverrideConsideration.
+    """
+    runner = SimulationRunner(seed=42, config={"graph_behavior_enabled": True})
+    fish = next(entity for entity in runner.world.entities_list if isinstance(entity, Fish))
+    assert fish.genome.behavioral.behavior_graph is not None
+
+    # High energy -> the graph's own urgency node selects cohesion (>= its 0.35 default
+    # threshold) rather than food, and simultaneously clears ball_pursuit's own energy
+    # gate (PLAY_ENERGY_THRESHOLD_RATIO), so soccer is genuinely eligible to compete
+    # rather than being blocked by its own gate regardless of this fix.
+    fish.energy = fish.max_energy
+    fish.movement_strategy.move(fish)
+
+    arbitration = fish.movement_strategy.last_arbitration
+    assert arbitration.selected is not None
+    assert arbitration.selected.source != "behavior_graph"

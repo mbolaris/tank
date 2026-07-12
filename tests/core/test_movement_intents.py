@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from core.behavior.tank_adapter import ForagingIntentKind
 from core.movement.considerations import GraphBehaviorConsideration, MovementArbiter
 from core.movement.intents import MovementIntent
 
@@ -35,7 +36,7 @@ def test_zero_velocity_is_inactive_and_does_not_preempt_lower_priority_drive() -
         "code_policy",
         MovementIntent.from_velocity((0.0, 1.0), kind="code_policy", source="code_policy"),
     )
-    strategy = SimpleNamespace(_get_graph_velocity=lambda fish: (0.0, 0.0))
+    strategy = SimpleNamespace(_get_graph_decision=lambda fish: None)
 
     result = MovementArbiter([graph, soccer, code_policy]).arbitrate(strategy, _fish())
 
@@ -79,3 +80,40 @@ def test_movement_intent_normalizes_metadata_and_can_mark_empty_velocity_inactiv
     assert intent is not None
     assert intent.urgency == 1.0
     assert intent.confidence == 0.0
+
+
+def test_graph_consideration_yields_to_lower_priority_drive_on_cohesion() -> None:
+    graph = GraphBehaviorConsideration()
+    soccer = _IntentDrive(
+        "ball_pursuit",
+        MovementIntent.from_velocity(
+            (1.0, 0.0), kind="soccer_pursuit", source="ball_pursuit", urgency=0.42
+        ),
+    )
+    strategy = SimpleNamespace(
+        _get_graph_decision=lambda fish: ((0.1, 0.2), ForagingIntentKind.COHESION)
+    )
+
+    result = MovementArbiter([graph, soccer]).arbitrate(strategy, _fish())
+
+    assert result.selected is not None
+    assert result.selected.source == "ball_pursuit"
+    assert soccer.calls == 1
+
+
+def test_graph_consideration_preempts_lower_priority_drive_on_threat_or_food() -> None:
+    soccer = _IntentDrive(
+        "ball_pursuit",
+        MovementIntent.from_velocity(
+            (1.0, 0.0), kind="soccer_pursuit", source="ball_pursuit", urgency=0.42
+        ),
+    )
+    for kind in (ForagingIntentKind.THREAT, ForagingIntentKind.FOOD):
+        graph = GraphBehaviorConsideration()
+        strategy = SimpleNamespace(_get_graph_decision=lambda fish, kind=kind: ((0.1, 0.2), kind))
+
+        result = MovementArbiter([graph, soccer]).arbitrate(strategy, _fish())
+
+        assert result.selected is not None
+        assert result.selected.source == "behavior_graph"
+        assert result.selected.kind == f"graph_{kind.value}"

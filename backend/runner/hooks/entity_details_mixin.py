@@ -212,29 +212,32 @@ def _movement_intent_details(fish: Any) -> dict[str, Any] | None:
 
 def _graph_behavior_lens(fish: Any, graph: Any) -> dict[str, Any]:
     """Explain one selected fish's current graph decision without retaining traces."""
-    from core.behavior.tank_adapter import build_tank_behavior_observation
+    from core.behavior.tank_adapter import (
+        ForagingIntentKind,
+        build_tank_behavior_observation,
+        classify_foraging_intent,
+    )
 
     observation = build_tank_behavior_observation(fish)
     output, trace = graph.compile_cached().evaluate_with_trace(observation.values)
     outputs = {node_id: _display_node_value(value) for node_id, value in trace}
-    threat = observation.values["threat_away_vector"]
-    has_target = bool(observation.values["has_target"])
     cohesion = observation.values["cohesion_vector"]
-    if _nonzero_vector(threat):
+    # Single source of truth for what the graph selected - shared with movement
+    # arbitration (GraphBehaviorConsideration) so the Lens can never disagree
+    # with what the fish actually did.
+    kind = classify_foraging_intent(observation, graph)
+    if kind is ForagingIntentKind.THREAT:
         intent = "Fleeing threat"
-    elif has_target:
+    elif kind is ForagingIntentKind.FOOD:
         intent = "Chasing food"
     elif _nonzero_vector(cohesion):
         intent = "Following the group"
     else:
         intent = "Searching"
-    raw_energy_ratio = observation.values["energy_ratio"]
-    energy_ratio = float(raw_energy_ratio) if isinstance(raw_energy_ratio, (int, float)) else 0.0
     contributions, cancellation = _graph_contributions(
-        threat=threat,
         food=observation.values["food_vector"],
         cohesion=cohesion,
-        energy_ratio=energy_ratio,
+        kind=kind,
         graph=graph,
     )
     return {
@@ -259,15 +262,25 @@ def _display_node_value(value: Any) -> Any:
 
 
 def _graph_contributions(
-    *, threat: Any, food: Any, cohesion: Any, energy_ratio: float, graph: Any
+    *, food: Any, cohesion: Any, kind: Any, graph: Any
 ) -> tuple[dict[str, float], float]:
-    """Calculate weighted-vector influence rather than displaying raw weights."""
-    if _nonzero_vector(threat):
+    """Calculate weighted-vector influence rather than displaying raw weights.
+
+    ``kind`` is the already-computed ``ForagingIntentKind`` from
+    ``classify_foraging_intent`` - reused here rather than re-deriving a
+    threat/energy check independently, so this can never disagree with what
+    ``_graph_behavior_lens`` (or movement arbitration) already decided.
+    """
+    from core.behavior.tank_adapter import ForagingIntentKind
+
+    if kind is ForagingIntentKind.THREAT:
         return {"threat_response": 1.0, "food_pursuit": 0.0, "school_cohesion": 0.0}, 0.0
     blend = next((node for node in graph.nodes if node.node_id == "blend"), None)
     parameters = dict(getattr(blend, "parameters", {}))
     first_name, first = (
-        ("school_cohesion", cohesion) if energy_ratio >= 0.35 else ("food_pursuit", food)
+        ("school_cohesion", cohesion)
+        if kind is ForagingIntentKind.COHESION
+        else ("food_pursuit", food)
     )
     first_weight, second_weight = float(parameters.get("first_weight", 1.0)), float(
         parameters.get("second_weight", 0.2)
