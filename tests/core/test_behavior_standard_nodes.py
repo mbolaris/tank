@@ -112,3 +112,70 @@ def test_intercept_target_node_is_domain_neutral() -> None:
     assert graph.compile(NODE_REGISTRY, validate_outputs=True).evaluate(
         {"target_vector": (10, 0), "target_velocity": (2, 0), "self_velocity": (1, 0)}
     ) == (12.0, 0.0)
+
+
+def test_threshold_selector_explains_its_own_decision_via_node_trace() -> None:
+    graph = BehaviorGraph(
+        (
+            GraphNode("energy", "context_scalar_sensor", {"field": "energy"}),
+            GraphNode("target", "context_vector_sensor", {"field": "target"}),
+            GraphNode("fallback", "context_vector_sensor", {"field": "fallback"}),
+            GraphNode("choice", "threshold_vector_selector", {"threshold": 0.5}),
+        ),
+        (
+            GraphConnection("energy", "choice", "value"),
+            GraphConnection("target", "choice", "when_true"),
+            GraphConnection("fallback", "choice", "when_false"),
+        ),
+        "choice",
+    )
+    compiled = graph.compile(NODE_REGISTRY, validate_outputs=True)
+
+    _, trace = compiled.evaluate_with_node_trace(
+        {"energy": 0.8, "target": (1.0, 0.0), "fallback": (0.0, 1.0)}
+    )
+    choice_trace = next(entry for entry in trace if entry.node_id == "choice")
+    assert choice_trace.explanation == {
+        "selected_port": "when_true",
+        "value": 0.8,
+        "threshold": 0.5,
+    }
+    # Sensor nodes have nothing to explain.
+    assert next(entry for entry in trace if entry.node_id == "energy").explanation is None
+
+    _, trace_below = compiled.evaluate_with_node_trace(
+        {"energy": 0.2, "target": (1.0, 0.0), "fallback": (0.0, 1.0)}
+    )
+    below_explanation = next(
+        entry for entry in trace_below if entry.node_id == "choice"
+    ).explanation
+    assert below_explanation is not None
+    assert below_explanation["selected_port"] == "when_false"
+
+
+def test_priority_selector_explains_primary_vs_fallback_via_node_trace() -> None:
+    graph = BehaviorGraph(
+        (
+            GraphNode("primary", "context_vector_sensor", {"field": "primary"}),
+            GraphNode("fallback", "context_vector_sensor", {"field": "fallback"}),
+            GraphNode("priority", "priority_vector_selector", {}),
+        ),
+        (
+            GraphConnection("primary", "priority", "primary"),
+            GraphConnection("fallback", "priority", "fallback"),
+        ),
+        "priority",
+    )
+    compiled = graph.compile(NODE_REGISTRY, validate_outputs=True)
+
+    _, trace = compiled.evaluate_with_node_trace({"primary": (1.0, 0.0), "fallback": (0.0, 1.0)})
+    assert next(entry for entry in trace if entry.node_id == "priority").explanation == {
+        "selected_port": "primary"
+    }
+
+    _, trace_zero = compiled.evaluate_with_node_trace(
+        {"primary": (0.0, 0.0), "fallback": (0.0, 1.0)}
+    )
+    assert next(entry for entry in trace_zero if entry.node_id == "priority").explanation == {
+        "selected_port": "fallback"
+    }

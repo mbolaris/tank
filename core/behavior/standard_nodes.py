@@ -195,16 +195,26 @@ class _ThresholdVectorSelector:
     def to_parameters(self) -> Mapping[str, NodeParameter]:
         return self.parameters
 
-    def select(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+    def _selected_port(self, inputs: Mapping[str, NodeValue]) -> tuple[str, float, float]:
         raw_value = inputs.get("value")
         if type(raw_value) is not float or not math.isfinite(raw_value):
             raise TypeError("threshold_vector_selector requires a finite scalar 'value'")
-        selected_port = (
-            "when_true"
-            if raw_value >= _parameter_float(self.parameters, "threshold", 0.0)
-            else "when_false"
-        )
+        threshold = _parameter_float(self.parameters, "threshold", 0.0)
+        port = "when_true" if raw_value >= threshold else "when_false"
+        return port, raw_value, threshold
+
+    def select(self, inputs: Mapping[str, NodeValue]) -> NodeValue:
+        selected_port, _value, _threshold = self._selected_port(inputs)
         return _vector_value(inputs, selected_port, self.node_type)
+
+    def explain(self, inputs: Mapping[str, NodeValue]) -> Mapping[str, object]:
+        """Report which port was selected and the compared value/threshold.
+
+        Shares ``_selected_port`` with ``select`` so this can never disagree
+        with what the node actually did, even as ``threshold`` mutates.
+        """
+        selected_port, value, threshold = self._selected_port(inputs)
+        return {"selected_port": selected_port, "value": value, "threshold": threshold}
 
 
 @dataclass
@@ -222,6 +232,11 @@ class _PriorityVectorSelector:
         if primary != (0.0, 0.0):
             return primary
         return _vector_value(inputs, "fallback", self.node_type)
+
+    def explain(self, inputs: Mapping[str, NodeValue]) -> Mapping[str, object]:
+        """Report whether primary or fallback was selected (mirrors select())."""
+        primary = _vector_value(inputs, "primary", self.node_type)
+        return {"selected_port": "primary" if primary != (0.0, 0.0) else "fallback"}
 
 
 def _context_value(

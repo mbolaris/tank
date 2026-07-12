@@ -23,9 +23,35 @@ class CompiledStep:
     node_id: str
     evaluate: Callable[[object, Mapping[str, NodeValue]], NodeValue]
     inputs: tuple[tuple[str, int], ...]
+    node: BehaviorNode
 
     def run(self, context: object, values: list[NodeValue]) -> NodeValue:
         return self.evaluate(context, {port: values[index] for port, index in self.inputs})
+
+    def explain(self, values: list[NodeValue]) -> Mapping[str, object] | None:
+        """Ask the node what it selected, if it can explain itself.
+
+        Opt-in: most categories (sensors, steering math) have nothing
+        meaningful to report. A node may implement
+        ``explain(inputs) -> Mapping[str, object]`` describing its own
+        decision - e.g. which input port a selector picked and why - so this
+        stays correct as evolvable parameters change, instead of a caller
+        re-deriving the same decision externally by hardcoding a node id.
+        """
+        explain = getattr(self.node, "explain", None)
+        if not callable(explain):
+            return None
+        inputs = {port: values[index] for port, index in self.inputs}
+        return cast(Mapping[str, object], explain(inputs))
+
+
+@dataclass(frozen=True)
+class NodeTrace:
+    """One compiled node's recorded output plus its optional self-explanation."""
+
+    node_id: str
+    output: NodeValue
+    explanation: Mapping[str, object] | None
 
 
 @dataclass(frozen=True)
@@ -57,6 +83,23 @@ class CompiledBehaviorGraph:
             (step.node_id, values[index]) for index, step in enumerate(self.steps)
         )
 
+    def evaluate_with_node_trace(self, context: object) -> tuple[NodeValue, tuple[NodeTrace, ...]]:
+        """Evaluate once and return each node's output plus its own explanation.
+
+        Unlike ``evaluate_with_trace``'s plain ``(node_id, value)`` pairs, this
+        asks each node to self-report what it selected (via an optional
+        ``explain()``) instead of a caller re-deriving it externally - the
+        fix for a Behavior Lens that would otherwise have to hardcode
+        assumptions about specific node ids or parameter values.
+        """
+        values: list[NodeValue] = []
+        for step in self.steps:
+            values.append(step.run(context, values))
+        return values[self.output_index], tuple(
+            NodeTrace(step.node_id, values[index], step.explain(values))
+            for index, step in enumerate(self.steps)
+        )
+
 
 def evaluator_for(node: BehaviorNode) -> Callable[[object, Mapping[str, NodeValue]], NodeValue]:
     """Bind a node's category-specific method once at compile time."""
@@ -80,4 +123,10 @@ def evaluator_for(node: BehaviorNode) -> Callable[[object, Mapping[str, NodeValu
     return lambda _context, inputs: cast(NodeValue, method(inputs))
 
 
-__all__ = ["BehaviorGraphError", "CompiledBehaviorGraph", "CompiledStep", "evaluator_for"]
+__all__ = [
+    "BehaviorGraphError",
+    "CompiledBehaviorGraph",
+    "CompiledStep",
+    "NodeTrace",
+    "evaluator_for",
+]

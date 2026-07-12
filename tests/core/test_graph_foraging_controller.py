@@ -180,3 +180,25 @@ def test_graph_yields_to_soccer_when_classified_as_cohesion() -> None:
     arbitration = fish.movement_strategy.last_arbitration
     assert arbitration.selected is not None
     assert arbitration.selected.source != "behavior_graph"
+
+
+def test_lens_reads_the_graphs_own_mutated_threshold_not_a_hardcoded_one() -> None:
+    """Regression test for the review's concern: once urgency.threshold mutates,
+    the Lens must explain the graph's actual decision, not a hardcoded 0.35."""
+    runner = SimulationRunner(seed=42, config={"graph_behavior_enabled": True})
+    snapshot = next(entity for entity in runner._collect_entities() if entity.type == "fish")
+    fish = next(entity for entity in runner.world.entities_list if isinstance(entity, Fish))
+    graph_trait = fish.genome.behavioral.behavior_graph
+    assert graph_trait is not None
+
+    # Mutate the threshold well above the default 0.35. A hardcoded-0.35 check
+    # would misclassify energy_ratio=0.5 as cohesion; reading the graph's own
+    # (mutated) threshold via its self-reported NodeTrace explanation
+    # correctly classifies it as food instead.
+    graph_trait.value = _with_urgency_threshold(graph_trait.value, 0.9)
+    fish.energy = 0.5 * fish.max_energy
+
+    result = runner.handle_command("get_entity_details", {"entity_id": snapshot.id})
+
+    assert result["success"] is True
+    assert result["details"]["behavior"]["lens"]["intent"] == "Chasing food"
