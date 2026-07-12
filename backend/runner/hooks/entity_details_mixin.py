@@ -111,6 +111,7 @@ def _fish_details(fish: Any) -> dict[str, Any]:
         "behavior": _behavior_details(fish),
         "traits": _trait_details(fish),
         "games": _game_details(fish, energy_ratio),
+        "modules": _pursuit_module_details(fish),
     }
 
     repro = getattr(fish, "_reproduction_component", None)
@@ -351,6 +352,85 @@ def _game_details(fish: Any, energy_ratio: float) -> dict[str, Any]:
             "eligible": ball is not None and energy_ratio > PLAY_ENERGY_THRESHOLD_RATIO,
         },
     }
+
+
+def _pursuit_module_details(fish: Any) -> dict[str, Any] | None:
+    """Explain the shared Target Pursuit Module's current parameters and aim.
+
+    None when the fish doesn't carry the module (opt-in graph experiment
+    only - see core.behavior.feature_flags). The same module instance is
+    reachable by both the food adapter and the soccer-ball adapter; this
+    reports whichever target the fish currently has, following the adapters'
+    own food-first priority.
+    """
+    module_trait = getattr(fish.genome.behavioral, "target_pursuit_module", None)
+    module = module_trait.value if module_trait is not None else None
+    if module is None:
+        return None
+
+    target_name, target_vector, aim_vector = _pursuit_module_current_aim(fish, module)
+    return {
+        "name": "Target Pursuit v1",
+        "used_for": ["Food", "Soccer"],
+        "parameters": _pursuit_module_parameters(module),
+        "current_target": target_name,
+        "target_vector": target_vector,
+        "aim_vector": aim_vector,
+        "inherited_from": getattr(fish, "parent_id", None),
+    }
+
+
+def _pursuit_module_parameters(module: Any) -> dict[str, float]:
+    """Read the module's own evolvable parameters by node id (see
+    core.behavior.pursuit_nodes.default_pursuit_module_graph)."""
+    by_id = {node.node_id: node for node in module.nodes}
+    intercept_params = dict(getattr(by_id.get("intercept"), "parameters", {}))
+    pursuit_params = dict(getattr(by_id.get("pursuit"), "parameters", {}))
+    return {
+        "assumed_speed": round(float(intercept_params.get("speed", 1.0)), 3),
+        "prediction_strength": round(float(intercept_params.get("prediction_strength", 1.0)), 3),
+        "max_prediction_horizon": round(
+            float(intercept_params.get("max_prediction_horizon", 100.0)), 3
+        ),
+        "pursuit_commitment": round(float(pursuit_params.get("scale", 1.0)), 3),
+    }
+
+
+def _pursuit_module_current_aim(fish: Any, module: Any) -> tuple[str | None, Any, Any]:
+    """Evaluate the module against whichever target this fish currently has.
+
+    Food takes display priority (matching the adapters' own priority);
+    returns (target_name, raw_target_vector, module_aim_vector).
+    """
+    from core.behavior.tank_adapter import build_tank_behavior_observation
+
+    observation = build_tank_behavior_observation(fish)
+    if observation.target_label is not None:
+        return (
+            observation.target_label,
+            _display_node_value(observation.values.get("target_vector")),
+            _display_node_value(observation.values.get("food_vector")),
+        )
+
+    ball = getattr(fish.environment, "ball", None)
+    if ball is None:
+        return None, None, None
+
+    from core.behavior.soccer_adapter import build_soccer_target_observation
+
+    ball_observation = build_soccer_target_observation(
+        self_position=(fish.pos.x, fish.pos.y),
+        self_velocity=(fish.vel.x, fish.vel.y),
+        ball_position=(ball.pos.x, ball.pos.y),
+        ball_velocity=(ball.vel.x, ball.vel.y),
+    )
+    output = module.compile_cached().evaluate(ball_observation.to_values())
+    aim_vector = output if isinstance(output, tuple) and len(output) == 2 else None
+    return (
+        "Soccer Ball",
+        _display_node_value(ball_observation.target_vector),
+        _display_node_value(aim_vector),
+    )
 
 
 def _generic_details(entity: Any) -> dict[str, Any]:

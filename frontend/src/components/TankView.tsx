@@ -9,6 +9,7 @@ import {
     type ReactNode,
 } from 'react';
 import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
+import type { PursuitOverlayData } from '../rendering/types';
 import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
@@ -90,6 +91,10 @@ export function TankView({ worldId }: TankViewProps) {
     // Entity selection: a click opens the inspector; transfer is an explicit
     // secondary action inside it (U4/E1).
     const selection = useEntitySelection();
+
+    // Selected fish's pursuit vectors, owned here so Canvas can read them too.
+    const [pursuitOverlay, setPursuitOverlay] = useState<PursuitOverlayData | null>(null);
+    useEffect(() => setPursuitOverlay(null), [selection.selectedEntityId]);
 
     const serverViewMode =
         state?.view_mode === 'side' || state?.view_mode === 'topdown'
@@ -359,6 +364,7 @@ export function TankView({ worldId }: TankViewProps) {
                         height={612}
                         onEntityClick={selection.selectEntity}
                         selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
+                        pursuitOverlay={selection.selectedEntityMissing ? null : pursuitOverlay}
                         followEntityId={
                             selection.followEnabled && !selection.selectedEntityMissing
                                 ? selection.selectedEntityId
@@ -482,6 +488,7 @@ export function TankView({ worldId }: TankViewProps) {
                             onRequestTransfer={selection.openTransfer}
                             followEnabled={selection.followEnabled}
                             onToggleFollow={selection.toggleFollow}
+                            onPursuitOverlayChange={setPursuitOverlay}
                         />
                     </Suspense>
                 )}

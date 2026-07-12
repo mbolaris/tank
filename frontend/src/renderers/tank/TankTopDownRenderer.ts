@@ -2,6 +2,7 @@
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import type { SimulationUpdate } from '../../types/simulation';
 import { buildTankScene, type TankEntity } from './tankScene';
+import { drawPursuitOverlay } from '../../utils/drawPursuitOverlay';
 import { ImageLoader } from '../../utils/ImageLoader';
 import { renderPlant, type PlantGenomeData } from '../../utils/plant';
 
@@ -109,7 +110,7 @@ export class TankTopDownRenderer implements Renderer {
             });
         }
 
-        // Pass 6: selection ring (HUD, top-most)
+        // Pass 6: selection ring + pursuit-module overlay (HUD, top-most)
         if (options.selectedEntityId !== undefined && options.selectedEntityId !== null) {
             const selected = scene.entities.find(e => e.id === options.selectedEntityId);
             if (selected) {
@@ -121,6 +122,7 @@ export class TankTopDownRenderer implements Renderer {
                 ctx.arc(selected.x, selected.y, selected.radius + 4, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
+                if (options.pursuitOverlay) drawPursuitOverlay(ctx, selected.x, selected.y, options.pursuitOverlay);
             }
         }
 
