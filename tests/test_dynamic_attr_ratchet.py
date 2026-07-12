@@ -45,9 +45,17 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/entities/predators.py": 8,
     "core/environment.py": 8,
     "core/fish/visual_geometry.py": 5,
-    "core/genetics/behavioral_inheritance.py": 16,
+    # +4 (2026-07): target_pursuit_module rides the same loop-over-field-name
+    # pattern already used for the per-kind policy traits below, rather than
+    # duplicating inherit_behavior_graph()'s call site per field (which would
+    # cost far more lines than 4 getattr calls - see the god-class ratchet,
+    # this file was already near its own line-count ceiling).
+    "core/genetics/behavioral_inheritance.py": 20,
     "core/genetics/code_policy_traits.py": 9,
-    "core/genetics/genome.py": 4,
+    # +1 (2026-07): validate() loops over ("behavior_graph",
+    # "target_pursuit_module") instead of duplicating the validation call per
+    # field, mirroring the per-kind-policy loop already in this file.
+    "core/genetics/genome.py": 5,
     "core/genetics/genome_codec.py": 9,
     "core/genetics/trait.py": 8,
     "core/genetics/trait_utils.py": 3,
