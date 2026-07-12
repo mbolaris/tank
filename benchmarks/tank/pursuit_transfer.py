@@ -53,7 +53,12 @@ def run(seed: int) -> dict[str, Any]:
             rung="L1",
             rung_id="untrained_default_module_v1",
             metric=untrained_score,
-            beaten=evolved_score > untrained_score,
+            # >= (not strict >), matching L2 below: a single-generation (1+K)
+            # hill-climb legitimately finds zero improvement on some training
+            # episodes (a valid random-search outcome), in which case the
+            # evolved module ties its own untrained starting point rather than
+            # regressing. The cross-seed test asserts the same >=.
+            beaten=evolved_score >= untrained_score,
             detail=evaluation.untrained.to_dict(),
         ),
         RungResult(

@@ -23,6 +23,10 @@ EXCLUDED_DIRS = {
     "frontend",
     "dist",
     "build",
+    # .claude/worktrees/* holds full nested checkouts for isolated agent
+    # sessions - without this, architecture tests double-count that copy's
+    # source files as if they were part of this repo's own tree.
+    ".claude",
 }
 
 
