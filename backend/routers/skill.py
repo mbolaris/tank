@@ -25,7 +25,58 @@ _CHAMPIONS_DIR = Path(__file__).resolve().parents[2] / "champions"
 SCHEMA_VERSION = 1
 
 
-from benchmarks.tank.foraging_gym import SUMMARY_SEEDS as _FORAGING_GYM_SUMMARY_SEEDS
+_FORAGING_GYM_SUMMARY_SEEDS = (42, 7, 31, 38, 1, 5, 0, 41)
+
+from typing import cast
+from core.math_utils import Vector2
+from core.algorithms.composable.behavior import ComposableBehavior
+from core.foraging.gym import (
+    _RandomWalkPolicy,
+    _OracleGreedyPolicy,
+    _GymFish,
+    _GymEnvironment,
+    _GymFood,
+    build_food_schedule,
+    oracle_energy_ceiling,
+    run_episode,
+    ForagingGymEvaluation,
+)
+
+
+class _CustomGenomePolicy:
+    """Policy that runs ComposableBehavior using a specific custom Genome."""
+
+    def __init__(self, genome: Any, seed: int) -> None:
+        self._behavior = ComposableBehavior()
+        self._wander = _RandomWalkPolicy(seed)
+        self._genome = genome
+
+    def velocity(self, fish: _GymFish, active_food: tuple[_GymFood, ...]) -> Vector2:
+        if not active_food:
+            return self._wander.velocity(fish, active_food)
+        # Attach the custom genome to the gym fish so the behavior uses it
+        fish.genome = self._genome
+        from core.entities.fish import Fish
+
+        vx, vy = self._behavior.execute(cast(Fish, fish))
+        return Vector2(vx, vy)
+
+
+def evaluate_custom_genome(genome: Any, seed: int) -> ForagingGymEvaluation:
+    """Evaluate a custom genome snapshot in the foraging gym environment for ``seed``."""
+    schedule = build_food_schedule(seed)
+    ceiling = oracle_energy_ceiling(schedule)
+    oracle = run_episode(schedule, _OracleGreedyPolicy(), seed)
+    random_floor = run_episode(schedule, _RandomWalkPolicy(seed), seed)
+    policy = _CustomGenomePolicy(genome, seed)
+    composable = run_episode(schedule, policy, seed)
+    return ForagingGymEvaluation(
+        oracle_energy=ceiling,
+        oracle=oracle,
+        random_walk=random_floor,
+        composable=composable,
+    )
+
 
 _FORAGING_GYM_SUMMARY_CACHE: dict[str, dict[str, Any]] = {}
 
@@ -156,7 +207,6 @@ def setup_router(
         import json
         from core.genetics.genome import GENOME_SCHEMA_VERSION
         from core.genetics.genome_codec import genome_to_dict
-        from core.foraging.gym import evaluate_custom_genome
         from core.entities.fish import Fish
 
         if world_manager is None:

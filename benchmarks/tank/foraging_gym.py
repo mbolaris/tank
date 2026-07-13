@@ -25,10 +25,6 @@ CONFIG: dict[str, Any] = {
     "ceiling": "full_information_greedy_v1",
 }
 
-# The standardized trial seeds used to generate the summary aggregate result.
-# Changing this tuple updates the versioned cohort and invalidates the cache.
-SUMMARY_SEEDS = (42, 7, 31, 38, 1, 5, 0, 41)
-
 
 def run(seed: int) -> dict[str, Any]:
     """Measure neutral composable food-seeking skill for one fixed seed."""
