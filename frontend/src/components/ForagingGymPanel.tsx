@@ -32,7 +32,13 @@ function formatSubject(subject: string): string {
         .join(' ');
 }
 
-export function ForagingGymPanel({ onSelectEntity }: { onSelectEntity?: (entityId: number, entityType: string) => void }) {
+export function ForagingGymPanel({
+    worldId,
+    onSelectEntity
+}: {
+    worldId?: string;
+    onSelectEntity?: (entityId: number, entityType: string) => void;
+}) {
     const [summary, setSummary] = useState<ForagingGymSummary | null>(null);
     const [observatory, setObservatory] = useState<ObservatoryData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -44,9 +50,10 @@ export function ForagingGymPanel({ onSelectEntity }: { onSelectEntity?: (entityI
             setLoading(true);
             setError(null);
             try {
+                const queryStr = worldId ? `?world_id=${encodeURIComponent(worldId)}` : '';
                 const [summaryRes, observatoryRes] = await Promise.all([
-                    fetch('/api/skill/foraging-gym/summary'),
-                    fetch('/api/skill/foraging-gym/observatory'),
+                    fetch(`/api/skill/foraging-gym/summary${queryStr}`),
+                    fetch(`/api/skill/foraging-gym/observatory${queryStr}`),
                 ]);
                 if (!summaryRes.ok) throw new Error(`Failed to load summary (${summaryRes.status})`);
                 if (!observatoryRes.ok) throw new Error(`Failed to load observatory (${observatoryRes.status})`);
@@ -72,7 +79,7 @@ export function ForagingGymPanel({ onSelectEntity }: { onSelectEntity?: (entityI
         return () => {
             active = false;
         };
-    }, []);
+    }, [worldId]);
 
     if (loading) {
         return (
@@ -128,8 +135,8 @@ export function ForagingGymPanel({ onSelectEntity }: { onSelectEntity?: (entityI
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ForagingGymSummaryDisplay summary={summary} />
             <ForagingGymObservatoryDisplay observatory={observatory} onSelectEntity={onSelectEntity} />
+            <ForagingGymSummaryDisplay summary={summary} />
         </div>
     );
 }
@@ -330,6 +337,11 @@ export function ForagingGymObservatoryDisplay({
         <section style={styles.panel} aria-label="Tank skill observatory">
             <div style={styles.titleContainer}>
                 <div style={styles.title}>YOUR TANK'S FORAGING</div>
+                {observatory.subject && (
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px', fontWeight: 500 }}>
+                        EVALUATED SUBJECT: {observatory.subject.toUpperCase()}
+                    </div>
+                )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '8px 0' }}>
@@ -394,7 +406,11 @@ export function ForagingGymObservatoryDisplay({
                         Captured {observatory.best_individual.food_collected.toFixed(1)} of {observatory.best_individual.food_available} food items
                     </div>
                     <div style={styles.observatoryBestDetail}>
-                        Prediction strength increased from {observatory.best_individual.prediction_strength_before.toFixed(2)} to {observatory.best_individual.prediction_strength_after.toFixed(2)}
+                        {(() => {
+                            const diff = observatory.best_individual.prediction_strength_after - observatory.best_individual.prediction_strength_before;
+                            const diffStr = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+                            return `Prediction skill differs from the species founder by ${diffStr}`;
+                        })()}
                     </div>
                     <div style={styles.observatoryBestDetail}>
                         This module variant is present in {Math.round(observatory.best_individual.percentage_of_species)}% of its species

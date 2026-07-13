@@ -72,6 +72,7 @@ export interface ForagingGymSummary {
 export interface ObservatoryData {
     status: 'success' | 'no_data';
     message?: string;
+    subject?: string;
     tank_average?: number;
     best_species?: {
         name: string;

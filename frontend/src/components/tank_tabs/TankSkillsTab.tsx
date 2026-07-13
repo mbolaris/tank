@@ -2,7 +2,13 @@ import { ForagingGymPanel } from '../ForagingGymPanel';
 import { SkillLadderPanel } from '../SkillLadderPanel';
 
 /** Research-facing, domain-neutral skill measurements and evaluators. */
-export function TankSkillsTab({ onSelectEntity }: { onSelectEntity?: (entityId: number, entityType: string) => void }) {
+export function TankSkillsTab({
+    worldId,
+    onSelectEntity
+}: {
+    worldId?: string;
+    onSelectEntity?: (entityId: number, entityType: string) => void;
+}) {
     return (
         <div style={styles.layout}>
             <div style={styles.intro}>
@@ -12,7 +18,7 @@ export function TankSkillsTab({ onSelectEntity }: { onSelectEntity?: (entityId: 
                 </p>
             </div>
 
-            <ForagingGymPanel onSelectEntity={onSelectEntity} />
+            <ForagingGymPanel worldId={worldId} onSelectEntity={onSelectEntity} />
             <SkillLadderPanel />
         </div>
     );
