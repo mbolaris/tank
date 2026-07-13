@@ -6,6 +6,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
+from typing import Any
 
 from core.behavior.graph import BehaviorGraph
 from core.behavior.nodes import (
@@ -156,4 +157,24 @@ def default_pursuit_module_graph() -> BehaviorGraph:
     )
 
 
-__all__ = ["default_pursuit_module_graph", "intercept_target_definition"]
+__all__ = [
+    "default_pursuit_module_graph",
+    "intercept_target_definition",
+    "pursuit_module_parameters",
+]
+
+
+def pursuit_module_parameters(module: Any) -> dict[str, float]:
+    """Read the module's own evolvable parameters by node id (see
+    core.behavior.pursuit_nodes.default_pursuit_module_graph)."""
+    by_id = {node.node_id: node for node in module.nodes}
+    intercept_params = dict(getattr(by_id.get("intercept"), "parameters", {}))
+    pursuit_params = dict(getattr(by_id.get("pursuit"), "parameters", {}))
+    return {
+        "speed_multiplier": round(float(intercept_params.get("speed_multiplier", 1.0)), 3),
+        "prediction_strength": round(float(intercept_params.get("prediction_strength", 1.0)), 3),
+        "max_prediction_horizon": round(
+            float(intercept_params.get("max_prediction_horizon", 100.0)), 3
+        ),
+        "pursuit_commitment": round(float(pursuit_params.get("scale", 1.0)), 3),
+    }

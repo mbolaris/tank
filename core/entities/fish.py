@@ -281,6 +281,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
 
         # Store parent ID for delayed registration
         self.parent_id = parent_id
+        self.parent_pursuit_params: dict[str, float] | None = None
 
         self.team = team
 

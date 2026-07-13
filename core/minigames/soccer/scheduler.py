@@ -125,6 +125,16 @@ class SoccerMinigameScheduler:
                 )
             else:
                 try:
+                    sim_config = getattr(world_state, "simulation_config", None)
+                    tank_config = (
+                        getattr(sim_config, "tank", None) if sim_config is not None else None
+                    )
+                    target_pursuit_enabled = (
+                        getattr(tank_config, "target_pursuit_module_enabled", False)
+                        if tank_config is not None
+                        else False
+                    )
+
                     outcome = match_runner(
                         candidates,
                         num_players=num_players,
@@ -146,6 +156,7 @@ class SoccerMinigameScheduler:
                         reward_multiplier=getattr(self.config, "reward_multiplier", 1.0),
                         repro_reward_mode=getattr(self.config, "repro_reward_mode", "credits"),
                         repro_credit_award=getattr(self.config, "repro_credit_award", 0.0),
+                        target_pursuit_module_enabled=target_pursuit_enabled,
                     )
                 except ValueError:
                     outcome = self._build_skip_outcome(
@@ -210,6 +221,7 @@ class SoccerMinigameScheduler:
         reward_multiplier: float = 1.0,
         repro_reward_mode: str = "credits",
         repro_credit_award: float = 0.0,
+        target_pursuit_module_enabled: bool | None = None,
     ) -> SoccerMinigameOutcome:
         # Select participants with new strategy
         selected = select_soccer_participants(
@@ -240,6 +252,7 @@ class SoccerMinigameScheduler:
             match_counter=match_counter,
             selection_seed=selection_seed,
             entry_fee_energy=entry_fee_energy,
+            target_pursuit_module_enabled=target_pursuit_module_enabled,
         )
         match = setup.match
 

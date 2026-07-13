@@ -109,6 +109,12 @@ def create_asexual_offspring(
         initial_energy=baby_initial_energy,
         parent_id=fish.fish_id,
     )
+    # Store parent's pursuit parameters on child
+    parent_module_trait = getattr(fish.genome.behavioral, "target_pursuit_module", None)
+    if parent_module_trait is not None and parent_module_trait.value is not None:
+        from core.behavior.pursuit_nodes import pursuit_module_parameters
+
+        baby.parent_pursuit_params = pursuit_module_parameters(parent_module_trait.value)
     cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     composable = fish.genome.behavioral.behavior

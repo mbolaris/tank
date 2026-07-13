@@ -56,10 +56,12 @@ def build_observation(
         "self_y": player.position.y,
         "self_vel_x": player.velocity.x,
         "self_vel_y": player.velocity.y,
+        "self_speed": config.player_speed_max,
         "self_angle": player.body_angle,  # Radians [-pi, pi]
         "neck_angle": player.neck_angle,  # Radians relative to body
         "stamina": player.stamina,
         "stamina_ratio": (player.stamina / config.stamina_max) if config.stamina_max > 0 else 1.0,
+        "energy_ratio": (player.stamina / config.stamina_max) if config.stamina_max > 0 else 1.0,
         "recovery": player.recovery,
         "effort": player.effort,
         "team": player.team,
@@ -138,6 +140,42 @@ def build_observation(
     )
 
     return obs
+
+
+def attach_target_pursuit_vector(observation: dict[str, Any], module: Any | None) -> None:
+    """Attach a module-produced ball-pursuit vector without exposing the graph.
+
+    Soccer policies may be user-supplied code, so their observation must remain
+    a plain data contract. Evaluate the inherited graph at the adapter boundary
+    and pass only its numeric output into policy code.
+    """
+    observation["soccer_target_pursuit_enabled"] = False
+    observation.pop("soccer_target_pursuit_vector", None)
+    if module is None:
+        return
+
+    from core.behavior.soccer_adapter import evaluate_soccer_pursuit
+
+    vector = evaluate_soccer_pursuit(
+        module,
+        target_vector=(
+            float(observation.get("ball_rel_x", 0.0)),
+            float(observation.get("ball_rel_y", 0.0)),
+        ),
+        target_velocity=(
+            float(observation.get("ball_vel_x", 0.0)),
+            float(observation.get("ball_vel_y", 0.0)),
+        ),
+        self_velocity=(
+            float(observation.get("self_vel_x", 0.0)),
+            float(observation.get("self_vel_y", 0.0)),
+        ),
+        self_speed=float(observation.get("self_speed", 0.0)),
+        energy_ratio=float(observation.get("energy_ratio", 1.0)),
+    )
+    if vector is not None:
+        observation["soccer_target_pursuit_enabled"] = True
+        observation["soccer_target_pursuit_vector"] = vector
 
 
 def run_policy(

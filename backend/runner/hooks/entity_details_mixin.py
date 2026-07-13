@@ -381,10 +381,112 @@ def _pursuit_module_details(fish: Any) -> dict[str, Any] | None:
         return None
 
     target_name, target_vector, aim_vector = _pursuit_module_current_aim(fish, module)
+    curr_params = _pursuit_module_parameters(module)
+
+    # Calculate evolution statistics
+    living_fish = []
+    env = getattr(fish, "environment", None)
+    if env is not None:
+        entities = getattr(env, "entities_list", None) or []
+        for e in entities:
+            if hasattr(e, "genome") and hasattr(e, "fish_id"):
+                living_fish.append(e)
+
+    all_fish_params = []
+    for f in living_fish:
+        f_trait = getattr(f.genome.behavioral, "target_pursuit_module", None)
+        f_module = f_trait.value if f_trait is not None else None
+        if f_module is not None:
+            f_params = _pursuit_module_parameters(f_module)
+            all_fish_params.append((f, f_params))
+
+    parameters_evolution = {}
+    for k, current_value in curr_params.items():
+        values = [p[k] for _, p in all_fish_params]
+        species_values = [
+            p[k] for f, p in all_fish_params if getattr(f, "species", None) == fish.species
+        ]
+
+        # Species median
+        if species_values:
+            sorted_vals = sorted(species_values)
+            n = len(sorted_vals)
+            if n % 2 == 1:
+                species_median = sorted_vals[n // 2]
+            else:
+                species_median = (sorted_vals[n // 2 - 1] + sorted_vals[n // 2]) / 2.0
+        else:
+            species_median = current_value
+
+        # Percentile within the population
+        if len(values) > 1:
+            less = sum(1 for v in values if v < current_value)
+            equal = sum(1 for v in values if v == current_value)
+            percentile = ((less + 0.5 * equal) / len(values)) * 100.0
+        else:
+            percentile = 50.0
+
+        # Similar carriers: count and percent
+        eps = max(0.05, 0.05 * abs(current_value))
+        similar_carriers = [f for f, p in all_fish_params if abs(p[k] - current_value) <= eps]
+        carriers_count = len(similar_carriers)
+        carriers_pct = (carriers_count / len(living_fish)) * 100.0 if living_fish else 0.0
+
+        # Trend calculation based on generations
+        if len(all_fish_params) < 2:
+            trend = "stable"
+        else:
+            generations = [f.generation for f, _ in all_fish_params]
+            median_gen = sorted(generations)[len(generations) // 2]
+            older_group = [p[k] for f, p in all_fish_params if f.generation < median_gen]
+            younger_group = [p[k] for f, p in all_fish_params if f.generation >= median_gen]
+
+            if not older_group or not younger_group:
+                trend = "stable"
+            else:
+                older_carriers = sum(1 for v in older_group if abs(v - current_value) <= eps)
+                older_prevalence = older_carriers / len(older_group)
+
+                younger_carriers = sum(1 for v in younger_group if abs(v - current_value) <= eps)
+                younger_prevalence = younger_carriers / len(younger_group)
+
+                diff = younger_prevalence - older_prevalence
+                if diff > 0.02:
+                    trend = "increasing"
+                elif diff < -0.02:
+                    trend = "declining"
+                else:
+                    trend = "stable"
+
+        # Parent value
+        parent_value = None
+        parent_params = getattr(fish, "parent_pursuit_params", None)
+        if isinstance(parent_params, dict) and k in parent_params:
+            parent_value = parent_params[k]
+        else:
+            parent_fish = next((f for f in living_fish if f.fish_id == fish.parent_id), None)
+            if parent_fish is not None:
+                p_trait = getattr(parent_fish.genome.behavioral, "target_pursuit_module", None)
+                p_module = p_trait.value if p_trait is not None else None
+                if p_module is not None:
+                    p_params = _pursuit_module_parameters(p_module)
+                    parent_value = p_params.get(k)
+
+        parameters_evolution[k] = {
+            "current": current_value,
+            "parent": parent_value,
+            "species_median": species_median,
+            "percentile": percentile,
+            "carriers_count": carriers_count,
+            "carriers_pct": carriers_pct,
+            "trend": trend,
+        }
+
     return {
         "name": "Target Pursuit v1",
         "used_for": ["Food", "Soccer"],
-        "parameters": _pursuit_module_parameters(module),
+        "parameters": curr_params,
+        "parameters_evolution": parameters_evolution,
         "current_target": target_name,
         "target_vector": target_vector,
         "aim_vector": aim_vector,
@@ -393,27 +495,41 @@ def _pursuit_module_details(fish: Any) -> dict[str, Any] | None:
 
 
 def _pursuit_module_parameters(module: Any) -> dict[str, float]:
-    """Read the module's own evolvable parameters by node id (see
-    core.behavior.pursuit_nodes.default_pursuit_module_graph)."""
-    by_id = {node.node_id: node for node in module.nodes}
-    intercept_params = dict(getattr(by_id.get("intercept"), "parameters", {}))
-    pursuit_params = dict(getattr(by_id.get("pursuit"), "parameters", {}))
-    return {
-        "speed_multiplier": round(float(intercept_params.get("speed_multiplier", 1.0)), 3),
-        "prediction_strength": round(float(intercept_params.get("prediction_strength", 1.0)), 3),
-        "max_prediction_horizon": round(
-            float(intercept_params.get("max_prediction_horizon", 100.0)), 3
-        ),
-        "pursuit_commitment": round(float(pursuit_params.get("scale", 1.0)), 3),
-    }
+    """Read the module's own evolvable parameters by calling the core utility."""
+    from core.behavior.pursuit_nodes import pursuit_module_parameters
+
+    return pursuit_module_parameters(module)
 
 
 def _pursuit_module_current_aim(fish: Any, module: Any) -> tuple[str | None, Any, Any]:
     """Evaluate the module against whichever target this fish currently has.
 
-    Food takes display priority (matching the adapters' own priority);
-    returns (target_name, raw_target_vector, module_aim_vector).
+    MovementIntent active kind is used to determine target priority.
     """
+    last_arb = getattr(getattr(fish, "movement_strategy", None), "last_arbitration", None)
+    selected_intent = getattr(last_arb, "selected", None)
+    active_kind = getattr(selected_intent, "kind", "")
+
+    if active_kind == "soccer_pursuit":
+        ball = getattr(fish.environment, "ball", None)
+        if ball is not None:
+            from core.behavior.soccer_adapter import build_soccer_target_observation
+
+            ball_observation = build_soccer_target_observation(
+                self_position=(fish.pos.x, fish.pos.y),
+                self_velocity=(fish.vel.x, fish.vel.y),
+                self_speed=fish.speed,
+                ball_position=(ball.pos.x, ball.pos.y),
+                ball_velocity=(ball.vel.x, ball.vel.y),
+            )
+            output = module.compile_cached().evaluate(ball_observation.to_values())
+            aim_vector = output if isinstance(output, tuple) and len(output) == 2 else None
+            return (
+                "Soccer Ball",
+                _display_node_value(ball_observation.target_vector),
+                _display_node_value(aim_vector),
+            )
+
     from core.behavior.tank_adapter import build_tank_behavior_observation
 
     observation = build_tank_behavior_observation(fish)
@@ -425,24 +541,25 @@ def _pursuit_module_current_aim(fish: Any, module: Any) -> tuple[str | None, Any
         )
 
     ball = getattr(fish.environment, "ball", None)
-    if ball is None:
-        return None, None, None
+    if ball is not None:
+        from core.behavior.soccer_adapter import build_soccer_target_observation
 
-    from core.behavior.soccer_adapter import build_soccer_target_observation
+        ball_observation = build_soccer_target_observation(
+            self_position=(fish.pos.x, fish.pos.y),
+            self_velocity=(fish.vel.x, fish.vel.y),
+            self_speed=fish.speed,
+            ball_position=(ball.pos.x, ball.pos.y),
+            ball_velocity=(ball.vel.x, ball.vel.y),
+        )
+        output = module.compile_cached().evaluate(ball_observation.to_values())
+        aim_vector = output if isinstance(output, tuple) and len(output) == 2 else None
+        return (
+            "Soccer Ball",
+            _display_node_value(ball_observation.target_vector),
+            _display_node_value(aim_vector),
+        )
 
-    ball_observation = build_soccer_target_observation(
-        self_position=(fish.pos.x, fish.pos.y),
-        self_velocity=(fish.vel.x, fish.vel.y),
-        ball_position=(ball.pos.x, ball.pos.y),
-        ball_velocity=(ball.vel.x, ball.vel.y),
-    )
-    output = module.compile_cached().evaluate(ball_observation.to_values())
-    aim_vector = output if isinstance(output, tuple) and len(output) == 2 else None
-    return (
-        "Soccer Ball",
-        _display_node_value(ball_observation.target_vector),
-        _display_node_value(aim_vector),
-    )
+    return None, None, None
 
 
 def _generic_details(entity: Any) -> dict[str, Any]:

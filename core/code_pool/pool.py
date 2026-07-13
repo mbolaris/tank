@@ -366,7 +366,16 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, flo
 
     # --- Off the ball: role-specific positioning ---
     # Lead the ball's velocity to intercept where it is going, not where it is.
-    ix, iy = lead_target(brx, bry, ball_vx, ball_vy, intercept_lead)
+    pursuit_vector = observation.get("soccer_target_pursuit_vector")
+    if (
+        observation.get("soccer_target_pursuit_enabled", False)
+        and isinstance(pursuit_vector, tuple)
+        and len(pursuit_vector) == 2
+    ):
+        ix = float(pursuit_vector[0]) * ball_dist
+        iy = float(pursuit_vector[1]) * ball_dist
+    else:
+        ix, iy = lead_target(brx, bry, ball_vx, ball_vy, intercept_lead)
 
     if role == "striker":
         # Ball in the offensive zone (near opponent goal) or close by: press.
