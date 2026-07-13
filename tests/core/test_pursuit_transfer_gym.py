@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import psutil
 import pytest
 import time
 import random
@@ -149,6 +148,11 @@ def test_benchmark_is_deterministic_and_reports_transfer_benefit():
 @pytest.mark.slow
 def test_repeated_runs_runtime_and_memory_stability():
     """Verify that repeatedly running evaluate_pursuit_transfer is stable in memory and speed."""
+    try:
+        import psutil
+    except ImportError:
+        pytest.skip("psutil not installed, skipping memory stability check.")
+
     process = psutil.Process(os.getpid())
 
     # Warm up caches
