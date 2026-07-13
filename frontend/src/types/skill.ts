@@ -50,3 +50,19 @@ export interface ForagingGymResult {
         skill: SkillLadder;
     };
 }
+
+export interface ForagingGymSummary {
+    subject: 'engine_baseline';
+    config_hash: string;
+    mean: number;
+    wandering_mean: number;
+    perfect_mean: number;
+    confidence_interval: [number, number];
+    range: [number, number];
+    average_food: number;
+    average_energy: number;
+    metadata: {
+        seeds: number[];
+        per_seed: Record<string, ForagingGymResult>;
+    };
+}

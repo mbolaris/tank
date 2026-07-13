@@ -69,3 +69,34 @@ def test_foraging_gym_endpoint_evaluates_current_substrate(tmp_path):
     assert 0.0 <= body["score"] <= 1.0
     assert body["score_breakdown"]["oracle_energy_ratio"] == 1.0
     assert body["metadata"]["skill"]["domain"] == "foraging"
+
+
+def test_foraging_gym_summary_endpoint(tmp_path):
+    client = _client_for(tmp_path)
+    response = client.get("/api/skill/foraging-gym/summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["subject"] == "engine_baseline"
+    assert "config_hash" in body
+    assert 0.0 <= body["mean"] <= 1.0
+    assert 0.0 <= body["wandering_mean"] <= 1.0
+    assert body["perfect_mean"] == 1.0
+    assert len(body["confidence_interval"]) == 2
+    assert body["confidence_interval"][0] <= body["mean"] <= body["confidence_interval"][1]
+    assert len(body["range"]) == 2
+    assert body["range"][0] <= body["mean"] <= body["range"][1]
+    assert body["average_food"] > 0
+    assert body["average_energy"] > 0
+    assert "metadata" in body
+    assert len(body["metadata"]["seeds"]) == 8
+    assert "42" in body["metadata"]["per_seed"]
+
+    # Verify caching (should be fast, no re-evaluation)
+    import time
+
+    start = time.perf_counter()
+    response2 = client.get("/api/skill/foraging-gym/summary")
+    duration = time.perf_counter() - start
+    assert response2.status_code == 200
+    assert duration < 0.05

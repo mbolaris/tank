@@ -6,7 +6,6 @@ export function TankSkillsTab() {
     return (
         <div style={styles.layout}>
             <div style={styles.intro}>
-                <div style={styles.title}>Skills &amp; Benchmarks</div>
                 <p style={styles.description}>
                     Measure what agents can do outside the ecosystem composite. These frozen-ruler
                     tests make scores comparable across simulation changes and champion re-baselines.
