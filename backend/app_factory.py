@@ -360,7 +360,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     app.include_router(commentary_router)
 
     # Setup skill-ladder standings router (reads the champion registry)
-    skill_router = skill.setup_router()
+    skill_router = skill.setup_router(world_manager=ctx.world_manager)
     app.include_router(skill_router)
 
     ctx.logger.info("All API routers configured successfully")

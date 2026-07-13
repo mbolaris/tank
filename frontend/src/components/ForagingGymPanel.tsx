@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { colors } from '../styles/theme';
-import type { ForagingGymSummary } from '../types/skill';
+import type { ForagingGymSummary, ObservatoryData } from '../types/skill';
 import { styles } from './ForagingGymPanel.styles';
 
 function percent(value: number): string {
@@ -22,22 +22,41 @@ function getSkillDescriptor(score: number): { label: string; description: string
     }
 }
 
-export function ForagingGymPanel() {
+function formatSubject(subject: string): string {
+    if (subject === 'engine_baseline') {
+        return 'Engine baseline';
+    }
+    return subject
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+export function ForagingGymPanel({ onSelectEntity }: { onSelectEntity?: (entityId: number, entityType: string) => void }) {
     const [summary, setSummary] = useState<ForagingGymSummary | null>(null);
+    const [observatory, setObservatory] = useState<ObservatoryData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         let active = true;
-        async function fetchSummary() {
+        async function fetchDashboard() {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch('/api/skill/foraging-gym/summary');
-                if (!response.ok) throw new Error(`Failed to load summary (${response.status})`);
-                const data: ForagingGymSummary = await response.json();
+                const [summaryRes, observatoryRes] = await Promise.all([
+                    fetch('/api/skill/foraging-gym/summary'),
+                    fetch('/api/skill/foraging-gym/observatory'),
+                ]);
+                if (!summaryRes.ok) throw new Error(`Failed to load summary (${summaryRes.status})`);
+                if (!observatoryRes.ok) throw new Error(`Failed to load observatory (${observatoryRes.status})`);
+                
+                const summaryData: ForagingGymSummary = await summaryRes.json();
+                const observatoryData: ObservatoryData = await observatoryRes.json();
+                
                 if (active) {
-                    setSummary(data);
+                    setSummary(summaryData);
+                    setObservatory(observatoryData);
                 }
             } catch (cause) {
                 if (active) {
@@ -49,7 +68,7 @@ export function ForagingGymPanel() {
                 }
             }
         }
-        fetchSummary();
+        fetchDashboard();
         return () => {
             active = false;
         };
@@ -57,37 +76,62 @@ export function ForagingGymPanel() {
 
     if (loading) {
         return (
-            <section style={styles.panel} aria-label="Foraging gym evaluator">
-                <div style={styles.titleContainer}>
-                    <div style={styles.title}>FORAGING SKILL</div>
-                </div>
-                <div style={styles.skeletonContainer} data-testid="skeleton">
-                    <div style={styles.skeletonRow}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={styles.skeletonScore} />
-                            <div style={styles.skeletonDescription} />
-                        </div>
-                        <div style={styles.skeletonBadge} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <section style={styles.panel} aria-label="Foraging gym evaluator">
+                    <div style={styles.titleContainer}>
+                        <div style={styles.title}>FORAGING SKILL</div>
                     </div>
-                    <div style={styles.skeletonTrack} />
-                    <div style={styles.skeletonText} />
-                </div>
-            </section>
+                    <div style={styles.skeletonContainer} data-testid="skeleton">
+                        <div style={styles.skeletonRow}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={styles.skeletonScore} />
+                                <div style={styles.skeletonDescription} />
+                            </div>
+                            <div style={styles.skeletonBadge} />
+                        </div>
+                        <div style={styles.skeletonTrack} />
+                        <div style={styles.skeletonText} />
+                    </div>
+                </section>
+                <section style={styles.panel} aria-label="Tank skill observatory">
+                    <div style={styles.titleContainer}>
+                        <div style={styles.title}>YOUR TANK'S FORAGING</div>
+                    </div>
+                    <div style={styles.skeletonContainer} data-testid="skeleton">
+                        <div style={styles.skeletonRow}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={styles.skeletonScore} />
+                                <div style={styles.skeletonDescription} />
+                            </div>
+                            <div style={styles.skeletonBadge} />
+                        </div>
+                        <div style={styles.skeletonTrack} />
+                        <div style={styles.skeletonText} />
+                    </div>
+                </section>
+            </div>
         );
     }
 
-    if (error || !summary) {
+    if (error || !summary || !observatory) {
         return (
-            <section style={styles.panel} aria-label="Foraging gym evaluator">
-                <div style={styles.titleContainer}>
-                    <div style={styles.title}>FORAGING SKILL</div>
-                </div>
-                <div style={styles.error}>{error || 'Failed to load summary'}</div>
-            </section>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <section style={styles.panel} aria-label="Foraging gym evaluator">
+                    <div style={styles.titleContainer}>
+                        <div style={styles.title}>FORAGING SKILL</div>
+                    </div>
+                    <div style={styles.error}>{error || 'Failed to load summary'}</div>
+                </section>
+            </div>
         );
     }
 
-    return <ForagingGymSummaryDisplay summary={summary} />;
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <ForagingGymSummaryDisplay summary={summary} />
+            <ForagingGymObservatoryDisplay observatory={observatory} onSelectEntity={onSelectEntity} />
+        </div>
+    );
 }
 
 export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSummary }) {
@@ -121,13 +165,15 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
             <div style={styles.scaleContainer} aria-label="Comparison scale with three markers">
                 {/* Labels Row */}
                 <div style={styles.scaleLabels}>
-                    <div style={{ ...styles.markerLabel, left: `${wPct}%` }}>
+                    <div style={{ ...styles.markerLabel, left: `${wPct}%`, transform: `translateX(${-wPct}%)` }}>
                         <span style={styles.markerName}>Wandering</span>
                     </div>
-                    <div style={{ ...styles.markerLabel, left: `${cPct}%` }}>
-                        <span style={{ ...styles.markerName, color: colors.success, fontWeight: 700 }}>Current behavior</span>
+                    <div style={{ ...styles.markerLabel, left: `${cPct}%`, transform: `translateX(${-cPct}%)` }}>
+                        <span style={{ ...styles.markerName, color: colors.success, fontWeight: 700 }}>
+                            {formatSubject(summary.subject)}
+                        </span>
                     </div>
-                    <div style={{ ...styles.markerLabel, left: `${pPct}%` }}>
+                    <div style={{ ...styles.markerLabel, left: `${pPct}%`, transform: `translateX(${-pPct}%)` }}>
                         <span style={styles.markerName}>Perfect route</span>
                     </div>
                 </div>
@@ -142,15 +188,15 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
 
                 {/* Values Row */}
                 <div style={styles.scaleValues}>
-                    <div style={{ ...styles.markerValueLabel, left: `${wPct}%` }}>
+                    <div style={{ ...styles.markerValueLabel, left: `${wPct}%`, transform: `translateX(${-wPct}%)` }}>
                         <span style={styles.markerValue}>{Math.round(wPct)}</span>
                     </div>
-                    <div style={{ ...styles.markerValueLabel, left: `${cPct}%` }}>
+                    <div style={{ ...styles.markerValueLabel, left: `${cPct}%`, transform: `translateX(${-cPct}%)` }}>
                         <span style={{ ...styles.markerValue, color: colors.success, fontWeight: 800 }}>
                             ● {Math.round(cPct)}
                         </span>
                     </div>
-                    <div style={{ ...styles.markerValueLabel, left: `${pPct}%` }}>
+                    <div style={{ ...styles.markerValueLabel, left: `${pPct}%`, transform: `translateX(${-pPct}%)` }}>
                         <span style={styles.markerValue}>{Math.round(pPct)}</span>
                     </div>
                 </div>
@@ -160,7 +206,7 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
             <div style={styles.averagesInfo}>
                 <div style={styles.averagesTitle}>Average across {summary.metadata.seeds.length} standardized trials</div>
                 <div style={styles.averagesDetail}>
-                    {average_food.toFixed(1)} of 12 food collected · Typical range {Math.round(range[0] * 100)}–{Math.round(range[1] * 100)}
+                    {average_food.toFixed(1)} of {summary.average_food_available} food collected · Trial range {Math.round(range[0] * 100)}–{Math.round(range[1] * 100)}
                 </div>
             </div>
 
@@ -201,7 +247,7 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
                     </div>
                     <div style={styles.techRow}>
                         <span style={styles.techLabel}>Benchmark ID:</span>
-                        <span style={styles.techVal}>tank/foraging_gym</span>
+                        <span style={styles.techVal}>{summary.benchmark_id}</span>
                     </div>
                     <div style={styles.techRow}>
                         <span style={styles.techLabel}>Config Hash:</span>
@@ -253,3 +299,109 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
         </section>
     );
 }
+
+export function ForagingGymObservatoryDisplay({
+    observatory,
+    onSelectEntity,
+}: {
+    observatory: ObservatoryData;
+    onSelectEntity?: (entityId: number, entityType: string) => void;
+}) {
+    if (observatory.status === 'no_data') {
+        return (
+            <section style={styles.panel} aria-label="Tank skill observatory">
+                <div style={styles.titleContainer}>
+                    <div style={styles.title}>YOUR TANK'S FORAGING</div>
+                </div>
+                <div style={styles.detailsContent}>
+                    {observatory.message || 'No evolved fish available to evaluate yet.'}
+                </div>
+            </section>
+        );
+    }
+
+    const bPct = (observatory.best_species?.score ?? 0) * 100;
+    const aPct = (observatory.tank_average ?? 0) * 100;
+    const cPct = (observatory.engine_baseline ?? 0) * 100;
+    const wPct = (observatory.wandering_mean ?? 0) * 100;
+    const pPct = (observatory.perfect_mean ?? 0) * 100;
+
+    return (
+        <section style={styles.panel} aria-label="Tank skill observatory">
+            <div style={styles.titleContainer}>
+                <div style={styles.title}>YOUR TANK'S FORAGING</div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '8px 0' }}>
+                {/* Best species */}
+                {observatory.best_species && (
+                    <div style={styles.barRow}>
+                        <div style={styles.barLabel}>Best species ({observatory.best_species.name})</div>
+                        <div style={styles.barTrack}>
+                            <div style={{ ...styles.barFill, width: `${bPct}%`, backgroundColor: colors.buttonSecondary }} />
+                        </div>
+                        <div style={styles.barValue}>{Math.round(bPct)}</div>
+                    </div>
+                )}
+
+                {/* Tank average */}
+                <div style={styles.barRow}>
+                    <div style={styles.barLabel}>Tank average</div>
+                    <div style={styles.barTrack}>
+                        <div style={{ ...styles.barFill, width: `${aPct}%`, backgroundColor: colors.primary }} />
+                    </div>
+                    <div style={styles.barValue}>{Math.round(aPct)}</div>
+                </div>
+
+                {/* Default controller */}
+                <div style={styles.barRow}>
+                    <div style={styles.barLabel}>Default controller</div>
+                    <div style={styles.barTrack}>
+                        <div style={{ ...styles.barFill, width: `${cPct}%`, backgroundColor: colors.success }} />
+                    </div>
+                    <div style={styles.barValue}>{Math.round(cPct)}</div>
+                </div>
+
+                {/* Wandering */}
+                <div style={styles.barRow}>
+                    <div style={styles.barLabel}>Wandering</div>
+                    <div style={styles.barTrack}>
+                        <div style={{ ...styles.barFill, width: `${wPct}%`, backgroundColor: colors.textSecondary }} />
+                    </div>
+                    <div style={styles.barValue}>{Math.round(wPct)}</div>
+                </div>
+
+                {/* Perfect route */}
+                <div style={styles.barRow}>
+                    <div style={styles.barLabel}>Perfect route</div>
+                    <div style={styles.barTrack}>
+                        <div style={{ ...styles.barFill, width: `${pPct}%`, backgroundColor: colors.buttonSuccess }} />
+                    </div>
+                    <div style={styles.barValue}>{Math.round(pPct)}</div>
+                </div>
+            </div>
+
+            {observatory.best_individual && (
+                <div style={styles.observatoryBest}>
+                    <div style={styles.observatoryBestTitle}>BEST FORAGER:</div>
+                    <div
+                        style={onSelectEntity ? styles.clickableLink : styles.nonClickableText}
+                        onClick={() => onSelectEntity?.(observatory.best_individual!.id, 'fish')}
+                    >
+                        {observatory.best_individual.name}
+                    </div>
+                    <div style={styles.observatoryBestDetail}>
+                        Captured {observatory.best_individual.food_collected.toFixed(1)} of {observatory.best_individual.food_available} food items
+                    </div>
+                    <div style={styles.observatoryBestDetail}>
+                        Prediction strength increased from {observatory.best_individual.prediction_strength_before.toFixed(2)} to {observatory.best_individual.prediction_strength_after.toFixed(2)}
+                    </div>
+                    <div style={styles.observatoryBestDetail}>
+                        This module variant is present in {Math.round(observatory.best_individual.percentage_of_species)}% of its species
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+}
+

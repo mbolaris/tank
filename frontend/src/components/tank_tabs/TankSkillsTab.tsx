@@ -2,17 +2,17 @@ import { ForagingGymPanel } from '../ForagingGymPanel';
 import { SkillLadderPanel } from '../SkillLadderPanel';
 
 /** Research-facing, domain-neutral skill measurements and evaluators. */
-export function TankSkillsTab() {
+export function TankSkillsTab({ onSelectEntity }: { onSelectEntity?: (entityId: number, entityType: string) => void }) {
     return (
         <div style={styles.layout}>
             <div style={styles.intro}>
                 <p style={styles.description}>
-                    Measure what agents can do outside the ecosystem composite. These frozen-ruler
-                    tests make scores comparable across simulation changes and champion re-baselines.
+                    See how Tank World’s behaviors perform in standardized challenges. These tests use
+                    the same conditions every time, making improvements easy to compare.
                 </p>
             </div>
 
-            <ForagingGymPanel />
+            <ForagingGymPanel onSelectEntity={onSelectEntity} />
             <SkillLadderPanel />
         </div>
     );

@@ -52,7 +52,8 @@ export interface ForagingGymResult {
 }
 
 export interface ForagingGymSummary {
-    subject: 'engine_baseline';
+    subject: string;
+    benchmark_id: string;
     config_hash: string;
     mean: number;
     wandering_mean: number;
@@ -60,9 +61,34 @@ export interface ForagingGymSummary {
     confidence_interval: [number, number];
     range: [number, number];
     average_food: number;
+    average_food_available: number;
     average_energy: number;
     metadata: {
         seeds: number[];
         per_seed: Record<string, ForagingGymResult>;
     };
 }
+
+export interface ObservatoryData {
+    status: 'success' | 'no_data';
+    message?: string;
+    tank_average?: number;
+    best_species?: {
+        name: string;
+        score: number;
+    };
+    best_individual?: {
+        id: number;
+        name: string;
+        score: number;
+        food_collected: number;
+        food_available: number;
+        prediction_strength_before: number;
+        prediction_strength_after: number;
+        percentage_of_species: number;
+    };
+    engine_baseline?: number;
+    wandering_mean?: number;
+    perfect_mean?: number;
+}
+
