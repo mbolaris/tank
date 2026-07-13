@@ -342,6 +342,11 @@ export function ForagingGymObservatoryDisplay({
                         EVALUATED SUBJECT: {observatory.subject.toUpperCase()}
                     </div>
                 )}
+                {observatory.evaluated_at_generation !== undefined && (
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                        Evaluated at generation {observatory.evaluated_at_generation} · frame {observatory.evaluated_at_frame ?? 0}
+                    </div>
+                )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '8px 0' }}>
@@ -420,4 +425,3 @@ export function ForagingGymObservatoryDisplay({
         </section>
     );
 }
-

@@ -32,6 +32,7 @@ import time
 from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -46,6 +47,7 @@ from backend.migration_scheduler import MigrationScheduler
 from backend.models import ServerInfo
 from backend.security import setup_security_middleware
 from backend.server_client import ServerClient
+from backend.skill_evaluation_service import SkillEvaluationService
 from backend.startup_manager import StartupManager
 from backend.world_manager import WorldManager
 from core.config.server import DEFAULT_API_PORT
@@ -88,6 +90,7 @@ class AppContext:
     startup_manager: StartupManager | None = None
     auto_save_service: AutoSaveService | None = None
     migration_scheduler: MigrationScheduler | None = None
+    skill_evaluation_service: SkillEvaluationService | None = None
 
     # Timing
     server_start_time: float = field(default_factory=time.time)
@@ -253,6 +256,8 @@ def create_app(
             # Setup API routers
             ctx.logger.info("Setting up API routers...")
             _setup_routers(app, ctx)
+            if ctx.skill_evaluation_service:
+                await ctx.skill_evaluation_service.start()
             ctx.logger.info("API routers configured successfully")
 
             ctx.logger.info("LIFESPAN: Startup complete - yielding control to app")
@@ -269,6 +274,9 @@ def create_app(
                 request_shutdown()
             except Exception:
                 pass
+
+            if ctx.skill_evaluation_service:
+                await ctx.skill_evaluation_service.stop()
 
             if ctx.startup_manager:
                 await ctx.startup_manager.shutdown()
@@ -360,7 +368,15 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     app.include_router(commentary_router)
 
     # Setup skill-ladder standings router (reads the champion registry)
-    skill_router = skill.setup_router(world_manager=ctx.world_manager)
+    if ctx.skill_evaluation_service is None:
+        ctx.skill_evaluation_service = SkillEvaluationService(
+            ctx.world_manager,
+            storage_path=Path("data/skill_evaluations/latest.json"),
+        )
+    skill_router = skill.setup_router(
+        world_manager=ctx.world_manager,
+        evaluation_service=ctx.skill_evaluation_service,
+    )
     app.include_router(skill_router)
 
     ctx.logger.info("All API routers configured successfully")
