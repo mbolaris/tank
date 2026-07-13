@@ -70,6 +70,16 @@ export interface EntityDetailsTaxonomy {
 
 export type EntityEnergyStatus = 'critical' | 'hungry' | 'content' | 'full';
 
+export interface ParameterEvolutionData {
+    current: number;
+    parent: number | null;
+    species_median: number;
+    percentile: number;
+    carriers_count: number;
+    carriers_pct: number;
+    trend: 'increasing' | 'declining' | 'stable';
+}
+
 export interface EntityDetailsPursuitModule {
     name: string;
     used_for: string[];
@@ -79,6 +89,12 @@ export interface EntityDetailsPursuitModule {
         max_prediction_horizon: number;
         pursuit_commitment: number;
     };
+    parameters_evolution?: {
+        speed_multiplier: ParameterEvolutionData;
+        prediction_strength: ParameterEvolutionData;
+        max_prediction_horizon: ParameterEvolutionData;
+        pursuit_commitment: ParameterEvolutionData;
+    } | null;
     current_target: string | null;
     /** Raw, non-predictive offset to the current target (world units). */
     target_vector: [number, number] | null;

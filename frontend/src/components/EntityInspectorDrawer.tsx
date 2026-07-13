@@ -19,6 +19,7 @@ import {
     formatSpecies,
     formatTraitName,
 } from './entityInspectorFormat';
+import type { ParameterEvolutionData } from '../types/entityDetails';
 import styles from './EntityInspectorDrawer.module.css';
 
 interface EntityInspectorDrawerProps {
@@ -41,6 +42,45 @@ type FetchState =
     | { phase: 'loaded'; details: EntityDetails }
     | { phase: 'not_found' }
     | { phase: 'error'; message: string };
+
+interface ParameterEvolutionRowProps {
+    label: string;
+    currentValue: number;
+    evolutionData?: ParameterEvolutionData | null;
+    isInteger?: boolean;
+}
+
+function ParameterEvolutionRow({
+    label,
+    currentValue,
+    evolutionData,
+    isInteger = false,
+}: ParameterEvolutionRowProps) {
+    const formattedVal = isInteger ? currentValue.toFixed(0) : currentValue.toFixed(2);
+
+    if (!evolutionData) {
+        return <StatRow label={label} value={formattedVal} />;
+    }
+
+    const { parent, species_median, carriers_pct, trend } = evolutionData;
+
+    const trendText = trend === 'increasing' ? 'rising' : trend === 'declining' ? 'falling' : 'stable';
+    const parentText = parent !== null ? (isInteger ? parent.toFixed(0) : parent.toFixed(2)) : 'N/A';
+    const medianText = isInteger ? species_median.toFixed(0) : species_median.toFixed(2);
+
+    return (
+        <div className={styles.paramEvolutionContainer}>
+            <div className={styles.paramHeader}>
+                <span className={styles.paramLabel}>{label}</span>
+                <span className={styles.paramValue}>{formattedVal}</span>
+            </div>
+            <div className={styles.paramSubDetails}>
+                <div>Parent: {parentText} | Species median: {medianText}</div>
+                <div>Present in {carriers_pct.toFixed(0)}% of the population and {trendText}</div>
+            </div>
+        </div>
+    );
+}
 
 const TRANSFERABLE_TYPES = new Set(['fish', 'plant']);
 
@@ -338,21 +378,26 @@ export function EntityInspectorDrawer({
                         <h3 className={styles.sectionTitle}>Modules</h3>
                         <p className={styles.intent}>{details.modules.name}</p>
                         <StatRow label="Used for" value={details.modules.used_for.join(', ')} />
-                        <StatRow
+                        <ParameterEvolutionRow
                             label="Speed calibration"
-                            value={details.modules.parameters.speed_multiplier.toFixed(2)}
+                            currentValue={details.modules.parameters.speed_multiplier}
+                            evolutionData={details.modules.parameters_evolution?.speed_multiplier}
                         />
-                        <StatRow
+                        <ParameterEvolutionRow
                             label="Prediction strength"
-                            value={details.modules.parameters.prediction_strength.toFixed(2)}
+                            currentValue={details.modules.parameters.prediction_strength}
+                            evolutionData={details.modules.parameters_evolution?.prediction_strength}
                         />
-                        <StatRow
+                        <ParameterEvolutionRow
                             label="Max prediction horizon"
-                            value={details.modules.parameters.max_prediction_horizon.toFixed(0)}
+                            currentValue={details.modules.parameters.max_prediction_horizon}
+                            evolutionData={details.modules.parameters_evolution?.max_prediction_horizon}
+                            isInteger={true}
                         />
-                        <StatRow
+                        <ParameterEvolutionRow
                             label="Pursuit commitment"
-                            value={details.modules.parameters.pursuit_commitment.toFixed(2)}
+                            currentValue={details.modules.parameters.pursuit_commitment}
+                            evolutionData={details.modules.parameters_evolution?.pursuit_commitment}
                         />
                         <StatRow
                             label="Current target"

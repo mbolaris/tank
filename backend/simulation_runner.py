@@ -510,6 +510,81 @@ class SimulationRunner(CommandHandlerMixin):
         frame = self.world.frame_count
         if frame > 0 and frame % self.metrics_history.sample_interval_frames == 0:
             self._collect_stats(frame, include_distributions=False)
+            self._check_noteworthy_pursuit_variants(frame)
+
+    def _check_noteworthy_pursuit_variants(self, frame: int) -> None:
+        """Scan population to identify and announce spread of new pursuit module variants."""
+        config = getattr(self.world, "simulation_config", None)
+        if config is None or not getattr(config.tank, "target_pursuit_module_enabled", False):
+            return
+
+        living_fish = []
+        entities = getattr(self.world, "entities_list", None) or []
+        for e in entities:
+            if hasattr(e, "genome") and hasattr(e, "fish_id"):
+                living_fish.append(e)
+
+        if not living_fish:
+            return
+
+        from collections import defaultdict
+
+        variant_counts: dict[str, int] = defaultdict(int)
+        variant_carriers: dict[str, list[Any]] = defaultdict(list)
+        for f in living_fish:
+            trait = getattr(f.genome.behavioral, "target_pursuit_module", None)
+            module = trait.value if trait is not None else None
+            if module is not None:
+                fp = module.fingerprint()
+                variant_counts[fp] += 1
+                variant_carriers[fp].append(f)
+
+        if not hasattr(self, "_announced_noteworthy_variants"):
+            self._announced_noteworthy_variants: set[str] = set()
+
+        if not hasattr(self, "_pursuit_variant_origins"):
+            self._pursuit_variant_origins: dict[str, int] = {}
+
+        for f in living_fish:
+            trait = getattr(f.genome.behavioral, "target_pursuit_module", None)
+            module = trait.value if trait is not None else None
+            if module is not None:
+                fp = module.fingerprint()
+                if fp not in self._pursuit_variant_origins:
+                    self._pursuit_variant_origins[fp] = f.fish_id
+
+        for fp, count in variant_counts.items():
+            pct = count / len(living_fish)
+            if pct >= 0.25 and count >= 3 and fp not in self._announced_noteworthy_variants:
+                self._announced_noteworthy_variants.add(fp)
+
+                origin_id = self._pursuit_variant_origins.get(fp, "unknown")
+
+                species_counts: dict[str, int] = defaultdict(int)
+                for f in variant_carriers[fp]:
+                    species_counts[f.species] = species_counts[f.species] + 1
+                most_common_species = (
+                    max(species_counts, key=lambda k: species_counts[k])
+                    if species_counts
+                    else "Fish"
+                )
+
+                comment_text = (
+                    f"A pursuit mutation first seen in Fish #{origin_id} has spread to {int(pct * 100)}% "
+                    f"of the {most_common_species}. Its performance impact has not yet been measured."
+                )
+
+                self.add_commentary(
+                    text=comment_text,
+                    author="Ecosystem Monitor",
+                    tags=["selection", "pursuit"],
+                    severity="insight",
+                    metrics={
+                        "variant_fingerprint": fp,
+                        "origin_fish_id": origin_id,
+                        "prevalence_pct": int(pct * 100),
+                    },
+                )
 
     # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
     # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)

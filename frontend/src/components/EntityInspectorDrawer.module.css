@@ -231,3 +231,42 @@
         max-height: 60vh;
     }
 }
+
+.paramEvolutionContainer {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+}
+
+.paramHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+}
+
+.paramLabel {
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.paramValue {
+    color: var(--color-text-main);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.paramSubDetails {
+    margin-top: 4px;
+    padding-left: var(--spacing-sm);
+    border-left: 2px solid rgba(148, 163, 184, 0.2);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}

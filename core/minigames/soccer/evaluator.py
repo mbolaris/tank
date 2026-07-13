@@ -34,6 +34,7 @@ def create_soccer_match_from_participants(
     match_counter: int = 0,
     selection_seed: int | None = None,
     entry_fee_energy: float = 0.0,
+    target_pursuit_module_enabled: bool | None = None,
 ) -> SoccerMatchSetup:
     """Create a soccer match from pre-selected participants."""
     participants = list(participants)
@@ -68,6 +69,7 @@ def create_soccer_match_from_participants(
         code_source=code_source,
         view_mode=view_mode,
         seed=effective_seed,
+        target_pursuit_module_enabled=target_pursuit_module_enabled,
     )
 
     return SoccerMatchSetup(
@@ -97,6 +99,7 @@ def create_soccer_match(
     selection_seed: int | None = None,
     allow_repeat_within_match: bool = False,
     entry_fee_energy: float = 0.0,
+    target_pursuit_module_enabled: bool | None = None,
 ) -> SoccerMatchSetup:
     """Create a soccer match with deterministic participant selection and seed."""
     effective_selection_seed = selection_seed
@@ -129,6 +132,7 @@ def create_soccer_match(
         match_counter=match_counter,
         selection_seed=effective_selection_seed,
         entry_fee_energy=entry_fee_energy,
+        target_pursuit_module_enabled=target_pursuit_module_enabled,
     )
 
 

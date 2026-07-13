@@ -37,4 +37,36 @@ def build_soccer_target_observation(
     )
 
 
-__all__ = ["build_soccer_target_observation"]
+def evaluate_soccer_pursuit(
+    module: object,
+    *,
+    target_vector: Vector,
+    target_velocity: Vector,
+    self_velocity: Vector,
+    self_speed: float,
+    energy_ratio: float = 1.0,
+) -> Vector | None:
+    """Evaluate a pursuit graph for a soccer target and return its vector.
+
+    Kept at the domain adapter boundary so the code-policy sandbox receives
+    only numeric observations, never a mutable graph object.
+    """
+    compile_cached = getattr(module, "compile_cached", None)
+    if not callable(compile_cached):
+        return None
+    observation = TargetObservation(
+        target_vector=target_vector,
+        target_velocity=target_velocity,
+        target_exists=True,
+        threat_vector=(0.0, 0.0),
+        self_velocity=self_velocity,
+        self_speed=max(0.0, float(self_speed)),
+        energy_ratio=max(0.0, min(1.0, energy_ratio)),
+    )
+    output = compile_cached().evaluate(observation.to_values())
+    if not isinstance(output, tuple) or len(output) != 2:
+        return None
+    return float(output[0]), float(output[1])
+
+
+__all__ = ["build_soccer_target_observation", "evaluate_soccer_pursuit"]

@@ -262,6 +262,14 @@ class SoccerLeagueRuntime:
         # Determine view mode from world state (default to side/tank)
         view_mode = getattr(world_state, "view_mode", "side")
 
+        sim_config = getattr(world_state, "simulation_config", None)
+        tank_config = getattr(sim_config, "tank", None) if sim_config is not None else None
+        target_pursuit_enabled = (
+            getattr(tank_config, "target_pursuit_module_enabled", False)
+            if tank_config is not None
+            else False
+        )
+
         setup = create_soccer_match_from_participants(
             participants,
             duration_frames=self.config.duration_frames,
@@ -272,6 +280,7 @@ class SoccerLeagueRuntime:
             selection_seed=selection_seed,
             entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
             view_mode=view_mode,
+            target_pursuit_module_enabled=target_pursuit_enabled,
         )
 
         self._active_match = setup.match

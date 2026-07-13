@@ -170,6 +170,12 @@ def create_standard_mating_offspring(
         initial_energy=parent_contrib + mate_contrib,
         parent_id=parent.fish_id,
     )
+    # Store parent's pursuit parameters on child
+    parent_module_trait = getattr(parent.genome.behavioral, "target_pursuit_module", None)
+    if parent_module_trait is not None and parent_module_trait.value is not None:
+        from core.behavior.pursuit_nodes import pursuit_module_parameters
+
+        baby.parent_pursuit_params = pursuit_module_parameters(parent_module_trait.value)
     cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     _record_successful_mating(parent)
@@ -260,6 +266,12 @@ def create_post_poker_offspring(
         initial_energy=total_contrib,
         parent_id=winner.fish_id,
     )
+    # Store parent's pursuit parameters on child (winner)
+    parent_module_trait = getattr(winner.genome.behavioral, "target_pursuit_module", None)
+    if parent_module_trait is not None and parent_module_trait.value is not None:
+        from core.behavior.pursuit_nodes import pursuit_module_parameters
+
+        baby.parent_pursuit_params = pursuit_module_parameters(parent_module_trait.value)
     cast(Any, baby).protected_niche_birth = mutation_context.preserve_parent_lineage
 
     _record_successful_mating(winner)
