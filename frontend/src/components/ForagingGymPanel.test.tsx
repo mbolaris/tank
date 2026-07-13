@@ -196,9 +196,8 @@ describe('ForagingGymObservatoryDisplay', () => {
         expect(html).toContain('Captured');
         expect(html).toContain('10.0');
         expect(html).toContain('12');
-        expect(html).toContain('Prediction strength increased from');
-        expect(html).toContain('0.48');
-        expect(html).toContain('0.71');
+        expect(html).toContain('Prediction skill differs from the species founder by');
+        expect(html).toContain('+0.23');
         expect(html).toContain('This module variant is present in');
         expect(html).toContain('23');
     });
