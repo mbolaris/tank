@@ -1,144 +1,255 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { colors } from '../styles/theme';
-import type { ForagingGymResult } from '../types/skill';
-
-const SEEDS = [42, 7, 123] as const;
+import type { ForagingGymSummary } from '../types/skill';
+import { styles } from './ForagingGymPanel.styles';
 
 function percent(value: number): string {
     return `${(value * 100).toFixed(1)}%`;
 }
 
-function energy(value: number): string {
-    return Math.round(value).toLocaleString();
-}
-
-export function ForagingGymResultCard({ result }: { result: ForagingGymResult }) {
-    const { composable_energy_ratio, random_walk_energy_ratio } = result.score_breakdown;
-    const { composable, random_walk, oracle, oracle_energy } = result.metadata;
-    const beatFloor = composable_energy_ratio > random_walk_energy_ratio;
-
-    return (
-        <div style={styles.result}>
-            <div style={styles.scoreRow}>
-                <div>
-                    <div style={styles.label}>COMPOSABLE FORAGING</div>
-                    <div style={styles.score}>{percent(composable_energy_ratio)}</div>
-                    <div style={styles.caption}>
-                        {energy(composable.energy_collected)} / {energy(oracle_energy)} energy · {composable.food_collected}/
-                        {oracle.food_collected} food
-                    </div>
-                </div>
-                <div style={{ ...styles.floorBadge, color: beatFloor ? colors.success : colors.danger }}>
-                    {beatFloor ? 'ABOVE RANDOM FLOOR' : 'BELOW RANDOM FLOOR'}
-                </div>
-            </div>
-
-            <div style={styles.track} aria-label="Composable energy captured relative to oracle ceiling">
-                <div
-                    style={{
-                        ...styles.fill,
-                        width: `${Math.max(0, Math.min(100, composable_energy_ratio * 100))}%`,
-                    }}
-                />
-            </div>
-
-            <div style={styles.referenceGrid}>
-                <div style={styles.reference}>
-                    <span style={styles.referenceName}>Random walk</span>
-                    <strong>{percent(random_walk_energy_ratio)}</strong>
-                    <span style={styles.referenceDetail}>{random_walk.food_collected} food</span>
-                </div>
-                <div style={styles.reference}>
-                    <span style={styles.referenceName}>Oracle ceiling</span>
-                    <strong>{percent(result.score_breakdown.oracle_energy_ratio)}</strong>
-                    <span style={styles.referenceDetail}>{oracle.food_collected} food</span>
-                </div>
-            </div>
-        </div>
-    );
+function getSkillDescriptor(score: number): { label: string; description: string } {
+    const val = score * 100;
+    if (val >= 90) {
+        return { label: 'EXPERT', description: 'Perfect or near-optimal route selection' };
+    } else if (val >= 75) {
+        return { label: 'ADVANCED', description: 'Highly efficient foraging and pathing' };
+    } else if (val >= 60) {
+        return { label: 'SKILLED', description: 'Efficiently finds most available food' };
+    } else if (val >= 45) {
+        return { label: 'BASIC', description: 'Basic target selection and food capture' };
+    } else {
+        return { label: 'POOR', description: 'Inefficient or struggling to locate food' };
+    }
 }
 
 export function ForagingGymPanel() {
-    const [seed, setSeed] = useState<number>(42);
-    const [result, setResult] = useState<ForagingGymResult | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [summary, setSummary] = useState<ForagingGymSummary | null>(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const evaluate = useCallback(async (selectedSeed: number) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(`/api/skill/foraging-gym?seed=${selectedSeed}`);
-            if (!response.ok) throw new Error(`Evaluation failed (${response.status})`);
-            const data: ForagingGymResult = await response.json();
-            setResult(data);
-        } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Evaluation unavailable');
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        let active = true;
+        async function fetchSummary() {
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await fetch('/api/skill/foraging-gym/summary');
+                if (!response.ok) throw new Error(`Failed to load summary (${response.status})`);
+                const data: ForagingGymSummary = await response.json();
+                if (active) {
+                    setSummary(data);
+                }
+            } catch (cause) {
+                if (active) {
+                    setError(cause instanceof Error ? cause.message : 'Foraging summary unavailable');
+                }
+            } finally {
+                if (active) {
+                    setLoading(false);
+                }
+            }
         }
+        fetchSummary();
+        return () => {
+            active = false;
+        };
     }, []);
 
-    useEffect(() => {
-        evaluate(seed);
-    }, [evaluate, seed]);
+    if (loading) {
+        return (
+            <section style={styles.panel} aria-label="Foraging gym evaluator">
+                <div style={styles.titleContainer}>
+                    <div style={styles.title}>FORAGING SKILL</div>
+                </div>
+                <div style={styles.skeletonContainer} data-testid="skeleton">
+                    <div style={styles.skeletonRow}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={styles.skeletonScore} />
+                            <div style={styles.skeletonDescription} />
+                        </div>
+                        <div style={styles.skeletonBadge} />
+                    </div>
+                    <div style={styles.skeletonTrack} />
+                    <div style={styles.skeletonText} />
+                </div>
+            </section>
+        );
+    }
+
+    if (error || !summary) {
+        return (
+            <section style={styles.panel} aria-label="Foraging gym evaluator">
+                <div style={styles.titleContainer}>
+                    <div style={styles.title}>FORAGING SKILL</div>
+                </div>
+                <div style={styles.error}>{error || 'Failed to load summary'}</div>
+            </section>
+        );
+    }
+
+    return <ForagingGymSummaryDisplay summary={summary} />;
+}
+
+export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSummary }) {
+    const [measuredOpen, setMeasuredOpen] = useState(false);
+    const [techOpen, setTechOpen] = useState(false);
+
+    const { mean, wandering_mean, perfect_mean, confidence_interval, range, average_food, average_energy } = summary;
+    const descriptor = getSkillDescriptor(mean);
+
+    const wPct = wandering_mean * 100;
+    const cPct = mean * 100;
+    const pPct = perfect_mean * 100;
 
     return (
         <section style={styles.panel} aria-label="Foraging gym evaluator">
-            <div style={styles.header}>
-                <div>
-                    <div style={styles.title}>Foraging Gym</div>
-                    <div style={styles.description}>
-                        One fish, scripted food, no ecosystem confounders. 100% means every available calorie.
+            <div style={styles.titleContainer}>
+                <div style={styles.title}>FORAGING SKILL</div>
+            </div>
+
+            <div style={styles.scoreRow}>
+                <div style={styles.scoreLeft}>
+                    <div style={styles.score}>
+                        {Math.round(cPct)} <span style={styles.scoreDenom}>/ 100</span>
+                    </div>
+                    <div style={styles.descriptorText}>{descriptor.description}</div>
+                </div>
+                <div style={styles.badge}>{descriptor.label}</div>
+            </div>
+
+            {/* Comparison Scale */}
+            <div style={styles.scaleContainer} aria-label="Comparison scale with three markers">
+                {/* Labels Row */}
+                <div style={styles.scaleLabels}>
+                    <div style={{ ...styles.markerLabel, left: `${wPct}%` }}>
+                        <span style={styles.markerName}>Wandering</span>
+                    </div>
+                    <div style={{ ...styles.markerLabel, left: `${cPct}%` }}>
+                        <span style={{ ...styles.markerName, color: colors.success, fontWeight: 700 }}>Current behavior</span>
+                    </div>
+                    <div style={{ ...styles.markerLabel, left: `${pPct}%` }}>
+                        <span style={styles.markerName}>Perfect route</span>
                     </div>
                 </div>
-                <div style={styles.controls}>
-                    <label style={styles.seedLabel}>
-                        Seed
-                        <select value={seed} onChange={event => setSeed(Number(event.target.value))} style={styles.select}>
-                            {SEEDS.map(option => <option key={option} value={option}>{option}</option>)}
-                        </select>
-                    </label>
-                    <button type="button" onClick={() => evaluate(seed)} disabled={loading} style={styles.button}>
-                        {loading ? 'Evaluating…' : 'Run gym'}
-                    </button>
+
+                {/* Track Line */}
+                <div style={styles.trackLineContainer}>
+                    <div style={styles.trackBackground} />
+                    <div style={{ ...styles.trackDot, left: `${wPct}%` }} />
+                    <div style={{ ...styles.trackDotActive, left: `${cPct}%` }} />
+                    <div style={{ ...styles.trackDot, left: `${pPct}%` }} />
+                </div>
+
+                {/* Values Row */}
+                <div style={styles.scaleValues}>
+                    <div style={{ ...styles.markerValueLabel, left: `${wPct}%` }}>
+                        <span style={styles.markerValue}>{Math.round(wPct)}</span>
+                    </div>
+                    <div style={{ ...styles.markerValueLabel, left: `${cPct}%` }}>
+                        <span style={{ ...styles.markerValue, color: colors.success, fontWeight: 800 }}>
+                            ● {Math.round(cPct)}
+                        </span>
+                    </div>
+                    <div style={{ ...styles.markerValueLabel, left: `${pPct}%` }}>
+                        <span style={styles.markerValue}>{Math.round(pPct)}</span>
+                    </div>
                 </div>
             </div>
 
-            {error ? <div style={styles.error}>{error}</div> : result ? <ForagingGymResultCard result={result} /> : <div style={styles.loading}>Evaluating current behavior…</div>}
+            {/* Averages Summary */}
+            <div style={styles.averagesInfo}>
+                <div style={styles.averagesTitle}>Average across {summary.metadata.seeds.length} standardized trials</div>
+                <div style={styles.averagesDetail}>
+                    {average_food.toFixed(1)} of 12 food collected · Typical range {Math.round(range[0] * 100)}–{Math.round(range[1] * 100)}
+                </div>
+            </div>
+
+            {/* How this is measured details */}
+            <details
+                style={styles.details}
+                open={measuredOpen}
+                onToggle={(e) => setMeasuredOpen((e.target as HTMLDetailsElement).open)}
+                data-testid="details-measurement"
+            >
+                <summary style={styles.summary}>
+                    <span style={styles.arrowIcon}>{measuredOpen ? '▼' : '▶'}</span>
+                    How this is measured
+                </summary>
+                <div style={styles.detailsContent}>
+                    The foraging gym measures target selection, target prediction, and physical pathing algorithms
+                    under strict day/night and movement cost bounds. It runs a standardized scenario where a single
+                    neutral-policy fish chases scripted spawns. Score represents the ratio of food energy captured
+                    relative to an omniscient greedy oracle.
+                </div>
+            </details>
+
+            {/* Technical details */}
+            <details
+                style={styles.details}
+                open={techOpen}
+                onToggle={(e) => setTechOpen((e.target as HTMLDetailsElement).open)}
+                data-testid="details-technical"
+            >
+                <summary style={styles.summary}>
+                    <span style={styles.arrowIcon}>{techOpen ? '▼' : '▶'}</span>
+                    Test details
+                </summary>
+                <div style={styles.detailsContent}>
+                    <div style={styles.techRow}>
+                        <span style={styles.techLabel}>Subject:</span>
+                        <span style={styles.techVal}>{summary.subject}</span>
+                    </div>
+                    <div style={styles.techRow}>
+                        <span style={styles.techLabel}>Benchmark ID:</span>
+                        <span style={styles.techVal}>tank/foraging_gym</span>
+                    </div>
+                    <div style={styles.techRow}>
+                        <span style={styles.techLabel}>Config Hash:</span>
+                        <span style={styles.techVal}>{summary.config_hash}</span>
+                    </div>
+                    <div style={styles.techRow}>
+                        <span style={styles.techLabel}>Confidence Interval (95%):</span>
+                        <span style={styles.techVal}>
+                            {percent(confidence_interval[0])} to {percent(confidence_interval[1])}
+                        </span>
+                    </div>
+                    <div style={styles.techRow}>
+                        <span style={styles.techLabel}>Average Energy Captured:</span>
+                        <span style={styles.techVal}>{Math.round(average_energy).toLocaleString()}</span>
+                    </div>
+
+                    <div style={{ ...styles.averagesTitle, marginTop: '12px', marginBottom: '6px' }}>Per-Seed Trials</div>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Seed</th>
+                                <th style={styles.th}>Score</th>
+                                <th style={styles.th}>Food</th>
+                                <th style={styles.th}>Energy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {summary.metadata.seeds.map(seed => {
+                                const seedStr = String(seed);
+                                const seedData = summary.metadata.per_seed[seedStr];
+                                if (!seedData) return null;
+                                return (
+                                    <tr key={seed} style={styles.tr}>
+                                        <td style={styles.td}>{seed}</td>
+                                        <td style={styles.td}>{percent(seedData.score)}</td>
+                                        <td style={styles.td}>
+                                            {seedData.metadata.composable.food_collected} / {seedData.metadata.oracle.food_collected}
+                                        </td>
+                                        <td style={styles.td}>
+                                            {Math.round(seedData.metadata.composable.energy_collected)} / {Math.round(seedData.metadata.oracle_energy)}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </details>
         </section>
     );
 }
-
-const styles = {
-    panel: {
-        backgroundColor: 'rgba(15, 23, 42, 0.52)',
-        border: `1px solid ${colors.border}`,
-        borderRadius: '10px',
-        padding: '14px',
-        display: 'flex',
-        flexDirection: 'column' as const,
-        gap: '12px',
-    },
-    header: { display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const },
-    title: { color: colors.primary, fontWeight: 700, fontSize: '15px' },
-    description: { color: colors.textSecondary, fontSize: '11px', marginTop: '3px', maxWidth: '460px' },
-    controls: { display: 'flex', alignItems: 'end', gap: '8px' },
-    seedLabel: { color: colors.textSecondary, display: 'flex', flexDirection: 'column' as const, fontSize: '10px', gap: '3px' },
-    select: { backgroundColor: colors.bgLight, border: `1px solid ${colors.border}`, borderRadius: '5px', color: colors.text, padding: '4px 6px' },
-    button: { backgroundColor: colors.primary, border: 'none', borderRadius: '5px', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 700, padding: '6px 10px' },
-    result: { display: 'flex', flexDirection: 'column' as const, gap: '10px' },
-    scoreRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' },
-    label: { color: colors.textSecondary, fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' },
-    score: { color: colors.success, fontFamily: 'var(--font-mono)', fontSize: '28px', fontWeight: 800, lineHeight: 1.1 },
-    caption: { color: colors.textSecondary, fontSize: '11px', marginTop: '2px' },
-    floorBadge: { fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textAlign: 'right' as const },
-    track: { backgroundColor: 'rgba(2, 6, 23, 0.7)', borderRadius: '999px', height: '12px', overflow: 'hidden' },
-    fill: { background: 'linear-gradient(90deg, #22c55e, #84cc16)', borderRadius: '999px', height: '100%', transition: 'width 180ms ease-out' },
-    referenceGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
-    reference: { backgroundColor: colors.bgLight, borderRadius: '6px', color: colors.text, display: 'flex', flexDirection: 'column' as const, gap: '2px', padding: '8px' },
-    referenceName: { color: colors.textSecondary, fontSize: '10px' },
-    referenceDetail: { color: colors.textSecondary, fontSize: '10px' },
-    loading: { color: colors.textSecondary, fontSize: '12px', padding: '8px 0' },
-    error: { color: colors.danger, fontSize: '12px', padding: '8px 0' },
-} as const;
