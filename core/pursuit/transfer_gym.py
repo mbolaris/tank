@@ -332,7 +332,13 @@ def generate_scenario_set(
     version: str = "v2",
 ) -> list[PursuitScenario]:
     """Generate a versioned set of deterministic target scenarios."""
-    salt = {"train": 1000, "validation": 2000, "held_out": 3000}[set_type]
+    salt = {
+        "train": 1000,
+        "validation": 2000,
+        "held_out": 3000,
+        "soccer_train": 4000,
+        "soccer_validation": 5000,
+    }[set_type]
     rng = random.Random(seed + salt)
 
     scenarios = []
@@ -350,10 +356,10 @@ def generate_scenario_set(
         scenario_id = f"{set_type}_{version}_{idx}"
         fam_name = family_names[fam]
 
-        if set_type in ("train", "validation"):
-            p_start, positions, velocities = generate_food_trajectory(fam, rng)
-        else:
+        if "soccer" in set_type or set_type == "held_out":
             p_start, positions, velocities = generate_ball_trajectory(fam, rng)
+        else:
+            p_start, positions, velocities = generate_food_trajectory(fam, rng)
 
         scenarios.append(
             PursuitScenario(
@@ -579,6 +585,8 @@ def evaluate_pursuit_transfer(seed: int) -> PursuitTransferEvaluation:
     train_food = generate_scenario_set("train", seed)
     validation_food = generate_scenario_set("validation", seed)
     test_ball = generate_scenario_set("held_out", seed)
+    train_soccer = generate_scenario_set("soccer_train", seed)
+    validation_soccer = generate_scenario_set("soccer_validation", seed)
 
     base_module = default_pursuit_module_graph()
     direct_pursuit = _naive_direct_pursuit_module()
@@ -648,7 +656,12 @@ def evaluate_pursuit_transfer(seed: int) -> PursuitTransferEvaluation:
         run_rng = random.Random(seed + 6000 + run_idx * 100)
         initial_pop = [base_module]
         best_of_run, _, _ = run_evolution(
-            initial_pop, test_ball, GENERATIONS, POPULATION_SIZE, run_rng
+            initial_pop,
+            train_soccer,
+            GENERATIONS,
+            POPULATION_SIZE,
+            run_rng,
+            validation_scenarios=validation_soccer,
         )
         soccer_trained_modules.append(best_of_run)
 

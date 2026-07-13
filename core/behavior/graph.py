@@ -192,8 +192,12 @@ class BehaviorGraph:
 
     def fingerprint(self) -> str:
         """Stable content fingerprint suitable for graph cache and provenance."""
+        if hasattr(self, "_fingerprint_cached"):
+            return cast(str, self._fingerprint_cached)
         encoded = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+        fp = hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+        object.__setattr__(self, "_fingerprint_cached", fp)
+        return fp
 
     @classmethod
     def from_dict(cls, data: object) -> BehaviorGraph:
@@ -353,6 +357,14 @@ class BehaviorGraph:
 
     def compile_cached(self, registry: NodeRegistry = NODE_REGISTRY) -> CompiledBehaviorGraph:
         """Return a bounded, registry-specific cached plan for the hot path."""
+        if registry is NODE_REGISTRY:
+            if hasattr(self, "_compiled_plan_cached"):
+                return cast(CompiledBehaviorGraph, self._compiled_plan_cached)
+            compiled = get_compiled_plan(
+                registry, self.fingerprint(), lambda: self.compile(registry)
+            )
+            object.__setattr__(self, "_compiled_plan_cached", compiled)
+            return compiled
         return get_compiled_plan(registry, self.fingerprint(), lambda: self.compile(registry))
 
     def crossed_over(

@@ -470,9 +470,22 @@ def setup_router(
                 scores.append(res.composable_ratio)
                 food_collected_list.append(res.composable.food_collected)
 
+            n_trials = len(scores)
+            mean_score = sum(scores) / n_trials
+            import math
+
+            if n_trials > 1:
+                variance = sum((x - mean_score) ** 2 for x in scores) / (n_trials - 1)
+                std_dev = math.sqrt(variance)
+                sem = std_dev / math.sqrt(n_trials)
+            else:
+                sem = 0.0
+
             result = {
-                "score": sum(scores) / len(scores),
+                "score": mean_score,
                 "average_food": sum(food_collected_list) / len(food_collected_list),
+                "uncertainty": sem,
+                "sample_size": n_trials,
             }
             cache[cache_key] = result
             cache.move_to_end(cache_key)
@@ -492,6 +505,8 @@ def setup_router(
                     "fish": fish,
                     "score": eval_res["score"],
                     "average_food": eval_res["average_food"],
+                    "uncertainty": eval_res["uncertainty"],
+                    "sample_size": eval_res["sample_size"],
                 }
             )
 
@@ -548,7 +563,56 @@ def setup_router(
                 "prediction_skill"
             ]
 
-        # Percentage of its species population sharing the same module fingerprint
+        # Species median prediction skill
+        species_fish = [f for f in living_fish if f.taxon_id == best_fish.taxon_id]
+        species_values = []
+        for f in species_fish:
+            b_traits = getattr(f.genome, "behavioral", None)
+            if b_traits is not None:
+                p_skill = getattr(b_traits, "prediction_skill", None)
+                if p_skill is not None:
+                    v = getattr(p_skill, "value", None)
+                    from unittest.mock import Mock
+
+                    if v is not None and not isinstance(v, Mock):
+                        try:
+                            species_values.append(float(v))
+                        except (TypeError, ValueError):
+                            pass
+        if species_values:
+            sorted_vals = sorted(species_values)
+            n_vals = len(sorted_vals)
+            if n_vals % 2 == 1:
+                species_median = sorted_vals[n_vals // 2]
+            else:
+                species_median = (sorted_vals[n_vals // 2 - 1] + sorted_vals[n_vals // 2]) / 2.0
+        else:
+            species_median = 0.5
+
+        # Parent prediction skill, when known
+        parent_prediction_skill = None
+        parent_id = getattr(best_fish, "parent_id", None)
+        if parent_id is not None:
+            parent_fish = next((f for f in living_fish if f.fish_id == parent_id), None)
+            if parent_fish is not None:
+                p_behavioral = getattr(parent_fish.genome, "behavioral", None)
+                if p_behavioral is not None:
+                    p_pred_skill = getattr(p_behavioral, "prediction_skill", None)
+                    if p_pred_skill is not None:
+                        val = getattr(p_pred_skill, "value", None)
+                        from unittest.mock import Mock
+
+                        if val is not None and not isinstance(val, Mock):
+                            try:
+                                parent_prediction_skill = float(val)
+                            except (TypeError, ValueError):
+                                pass
+        if parent_prediction_skill is None:
+            parent_params = getattr(best_fish, "parent_pursuit_params", None)
+            if isinstance(parent_params, dict) and "prediction_strength" in parent_params:
+                parent_prediction_skill = parent_params["prediction_strength"]
+
+        # Percentage/Fraction of its species population sharing the same module fingerprint
         species_fish_items = [
             item for item in fish_evals if item["fish"].taxon_id == best_fish.taxon_id
         ]
@@ -560,6 +624,9 @@ def setup_router(
         )
         percentage = (
             (same_module_count / len(species_fish_items)) * 100.0 if species_fish_items else 100.0
+        )
+        similar_fraction = (
+            same_module_count / len(species_fish_items) if species_fish_items else 1.0
         )
 
         # Get default/baseline controller scores from summary cache block
@@ -620,6 +687,12 @@ def setup_router(
                 "prediction_strength_before": prediction_strength_before,
                 "prediction_strength_after": prediction_strength_after,
                 "percentage_of_species": percentage,
+                "parent_prediction_skill": parent_prediction_skill,
+                "species_median": species_median,
+                "module_fingerprint": best_module_fp,
+                "similar_fraction": similar_fraction,
+                "score_uncertainty": best_item["uncertainty"],
+                "sample_size": best_item["sample_size"],
             },
             "engine_baseline": baseline_mean,
             "wandering_mean": wandering_mean,
