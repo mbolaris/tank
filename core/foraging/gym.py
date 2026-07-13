@@ -19,7 +19,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from core.algorithms.composable.behavior import ComposableBehavior
 from core.energy.energy_utils import apply_energy_delta
@@ -326,6 +326,39 @@ def evaluate_foraging_gym(seed: int) -> ForagingGymEvaluation:
 
     random_floor = run_episode(schedule, _RandomWalkPolicy(seed), seed)
     composable = run_episode(schedule, _ComposablePolicy(seed), seed)
+    return ForagingGymEvaluation(
+        oracle_energy=ceiling,
+        oracle=oracle,
+        random_walk=random_floor,
+        composable=composable,
+    )
+
+
+class _CustomGenomePolicy:
+    """Policy that runs ComposableBehavior using a specific custom Genome."""
+
+    def __init__(self, genome: Any, seed: int) -> None:
+        self._behavior = ComposableBehavior()
+        self._wander = _RandomWalkPolicy(seed)
+        self._genome = genome
+
+    def velocity(self, fish: _GymFish, active_food: tuple[_GymFood, ...]) -> Vector2:
+        if not active_food:
+            return self._wander.velocity(fish, active_food)
+        # Attach the custom genome to the gym fish so the behavior uses it
+        fish.genome = self._genome
+        vx, vy = self._behavior.execute(cast("Fish", fish))
+        return Vector2(vx, vy)
+
+
+def evaluate_custom_genome(genome: Any, seed: int) -> ForagingGymEvaluation:
+    """Evaluate a custom genome snapshot in the foraging gym environment for ``seed``."""
+    schedule = build_food_schedule(seed)
+    ceiling = oracle_energy_ceiling(schedule)
+    oracle = run_episode(schedule, _OracleGreedyPolicy(), seed)
+    random_floor = run_episode(schedule, _RandomWalkPolicy(seed), seed)
+    policy = _CustomGenomePolicy(genome, seed)
+    composable = run_episode(schedule, policy, seed)
     return ForagingGymEvaluation(
         oracle_energy=ceiling,
         oracle=oracle,

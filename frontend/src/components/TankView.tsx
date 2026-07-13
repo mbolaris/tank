@@ -410,7 +410,7 @@ export function TankView({ worldId }: TankViewProps) {
                     {isVisible('skills') && (
                         <Panel title="Skills & Benchmarks" icon="🎯" onClose={() => toggle('skills')}>
                             <Suspense fallback={<PanelLoading />}>
-                                <TankSkillsTab />
+                                <TankSkillsTab onSelectEntity={selection.selectEntity} />
                             </Suspense>
                         </Panel>
                     )}
