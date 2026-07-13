@@ -34,7 +34,6 @@ from core.foraging.gym import (
     _RandomWalkPolicy,
     _OracleGreedyPolicy,
     _GymFish,
-    _GymEnvironment,
     _GymFood,
     build_food_schedule,
     oracle_energy_ceiling,
