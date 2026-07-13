@@ -179,7 +179,7 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
     from unittest.mock import patch
 
     with (
-        patch("core.foraging.gym.evaluate_custom_genome") as mock_eval,
+        patch("backend.routers.skill.evaluate_custom_genome") as mock_eval,
         patch("core.genetics.genome_codec.genome_to_dict") as mock_g_dict,
     ):
 

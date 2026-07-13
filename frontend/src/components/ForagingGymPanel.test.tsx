@@ -4,9 +4,13 @@ import type { ForagingGymSummary } from '../types/skill';
 
 let useCustomHooks = false;
 let useStateCallCount = 0;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 let mockSummarySetter = (_val: any) => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 let mockObservatorySetter = (_val: any) => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 let mockLoadingSetter = (_val: any) => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 let mockErrorSetter = (_val: any) => {};
 let capturedEffect: (() => void) | undefined = undefined;
 
@@ -14,22 +18,28 @@ vi.mock('react', async (importOriginal) => {
     const actual = await importOriginal<typeof import('react')>();
     return {
         ...actual,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useState: (init: any) => {
             if (useCustomHooks) {
                 const index = useStateCallCount;
                 useStateCallCount++;
                 if (index === 0) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return [null, (v: any) => mockSummarySetter(v)];
                 } else if (index === 1) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return [null, (v: any) => mockObservatorySetter(v)];
                 } else if (index === 2) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return [true, (v: any) => mockLoadingSetter(v)];
                 } else {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     return [null, (v: any) => mockErrorSetter(v)];
                 }
             }
             return actual.useState(init);
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useEffect: (cb: any, deps: any) => {
             if (useCustomHooks) {
                 capturedEffect = cb;
@@ -210,6 +220,7 @@ describe('ForagingGymPanel hook flow', () => {
             }
             return Promise.reject(new Error(`Unknown URL: ${url}`));
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (globalThis as any).fetch = fetchMock;
 
         // Reset tracking vars
