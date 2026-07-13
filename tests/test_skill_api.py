@@ -191,6 +191,12 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
             "prediction_strength_before": 0.48,
             "prediction_strength_after": 0.71,
             "percentage_of_species": 100.0,
+            "parent_prediction_skill": 0.65,
+            "species_median": 0.60,
+            "module_fingerprint": "graph_a1b2c3d4",
+            "similar_fraction": 0.23,
+            "score_uncertainty": 0.045,
+            "sample_size": 8,
         },
         "engine_baseline": 0.5,
         "wandering_mean": 0.2,
@@ -228,4 +234,10 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
         assert body["best_individual"]["food_collected"] == 10
         assert body["best_individual"]["prediction_strength_before"] == 0.48
         assert body["best_individual"]["prediction_strength_after"] == 0.71
+        assert body["best_individual"]["parent_prediction_skill"] == 0.65
+        assert body["best_individual"]["species_median"] == 0.60
+        assert body["best_individual"]["module_fingerprint"] == "graph_a1b2c3d4"
+        assert body["best_individual"]["similar_fraction"] == 0.23
+        assert body["best_individual"]["score_uncertainty"] == 0.045
+        assert body["best_individual"]["sample_size"] == 8
         mock_eval.assert_not_called()

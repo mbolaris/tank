@@ -408,17 +408,31 @@ export function ForagingGymObservatoryDisplay({
                         {observatory.best_individual.name}
                     </div>
                     <div style={styles.observatoryBestDetail}>
-                        Captured {observatory.best_individual.food_collected.toFixed(1)} of {observatory.best_individual.food_available} food items
+                        Captured {observatory.best_individual.food_collected.toFixed(1)} of {observatory.best_individual.food_available} food items (uncertainty: ±{observatory.best_individual.score_uncertainty.toFixed(3)}, n={observatory.best_individual.sample_size})
                     </div>
                     <div style={styles.observatoryBestDetail}>
                         {(() => {
-                            const diff = observatory.best_individual.prediction_strength_after - observatory.best_individual.prediction_strength_before;
-                            const diffStr = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
-                            return `Prediction skill differs from the species founder by ${diffStr}`;
+                            const { parent_prediction_skill, prediction_strength_after, prediction_strength_before } = observatory.best_individual;
+                            if (parent_prediction_skill !== null && parent_prediction_skill !== undefined) {
+                                if (prediction_strength_after > parent_prediction_skill) {
+                                    return `Prediction skill increased from its parent (was ${parent_prediction_skill.toFixed(2)})`;
+                                } else if (prediction_strength_after < parent_prediction_skill) {
+                                    return `Prediction skill decreased from its parent (was ${parent_prediction_skill.toFixed(2)})`;
+                                } else {
+                                    return `Prediction skill is unchanged from its parent (was ${parent_prediction_skill.toFixed(2)})`;
+                                }
+                            } else {
+                                const diff = prediction_strength_after - prediction_strength_before;
+                                const diffStr = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
+                                return `Prediction skill differs from the species founder by ${diffStr}`;
+                            }
                         })()}
                     </div>
                     <div style={styles.observatoryBestDetail}>
-                        This module variant is present in {Math.round(observatory.best_individual.percentage_of_species)}% of its species
+                        Species median prediction skill: {observatory.best_individual.species_median.toFixed(2)}
+                    </div>
+                    <div style={styles.observatoryBestDetail}>
+                        This module variant (fingerprint: {observatory.best_individual.module_fingerprint}) is present in {Math.round(observatory.best_individual.similar_fraction * 100)}% of its species
                     </div>
                 </div>
             )}

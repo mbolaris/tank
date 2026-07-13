@@ -90,7 +90,12 @@ export interface ObservatoryData {
         food_available: number;
         prediction_strength_before: number;
         prediction_strength_after: number;
-        percentage_of_species: number;
+        parent_prediction_skill?: number | null;
+        species_median: number;
+        module_fingerprint: string;
+        similar_fraction: number;
+        score_uncertainty: number;
+        sample_size: number;
     };
     engine_baseline?: number;
     wandering_mean?: number;

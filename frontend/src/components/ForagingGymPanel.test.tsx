@@ -159,7 +159,12 @@ const mockObservatory: ObservatoryData = {
         food_available: 12,
         prediction_strength_before: 0.48,
         prediction_strength_after: 0.71,
-        percentage_of_species: 23,
+        parent_prediction_skill: 0.65,
+        species_median: 0.60,
+        module_fingerprint: 'graph_a1b2c3d4',
+        similar_fraction: 0.23,
+        score_uncertainty: 0.045,
+        sample_size: 8,
     },
     engine_baseline: 0.70,
     wandering_mean: 0.19,
@@ -196,10 +201,17 @@ describe('ForagingGymObservatoryDisplay', () => {
         expect(html).toContain('Captured');
         expect(html).toContain('10.0');
         expect(html).toContain('12');
-        expect(html).toContain('Prediction skill differs from the species founder by');
-        expect(html).toContain('+0.23');
-        expect(html).toContain('This module variant is present in');
+        expect(html).toContain('Prediction skill increased from its parent (was 0.65)');
+        expect(html).toContain('Species median prediction skill:');
+        expect(html).toContain('0.60');
+        expect(html).toContain('This module variant (fingerprint:');
+        expect(html).toContain('graph_a1b2c3d4');
+        expect(html).toContain(') is present in');
         expect(html).toContain('23');
+        expect(html).toContain('uncertainty: ±');
+        expect(html).toContain('0.045');
+        expect(html).toContain('n=');
+        expect(html).toContain('8');
     });
 });
 
