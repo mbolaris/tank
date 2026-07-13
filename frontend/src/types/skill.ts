@@ -72,6 +72,10 @@ export interface ForagingGymSummary {
 export interface ObservatoryData {
     status: 'success' | 'no_data';
     message?: string;
+    world_id?: string;
+    evaluated_at_frame?: number;
+    evaluated_at_generation?: number;
+    benchmark_hash?: string;
     subject?: string;
     tank_average?: number;
     best_species?: {
@@ -92,4 +96,3 @@ export interface ObservatoryData {
     wandering_mean?: number;
     perfect_mean?: number;
 }
-

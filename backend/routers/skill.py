@@ -1,14 +1,14 @@
 """Skill-ladder standings REST API router.
 
-Exposes the frozen-ruler skill summaries embedded in the champion registry so
-the frontend can show, per domain, how good the evolved agents are in absolute
-terms and how close they are to each ladder's ceiling. Stateless and
-world-independent: it reads ``champions/**/*.json`` on request.
+Exposes frozen-ruler skill summaries embedded in the champion registry and the
+latest asynchronous Tank Skill Observatory results. Observatory evaluations are
+performed by ``SkillEvaluationService``; GET requests only read completed data.
 """
 
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -26,21 +26,20 @@ SCHEMA_VERSION = 1
 
 
 _FORAGING_GYM_SUMMARY_SEEDS = (42, 7, 31, 38, 1, 5, 0, 41)
+_MAX_OBSERVATORY_CACHE_ENTRIES = 256
+_OBSERVATORY_EVALUATION_CACHE: OrderedDict[tuple[str, str], dict[str, Any]] = OrderedDict()
 
 from typing import cast
 from core.math_utils import Vector2
 from core.foraging.gym import (
     _RandomWalkPolicy,
-    _OracleGreedyPolicy,
     _GymFish,
     _GymFood,
-    build_food_schedule,
-    oracle_energy_ceiling,
-    run_episode,
-    ForagingGymEvaluation,
 )
 from core.movement_strategy import AlgorithmicMovement
 from core.entities.fish import Fish
+from backend.skill_evaluation_service import SkillEvaluationService
+from backend.skill_observatory import evaluate_custom_genome
 
 
 class _LegacyComposablePolicy:
@@ -207,46 +206,19 @@ class _FullProductionPolicy:
         return Vector2(float(vel.x), float(vel.y))
 
 
-def evaluate_custom_genome(
-    genome: Any,
-    seed: int,
-    subject: str = "full_production",
-    simulation_config: Any = None,
-    genome_code_pool: Any = None,
-) -> ForagingGymEvaluation:
-    """Evaluate a custom genome snapshot in the foraging gym environment for ``seed``."""
-    schedule = build_food_schedule(seed)
-    ceiling = oracle_energy_ceiling(schedule)
-    oracle = run_episode(schedule, _OracleGreedyPolicy(), seed)
-    random_floor = run_episode(schedule, _RandomWalkPolicy(seed), seed)
-
-    policy: Any
-    if subject == "legacy_composable":
-        policy = _LegacyComposablePolicy(genome, seed)
-    elif subject == "shared_pursuit_module":
-        policy = _SharedPursuitModulePolicy(genome, seed)
-    else:
-        policy = _FullProductionPolicy(genome, seed, simulation_config, genome_code_pool)
-
-    composable = run_episode(schedule, policy, seed)
-    return ForagingGymEvaluation(
-        oracle_energy=ceiling,
-        oracle=oracle,
-        random_walk=random_floor,
-        composable=composable,
-    )
-
-
 _FORAGING_GYM_SUMMARY_CACHE: dict[str, dict[str, Any]] = {}
 
 
 def setup_router(
     champions_dir: Path | None = None,
     world_manager: Any | None = None,
+    evaluation_service: SkillEvaluationService | None = None,
 ) -> APIRouter:
     """Create the skill-ladder standings router."""
     router = APIRouter(prefix="/api/skill", tags=["skill"])
     resolved_dir = champions_dir or _CHAMPIONS_DIR
+    if evaluation_service is None:
+        evaluation_service = SkillEvaluationService(world_manager)
 
     @router.get("/ladders")
     async def get_skill_ladders() -> JSONResponse:
@@ -361,9 +333,8 @@ def setup_router(
         _FORAGING_GYM_SUMMARY_CACHE[config_hash] = summary
         return JSONResponse(summary)
 
-    @router.get("/foraging-gym/observatory")
-    def get_foraging_gym_observatory(world_id: str | None = Query(default=None)) -> JSONResponse:
-        """Evaluate the simulated fish in the foraging gym and return tank observatory standings."""
+    def evaluate_foraging_observatory(resolved_world_id: str) -> dict[str, Any]:
+        """Build one observatory result for a world without touching HTTP state."""
         import hashlib
         import json
         from core.genetics.genome import GENOME_SCHEMA_VERSION
@@ -371,70 +342,61 @@ def setup_router(
         from core.entities.fish import Fish
 
         if world_manager is None:
-            return JSONResponse(
-                {"status": "no_data", "message": "World manager not available"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": "World manager not available"}
 
         worlds = world_manager.list_worlds()
         if not worlds:
-            return JSONResponse(
-                {"status": "no_data", "message": "No active worlds available"},
-                status_code=200,
-            )
-
-        resolved_world_id = world_id
-        if not resolved_world_id or resolved_world_id == "default":
-            resolved_world_id = worlds[0].world_id
+            return {"status": "no_data", "message": "No active worlds available"}
 
         instance = world_manager.get_world(resolved_world_id)
         if instance is None:
-            return JSONResponse(
-                {"status": "no_data", "message": f"World {resolved_world_id} not found"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": f"World {resolved_world_id} not found"}
 
         runner = instance.runner
         if not hasattr(runner, "world") or not runner.world:
-            return JSONResponse(
-                {"status": "no_data", "message": "World not initialized"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": "World not initialized"}
 
         living_fish = [e for e in runner.world.entities_list if isinstance(e, Fish)]
         if not living_fish:
-            return JSONResponse(
-                {"status": "no_data", "message": "No living fish in the tank"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": "No living fish in the tank"}
 
         taxonomy = getattr(runner.world, "ecosystem", None) and getattr(
             runner.world.ecosystem, "taxonomy", None
         )
         if not taxonomy or not hasattr(taxonomy, "registry"):
-            return JSONResponse(
-                {"status": "no_data", "message": "Taxonomy system not available"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": "Taxonomy system not available"}
 
         species_registry = taxonomy.registry
         active_species = [
             rec for rec in species_registry.species.values() if len(rec.living_member_ids) > 0
         ]
         if not active_species:
-            return JSONResponse(
-                {"status": "no_data", "message": "No active species classification found"},
-                status_code=200,
-            )
+            return {"status": "no_data", "message": "No active species classification found"}
 
-        # Helpers for genome fingerprinting and caching
-        def get_genome_fingerprint(genome: Any) -> str:
+        # Helpers for behavioral phenotype fingerprinting and caching.  The
+        # gym uses the production movement controller, so identity-only and
+        # unrelated physical genes must not create separate evaluations.
+        def get_controller_fingerprint(genome: Any) -> str:
             from unittest.mock import Mock
 
             if isinstance(genome, Mock):
-                return "mock_genome"
+                return "mock_controller"
             payload = genome_to_dict(genome, schema_version=GENOME_SCHEMA_VERSION)
-            encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=repr)
+            controller_fields = (
+                "aggression",
+                "pursuit_aggression",
+                "prediction_skill",
+                "hunting_stamina",
+                "behavior",
+                "behavior_graph",
+                "target_pursuit_module",
+                "movement_policy_id",
+                "movement_policy_params",
+            )
+            controller_payload = {key: payload.get(key) for key in controller_fields}
+            encoded = json.dumps(
+                controller_payload, sort_keys=True, separators=(",", ":"), default=repr
+            )
             return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
         def get_module_fingerprint(genome: Any) -> str:
@@ -481,19 +443,17 @@ def setup_router(
             benchmark_config=summary_config,
         )
 
-        global _OBSERVATORY_EVALUATION_CACHE
-        if "_OBSERVATORY_EVALUATION_CACHE" not in globals():
-            globals()["_OBSERVATORY_EVALUATION_CACHE"] = {}
-        cache: dict[tuple[str, str], dict[str, Any]] = globals()["_OBSERVATORY_EVALUATION_CACHE"]
+        cache = _OBSERVATORY_EVALUATION_CACHE
 
         # Extract active world dependencies to run the production arbiter
         simulation_config = getattr(runner.world, "simulation_config", None)
         genome_code_pool = getattr(runner.world, "genome_code_pool", None)
 
         def evaluate_genome_cached(genome: Any) -> dict[str, Any]:
-            fingerprint = get_genome_fingerprint(genome)
+            fingerprint = get_controller_fingerprint(genome)
             cache_key = (fingerprint, config_hash)
             if cache_key in cache:
+                cache.move_to_end(cache_key)
                 return cache[cache_key]
 
             scores = []
@@ -515,6 +475,9 @@ def setup_router(
                 "average_food": sum(food_collected_list) / len(food_collected_list),
             }
             cache[cache_key] = result
+            cache.move_to_end(cache_key)
+            while len(cache) > _MAX_OBSERVATORY_CACHE_ENTRIES:
+                cache.popitem(last=False)
             return result
 
         import copy
@@ -630,33 +593,62 @@ def setup_router(
             wandering_mean = sum(baseline_wandering_scores) / len(baseline_wandering_scores)
             perfect_mean = 1.0
 
-        return JSONResponse(
-            {
-                "status": "success",
-                "subject": "Full production movement controller",
-                "tank_average": tank_average,
-                "best_species": {
-                    "name": best_species_name,
-                    "score": best_species_score,
-                },
-                "best_individual": {
-                    "id": best_fish.fish_id,
-                    "name": (
-                        f"{best_fish.common_name} #{best_fish.fish_id}"
-                        if hasattr(best_fish, "common_name")
-                        else f"Fish #{best_fish.fish_id}"
-                    ),
-                    "score": best_score,
-                    "food_collected": best_item["average_food"],
-                    "food_available": 12.0,
-                    "prediction_strength_before": prediction_strength_before,
-                    "prediction_strength_after": prediction_strength_after,
-                    "percentage_of_species": percentage,
-                },
-                "engine_baseline": baseline_mean,
-                "wandering_mean": wandering_mean,
-                "perfect_mean": perfect_mean,
+        frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
+        generation = max(int(getattr(fish, "generation", 0)) for fish in living_fish)
+        return {
+            "status": "success",
+            "world_id": resolved_world_id,
+            "evaluated_at_frame": frame,
+            "evaluated_at_generation": generation,
+            "benchmark_hash": config_hash,
+            "subject": "Full production movement controller",
+            "tank_average": tank_average,
+            "best_species": {
+                "name": best_species_name,
+                "score": best_species_score,
+            },
+            "best_individual": {
+                "id": best_fish.fish_id,
+                "name": (
+                    f"{best_fish.common_name} #{best_fish.fish_id}"
+                    if hasattr(best_fish, "common_name")
+                    else f"Fish #{best_fish.fish_id}"
+                ),
+                "score": best_score,
+                "food_collected": best_item["average_food"],
+                "food_available": 12.0,
+                "prediction_strength_before": prediction_strength_before,
+                "prediction_strength_after": prediction_strength_after,
+                "percentage_of_species": percentage,
+            },
+            "engine_baseline": baseline_mean,
+            "wandering_mean": wandering_mean,
+            "perfect_mean": perfect_mean,
+        }
+
+    evaluation_service.set_evaluator(evaluate_foraging_observatory)
+
+    @router.get("/foraging-gym/observatory")
+    def get_foraging_gym_observatory(world_id: str | None = Query(default=None)) -> JSONResponse:
+        """Return the latest completed result without starting an evaluation."""
+        if world_manager is None:
+            return JSONResponse({"status": "no_data", "message": "World manager not available"})
+
+        worlds = world_manager.list_worlds()
+        if not worlds:
+            return JSONResponse({"status": "no_data", "message": "No active worlds available"})
+
+        resolved_world_id = world_id
+        if not resolved_world_id or resolved_world_id == "default":
+            resolved_world_id = worlds[0].world_id
+
+        latest = evaluation_service.get_latest(resolved_world_id)
+        if latest is None:
+            latest = {
+                "status": "no_data",
+                "world_id": resolved_world_id,
+                "message": "Skill evaluation is pending; showing the last completed result when ready.",
             }
-        )
+        return JSONResponse(latest)
 
     return router

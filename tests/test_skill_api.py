@@ -171,26 +171,48 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
     world_manager.list_worlds.return_value = [instance]
     world_manager.get_world.return_value = instance
 
-    # Setup app with the mock world manager
+    from backend.skill_evaluation_service import SkillEvaluationService
+
+    observatory_result = {
+        "status": "success",
+        "world_id": "world_1",
+        "evaluated_at_frame": 12,
+        "evaluated_at_generation": 5,
+        "benchmark_hash": "test-hash",
+        "subject": "Full production movement controller",
+        "tank_average": 0.74,
+        "best_species": {"name": "Silver Sailfins", "score": 0.74},
+        "best_individual": {
+            "id": 481,
+            "name": "Silver Sailfins #481",
+            "score": 0.74,
+            "food_collected": 10,
+            "food_available": 12.0,
+            "prediction_strength_before": 0.48,
+            "prediction_strength_after": 0.71,
+            "percentage_of_species": 100.0,
+        },
+        "engine_baseline": 0.5,
+        "wandering_mean": 0.2,
+        "perfect_mean": 1.0,
+    }
+    evaluation_service = SkillEvaluationService(world_manager)
+    evaluation_service.store_result("world_1", observatory_result)
+
+    # Setup app with the mock world manager and a completed background result.
     app = FastAPI()
-    app.include_router(skill.setup_router(champions_dir=tmp_path, world_manager=world_manager))
+    app.include_router(
+        skill.setup_router(
+            champions_dir=tmp_path,
+            world_manager=world_manager,
+            evaluation_service=evaluation_service,
+        )
+    )
     client = TestClient(app)
 
     from unittest.mock import patch
 
-    with (
-        patch("backend.routers.skill.evaluate_custom_genome") as mock_eval,
-        patch("core.genetics.genome_codec.genome_to_dict") as mock_g_dict,
-    ):
-
-        # Mock evaluation results in gym
-        mock_res = MagicMock()
-        mock_res.composable_ratio = 0.74
-        mock_res.composable = MagicMock()
-        mock_res.composable.food_collected = 10
-        mock_eval.return_value = mock_res
-        mock_g_dict.return_value = {"some": "traits"}
-
+    with patch("backend.routers.skill.evaluate_custom_genome") as mock_eval:
         response = client.get("/api/skill/foraging-gym/observatory")
 
         assert response.status_code == 200
@@ -206,3 +228,4 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
         assert body["best_individual"]["food_collected"] == 10
         assert body["best_individual"]["prediction_strength_before"] == 0.48
         assert body["best_individual"]["prediction_strength_after"] == 0.71
+        mock_eval.assert_not_called()
