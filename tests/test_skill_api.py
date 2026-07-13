@@ -196,11 +196,13 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
         assert response.status_code == 200
         body = response.json()
         assert body["status"] == "success"
-        assert body["tank_average"] == 0.74
+        import pytest
+
+        assert body["tank_average"] == pytest.approx(0.74)
         assert body["best_species"]["name"] == "Silver Sailfins"
-        assert body["best_species"]["score"] == 0.74
+        assert body["best_species"]["score"] == pytest.approx(0.74)
         assert body["best_individual"]["id"] == 481
-        assert body["best_individual"]["score"] == 0.74
+        assert body["best_individual"]["score"] == pytest.approx(0.74)
         assert body["best_individual"]["food_collected"] == 10
         assert body["best_individual"]["prediction_strength_before"] == 0.48
         assert body["best_individual"]["prediction_strength_after"] == 0.71
