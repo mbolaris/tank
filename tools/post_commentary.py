@@ -317,12 +317,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    # Comments/reactions carry emoji; force UTF-8 output so this doesn't crash
-    # on Windows consoles that default to a non-UTF-8 codepage (e.g. cp1252).
+    # Comments/reactions carry emoji; force UTF-8 I/O so this doesn't crash
+    # (output) or silently mis-decode (stdin) on Windows consoles that default
+    # to a non-UTF-8 codepage (e.g. cp1252). Without the stdin reconfigure,
+    # `--text -` piped from a UTF-8 file gets decoded as cp1252 and the
+    # mangled text is what reaches the server - no crash, no warning, just
+    # corrupted data once posted.
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stdin, "reconfigure"):
+        sys.stdin.reconfigure(encoding="utf-8")
 
     args = build_parser().parse_args(argv)
     base_url = args.url.rstrip("/")
