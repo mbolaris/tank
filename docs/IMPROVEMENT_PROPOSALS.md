@@ -847,6 +847,22 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
   from `0.1.0` to `1.0.0` after 1,800+ commits. Cleaned up and deleted stray runtime results
   and profile stats (`results.json`, `improved_results.json`, `profile_stats.txt`) from the
   workspace root.
+- **CI: de-duplicated the pre-PR gate.** The old `pre-pr-gate` job ran the smoke
+  gate up to three times (a standalone job, embedded in `pre_pr_gate.py`, and
+  again via a dedicated smoke-check step), the `worlds` shard at least twice,
+  and the full non-slow suite a third time just for coverage (`-n auto`) —
+  serialized behind `needs: smoke-gate` so nothing started until smoke
+  finished. Replaced with a `pre-pr-shard` matrix job (4 shards, `--xdist
+  --workers 2` each, coverage collected inline via `pre_pr_gate.py --coverage`
+  honoring `COVERAGE_FILE`) that runs concurrently with `smoke-gate` and a
+  standalone `mypy` job; a thin `pre-pr-gate` job (same name, kept for
+  branch-protection compatibility) just combines the per-shard coverage data
+  and enforces the 70% floor. The CI step that re-ran smoke + `worlds` solely
+  to sanity-check `pre_pr_gate.py`'s process-exit cleanliness is now
+  `tests/test_gate_common.py::test_exit_for_gate_hard_exits_despite_lingering_non_daemon_thread`,
+  a subprocess-based regression test for the same property that runs in
+  milliseconds. Also added `concurrency: cancel-in-progress` and pip caching
+  across the Python jobs.
 
 ---
 
