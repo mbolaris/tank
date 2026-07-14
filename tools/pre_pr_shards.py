@@ -7,6 +7,7 @@ re-running everything:
   worlds        - soccer, poker, RCSS, petri, and other world-specific rules
   evolution     - genetics, genomes, traits, mutation, selection, code pools
   backend_tools - backend API, websockets, persistence, tools, docs, benchmarks
+  core_infra    - heavy-weight engine infrastructure, api tests, and ledger tracking
   core          - the remainder: engine, determinism, energy, entities,
                   protocols, and architecture contracts
 
@@ -109,6 +110,10 @@ SHARD_PREFIXES: dict[str, tuple[str, ...]] = {
         "tests/test_multi_engine",
         "tests/test_long_run",
         "tests/test_connector",
+    ),
+    "core_infra": (
+        "tests/test_worlds_api",
+        "tests/test_attempt_ledger",
     ),
 }
 

@@ -259,11 +259,32 @@ def run_pytest_with_diagnostics(
     """
     print(f"\n=== {name} ===", flush=True)
 
+    import time
+
+    start_coll = time.time()
     counts = collect_only_counts(collect_only_args)
+    coll_duration = time.time() - start_coll
 
     # Run pytest directly to stdout/stderr without pipe buffering to avoid hangs on Windows or
     # with orphaned background grandchildren (which inherit the captured pipe standard handles).
+    start_exec = time.time()
     returncode = run_step_command(args, timeout=timeout)
+    exec_duration = time.time() - start_exec
+
+    try:
+        import json
+
+        try:
+            with open(".ci_timings.json") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        data["collection_duration"] = data.get("collection_duration", 0.0) + coll_duration
+        data["test_execution_duration"] = data.get("test_execution_duration", 0.0) + exec_duration
+        with open(".ci_timings.json", "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
 
     print("\n--- Test summary ---", flush=True)
     if counts is not None:
