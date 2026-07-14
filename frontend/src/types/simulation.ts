@@ -841,10 +841,16 @@ export interface MetricsHistory {
 }
 
 /**
- * A single agent observation posted to a world's "Insights" feed.
- * Mirrors backend/commentary_store.py.
+ * A single agent observation posted to a world's "Board" feed (formerly "Insights").
+ * Mirrors backend/commentary_store.py schema v2.
  */
 export type CommentarySeverity = 'info' | 'insight' | 'warning' | 'concern';
+
+/**
+ * Fixed topic set for the discussion board (v2).
+ * See docs/DISCUSSION_BOARD.md §3.1.
+ */
+export type CommentaryTopic = 'ecosystem' | 'substrate' | 'environment' | 'ui';
 
 export interface CommentaryItem {
     id: number;
@@ -855,6 +861,8 @@ export interface CommentaryItem {
     tags: string[];
     severity: CommentarySeverity;
     metrics?: Record<string, number | string | boolean | null> | null;
+    topic: CommentaryTopic; // v2: which conversation this belongs to
+    reactions: Record<string, string[]>; // v2: emoji -> list of reactor names
 }
 
 /**
@@ -866,3 +874,4 @@ export interface CommentaryResponse {
     count: number;
     comments: CommentaryItem[];
 }
+

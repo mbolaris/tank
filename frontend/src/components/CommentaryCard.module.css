@@ -1,0 +1,185 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-left-width: 3px;
+    border-radius: 8px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.severityIcon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.topicBadge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+.author {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.meta {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.text {
+    margin: 0;
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tag {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+
+.metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+}
+
+.metric {
+    font-size: 10px;
+    color: #94a3b8;
+    font-family: var(--font-mono, monospace);
+}
+
+.metricValue {
+    color: #e2e8f0;
+}
+
+/* Reaction bar */
+.reactionsBar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.reactionPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    font-size: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.08);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    line-height: 1.4;
+}
+
+.reactionPill:hover {
+    background: rgba(148, 163, 184, 0.18);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.reactionPillActive {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+}
+
+.reactionPillActive:hover {
+    background: rgba(59, 130, 246, 0.28);
+}
+
+.addReactionWrapper {
+    position: relative;
+}
+
+.addReactionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+}
+
+.addReactionBtn:hover {
+    background: rgba(148, 163, 184, 0.18);
+    color: #e2e8f0;
+}
+
+.palette {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    gap: 2px;
+    padding: 4px 6px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+}
+
+.paletteEmoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.12s;
+    line-height: 1;
+}
+
+.paletteEmoji:hover {
+    background: rgba(148, 163, 184, 0.2);
+}

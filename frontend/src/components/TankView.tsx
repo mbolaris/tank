@@ -407,7 +407,7 @@ export function TankView({ worldId }: TankViewProps) {
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
                     {isVisible('insights') && (
-                        <Panel title="Insights" icon="💬" onClose={() => toggle('insights')}>
+                        <Panel title="Board" icon="📋" onClose={() => toggle('insights')}>
                             <CommentaryFeed worldId={effectiveWorldId} />
                         </Panel>
                     )}

@@ -1,14 +1,16 @@
-"""Agent commentary REST API router (the "Insights" feed).
+"""Agent commentary REST API router (the "Board" feed, formerly "Insights").
 
-This is the network surface for the Insights feature: any agent (or human) with
+This is the network surface for the Board feature: any agent (or human) with
 access to the simulation server can POST a short observation about a running
 world, and the web UI polls these endpoints to render them as a live feed.
 
 Endpoints (mounted under ``/api/world``):
 
-    POST   /api/world/{world_id}/commentary   add a comment
-    GET    /api/world/{world_id}/commentary   list recent comments
-    DELETE /api/world/{world_id}/commentary   clear all comments
+    POST   /api/world/{world_id}/commentary                        add a comment
+    GET    /api/world/{world_id}/commentary                        list recent comments
+    DELETE /api/world/{world_id}/commentary                        clear all comments
+    POST   /api/world/{world_id}/commentary/{comment_id}/reactions  add a reaction
+    DELETE /api/world/{world_id}/commentary/{comment_id}/reactions  remove a reaction
 
 ``world_id`` accepts the literal ``"default"`` to target the server's default
 world, so an agent can comment without first discovering the world id. The write
@@ -42,6 +44,14 @@ class CommentaryRequest(BaseModel):
     tags: Any = None
     severity: str | None = None
     metrics: dict[str, Any] | None = None
+    topic: str | None = None
+
+
+class ReactionRequest(BaseModel):
+    """Body for adding a reaction."""
+
+    emoji: str
+    reactor: str = "anon"
 
 
 def setup_router(world_manager: WorldManager) -> APIRouter:
@@ -69,6 +79,7 @@ def setup_router(world_manager: WorldManager) -> APIRouter:
                 tags=request.tags,
                 severity=request.severity,
                 metrics=request.metrics,
+                topic=request.topic,
             )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
@@ -80,15 +91,17 @@ def setup_router(world_manager: WorldManager) -> APIRouter:
         world_id: str,
         limit: int | None = Query(default=None, ge=0, le=500),
         since_id: int | None = Query(default=None, ge=0),
+        topic: str | None = Query(default=None),
     ) -> JSONResponse:
         """List recent comments for a world (newest last).
 
         ``since_id`` returns only comments newer than that id (incremental
-        polling); ``limit`` caps the result to the most recent N.
+        polling); ``limit`` caps the result to the most recent N; ``topic``
+        filters to a single topic slug.
         """
         instance = _resolve_world(world_id)
         store = instance.runner.commentary
-        comments = store.recent(limit=limit, since_id=since_id)
+        comments = store.recent(limit=limit, since_id=since_id, topic=topic)
         return JSONResponse(
             {
                 "schema_version": store.schema_version,
@@ -104,5 +117,38 @@ def setup_router(world_manager: WorldManager) -> APIRouter:
         instance = _resolve_world(world_id)
         cleared = instance.runner.commentary.clear()
         return JSONResponse({"status": "ok", "cleared": cleared})
+
+    @router.post("/{world_id}/commentary/{comment_id}/reactions")
+    async def add_reaction(
+        world_id: str, comment_id: int, request: ReactionRequest
+    ) -> JSONResponse:
+        """Add an emoji reaction to a comment (idempotent)."""
+        instance = _resolve_world(world_id)
+        store = instance.runner.commentary
+        try:
+            updated = store.react(comment_id, request.emoji, request.reactor)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        if updated is None:
+            raise HTTPException(status_code=404, detail=f"Comment {comment_id} not found")
+        return JSONResponse({"status": "ok", "comment": updated})
+
+    @router.delete("/{world_id}/commentary/{comment_id}/reactions")
+    async def remove_reaction(
+        world_id: str,
+        comment_id: int,
+        emoji: str = Query(...),
+        reactor: str = Query(default="anon"),
+    ) -> JSONResponse:
+        """Remove an emoji reaction from a comment (idempotent)."""
+        instance = _resolve_world(world_id)
+        store = instance.runner.commentary
+        try:
+            updated = store.unreact(comment_id, emoji, reactor)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        if updated is None:
+            raise HTTPException(status_code=404, detail=f"Comment {comment_id} not found")
+        return JSONResponse({"status": "ok", "comment": updated})
 
     return router
