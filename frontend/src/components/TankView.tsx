@@ -9,7 +9,7 @@ import {
     type ReactNode,
 } from 'react';
 import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
-import type { PursuitOverlayData } from '../rendering/types';
+import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/types';
 import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
@@ -94,7 +94,11 @@ export function TankView({ worldId }: TankViewProps) {
 
     // Selected fish's pursuit vectors, owned here so Canvas can read them too.
     const [pursuitOverlay, setPursuitOverlay] = useState<PursuitOverlayData | null>(null);
-    useEffect(() => setPursuitOverlay(null), [selection.selectedEntityId]);
+    const [targetMemoryOverlay, setTargetMemoryOverlay] = useState<TargetMemoryOverlayData | null>(null);
+    useEffect(() => {
+        setPursuitOverlay(null);
+        setTargetMemoryOverlay(null);
+    }, [selection.selectedEntityId]);
 
     const serverViewMode =
         state?.view_mode === 'side' || state?.view_mode === 'topdown'
@@ -365,6 +369,7 @@ export function TankView({ worldId }: TankViewProps) {
                         onEntityClick={selection.selectEntity}
                         selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
                         pursuitOverlay={selection.selectedEntityMissing ? null : pursuitOverlay}
+                        targetMemoryOverlay={selection.selectedEntityMissing ? null : targetMemoryOverlay}
                         followEntityId={
                             selection.followEnabled && !selection.selectedEntityMissing
                                 ? selection.selectedEntityId
@@ -489,6 +494,7 @@ export function TankView({ worldId }: TankViewProps) {
                             followEnabled={selection.followEnabled}
                             onToggleFollow={selection.toggleFollow}
                             onPursuitOverlayChange={setPursuitOverlay}
+                            onTargetMemoryOverlayChange={setTargetMemoryOverlay}
                         />
                     </Suspense>
                 )}

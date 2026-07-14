@@ -3,6 +3,7 @@ import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types
 import type { SimulationUpdate } from '../../types/simulation';
 import { buildTankScene, type TankEntity } from './tankScene';
 import { drawPursuitOverlay } from '../../utils/drawPursuitOverlay';
+import { drawTargetMemoryOverlay } from '../../utils/drawTargetMemoryOverlay';
 import { ImageLoader } from '../../utils/ImageLoader';
 import { renderPlant, type PlantGenomeData } from '../../utils/plant';
 
@@ -123,6 +124,7 @@ export class TankTopDownRenderer implements Renderer {
                 ctx.stroke();
                 ctx.restore();
                 if (options.pursuitOverlay) drawPursuitOverlay(ctx, selected.x, selected.y, options.pursuitOverlay);
+                if (options.targetMemoryOverlay) drawTargetMemoryOverlay(ctx, selected.x, selected.y, options.targetMemoryOverlay, rc.nowMs);
             }
         }
 

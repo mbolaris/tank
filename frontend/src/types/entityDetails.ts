@@ -125,5 +125,26 @@ export interface EntityDetails {
     games?: EntityDetailsGames;
     reproduction?: EntityDetailsReproduction;
     modules?: EntityDetailsPursuitModule | null;
+    target_memory?: EntityDetailsTargetMemory | null;
     detail_error?: string;
 }
+
+export interface EntityDetailsTargetMemory {
+    domain: string;
+    action: string;
+    action_raw: string | null;
+    remembering: string;
+    last_seen: string;
+    last_seen_frames: number;
+    confidence: string;
+    confidence_raw: number;
+    predicted_location: string;
+    predicted_offset: number;
+    switch_threshold: string;
+    memory_duration: number;
+    last_seen_position: [number, number];
+    predicted_position: [number, number];
+    search_vector: [number, number];
+    is_switching: boolean;
+}
+

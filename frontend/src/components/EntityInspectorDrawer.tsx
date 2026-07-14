@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Command, CommandResponse, EntityData } from '../types/simulation';
 import type { EntityDetails } from '../types/entityDetails';
-import type { PursuitOverlayData } from '../rendering/types';
+import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/types';
 import { Button, StatRow } from './ui';
 import {
     STATUS_COPY,
@@ -35,6 +35,8 @@ interface EntityInspectorDrawerProps {
     onToggleFollow: () => void;
     /** Fires whenever fetched pursuit-module vectors change, for the canvas overlay. */
     onPursuitOverlayChange?: (data: PursuitOverlayData | null) => void;
+    /** Fires whenever fetched target memory vectors change, for the canvas overlay. */
+    onTargetMemoryOverlayChange?: (data: TargetMemoryOverlayData | null) => void;
 }
 
 type FetchState =
@@ -95,6 +97,7 @@ export function EntityInspectorDrawer({
     followEnabled,
     onToggleFollow,
     onPursuitOverlayChange,
+    onTargetMemoryOverlayChange,
 }: EntityInspectorDrawerProps) {
     const [fetchState, setFetchState] = useState<FetchState>({ phase: 'loading' });
     const drawerRef = useRef<HTMLDivElement>(null);
@@ -117,6 +120,20 @@ export function EntityInspectorDrawer({
                             ? { targetVector: modules.target_vector, aimVector: modules.aim_vector }
                             : null
                     );
+                    const mem = response.details.target_memory;
+                    onTargetMemoryOverlayChange?.(
+                        mem
+                            ? {
+                                  domain: mem.domain,
+                                  action: mem.action,
+                                  lastSeenPosition: mem.last_seen_position,
+                                  predictedPosition: mem.predicted_position,
+                                  searchVector: mem.search_vector,
+                                  confidence: mem.confidence_raw,
+                                  isSwitching: mem.is_switching,
+                              }
+                            : null
+                    );
                 } else if (response.error === 'entity_not_found') {
                     setFetchState({ phase: 'not_found' });
                     onPursuitOverlayChange?.(null);
@@ -129,7 +146,7 @@ export function EntityInspectorDrawer({
                 const message = err instanceof Error ? err.message : 'Request failed';
                 setFetchState({ phase: 'error', message });
             });
-    }, [entityId, sendCommandWithResponse, onPursuitOverlayChange]);
+    }, [entityId, sendCommandWithResponse, onPursuitOverlayChange, onTargetMemoryOverlayChange]);
 
     useEffect(() => {
         fetchDetails();
@@ -137,8 +154,11 @@ export function EntityInspectorDrawer({
 
     // Clear the overlay when the drawer closes or switches to a different entity.
     useEffect(() => {
-        return () => onPursuitOverlayChange?.(null);
-    }, [entityId, onPursuitOverlayChange]);
+        return () => {
+            onPursuitOverlayChange?.(null);
+            onTargetMemoryOverlayChange?.(null);
+        };
+    }, [entityId, onPursuitOverlayChange, onTargetMemoryOverlayChange]);
 
     useEffect(() => {
         if (!isConnected || entityType !== 'fish') return;
@@ -370,6 +390,20 @@ export function EntityInspectorDrawer({
                                     value={typeof value === 'number' ? value.toFixed(2) : String(value)}
                                 />
                             ))}
+                    </section>
+                )}
+
+                {details?.target_memory && (
+                    <section className={styles.section} aria-label="Target Memory">
+                        <h3 className={styles.sectionTitle}>Target Memory</h3>
+                        <StatRow label="Domain" value={details.target_memory.domain} />
+                        <StatRow label="Action" value={details.target_memory.action} />
+                        <StatRow label="Remembering" value={details.target_memory.remembering} />
+                        <StatRow label="Last seen" value={details.target_memory.last_seen} />
+                        <StatRow label="Confidence" value={details.target_memory.confidence} />
+                        <StatRow label="Predicted location" value={details.target_memory.predicted_location} />
+                        <StatRow label="Switch threshold" value={details.target_memory.switch_threshold} />
+                        <StatRow label="Memory duration" value={`${details.target_memory.memory_duration} frames`} />
                     </section>
                 )}
 
