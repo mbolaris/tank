@@ -4,6 +4,11 @@ import type { ForagingGymSummary, ObservatoryData } from '../types/skill';
 import { describePredictionProvenance } from '../utils/observatoryProvenance';
 import { styles } from './ForagingGymPanel.styles';
 
+// Background evaluation can take a few seconds after a world starts; poll at
+// this cadence while the observatory reports "no_data" so the panel picks up
+// the result without the user having to close and reopen it.
+const OBSERVATORY_POLL_INTERVAL_MS = 4000;
+
 function percent(value: number): string {
     return `${(value * 100).toFixed(1)}%`;
 }
@@ -41,48 +46,83 @@ export function ForagingGymPanel({
     onSelectEntity?: (entityId: number, entityType: string) => void;
 }) {
     const [summary, setSummary] = useState<ForagingGymSummary | null>(null);
+    const [summaryError, setSummaryError] = useState<string | null>(null);
+    const [summaryLoading, setSummaryLoading] = useState(true);
     const [observatory, setObservatory] = useState<ObservatoryData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [observatoryError, setObservatoryError] = useState<string | null>(null);
+    const [observatoryLoading, setObservatoryLoading] = useState(true);
 
+    // Independent of the observatory fetch below: a failure here must not
+    // hide an observatory result that loaded fine, and vice versa.
     useEffect(() => {
         let active = true;
-        async function fetchDashboard() {
-            setLoading(true);
-            setError(null);
+        async function fetchSummary() {
+            setSummaryLoading(true);
+            setSummaryError(null);
             try {
                 const queryStr = worldId ? `?world_id=${encodeURIComponent(worldId)}` : '';
-                const [summaryRes, observatoryRes] = await Promise.all([
-                    fetch(`/api/skill/foraging-gym/summary${queryStr}`),
-                    fetch(`/api/skill/foraging-gym/observatory${queryStr}`),
-                ]);
-                if (!summaryRes.ok) throw new Error(`Failed to load summary (${summaryRes.status})`);
-                if (!observatoryRes.ok) throw new Error(`Failed to load observatory (${observatoryRes.status})`);
-                
-                const summaryData: ForagingGymSummary = await summaryRes.json();
-                const observatoryData: ObservatoryData = await observatoryRes.json();
-                
+                const res = await fetch(`/api/skill/foraging-gym/summary${queryStr}`);
+                if (!res.ok) throw new Error(`Failed to load summary (${res.status})`);
+                const data: ForagingGymSummary = await res.json();
                 if (active) {
-                    setSummary(summaryData);
-                    setObservatory(observatoryData);
+                    setSummary(data);
                 }
             } catch (cause) {
                 if (active) {
-                    setError(cause instanceof Error ? cause.message : 'Foraging summary unavailable');
+                    setSummaryError(cause instanceof Error ? cause.message : 'Foraging summary unavailable');
                 }
             } finally {
                 if (active) {
-                    setLoading(false);
+                    setSummaryLoading(false);
                 }
             }
         }
-        fetchDashboard();
+        fetchSummary();
         return () => {
             active = false;
         };
     }, [worldId]);
 
-    if (loading) {
+    // Background evaluation is asynchronous, so a freshly started world can
+    // report "no_data" for a while - poll until a result actually arrives
+    // instead of leaving the panel stuck on the pending message.
+    useEffect(() => {
+        let active = true;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        async function pollObservatory() {
+            try {
+                const queryStr = worldId ? `?world_id=${encodeURIComponent(worldId)}` : '';
+                const res = await fetch(`/api/skill/foraging-gym/observatory${queryStr}`);
+                if (!res.ok) throw new Error(`Failed to load observatory (${res.status})`);
+                const data: ObservatoryData = await res.json();
+                if (!active) return;
+                setObservatory(data);
+                setObservatoryError(null);
+                if (data.status === 'no_data') {
+                    timeoutId = setTimeout(pollObservatory, OBSERVATORY_POLL_INTERVAL_MS);
+                }
+            } catch (cause) {
+                if (active) {
+                    setObservatoryError(cause instanceof Error ? cause.message : 'Observatory unavailable');
+                }
+            } finally {
+                if (active) {
+                    setObservatoryLoading(false);
+                }
+            }
+        }
+        setObservatoryLoading(true);
+        pollObservatory();
+        return () => {
+            active = false;
+            if (timeoutId !== undefined) {
+                clearTimeout(timeoutId);
+            }
+        };
+    }, [worldId]);
+
+    if (summaryLoading || observatoryLoading) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <section style={styles.panel} aria-label="Foraging gym evaluator">
@@ -121,23 +161,30 @@ export function ForagingGymPanel({
         );
     }
 
-    if (error || !summary || !observatory) {
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    // Each half renders independently once its own fetch has settled - a
+    // failure loading one must not hide a successfully loaded other.
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {observatory ? (
+                <ForagingGymObservatoryDisplay observatory={observatory} onSelectEntity={onSelectEntity} />
+            ) : (
+                <section style={styles.panel} aria-label="Tank skill observatory">
+                    <div style={styles.titleContainer}>
+                        <div style={styles.title}>YOUR TANK'S FORAGING</div>
+                    </div>
+                    <div style={styles.error}>{observatoryError || 'Failed to load observatory'}</div>
+                </section>
+            )}
+            {summary ? (
+                <ForagingGymSummaryDisplay summary={summary} />
+            ) : (
                 <section style={styles.panel} aria-label="Foraging gym evaluator">
                     <div style={styles.titleContainer}>
                         <div style={styles.title}>FORAGING SKILL</div>
                     </div>
-                    <div style={styles.error}>{error || 'Failed to load summary'}</div>
+                    <div style={styles.error}>{summaryError || 'Failed to load summary'}</div>
                 </section>
-            </div>
-        );
-    }
-
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <ForagingGymObservatoryDisplay observatory={observatory} onSelectEntity={onSelectEntity} />
-            <ForagingGymSummaryDisplay summary={summary} />
+            )}
         </div>
     );
 }

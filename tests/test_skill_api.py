@@ -97,7 +97,7 @@ def test_foraging_gym_summary_endpoint(tmp_path):
     # Verify caching (should use cached result and not call benchmarks.run again)
     from unittest.mock import patch
     from benchmarks.tank.foraging_gym import run as real_run
-    from backend.routers.skill import _FORAGING_GYM_SUMMARY_CACHE
+    from backend.skill_observatory_scoring import _FORAGING_GYM_SUMMARY_CACHE
 
     with patch("benchmarks.tank.foraging_gym.run", wraps=real_run) as mock_run:
         _FORAGING_GYM_SUMMARY_CACHE.clear()
@@ -220,7 +220,7 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
 
     from unittest.mock import patch
 
-    with patch("backend.skill_observatory.evaluate_custom_genome") as mock_eval:
+    with patch("backend.skill_observatory_scoring.evaluate_custom_genome") as mock_eval:
         response = client.get("/api/skill/foraging-gym/observatory")
 
         assert response.status_code == 200
@@ -360,9 +360,9 @@ async def test_evaluate_observatory_snapshot_reports_independent_provenance_fiel
     from core.genetics.trait import GeneticTrait
     from core.taxonomy.profile import TaxonomyProfile
 
-    import backend.skill_observatory as skill_observatory
+    import backend.skill_observatory_scoring as skill_observatory_scoring
 
-    skill_observatory._OBSERVATORY_EVALUATION_CACHE.clear()
+    skill_observatory_scoring._OBSERVATORY_EVALUATION_CACHE.clear()
 
     env = Environment(width=800, height=600, rng=random.Random(1))
 
@@ -411,7 +411,7 @@ async def test_evaluate_observatory_snapshot_reports_independent_provenance_fiel
             composable=GymResult(score * 100.0, 8, 0.0, 0.0),
         )
 
-    with patch("backend.skill_observatory.evaluate_custom_genome", side_effect=fake_eval):
+    with patch("backend.skill_observatory_scoring.evaluate_custom_genome", side_effect=fake_eval):
         result = await evaluation_service.refresh_world("world_1")
 
     assert result["status"] == "success"
@@ -442,9 +442,9 @@ async def test_evaluate_observatory_snapshot_when_parent_not_living(tmp_path) ->
     from core.foraging.gym import ForagingGymEvaluation, GymResult
     from core.taxonomy.profile import TaxonomyProfile
 
-    import backend.skill_observatory as skill_observatory
+    import backend.skill_observatory_scoring as skill_observatory_scoring
 
-    skill_observatory._OBSERVATORY_EVALUATION_CACHE.clear()
+    skill_observatory_scoring._OBSERVATORY_EVALUATION_CACHE.clear()
 
     env = Environment(width=800, height=600, rng=random.Random(1))
 
@@ -487,7 +487,7 @@ async def test_evaluate_observatory_snapshot_when_parent_not_living(tmp_path) ->
             composable=GymResult(60.0, 8, 0.0, 0.0),
         )
 
-    with patch("backend.skill_observatory.evaluate_custom_genome", side_effect=fake_eval):
+    with patch("backend.skill_observatory_scoring.evaluate_custom_genome", side_effect=fake_eval):
         result = await evaluation_service.refresh_world("world_2")
 
     assert result["status"] == "success"

@@ -4,15 +4,11 @@ import type { ForagingGymSummary } from '../types/skill';
 
 let useCustomHooks = false;
 let useStateCallCount = 0;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-let mockSummarySetter = (_val: any) => {};
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-let mockObservatorySetter = (_val: any) => {};
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-let mockLoadingSetter = (_val: any) => {};
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-let mockErrorSetter = (_val: any) => {};
-let capturedEffect: (() => void) | undefined = undefined;
+// Positional useState slots, in ForagingGymPanel's declaration order:
+// 0 summary, 1 summaryError, 2 summaryLoading, 3 observatory, 4 observatoryError, 5 observatoryLoading
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockSetters: Array<(val: any) => void> = [];
+let capturedEffects: Array<() => void> = [];
 
 vi.mock('react', async (importOriginal) => {
     const actual = await importOriginal<typeof import('react')>();
@@ -23,26 +19,18 @@ vi.mock('react', async (importOriginal) => {
             if (useCustomHooks) {
                 const index = useStateCallCount;
                 useStateCallCount++;
-                if (index === 0) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return [null, (v: any) => mockSummarySetter(v)];
-                } else if (index === 1) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return [null, (v: any) => mockObservatorySetter(v)];
-                } else if (index === 2) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return [true, (v: any) => mockLoadingSetter(v)];
-                } else {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    return [null, (v: any) => mockErrorSetter(v)];
-                }
+                // Slots 2 (summaryLoading) and 5 (observatoryLoading) start true;
+                // everything else (data/error slots) starts null.
+                const initialValue = index === 2 || index === 5 ? true : null;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return [initialValue, (v: any) => mockSetters[index]?.(v)];
             }
             return actual.useState(init);
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useEffect: (cb: any, deps: any) => {
             if (useCustomHooks) {
-                capturedEffect = cb;
+                capturedEffects.push(cb);
                 return;
             }
             return actual.useEffect(cb, deps);
@@ -217,63 +205,151 @@ describe('ForagingGymObservatoryDisplay', () => {
     });
 });
 
+// Mirrors ForagingGymPanel.tsx's OBSERVATORY_POLL_INTERVAL_MS (not exported,
+// since a file exporting components can only export components without
+// breaking Fast Refresh - see react-refresh/only-export-components).
+const POLL_INTERVAL_MS = 4000;
+
+function setUpHookMocks(): {
+    setSummary: ReturnType<typeof vi.fn>;
+    setSummaryError: ReturnType<typeof vi.fn>;
+    setSummaryLoading: ReturnType<typeof vi.fn>;
+    setObservatory: ReturnType<typeof vi.fn>;
+    setObservatoryError: ReturnType<typeof vi.fn>;
+    setObservatoryLoading: ReturnType<typeof vi.fn>;
+} {
+    useStateCallCount = 0;
+    capturedEffects = [];
+    const setSummary = vi.fn();
+    const setSummaryError = vi.fn();
+    const setSummaryLoading = vi.fn();
+    const setObservatory = vi.fn();
+    const setObservatoryError = vi.fn();
+    const setObservatoryLoading = vi.fn();
+    mockSetters = [setSummary, setSummaryError, setSummaryLoading, setObservatory, setObservatoryError, setObservatoryLoading];
+    return { setSummary, setSummaryError, setSummaryLoading, setObservatory, setObservatoryError, setObservatoryLoading };
+}
+
 describe('ForagingGymPanel hook flow', () => {
     it('mocks fetch and verifies transition from loading to loaded state', async () => {
         const fetchMock = vi.fn().mockImplementation((url) => {
             if (url === '/api/skill/foraging-gym/summary') {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => mockSummary,
-                });
+                return Promise.resolve({ ok: true, json: async () => mockSummary });
             } else if (url === '/api/skill/foraging-gym/observatory') {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => mockObservatory,
-                });
+                return Promise.resolve({ ok: true, json: async () => mockObservatory });
             }
             return Promise.reject(new Error(`Unknown URL: ${url}`));
         });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (globalThis as any).fetch = fetchMock;
 
-        // Reset tracking vars
-        useStateCallCount = 0;
-        capturedEffect = undefined;
-        const mockSetSummary = vi.fn();
-        const mockSetObservatory = vi.fn();
-        const mockSetLoading = vi.fn();
-        const mockSetError = vi.fn();
-
-        mockSummarySetter = mockSetSummary;
-        mockObservatorySetter = mockSetObservatory;
-        mockLoadingSetter = mockSetLoading;
-        mockErrorSetter = mockSetError;
-
+        const { setSummary, setObservatory, setSummaryLoading, setObservatoryLoading } = setUpHookMocks();
         useCustomHooks = true;
 
         try {
-            // Trigger render
             ForagingGymPanel({});
 
-            // Verify hooks setup (summary, observatory, loading, error)
-            expect(useStateCallCount).toBe(4);
-            expect(capturedEffect).toBeDefined();
+            // Verify hooks setup: summary, summaryError, summaryLoading,
+            // observatory, observatoryError, observatoryLoading.
+            expect(useStateCallCount).toBe(6);
+            expect(capturedEffects).toHaveLength(2);
 
-            // Run the effect
-            capturedEffect!();
+            // Run both effects (summary fetch, observatory poll).
+            capturedEffects[0]();
+            capturedEffects[1]();
 
-            // Verify fetch calls
             expect(fetchMock).toHaveBeenCalledWith('/api/skill/foraging-gym/summary');
             expect(fetchMock).toHaveBeenCalledWith('/api/skill/foraging-gym/observatory');
 
-            // Wait for async state updates to be triggered
             await vi.waitFor(() => {
-                expect(mockSetSummary).toHaveBeenCalledWith(mockSummary);
-                expect(mockSetObservatory).toHaveBeenCalledWith(mockObservatory);
-                expect(mockSetLoading).toHaveBeenCalledWith(false);
+                expect(setSummary).toHaveBeenCalledWith(mockSummary);
+                expect(setObservatory).toHaveBeenCalledWith(mockObservatory);
+                expect(setSummaryLoading).toHaveBeenCalledWith(false);
+                expect(setObservatoryLoading).toHaveBeenCalledWith(false);
             });
         } finally {
             useCustomHooks = false;
+        }
+    });
+
+    it('does not let a failed summary fetch hide a successful observatory result', async () => {
+        const fetchMock = vi.fn().mockImplementation((url) => {
+            if (url === '/api/skill/foraging-gym/summary') {
+                return Promise.resolve({ ok: false, status: 500 });
+            } else if (url === '/api/skill/foraging-gym/observatory') {
+                return Promise.resolve({ ok: true, json: async () => mockObservatory });
+            }
+            return Promise.reject(new Error(`Unknown URL: ${url}`));
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (globalThis as any).fetch = fetchMock;
+
+        const { setSummary, setSummaryError, setObservatory, setObservatoryError } = setUpHookMocks();
+        useCustomHooks = true;
+
+        try {
+            ForagingGymPanel({});
+            capturedEffects[0]();
+            capturedEffects[1]();
+
+            await vi.waitFor(() => {
+                expect(setSummaryError).toHaveBeenCalledWith('Failed to load summary (500)');
+                expect(setObservatory).toHaveBeenCalledWith(mockObservatory);
+            });
+            expect(setSummary).not.toHaveBeenCalled();
+            // Called with null (clearing any stale error) on success, never
+            // with an actual error message - the summary failure must not
+            // leak into the independent observatory error state.
+            expect(setObservatoryError).not.toHaveBeenCalledWith(expect.any(String));
+        } finally {
+            useCustomHooks = false;
+        }
+    });
+
+    it('polls the observatory endpoint while status is no_data and stops once a result arrives', async () => {
+        vi.useFakeTimers();
+        try {
+            let observatoryCallCount = 0;
+            const fetchMock = vi.fn().mockImplementation((url: string) => {
+                if (url.includes('observatory')) {
+                    observatoryCallCount++;
+                    const body = observatoryCallCount <= 2 ? { status: 'no_data', world_id: 'w1' } : mockObservatory;
+                    return Promise.resolve({ ok: true, json: async () => body });
+                }
+                return Promise.resolve({ ok: true, json: async () => mockSummary });
+            });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (globalThis as any).fetch = fetchMock;
+
+            setUpHookMocks();
+            useCustomHooks = true;
+
+            try {
+                ForagingGymPanel({});
+                capturedEffects[1]();
+
+                // Let the first fetch's promise chain resolve.
+                await vi.advanceTimersByTimeAsync(0);
+                expect(fetchMock).toHaveBeenCalledTimes(1);
+
+                // First poll came back "no_data" - advancing past the interval
+                // must trigger exactly one more fetch.
+                await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+                expect(fetchMock).toHaveBeenCalledTimes(2);
+
+                // Second poll also "no_data" - one more.
+                await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+                expect(fetchMock).toHaveBeenCalledTimes(3);
+
+                // Third poll returns a real result - polling must stop, so
+                // advancing further must not trigger a fourth fetch.
+                await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 3);
+                expect(fetchMock).toHaveBeenCalledTimes(3);
+            } finally {
+                useCustomHooks = false;
+            }
+        } finally {
+            vi.useRealTimers();
         }
     });
 });
