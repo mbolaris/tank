@@ -28,8 +28,9 @@ class SkillEvaluationService:
     def __init__(
         self,
         world_manager: Any | None,
-        evaluator: Callable[[str], dict[str, Any]] | None = None,
+        evaluator: Callable[[Any], dict[str, Any]] | None = None,
         *,
+        snapshot_builder: Callable[[str], Any] | None = None,
         interval_seconds: float = DEFAULT_EVALUATION_INTERVAL,
         max_results: int = MAX_LATEST_RESULTS,
         storage_path: Path | None = None,
@@ -38,6 +39,7 @@ class SkillEvaluationService:
             raise ValueError("max_results must be positive")
         self._world_manager = world_manager
         self._evaluator = evaluator
+        self._snapshot_builder = snapshot_builder
         self._interval_seconds = interval_seconds
         self._latest: OrderedDict[str, dict[str, Any]] = OrderedDict()
         self._max_results = max_results
@@ -47,9 +49,26 @@ class SkillEvaluationService:
         self._storage_path = storage_path
         self._load_latest()
 
-    def set_evaluator(self, evaluator: Callable[[str], dict[str, Any]]) -> None:
-        """Set the evaluator after router construction has provided its dependencies."""
+    def set_evaluator(self, evaluator: Callable[[Any], dict[str, Any]]) -> None:
+        """Set the evaluator after router construction has provided its dependencies.
+
+        When a snapshot builder is also set (see ``set_snapshot_builder``), the
+        evaluator receives that builder's snapshot object instead of a world_id
+        string, and runs in a worker thread only after the snapshot has already
+        been captured synchronously - it must not read live simulation state.
+        """
         self._evaluator = evaluator
+
+    def set_snapshot_builder(self, snapshot_builder: Callable[[str], Any]) -> None:
+        """Set a synchronous, world_id -> snapshot builder run before evaluation.
+
+        Runs on the caller's own thread (never inside the background worker),
+        so every live read of simulation state happens at one consistent
+        instant. It may itself return a status ``dict`` (e.g. ``{"status":
+        "no_data", ...}``) to short-circuit evaluation entirely - the returned
+        object is only handed to the evaluator when it is not a ``dict``.
+        """
+        self._snapshot_builder = snapshot_builder
 
     def get_latest(self, world_id: str) -> dict[str, Any] | None:
         """Return a copy of the latest completed result for ``world_id``."""
@@ -65,13 +84,25 @@ class SkillEvaluationService:
         self._persist_latest()
 
     async def refresh_world(self, world_id: str) -> dict[str, Any] | None:
-        """Evaluate one world in a worker thread and store its completed result."""
+        """Evaluate one world in a worker thread and store its completed result.
+
+        When a snapshot builder is configured, it runs synchronously first, on
+        this coroutine's own thread, so the worker thread never reads live
+        simulation state - only the immutable snapshot it was handed.
+        """
         if self._evaluator is None or world_id in self._in_flight:
             return self.get_latest(world_id)
 
         self._in_flight.add(world_id)
         try:
-            result = await asyncio.to_thread(self._evaluator, world_id)
+            if self._snapshot_builder is not None:
+                snapshot = self._snapshot_builder(world_id)
+                if isinstance(snapshot, dict):
+                    result = snapshot
+                else:
+                    result = await asyncio.to_thread(self._evaluator, snapshot)
+            else:
+                result = await asyncio.to_thread(self._evaluator, world_id)
             self.store_result(world_id, result)
             return deepcopy(result)
         except Exception:
@@ -102,8 +133,15 @@ class SkillEvaluationService:
     async def _run_loop(self) -> None:
         try:
             while self._running:
-                world_ids = self._world_ids()
-                await asyncio.gather(*(self.refresh_world(world_id) for world_id in world_ids))
+                # Refresh worlds one at a time rather than via asyncio.gather:
+                # each refresh_world call spawns a worker thread, and evaluators
+                # (e.g. the Observatory's genome-fingerprint cache) may share
+                # process-wide mutable state that isn't safe to touch from
+                # multiple worker threads at once. Evaluation already runs on
+                # a slow, periodic interval, so sequential refreshes cost
+                # little while fully avoiding that concurrency hazard.
+                for world_id in self._world_ids():
+                    await self.refresh_world(world_id)
                 await asyncio.sleep(self._interval_seconds)
         except asyncio.CancelledError:
             raise

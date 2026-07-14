@@ -88,9 +88,14 @@ export interface ObservatoryData {
         score: number;
         food_collected: number;
         food_available: number;
-        prediction_strength_before: number;
-        prediction_strength_after: number;
-        parent_prediction_skill?: number | null;
+        // The legacy composable-behavior trait and the newer pursuit-module
+        // parameter measure genuinely different things and must never be
+        // compared against each other - keep all four fields separate.
+        legacy_prediction_skill: number;
+        species_founder_legacy_prediction_skill: number;
+        parent_legacy_prediction_skill?: number | null;
+        pursuit_prediction_strength?: number | null;
+        parent_pursuit_prediction_strength?: number | null;
         species_median: number;
         module_fingerprint: string;
         similar_fraction: number;

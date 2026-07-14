@@ -8,7 +8,6 @@ performed by ``SkillEvaluationService``; GET requests only read completed data.
 from __future__ import annotations
 
 import logging
-from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
@@ -26,8 +25,6 @@ SCHEMA_VERSION = 1
 
 
 _FORAGING_GYM_SUMMARY_SEEDS = (42, 7, 31, 38, 1, 5, 0, 41)
-_MAX_OBSERVATORY_CACHE_ENTRIES = 256
-_OBSERVATORY_EVALUATION_CACHE: OrderedDict[tuple[str, str], dict[str, Any]] = OrderedDict()
 
 from typing import cast
 from core.math_utils import Vector2
@@ -39,7 +36,14 @@ from core.foraging.gym import (
 from core.movement_strategy import AlgorithmicMovement
 from core.entities.fish import Fish
 from backend.skill_evaluation_service import SkillEvaluationService
-from backend.skill_observatory import evaluate_custom_genome
+from backend.skill_observatory import (
+    FishSkillSnapshot,
+    SpeciesSkillSnapshot,
+    WorldSkillSnapshot,
+    evaluate_genome_with_cache,
+    legacy_prediction_skill_of,
+    module_fingerprint,
+)
 
 
 class _LegacyComposablePolicy:
@@ -333,12 +337,19 @@ def setup_router(
         _FORAGING_GYM_SUMMARY_CACHE[config_hash] = summary
         return JSONResponse(summary)
 
-    def evaluate_foraging_observatory(resolved_world_id: str) -> dict[str, Any]:
-        """Build one observatory result for a world without touching HTTP state."""
-        import hashlib
-        import json
-        from core.genetics.genome import GENOME_SCHEMA_VERSION
-        from core.genetics.genome_codec import genome_to_dict
+    def build_observatory_snapshot(resolved_world_id: str) -> WorldSkillSnapshot | dict[str, Any]:
+        """Capture one immutable, worker-safe snapshot of a world's observatory state.
+
+        Runs synchronously on the caller's thread (never inside the background
+        worker) so every live read - fish, species records, world config, the
+        genome code pool - happens at one consistent instant. A living fish's
+        ``taxon_id`` can be reassigned by the taxonomy system on any tick, and
+        species records are added/renamed/removed continuously, so passing a
+        world_id string alone into a worker (and re-resolving these live) risks
+        mixing state from different points in time across a multi-seed
+        evaluation.
+        """
+        import copy
         from core.entities.fish import Fish
 
         if world_manager is None:
@@ -367,67 +378,63 @@ def setup_router(
             return {"status": "no_data", "message": "Taxonomy system not available"}
 
         species_registry = taxonomy.registry
-        active_species = [
-            rec for rec in species_registry.species.values() if len(rec.living_member_ids) > 0
-        ]
-        if not active_species:
+        species_by_taxon_id: dict[str, SpeciesSkillSnapshot] = {}
+        for taxon_id in {fish.taxon_id for fish in living_fish}:
+            rec = species_registry.species.get(taxon_id)
+            if rec is None or not rec.living_member_ids:
+                continue
+            legacy_val = rec.type_profile.traits.get("prediction_skill")
+            species_by_taxon_id[taxon_id] = SpeciesSkillSnapshot(
+                taxon_id=taxon_id,
+                common_name=rec.common_name,
+                legacy_prediction_skill=(
+                    float(legacy_val) if isinstance(legacy_val, (int, float)) else None
+                ),
+            )
+        if not species_by_taxon_id:
             return {"status": "no_data", "message": "No active species classification found"}
 
-        # Helpers for behavioral phenotype fingerprinting and caching.  The
-        # gym uses the production movement controller, so identity-only and
-        # unrelated physical genes must not create separate evaluations.
-        def get_controller_fingerprint(genome: Any) -> str:
-            from unittest.mock import Mock
-
-            if isinstance(genome, Mock):
-                return "mock_controller"
-            payload = genome_to_dict(genome, schema_version=GENOME_SCHEMA_VERSION)
-            controller_fields = (
-                "aggression",
-                "pursuit_aggression",
-                "prediction_skill",
-                "hunting_stamina",
-                "behavior",
-                "behavior_graph",
-                "target_pursuit_module",
-                "movement_policy_id",
-                "movement_policy_params",
+        fish_snapshots = tuple(
+            FishSkillSnapshot(
+                fish_id=fish.fish_id,
+                taxon_id=fish.taxon_id,
+                common_name=getattr(fish, "common_name", "") or "",
+                generation=int(getattr(fish, "generation", 0)),
+                parent_id=getattr(fish, "parent_id", None),
+                genome=copy.deepcopy(fish.genome),
+                parent_pursuit_params=copy.deepcopy(getattr(fish, "parent_pursuit_params", None)),
             )
-            controller_payload = {key: payload.get(key) for key in controller_fields}
-            encoded = json.dumps(
-                controller_payload, sort_keys=True, separators=(",", ":"), default=repr
-            )
-            return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
+            for fish in living_fish
+        )
 
-        def get_module_fingerprint(genome: Any) -> str:
-            from unittest.mock import Mock
+        simulation_config = getattr(runner.world, "simulation_config", None)
+        frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
 
-            if isinstance(genome, Mock):
-                return "mock_module"
+        return WorldSkillSnapshot(
+            world_id=resolved_world_id,
+            frame=frame,
+            living_fish=fish_snapshots,
+            species_by_taxon_id=species_by_taxon_id,
+            simulation_config=(
+                copy.deepcopy(simulation_config) if simulation_config is not None else None
+            ),
+            # Created once at world startup and never mutated during a running
+            # simulation (see core/code_pool/genome_code_pool.py); deep-copying
+            # it would only clone the outer dict; every contained Callable
+            # stays the same object regardless, so a reference is equally safe.
+            genome_code_pool=getattr(runner.world, "genome_code_pool", None),
+        )
 
-            module_trait = getattr(genome.behavioral, "target_pursuit_module", None)
-            module = module_trait.value if module_trait is not None else None
-            if module is not None:
-                # Hash the graph dict representation
-                payload = module.to_dict()
-                encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=repr)
-                return "graph_" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:8]
+    def evaluate_observatory_snapshot(snapshot: WorldSkillSnapshot) -> dict[str, Any]:
+        """Score one immutable world snapshot.
 
-            behavior_trait = getattr(genome.behavioral, "behavior", None)
-            behavior = behavior_trait.value if behavior_trait is not None else None
-            if behavior is not None:
-                # Hash the composable behavior parameters and sub-behaviors
-                payload = {
-                    "threat_response": behavior.threat_response.name,
-                    "food_approach": behavior.food_approach.name,
-                    "social_mode": behavior.social_mode.name,
-                    "poker_engagement": behavior.poker_engagement.name,
-                    "parameters": behavior.parameters,
-                }
-                encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=repr)
-                return "comp_" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:8]
+        Runs on a background worker thread (via ``asyncio.to_thread``) - must
+        never touch live simulation state, only the ``snapshot`` it was given.
+        """
+        from core.behavior.pursuit_nodes import pursuit_module_parameters
 
-            return "default"
+        living_fish = snapshot.living_fish
+        species_by_taxon_id = snapshot.species_by_taxon_id
 
         from benchmarks.tank.foraging_gym import CONFIG as FORAGING_GYM_CONFIG
         from benchmarks.tank.foraging_gym import BENCHMARK_ID as FORAGING_GYM_ID
@@ -443,63 +450,17 @@ def setup_router(
             benchmark_config=summary_config,
         )
 
-        cache = _OBSERVATORY_EVALUATION_CACHE
-
-        # Extract active world dependencies to run the production arbiter
-        simulation_config = getattr(runner.world, "simulation_config", None)
-        genome_code_pool = getattr(runner.world, "genome_code_pool", None)
-
-        def evaluate_genome_cached(genome: Any) -> dict[str, Any]:
-            fingerprint = get_controller_fingerprint(genome)
-            cache_key = (fingerprint, config_hash)
-            if cache_key in cache:
-                cache.move_to_end(cache_key)
-                return cache[cache_key]
-
-            scores = []
-            food_collected_list = []
-            for s in _FORAGING_GYM_SUMMARY_SEEDS:
-                # Run the evaluation with the actual full production movement controller!
-                res = evaluate_custom_genome(
-                    genome,
-                    s,
-                    subject="full_production",
-                    simulation_config=simulation_config,
-                    genome_code_pool=genome_code_pool,
-                )
-                scores.append(res.composable_ratio)
-                food_collected_list.append(res.composable.food_collected)
-
-            n_trials = len(scores)
-            mean_score = sum(scores) / n_trials
-            import math
-
-            if n_trials > 1:
-                variance = sum((x - mean_score) ** 2 for x in scores) / (n_trials - 1)
-                std_dev = math.sqrt(variance)
-                sem = std_dev / math.sqrt(n_trials)
-            else:
-                sem = 0.0
-
-            result = {
-                "score": mean_score,
-                "average_food": sum(food_collected_list) / len(food_collected_list),
-                "uncertainty": sem,
-                "sample_size": n_trials,
-            }
-            cache[cache_key] = result
-            cache.move_to_end(cache_key)
-            while len(cache) > _MAX_OBSERVATORY_CACHE_ENTRIES:
-                cache.popitem(last=False)
-            return result
-
-        import copy
-
-        # Evaluate each living fish using snapshot deepcopies
+        # Each living_fish entry's genome is already an isolated deep copy (see
+        # build_observatory_snapshot), so no further copying is needed here.
         fish_evals = []
         for fish in living_fish:
-            genome_snapshot = copy.deepcopy(fish.genome)
-            eval_res = evaluate_genome_cached(genome_snapshot)
+            eval_res = evaluate_genome_with_cache(
+                fish.genome,
+                config_hash,
+                _FORAGING_GYM_SUMMARY_SEEDS,
+                snapshot.simulation_config,
+                snapshot.genome_code_pool,
+            )
             fish_evals.append(
                 {
                     "fish": fish,
@@ -529,56 +490,36 @@ def setup_router(
         best_taxon_id = max(species_averages, key=lambda tid: species_averages[tid])
         best_species_score = species_averages[best_taxon_id]
 
-        best_species_rec = species_registry.species.get(best_taxon_id)
-        best_species_name = best_species_rec.common_name if best_species_rec else "Unknown Species"
+        best_species_snapshot = species_by_taxon_id.get(best_taxon_id)
+        best_species_name = (
+            best_species_snapshot.common_name if best_species_snapshot else "Unknown Species"
+        )
 
         # Find best individual
         best_item = max(fish_evals, key=lambda item: item["score"])
         best_fish = best_item["fish"]
         best_score = best_item["score"]
 
-        # Best individual details
-        best_ind_species_rec = species_registry.species.get(best_fish.taxon_id)
-        prediction_strength_after = 0.5
-        prediction_strength_before = 0.5
+        # Legacy prediction_skill: the individual's own current value, and the
+        # species founder/type-profile value used as a fallback baseline when
+        # there is no living parent to compare against.
+        legacy_prediction_skill = legacy_prediction_skill_of(best_fish.genome)
+        if legacy_prediction_skill is None:
+            legacy_prediction_skill = 0.5
 
-        # Safe extraction of traits
-        behavioral_traits = getattr(best_fish.genome, "behavioral", None)
-        if behavioral_traits is not None:
-            prediction_skill_trait = getattr(behavioral_traits, "prediction_skill", None)
-            if prediction_skill_trait is not None:
-                val = getattr(prediction_skill_trait, "value", 0.5)
-                from unittest.mock import Mock
+        best_ind_species_snapshot = species_by_taxon_id.get(best_fish.taxon_id)
+        species_founder_legacy_prediction_skill = (
+            best_ind_species_snapshot.legacy_prediction_skill
+            if best_ind_species_snapshot is not None
+            and best_ind_species_snapshot.legacy_prediction_skill is not None
+            else 0.5
+        )
 
-                if isinstance(val, Mock):
-                    prediction_strength_after = 0.5
-                else:
-                    try:
-                        prediction_strength_after = float(val)
-                    except (TypeError, ValueError):
-                        prediction_strength_after = 0.5
-
-        if best_ind_species_rec and "prediction_skill" in best_ind_species_rec.type_profile.traits:
-            prediction_strength_before = best_ind_species_rec.type_profile.traits[
-                "prediction_skill"
-            ]
-
-        # Species median prediction skill
+        # Species median legacy prediction skill
         species_fish = [f for f in living_fish if f.taxon_id == best_fish.taxon_id]
-        species_values = []
-        for f in species_fish:
-            b_traits = getattr(f.genome, "behavioral", None)
-            if b_traits is not None:
-                p_skill = getattr(b_traits, "prediction_skill", None)
-                if p_skill is not None:
-                    v = getattr(p_skill, "value", None)
-                    from unittest.mock import Mock
-
-                    if v is not None and not isinstance(v, Mock):
-                        try:
-                            species_values.append(float(v))
-                        except (TypeError, ValueError):
-                            pass
+        species_values = [
+            v for v in (legacy_prediction_skill_of(f.genome) for f in species_fish) if v is not None
+        ]
         if species_values:
             sorted_vals = sorted(species_values)
             n_vals = len(sorted_vals)
@@ -589,38 +530,44 @@ def setup_router(
         else:
             species_median = 0.5
 
-        # Parent prediction skill, when known
-        parent_prediction_skill = None
-        parent_id = getattr(best_fish, "parent_id", None)
+        # Parent comparisons: four honestly-separate fields rather than one
+        # field that silently mixes two different parameters. The living
+        # parent's legacy trait and the parent-at-birth pursuit-module
+        # snapshot measure genuinely different things and must never be
+        # compared as if they were the same value.
+        parent_legacy_prediction_skill = None
+        parent_id = best_fish.parent_id
         if parent_id is not None:
             parent_fish = next((f for f in living_fish if f.fish_id == parent_id), None)
             if parent_fish is not None:
-                p_behavioral = getattr(parent_fish.genome, "behavioral", None)
-                if p_behavioral is not None:
-                    p_pred_skill = getattr(p_behavioral, "prediction_skill", None)
-                    if p_pred_skill is not None:
-                        val = getattr(p_pred_skill, "value", None)
-                        from unittest.mock import Mock
+                parent_legacy_prediction_skill = legacy_prediction_skill_of(parent_fish.genome)
 
-                        if val is not None and not isinstance(val, Mock):
-                            try:
-                                parent_prediction_skill = float(val)
-                            except (TypeError, ValueError):
-                                pass
-        if parent_prediction_skill is None:
-            parent_params = getattr(best_fish, "parent_pursuit_params", None)
-            if isinstance(parent_params, dict) and "prediction_strength" in parent_params:
-                parent_prediction_skill = parent_params["prediction_strength"]
+        pursuit_prediction_strength = None
+        behavioral = getattr(best_fish.genome, "behavioral", None)
+        pursuit_module_trait = (
+            getattr(behavioral, "target_pursuit_module", None) if behavioral is not None else None
+        )
+        pursuit_module = pursuit_module_trait.value if pursuit_module_trait is not None else None
+        if pursuit_module is not None:
+            pursuit_prediction_strength = pursuit_module_parameters(pursuit_module).get(
+                "prediction_strength"
+            )
+
+        parent_pursuit_prediction_strength = None
+        if isinstance(best_fish.parent_pursuit_params, dict):
+            parent_pursuit_prediction_strength = best_fish.parent_pursuit_params.get(
+                "prediction_strength"
+            )
 
         # Percentage/Fraction of its species population sharing the same module fingerprint
         species_fish_items = [
             item for item in fish_evals if item["fish"].taxon_id == best_fish.taxon_id
         ]
-        best_module_fp = get_module_fingerprint(best_fish.genome)
+        best_module_fp = module_fingerprint(best_fish.genome)
         same_module_count = sum(
             1
             for item in species_fish_items
-            if get_module_fingerprint(item["fish"].genome) == best_module_fp
+            if module_fingerprint(item["fish"].genome) == best_module_fp
         )
         percentage = (
             (same_module_count / len(species_fish_items)) * 100.0 if species_fish_items else 100.0
@@ -660,12 +607,11 @@ def setup_router(
             wandering_mean = sum(baseline_wandering_scores) / len(baseline_wandering_scores)
             perfect_mean = 1.0
 
-        frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
-        generation = max(int(getattr(fish, "generation", 0)) for fish in living_fish)
+        generation = max(fish.generation for fish in living_fish)
         return {
             "status": "success",
-            "world_id": resolved_world_id,
-            "evaluated_at_frame": frame,
+            "world_id": snapshot.world_id,
+            "evaluated_at_frame": snapshot.frame,
             "evaluated_at_generation": generation,
             "benchmark_hash": config_hash,
             "subject": "Full production movement controller",
@@ -678,16 +624,18 @@ def setup_router(
                 "id": best_fish.fish_id,
                 "name": (
                     f"{best_fish.common_name} #{best_fish.fish_id}"
-                    if hasattr(best_fish, "common_name")
+                    if best_fish.common_name
                     else f"Fish #{best_fish.fish_id}"
                 ),
                 "score": best_score,
                 "food_collected": best_item["average_food"],
                 "food_available": 12.0,
-                "prediction_strength_before": prediction_strength_before,
-                "prediction_strength_after": prediction_strength_after,
+                "legacy_prediction_skill": legacy_prediction_skill,
+                "species_founder_legacy_prediction_skill": species_founder_legacy_prediction_skill,
+                "parent_legacy_prediction_skill": parent_legacy_prediction_skill,
+                "pursuit_prediction_strength": pursuit_prediction_strength,
+                "parent_pursuit_prediction_strength": parent_pursuit_prediction_strength,
                 "percentage_of_species": percentage,
-                "parent_prediction_skill": parent_prediction_skill,
                 "species_median": species_median,
                 "module_fingerprint": best_module_fp,
                 "similar_fraction": similar_fraction,
@@ -699,7 +647,8 @@ def setup_router(
             "perfect_mean": perfect_mean,
         }
 
-    evaluation_service.set_evaluator(evaluate_foraging_observatory)
+    evaluation_service.set_snapshot_builder(build_observatory_snapshot)
+    evaluation_service.set_evaluator(evaluate_observatory_snapshot)
 
     @router.get("/foraging-gym/observatory")
     def get_foraging_gym_observatory(world_id: str | None = Query(default=None)) -> JSONResponse:
