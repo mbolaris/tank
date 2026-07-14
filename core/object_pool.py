@@ -66,6 +66,11 @@ class FoodPool:
             food.food_type = food_type
             food.food_properties = Food.FOOD_TYPES[food_type]
             food.is_stationary = bool(food.food_properties.get("stationary", False))
+            # A reused object is a logically NEW food item - it must get a fresh
+            # id, or it could be mistaken for whatever food previously occupied
+            # this pool slot (e.g. by a fish that still remembers the old one).
+            generate_id = getattr(environment, "generate_new_food_id", None)
+            food.food_id = generate_id() if callable(generate_id) else food.food_id
         else:
             # Create new if pool is empty
             food = Food(

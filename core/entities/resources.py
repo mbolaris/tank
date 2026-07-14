@@ -34,12 +34,10 @@ class Food(MobileEntity):
     def get_entity_id(self) -> int | None:
         """Get the unique identifier for this food (Identifiable protocol).
 
-        Food has no intrinsic ID - identity provider will use python id mapping.
-
         Returns:
-            None (food uses stable counter-based IDs from identity provider)
+            The food's stable, deterministic id (see ``food_id``).
         """
-        return None
+        return self.food_id
 
     @property
     def snapshot_type(self) -> str:
@@ -60,6 +58,7 @@ class Food(MobileEntity):
         allow_stationary_types: bool = True,
         speed: float = 0.0,
         rng: random.Random | None = None,
+        food_id: int | None = None,
     ) -> None:
         """Initialize a food item.
 
@@ -71,6 +70,10 @@ class Food(MobileEntity):
             food_type: Type of food (random if None)
             allow_stationary_types: Whether to allow stationary food types
             rng: Random number generator for deterministic food type selection
+            food_id: Stable id for this food item. Defaults to
+                ``environment.generate_new_food_id()`` (deterministic, per-world
+                counter); falls back to 0 for lightweight environment stand-ins
+                that don't expose it (tests only - real worlds always do).
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
@@ -88,6 +91,12 @@ class Food(MobileEntity):
 
         super().__init__(environment, x, y, speed)
         self.source_plant: Plant | None = source_plant
+
+        if food_id is not None:
+            self.food_id = food_id
+        else:
+            generate_id = getattr(environment, "generate_new_food_id", None)
+            self.food_id = generate_id() if callable(generate_id) else 0
 
         # Energy tracking for partial consumption
         energy_value = self.food_properties.get("energy", 0.0)

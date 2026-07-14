@@ -109,6 +109,10 @@ class Environment:
         # Optional remove requester (injected by engine to centralize mutations)
         self._remove_requester = None
 
+        # Mirrors PopulationTracker.generate_new_fish_id: owned per-world (not
+        # process-global), so it resets with every new simulation.
+        self._next_food_id: int = 0
+
         # Build initial spatial grid if agents are provided
         if self.agents is not None:
             self.spatial_grid.rebuild(self.agents)
@@ -119,6 +123,12 @@ class Environment:
         from core.agent_signals import AgentSignalSystem
 
         self.communication_system = AgentSignalSystem(max_signals=50, decay_rate=0.05)
+
+    def generate_new_food_id(self) -> int:
+        """Generate a new unique, deterministic food id (FoodPool must call this on reuse too)."""
+        food_id = self._next_food_id
+        self._next_food_id += 1
+        return food_id
 
     @property
     def dish(self) -> Any | None:
