@@ -10,13 +10,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from core.algorithms.composable.food_selection import select_food_target
+from core.algorithms.composable.food_selection import score_food_candidates, select_food_target
 from core.behavior.graph import BehaviorGraph
 from core.behavior.standard_nodes import register_standard_nodes
+from core.behavior.target_memory import TargetCandidate, TargetId, TargetMemoryState, decide_target
 from core.behavior.targeting import TargetObservation
 from core.entities import Crab, Fish
+
+if TYPE_CHECKING:
+    from core.behavior.target_memory import TargetMemoryDecision
 
 _SOCIAL_RADIUS = 120.0
 
@@ -53,16 +57,34 @@ class TankBehaviorObservation:
 
 def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     """Build deterministic graph inputs without consuming simulation RNG."""
+    # Target memory must age every frame - not just frames the fish can
+    # currently eat - or frames_since_seen would freeze whenever can_eat()
+    # is false, making "how long has it been hidden" wrong. decide_target
+    # consumes no RNG, so this never perturbs anything downstream.
+    memory_decision = _update_food_target_memory(fish)
+
     food = select_food_target(fish) if fish.can_eat() else None
-    offset_vector = _offset(fish, food)
+    if (
+        fish.can_eat()
+        and memory_decision is not None
+        and memory_decision.selected_target_id is not None
+    ):
+        offset_vector = memory_decision.target_vector
+        target_exists = True
+        target_velocity = memory_decision.target_velocity
+    else:
+        offset_vector = _offset(fish, food)
+        target_exists = food is not None
+        target_velocity = (float(food.vel.x), float(food.vel.y)) if food is not None else (0.0, 0.0)
+
     threat = _nearest_threat(fish)
     threat_away_vector = _negated(_offset(fish, threat))
     cohesion, alignment, separation = _school_vectors(fish)
     energy_ratio = float(max(0.0, min(1.0, fish.energy / max(fish.max_energy, 1.0))))
     target_observation = TargetObservation(
         target_vector=offset_vector,
-        target_velocity=(float(food.vel.x), float(food.vel.y)) if food is not None else (0.0, 0.0),
-        target_exists=food is not None,
+        target_velocity=target_velocity,
+        target_exists=target_exists,
         threat_vector=threat_away_vector,
         self_velocity=(float(fish.vel.x), float(fish.vel.y)),
         self_speed=max(0.0, float(fish.speed)),
@@ -70,7 +92,7 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     )
     pursuit_vector = _pursuit_module_vector(fish, target_observation)
     food_vector = pursuit_vector if pursuit_vector is not None else offset_vector
-    target_label = "Food" if food is not None else None
+    target_label = "Food" if target_exists else None
     return TankBehaviorObservation(
         values={
             "food_vector": food_vector,
@@ -80,11 +102,47 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
             "alignment_vector": alignment,
             "separation_vector": separation,
             "current_velocity": (float(fish.vel.x), float(fish.vel.y)),
-            "has_target": food is not None,
+            "has_target": target_exists,
             **target_observation.to_values(),
         },
         target_label=target_label,
     )
+
+
+def _update_food_target_memory(fish: Fish) -> TargetMemoryDecision | None:
+    """Advance the fish's food-domain target memory, if the feature is active.
+
+    Called unconditionally (regardless of ``fish.can_eat()``) so
+    ``frames_since_seen`` reflects real elapsed frames. Returns None when
+    memory isn't active for this fish (flag off or no trait) - the caller
+    falls back to ``select_food_target``'s raw pick, byte-identical to
+    pre-memory behavior.
+    """
+    config = fish.environment.simulation_config
+    if config is None or not config.tank.target_memory_enabled:
+        return None
+    params_trait = fish.genome.behavioral.target_memory
+    params = params_trait.value if params_trait is not None else None
+    if params is None:
+        return None
+
+    candidates = []
+    for candidate in score_food_candidates(fish):
+        food_id = candidate.food.get_entity_id()
+        if food_id is None:
+            continue  # real Food always has an id after construction; defensive only
+        candidates.append(
+            TargetCandidate(
+                target_id=TargetId("food", food_id),
+                position=candidate.position,
+                velocity=candidate.velocity,
+                value=candidate.score,
+            )
+        )
+    state = fish.target_memory_state.get("food", TargetMemoryState.empty())
+    next_state, decision = decide_target(state, candidates, (fish.pos.x, fish.pos.y), params)
+    fish.target_memory_state["food"] = next_state
+    return decision
 
 
 def _pursuit_module_vector(

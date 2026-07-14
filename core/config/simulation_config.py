@@ -204,6 +204,10 @@ class TankConfig:
     # Shared Target Pursuit Module for food AND soccer-ball pursuit. Independent
     # from graph_behavior_enabled so experiments can isolate either component.
     target_pursuit_module_enabled: bool = False
+    # Target Memory: decides what target a fish is committed to and when to
+    # switch, for food AND soccer-ball pursuit. Independent from the other
+    # two flags so experiments can isolate any component.
+    target_memory_enabled: bool = False
 
 
 @dataclass
@@ -363,6 +367,8 @@ class SimulationConfig:
             cfg.tank.target_pursuit_module_enabled = bool(
                 config_dict["target_pursuit_module_enabled"]
             )
+        if "target_memory_enabled" in config_dict:
+            cfg.tank.target_memory_enabled = bool(config_dict["target_memory_enabled"])
 
         # Soccer evaluator
         soccer_map = {

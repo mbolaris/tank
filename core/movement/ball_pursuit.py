@@ -18,10 +18,17 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
+from core.behavior.target_memory import (
+    BALL_TARGET_ID,
+    TargetCandidate,
+    TargetMemoryState,
+    decide_target,
+)
 from core.entities.ball import Ball
 from core.movement.intents import MovementIntent
 
 if TYPE_CHECKING:
+    from core.behavior.target_memory import TargetMemoryDecision
     from core.entities import Fish
     from core.movement_strategy import AlgorithmicMovement
 
@@ -65,6 +72,13 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
                     ball = entity
                     break
 
+    # Target memory must age every frame - not just frames the gates below
+    # let through - or frames_since_seen freezes whenever a fish skips
+    # pursuit, making "how long has it been hidden" wrong. decide_target
+    # consumes no RNG, so this doesn't perturb the rng.random() draw below
+    # either way, regardless of whether memory is active.
+    memory_decision = _update_ball_target_memory(fish, ball)
+
     if ball is None:
         return None  # No ball = no soccer
 
@@ -89,15 +103,25 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
     if behavior is not None and behavior.has_survival_priority(fish):
         return None
 
-    # Calculate direction to ball
-    dx = ball.pos.x - fish.pos.x
-    dy = ball.pos.y - fish.pos.y
+    # Memory's target position/velocity mirror the ball's live values exactly
+    # whenever it's continuously visible (always true today - see
+    # _update_ball_target_memory's docstring); this is what lets a future
+    # occlusion mechanic plug in later without touching this call site.
+    if memory_decision is not None and memory_decision.selected_target_id is not None:
+        target_position = memory_decision.target_position
+        target_velocity = memory_decision.target_velocity
+    else:
+        target_position = (ball.pos.x, ball.pos.y)
+        target_velocity = (ball.vel.x, ball.vel.y)
+
+    dx = target_position[0] - fish.pos.x
+    dy = target_position[1] - fish.pos.y
     dist = math.sqrt(dx * dx + dy * dy)
 
     if dist < 10:  # Already at ball
         return None
 
-    module_vector = _pursuit_module_vector(fish, ball)
+    module_vector = _pursuit_module_vector_for(fish, target_position, target_velocity)
     if module_vector is not None:
         return (
             module_vector[0] * BALL_PURSUIT_TARGET_SPEED,
@@ -111,14 +135,66 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
     return (vx, vy)
 
 
+def _update_ball_target_memory(fish: Fish, ball: Ball | None) -> TargetMemoryDecision | None:
+    """Advance the fish's ball-domain target memory, if the feature is active.
+
+    Called unconditionally (before any of ball_pursuit_velocity's gates) so
+    frames_since_seen reflects real elapsed frames. Returns None when memory
+    isn't active for this fish (flag off or no trait) - the caller falls back
+    to the ball's live position, byte-identical to pre-memory behavior.
+
+    The engine has no detection-range/occlusion concept for the ball today -
+    "exists" and "perceived" are the same boolean (ball is not None) - so this
+    candidate is either present every frame or never; SEARCH/DROP won't
+    trigger for the ball until a real occlusion mechanic exists to feed a
+    genuinely intermittent candidate here.
+    """
+    config = fish.environment.simulation_config
+    if config is None or not config.tank.target_memory_enabled:
+        return None
+    params_trait = fish.genome.behavioral.target_memory
+    params = params_trait.value if params_trait is not None else None
+    if params is None:
+        return None
+
+    candidates = (
+        [
+            TargetCandidate(
+                target_id=BALL_TARGET_ID,
+                position=(ball.pos.x, ball.pos.y),
+                velocity=(ball.vel.x, ball.vel.y),
+                value=1.0,
+            )
+        ]
+        if ball is not None
+        else []
+    )
+    state = fish.target_memory_state.get("ball", TargetMemoryState.empty())
+    next_state, decision = decide_target(state, candidates, (fish.pos.x, fish.pos.y), params)
+    fish.target_memory_state["ball"] = next_state
+    return decision
+
+
 def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
-    """Evaluate the shared Target Pursuit Module for the ball, if active.
+    """Evaluate the shared Target Pursuit Module for the ball's live position.
 
     None when the module isn't active for this fish (flags off or no trait),
     signaling the caller to fall back to the naive direct-line pursuit above,
     unchanged. Reachable only after the energy gate, RNG roll, and survival
     yield above have already run, so RNG draw order/outcome is identical
     regardless of whether the module path is taken.
+    """
+    return _pursuit_module_vector_for(fish, (ball.pos.x, ball.pos.y), (ball.vel.x, ball.vel.y))
+
+
+def _pursuit_module_vector_for(
+    fish: Fish, target_position: Velocity, target_velocity: Velocity
+) -> Velocity | None:
+    """Evaluate the shared Target Pursuit Module for an arbitrary target.
+
+    Same contract as ``_pursuit_module_vector`` but takes position/velocity
+    directly so the caller can pass target-memory's (possibly dead-reckoned)
+    values instead of the ball's live ones.
     """
     config = fish.environment.simulation_config
     if config is None or not config.tank.target_pursuit_module_enabled:
@@ -134,8 +210,8 @@ def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
         self_position=(fish.pos.x, fish.pos.y),
         self_velocity=(fish.vel.x, fish.vel.y),
         self_speed=fish.speed,
-        ball_position=(ball.pos.x, ball.pos.y),
-        ball_velocity=(ball.vel.x, ball.vel.y),
+        ball_position=target_position,
+        ball_velocity=target_velocity,
     )
     output = module.compile_cached().evaluate(observation.to_values())
     if not isinstance(output, tuple) or len(output) != 2:

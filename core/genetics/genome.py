@@ -27,14 +27,18 @@ from core.genetics.genome_codec import (
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
 from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
 from core.genetics.trait import GeneticTrait
-from core.genetics.validation import validate_graph_trait, validate_traits_from_specs
+from core.genetics.validation import (
+    validate_graph_trait,
+    validate_target_memory_trait,
+    validate_traits_from_specs,
+)
 from core.util.rng import require_rng_param
 
 if TYPE_CHECKING:
     from core.code_pool.genome_code_pool import GenomeCodePool
 
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 4  # Bumped from 3: added optional opt-in target_pursuit_module.
+GENOME_SCHEMA_VERSION = 5  # Bumped from 4: added optional opt-in target_memory.
 
 
 class GeneticCrossoverMode(Enum):
@@ -148,6 +152,7 @@ class Genome:
 
         for label in ("behavior_graph", "target_pursuit_module"):
             issues.extend(validate_graph_trait(label, getattr(self.behavioral, label)))
+        issues.extend(validate_target_memory_trait("target_memory", self.behavioral.target_memory))
 
         # Validate per-kind policy params fields
         for kind, id_attr, params_attr in [
