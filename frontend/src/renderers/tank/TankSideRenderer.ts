@@ -146,7 +146,7 @@ export class TankSideRenderer implements Renderer {
                         drawPursuitOverlay(ctx, centerX, centerY, frame.options.pursuitOverlay);
                     }
                     if (frame.options?.targetMemoryOverlay) {
-                        drawTargetMemoryOverlay(ctx, centerX, centerY, frame.options.targetMemoryOverlay, rc.nowMs);
+                        drawTargetMemoryOverlay(ctx, centerX, centerY, frame.options.targetMemoryOverlay);
                     }
                 }
             }

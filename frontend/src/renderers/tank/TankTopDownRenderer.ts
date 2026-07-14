@@ -124,7 +124,7 @@ export class TankTopDownRenderer implements Renderer {
                 ctx.stroke();
                 ctx.restore();
                 if (options.pursuitOverlay) drawPursuitOverlay(ctx, selected.x, selected.y, options.pursuitOverlay);
-                if (options.targetMemoryOverlay) drawTargetMemoryOverlay(ctx, selected.x, selected.y, options.targetMemoryOverlay, rc.nowMs);
+                if (options.targetMemoryOverlay) drawTargetMemoryOverlay(ctx, selected.x, selected.y, options.targetMemoryOverlay);
             }
         }
 
