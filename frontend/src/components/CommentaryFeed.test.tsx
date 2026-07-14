@@ -26,4 +26,10 @@ describe('CommentaryFeed', () => {
         expect(html).toContain('Environment');
         expect(html).toContain('UI');
     });
+
+    it('renders discussion prompt copy buttons', () => {
+        const html = renderToString(<CommentaryFeed worldId="world-1" />);
+        expect(html).toContain('Copy Discussion Leader Prompt');
+        expect(html).toContain('Copy Participate Prompt');
+    });
 });

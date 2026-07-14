@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { buildDiscussionPrompt, type BoardPromptRole } from '../boardPrompts';
 import { config } from '../config';
 import type { CommentaryItem, CommentaryResponse, CommentaryTopic } from '../types/simulation';
 import { CommentaryCard } from './CommentaryCard';
@@ -60,6 +61,7 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
     const [error, setError] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
     const [activeTopic, setActiveTopic] = useState<CommentaryTopic | 'all'>(getStoredTopic);
+    const [copiedRole, setCopiedRole] = useState<BoardPromptRole | null>(null);
     const mountedRef = useRef(true);
     const viewerName = getViewerName();
 
@@ -170,6 +172,19 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
         }
     }, [effectiveId, viewerName]);
 
+    // --- Discussion prompts (copy to clipboard) ---
+    const handleCopyPrompt = useCallback(async (role: BoardPromptRole) => {
+        const text = buildDiscussionPrompt(role, activeTopic, config.apiBaseUrl);
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedRole(role);
+            setTimeout(() => setCopiedRole(prev => (prev === role ? null : prev)), 2000);
+        } catch {
+            // Clipboard permission denied or unavailable - nothing to reconcile,
+            // just skip the "Copied!" confirmation.
+        }
+    }, [activeTopic]);
+
     return (
         <div className={styles.container}>
             <p className={styles.subtitle}>
@@ -194,6 +209,25 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
                         </button>
                     );
                 })}
+            </div>
+
+            {/* Discussion prompts (copy to clipboard) */}
+            <div className={styles.promptBar}>
+                <button
+                    className={styles.promptButton}
+                    onClick={() => handleCopyPrompt('leader')}
+                    title="Copy a self-contained prompt for starting a discussion under the selected topic"
+                >
+                    📣 Copy Discussion Leader Prompt
+                </button>
+                <button
+                    className={styles.promptButton}
+                    onClick={() => handleCopyPrompt('participant')}
+                    title="Copy a self-contained prompt for monitoring and joining a discussion under the selected topic"
+                >
+                    🗣️ Copy Participate Prompt
+                </button>
+                {copiedRole && <span className={styles.copiedHint}>Copied!</span>}
             </div>
 
             {error && comments.length === 0 && (
