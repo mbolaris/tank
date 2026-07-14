@@ -4,8 +4,7 @@ export function drawTargetMemoryOverlay(
     ctx: CanvasRenderingContext2D,
     fishX: number,
     fishY: number,
-    overlay: TargetMemoryOverlayData,
-    nowMs: number
+    overlay: TargetMemoryOverlayData
 ) {
     const { domain, lastSeenPosition, predictedPosition, confidence, recentEvent } = overlay;
     

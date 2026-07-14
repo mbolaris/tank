@@ -7,10 +7,10 @@
  * missing-entity and non-transferable states.
  */
 
-import * as React from 'react';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
+import type { EntityDetails } from '../types/entityDetails';
 import type { EntityData } from '../types/simulation';
 import { EntityInspectorDrawer } from './EntityInspectorDrawer';
 import {
@@ -104,7 +104,7 @@ describe('EntityInspectorDrawer', () => {
     });
 
     it('renders the target memory section when details are loaded', () => {
-        const mockDetails: any = {
+        const mockDetails = {
             id: 42,
             target_memory: {
                 domains: {
@@ -149,7 +149,7 @@ describe('EntityInspectorDrawer', () => {
             }
         };
 
-        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails } });
+        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails as unknown as EntityDetails } });
         expect(html).toContain('Target Memory');
         expect(html).toContain('Food');
         expect(html).toContain('Memory');
@@ -160,12 +160,12 @@ describe('EntityInspectorDrawer', () => {
     });
 
     it('does not render Target Memory section when target_memory is null', () => {
-        const mockDetails: any = {
+        const mockDetails = {
             id: 42,
             target_memory: null
         };
 
-        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails } });
+        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails as unknown as EntityDetails } });
         expect(html).not.toContain('Target Memory');
     });
 });
