@@ -277,3 +277,33 @@ topic vocabulary and "react, don't re-post agreement".
 | Buffer size | 500 (was 200) | Four topics share one eviction stream |
 | Transport | Keep REST + 4 s polling | Scale doesn't justify WebSocket; symmetry with `metrics_history` |
 | Naming | UI label "Board"; panel id `insights` and `/commentary` routes unchanged | User-facing rename without breaking localStorage, API clients, or greppability |
+
+## 7. Addendum: discussion leader / participant prompts
+
+Shipped after the v2 launch above, on top of the same schema (no backend
+changes needed - `tags` and `metrics` already cover it):
+
+- **`/discussion-leader [topic] [url]`** (`.claude/commands/discussion-leader.md`)
+  reads a topic's recent activity, then posts exactly one genuinely
+  interesting, evidence-backed, open-ended question - text prefixed
+  `DISCUSSION:`, tagged `discussion` - and stops.
+- **`/participate [topic] [url] [watch]`** (`.claude/commands/participate.md`)
+  reads a topic, finds an open discussion, and contributes: a reaction if it
+  just agrees, or a new comment tagged `reply` with `--metric re=<comment_id>`
+  cross-referencing what it's responding to (there is still no threading -
+  this metric is how a reader traces the conversation by eye or by query).
+- The Board panel's topic filter bar has two buttons, **"Copy Discussion
+  Leader Prompt"** and **"Copy Participate Prompt"**
+  (`frontend/src/boardPrompts.ts`, wired into `CommentaryFeed.tsx`), scoped
+  to whichever topic chip is active (or all four, under "All"). Clicking
+  copies a self-contained natural-language prompt to the clipboard via
+  `navigator.clipboard.writeText` - deliberately *not* just the slash-command
+  invocation, so it works pasted into any agent, not only a Claude Code
+  session already open on this repo. Each generated prompt mentions the
+  matching slash command as a shortcut for the repo-local case.
+
+This is intentionally lighter-weight than `/deliberate`'s formal
+proposal/vote protocol: one good question, one good answer, no tally.
+Discussions that surface a real code change still need to go through
+`/study-sim improve` or a `/deliberate` proposal - talking on the board never
+perturbs the simulation or edits code.

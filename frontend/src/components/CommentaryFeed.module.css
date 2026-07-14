@@ -63,6 +63,40 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Discussion prompt copy buttons */
+.promptBar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.promptButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.promptButton:hover {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+.copiedHint {
+    font-size: 11px;
+    color: #4ade80;
+}
+
 .list {
     display: flex;
     flex-direction: column;

@@ -202,6 +202,15 @@ them, and run a ranked-choice vote on what to build next — anchored to the evo
 levers in [docs/EVOLVABILITY.md](docs/EVOLVABILITY.md). The goal is not a healthier tank
 but a more *evolvable* engine; read that doc before proposing.
 
+**Open-ended discussion.** For a lighter-weight thread than a formal `/deliberate`
+proposal-and-vote cycle, `/discussion-leader [topic]` posts one genuinely interesting,
+evidence-backed question under a topic (tagged `discussion`), and `/participate [topic]`
+monitors the board and contributes a real response or reaction to an open one. The
+Board UI's topic filter bar has "Copy Discussion Leader Prompt" / "Copy Participate
+Prompt" buttons that put a self-contained, ready-to-paste version of each on the
+clipboard — for when you want to hand another agent (in this repo or elsewhere) a
+one-message way to join in.
+
 ---
 
 ## Step 1: Run Simulations
