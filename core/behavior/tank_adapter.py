@@ -56,12 +56,17 @@ class TankBehaviorObservation:
 
 
 def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
-    """Build deterministic graph inputs without consuming simulation RNG."""
-    # Target memory must age every frame - not just frames the fish can
-    # currently eat - or frames_since_seen would freeze whenever can_eat()
-    # is false, making "how long has it been hidden" wrong. decide_target
-    # consumes no RNG, so this never perturbs anything downstream.
-    memory_decision = _update_food_target_memory(fish)
+    """Build deterministic graph inputs without consuming simulation RNG.
+
+    Reads (never advances) this frame's food target-memory decision -
+    core.behavior.target_memory_controller.advance_target_memory is what
+    advances it, called once per fish per frame from Fish.update() before
+    movement arbitration. That makes this function - and therefore this
+    whole observation build - side-effect-free, so the real movement
+    decision, the Behavior Lens, and the pursuit-module inspector can all
+    call it any number of times per frame without perturbing memory.
+    """
+    memory_decision = fish.last_target_memory_decisions.get("food")
 
     food = select_food_target(fish) if fish.can_eat() else None
     if (
@@ -109,13 +114,18 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     )
 
 
-def _update_food_target_memory(fish: Fish) -> TargetMemoryDecision | None:
-    """Advance the fish's food-domain target memory, if the feature is active.
+def compute_food_target_memory_decision(fish: Fish) -> TargetMemoryDecision | None:
+    """Advance and return the fish's food-domain target-memory decision.
 
-    Called unconditionally (regardless of ``fish.can_eat()``) so
-    ``frames_since_seen`` reflects real elapsed frames. Returns None when
-    memory isn't active for this fish (flag off or no trait) - the caller
-    falls back to ``select_food_target``'s raw pick, byte-identical to
+    Called exactly once per frame by
+    ``core.behavior.target_memory_controller.advance_target_memory``, before
+    movement arbitration runs - regardless of ``fish.can_eat()`` so
+    ``frames_since_seen`` reflects real elapsed frames even on frames the
+    fish can't currently eat. Do not call this from
+    ``build_tank_behavior_observation`` or the inspector; read
+    ``fish.last_target_memory_decisions["food"]`` instead. Returns None when
+    memory isn't active for this fish (flag off or no trait) - callers then
+    fall back to ``select_food_target``'s raw pick, byte-identical to
     pre-memory behavior.
     """
     config = fish.environment.simulation_config
@@ -328,5 +338,6 @@ __all__ = [
     "TankBehaviorObservation",
     "build_tank_behavior_observation",
     "classify_foraging_intent",
+    "compute_food_target_memory_decision",
     "default_foraging_graph",
 ]

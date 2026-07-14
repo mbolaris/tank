@@ -40,7 +40,7 @@ class SoccerEffectState(TypedDict):
 
 
 if TYPE_CHECKING:
-    from core.behavior.target_memory import TargetMemoryState
+    from core.behavior.target_memory import TargetMemoryDecision, TargetMemoryState
     from core.ecosystem import EcosystemManager
     from core.entities.resources import Food
     from core.fish.poker_stats_component import FishPokerStats
@@ -231,6 +231,12 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
         self.target_memory_state: dict[str, TargetMemoryState] = {}
+        # Latest decision per domain, advanced exactly once per frame by
+        # core.behavior.target_memory_controller.advance_target_memory (called
+        # from update() below) - build_tank_behavior_observation and
+        # ball_pursuit_velocity only ever read these, never recompute them.
+        self.last_target_memory_decisions: dict[str, TargetMemoryDecision | None] = {}
+        self.target_memory_updated_frame: int | None = None
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem
@@ -720,6 +726,14 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             # but we could move that here.
             # Keeping strictly to refactoring return type for now.
             return EntityUpdateResult()
+
+        # Advance target memory (food/ball) exactly once for this frame, before
+        # movement arbitration runs - see target_memory_controller's docstring
+        # for why this must happen here rather than inside the adapters that
+        # read it.
+        from core.behavior.target_memory_controller import advance_target_memory
+
+        advance_target_memory(self, frame_count)
 
         # Execute behavior (movement, turn costs, poker cooldown)
         # Delegates to BehaviorExecutor for cleaner separation

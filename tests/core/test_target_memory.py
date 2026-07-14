@@ -20,6 +20,7 @@ from core.behavior.target_memory import (
     TargetMemoryState,
     decide_target,
 )
+from core.behavior.target_memory_controller import advance_target_memory
 from core.entities import Fish
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.genome import GENOME_SCHEMA_VERSION, Genome
@@ -372,6 +373,7 @@ def test_two_fish_with_identical_params_have_independent_state():
     assert fish_a.target_memory_state is not fish_b.target_memory_state
 
     fish_a.energy = fish_a.max_energy
+    advance_target_memory(fish_a, 0)
     ball_pursuit_velocity(fish_a)
     # Mutating fish_a's memory dict must never affect fish_b's.
     fish_a.target_memory_state["probe"] = TargetMemoryState.empty()
@@ -390,7 +392,8 @@ def test_ball_memory_ages_every_frame_even_when_gates_skip_pursuit():
     # energy gate, long before the RNG roll or memory *use* is reached.
     fish.energy = 0.0
 
-    for _ in range(5):
+    for frame in range(5):
+        advance_target_memory(fish, frame)
         assert ball_pursuit_velocity(fish) is None
 
     state = fish.target_memory_state.get("ball")
@@ -411,6 +414,7 @@ def test_ball_domain_visible_only_when_ball_exists():
     )
     fish = next(e for e in runner_with_ball.world.entities_list if isinstance(e, Fish))
     fish.energy = fish.max_energy
+    advance_target_memory(fish, 0)
     ball_pursuit_velocity(fish)
     assert fish.target_memory_state.get("ball") is not None
     assert fish.target_memory_state["ball"].target_id == BALL_TARGET_ID
@@ -444,6 +448,7 @@ def test_config_hash_identical_whether_or_not_a_flagged_runner_ran_first():
     runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
     fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
     fish.energy = fish.max_energy
+    advance_target_memory(fish, 0)
     ball_pursuit_velocity(fish)
 
     after = compute_config_hash("tank/survival_5k", seed=42)
@@ -462,6 +467,7 @@ def test_target_memory_state_reproducible_across_separate_seeded_runs():
         traces = []
         for fish in fish_list[:5]:
             fish.energy = fish.max_energy
+            advance_target_memory(fish, 0)
             ball_pursuit_velocity(fish)
             state = fish.target_memory_state.get("ball")
             traces.append((fish.fish_id, state))
@@ -470,3 +476,153 @@ def test_target_memory_state_reproducible_across_separate_seeded_runs():
     trace_a = run_and_capture()
     trace_b = run_and_capture()
     assert trace_a == trace_b
+
+
+# ---------------------------------------------------------------------------
+# Tick-owned advancement: reads are pure, and aging survives arbiter
+# short-circuiting (the lifecycle bug a 2026-07-14 review found in the
+# original PR - see core/behavior/target_memory_controller.py's docstring).
+# ---------------------------------------------------------------------------
+
+
+def test_repeated_observation_builds_do_not_mutate_memory_within_a_frame():
+    """Before this fix, build_tank_behavior_observation() advanced food
+    memory as a side effect, so calling it 3x with no simulation ticks in
+    between advanced frames_since_seen by 3 instead of 0."""
+    from core.behavior.tank_adapter import build_tank_behavior_observation
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    advance_target_memory(fish, 0)
+    state_after_advance = fish.target_memory_state.get("food")
+
+    for _ in range(3):
+        build_tank_behavior_observation(fish)
+
+    assert fish.target_memory_state.get("food") == state_after_advance
+
+
+def test_get_entity_details_does_not_mutate_target_memory():
+    """Before this fix, opening/polling the fish inspector (the Behavior
+    Lens) advanced food memory as a side effect of building its observation,
+    so merely watching a fish made it forget faster."""
+    runner = SimulationRunner(
+        seed=42,
+        config={"target_memory_enabled": True, "graph_behavior_enabled": True},
+    )
+    snapshot = next(e for e in runner._collect_entities() if e.type == "fish")
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    runner.step()
+    state_after_tick = fish.target_memory_state.get("food")
+
+    for _ in range(3):
+        result = runner.handle_command("get_entity_details", {"entity_id": snapshot.id})
+        assert result["success"] is True
+
+    assert fish.target_memory_state.get("food") == state_after_tick
+
+
+def test_memory_advances_exactly_once_per_simulation_tick():
+    from core.behavior.tank_adapter import build_tank_behavior_observation
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    assert fish.target_memory_updated_frame is None
+
+    runner.step()
+    frame_after_first_tick = fish.target_memory_updated_frame
+    assert frame_after_first_tick is not None
+
+    for _ in range(3):  # reads must not advance it further
+        build_tank_behavior_observation(fish)
+    assert fish.target_memory_updated_frame == frame_after_first_tick
+
+    runner.step()
+    assert fish.target_memory_updated_frame != frame_after_first_tick
+
+
+def test_policy_override_does_not_pause_target_memory():
+    """Before this fix, PolicyOverrideConsideration winning the arbiter
+    short-circuited it before GraphBehaviorConsideration - the only thing
+    that used to advance food memory - ever ran."""
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    fish.movement_policy = lambda _observation, _rng: (1.0, 0.0)
+
+    updated_frames = []
+    for _ in range(3):
+        runner.step()
+        arbitration = fish.movement_strategy.last_arbitration
+        assert arbitration.selected is not None
+        assert arbitration.selected.source == "policy_override"
+        updated_frames.append(fish.target_memory_updated_frame)
+
+    assert len(set(updated_frames)) == 3  # advanced on every tick despite the override
+
+
+def test_graph_threat_decision_does_not_pause_ball_memory():
+    """Before this fix, GraphBehaviorConsideration returning THREAT
+    short-circuited the arbiter before BallPursuitConsideration - the only
+    thing that used to advance ball memory - ever ran."""
+    from core.entities import Crab
+
+    runner = SimulationRunner(
+        seed=42,
+        config={
+            "target_memory_enabled": True,
+            "graph_behavior_enabled": True,
+            "tank_ball_visible": True,
+        },
+    )
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    assert fish.genome.behavioral.behavior_graph is not None
+    # Close enough to trigger threat detection (200px radius) but not
+    # overlapping, so a same-frame collision can't confound the assertions.
+    crab = Crab(environment=runner.world.environment, x=fish.pos.x + 50.0, y=fish.pos.y)
+    runner.world.add_entity(crab)
+
+    runner.step()
+
+    arbitration = fish.movement_strategy.last_arbitration
+    assert arbitration.selected is not None
+    assert arbitration.selected.kind == "graph_threat_avoidance"
+
+    state = fish.target_memory_state.get("ball")
+    assert state is not None
+    assert state.frames_since_seen == 0  # ball stayed visible -> memory was evaluated
+    assert fish.target_memory_updated_frame is not None
+
+
+def test_two_controller_ticks_advance_hidden_target_age_by_exactly_two(monkeypatch):
+    """Before this fix, frames_since_seen tracked how many times an adapter
+    happened to be called, not how many simulation frames actually elapsed -
+    this proves two controller ticks age a hidden target by exactly two, no
+    matter how many extra reads (movement, inspector, Lens) land in between,
+    going through the real build_tank_behavior_observation adapter rather
+    than calling decide_target directly."""
+    import core.behavior.tank_adapter as tank_adapter_module
+    from core.algorithms.composable.food_selection import FoodCandidateScore
+    from core.entities import Food
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    food = next(e for e in runner.world.entities_list if isinstance(e, Food))
+
+    visible = [
+        FoodCandidateScore(
+            food=food, position=(food.pos.x, food.pos.y), velocity=(0.0, 0.0), score=50.0
+        )
+    ]
+    monkeypatch.setattr(tank_adapter_module, "score_food_candidates", lambda _fish: visible)
+
+    advance_target_memory(fish, 0)  # ACQUIRE
+    assert fish.target_memory_state["food"].frames_since_seen == 0
+
+    visible.clear()  # food "vanishes" and stays gone
+
+    for frame in (1, 2):
+        advance_target_memory(fish, frame)
+        for _ in range(5):  # extra reads between/after ticks must not perturb aging
+            tank_adapter_module.build_tank_behavior_observation(fish)
+
+    assert fish.target_memory_state["food"].frames_since_seen == 2

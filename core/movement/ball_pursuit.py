@@ -60,25 +60,15 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
     identical to when ball pursuit had unconditional top priority - only the
     *outcome* changes, and only for the few fish that both rolled "play" and
     have a survival drive (ADR-010 step 2).
+
+    Reads (never advances) this frame's ball target-memory decision -
+    core.behavior.target_memory_controller.advance_target_memory is what
+    advances it, called once per fish per frame from Fish.update() before
+    movement arbitration. That makes this function side-effect-free, so it
+    is safe to call it zero or more times per frame (e.g. from the
+    inspector) without perturbing memory.
     """
-    # The ball is genuinely optional on the environment, so getattr-with-default
-    # is the right tool here (unlike energy/max_energy, which every fish has).
-    ball = getattr(fish.environment, "ball", None)
-    if ball is None:
-        agents = getattr(fish.environment, "agents", None)
-        if agents:
-            for entity in agents:
-                if isinstance(entity, Ball):
-                    ball = entity
-                    break
-
-    # Target memory must age every frame - not just frames the gates below
-    # let through - or frames_since_seen freezes whenever a fish skips
-    # pursuit, making "how long has it been hidden" wrong. decide_target
-    # consumes no RNG, so this doesn't perturb the rng.random() draw below
-    # either way, regardless of whether memory is active.
-    memory_decision = _update_ball_target_memory(fish, ball)
-
+    ball = _resolve_ball(fish)
     if ball is None:
         return None  # No ball = no soccer
 
@@ -105,8 +95,9 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
 
     # Memory's target position/velocity mirror the ball's live values exactly
     # whenever it's continuously visible (always true today - see
-    # _update_ball_target_memory's docstring); this is what lets a future
-    # occlusion mechanic plug in later without touching this call site.
+    # compute_ball_target_memory_decision's docstring); this is what lets a
+    # future occlusion mechanic plug in later without touching this call site.
+    memory_decision = fish.last_target_memory_decisions.get("ball")
     if memory_decision is not None and memory_decision.selected_target_id is not None:
         target_position = memory_decision.target_position
         target_velocity = memory_decision.target_velocity
@@ -135,13 +126,20 @@ def ball_pursuit_velocity(fish: Fish) -> Velocity | None:
     return (vx, vy)
 
 
-def _update_ball_target_memory(fish: Fish, ball: Ball | None) -> TargetMemoryDecision | None:
-    """Advance the fish's ball-domain target memory, if the feature is active.
+def compute_ball_target_memory_decision(fish: Fish) -> TargetMemoryDecision | None:
+    """Advance and return the fish's ball-domain target-memory decision.
 
-    Called unconditionally (before any of ball_pursuit_velocity's gates) so
-    frames_since_seen reflects real elapsed frames. Returns None when memory
-    isn't active for this fish (flag off or no trait) - the caller falls back
-    to the ball's live position, byte-identical to pre-memory behavior.
+    Called exactly once per frame by
+    ``core.behavior.target_memory_controller.advance_target_memory``, before
+    movement arbitration runs - regardless of any of ball_pursuit_velocity's
+    gates, so frames_since_seen reflects real elapsed frames even on frames a
+    fish skips pursuit entirely (or never reaches BallPursuitConsideration
+    because a higher-priority drive won). Do not call this from
+    ball_pursuit_velocity or the inspector; read
+    ``fish.last_target_memory_decisions["ball"]`` instead. Returns None when
+    memory isn't active for this fish (flag off or no trait) - callers then
+    fall back to the ball's live position, byte-identical to pre-memory
+    behavior.
 
     The engine has no detection-range/occlusion concept for the ball today -
     "exists" and "perceived" are the same boolean (ball is not None) - so this
@@ -157,6 +155,7 @@ def _update_ball_target_memory(fish: Fish, ball: Ball | None) -> TargetMemoryDec
     if params is None:
         return None
 
+    ball = _resolve_ball(fish)
     candidates = (
         [
             TargetCandidate(
@@ -173,6 +172,23 @@ def _update_ball_target_memory(fish: Fish, ball: Ball | None) -> TargetMemoryDec
     next_state, decision = decide_target(state, candidates, (fish.pos.x, fish.pos.y), params)
     fish.target_memory_state["ball"] = next_state
     return decision
+
+
+def _resolve_ball(fish: Fish) -> Ball | None:
+    """Look up the environment's soccer ball, if any.
+
+    The ball is genuinely optional on the environment, so getattr-with-default
+    is the right tool here (unlike energy/max_energy, which every fish has).
+    """
+    ball = getattr(fish.environment, "ball", None)
+    if ball is None:
+        agents = getattr(fish.environment, "agents", None)
+        if agents:
+            for entity in agents:
+                if isinstance(entity, Ball):
+                    ball = entity
+                    break
+    return ball
 
 
 def _pursuit_module_vector(fish: Fish, ball: Ball) -> Velocity | None:
