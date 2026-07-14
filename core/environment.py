@@ -130,6 +130,18 @@ class Environment:
         self._next_food_id += 1
         return food_id
 
+    def reserve_food_id(self, food_id: int) -> None:
+        """Ensure future generate_new_food_id() calls never reuse ``food_id``.
+
+        Called by Food.__init__ whenever a caller passes an explicit food_id
+        (e.g. tests), so a manually-assigned id - including 0, which collides
+        with the counter's own start value - can never be handed out again.
+        Only advances the counter, never regresses it, so out-of-order
+        reservations (e.g. reserving 5 then 2) stay safe.
+        """
+        if food_id >= self._next_food_id:
+            self._next_food_id = food_id + 1
+
     @property
     def dish(self) -> Any | None:
         return self._dish

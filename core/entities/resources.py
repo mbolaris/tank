@@ -73,7 +73,11 @@ class Food(MobileEntity):
             food_id: Stable id for this food item. Defaults to
                 ``environment.generate_new_food_id()`` (deterministic, per-world
                 counter); falls back to 0 for lightweight environment stand-ins
-                that don't expose it (tests only - real worlds always do).
+                that don't expose it (tests only - real worlds always do). An
+                explicit food_id reserves that value on the environment's
+                counter (see ``Environment.reserve_food_id``), so it can never
+                collide with a later auto-generated id - production code never
+                passes this; it exists for tests that need a specific id.
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
@@ -94,6 +98,9 @@ class Food(MobileEntity):
 
         if food_id is not None:
             self.food_id = food_id
+            reserve_id = getattr(environment, "reserve_food_id", None)
+            if callable(reserve_id):
+                reserve_id(food_id)
         else:
             generate_id = getattr(environment, "generate_new_food_id", None)
             self.food_id = generate_id() if callable(generate_id) else 0
