@@ -18,12 +18,24 @@ export interface PursuitOverlayData {
     aimVector: [number, number] | null;
 }
 
+/** The selected fish's Target Memory details, for the overlay. */
+export interface TargetMemoryOverlayData {
+    domain: string;
+    action: string;
+    lastSeenPosition: [number, number];
+    predictedPosition: [number, number];
+    searchVector: [number, number];
+    confidence: number;
+    isSwitching: boolean;
+}
+
 export interface RenderOptions {
     showEffects?: boolean;
     showSoccer?: boolean;
     selectedEntityId?: number | null;
     viewMode?: ViewMode;
     pursuitOverlay?: PursuitOverlayData | null;
+    targetMemoryOverlay?: TargetMemoryOverlayData | null;
 }
 
 export interface RenderFrame {

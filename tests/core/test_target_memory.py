@@ -626,3 +626,33 @@ def test_two_controller_ticks_advance_hidden_target_age_by_exactly_two(monkeypat
             tank_adapter_module.build_tank_behavior_observation(fish)
 
     assert fish.target_memory_state["food"].frames_since_seen == 2
+
+
+def test_get_entity_details_returns_target_memory_payload():
+    """Ensure get_entity_details includes formatted target memory fields in its response when active."""
+    runner = SimulationRunner(
+        seed=42,
+        config={"target_memory_enabled": True},
+    )
+    snapshot = next(e for e in runner._collect_entities() if e.type == "fish")
+    runner.step()
+
+    result = runner.handle_command("get_entity_details", {"entity_id": snapshot.id})
+    assert result["success"] is True
+    details = result["details"]
+    assert "target_memory" in details
+
+    mem = details["target_memory"]
+    assert mem is not None
+    assert mem["domain"] in ("Food", "Ball")
+    assert "action" in mem
+    assert "remembering" in mem
+    assert "last_seen" in mem
+    assert "confidence" in mem
+    assert "predicted_location" in mem
+    assert "switch_threshold" in mem
+    assert "memory_duration" in mem
+    assert len(mem["last_seen_position"]) == 2
+    assert len(mem["predicted_position"]) == 2
+    assert len(mem["search_vector"]) == 2
+    assert isinstance(mem["is_switching"], bool)

@@ -4,7 +4,7 @@
 
 import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import type { SimulationUpdate } from '../types/simulation';
-import type { PursuitOverlayData, Renderer, ViewMode } from '../rendering/types';
+import type { PursuitOverlayData, TargetMemoryOverlayData, Renderer, ViewMode } from '../rendering/types';
 import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
@@ -18,6 +18,8 @@ interface CanvasProps {
     selectedEntityId?: number | null;
     /** Selected fish's pursuit-module vectors, drawn for it only. */
     pursuitOverlay?: PursuitOverlayData | null;
+    /** Selected fish's target memory vectors/details, drawn for it only. */
+    targetMemoryOverlay?: TargetMemoryOverlayData | null;
     /** Opt-in camera target. The renderer still receives the full world state. */
     followEntityId?: number | null;
     showEffects?: boolean;
@@ -30,7 +32,7 @@ interface CanvasProps {
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, pursuitOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -102,6 +104,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const imagesLoadedRef = useRef(imagesLoaded);
     const selectedEntityIdRef = useRef(selectedEntityId);
     const pursuitOverlayRef = useRef(pursuitOverlay);
+    const targetMemoryOverlayRef = useRef(targetMemoryOverlay);
     const followEntityIdRef = useRef(followEntityId);
     const showEffectsRef = useRef(showEffects);
     const showSoccerRef = useRef(showSoccer);
@@ -113,12 +116,13 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         imagesLoadedRef.current = imagesLoaded;
         selectedEntityIdRef.current = selectedEntityId;
         pursuitOverlayRef.current = pursuitOverlay;
+        targetMemoryOverlayRef.current = targetMemoryOverlay;
         followEntityIdRef.current = followEntityId;
         showEffectsRef.current = showEffects;
         showSoccerRef.current = showSoccer;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
+    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -234,6 +238,7 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                             showSoccer: showSoccerRef.current,
                             selectedEntityId: selectedEntityIdRef.current,
                             pursuitOverlay: pursuitOverlayRef.current,
+                            targetMemoryOverlay: targetMemoryOverlayRef.current,
                         },
                     }, {
                         canvas: renderCanvas,
