@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { colors } from '../styles/theme';
 import type { ForagingGymSummary, ObservatoryData } from '../types/skill';
+import { describePredictionProvenance } from '../utils/observatoryProvenance';
 import { styles } from './ForagingGymPanel.styles';
 
 function percent(value: number): string {
@@ -411,22 +412,7 @@ export function ForagingGymObservatoryDisplay({
                         Captured {observatory.best_individual.food_collected.toFixed(1)} of {observatory.best_individual.food_available} food items (uncertainty: ±{observatory.best_individual.score_uncertainty.toFixed(3)}, n={observatory.best_individual.sample_size})
                     </div>
                     <div style={styles.observatoryBestDetail}>
-                        {(() => {
-                            const { parent_prediction_skill, prediction_strength_after, prediction_strength_before } = observatory.best_individual;
-                            if (parent_prediction_skill !== null && parent_prediction_skill !== undefined) {
-                                if (prediction_strength_after > parent_prediction_skill) {
-                                    return `Prediction skill increased from its parent (was ${parent_prediction_skill.toFixed(2)})`;
-                                } else if (prediction_strength_after < parent_prediction_skill) {
-                                    return `Prediction skill decreased from its parent (was ${parent_prediction_skill.toFixed(2)})`;
-                                } else {
-                                    return `Prediction skill is unchanged from its parent (was ${parent_prediction_skill.toFixed(2)})`;
-                                }
-                            } else {
-                                const diff = prediction_strength_after - prediction_strength_before;
-                                const diffStr = diff >= 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
-                                return `Prediction skill differs from the species founder by ${diffStr}`;
-                            }
-                        })()}
+                        {describePredictionProvenance(observatory.best_individual)}
                     </div>
                     <div style={styles.observatoryBestDetail}>
                         Species median prediction skill: {observatory.best_individual.species_median.toFixed(2)}

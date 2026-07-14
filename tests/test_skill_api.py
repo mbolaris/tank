@@ -188,10 +188,12 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
             "score": 0.74,
             "food_collected": 10,
             "food_available": 12.0,
-            "prediction_strength_before": 0.48,
-            "prediction_strength_after": 0.71,
+            "legacy_prediction_skill": 0.71,
+            "species_founder_legacy_prediction_skill": 0.48,
+            "parent_legacy_prediction_skill": 0.65,
+            "pursuit_prediction_strength": None,
+            "parent_pursuit_prediction_strength": None,
             "percentage_of_species": 100.0,
-            "parent_prediction_skill": 0.65,
             "species_median": 0.60,
             "module_fingerprint": "graph_a1b2c3d4",
             "similar_fraction": 0.23,
@@ -218,7 +220,7 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
 
     from unittest.mock import patch
 
-    with patch("backend.routers.skill.evaluate_custom_genome") as mock_eval:
+    with patch("backend.skill_observatory.evaluate_custom_genome") as mock_eval:
         response = client.get("/api/skill/foraging-gym/observatory")
 
         assert response.status_code == 200
@@ -232,12 +234,264 @@ def test_foraging_gym_observatory_with_fish(tmp_path):
         assert body["best_individual"]["id"] == 481
         assert body["best_individual"]["score"] == pytest.approx(0.74)
         assert body["best_individual"]["food_collected"] == 10
-        assert body["best_individual"]["prediction_strength_before"] == 0.48
-        assert body["best_individual"]["prediction_strength_after"] == 0.71
-        assert body["best_individual"]["parent_prediction_skill"] == 0.65
+        assert body["best_individual"]["legacy_prediction_skill"] == 0.71
+        assert body["best_individual"]["species_founder_legacy_prediction_skill"] == 0.48
+        assert body["best_individual"]["parent_legacy_prediction_skill"] == 0.65
+        assert body["best_individual"]["pursuit_prediction_strength"] is None
+        assert body["best_individual"]["parent_pursuit_prediction_strength"] is None
         assert body["best_individual"]["species_median"] == 0.60
         assert body["best_individual"]["module_fingerprint"] == "graph_a1b2c3d4"
         assert body["best_individual"]["similar_fraction"] == 0.23
         assert body["best_individual"]["score_uncertainty"] == 0.045
         assert body["best_individual"]["sample_size"] == 8
         mock_eval.assert_not_called()
+
+
+def _make_test_fish(env, *, fish_id, prediction_skill, generation=0, parent_id=None):
+    """Build a real (non-mock) Fish with a real Genome, for exercising the
+    actual snapshot/scoring logic rather than just the router's passthrough."""
+    import random
+
+    from core.entities.fish import Fish
+    from core.genetics.genome import Genome
+    from core.genetics.trait import GeneticTrait
+    from core.movement_strategy import AlgorithmicMovement
+
+    genome = Genome.random(use_algorithm=True, rng=random.Random(fish_id))
+    genome.behavioral.prediction_skill = GeneticTrait(prediction_skill)
+    return Fish(
+        environment=env,
+        movement_strategy=AlgorithmicMovement(),
+        species="test_fish",
+        x=0.0,
+        y=0.0,
+        speed=2.0,
+        genome=genome,
+        fish_id=fish_id,
+        generation=generation,
+        parent_id=parent_id,
+    )
+
+
+def _wire_observatory(tmp_path, world_manager):
+    """Construct the router (wiring snapshot_builder/evaluator into the
+    service) and return the service, without needing a TestClient/HTTP call."""
+    from backend.skill_evaluation_service import SkillEvaluationService
+
+    evaluation_service = SkillEvaluationService(world_manager)
+    skill.setup_router(
+        champions_dir=tmp_path,
+        world_manager=world_manager,
+        evaluation_service=evaluation_service,
+    )
+    return evaluation_service
+
+
+def test_build_observatory_snapshot_is_immune_to_later_taxon_id_mutation(tmp_path):
+    """A living fish's taxon_id can be reassigned by the taxonomy system on any
+    simulation tick (species promotion swaps the record's id - see
+    SpeciesRegistry.establish_species). The snapshot must capture the value at
+    build time; it must not be a live reference that later mutation affects.
+    """
+    import random
+    from unittest.mock import MagicMock
+
+    from core.environment import Environment
+    from core.taxonomy.profile import TaxonomyProfile
+
+    env = Environment(width=800, height=600, rng=random.Random(1))
+    fish = _make_test_fish(env, fish_id=1, prediction_skill=0.6)
+    fish.taxon_id = "spec_1"
+    fish.common_name = "Original Species"
+
+    spec_rec = MagicMock()
+    spec_rec.common_name = "Original Species"
+    spec_rec.living_member_ids = {1}
+    spec_rec.type_profile = TaxonomyProfile(traits={"prediction_skill": 0.5}, is_microbe=False)
+
+    taxonomy = MagicMock()
+    taxonomy.registry.species = {"spec_1": spec_rec}
+
+    world = MagicMock()
+    world.entities_list = [fish]
+    world.ecosystem.taxonomy = taxonomy
+    world.simulation_config = None
+    world.genome_code_pool = None
+
+    instance = MagicMock()
+    instance.runner.world = world
+
+    world_manager = MagicMock()
+    world_manager.list_worlds.return_value = [instance]
+    world_manager.get_world.return_value = instance
+
+    evaluation_service = _wire_observatory(tmp_path, world_manager)
+
+    snapshot = evaluation_service._snapshot_builder("world_1")
+    assert not isinstance(snapshot, dict)
+    assert snapshot.living_fish[0].taxon_id == "spec_1"
+
+    # Simulate TaxonomySystem.update() promoting/renaming the species on a
+    # later tick, after the snapshot was already captured.
+    fish.taxon_id = "spec_1_established"
+
+    assert snapshot.living_fish[0].taxon_id == "spec_1"
+
+
+async def test_evaluate_observatory_snapshot_reports_independent_provenance_fields(
+    tmp_path,
+) -> None:
+    """The four parent/self provenance fields must never conflate the legacy
+    prediction_skill trait with the newer pursuit-module prediction_strength
+    parameter - they measure genuinely different things, and a living parent's
+    current value vs. a birth-time snapshot are different data sources too.
+    """
+    import random
+    from unittest.mock import MagicMock, patch
+
+    import pytest
+
+    from core.behavior.pursuit_nodes import (
+        default_pursuit_module_graph,
+        pursuit_module_parameters,
+    )
+    from core.environment import Environment
+    from core.foraging.gym import ForagingGymEvaluation, GymResult
+    from core.genetics.trait import GeneticTrait
+    from core.taxonomy.profile import TaxonomyProfile
+
+    import backend.skill_observatory as skill_observatory
+
+    skill_observatory._OBSERVATORY_EVALUATION_CACHE.clear()
+
+    env = Environment(width=800, height=600, rng=random.Random(1))
+
+    parent = _make_test_fish(env, fish_id=100, prediction_skill=0.30, generation=4)
+    parent.taxon_id = "spec_1"
+    parent.common_name = "Parent Fish"
+
+    child = _make_test_fish(env, fish_id=101, prediction_skill=0.70, generation=5, parent_id=100)
+    child.taxon_id = "spec_1"
+    child.common_name = "Child Fish"
+    child.parent_pursuit_params = {"prediction_strength": 0.55}
+    pursuit_graph = default_pursuit_module_graph()
+    child.genome.behavioral.target_pursuit_module = GeneticTrait(pursuit_graph)
+    expected_pursuit_strength = pursuit_module_parameters(pursuit_graph)["prediction_strength"]
+
+    spec_rec = MagicMock()
+    spec_rec.common_name = "Spec One"
+    spec_rec.living_member_ids = {100, 101}
+    spec_rec.type_profile = TaxonomyProfile(traits={"prediction_skill": 0.4}, is_microbe=False)
+
+    taxonomy = MagicMock()
+    taxonomy.registry.species = {"spec_1": spec_rec}
+
+    world = MagicMock()
+    world.entities_list = [parent, child]
+    world.ecosystem.taxonomy = taxonomy
+    world.frame_count = 42
+    world.simulation_config = None
+    world.genome_code_pool = None
+
+    instance = MagicMock()
+    instance.runner.world = world
+
+    world_manager = MagicMock()
+    world_manager.list_worlds.return_value = [instance]
+    world_manager.get_world.return_value = instance
+
+    evaluation_service = _wire_observatory(tmp_path, world_manager)
+
+    def fake_eval(genome, seed, **kwargs):
+        score = genome.behavioral.prediction_skill.value
+        return ForagingGymEvaluation(
+            oracle_energy=100.0,
+            oracle=GymResult(100.0, 10, 0.0, 0.0),
+            random_walk=GymResult(20.0, 2, 0.0, 0.0),
+            composable=GymResult(score * 100.0, 8, 0.0, 0.0),
+        )
+
+    with patch("backend.skill_observatory.evaluate_custom_genome", side_effect=fake_eval):
+        result = await evaluation_service.refresh_world("world_1")
+
+    assert result["status"] == "success"
+    best = result["best_individual"]
+    # The child has the higher prediction_skill (0.70 > 0.30), so it wins "best".
+    assert best["id"] == 101
+    assert best["legacy_prediction_skill"] == pytest.approx(0.70)
+    assert best["parent_legacy_prediction_skill"] == pytest.approx(0.30)
+    assert best["pursuit_prediction_strength"] == pytest.approx(expected_pursuit_strength)
+    assert best["parent_pursuit_prediction_strength"] == pytest.approx(0.55)
+    # The two "parent" fields must be genuinely different values - proof they
+    # are no longer conflated into a single ambiguous field.
+    assert best["parent_legacy_prediction_skill"] != best["parent_pursuit_prediction_strength"]
+
+
+async def test_evaluate_observatory_snapshot_when_parent_not_living(tmp_path) -> None:
+    """When the parent isn't among the living fish, parent_legacy_prediction_skill
+    must be None rather than silently substituted with the pursuit-module
+    snapshot, while parent_pursuit_prediction_strength still independently
+    reports the birth-time value stashed on the fish itself.
+    """
+    import random
+    from unittest.mock import MagicMock, patch
+
+    import pytest
+
+    from core.environment import Environment
+    from core.foraging.gym import ForagingGymEvaluation, GymResult
+    from core.taxonomy.profile import TaxonomyProfile
+
+    import backend.skill_observatory as skill_observatory
+
+    skill_observatory._OBSERVATORY_EVALUATION_CACHE.clear()
+
+    env = Environment(width=800, height=600, rng=random.Random(1))
+
+    # parent_id points at a fish that is not present in living_fish (departed
+    # or dead), simulating exactly the case the legacy code silently mishandled.
+    orphan = _make_test_fish(env, fish_id=201, prediction_skill=0.6, parent_id=999)
+    orphan.taxon_id = "spec_2"
+    orphan.common_name = "Orphan Fish"
+    orphan.parent_pursuit_params = {"prediction_strength": 0.42}
+
+    spec_rec = MagicMock()
+    spec_rec.common_name = "Spec Two"
+    spec_rec.living_member_ids = {201}
+    spec_rec.type_profile = TaxonomyProfile(traits={"prediction_skill": 0.35}, is_microbe=False)
+
+    taxonomy = MagicMock()
+    taxonomy.registry.species = {"spec_2": spec_rec}
+
+    world = MagicMock()
+    world.entities_list = [orphan]
+    world.ecosystem.taxonomy = taxonomy
+    world.frame_count = 10
+    world.simulation_config = None
+    world.genome_code_pool = None
+
+    instance = MagicMock()
+    instance.runner.world = world
+
+    world_manager = MagicMock()
+    world_manager.list_worlds.return_value = [instance]
+    world_manager.get_world.return_value = instance
+
+    evaluation_service = _wire_observatory(tmp_path, world_manager)
+
+    def fake_eval(genome, seed, **kwargs):
+        return ForagingGymEvaluation(
+            oracle_energy=100.0,
+            oracle=GymResult(100.0, 10, 0.0, 0.0),
+            random_walk=GymResult(20.0, 2, 0.0, 0.0),
+            composable=GymResult(60.0, 8, 0.0, 0.0),
+        )
+
+    with patch("backend.skill_observatory.evaluate_custom_genome", side_effect=fake_eval):
+        result = await evaluation_service.refresh_world("world_2")
+
+    assert result["status"] == "success"
+    best = result["best_individual"]
+    assert best["parent_legacy_prediction_skill"] is None
+    assert best["parent_pursuit_prediction_strength"] == pytest.approx(0.42)
+    assert best["species_founder_legacy_prediction_skill"] == pytest.approx(0.35)

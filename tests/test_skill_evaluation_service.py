@@ -84,3 +84,89 @@ def test_latest_result_can_be_reloaded_from_storage(tmp_path: Path) -> None:
 
     reader = SkillEvaluationService(None, storage_path=storage_path)
     assert reader.get_latest("tank-a") == result
+
+
+@pytest.mark.asyncio
+async def test_snapshot_builder_short_circuit_never_spawns_a_worker_thread() -> None:
+    """When the snapshot builder itself returns a status dict (e.g. the world
+    isn't ready to evaluate), that dict is the final result - the evaluator
+    must never run, so no worker thread is spawned for it."""
+    evaluator_calls: list[str] = []
+
+    def snapshot_builder(world_id: str) -> dict[str, object]:
+        return {"status": "no_data", "world_id": world_id, "message": "not ready"}
+
+    def evaluator(snapshot: object) -> dict[str, object]:
+        evaluator_calls.append("called")
+        return {"status": "success"}
+
+    service = SkillEvaluationService(
+        _WorldManager("tank-a"), evaluator, snapshot_builder=snapshot_builder
+    )
+    result = await service.refresh_world("tank-a")
+
+    assert result == {"status": "no_data", "world_id": "tank-a", "message": "not ready"}
+    assert evaluator_calls == []
+
+
+@pytest.mark.asyncio
+async def test_snapshot_builder_passes_its_snapshot_to_evaluator_on_worker_thread() -> None:
+    """A non-dict snapshot builder result is handed to the evaluator, which
+    still runs outside the caller's own thread."""
+    received: list[tuple[object, str]] = []
+
+    class _Snapshot:
+        world_id = "tank-a"
+
+    snapshot = _Snapshot()
+
+    def snapshot_builder(world_id: str) -> _Snapshot:
+        assert world_id == "tank-a"
+        return snapshot
+
+    def evaluator(snap: object) -> dict[str, object]:
+        received.append((snap, threading_name()))
+        return {"status": "success", "world_id": snap.world_id}  # type: ignore[attr-defined]
+
+    service = SkillEvaluationService(
+        _WorldManager("tank-a"), evaluator, snapshot_builder=snapshot_builder
+    )
+    result = await service.refresh_world("tank-a")
+
+    assert result == {"status": "success", "world_id": "tank-a"}
+    assert received[0][0] is snapshot
+    assert received[0][1] != "MainThread"
+
+
+@pytest.mark.asyncio
+async def test_run_loop_refreshes_worlds_sequentially_not_concurrently() -> None:
+    """Evaluators may share process-wide mutable state (e.g. the Observatory's
+    genome-fingerprint cache), so the periodic loop must never have two
+    worlds' evaluators running at the same time."""
+    concurrent_count = 0
+    max_concurrent = 0
+
+    def evaluator(world_id: str) -> dict[str, object]:
+        nonlocal concurrent_count, max_concurrent
+        concurrent_count += 1
+        max_concurrent = max(max_concurrent, concurrent_count)
+        try:
+            import time
+
+            time.sleep(0.01)
+            return {"status": "success", "world_id": world_id}
+        finally:
+            concurrent_count -= 1
+
+    service = SkillEvaluationService(
+        _WorldManager("tank-a", "tank-b", "tank-c"), evaluator, interval_seconds=10.0
+    )
+
+    await service.start()
+    await asyncio.sleep(0.2)
+    await service.stop()
+
+    assert max_concurrent == 1
+    assert service.get_latest("tank-a") is not None
+    assert service.get_latest("tank-b") is not None
+    assert service.get_latest("tank-c") is not None
