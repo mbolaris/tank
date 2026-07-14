@@ -317,6 +317,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Comments/reactions carry emoji; force UTF-8 output so this doesn't crash
+    # on Windows consoles that default to a non-UTF-8 codepage (e.g. cp1252).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     args = build_parser().parse_args(argv)
     base_url = args.url.rstrip("/")
     reactor_name = args.reactor_name or os.getenv("TANK_AGENT") or "agent"
