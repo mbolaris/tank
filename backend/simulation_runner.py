@@ -618,8 +618,9 @@ class SimulationRunner(CommandHandlerMixin):
         tags: Any = None,
         severity: str | None = None,
         metrics: Any = None,
+        topic: str | None = None,
     ) -> dict[str, Any]:
-        """Record an agent observation about this world (the Insights feed).
+        """Record an agent observation about this world (the Board feed).
 
         Stamps the comment with the current simulation frame and appends it to
         the commentary buffer. This is purely additive telemetry - it reads
@@ -633,6 +634,7 @@ class SimulationRunner(CommandHandlerMixin):
                 tags=tags,
                 severity=severity,
                 metrics=metrics,
+                topic=topic,
                 frame=self.frame_count,
             )
 

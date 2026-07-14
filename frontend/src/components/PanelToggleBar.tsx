@@ -2,7 +2,7 @@ import type { PanelId } from '../hooks/useVisiblePanels';
 import styles from './TankView.module.css';
 
 const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
-    { id: 'insights', label: 'Insights', icon: '💬' },
+    { id: 'insights', label: 'Board', icon: '📋' },
     { id: 'skills', label: 'Skills', icon: '🎯' },
     { id: 'trends', label: 'Trends', icon: '📈' },
     { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },

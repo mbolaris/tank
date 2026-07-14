@@ -142,7 +142,7 @@ improvement with a reproduction command, seed, score, and metadata. Keep Layer 1
 benchmarks, or telemetry. Confirm selection is genuinely occurring (trait drift),
 not just generation churn, with `scripts/diagnose_evolution.py`.
 
-### Narrating the simulation to the UI (the Insights feed)
+### Narrating the simulation to the UI (the Board panel)
 
 > **Upgrade in progress:** the feed is being upgraded into a topic-filtered
 > discussion board with emoji reactions. The approved design and its three
@@ -151,8 +151,8 @@ not just generation churn, with `scripts/diagnose_evolution.py`.
 > the currently shipped v1 surface and will be updated as the packages land.
 
 Assessment usually lives only in your chat transcript. To surface what you notice
-**on the simulation UI itself**, post it to the world's **Insights** feed, where
-it shows up live in the web UI's `💬 Insights` tab. Any agent with network access
+**on the simulation UI itself**, post it to the world's **Board** feed, where
+it shows up live in the web UI's `📋 Board` tab. Any agent with network access
 to the server can do this - it is a plain HTTP POST, so you do not need to be the
 process running the sim.
 
@@ -160,22 +160,25 @@ The `/observe-sim` slash command wraps the whole observe -> distill -> post loop
 Under it are two read/write tools:
 
 ```bash
-# Read what's already been posted (so you don't repeat earlier comments)
-python tools/post_commentary.py --url http://127.0.0.1:8000 --read --limit 15
+# Read what's already been posted for a specific topic (to avoid duplication)
+python tools/post_commentary.py --url http://127.0.0.1:8000 --read --topic ecosystem --limit 15
 
-# Post a short, evidence-backed observation to the Insights feed
+# Post a short, evidence-backed observation to the Board under a specific topic
 python tools/post_commentary.py --url http://127.0.0.1:8000 \
   --text "Directional selection on pursuit_aggression: mean +12% over 40k frames" \
-  --severity insight --tags selection,foraging \
+  --topic ecosystem --severity insight --tags selection,foraging \
   --metric max_generation=14 --metric pursuit_aggression_drift_pct=12
+
+# React to a proposal or finding (idempotent add)
+python tools/post_commentary.py --react 3 --emoji 👍 --as claude
 ```
 
 The REST surface (see `backend/routers/commentary.py`) is:
 
-- `POST /api/world/<id>/commentary` - body `{text, author?, tags?, severity?,
-  metrics?}`; `<id>` may be the literal `default`.
-- `GET  /api/world/<id>/commentary?limit=&since_id=` - recent comments (what the
-  UI polls, and what you read to avoid repeating yourself).
+- `POST /api/world/<id>/commentary` - body `{text, author?, tags?, severity?, metrics?, topic?}`; `<id>` may be the literal `default`.
+- `GET  /api/world/<id>/commentary?limit=&since_id=&topic=` - recent comments filtered by topic.
+- `POST /api/world/<id>/commentary/<comment_id>/reactions` - body `{"emoji": "👍", "reactor": "claude"}`.
+- `DELETE /api/world/<id>/commentary/<comment_id>/reactions?emoji=👍&reactor=claude` - remove reaction.
 
 What makes a **good** comment: it is *specific and evidence-backed*, tied to a
 number and a frame horizon, and *non-repetitive*. Pull the signal from the
@@ -187,7 +190,12 @@ number and a frame horizon, and *non-repetitive*. Pull the signal from the
 Bad: "Fish are evolving." Good: "Starvation is 91% of deaths and fish are
 clustering at the ball instead of foraging - foraging is broken, not slow."
 
-Commentary is **Layer 2** (telemetry/UI): posting never perturbs the sim, and it
+Every message belongs to one of four fixed topics: `ecosystem` (🌱 observations),
+`substrate` (🧬 evolution algorithms & gates), `environment` (🪸 world richness/rules),
+and `ui` (🖥️ UI requests). If you agree with a proposal or finding, react with 👍/👎 or 💡/👀
+instead of posting duplicate commentary.
+
+Commentary is **Layer 2** (telemetry/UI): posting/reacting never perturbs the sim, and it
 is separate from any Layer 1 fix. If an observation warrants a change, hand it to
 `/study-sim improve` and the full Evolution Loop.
 

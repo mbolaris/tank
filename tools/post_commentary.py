@@ -1,39 +1,17 @@
 #!/usr/bin/env python3
-"""Post agent commentary to a running Tank World simulation (the "Insights" feed).
+"""Post agent commentary to a running Tank World simulation (the "Board" feed).
 
-This is the thin, dependency-free client an AI agent (or a human) uses to share
-an observation about a *running* simulation so it shows up live in the web UI's
-**Insights** tab. It is the write counterpart to the read-only
-``tools/evolution_report.py``: that tool tells you *what* is happening; this one
-*narrates it to the UI*.
+Thin, dependency-free client for sharing observations about a *running*
+simulation so they show up live in the web UI's **📋 Board** tab.  See
+``backend/routers/commentary.py`` for the REST surface.
 
-It talks to the commentary REST API (see ``backend/routers/commentary.py``):
+Examples::
 
-    POST   /api/world/{world_id}/commentary
-    GET    /api/world/{world_id}/commentary
-
-Posting is purely additive telemetry - it never perturbs the simulation.
-
-Examples
---------
-    # Post a single observation to the default world
-    python tools/post_commentary.py --url http://127.0.0.1:8000 \
-        --text "Selection is real: pursuit_aggression mean +12% over 40k frames" \
-        --tags selection,foraging --severity insight --author claude
-
-    # Attach a couple of supporting numbers
-    python tools/post_commentary.py --text "Starvation dominates deaths" \
-        --severity warning --metric starvation_pct=0.91 --metric max_generation=14
-
-    # Read back what agents have already said (so you don't repeat yourself)
-    python tools/post_commentary.py --read --limit 10
-
-    # Scripted narrator: run a command each interval and post its stdout
-    python tools/post_commentary.py --watch --interval 300 \
-        --cmd "python tools/evolution_report.py --url http://127.0.0.1:8000 --oneline"
-
-For the LLM-driven "live narrator" loop (re-observe and post *genuinely
-interesting* insights), use the ``/observe-sim`` skill, which drives this tool.
+    python tools/post_commentary.py --text "Selection drift +12%" --topic ecosystem
+    python tools/post_commentary.py --read --topic substrate --limit 5
+    python tools/post_commentary.py --react 3 --emoji 👍 --as claude
+    python tools/post_commentary.py --unreact 3 --emoji 👍 --as claude
+    python tools/post_commentary.py --watch --interval 300 --cmd "..."
 """
 
 from __future__ import annotations
@@ -50,6 +28,7 @@ from urllib.request import Request, urlopen
 DEFAULT_URL = "http://127.0.0.1:8000"
 DEFAULT_INTERVAL = 300.0
 VALID_SEVERITIES = ("info", "insight", "warning", "concern")
+VALID_TOPICS = ("ecosystem", "substrate", "environment", "ui")
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +42,13 @@ def _http_get_json(url: str, timeout: float = 10.0) -> Any:
 def _http_post_json(url: str, payload: dict[str, Any], timeout: float = 10.0) -> Any:
     data = json.dumps(payload).encode("utf-8")
     req = Request(url, data=data, method="POST", headers={"Content-Type": "application/json"})
+    with urlopen(req, timeout=timeout) as resp:
+        body = resp.read().decode("utf-8")
+        return json.loads(body) if body else {}
+
+
+def _http_delete(url: str, timeout: float = 10.0) -> Any:
+    req = Request(url, method="DELETE")
     with urlopen(req, timeout=timeout) as resp:
         body = resp.read().decode("utf-8")
         return json.loads(body) if body else {}
@@ -95,6 +81,7 @@ def post_comment(
     tags: Any = None,
     severity: str | None = None,
     metrics: dict[str, Any] | None = None,
+    topic: str | None = None,
     timeout: float = 10.0,
 ) -> dict[str, Any]:
     """POST one comment; returns the stored comment dict from the server."""
@@ -109,6 +96,8 @@ def post_comment(
         payload["severity"] = severity
     if metrics:
         payload["metrics"] = metrics
+    if topic:
+        payload["topic"] = topic
     result = _http_post_json(f"{base_url}/api/world/{wid}/commentary", payload, timeout=timeout)
     return result.get("comment", result) if isinstance(result, dict) else {}
 
@@ -119,6 +108,7 @@ def read_comments(
     world_id: str | None = None,
     limit: int | None = None,
     since_id: int | None = None,
+    topic: str | None = None,
     timeout: float = 10.0,
 ) -> list[dict[str, Any]]:
     """GET recent comments for a world (newest last)."""
@@ -129,10 +119,52 @@ def read_comments(
         query.append(f"limit={limit}")
     if since_id is not None:
         query.append(f"since_id={since_id}")
+    if topic is not None:
+        query.append(f"topic={topic}")
     suffix = ("?" + "&".join(query)) if query else ""
     data = _http_get_json(f"{base_url}/api/world/{wid}/commentary{suffix}", timeout=timeout)
     comments = data.get("comments", []) if isinstance(data, dict) else []
     return list(comments)
+
+
+def react_comment(
+    base_url: str,
+    comment_id: int,
+    emoji: str,
+    *,
+    reactor: str = "agent",
+    world_id: str | None = None,
+    timeout: float = 10.0,
+) -> dict[str, Any]:
+    """POST a reaction to a comment; returns the updated comment."""
+    base_url = base_url.rstrip("/")
+    wid = resolve_world_id(base_url, world_id)
+    payload = {"emoji": emoji, "reactor": reactor}
+    url = f"{base_url}/api/world/{wid}/commentary/{comment_id}/reactions"
+    result = _http_post_json(url, payload, timeout=timeout)
+    return result.get("comment", result) if isinstance(result, dict) else {}
+
+
+def unreact_comment(
+    base_url: str,
+    comment_id: int,
+    emoji: str,
+    *,
+    reactor: str = "agent",
+    world_id: str | None = None,
+    timeout: float = 10.0,
+) -> dict[str, Any]:
+    """DELETE a reaction from a comment; returns the updated comment."""
+    base_url = base_url.rstrip("/")
+    wid = resolve_world_id(base_url, world_id)
+    from urllib.parse import quote
+
+    url = (
+        f"{base_url}/api/world/{wid}/commentary/{comment_id}/reactions"
+        f"?emoji={quote(emoji)}&reactor={quote(reactor)}"
+    )
+    result = _http_delete(url, timeout=timeout)
+    return result.get("comment", result) if isinstance(result, dict) else {}
 
 
 # ---------------------------------------------------------------------------
@@ -173,13 +205,30 @@ def _parse_tags(raw: str | None) -> list[str]:
     return [t.strip() for t in raw.replace(",", " ").split() if t.strip()]
 
 
+def _format_reactions(reactions: dict[str, list[str]] | None) -> str:
+    """Format reactions dict as a compact summary like '👍x2 💡x1'."""
+    if not reactions:
+        return ""
+    parts = []
+    for emoji, reactors in reactions.items():
+        if reactors:
+            parts.append(f"{emoji}x{len(reactors)}")
+    return " ".join(parts)
+
+
 def _format_comment(c: dict[str, Any]) -> str:
     sev = c.get("severity", "info")
     author = c.get("author", "agent")
     frame = c.get("frame", 0)
+    topic = c.get("topic", "ecosystem")
     tags = c.get("tags") or []
     tag_str = (" [" + ", ".join(tags) + "]") if tags else ""
-    return f"#{c.get('id', '?')} {sev:<8} {author} @frame {frame}{tag_str}\n    {c.get('text', '')}"
+    reactions = _format_reactions(c.get("reactions"))
+    react_str = f"  {reactions}" if reactions else ""
+    return (
+        f"#{c.get('id', '?')} {sev:<8} [{topic}] {author} @frame {frame}{tag_str}"
+        f"\n    {c.get('text', '')}{react_str}"
+    )
 
 
 def _run_cmd(cmd: str) -> str:
@@ -221,6 +270,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Severity (default: info)",
     )
     p.add_argument(
+        "--topic",
+        default=None,
+        choices=VALID_TOPICS,
+        help="Topic for the comment (default: ecosystem)",
+    )
+    p.add_argument(
         "--metric",
         action="append",
         dest="metrics",
@@ -230,6 +285,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--read", action="store_true", help="Read recent comments instead of posting")
     p.add_argument("--limit", type=int, default=None, help="Max comments for --read")
     p.add_argument("--since-id", type=int, default=None, help="Only comments newer than this id")
+
+    # Reaction flags
+    p.add_argument(
+        "--react", type=int, default=None, metavar="COMMENT_ID", help="React to a comment"
+    )
+    p.add_argument(
+        "--unreact", type=int, default=None, metavar="COMMENT_ID", help="Remove a reaction"
+    )
+    p.add_argument(
+        "--emoji", default=None, help="Emoji for --react/--unreact (one of the curated palette)"
+    )
+    p.add_argument(
+        "--as",
+        dest="reactor_name",
+        default=None,
+        help="Reactor name for --react/--unreact (default: $TANK_AGENT or 'agent')",
+    )
+
     p.add_argument("--watch", action="store_true", help="Loop forever (scripted narrator)")
     p.add_argument(
         "--interval",
@@ -246,12 +319,73 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     base_url = args.url.rstrip("/")
+    reactor_name = args.reactor_name or os.getenv("TANK_AGENT") or "agent"
+
+    # --- react mode -------------------------------------------------------
+    if args.react is not None:
+        if not args.emoji:
+            print("error: --react requires --emoji", file=sys.stderr)
+            return 2
+        try:
+            result = react_comment(
+                base_url,
+                args.react,
+                args.emoji,
+                reactor=reactor_name,
+                world_id=args.world,
+            )
+            print(f"Reacted {args.emoji} on comment #{args.react} as {reactor_name}")
+            print(_format_comment(result))
+        except HTTPError as e:
+            detail = ""
+            try:
+                detail = json.loads(e.read().decode("utf-8")).get("detail", "")
+            except Exception:
+                pass
+            print(f"error: server returned {e.code}: {detail or e.reason}", file=sys.stderr)
+            return 2
+        except URLError as e:
+            print(f"error: could not reach {base_url}: {e}", file=sys.stderr)
+            return 2
+        return 0
+
+    # --- unreact mode -----------------------------------------------------
+    if args.unreact is not None:
+        if not args.emoji:
+            print("error: --unreact requires --emoji", file=sys.stderr)
+            return 2
+        try:
+            result = unreact_comment(
+                base_url,
+                args.unreact,
+                args.emoji,
+                reactor=reactor_name,
+                world_id=args.world,
+            )
+            print(f"Removed {args.emoji} from comment #{args.unreact} as {reactor_name}")
+            print(_format_comment(result))
+        except HTTPError as e:
+            detail = ""
+            try:
+                detail = json.loads(e.read().decode("utf-8")).get("detail", "")
+            except Exception:
+                pass
+            print(f"error: server returned {e.code}: {detail or e.reason}", file=sys.stderr)
+            return 2
+        except URLError as e:
+            print(f"error: could not reach {base_url}: {e}", file=sys.stderr)
+            return 2
+        return 0
 
     # --- read mode -------------------------------------------------------
     if args.read:
         try:
             comments = read_comments(
-                base_url, world_id=args.world, limit=args.limit, since_id=args.since_id
+                base_url,
+                world_id=args.world,
+                limit=args.limit,
+                since_id=args.since_id,
+                topic=args.topic,
             )
         except (HTTPError, URLError) as e:
             print(f"error: could not reach {base_url}: {e}", file=sys.stderr)
@@ -294,6 +428,7 @@ def main(argv: list[str] | None = None) -> int:
                             tags=tags,
                             severity=args.severity,
                             metrics=metrics or None,
+                            topic=args.topic,
                         )
                         print(_format_comment(c))
                     except (HTTPError, URLError) as e:
@@ -320,6 +455,7 @@ def main(argv: list[str] | None = None) -> int:
             tags=tags,
             severity=args.severity,
             metrics=metrics or None,
+            topic=args.topic,
         )
     except HTTPError as e:
         detail = ""

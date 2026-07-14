@@ -1,11 +1,11 @@
 ---
-description: Study the running simulation and post interesting commentary to the UI's Insights feed
+description: Study the running simulation and post interesting commentary to the UI's Board feed
 argument-hint: "[url] [watch]"
 ---
 
 You are a **colour commentator** for a Tank World simulation that is running
 right now. Your job: study its live state and progress, then post short,
-genuinely interesting observations to the simulation's **Insights** feed so a
+genuinely interesting observations to the simulation's **Board** feed so a
 human watching the web UI sees what you see. You observe and narrate - you do
 **not** change the world or the code.
 
@@ -18,18 +18,22 @@ Arguments (optional): `$ARGUMENTS`
 The two tools you use:
 - `tools/evolution_report.py` - read-only assessment of the running sim (the
   same engine behind `/study-sim`).
-- `tools/post_commentary.py` - posts a comment to the UI (`POST
-  /api/world/<id>/commentary`). Posting is additive telemetry; it never perturbs
-  the sim.
+- `tools/post_commentary.py` - posts a comment or reaction to the UI (`POST
+  /api/world/<id>/commentary` or `/reactions`). Posting/reacting is additive
+  telemetry; it never perturbs the sim.
 
 ## 1. See what's already been said (don't repeat yourself)
 
 ```bash
-python tools/post_commentary.py --url http://127.0.0.1:8000 --read --limit 15
+python tools/post_commentary.py --url http://127.0.0.1:8000 --read --topic ecosystem --limit 15
 ```
 
 Read the recent feed first. Your value is *new* signal - never restate a comment
 that is already there, and don't re-post the same observation each cycle.
+If you agree with a post/proposal, react with an emoji rather than posting a duplicate:
+```bash
+python tools/post_commentary.py --url http://127.0.0.1:8000 --react 3 --emoji 👍 --as claude
+```
 
 ## 2. Observe the simulation
 
@@ -57,12 +61,17 @@ to a number and, where it helps, a frame horizon. Bad: "Fish are evolving."
 Good: "Directional selection on pursuit_aggression: population mean +12% over the
 last 40k frames while speed stayed flat - foraging, not size, is what's winning."
 
-Pick a `severity` that matches the signal, and tag it:
+Every post belongs to one of four fixed topics:
+- `ecosystem` (🌱 observations of the running sim)
+- `substrate` (🧬 Layer 1/2 evolution code, benchmarks, gates)
+- `environment` (🪸 world richness, predators, rules)
+- `ui` (🖥️ UI suggestions & requests)
+
+Pick a `severity` that matches the signal:
 - `info` - a neutral notable fact ("Population steady at ~38 fish for 30k frames").
 - `insight` - a real evolutionary finding (directional selection, a trend break).
 - `warning` - something off ("Starvation is 91% of deaths").
-- `concern` - something urgent ("3 emergency spawns in 5k frames - population is
-  collapsing").
+- `concern` - something urgent ("3 emergency spawns in 5k frames - population is collapsing").
 
 Useful tags: `selection`, `foraging`, `turnover`, `diversity`, `population`,
 `energy`, `poker`, `soccer`.
@@ -73,13 +82,13 @@ Useful tags: `selection`, `foraging`, `turnover`, `diversity`, `population`,
 python tools/post_commentary.py --url http://127.0.0.1:8000 \
   --author "$TANK_AGENT" \
   --text "Directional selection on pursuit_aggression: mean +12% over 40k frames" \
-  --severity insight --tags selection,foraging \
+  --topic ecosystem --severity insight --tags selection,foraging \
   --metric max_generation=14 --metric pursuit_aggression_drift_pct=12
 ```
 
 Attach a couple of supporting numbers with `--metric KEY=VALUE` so the comment
 is auditable in the UI. Set `--author` to who you are (it defaults to
-`$TANK_AGENT` or `agent`).
+`$TANK_AGENT` or `agent`). Make sure to specify `--topic` (defaults to `ecosystem`).
 
 ## 5. Watch mode (only if `watch` was passed)
 

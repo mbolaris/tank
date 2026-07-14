@@ -1,39 +1,54 @@
 /**
- * CommentaryFeed - the "Insights" tab.
+ * CommentaryFeed - the "Board" panel (formerly "Insights").
  *
  * Renders a live feed of agent observations about the running simulation,
  * posted via POST /api/world/{world_id}/commentary (see backend/commentary_store.py
  * and tools/post_commentary.py). Polls the GET endpoint every few seconds and
  * shows the most recent comments newest-first.
+ *
+ * v2 additions: topic filter chips, per-message topic badges, and Slack-style
+ * emoji reaction bar (via CommentaryCard). See docs/DISCUSSION_BOARD.md.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { config } from '../config';
-import type { CommentaryItem, CommentarySeverity, CommentaryResponse } from '../types/simulation';
+import type { CommentaryItem, CommentaryResponse, CommentaryTopic } from '../types/simulation';
+import { CommentaryCard } from './CommentaryCard';
 import styles from './CommentaryFeed.module.css';
 
 const POLL_INTERVAL_MS = 4000;
 const FETCH_LIMIT = 100;
+const LS_TOPIC_KEY = 'tank.boardTopicFilter';
+const LS_REACTOR_KEY = 'tank.reactorName';
+const DEFAULT_REACTOR = 'viewer';
 
-const SEVERITY: Record<CommentarySeverity, { icon: string; color: string }> = {
-    info: { icon: '💬', color: '#94a3b8' },
-    insight: { icon: '🔬', color: '#3b82f6' },
-    warning: { icon: '⚠️', color: '#fbbf24' },
-    concern: { icon: '🚨', color: '#ef4444' },
-};
+/** Topic filter chips configuration. */
+const TOPIC_CHIPS: { value: CommentaryTopic | 'all'; icon: string; label: string }[] = [
+    { value: 'all', icon: '', label: 'All' },
+    { value: 'ecosystem', icon: '🌱', label: 'Ecosystem' },
+    { value: 'substrate', icon: '🧬', label: 'Substrate' },
+    { value: 'environment', icon: '🪸', label: 'Environment' },
+    { value: 'ui', icon: '🖥️', label: 'UI' },
+];
 
-function severityStyle(severity: CommentarySeverity) {
-    return SEVERITY[severity] ?? SEVERITY.info;
+function getStoredTopic(): CommentaryTopic | 'all' {
+    try {
+        const stored = localStorage.getItem(LS_TOPIC_KEY);
+        if (stored && TOPIC_CHIPS.some(c => c.value === stored)) {
+            return stored as CommentaryTopic | 'all';
+        }
+    } catch {
+        // localStorage not available
+    }
+    return 'all';
 }
 
-function timeAgo(epochSeconds: number): string {
-    const secs = Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
-    if (secs < 60) return `${secs}s ago`;
-    const mins = Math.floor(secs / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+function getViewerName(): string {
+    try {
+        return localStorage.getItem(LS_REACTOR_KEY) || DEFAULT_REACTOR;
+    } catch {
+        return DEFAULT_REACTOR;
+    }
 }
 
 interface CommentaryFeedProps {
@@ -44,7 +59,9 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
     const [comments, setComments] = useState<CommentaryItem[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
+    const [activeTopic, setActiveTopic] = useState<CommentaryTopic | 'all'>(getStoredTopic);
     const mountedRef = useRef(true);
+    const viewerName = getViewerName();
 
     const effectiveId = worldId || 'default';
 
@@ -79,12 +96,105 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
         };
     }, [fetchComments]);
 
+    // --- Topic filter ---
+    const handleTopicChange = useCallback((topic: CommentaryTopic | 'all') => {
+        setActiveTopic(topic);
+        try {
+            localStorage.setItem(LS_TOPIC_KEY, topic);
+        } catch {
+            // localStorage not available
+        }
+    }, []);
+
+    // Client-side topic filtering
+    const filteredComments = activeTopic === 'all'
+        ? comments
+        : comments.filter(c => c.topic === activeTopic);
+
+    // Count per topic for the chips
+    const topicCounts: Record<string, number> = { all: comments.length };
+    for (const c of comments) {
+        topicCounts[c.topic] = (topicCounts[c.topic] || 0) + 1;
+    }
+
+    // --- Reactions (optimistic) ---
+    const handleReact = useCallback(async (commentId: number, emoji: string) => {
+        // Optimistic update
+        setComments(prev =>
+            prev.map(c => {
+                if (c.id !== commentId) return c;
+                const reactions = { ...c.reactions };
+                const reactors = [...(reactions[emoji] ?? [])];
+                if (!reactors.includes(viewerName)) {
+                    reactors.push(viewerName);
+                }
+                reactions[emoji] = reactors;
+                return { ...c, reactions };
+            }),
+        );
+        // Fire and forget — next poll reconciles
+        try {
+            await fetch(config.reactionUrl(effectiveId, commentId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ emoji, reactor: viewerName }),
+            });
+        } catch {
+            // Reconciled on next poll
+        }
+    }, [effectiveId, viewerName]);
+
+    const handleUnreact = useCallback(async (commentId: number, emoji: string) => {
+        // Optimistic update
+        setComments(prev =>
+            prev.map(c => {
+                if (c.id !== commentId) return c;
+                const reactions = { ...c.reactions };
+                const reactors = (reactions[emoji] ?? []).filter(r => r !== viewerName);
+                if (reactors.length > 0) {
+                    reactions[emoji] = reactors;
+                } else {
+                    delete reactions[emoji];
+                }
+                return { ...c, reactions };
+            }),
+        );
+        // Fire and forget — next poll reconciles
+        try {
+            const params = new URLSearchParams({ emoji, reactor: viewerName });
+            await fetch(`${config.reactionUrl(effectiveId, commentId)}?${params}`, {
+                method: 'DELETE',
+            });
+        } catch {
+            // Reconciled on next poll
+        }
+    }, [effectiveId, viewerName]);
+
     return (
         <div className={styles.container}>
             <p className={styles.subtitle}>
                 Live observations posted by agents studying this simulation. Launch one with{' '}
                 <code>/observe-sim</code> or <code>python tools/post_commentary.py</code>.
             </p>
+
+            {/* Topic filter chips */}
+            <div className={styles.chipBar}>
+                {TOPIC_CHIPS.map(chip => {
+                    const isActive = activeTopic === chip.value;
+                    const count = topicCounts[chip.value] ?? 0;
+                    return (
+                        <button
+                            key={chip.value}
+                            className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
+                            onClick={() => handleTopicChange(chip.value)}
+                        >
+                            {chip.icon && <span className={styles.chipIcon}>{chip.icon}</span>}
+                            {chip.label}
+                            <span className={styles.chipCount}>{count}</span>
+                        </button>
+                    );
+                })}
+            </div>
 
             {error && comments.length === 0 && (
                 <div className={styles.error}>Could not load commentary: {error}</div>
@@ -93,55 +203,22 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
             {loaded && !error && comments.length === 0 && (
                 <div className={styles.empty}>
                     No commentary yet. An agent can post one with{' '}
-                    <code>python tools/post_commentary.py --text "..."</code> or by POSTing to{' '}
+                    <code>python tools/post_commentary.py --text &quot;...&quot;</code> or by POSTing to{' '}
                     <code>/api/world/{effectiveId}/commentary</code>.
                 </div>
             )}
 
-            {comments.length > 0 && (
+            {filteredComments.length > 0 && (
                 <div className={styles.list}>
-                    {comments.map((c) => {
-                        const sev = severityStyle(c.severity);
-                        return (
-                            <div
-                                key={c.id}
-                                className={styles.item}
-                                style={{ borderLeftColor: sev.color }}
-                            >
-                                <div className={styles.itemHeader}>
-                                    <span className={styles.severityIcon} title={c.severity}>
-                                        {sev.icon}
-                                    </span>
-                                    <span className={styles.author}>{c.author}</span>
-                                    <span className={styles.meta}>
-                                        frame {c.frame.toLocaleString()} · {timeAgo(c.created_at)}
-                                    </span>
-                                </div>
-                                <p className={styles.text}>{c.text}</p>
-                                {c.tags.length > 0 && (
-                                    <div className={styles.tags}>
-                                        {c.tags.map((tag) => (
-                                            <span key={tag} className={styles.tag}>
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                {c.metrics && Object.keys(c.metrics).length > 0 && (
-                                    <div className={styles.metrics}>
-                                        {Object.entries(c.metrics).map(([k, v]) => (
-                                            <span key={k} className={styles.metric}>
-                                                {k}=
-                                                <span className={styles.metricValue}>
-                                                    {String(v)}
-                                                </span>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                    {filteredComments.map((c) => (
+                        <CommentaryCard
+                            key={c.id}
+                            comment={c}
+                            viewerName={viewerName}
+                            onReact={handleReact}
+                            onUnreact={handleUnreact}
+                        />
+                    ))}
                 </div>
             )}
         </div>
