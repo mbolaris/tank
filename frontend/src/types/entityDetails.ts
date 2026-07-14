@@ -146,6 +146,9 @@ export interface EntityDetailsTargetMemoryDomain {
     predicted_position: [number, number];
     search_vector: [number, number];
     influencing_movement: boolean;
+    effective_switch_threshold?: number | null;
+    remembered_effective_value?: number | null;
+    candidate_value?: number | null;
 }
 
 export interface EntityDetailsTargetMemoryRecentEvent {
@@ -162,5 +165,6 @@ export interface EntityDetailsTargetMemory {
         ball?: EntityDetailsTargetMemoryDomain;
     };
     recent_event: EntityDetailsTargetMemoryRecentEvent | null;
+    recent_events?: Record<string, EntityDetailsTargetMemoryRecentEvent> | null;
 }
 

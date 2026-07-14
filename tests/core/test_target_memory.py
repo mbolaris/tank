@@ -737,3 +737,134 @@ def test_select_food_target_is_not_called_when_memory_active(monkeypatch):
     assert obs.target_label == "Food"
     # Ensure select_food_target was NEVER called
     assert not called
+
+
+def test_influencing_movement_and_diagnostics(monkeypatch):
+    """Assert correct influencing_movement flags and threshold diagnostics in hook details."""
+    from core.behavior.target_memory import TargetMemoryDecision, TargetId, TargetMemoryAction
+    from backend.runner.hooks.target_memory_presenter import get_target_memory_details
+    from core.movement.intents import MovementIntent
+    from unittest.mock import MagicMock
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+
+    # Mock decisions and state so get_target_memory_details doesn't return None early
+    fish.target_memory_state = {
+        "food": MagicMock(
+            target_id=TargetId("food", 1),
+            confidence=0.8,
+            frames_since_seen=5,
+            last_seen_position=(10.0, 10.0),
+            last_seen_velocity=(1.0, 1.0),
+        ),
+        "ball": MagicMock(
+            target_id=TargetId("ball", 0),
+            confidence=0.9,
+            frames_since_seen=2,
+            last_seen_position=(20.0, 20.0),
+            last_seen_velocity=(0.5, 0.5),
+        ),
+    }
+
+    dec_food = TargetMemoryDecision(
+        selected_target_id=TargetId("food", 1),
+        target_position=(15.0, 15.0),
+        target_vector=(5.0, 5.0),
+        target_velocity=(1.0, 1.0),
+        target_confidence=0.8,
+        action=TargetMemoryAction.SWITCH,
+        effective_switch_threshold=1.5,
+        remembered_effective_value=75.0,
+        candidate_value=80.0,
+    )
+    dec_ball = TargetMemoryDecision(
+        selected_target_id=TargetId("ball", 0),
+        target_position=(21.0, 21.0),
+        target_vector=(1.0, 1.0),
+        target_velocity=(0.5, 0.5),
+        target_confidence=0.9,
+        action=TargetMemoryAction.CONTINUE,
+        effective_switch_threshold=1.2,
+        remembered_effective_value=60.0,
+        candidate_value=None,
+    )
+    fish.last_target_memory_decisions = {"food": dec_food, "ball": dec_ball}
+
+    # Case 1: active_kind == "graph_food_pursuit"
+    mock_arb = MagicMock()
+    mock_arb.selected = MovementIntent(
+        velocity=(1.0, 1.0),
+        kind="graph_food_pursuit",
+        urgency=1.0,
+        confidence=1.0,
+        target_id=1,
+        source="graph",
+    )
+    fish.movement_strategy = MagicMock()
+    fish.movement_strategy.last_arbitration = mock_arb
+
+    details = get_target_memory_details(fish)
+    assert details["domains"]["food"]["influencing_movement"] is True
+    assert details["domains"]["ball"]["influencing_movement"] is False
+
+    # Check diagnostic fields are present in hook output
+    assert details["domains"]["food"]["effective_switch_threshold"] == 1.5
+    assert details["domains"]["food"]["remembered_effective_value"] == 75.0
+    assert details["domains"]["food"]["candidate_value"] == 80.0
+
+    assert details["domains"]["ball"]["effective_switch_threshold"] == 1.2
+    assert details["domains"]["ball"]["remembered_effective_value"] == 60.0
+    assert details["domains"]["ball"]["candidate_value"] is None
+
+    # Case 2: active_kind == "soccer_pursuit"
+    mock_arb.selected = MovementIntent(
+        velocity=(1.0, 1.0),
+        kind="soccer_pursuit",
+        urgency=1.0,
+        confidence=1.0,
+        target_id=0,
+        source="soccer",
+    )
+    details = get_target_memory_details(fish)
+    assert details["domains"]["food"]["influencing_movement"] is False
+    assert details["domains"]["ball"]["influencing_movement"] is True
+
+    # Case 3: active_kind == "composable_behavior" (legacy)
+    mock_arb.selected = MovementIntent(
+        velocity=(1.0, 1.0),
+        kind="composable_behavior",
+        urgency=1.0,
+        confidence=1.0,
+        target_id=None,
+        source="legacy",
+    )
+    details = get_target_memory_details(fish)
+    assert details["domains"]["food"]["influencing_movement"] is False
+    assert details["domains"]["ball"]["influencing_movement"] is False
+
+    # Case 4: policy override case
+    mock_arb.selected = MovementIntent(
+        velocity=(1.0, 1.0),
+        kind="policy_override",
+        urgency=1.0,
+        confidence=1.0,
+        target_id=None,
+        source="override",
+    )
+    details = get_target_memory_details(fish)
+    assert details["domains"]["food"]["influencing_movement"] is False
+    assert details["domains"]["ball"]["influencing_movement"] is False
+
+    # Case 5: threat cases
+    mock_arb.selected = MovementIntent(
+        velocity=(1.0, 1.0),
+        kind="graph_threat_avoidance",
+        urgency=1.0,
+        confidence=1.0,
+        target_id=None,
+        source="threat",
+    )
+    details = get_target_memory_details(fish)
+    assert details["domains"]["food"]["influencing_movement"] is False
+    assert details["domains"]["ball"]["influencing_movement"] is False

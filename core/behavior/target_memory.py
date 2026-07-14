@@ -166,6 +166,9 @@ class TargetMemoryDecision:
     target_velocity: Vector2f
     target_confidence: float
     action: TargetMemoryAction
+    effective_switch_threshold: float | None = None
+    remembered_effective_value: float | None = None
+    candidate_value: float | None = None
 
 
 def _vector(origin: Vector2f, point: Vector2f) -> Vector2f:
@@ -251,37 +254,90 @@ def decide_target(
     remembered = _find(visible_candidates, state.target_id) if state.target_id is not None else None
     alternative = _best_candidate(visible_candidates, exclude=state.target_id)
 
+    # Diagnostic variables
+    cand_value = alternative.value if alternative is not None else None
+
     if state.target_id is None:
         if alternative is None:
-            return TargetMemoryState.empty(), _empty_decision(
-                observer_position, TargetMemoryAction.IDLE
+            return TargetMemoryState.empty(), TargetMemoryDecision(
+                selected_target_id=None,
+                target_position=observer_position,
+                target_vector=(0.0, 0.0),
+                target_velocity=(0.0, 0.0),
+                target_confidence=0.0,
+                action=TargetMemoryAction.IDLE,
+                effective_switch_threshold=None,
+                remembered_effective_value=None,
+                candidate_value=None,
             )
-        return _state_for(alternative), _decision_for(
-            alternative, observer_position, TargetMemoryAction.ACQUIRE
+        return _state_for(alternative), TargetMemoryDecision(
+            selected_target_id=alternative.target_id,
+            target_position=alternative.position,
+            target_vector=_vector(observer_position, alternative.position),
+            target_velocity=alternative.velocity,
+            target_confidence=1.0,
+            action=TargetMemoryAction.ACQUIRE,
+            effective_switch_threshold=None,
+            remembered_effective_value=None,
+            candidate_value=cand_value,
         )
 
     if remembered is not None:
-        effective_threshold = params.switch_threshold * (
+        eff_threshold = params.switch_threshold * (
             1.0 + params.commitment_strength * state.confidence
         )
-        if alternative is not None and alternative.value > remembered.value * effective_threshold:
-            return _state_for(alternative), _decision_for(
-                alternative, observer_position, TargetMemoryAction.SWITCH
+        rem_eff_value = remembered.value * eff_threshold
+        if alternative is not None and alternative.value > rem_eff_value:
+            return _state_for(alternative), TargetMemoryDecision(
+                selected_target_id=alternative.target_id,
+                target_position=alternative.position,
+                target_vector=_vector(observer_position, alternative.position),
+                target_velocity=alternative.velocity,
+                target_confidence=1.0,
+                action=TargetMemoryAction.SWITCH,
+                effective_switch_threshold=eff_threshold,
+                remembered_effective_value=rem_eff_value,
+                candidate_value=cand_value,
             )
-        return _state_for(remembered), _decision_for(
-            remembered, observer_position, TargetMemoryAction.CONTINUE
+        return _state_for(remembered), TargetMemoryDecision(
+            selected_target_id=remembered.target_id,
+            target_position=remembered.position,
+            target_vector=_vector(observer_position, remembered.position),
+            target_velocity=remembered.velocity,
+            target_confidence=1.0,
+            action=TargetMemoryAction.CONTINUE,
+            effective_switch_threshold=eff_threshold,
+            remembered_effective_value=rem_eff_value,
+            candidate_value=cand_value,
         )
 
     # Remembered target not among this frame's candidates.
     next_frames_since_seen = state.frames_since_seen + 1
-    remembered_effective_value = state.remembered_value * state.confidence * params.switch_threshold
-    if alternative is not None and alternative.value > remembered_effective_value:
-        return _state_for(alternative), _decision_for(
-            alternative, observer_position, TargetMemoryAction.SWITCH
+    eff_threshold = state.confidence * params.switch_threshold
+    rem_eff_value = state.remembered_value * state.confidence * params.switch_threshold
+    if alternative is not None and alternative.value > rem_eff_value:
+        return _state_for(alternative), TargetMemoryDecision(
+            selected_target_id=alternative.target_id,
+            target_position=alternative.position,
+            target_vector=_vector(observer_position, alternative.position),
+            target_velocity=alternative.velocity,
+            target_confidence=1.0,
+            action=TargetMemoryAction.SWITCH,
+            effective_switch_threshold=eff_threshold,
+            remembered_effective_value=rem_eff_value,
+            candidate_value=cand_value,
         )
     if next_frames_since_seen >= params.memory_duration:
-        return TargetMemoryState.empty(), _empty_decision(
-            observer_position, TargetMemoryAction.DROP
+        return TargetMemoryState.empty(), TargetMemoryDecision(
+            selected_target_id=None,
+            target_position=observer_position,
+            target_vector=(0.0, 0.0),
+            target_velocity=(0.0, 0.0),
+            target_confidence=0.0,
+            action=TargetMemoryAction.DROP,
+            effective_switch_threshold=eff_threshold,
+            remembered_effective_value=rem_eff_value,
+            candidate_value=cand_value,
         )
 
     confidence = max(0.0, 1.0 - params.confidence_decay * next_frames_since_seen)
@@ -298,5 +354,8 @@ def decide_target(
         target_velocity=state.last_seen_velocity,
         target_confidence=confidence,
         action=TargetMemoryAction.SEARCH,
+        effective_switch_threshold=eff_threshold,
+        remembered_effective_value=rem_eff_value,
+        candidate_value=cand_value,
     )
     return next_state, decision

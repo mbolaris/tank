@@ -238,6 +238,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         self.last_target_memory_decisions: dict[str, TargetMemoryDecision | None] = {}
         self.target_memory_updated_frame: int | None = None
         self.last_target_memory_event: dict[str, Any] | None = None
+        self.last_target_memory_events: dict[str, dict[str, Any]] = {}
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem

@@ -125,18 +125,33 @@ export function EntityInspectorDrawer({
                     );
                     const mem = response.details.target_memory;
                     let chosenDomainData = null;
+                    let chosenDomainName = '';
                     if (mem && mem.domains) {
                         const { food, ball } = mem.domains;
                         if (food?.influencing_movement) {
                             chosenDomainData = food;
+                            chosenDomainName = 'food';
                         } else if (ball?.influencing_movement) {
                             chosenDomainData = ball;
+                            chosenDomainName = 'ball';
                         } else if (food && food.action_raw !== 'idle' && food.action_raw !== 'drop') {
                             chosenDomainData = food;
+                            chosenDomainName = 'food';
                         } else if (ball && ball.action_raw !== 'idle' && ball.action_raw !== 'drop') {
                             chosenDomainData = ball;
+                            chosenDomainName = 'ball';
                         } else {
                             chosenDomainData = food || ball || null;
+                            chosenDomainName = food ? 'food' : (ball ? 'ball' : '');
+                        }
+                    }
+
+                    let domainRecentEvent = null;
+                    if (mem) {
+                        if (mem.recent_events && chosenDomainName && mem.recent_events[chosenDomainName]) {
+                            domainRecentEvent = mem.recent_events[chosenDomainName];
+                        } else {
+                            domainRecentEvent = mem.recent_event;
                         }
                     }
 
@@ -149,11 +164,11 @@ export function EntityInspectorDrawer({
                                   predictedPosition: chosenDomainData.predicted_position,
                                   searchVector: chosenDomainData.search_vector,
                                   confidence: chosenDomainData.confidence_raw,
-                                  recentEvent: mem?.recent_event
+                                  recentEvent: domainRecentEvent
                                       ? {
-                                            domain: mem.recent_event.domain,
-                                            action: mem.recent_event.action,
-                                            ageFrames: mem.recent_event.age_frames,
+                                            domain: domainRecentEvent.domain,
+                                            action: domainRecentEvent.action,
+                                            ageFrames: domainRecentEvent.age_frames,
                                         }
                                       : null,
                               }
@@ -451,6 +466,12 @@ export function EntityInspectorDrawer({
                                                 <StatRow label="Confidence" value={domainData.confidence} />
                                                 <StatRow label="Predicted location" value={domainData.predicted_location} />
                                                 <StatRow label="Switch threshold" value={domainData.switch_threshold} />
+                                                {domainData.candidate_value !== undefined && domainData.candidate_value !== null && (
+                                                    <StatRow
+                                                        label="Value comparison"
+                                                        value={`Cand: ${domainData.candidate_value.toFixed(1)} vs Thresh: ${(domainData.remembered_effective_value ?? 0).toFixed(1)}`}
+                                                    />
+                                                )}
                                             </>
                                         )}
                                         <StatRow label="Memory duration" value={`${domainData.memory_duration} frames`} />

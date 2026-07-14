@@ -27,15 +27,16 @@ def get_target_memory_details(fish: Any) -> dict[str, Any] | None:
         return None
 
     # Determine which domains are influencing movement
+    # Determine which domains are influencing movement
     last_arb = getattr(getattr(fish, "movement_strategy", None), "last_arbitration", None)
     selected_intent = getattr(last_arb, "selected", None) if last_arb is not None else None
     active_kind = getattr(selected_intent, "kind", "") if selected_intent is not None else ""
 
     # active_kind:
     # - "soccer_pursuit" -> ball
-    # - "composable_behavior" | "graph_food" -> food
+    # - "graph_food_pursuit" -> food
     influencing_domains = {
-        "food": active_kind in ("composable_behavior", "graph_food"),
+        "food": active_kind == "graph_food_pursuit",
         "ball": active_kind == "soccer_pursuit",
     }
 
@@ -92,16 +93,22 @@ def get_target_memory_details(fish: Any) -> dict[str, Any] | None:
             pred_location_text = f"{round(pred_offset)} px ahead"
 
         # Effective switch threshold
-        switch_threshold_base = getattr(params, "switch_threshold", 1.4)
-        commitment_strength = getattr(params, "commitment_strength", 0.5)
-        if action_val in ("continue", "switch", "acquire"):
-            effective_threshold = switch_threshold_base * (
-                1.0 + commitment_strength * confidence_val
-            )
-        elif action_val == "search":
-            effective_threshold = switch_threshold_base * confidence_val
+        dec_eff_threshold = (
+            getattr(decision, "effective_switch_threshold", None) if decision is not None else None
+        )
+        if dec_eff_threshold is not None:
+            effective_threshold = dec_eff_threshold
         else:
-            effective_threshold = switch_threshold_base
+            switch_threshold_base = getattr(params, "switch_threshold", 1.4)
+            commitment_strength = getattr(params, "commitment_strength", 0.5)
+            if action_val in ("continue", "switch", "acquire"):
+                effective_threshold = switch_threshold_base * (
+                    1.0 + commitment_strength * confidence_val
+                )
+            elif action_val == "search":
+                effective_threshold = switch_threshold_base * confidence_val
+            else:
+                effective_threshold = switch_threshold_base
         threshold_text = f"{round(effective_threshold, 2)}×"
 
         # Memory duration
@@ -142,26 +149,42 @@ def get_target_memory_details(fish: Any) -> dict[str, Any] | None:
             "predicted_position": predicted_pos,
             "search_vector": search_vector,
             "influencing_movement": influencing_domains[domain],
+            "effective_switch_threshold": dec_eff_threshold,
+            "remembered_effective_value": (
+                getattr(decision, "remembered_effective_value", None)
+                if decision is not None
+                else None
+            ),
+            "candidate_value": (
+                getattr(decision, "candidate_value", None) if decision is not None else None
+            ),
         }
 
-    # Format recent event latch (Point 3)
+    # Format recent event latches (Point 3)
     current_frame = int(getattr(getattr(fish, "environment", None), "frame_count", 0))
-    event = getattr(fish, "last_target_memory_event", None)
+    events_map = getattr(fish, "last_target_memory_events", {})
+    recent_events_data = {}
+    for domain_key, ev in events_map.items():
+        if ev is not None:
+            event_frame = ev.get("frame", 0)
+            age = current_frame - event_frame
+            if 0 <= age <= 25:
+                recent_events_data[domain_key] = {
+                    "domain": ev["domain"],
+                    "action": ev["action"],
+                    "from_target": ev["from_target"],
+                    "to_target": ev["to_target"],
+                    "age_frames": age,
+                }
+
+    # Fallback/default recent_event for legacy client support (most recent active latch)
     recent_event_data = None
-    if event is not None:
-        event_frame = event.get("frame", 0)
-        # Latched for 25 frames
-        age = current_frame - event_frame
-        if 0 <= age <= 25:
-            recent_event_data = {
-                "domain": event["domain"],
-                "action": event["action"],
-                "from_target": event["from_target"],
-                "to_target": event["to_target"],
-                "age_frames": age,
-            }
+    if recent_events_data:
+        sorted_events = sorted(recent_events_data.values(), key=lambda e: e["age_frames"])
+        recent_event_data = sorted_events[0]
 
     return {
         "domains": domains_data,
         "recent_event": recent_event_data,
+        "recent_events": recent_events_data,
     }
