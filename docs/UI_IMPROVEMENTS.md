@@ -136,7 +136,10 @@ of a threshold.
 **Outcome:** important events remain visible instead of scrolling away.
 
 Render U6 records in the existing Insights/commentary surface with a visible distinction
-between deterministic world events and agent commentary. Add a compact, keyboard-
+between deterministic world events and agent commentary. Note that this surface is
+independently becoming a topic-filtered discussion board with emoji reactions (see
+[DISCUSSION_BOARD.md](DISCUSSION_BOARD.md)); U7 should render world events within
+whichever version of that surface has landed first. Add a compact, keyboard-
 navigable timeline under the canvas. Selecting a marker opens event detail and, when an
 entity still exists, links to U4.
 
