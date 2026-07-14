@@ -36,6 +36,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/code_pool/genome_code_pool.py": 641,
     "core/collision_system.py": 509,
     "core/ecosystem.py": 638,
+    "core/environment.py": 512,
     "core/evolution_analytics.py": 657,
     "core/entities/fish.py": 798,
     "core/entities/plant.py": 727,

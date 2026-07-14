@@ -56,9 +56,31 @@ def test_explicit_food_id_is_respected() -> None:
     food = Food(env, 10, 10, rng=random.Random(1), food_id=42)
 
     assert food.food_id == 42
-    # Explicit ids don't consume the environment's counter.
+    # An explicit id reserves its slot: the counter jumps past it rather
+    # than handing out a value <= 42 that could collide later.
     next_food = Food(env, 20, 20, rng=random.Random(2))
-    assert next_food.food_id == 0
+    assert next_food.food_id == 43
+
+
+def test_explicit_food_id_zero_does_not_collide_with_auto_generated_ids() -> None:
+    """Regression: food_id=0 previously left the counter untouched (it also
+    starts at 0), so the very next auto-generated food silently reused id 0."""
+    env = _environment()
+    manual = Food(env, 10, 10, rng=random.Random(1), food_id=0)
+    auto = Food(env, 20, 20, rng=random.Random(2))
+
+    assert manual.food_id == 0
+    assert auto.food_id != manual.food_id
+
+
+def test_reserving_an_earlier_id_after_a_later_one_does_not_regress_the_counter() -> None:
+    """Out-of-order reservations must only ever advance the counter."""
+    env = _environment()
+    Food(env, 0, 0, rng=random.Random(1), food_id=10)
+    Food(env, 0, 0, rng=random.Random(2), food_id=3)  # earlier id, reserved second
+
+    auto = Food(env, 20, 20, rng=random.Random(3))
+    assert auto.food_id == 11
 
 
 def test_livefood_and_subclasses_get_real_ids_too() -> None:
