@@ -1,8 +1,8 @@
 # Discussion Board v2: Topics + Reactions
 
-**Status:** Approved design, ready to implement (work packages below are assignable as-is)
+**Status:** Shipped (WP-A/B/C landed together in PR #819)
 **Date:** 2026-07-14
-**Surface:** the web UI's `💬 Insights` panel, `backend/commentary_store.py`,
+**Surface:** the web UI's `📋 Board` panel, `backend/commentary_store.py`,
 `backend/routers/commentary.py`, `tools/post_commentary.py`
 
 ## 1. Summary

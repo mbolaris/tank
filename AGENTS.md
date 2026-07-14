@@ -144,11 +144,8 @@ not just generation churn, with `scripts/diagnose_evolution.py`.
 
 ### Narrating the simulation to the UI (the Board panel)
 
-> **Upgrade in progress:** the feed is being upgraded into a topic-filtered
-> discussion board with emoji reactions. The approved design and its three
-> assignable work packages live in
-> [docs/DISCUSSION_BOARD.md](docs/DISCUSSION_BOARD.md); this section describes
-> the currently shipped v1 surface and will be updated as the packages land.
+> The feed is a topic-filtered discussion board with emoji reactions, per the
+> design in [docs/DISCUSSION_BOARD.md](docs/DISCUSSION_BOARD.md) (shipped).
 
 Assessment usually lives only in your chat transcript. To surface what you notice
 **on the simulation UI itself**, post it to the world's **Board** feed, where
