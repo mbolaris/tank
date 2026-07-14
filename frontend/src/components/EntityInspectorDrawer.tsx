@@ -37,6 +37,8 @@ interface EntityInspectorDrawerProps {
     onPursuitOverlayChange?: (data: PursuitOverlayData | null) => void;
     /** Fires whenever fetched target memory vectors change, for the canvas overlay. */
     onTargetMemoryOverlayChange?: (data: TargetMemoryOverlayData | null) => void;
+    /** Optional initial fetch state for SSR/unit tests (Point 5). */
+    initialFetchState?: FetchState;
 }
 
 type FetchState =
@@ -98,8 +100,9 @@ export function EntityInspectorDrawer({
     onToggleFollow,
     onPursuitOverlayChange,
     onTargetMemoryOverlayChange,
+    initialFetchState,
 }: EntityInspectorDrawerProps) {
-    const [fetchState, setFetchState] = useState<FetchState>({ phase: 'loading' });
+    const [fetchState, setFetchState] = useState<FetchState>(initialFetchState || { phase: 'loading' });
     const drawerRef = useRef<HTMLDivElement>(null);
     const requestSeqRef = useRef(0);
 
@@ -121,16 +124,38 @@ export function EntityInspectorDrawer({
                             : null
                     );
                     const mem = response.details.target_memory;
+                    let chosenDomainData = null;
+                    if (mem && mem.domains) {
+                        const { food, ball } = mem.domains;
+                        if (food?.influencing_movement) {
+                            chosenDomainData = food;
+                        } else if (ball?.influencing_movement) {
+                            chosenDomainData = ball;
+                        } else if (food && food.action_raw !== 'idle' && food.action_raw !== 'drop') {
+                            chosenDomainData = food;
+                        } else if (ball && ball.action_raw !== 'idle' && ball.action_raw !== 'drop') {
+                            chosenDomainData = ball;
+                        } else {
+                            chosenDomainData = food || ball || null;
+                        }
+                    }
+
                     onTargetMemoryOverlayChange?.(
-                        mem
+                        chosenDomainData
                             ? {
-                                  domain: mem.domain,
-                                  action: mem.action,
-                                  lastSeenPosition: mem.last_seen_position,
-                                  predictedPosition: mem.predicted_position,
-                                  searchVector: mem.search_vector,
-                                  confidence: mem.confidence_raw,
-                                  isSwitching: mem.is_switching,
+                                  domain: chosenDomainData.domain,
+                                  action: chosenDomainData.action,
+                                  lastSeenPosition: chosenDomainData.last_seen_position,
+                                  predictedPosition: chosenDomainData.predicted_position,
+                                  searchVector: chosenDomainData.search_vector,
+                                  confidence: chosenDomainData.confidence_raw,
+                                  recentEvent: mem?.recent_event
+                                      ? {
+                                            domain: mem.recent_event.domain,
+                                            action: mem.recent_event.action,
+                                            ageFrames: mem.recent_event.age_frames,
+                                        }
+                                      : null,
                               }
                             : null
                     );
@@ -393,17 +418,46 @@ export function EntityInspectorDrawer({
                     </section>
                 )}
 
-                {details?.target_memory && (
+                {details?.target_memory?.domains && (
                     <section className={styles.section} aria-label="Target Memory">
                         <h3 className={styles.sectionTitle}>Target Memory</h3>
-                        <StatRow label="Domain" value={details.target_memory.domain} />
-                        <StatRow label="Action" value={details.target_memory.action} />
-                        <StatRow label="Remembering" value={details.target_memory.remembering} />
-                        <StatRow label="Last seen" value={details.target_memory.last_seen} />
-                        <StatRow label="Confidence" value={details.target_memory.confidence} />
-                        <StatRow label="Predicted location" value={details.target_memory.predicted_location} />
-                        <StatRow label="Switch threshold" value={details.target_memory.switch_threshold} />
-                        <StatRow label="Memory duration" value={`${details.target_memory.memory_duration} frames`} />
+                        {Object.entries(details.target_memory.domains).map(([domainKey, domainData]) => {
+                            if (!domainData) return null;
+                            const isInfluencing = domainData.influencing_movement;
+                            const isActive = domainData.action_raw !== 'idle' && domainData.action_raw !== 'drop';
+
+                            let statusLabel = 'Inactive';
+                            let statusClass = styles.statusInactive;
+                            if (isInfluencing) {
+                                statusLabel = 'Influencing Movement';
+                                statusClass = styles.statusInfluencing;
+                            } else if (isActive) {
+                                statusLabel = 'Tracking in Background';
+                                statusClass = styles.statusBackground;
+                            }
+
+                            return (
+                                <div key={domainKey} className={`${styles.domainBlock} ${isInfluencing ? styles.domainInfluencing : ''}`}>
+                                    <div className={styles.domainHeader}>
+                                        <span className={styles.domainName}>{domainData.domain} Memory</span>
+                                        <span className={`${styles.statusBadge} ${statusClass}`}>{statusLabel}</span>
+                                    </div>
+                                    <div className={styles.domainDetails}>
+                                        <StatRow label="Remembering" value={domainData.remembering} />
+                                        <StatRow label="Action" value={domainData.action} />
+                                        {isActive && (
+                                            <>
+                                                <StatRow label="Last seen" value={domainData.last_seen} />
+                                                <StatRow label="Confidence" value={domainData.confidence} />
+                                                <StatRow label="Predicted location" value={domainData.predicted_location} />
+                                                <StatRow label="Switch threshold" value={domainData.switch_threshold} />
+                                            </>
+                                        )}
+                                        <StatRow label="Memory duration" value={`${domainData.memory_duration} frames`} />
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </section>
                 )}
 

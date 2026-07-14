@@ -68,7 +68,6 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
     """
     memory_decision = fish.last_target_memory_decisions.get("food")
 
-    food = select_food_target(fish) if fish.can_eat() else None
     if (
         fish.can_eat()
         and memory_decision is not None
@@ -78,6 +77,7 @@ def build_tank_behavior_observation(fish: Fish) -> TankBehaviorObservation:
         target_exists = True
         target_velocity = memory_decision.target_velocity
     else:
+        food = select_food_target(fish) if fish.can_eat() else None
         offset_vector = _offset(fish, food)
         target_exists = food is not None
         target_velocity = (float(food.vel.x), float(food.vel.y)) if food is not None else (0.0, 0.0)

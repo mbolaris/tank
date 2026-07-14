@@ -2,6 +2,8 @@
 import type { Renderer, RenderFrame, RenderContext } from '../../rendering/types';
 import { EntityPositionInterpolator } from '../../rendering/entityPositionInterpolator';
 import { Renderer as TankRenderer } from '../../utils/renderer';
+import { drawPursuitOverlay } from '../../utils/drawPursuitOverlay';
+import { drawTargetMemoryOverlay } from '../../utils/drawTargetMemoryOverlay';
 import type { EntityData, SimulationUpdate } from '../../types/simulation';
 
 const PLANT_LAYER_FRAME_MS = 1000 / 15;
@@ -129,14 +131,23 @@ export class TankSideRenderer implements Renderer {
                 const entity = renderedEntities.find((candidate) => candidate.id === selected);
                 if (entity) {
                     const radius = Math.max(entity.width, entity.height) / 2 + 6;
+                    const centerX = entity.x + entity.width / 2;
+                    const centerY = entity.y + entity.height / 2;
                     ctx.save();
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 2;
                     ctx.setLineDash([4, 4]);
                     ctx.beginPath();
-                    ctx.arc(entity.x + entity.width / 2, entity.y + entity.height / 2, radius, 0, Math.PI * 2);
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                     ctx.stroke();
                     ctx.restore();
+
+                    if (frame.options?.pursuitOverlay) {
+                        drawPursuitOverlay(ctx, centerX, centerY, frame.options.pursuitOverlay);
+                    }
+                    if (frame.options?.targetMemoryOverlay) {
+                        drawTargetMemoryOverlay(ctx, centerX, centerY, frame.options.targetMemoryOverlay, rc.nowMs);
+                    }
                 }
             }
 

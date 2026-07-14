@@ -21,6 +21,7 @@ from core.behavior.target_memory import (
     decide_target,
 )
 from core.behavior.target_memory_controller import advance_target_memory
+from backend.runner.hooks.target_memory_presenter import get_target_memory_details
 from core.entities import Fish
 from core.genetics.behavioral import BehavioralTraits
 from core.genetics.genome import GENOME_SCHEMA_VERSION, Genome
@@ -644,15 +645,95 @@ def test_get_entity_details_returns_target_memory_payload():
 
     mem = details["target_memory"]
     assert mem is not None
-    assert mem["domain"] in ("Food", "Ball")
-    assert "action" in mem
-    assert "remembering" in mem
-    assert "last_seen" in mem
-    assert "confidence" in mem
-    assert "predicted_location" in mem
-    assert "switch_threshold" in mem
-    assert "memory_duration" in mem
-    assert len(mem["last_seen_position"]) == 2
-    assert len(mem["predicted_position"]) == 2
-    assert len(mem["search_vector"]) == 2
-    assert isinstance(mem["is_switching"], bool)
+    assert "domains" in mem
+    assert "food" in mem["domains"]
+    food_data = mem["domains"]["food"]
+    assert food_data["domain"] == "Food"
+    assert "action" in food_data
+    assert "remembering" in food_data
+    assert "last_seen" in food_data
+    assert "confidence" in food_data
+    assert "predicted_location" in food_data
+    assert "switch_threshold" in food_data
+    assert "memory_duration" in food_data
+    assert len(food_data["last_seen_position"]) == 2
+    assert len(food_data["predicted_position"]) == 2
+    assert len(food_data["search_vector"]) == 2
+    assert isinstance(food_data["influencing_movement"], bool)
+    assert "recent_event" in mem
+
+
+def test_target_memory_event_latching(monkeypatch):
+    """Verify that SWITCH/ACQUIRE actions record a latched event that ages and expires."""
+    import core.behavior.tank_adapter as tank_adapter_module
+    from core.algorithms.composable.food_selection import FoodCandidateScore
+    from core.entities import Food
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+    food = next(e for e in runner.world.entities_list if isinstance(e, Food))
+
+    visible = [
+        FoodCandidateScore(
+            food=food, position=(food.pos.x, food.pos.y), velocity=(0.0, 0.0), score=50.0
+        )
+    ]
+    monkeypatch.setattr(tank_adapter_module, "score_food_candidates", lambda _fish: visible)
+
+    # Frame 0: Acquire target
+    advance_target_memory(fish, 0)
+    event = fish.last_target_memory_event
+    assert event is not None
+    assert event["domain"] == "food"
+    assert event["action"] in ("switch", "acquire")
+    assert event["frame"] == 0
+
+    # Test presenter formatting for Frame 0 (age is 0)
+    details = get_target_memory_details(fish)
+    assert details["recent_event"] is not None
+    assert details["recent_event"]["age_frames"] == 0
+
+    # Advance frame, event should still be present but older
+    fish.environment.frame_count = 10
+    details = get_target_memory_details(fish)
+    assert details["recent_event"] is not None
+    assert details["recent_event"]["age_frames"] == 10
+
+    # Age past 25 frames, should be filtered from presenter
+    fish.environment.frame_count = 26
+    details = get_target_memory_details(fish)
+    assert details["recent_event"] is None
+
+
+def test_select_food_target_is_not_called_when_memory_active(monkeypatch):
+    """Verify build_tank_behavior_observation reuses target memory and avoids calling select_food_target."""
+    import core.behavior.tank_adapter as tank_adapter_module
+    from core.behavior.target_memory import TargetMemoryDecision, TargetId, TargetMemoryAction
+
+    runner = SimulationRunner(seed=42, config={"target_memory_enabled": True})
+    fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))
+
+    # Mock select_food_target to raise if called
+    called = []
+
+    def mock_select(f):
+        called.append(True)
+        return None
+
+    monkeypatch.setattr(tank_adapter_module, "select_food_target", mock_select)
+
+    # Mock target memory decision (non-None, with target selected)
+    fish.last_target_memory_decisions["food"] = TargetMemoryDecision(
+        selected_target_id=TargetId("food", 42),
+        target_position=(100.0, 100.0),
+        target_vector=(10.0, 10.0),
+        target_velocity=(0.0, 0.0),
+        target_confidence=1.0,
+        action=TargetMemoryAction.CONTINUE,
+    )
+
+    # Call build_tank_behavior_observation
+    obs = tank_adapter_module.build_tank_behavior_observation(fish)
+    assert obs.target_label == "Food"
+    # Ensure select_food_target was NEVER called
+    assert not called

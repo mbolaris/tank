@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from random import Random
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, Any
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -237,6 +237,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # ball_pursuit_velocity only ever read these, never recompute them.
         self.last_target_memory_decisions: dict[str, TargetMemoryDecision | None] = {}
         self.target_memory_updated_frame: int | None = None
+        self.last_target_memory_event: dict[str, Any] | None = None
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem

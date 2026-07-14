@@ -270,3 +270,64 @@
     flex-direction: column;
     gap: 2px;
 }
+
+.domainBlock {
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.domainInfluencing {
+    border-left: 2px solid var(--color-success);
+    background: rgba(34, 197, 94, 0.04);
+}
+
+.domainHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.domainName {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-main);
+}
+
+.statusBadge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.statusInfluencing {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--color-success);
+}
+
+.statusBackground {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--color-primary);
+}
+
+.statusInactive {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--color-text-muted);
+}
+
+.domainDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
