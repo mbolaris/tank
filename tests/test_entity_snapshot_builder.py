@@ -15,6 +15,10 @@ def _make_minimal_food(x: float = 10, y: float = 20) -> Food:
     food.width = 5
     food.height = 5
     food.food_type = "algae"
+    # Explicitly opt out of the real per-world id (only assigned by Food.__init__,
+    # which this minimal double bypasses) so get_entity_id() still returns None -
+    # this test exists to exercise the identity provider's no-intrinsic-id fallback.
+    food.food_id = None
     return food
 
 
@@ -26,6 +30,10 @@ def _make_minimal_nectar(x: float = 30, y: float = 40) -> PlantNectar:
     nectar.height = 3
     nectar.energy = 50.0
     nectar.source_plant = None
+    # PlantNectar subclasses Food and inherits get_entity_id(); this minimal
+    # double bypasses Food.__init__ (which assigns the real id), so opt out
+    # explicitly to keep exercising the identity provider's fallback path.
+    nectar.food_id = None
     return nectar
 
 

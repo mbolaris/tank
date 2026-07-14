@@ -508,8 +508,12 @@ class TestIdentityProviderPruning:
 
         assert isinstance(provider, TankLikeEntityIdentityProvider)
 
-        # Create a food entity using the food pool and add it to the simulation
+        # Create a food entity using the food pool and add it to the simulation.
+        # Food now carries a real intrinsic id (get_entity_id() is no longer
+        # None), so clear it here to exercise the python-id-based fallback path
+        # this test is actually about - the pruning mechanism, not Food specifically.
         food = engine.food_pool.acquire(engine.environment, 100, 100)
+        food.food_id = None
         engine.add_entity(food)
         python_id = id(food)
 
@@ -551,9 +555,14 @@ class TestIdentityProviderPruning:
 
         assert isinstance(provider, TankLikeEntityIdentityProvider)
 
-        # Create two food entities using the food pool
+        # Create two food entities using the food pool. Food now carries a real
+        # intrinsic id, so clear it here to exercise the python-id-based
+        # fallback path this test is actually about - the pruning mechanism,
+        # not Food specifically.
         food1 = engine.food_pool.acquire(engine.environment, 100, 100)
         food2 = engine.food_pool.acquire(engine.environment, 200, 200)
+        food1.food_id = None
+        food2.food_id = None
         engine.add_entity(food1)
         engine.add_entity(food2)
         python_id1 = id(food1)
