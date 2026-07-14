@@ -60,6 +60,7 @@ def advance_target_memory(fish: Fish, frame: int) -> None:
     fish.target_memory_updated_frame = frame
 
     # Event latching for switches and acquisitions
+    food_triggered = False
     if new_food_decision is not None and new_food_decision.action in (
         TargetMemoryAction.SWITCH,
         TargetMemoryAction.ACQUIRE,
@@ -74,14 +75,18 @@ def advance_target_memory(fish: Fish, frame: int) -> None:
             if new_food_decision.selected_target_id
             else None
         )
-        fish.last_target_memory_event = {
+        ev = {
             "domain": "food",
             "action": new_food_decision.action.value,
             "frame": frame,
             "from_target": old_id,
             "to_target": new_id,
         }
-    elif new_ball_decision is not None and new_ball_decision.action in (
+        fish.last_target_memory_events["food"] = ev
+        fish.last_target_memory_event = ev
+        food_triggered = True
+
+    if new_ball_decision is not None and new_ball_decision.action in (
         TargetMemoryAction.SWITCH,
         TargetMemoryAction.ACQUIRE,
     ):
@@ -95,13 +100,16 @@ def advance_target_memory(fish: Fish, frame: int) -> None:
             if new_ball_decision.selected_target_id
             else None
         )
-        fish.last_target_memory_event = {
+        ev = {
             "domain": "ball",
             "action": new_ball_decision.action.value,
             "frame": frame,
             "from_target": old_id,
             "to_target": new_id,
         }
+        fish.last_target_memory_events["ball"] = ev
+        if not food_triggered:
+            fish.last_target_memory_event = ev
 
 
 __all__ = ["advance_target_memory"]
