@@ -45,12 +45,63 @@ def advance_target_memory(fish: Fish, frame: int) -> None:
 
     from core.behavior.tank_adapter import compute_food_target_memory_decision
     from core.movement.ball_pursuit import compute_ball_target_memory_decision
+    from core.behavior.target_memory import TargetMemoryAction
+
+    old_food_decision = fish.last_target_memory_decisions.get("food")
+    old_ball_decision = fish.last_target_memory_decisions.get("ball")
+
+    new_food_decision = compute_food_target_memory_decision(fish)
+    new_ball_decision = compute_ball_target_memory_decision(fish)
 
     fish.last_target_memory_decisions = {
-        "food": compute_food_target_memory_decision(fish),
-        "ball": compute_ball_target_memory_decision(fish),
+        "food": new_food_decision,
+        "ball": new_ball_decision,
     }
     fish.target_memory_updated_frame = frame
+
+    # Event latching for switches and acquisitions
+    if new_food_decision is not None and new_food_decision.action in (
+        TargetMemoryAction.SWITCH,
+        TargetMemoryAction.ACQUIRE,
+    ):
+        old_id = (
+            old_food_decision.selected_target_id.entity_id
+            if (old_food_decision and old_food_decision.selected_target_id)
+            else None
+        )
+        new_id = (
+            new_food_decision.selected_target_id.entity_id
+            if new_food_decision.selected_target_id
+            else None
+        )
+        fish.last_target_memory_event = {
+            "domain": "food",
+            "action": new_food_decision.action.value,
+            "frame": frame,
+            "from_target": old_id,
+            "to_target": new_id,
+        }
+    elif new_ball_decision is not None and new_ball_decision.action in (
+        TargetMemoryAction.SWITCH,
+        TargetMemoryAction.ACQUIRE,
+    ):
+        old_id = (
+            old_ball_decision.selected_target_id.entity_id
+            if (old_ball_decision and old_ball_decision.selected_target_id)
+            else None
+        )
+        new_id = (
+            new_ball_decision.selected_target_id.entity_id
+            if new_ball_decision.selected_target_id
+            else None
+        )
+        fish.last_target_memory_event = {
+            "domain": "ball",
+            "action": new_ball_decision.action.value,
+            "frame": frame,
+            "from_target": old_id,
+            "to_target": new_id,
+        }
 
 
 __all__ = ["advance_target_memory"]

@@ -19,6 +19,12 @@ export interface PursuitOverlayData {
 }
 
 /** The selected fish's Target Memory details, for the overlay. */
+export interface TargetMemoryOverlayRecentEvent {
+    domain: string;
+    action: string;
+    ageFrames: number;
+}
+
 export interface TargetMemoryOverlayData {
     domain: string;
     action: string;
@@ -26,7 +32,7 @@ export interface TargetMemoryOverlayData {
     predictedPosition: [number, number];
     searchVector: [number, number];
     confidence: number;
-    isSwitching: boolean;
+    recentEvent: TargetMemoryOverlayRecentEvent | null;
 }
 
 export interface RenderOptions {

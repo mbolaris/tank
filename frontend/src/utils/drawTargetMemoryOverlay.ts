@@ -7,7 +7,7 @@ export function drawTargetMemoryOverlay(
     overlay: TargetMemoryOverlayData,
     nowMs: number
 ) {
-    const { domain, lastSeenPosition, predictedPosition, confidence, isSwitching } = overlay;
+    const { domain, lastSeenPosition, predictedPosition, confidence, recentEvent } = overlay;
     
     // Determine base color based on domain
     // Food = Minty green, Ball = Soccer golden orange
@@ -98,30 +98,33 @@ export function drawTargetMemoryOverlay(
     }
 
     // 4. Draw flash if switching targets
-    if (isSwitching) {
-        // Expand ripple from predicted/target position
-        const speed = 0.005; // speed of animation
-        const t = (nowMs * speed) % 1.0; // loops 0 to 1
-        const maxRadius = 30;
-        const rippleRadius = 5 + t * maxRadius;
-        const rippleAlpha = (1.0 - t) * 0.8;
-        
-        ctx.strokeStyle = `rgba(255, 255, 255, ${rippleAlpha})`;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.arc(predX, predY, rippleRadius, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Add a second ripple
-        const t2 = ((nowMs * speed) + 0.5) % 1.0;
-        const rippleRadius2 = 5 + t2 * maxRadius;
-        const rippleAlpha2 = (1.0 - t2) * 0.8;
-        ctx.strokeStyle = hexToRgba(baseColor, rippleAlpha2);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(predX, predY, rippleRadius2, 0, Math.PI * 2);
-        ctx.stroke();
+    if (recentEvent && recentEvent.domain.toLowerCase() === domain.toLowerCase()) {
+        const age = recentEvent.ageFrames;
+        if (age >= 0 && age <= 25) {
+            const t = age / 25; // 0 to 1
+            const maxRadius = 45;
+            const rippleRadius = 5 + t * maxRadius;
+            const rippleAlpha = (1.0 - t) * 0.9;
+            
+            ctx.strokeStyle = `rgba(255, 255, 255, ${rippleAlpha})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(predX, predY, rippleRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Add a second ripple
+            if (age >= 5) {
+                const t2 = (age - 5) / 20; // 0 to 1
+                const rippleRadius2 = 5 + t2 * maxRadius;
+                const rippleAlpha2 = (1.0 - t2) * 0.7;
+                ctx.strokeStyle = hexToRgba(baseColor, rippleAlpha2);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(predX, predY, rippleRadius2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
     }
     
     ctx.restore();

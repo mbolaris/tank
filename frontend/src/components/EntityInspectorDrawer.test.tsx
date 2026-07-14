@@ -7,8 +7,9 @@
  * missing-entity and non-transferable states.
  */
 
+import * as React from 'react';
 import { renderToString } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { EntityData } from '../types/simulation';
 import { EntityInspectorDrawer } from './EntityInspectorDrawer';
@@ -100,6 +101,72 @@ describe('EntityInspectorDrawer', () => {
     it('shows the loading state until details arrive', () => {
         const html = renderDrawer();
         expect(html).toContain('Loading details…');
+    });
+
+    it('renders the target memory section when details are loaded', () => {
+        const mockDetails: any = {
+            id: 42,
+            target_memory: {
+                domains: {
+                    food: {
+                        domain: 'Food',
+                        action: 'Continue',
+                        action_raw: 'continue',
+                        remembering: 'Food #218',
+                        last_seen: 'visible',
+                        last_seen_frames: 0,
+                        confidence: '100%',
+                        confidence_raw: 1.0,
+                        predicted_location: '0 px ahead',
+                        predicted_offset: 0,
+                        switch_threshold: '1.4x',
+                        memory_duration: 90,
+                        last_seen_position: [100, 100],
+                        predicted_position: [100, 100],
+                        search_vector: [0, 0],
+                        influencing_movement: true,
+                    },
+                    ball: {
+                        domain: 'Ball',
+                        action: 'Idle',
+                        action_raw: 'idle',
+                        remembering: 'None',
+                        last_seen: '10 frames ago',
+                        last_seen_frames: 10,
+                        confidence: '50%',
+                        confidence_raw: 0.5,
+                        predicted_location: '20 px ahead',
+                        predicted_offset: 20,
+                        switch_threshold: '1.4x',
+                        memory_duration: 90,
+                        last_seen_position: [120, 120],
+                        predicted_position: [140, 140],
+                        search_vector: [20, 20],
+                        influencing_movement: false,
+                    }
+                },
+                recent_event: null,
+            }
+        };
+
+        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails } });
+        expect(html).toContain('Target Memory');
+        expect(html).toContain('Food');
+        expect(html).toContain('Memory');
+        expect(html).toContain('Influencing Movement');
+        expect(html).toContain('Food #218');
+        expect(html).toContain('Ball');
+        expect(html).toContain('Inactive');
+    });
+
+    it('does not render Target Memory section when target_memory is null', () => {
+        const mockDetails: any = {
+            id: 42,
+            target_memory: null
+        };
+
+        const html = renderDrawer({ initialFetchState: { phase: 'loaded', details: mockDetails } });
+        expect(html).not.toContain('Target Memory');
     });
 });
 

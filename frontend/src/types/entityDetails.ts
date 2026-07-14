@@ -129,7 +129,7 @@ export interface EntityDetails {
     detail_error?: string;
 }
 
-export interface EntityDetailsTargetMemory {
+export interface EntityDetailsTargetMemoryDomain {
     domain: string;
     action: string;
     action_raw: string | null;
@@ -145,6 +145,22 @@ export interface EntityDetailsTargetMemory {
     last_seen_position: [number, number];
     predicted_position: [number, number];
     search_vector: [number, number];
-    is_switching: boolean;
+    influencing_movement: boolean;
+}
+
+export interface EntityDetailsTargetMemoryRecentEvent {
+    domain: string;
+    action: string;
+    from_target: number | null;
+    to_target: number | null;
+    age_frames: number;
+}
+
+export interface EntityDetailsTargetMemory {
+    domains: {
+        food?: EntityDetailsTargetMemoryDomain;
+        ball?: EntityDetailsTargetMemoryDomain;
+    };
+    recent_event: EntityDetailsTargetMemoryRecentEvent | null;
 }
 
