@@ -16,6 +16,13 @@ The default full run executes exactly the same tests as the pre-shard gate did
 In sandboxed / CI-constrained environments where pytest-xdist hangs or wedges,
 use --no-xdist (or set PRE_PR_NO_XDIST=1) to fall back to serial execution.
 The gate auto-detects common xdist failure signals and prints a fallback hint.
+
+CI runs each shard as its own concurrent job, so it passes a few extra flags
+that contributors normally don't need:
+
+    python tools/pre_pr_gate.py --shard core --skip-smoke   # smoke runs in a sibling job
+    python tools/pre_pr_gate.py --shard core --coverage      # write coverage data (honors $COVERAGE_FILE)
+    python tools/pre_pr_gate.py --shard core --xdist --workers 2  # cap workers on shared runners
 """
 
 import argparse
@@ -70,6 +77,35 @@ def _parse_args() -> argparse.Namespace:
         help="explicitly request serial shard execution (the default).",
     )
     parser.add_argument(
+        "--workers",
+        default="auto",
+        help=(
+            "pytest-xdist worker count to use with --xdist (default: %(default)s). "
+            "When CI runs several shards concurrently as separate jobs, pass a "
+            "small fixed number (e.g. 2) instead of 'auto' to avoid each shard "
+            "oversubscribing its runner."
+        ),
+    )
+    parser.add_argument(
+        "--skip-smoke",
+        action="store_true",
+        help=(
+            "skip the embedded Tier 1 smoke gate before running shards. Only use "
+            "this when an equivalent smoke gate is already running concurrently "
+            "elsewhere (e.g. a sibling CI job) - contributors running the gate "
+            "standalone before a commit should not pass this."
+        ),
+    )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help=(
+            "collect core/backend coverage while running shards. Honors the "
+            "COVERAGE_FILE env var so concurrent shard jobs can each write a "
+            "separate data file for later combination."
+        ),
+    )
+    parser.add_argument(
         "--timeout",
         type=float,
         default=_DEFAULT_SHARD_TIMEOUT,
@@ -96,11 +132,14 @@ def _run_shard(
     *,
     no_xdist: bool = False,
     timeout: float | None = None,
+    workers: str = "auto",
+    coverage: bool = False,
 ) -> bool:
     """Run one named shard, either in parallel (default) or serially (--no-xdist)."""
     import os
 
     use_serial = no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
+    cov_args = ["--cov=core", "--cov=backend", "--cov-report="] if coverage else []
     if use_serial:
         label = f"Tier 2 shard '{name}': non-slow tests (serial)"
         cmd = python_command(
@@ -109,6 +148,7 @@ def _run_shard(
             *test_files,
             "-m",
             _MARKER_EXPR,
+            *cov_args,
             "-q",
             "--durations=25",
         )
@@ -121,7 +161,8 @@ def _run_shard(
             "-m",
             _MARKER_EXPR,
             "-n",
-            "auto",
+            workers,
+            *cov_args,
             "-q",
             "--durations=25",
         )
@@ -154,11 +195,12 @@ def main() -> None:
 
     mode_label = "serial" if no_xdist else "parallel"
     timeout_label = f"{int(args.timeout)}s" if effective_timeout else "none"
+    smoke_clause = "the smoke gate, then " if not args.skip_smoke else ""
     print_gate_header(
         name="PRE-PR" if args.shard is None else f"PRE-PR (shard: {args.shard})",
         target="varies by hardware; typically under 3 minutes on multi-core CI, longer on constrained sandboxes",
         includes=(
-            f"the smoke gate, then the broad non-slow test suite run {mode_label}, sharded as "
+            f"{smoke_clause}the broad non-slow test suite run {mode_label}, sharded as "
             + ", ".join(selected)
         ),
         excludes="integration/manual/slow tests, champion reproduction, and 5k/10k benchmarks",
@@ -167,19 +209,42 @@ def main() -> None:
         print("[INFO] Running in serial mode (default / PRE_PR_NO_XDIST).", flush=True)
     if effective_timeout:
         print(f"[INFO] Per-shard timeout: {timeout_label}.", flush=True)
+    if args.skip_smoke:
+        print(
+            "[INFO] Skipping Tier 1 smoke gate (--skip-smoke): assuming an equivalent "
+            "check is already running concurrently elsewhere.",
+            flush=True,
+        )
 
-    passed = run_steps([(python_command("tools/smoke_gate.py"), "Tier 1: smoke gate")])
+    passed = (
+        True
+        if args.skip_smoke
+        else run_steps([(python_command("tools/smoke_gate.py"), "Tier 1: smoke gate")])
+    )
     for name in selected:
         if not passed:
             break
-        passed = _run_shard(name, shards[name], no_xdist=no_xdist, timeout=effective_timeout)
+        passed = _run_shard(
+            name,
+            shards[name],
+            no_xdist=no_xdist,
+            timeout=effective_timeout,
+            workers=args.workers,
+            coverage=args.coverage,
+        )
         if not passed and not no_xdist:
             print(
                 f"\n[WARNING] Shard '{name}' failed or timed out in parallel mode.",
                 f"\n[INFO] Retrying shard '{name}' in serial mode automatically...",
                 flush=True,
             )
-            passed = _run_shard(name, shards[name], no_xdist=True, timeout=effective_timeout)
+            passed = _run_shard(
+                name,
+                shards[name],
+                no_xdist=True,
+                timeout=effective_timeout,
+                coverage=args.coverage,
+            )
 
         if not passed:
             if not no_xdist:

@@ -3,10 +3,12 @@
 The parsing tests are pure string-parsing functions exercised with literal
 sample text captured from real pytest/pytest-xdist runs, so they stay fast and
 deterministic. The step-runner tests spawn tiny real subprocesses to prove the
-gates reap orphaned grandchildren instead of hanging on them.
+gates reap orphaned grandchildren instead of hanging on them, and that a
+gate's own process hard-exits promptly even if it leaks a lingering thread.
 """
 
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -170,3 +172,34 @@ def _process_gone_or_zombie(pid: int) -> bool:
     # Field after the parenthesized command name is the state; a zombie has
     # been killed and merely awaits reaping by init.
     return stat.rsplit(")", 1)[1].split()[0] == "Z"
+
+
+def test_exit_for_gate_hard_exits_despite_lingering_non_daemon_thread():
+    """exit_for_gate must os._exit rather than `raise SystemExit`: a lingering
+    non-daemon thread (e.g. a leaked worker-pool thread) would otherwise keep
+    the interpreter alive until the thread finishes, so a CI job invoking a
+    gate as its final step would wedge instead of exiting promptly. Runs on
+    every platform (unlike the process-group tests above) since this is core
+    CPython thread-shutdown behavior, not POSIX process-group semantics.
+    """
+    code = (
+        "import threading, time\n"
+        "from tools.gate_common import exit_for_gate\n"
+        "threading.Thread(target=lambda: time.sleep(30)).start()\n"
+        "exit_for_gate('TEST', True)\n"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(gate_common.REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(
+            "exit_for_gate did not hard-exit within 5s despite a lingering "
+            "non-daemon thread - it likely regressed to `raise SystemExit`, "
+            "which blocks process exit until non-daemon threads finish."
+        )
+    assert result.returncode == 0
