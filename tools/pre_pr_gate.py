@@ -140,6 +140,7 @@ def _run_shard(
 
     use_serial = no_xdist or os.environ.get("PRE_PR_NO_XDIST", "") not in ("", "0", "false")
     cov_args = ["--cov=core", "--cov=backend", "--cov-report="] if coverage else []
+    junit_args = [f"--junitxml=junit.{name}.xml"]
     if use_serial:
         label = f"Tier 2 shard '{name}': non-slow tests (serial)"
         cmd = python_command(
@@ -149,6 +150,7 @@ def _run_shard(
             "-m",
             _MARKER_EXPR,
             *cov_args,
+            *junit_args,
             "-q",
             "--durations=25",
         )
@@ -163,6 +165,7 @@ def _run_shard(
             "-n",
             workers,
             *cov_args,
+            *junit_args,
             "-q",
             "--durations=25",
         )

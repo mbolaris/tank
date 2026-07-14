@@ -1,4 +1,4 @@
-"""Tank Skill Observatory: immutable world snapshots and their evaluation.
+"""Tank Skill Observatory: isolated evaluation snapshots and their evaluation.
 
 Movement policies and raw genome evaluation live in
 ``backend.skill_observatory_policies``; fingerprinting, the per-genome score
@@ -56,12 +56,12 @@ class SpeciesSkillSnapshot:
 
 @dataclass(frozen=True)
 class WorldSkillSnapshot:
-    """Immutable copy of everything an observatory evaluation needs.
+    """Isolated evaluation snapshot of everything an observatory evaluation needs.
 
-    Built synchronously on the caller's thread from live simulation state,
-    then handed to a worker thread (via ``asyncio.to_thread``) that must not
-    touch the live world - the simulation keeps mutating fish, species
-    records, and the genome code pool concurrently with the worker.
+    Built synchronously on the caller's thread under the simulation runner's
+    lock from live simulation state, then handed to a worker thread (via
+    ``asyncio.to_thread``) that must not touch the live world - the simulation
+    keeps mutating fish, species records, and the genome code pool concurrently.
     """
 
     world_id: str
@@ -75,16 +75,16 @@ class WorldSkillSnapshot:
 def build_observatory_snapshot(
     world_manager: Any, resolved_world_id: str
 ) -> WorldSkillSnapshot | dict[str, Any]:
-    """Capture one immutable, worker-safe snapshot of a world's observatory state.
+    """Capture one isolated evaluation snapshot of a world's observatory state.
 
-    Must run synchronously on the caller's thread (never inside the
-    background worker) so every live read - fish, species records, world
-    config, the genome code pool - happens at one consistent instant. A
-    living fish's ``taxon_id`` can be reassigned by the taxonomy system on
-    any tick, and species records are added/renamed/removed continuously, so
-    passing a world_id string alone into a worker (and re-resolving these
-    live) risks mixing state from different points in time across a
-    multi-seed evaluation.
+    Must run synchronously on the caller's thread under the simulation runner's
+    lock (never inside the background worker) so every live read - fish,
+    species records, world config, the genome code pool - happens at one
+    consistent, atomic instant. A living fish's ``taxon_id`` can be reassigned
+    by the taxonomy system on any tick, and species records are
+    added/renamed/removed continuously, so passing a world_id string alone
+    into a worker (and re-resolving these live) risks mixing state from different
+    points in time across a multi-seed evaluation.
     """
     import copy
 
@@ -103,67 +103,70 @@ def build_observatory_snapshot(
     if not hasattr(runner, "world") or not runner.world:
         return {"status": "no_data", "message": "World not initialized"}
 
-    living_fish = [e for e in runner.world.entities_list if isinstance(e, Fish)]
-    if not living_fish:
-        return {"status": "no_data", "message": "No living fish in the tank"}
+    with runner.lock:
+        living_fish = [e for e in runner.world.entities_list if isinstance(e, Fish)]
+        if not living_fish:
+            return {"status": "no_data", "message": "No living fish in the tank"}
 
-    taxonomy = getattr(runner.world, "ecosystem", None) and getattr(
-        runner.world.ecosystem, "taxonomy", None
-    )
-    if not taxonomy or not hasattr(taxonomy, "registry"):
-        return {"status": "no_data", "message": "Taxonomy system not available"}
-
-    species_registry = taxonomy.registry
-    species_by_taxon_id: dict[str, SpeciesSkillSnapshot] = {}
-    for taxon_id in {fish.taxon_id for fish in living_fish}:
-        rec = species_registry.species.get(taxon_id)
-        if rec is None or not rec.living_member_ids:
-            continue
-        legacy_val = rec.type_profile.traits.get("prediction_skill")
-        species_by_taxon_id[taxon_id] = SpeciesSkillSnapshot(
-            taxon_id=taxon_id,
-            common_name=rec.common_name,
-            legacy_prediction_skill=(
-                float(legacy_val) if isinstance(legacy_val, (int, float)) else None
-            ),
+        taxonomy = getattr(runner.world, "ecosystem", None) and getattr(
+            runner.world.ecosystem, "taxonomy", None
         )
-    if not species_by_taxon_id:
-        return {"status": "no_data", "message": "No active species classification found"}
+        if not taxonomy or not hasattr(taxonomy, "registry"):
+            return {"status": "no_data", "message": "Taxonomy system not available"}
 
-    fish_snapshots = tuple(
-        FishSkillSnapshot(
-            fish_id=fish.fish_id,
-            taxon_id=fish.taxon_id,
-            common_name=getattr(fish, "common_name", "") or "",
-            generation=int(getattr(fish, "generation", 0)),
-            parent_id=getattr(fish, "parent_id", None),
-            genome=copy.deepcopy(fish.genome),
-            parent_pursuit_params=copy.deepcopy(getattr(fish, "parent_pursuit_params", None)),
+        species_registry = taxonomy.registry
+        species_by_taxon_id: dict[str, SpeciesSkillSnapshot] = {}
+        for taxon_id in {fish.taxon_id for fish in living_fish}:
+            rec = species_registry.species.get(taxon_id)
+            if rec is None or not rec.living_member_ids:
+                continue
+            legacy_val = rec.type_profile.traits.get("prediction_skill")
+            species_by_taxon_id[taxon_id] = SpeciesSkillSnapshot(
+                taxon_id=taxon_id,
+                common_name=rec.common_name,
+                legacy_prediction_skill=(
+                    float(legacy_val) if isinstance(legacy_val, (int, float)) else None
+                ),
+            )
+        if not species_by_taxon_id:
+            return {"status": "no_data", "message": "No active species classification found"}
+
+        fish_snapshots = tuple(
+            FishSkillSnapshot(
+                fish_id=fish.fish_id,
+                taxon_id=fish.taxon_id,
+                common_name=getattr(fish, "common_name", "") or "",
+                generation=int(getattr(fish, "generation", 0)),
+                parent_id=getattr(fish, "parent_id", None),
+                genome=copy.deepcopy(fish.genome),
+                parent_pursuit_params=copy.deepcopy(getattr(fish, "parent_pursuit_params", None)),
+            )
+            for fish in living_fish
         )
-        for fish in living_fish
-    )
 
-    simulation_config = getattr(runner.world, "simulation_config", None)
-    frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
+        simulation_config = getattr(runner.world, "simulation_config", None)
+        simulation_config_copied = (
+            copy.deepcopy(simulation_config) if simulation_config is not None else None
+        )
+        genome_code_pool = getattr(runner.world, "genome_code_pool", None)
+        frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
 
     return WorldSkillSnapshot(
         world_id=resolved_world_id,
         frame=frame,
         living_fish=fish_snapshots,
         species_by_taxon_id=species_by_taxon_id,
-        simulation_config=(
-            copy.deepcopy(simulation_config) if simulation_config is not None else None
-        ),
+        simulation_config=simulation_config_copied,
         # Created once at world startup and never mutated during a running
         # simulation (see core/code_pool/genome_code_pool.py); deep-copying
         # it would only clone the outer dict; every contained Callable stays
         # the same object regardless, so a reference is equally safe.
-        genome_code_pool=getattr(runner.world, "genome_code_pool", None),
+        genome_code_pool=genome_code_pool,
     )
 
 
 def evaluate_observatory_snapshot(snapshot: WorldSkillSnapshot) -> dict[str, Any]:
-    """Score one immutable world snapshot against the production controller.
+    """Score one isolated evaluation snapshot against the production controller.
 
     Runs on a background worker thread (via ``asyncio.to_thread``) - must
     never touch live simulation state, only the ``snapshot`` it was given.
