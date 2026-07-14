@@ -191,8 +191,8 @@ def test_same_module_instance_serves_both_food_and_soccer_domains() -> None:
     adapters through the same genome trait - not two independent copies."""
     from core.behavior.soccer_adapter import build_soccer_target_observation
     from core.behavior.tank_adapter import build_tank_behavior_observation
-    from core.movement.ball_pursuit import _pursuit_module_vector
     from core.entities.ball import Ball
+    from core.movement.ball_pursuit import _pursuit_module_vector
 
     runner = SimulationRunner(
         seed=42,
@@ -234,10 +234,10 @@ def test_prediction_mutation_changes_moving_food_and_ball_decisions_identically(
     This deliberately enables only the pursuit flag: the result is an ablation
     of the full foraging graph, and the moving target makes prediction visible.
     """
-    from core.behavior.tank_adapter import build_tank_behavior_observation
     from core.behavior.soccer_adapter import build_soccer_target_observation
-    from core.movement.ball_pursuit import _pursuit_module_vector
+    from core.behavior.tank_adapter import build_tank_behavior_observation
     from core.entities.ball import Ball
+    from core.movement.ball_pursuit import _pursuit_module_vector
 
     runner = SimulationRunner(seed=42, config={"target_pursuit_module_enabled": True})
     fish = next(e for e in runner.world.entities_list if isinstance(e, Fish))

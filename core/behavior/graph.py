@@ -6,14 +6,21 @@ and turns it into a flat sequence of callables outside the per-frame hot path.
 
 from __future__ import annotations
 
-import math
 import hashlib
 import json
+import math
 import random as pyrandom
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import cast
 
+from core.behavior.compiled_cache import get_compiled_plan
+from core.behavior.compiled_graph import (
+    BehaviorGraphError,
+    CompiledBehaviorGraph,
+    CompiledStep,
+    evaluator_for,
+)
 from core.behavior.nodes import (
     NODE_REGISTRY,
     Bool,
@@ -22,13 +29,6 @@ from core.behavior.nodes import (
     NodeValue,
     Scalar,
     ValueType,
-)
-from core.behavior.compiled_cache import get_compiled_plan
-from core.behavior.compiled_graph import (
-    BehaviorGraphError,
-    CompiledBehaviorGraph,
-    CompiledStep,
-    evaluator_for,
 )
 
 

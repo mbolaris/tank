@@ -6,10 +6,10 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any, Protocol
 
-from core.genetics.trait_utils import get_trait_value
-from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+from core.algorithms.composable.definitions import FoodApproach, SocialMode, ThreatResponse
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-from core.algorithms.composable.definitions import ThreatResponse, FoodApproach, SocialMode
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+from core.genetics.trait_utils import get_trait_value
 
 
 class TaxonomyProfile:

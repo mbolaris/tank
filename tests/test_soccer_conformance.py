@@ -7,8 +7,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from core.code_pool import GenomeCodePool
 from core.behavior.pursuit_nodes import default_pursuit_module_graph
+from core.code_pool import GenomeCodePool
 from core.code_pool.pool import (
     BUILTIN_CHASE_BALL_SOCCER_ID,
     BUILTIN_DEFENSIVE_SOCCER_ID,
@@ -20,7 +20,7 @@ from core.code_pool.pool import (
 from core.genetics.trait import GeneticTrait
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.match import SoccerMatch
-from core.minigames.soccer.params import RCSSParams, SOCCER_CANONICAL_PARAMS
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.policy_adapter import (
     MAX_KICK_POWER,
     _normalize_policy_output,

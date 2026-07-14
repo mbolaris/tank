@@ -22,8 +22,8 @@ from core.behavior.nodes import (
     UnitVector,
     ValueType,
 )
-from core.behavior.pursuit_nodes import intercept_target_definition
 from core.behavior.primitives.steering import normalized_components
+from core.behavior.pursuit_nodes import intercept_target_definition
 
 
 @dataclass

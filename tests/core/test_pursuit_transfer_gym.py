@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import os
-import pytest
-import time
 import random
+import time
+
+import pytest
 
 from benchmarks.tank import pursuit_transfer
+from core.behavior.pursuit_nodes import default_pursuit_module_graph
 from core.pursuit.transfer_gym import (
+    PursuitTransferEvaluation,
     evaluate_pursuit_transfer,
     generate_scenario_set,
     run_interception_episode,
-    PursuitTransferEvaluation,
 )
-from core.behavior.pursuit_nodes import default_pursuit_module_graph
 
 
 @pytest.fixture(scope="session")
@@ -61,7 +62,7 @@ def test_trajectory_samples_are_snapshots_and_episode_evaluation_is_read_only():
 
 def test_fitness_calculation():
     """Ensure fitness returns expected results based on interception success and steps."""
-    from core.pursuit.transfer_gym import _fitness, InterceptionResult
+    from core.pursuit.transfer_gym import InterceptionResult, _fitness
 
     # Successful interception: fitness is positive, higher is better (fewer frames)
     res_fast = InterceptionResult(

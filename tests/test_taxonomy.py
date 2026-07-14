@@ -7,13 +7,13 @@ from typing import Any
 import pytest
 
 from core.genetics import Genome
+from core.taxonomy.naming import CommonNameGenerator, ScientificNameGenerator
 from core.taxonomy.profile import (
     FishTaxonomyProfileBuilder,
     MicrobeTaxonomyProfileBuilder,
     TaxonomyProfile,
 )
 from core.taxonomy.registry import SpeciesRegistry
-from core.taxonomy.naming import CommonNameGenerator, ScientificNameGenerator
 from core.taxonomy.system import TaxonomySystem
 
 

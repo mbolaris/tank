@@ -96,8 +96,9 @@ def test_foraging_gym_summary_endpoint(tmp_path):
 
     # Verify caching (should use cached result and not call benchmarks.run again)
     from unittest.mock import patch
-    from benchmarks.tank.foraging_gym import run as real_run
+
     from backend.skill_observatory_scoring import _FORAGING_GYM_SUMMARY_CACHE
+    from benchmarks.tank.foraging_gym import run as real_run
 
     with patch("benchmarks.tank.foraging_gym.run", wraps=real_run) as mock_run:
         _FORAGING_GYM_SUMMARY_CACHE.clear()
@@ -120,9 +121,10 @@ def test_foraging_gym_observatory_no_world_manager(tmp_path):
 
 def test_foraging_gym_observatory_with_fish(tmp_path):
     from unittest.mock import MagicMock
+
     from core.entities.fish import Fish
-    from core.taxonomy.registry import SpeciesRecord
     from core.taxonomy.profile import TaxonomyProfile
+    from core.taxonomy.registry import SpeciesRecord
 
     # Mock species record
     type_profile = TaxonomyProfile(traits={"prediction_skill": 0.48}, is_microbe=False)
@@ -351,16 +353,12 @@ async def test_evaluate_observatory_snapshot_reports_independent_provenance_fiel
 
     import pytest
 
-    from core.behavior.pursuit_nodes import (
-        default_pursuit_module_graph,
-        pursuit_module_parameters,
-    )
+    import backend.skill_observatory_scoring as skill_observatory_scoring
+    from core.behavior.pursuit_nodes import default_pursuit_module_graph, pursuit_module_parameters
     from core.environment import Environment
     from core.foraging.gym import ForagingGymEvaluation, GymResult
     from core.genetics.trait import GeneticTrait
     from core.taxonomy.profile import TaxonomyProfile
-
-    import backend.skill_observatory_scoring as skill_observatory_scoring
 
     skill_observatory_scoring._OBSERVATORY_EVALUATION_CACHE.clear()
 
@@ -438,11 +436,10 @@ async def test_evaluate_observatory_snapshot_when_parent_not_living(tmp_path) ->
 
     import pytest
 
+    import backend.skill_observatory_scoring as skill_observatory_scoring
     from core.environment import Environment
     from core.foraging.gym import ForagingGymEvaluation, GymResult
     from core.taxonomy.profile import TaxonomyProfile
-
-    import backend.skill_observatory_scoring as skill_observatory_scoring
 
     skill_observatory_scoring._OBSERVATORY_EVALUATION_CACHE.clear()
 

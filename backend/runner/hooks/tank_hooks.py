@@ -8,10 +8,7 @@ import logging
 from typing import Any
 
 from backend.runner.hooks.benchmark_mixin import BenchmarkMixin
-from backend.runner.hooks.entity_details_mixin import (
-    GET_ENTITY_DETAILS_COMMAND,
-    EntityDetailsMixin,
-)
+from backend.runner.hooks.entity_details_mixin import GET_ENTITY_DETAILS_COMMAND, EntityDetailsMixin
 from backend.runner.hooks.poker_mixin import PokerMixin
 from backend.runner.hooks.soccer_mixin import SoccerMixin
 

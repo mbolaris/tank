@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from core.taxonomy.profile import FishTaxonomyProfileBuilder, MicrobeTaxonomyProfileBuilder
-from core.taxonomy.registry import SpeciesRegistry, SpeciesRecord
+from core.taxonomy.registry import SpeciesRecord, SpeciesRegistry
 
 logger = logging.getLogger(__name__)
 

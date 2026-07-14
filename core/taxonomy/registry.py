@@ -6,8 +6,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.taxonomy.profile import TaxonomyProfile
 from core.taxonomy.naming import CommonNameGenerator, ScientificNameGenerator, _stable_hash
+from core.taxonomy.profile import TaxonomyProfile
 
 logger = logging.getLogger(__name__)
 
