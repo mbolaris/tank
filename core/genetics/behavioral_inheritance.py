@@ -311,11 +311,13 @@ def inherit_behavioral_traits(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
 
-    # behavior_graph and target_pursuit_module are both an optional
-    # GeneticTrait[BehaviorGraph | None]; inherit_behavior_graph is generic
-    # over either, and already no-ops without consuming RNG when neither
-    # parent has a given field (see its own graph1/graph2 None check).
-    for graph_field in ("behavior_graph", "target_pursuit_module"):
+    # behavior_graph, target_pursuit_module, and target_memory are each an
+    # optional GeneticTrait[T | None]; inherit_behavior_graph is generic over
+    # any T exposing to_dict/from_dict/crossed_over (not specific to
+    # BehaviorGraph - TargetMemoryParams uses the same duck-typed contract),
+    # and already no-ops without consuming RNG when neither parent has a
+    # given field (see its own graph1/graph2 None check).
+    for graph_field in ("behavior_graph", "target_pursuit_module", "target_memory"):
         inherited[graph_field] = inherit_behavior_graph(
             getattr(parent1, graph_field),
             getattr(parent2, graph_field),
@@ -441,9 +443,9 @@ def recombine_behavioral_traits(
 
     # Each graph field gets its own recombination weight and its own RNG-free
     # short-circuit when neither parent has it, matching the per-kind policy
-    # loop below - so an old genome without target_pursuit_module draws no
-    # extra RNG here (it only reaches the "both None" branch).
-    for graph_field in ("behavior_graph", "target_pursuit_module"):
+    # loop below - so an old genome without target_pursuit_module/target_memory
+    # draws no extra RNG here (it only reaches the "both None" branch).
+    for graph_field in ("behavior_graph", "target_pursuit_module", "target_memory"):
         parent1_trait = getattr(parent1, graph_field)
         parent2_trait = getattr(parent2, graph_field)
         graph1 = parent1_trait.value if parent1_trait is not None else None

@@ -30,26 +30,30 @@ GENOME_DECODE_ERRORS = (AttributeError, ImportError, KeyError, TypeError, ValueE
 
 
 def _has_graph_value(trait: Any) -> bool:
-    """True when an optional BehaviorGraph-valued trait actually carries one."""
+    """True when an optional opt-in trait (BehaviorGraph- or
+    TargetMemoryParams-valued) actually carries a value."""
     return bool(trait and trait.value is not None)
 
 
 def genome_schema_version_for(genome: Any, max_version: int) -> int:
     """Compute the schema version a genome should serialize at.
 
-    A genome using neither opt-in graph trait serializes at the original
-    (pre-graph) payload shape; ``behavior_graph`` alone bumps one version,
-    and ``target_pursuit_module`` (independently opt-in, added after it)
-    bumps to ``max_version`` - so an old save/replay that never touches
-    either trait stays byte-identical to its original payload.
+    A genome using none of the opt-in traits serializes at the original
+    (pre-graph) payload shape; each opt-in trait, in the order it was added
+    (``behavior_graph`` -> ``target_pursuit_module`` -> ``target_memory``),
+    bumps one version further - so an old save/replay that never touches any
+    of them stays byte-identical to its original payload.
     """
+    has_target_memory = _has_graph_value(genome.behavioral.target_memory)
     has_pursuit_module = _has_graph_value(genome.behavioral.target_pursuit_module)
     has_behavior_graph = _has_graph_value(genome.behavioral.behavior_graph)
-    if has_pursuit_module:
+    if has_target_memory:
         return max_version
-    if has_behavior_graph:
+    if has_pursuit_module:
         return max_version - 1
-    return max_version - 2
+    if has_behavior_graph:
+        return max_version - 2
+    return max_version - 3
 
 
 def genome_to_dict(
@@ -72,6 +76,8 @@ def genome_to_dict(
     pursuit_module_dict = (
         pursuit_module.value.to_dict() if _has_graph_value(pursuit_module) else None
     )
+    target_memory = genome.behavioral.target_memory
+    target_memory_dict = target_memory.value.to_dict() if _has_graph_value(target_memory) else None
 
     values: dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
@@ -88,6 +94,7 @@ def genome_to_dict(
         ("mate_preferences", genome.behavioral.mate_preferences),
         ("behavior_graph", genome.behavioral.behavior_graph),
         ("target_pursuit_module", genome.behavioral.target_pursuit_module),
+        ("target_memory", genome.behavioral.target_memory),
     ):
         if trait is not None:
             meta = trait_meta_for_trait(trait)
@@ -156,6 +163,8 @@ def genome_to_dict(
         result["behavior_graph"] = behavior_graph_dict
     if pursuit_module_dict is not None:
         result["target_pursuit_module"] = pursuit_module_dict
+    if target_memory_dict is not None:
+        result["target_memory"] = target_memory_dict
     return result
 
 
@@ -285,6 +294,25 @@ def genome_from_dict(
             genome.behavioral.target_pursuit_module = pursuit_trait
     except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing target_pursuit_module; keeping default", exc_info=True)
+
+    # Opt-in target memory (independent of the other two opt-in traits).
+    # Loading it does not activate it; each adapter gates its own use on the
+    # trait plus its own config flag (see core.behavior.feature_flags).
+    try:
+        from core.behavior.target_memory import TargetMemoryParams
+        from core.genetics.trait import GeneticTrait
+
+        target_memory_data = data.get("target_memory")
+        if isinstance(target_memory_data, dict):
+            params = TargetMemoryParams.from_dict(target_memory_data)
+            params_trait = GeneticTrait(params)
+            if isinstance(trait_meta, dict):
+                params_meta = trait_meta.get("target_memory")
+                if isinstance(params_meta, dict):
+                    apply_trait_meta_to_trait(params_trait, params_meta)
+            genome.behavioral.target_memory = params_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing target_memory; keeping default", exc_info=True)
 
     # New per-kind policy fields
     try:

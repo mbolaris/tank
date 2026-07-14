@@ -54,6 +54,7 @@ from core.genetics.trait import GeneticTrait, TraitSpec, random_genetic_trait
 if TYPE_CHECKING:
     from core.algorithms.composable import ComposableBehavior
     from core.behavior.graph import BehaviorGraph
+    from core.behavior.target_memory import TargetMemoryParams
     from core.genetics.physical import PhysicalTraits
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -182,6 +183,12 @@ class BehavioralTraits:
     # core.behavior.pursuit_nodes.default_pursuit_module_graph). Dormant by
     # default, mirroring behavior_graph's opt-in founding contract.
     target_pursuit_module: GeneticTrait["BehaviorGraph | None"] | None = None
+
+    # Independently evolvable Target Memory module: decides what target a
+    # fish is committed to and when to switch (see
+    # core.behavior.target_memory.decide_target), shared by food and
+    # soccer-ball pursuit. Dormant by default, same opt-in founding contract.
+    target_memory: GeneticTrait["TargetMemoryParams | None"] | None = None
 
     @classmethod
     def random(

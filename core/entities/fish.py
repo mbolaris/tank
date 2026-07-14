@@ -40,6 +40,7 @@ class SoccerEffectState(TypedDict):
 
 
 if TYPE_CHECKING:
+    from core.behavior.target_memory import TargetMemoryState
     from core.ecosystem import EcosystemManager
     from core.entities.resources import Food
     from core.fish.poker_stats_component import FishPokerStats
@@ -224,13 +225,12 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         if initial_credits > 0:
             self._reproduction_component.repro_credits = initial_credits
 
-        # NEW: Enhanced memory system
-
         self.memory_system = AgentMemorySystem(
             max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
             decay_rate=FISH_MEMORY_DECAY_RATE,
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
+        self.target_memory_state: dict[str, TargetMemoryState] = {}
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem
