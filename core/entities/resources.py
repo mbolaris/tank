@@ -246,7 +246,12 @@ class ResourcePatch(Food):
         self.patch_id = patch_id
         self.regrowth_rate = max(0.0, float(regrowth_rate))
         self.max_energy = max(0.0, float(stock))
-        self.energy = self.max_energy
+        apply_energy_delta(
+            self,
+            self.max_energy - self.energy,
+            source="resource_patch_initialization",
+            allow_direct_assignment=True,
+        )
         self.set_size(96.0, 64.0)
         self.original_width = self.width
         self.original_height = self.height
@@ -277,9 +282,12 @@ class ResourcePatch(Food):
         return False
 
     def regrow(self) -> float:
-        before = self.energy
-        self.energy = min(self.max_energy, self.energy + self.regrowth_rate)
-        return self.energy - before
+        return apply_energy_delta(
+            self,
+            self.regrowth_rate,
+            source="resource_patch_regrowth",
+            allow_direct_assignment=True,
+        )
 
     def get_patch_state(self) -> dict[str, float | str | int]:
         return {

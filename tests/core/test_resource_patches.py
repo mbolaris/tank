@@ -65,8 +65,10 @@ def test_resource_patch_experiment_exposes_two_renderable_patches():
         if snapshot.type == "resource_patch"
     ]
 
-    assert [(patch["patch_kind"], patch["stock"]) for patch in patches] == [
-        ("algae", 240.0),
-        ("protein", 240.0),
+    assert [
+        (patch["render_hint"]["kind"], patch["render_hint"]["stock_ratio"]) for patch in patches
+    ] == [
+        ("algae", 1.0),
+        ("protein", 1.0),
     ]
     assert all(patch["render_hint"]["style"] == "resource_patch" for patch in patches)

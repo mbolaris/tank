@@ -295,13 +295,12 @@ class TankSnapshotBuilder:
 
     def _enrich_resource_patch(self, snapshot: EntitySnapshot, patch: Any) -> None:
         snapshot.food_type = getattr(patch, "food_type", "algae")
-        snapshot.patch_kind = snapshot.food_type
-        snapshot.stock = float(getattr(patch, "energy", 0.0))
-        snapshot.max_stock = float(getattr(patch, "max_energy", 0.0))
+        stock = float(getattr(patch, "energy", 0.0))
+        max_stock = float(getattr(patch, "max_energy", 0.0))
         snapshot.render_hint = {
             "style": "resource_patch",
-            "kind": snapshot.patch_kind,
-            "stock_ratio": (snapshot.stock / snapshot.max_stock if snapshot.max_stock else 0.0),
+            "kind": snapshot.food_type,
+            "stock_ratio": stock / max_stock if max_stock else 0.0,
         }
 
     def _enrich_crab(self, snapshot: EntitySnapshot, crab: Any) -> None:
