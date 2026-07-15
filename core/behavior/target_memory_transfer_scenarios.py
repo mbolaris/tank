@@ -371,14 +371,31 @@ def _ball_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
 
 
 def generate_scenario_set(
-    set_type: str, seed: int, version: str = SCENARIO_SET_VERSION
+    set_type: str,
+    seed: int,
+    version: str = SCENARIO_SET_VERSION,
+    count: int | None = None,
 ) -> list[TargetMemoryScenario]:
-    """Generate a versioned, deterministic set of target-memory scenarios."""
+    """Generate a versioned, deterministic set of target-memory scenarios.
+
+    ``count`` overrides the default set size for scaled-up studies: families
+    cycle in their canonical order, and because generation is sequential per
+    scenario, the first ``len(default)`` scenarios of a larger set are
+    identical to the default set for the same seed - bigger studies extend
+    the evidence rather than replacing it.
+    """
     salt = _SET_SALTS[set_type]
     rng = random.Random(seed + salt)
     is_ball = set_type != "train" and set_type != "validation"
-    family_distribution = _BALL_FAMILY_DISTRIBUTION if is_ball else _FOOD_FAMILY_DISTRIBUTION
+    base_distribution = _BALL_FAMILY_DISTRIBUTION if is_ball else _FOOD_FAMILY_DISTRIBUTION
     family_names = _BALL_FAMILY_NAMES if is_ball else _FOOD_FAMILY_NAMES
+
+    if count is None:
+        family_distribution = list(base_distribution)
+    else:
+        if count < 1:
+            raise ValueError(f"scenario count must be >= 1, got {count}")
+        family_distribution = [base_distribution[i % len(base_distribution)] for i in range(count)]
 
     scenarios = []
     for idx, fam in enumerate(family_distribution):

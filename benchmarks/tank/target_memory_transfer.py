@@ -130,10 +130,11 @@ def run(seed: int) -> dict[str, Any]:
                     "population (weaker final-harvest than the trained arms' "
                     "validation pick, by design)"
                 ),
+                "multi_run_study_tool": "scripts/run_target_memory_transfer_study.py",
                 "known_limitations": [
-                    "study budget (16x15x2) is too small for single-seed "
-                    "conclusions; aggregate across seeds and expect the "
-                    "multi-run v2 scale-up before trusting effect sizes",
+                    "this per-seed benchmark runs a deliberately small "
+                    "CI-fast budget (16x15x2); transfer conclusions belong "
+                    "to the multi-run study tool's aggregate report",
                     "diagnostic metrics (switches, stale pursuit, "
                     "reacquisition, distance) are observational and never "
                     "feed overall_score",
