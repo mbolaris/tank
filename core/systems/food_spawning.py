@@ -172,8 +172,8 @@ class FoodSpawningSystem(BaseSystem):
 
         y = self._screen_height * 0.55
         specs = (
-            (1, self._screen_width * 0.25, "algae"),
-            (2, self._screen_width * 0.75, "protein"),
+            (1, 200.0, "algae"),
+            (2, 888.0, "protein"),
         )
         spawned = 0
         for patch_id, x, food_type in specs:

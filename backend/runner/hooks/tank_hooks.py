@@ -132,12 +132,12 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin, EntityDetailsMixin
             # Use snapshot_type for generic entity classification
             if getattr(entity, "snapshot_type", None) == "castle":
                 # Default tank castle position (from Castle.__init__)
-                entity.pos.x = 375.0
-                entity.pos.y = 475.0
+                entity.pos.x = 431.0
+                entity.pos.y = 387.0
                 if hasattr(entity, "rect"):
                     entity.rect.x = entity.pos.x
                     entity.rect.y = entity.pos.y
-                logger.info("Restored castle to default tank position (375, 475)")
+                logger.info("Restored castle to default tank position (431, 387)")
                 break  # Only one castle expected
 
     def _restore_soccer_positions(self, runner: Any) -> None:
