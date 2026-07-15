@@ -18,6 +18,7 @@ from core.behavior.target_memory_transfer_gym import (
     MUTATION_RATE,
     MUTATION_STRENGTH,
 )
+from core.behavior.target_memory_transfer_scenarios import SCENARIO_SET_VERSION
 
 BENCHMARK_ID = "tank/target_memory_transfer"
 # Raised from 15: fixing the adaptation-phase held-out leakage (see
@@ -28,17 +29,28 @@ EXPECTED_RUNTIME_SECONDS = 25
 
 CONFIG: dict[str, Any] = {
     "module": "target_memory_v1",
-    # v1.1: adaptation reference + generations-to-adapt are measured on the
-    # ball-validation set (selection still on ball-training); v1 measured
-    # both on the training set itself.
-    "study_version": "v1.1",
-    # Food scenarios are stationary targets (the earlier "moving_food" label
-    # was inaccurate); target motion only appears in the ball domain, so food
-    # training exerts no selection pressure on motion_extrapolation_duration.
-    # See metadata.validity.known_limitations.
-    "training": "population_evolution_stationary_food_v1",
-    "comparison_groups": "naive-greedy,default,random,food-trained,ball-trained",
+    # v1.2: food scenario sets gained moving/occluded families matched to the
+    # ball families' latent capabilities (so food selection now exercises
+    # motion_extrapolation_duration), the random-search control was replaced
+    # by a structurally matched shuffled-fitness control, and per-episode
+    # diagnostic metrics (switches, stale pursuit, reacquisition, distance)
+    # were added to every group summary. v1.1 moved adaptation measurement
+    # onto the ball-validation set; v1 measured it on the training set.
+    "study_version": "v1.2",
+    "training": "population_evolution_moving_food_v2",
+    "comparison_groups": "naive-greedy,default,neutral-evolution,food-trained,ball-trained",
 }
+
+
+def _set_names() -> dict[str, str]:
+    v = SCENARIO_SET_VERSION
+    return {
+        "train": f"train_{v}",
+        "validation": f"validation_{v}",
+        "held_out": f"held_out_{v}",
+        "ball_train": f"ball_train_{v}",
+        "ball_validation": f"ball_validation_{v}",
+    }
 
 
 def run(seed: int) -> dict[str, Any]:
@@ -50,13 +62,15 @@ def run(seed: int) -> dict[str, Any]:
     default_score = evaluation.default_score
     food_trained_score = evaluation.food_trained_score
     ball_trained_score = evaluation.ball_trained_score
-    random_score = evaluation.group_summaries["random_search"].overall_score
+    neutral_score = evaluation.group_summaries["neutral_evolution"].overall_score
 
     # Primary falsifiable claim (the board's "disjoint control"): does the
     # shared encoding's food-adapted params beat a founder-default baseline
     # that food selection never touched, on zero-shot ball commitment?
     transfer_benefit_vs_disjoint = food_trained_score - default_score
-    transfer_benefit_vs_random = food_trained_score - random_score
+    # Secondary: does food *selection* specifically matter, versus the same
+    # lineage machinery with selection decoupled (shuffled fitness)?
+    transfer_benefit_vs_neutral = food_trained_score - neutral_score
 
     adaptation_accel: int | None = None
     if evaluation.adaptation_reference_established:
@@ -67,6 +81,7 @@ def run(seed: int) -> dict[str, Any]:
         )
 
     runtime = time.perf_counter() - started
+    sets = _set_names()
 
     return {
         "benchmark_id": BENCHMARK_ID,
@@ -75,23 +90,17 @@ def run(seed: int) -> dict[str, Any]:
         "score_breakdown": {
             "naive_greedy_fitness": naive_greedy_score,
             "default_params_fitness": default_score,
-            "random_search_fitness": random_score,
+            "neutral_evolution_fitness": neutral_score,
             "food_trained_fitness": food_trained_score,
             "ball_trained_fitness": ball_trained_score,
             "transfer_benefit_vs_disjoint": transfer_benefit_vs_disjoint,
-            "transfer_benefit_vs_random": transfer_benefit_vs_random,
+            "transfer_benefit_vs_neutral": transfer_benefit_vs_neutral,
         },
         "runtime_seconds": runtime,
         "metadata": {
             "transfer_benefit_vs_disjoint": transfer_benefit_vs_disjoint,
-            "transfer_benefit_vs_random": transfer_benefit_vs_random,
-            "scenario_sets": {
-                "train": "train_v1",
-                "validation": "validation_v1",
-                "held_out": "held_out_v1",
-                "ball_train": "ball_train_v1",
-                "ball_validation": "ball_validation_v1",
-            },
+            "transfer_benefit_vs_neutral": transfer_benefit_vs_neutral,
+            "scenario_sets": sets,
             "groups": {
                 name: summary.to_dict() for name, summary in evaluation.group_summaries.items()
             },
@@ -110,17 +119,24 @@ def run(seed: int) -> dict[str, Any]:
                 "adaptation_reference_established": (evaluation.adaptation_reference_established),
                 "adaptation_fields_meaningful": evaluation.adaptation_reference_established,
                 "min_reference_effect": MIN_REFERENCE_EFFECT,
-                "adaptation_reference_measured_on": "ball_validation_v1",
-                "adaptation_training_set": "ball_train_v1",
+                "adaptation_reference_measured_on": sets["ball_validation"],
+                "adaptation_training_set": sets["ball_train"],
                 "held_out_used_only_for_zero_shot_scoring": True,
                 "adaptation_arms_rng": "paired_independent_streams_per_run",
+                "neutral_control": (
+                    "same evolutionary loop, budget, and operators as the "
+                    "trained arms with fitness shuffled before selection; "
+                    "final individual is a random draw from the drifted "
+                    "population (weaker final-harvest than the trained arms' "
+                    "validation pick, by design)"
+                ),
                 "known_limitations": [
-                    "food training uses stationary targets, so it exerts no "
-                    "selection pressure on motion_extrapolation_duration",
-                    "random_search control is one-step mutation around the "
-                    "default, not lineage-matched to the evolutionary arms",
-                    "single-seed scores are trajectory-sensitive; aggregate "
-                    "across seeds before drawing transfer conclusions",
+                    "study budget (16x15x2) is too small for single-seed "
+                    "conclusions; aggregate across seeds and expect the "
+                    "multi-run v2 scale-up before trusting effect sizes",
+                    "diagnostic metrics (switches, stale pursuit, "
+                    "reacquisition, distance) are observational and never "
+                    "feed overall_score",
                 ],
             },
             "mutation_schedule": {
