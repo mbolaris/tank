@@ -206,6 +206,7 @@ or champion metadata must be separate from Layer 1 algorithm improvements.*
 - [docs/VISION.md](docs/VISION.md) - Three-layer evolution paradigm and long-term goals
 - [docs/EVOLVABILITY.md](docs/EVOLVABILITY.md) - Evolvability levers mapped to code, the research canon, and the ideas graveyard (read before proposing improvements via `/deliberate`)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - Full technical architecture
+- [docs/SUBSYSTEM_CLASSIFICATION.md](docs/SUBSYSTEM_CLASSIFICATION.md) - Which subsystems are core experimental domains vs support infrastructure vs optional demos (and the deletion policy for each)
 - [docs/EVO_CONTRIBUTING.md](docs/EVO_CONTRIBUTING.md) - Evolutionary PR protocol
 - [docs/BEHAVIOR_DEVELOPMENT_GUIDE.md](docs/BEHAVIOR_DEVELOPMENT_GUIDE.md) - Creating new algorithms
 - [docs/ROADMAP.md](docs/ROADMAP.md) - Current priorities and milestones

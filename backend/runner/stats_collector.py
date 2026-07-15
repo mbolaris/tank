@@ -8,6 +8,7 @@ are unchanged.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +21,8 @@ from backend.runner.state_builders import (
 )
 from backend.state_payloads import EntitySnapshot, StatsPayload
 from core.worlds.interfaces import StepResult
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from backend.simulation_runner import SimulationRunner
@@ -141,7 +144,7 @@ def collect_stats(
             try:
                 soccer_events = runner.world_hooks.collect_soccer_events(runner) or []
             except Exception:
-                pass
+                logger.warning("collect_soccer_events hook failed; omitting events", exc_info=True)
 
         # Collect auto-eval if hooks are present
         auto_eval = None
@@ -149,7 +152,7 @@ def collect_stats(
             try:
                 auto_eval = runner.world_hooks.collect_auto_eval(runner)
             except Exception:
-                pass
+                logger.warning("collect_auto_eval hook failed; omitting auto-eval", exc_info=True)
 
         # Trait means are only meaningful (and only worth iterating fish for) on
         # frames that will actually be recorded as a sample.

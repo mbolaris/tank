@@ -1,2 +1,1 @@
-"""Research package containing instrumentation for tracking evolutionary experiments.
-"""
+"""Research package containing instrumentation for tracking evolutionary experiments."""

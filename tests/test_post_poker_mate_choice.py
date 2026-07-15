@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import random
-from typing import cast
+from types import SimpleNamespace
+from typing import Any, cast
 
 from core.config.simulation_config import SimulationConfig
 from core.entities import Fish, LifeStage
 from core.genetics import BehavioralTraits, GeneticTrait, Genome, PhysicalTraits
 from core.movement_strategy import AlgorithmicMovement
 from core.reproduction.reproduction_service import ReproductionService
+from core.world import World
 
 
 class _MiniEcosystem:
