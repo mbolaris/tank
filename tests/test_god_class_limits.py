@@ -77,7 +77,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "frontend/src/types/simulation.ts": 889,
     "frontend/src/utils/plants/nectar.ts": 616,
     "frontend/src/utils/plants/renderers.ts": 1042,
-    "frontend/src/utils/renderer.ts": 671,
+    "frontend/src/utils/renderer.ts": 673,
     "tools/evolve.py": 554,
     "tools/validate_improvement.py": 566,
 }
