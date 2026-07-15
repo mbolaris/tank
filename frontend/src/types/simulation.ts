@@ -70,7 +70,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
+    type: 'fish' | 'food' | 'resource_patch' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
     x: number;
     y: number;
     width: number;
@@ -112,6 +112,9 @@ export interface EntityData {
 
     // Food-specific
     food_type?: string;
+    patch_kind?: string;
+    stock?: number;
+    max_stock?: number;
 
     // Plant-specific (original static plants)
     plant_type?: number;
@@ -598,6 +601,7 @@ export interface Command {
     | 'standard_poker_series'
     | 'poker_autopilot_action'
     | 'fast_forward'
+    | 'set_local_resource_patches'
     | 'set_plant_energy_input'
     | 'set_soccer_league_enabled'
     | 'set_soccer_league_config'
@@ -874,4 +878,3 @@ export interface CommentaryResponse {
     count: number;
     comments: CommentaryItem[];
 }
-

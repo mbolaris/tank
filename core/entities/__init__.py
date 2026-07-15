@@ -6,7 +6,7 @@ from core.entities.generic_agent import AgentComponents, GenericAgent
 from core.entities.plant import Plant
 from core.entities.plant_nectar import PlantNectar
 from core.entities.predators import Crab
-from core.entities.resources import Food, LiveFood
+from core.entities.resources import Food, LiveFood, ResourcePatch
 
 __all__ = [
     # Base classes
@@ -23,6 +23,7 @@ __all__ = [
     "Crab",
     "Food",
     "LiveFood",
+    "ResourcePatch",
     "Plant",
     "PlantNectar",
 ]

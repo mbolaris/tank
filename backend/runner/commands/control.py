@@ -15,6 +15,8 @@ class ControlCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
+
     def _cmd_pause(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'pause' command."""
         self.paused = True
@@ -47,3 +49,28 @@ class ControlCommands:
         self.fast_forward = enabled
         logger.info(f"Fast forward {'enabled' if enabled else 'disabled'}")
         return None
+
+    def _cmd_set_local_resource_patches(self, data: dict[str, Any]) -> dict[str, Any] | None:
+        """Toggle the experimental local resource patches at runtime."""
+        if not data or "enabled" not in data:
+            return self._create_error_response("Missing 'enabled' parameter")
+
+        engine = getattr(self.world, "engine", None)
+        if engine is None or getattr(engine, "food_spawning_system", None) is None:
+            return self._create_error_response("Food spawning system is not available")
+
+        enabled = bool(data["enabled"])
+        system = engine.food_spawning_system
+        system.config.local_resource_patches_enabled = enabled
+
+        if enabled:
+            # Queue the markers immediately; normal spawn-phase processing will
+            # apply the mutation and continue regrowth on subsequent frames.
+            system._ensure_resource_patches()
+        else:
+            for patch in list(system._resource_patches):
+                engine.request_remove(patch, reason="local_resource_patches_disabled")
+            system._resource_patches.clear()
+
+        logger.info("Local resource patches %s", "enabled" if enabled else "disabled")
+        return {"success": True, "enabled": enabled}

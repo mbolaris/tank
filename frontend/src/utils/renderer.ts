@@ -11,6 +11,7 @@
  */
 
 import type { EntityData } from '../types/simulation';
+import { renderResourcePatch } from './renderResourcePatch';
 import { ImageLoader } from './ImageLoader';
 import { type FishParams } from './fishTemplates';
 import {
@@ -42,10 +43,8 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
     live: ['food_live1.png', 'food_live2.png'], // Live food uses energy images but with special effects
 };
 
-// Default food images for unknown types
 const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
-// Default fish images for fallback rendering
 const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
 // Minimum horizontal velocity magnitude before we flip the fish sprite.
@@ -164,6 +163,9 @@ export class Renderer {
                 break;
             case 'food':
                 this.renderFood(entity, elapsedTime);
+                break;
+            case 'resource_patch':
+                renderResourcePatch(this.ctx, entity);
                 break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
