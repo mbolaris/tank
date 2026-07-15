@@ -16,7 +16,7 @@ module for backwards compatibility.
 """
 
 import random as pyrandom
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from core.genetics.behavioral_inheritance import (
@@ -94,6 +94,7 @@ BEHAVIORAL_TRAIT_SPECS: list[TraitSpec] = [
     TraitSpec("prediction_skill", 0.0, 1.0),
     TraitSpec("hunting_stamina", 0.0, 1.0),
     TraitSpec("asexual_reproduction_chance", 0.0, 1.0),
+    TraitSpec("exploration_tendency", 0.0, 1.0),
 ]
 
 # Behavioral traits that can be selected for via mate preferences.
@@ -142,6 +143,7 @@ class BehavioralTraits:
     prediction_skill: GeneticTrait[float]
     hunting_stamina: GeneticTrait[float]
     asexual_reproduction_chance: GeneticTrait[float]
+    exploration_tendency: GeneticTrait[float] = field(default_factory=lambda: GeneticTrait(0.5))
 
     # Composable behavior (replaces behavior_algorithm + poker_algorithm)
     # This single field encodes: threat response, food approach, energy style,
