@@ -15,6 +15,8 @@ class ControlCommands:
 
         def _invalidate_state_cache(self) -> None: ...
 
+        def _create_error_response(self, error_msg: str) -> dict[str, Any]: ...
+
     def _cmd_pause(self, data: dict[str, Any]) -> dict[str, Any] | None:
         """Handle 'pause' command."""
         self.paused = True
