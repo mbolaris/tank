@@ -447,8 +447,8 @@ class Castle(Entity):
     def __init__(
         self,
         environment: World,
-        x: float = 375,
-        y: float = 475,
+        x: float = 431,
+        y: float = 387,
     ) -> None:
         """Initialize a castle.
 
