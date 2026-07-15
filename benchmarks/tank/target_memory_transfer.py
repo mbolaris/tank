@@ -16,7 +16,11 @@ from core.behavior.target_memory_transfer_evolution import evaluate_target_memor
 from core.behavior.target_memory_transfer_gym import MUTATION_RATE, MUTATION_STRENGTH
 
 BENCHMARK_ID = "tank/target_memory_transfer"
-EXPECTED_RUNTIME_SECONDS = 15
+# Raised from 15: fixing the adaptation-phase held-out leakage (see
+# TargetMemoryTransferEvaluation.adaptation_reference_established) means
+# established-reference seeds now run real generations to reach their bar
+# instead of terminating near-instantly against a manufactured threshold.
+EXPECTED_RUNTIME_SECONDS = 25
 
 CONFIG: dict[str, Any] = {
     "module": "target_memory_v1",
@@ -43,9 +47,13 @@ def run(seed: int) -> dict[str, Any]:
     transfer_benefit_vs_disjoint = food_trained_score - default_score
     transfer_benefit_vs_random = food_trained_score - random_score
 
-    adaptation_accel = (
-        evaluation.adaptation_generations_default - evaluation.adaptation_generations_food
-    )
+    adaptation_accel: int | None = None
+    if evaluation.adaptation_reference_established:
+        assert evaluation.adaptation_generations_default is not None
+        assert evaluation.adaptation_generations_food is not None
+        adaptation_accel = (
+            evaluation.adaptation_generations_default - evaluation.adaptation_generations_food
+        )
 
     runtime = time.perf_counter() - started
 
@@ -77,6 +85,8 @@ def run(seed: int) -> dict[str, Any]:
                 name: summary.to_dict() for name, summary in evaluation.group_summaries.items()
             },
             "adaptation": {
+                "reference_established": evaluation.adaptation_reference_established,
+                "reference_gap": evaluation.adaptation_reference_gap,
                 "gens_food_trained": evaluation.adaptation_generations_food,
                 "gens_disjoint_default_start": evaluation.adaptation_generations_default,
                 "acceleration_generations": adaptation_accel,

@@ -17,6 +17,7 @@ from core.behavior.target_memory_transfer_gym import (
     CROSSOVER_WEIGHT,
     EVOLUTION_RUNS,
     GENERATIONS,
+    MIN_REFERENCE_EFFECT,
     MUTATION_RATE,
     MUTATION_STRENGTH,
     POPULATION_SIZE,
@@ -194,23 +195,45 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
 
     # Adaptation speed: shared arm (continuing from food-trained values) vs
     # disjoint arm (starting from founder/default params - never touched by
-    # food selection), both unfrozen under the same ball pressure and budget.
-    default_score = summaries["default_params"].overall_score
-    ball_reference_score = summaries["ball_trained"].overall_score
-    adaptation_threshold = default_score + max(0.001, (ball_reference_score - default_score) * 0.75)
+    # food selection), both unfrozen under the same ball-domain training set
+    # and budget. Trains and is gated on train_ball only - test_ball (the
+    # zero-shot held-out set scored above) must stay untouched from here on,
+    # or "adaptation speed" would just be re-measuring fit to the same data
+    # already used to claim zero-shot transfer.
+    default_score_train = evaluate_params_on_set(default_params, train_ball).overall_score
+    ball_reference_train_scores = [
+        evaluate_params_on_set(p, train_ball).overall_score for p in ball_trained_params
+    ]
+    ball_reference_score = sum(ball_reference_train_scores) / len(ball_reference_train_scores)
+    reference_gap = ball_reference_score - default_score_train
+
+    if reference_gap < MIN_REFERENCE_EFFECT:
+        # ball_trained didn't establish a meaningfully better-than-default
+        # bar in-domain, so any threshold derived from it would be noise, not
+        # a real target. Report the gap for diagnostics and skip the
+        # generations-to-adapt runs rather than manufacture a near-zero bar.
+        return TargetMemoryTransferEvaluation(
+            group_summaries=summaries,
+            adaptation_generations_food=None,
+            adaptation_generations_default=None,
+            adaptation_threshold=None,
+            adaptation_reference_established=False,
+            adaptation_reference_gap=reference_gap,
+        )
+
+    adaptation_threshold = default_score_train + reference_gap * 0.75
 
     adapt_runs_food = []
     adapt_runs_default = []
     for run_idx in range(EVOLUTION_RUNS):
-        run_rng = random.Random(seed + 11000 + run_idx * 100)
         food_seed = food_trained_params[run_idx % len(food_trained_params)]
         initial_pop_shared = [food_seed] * POPULATION_SIZE
         _, _, gens_shared = run_evolution(
             initial_pop_shared,
-            test_ball,
+            train_ball,
             GENERATIONS * 2,
             POPULATION_SIZE,
-            run_rng,
+            random.Random(seed + 11000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
         )
         adapt_runs_food.append(gens_shared)
@@ -218,10 +241,10 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
         initial_pop_disjoint = [default_params] * POPULATION_SIZE
         _, _, gens_disjoint = run_evolution(
             initial_pop_disjoint,
-            test_ball,
+            train_ball,
             GENERATIONS * 2,
             POPULATION_SIZE,
-            run_rng,
+            random.Random(seed + 12000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
         )
         adapt_runs_default.append(gens_disjoint)
@@ -234,4 +257,6 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
         adaptation_generations_food=avg_gens_food,
         adaptation_generations_default=avg_gens_default,
         adaptation_threshold=adaptation_threshold,
+        adaptation_reference_established=True,
+        adaptation_reference_gap=reference_gap,
     )
