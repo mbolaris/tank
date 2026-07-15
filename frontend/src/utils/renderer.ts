@@ -476,7 +476,7 @@ export class Renderer {
                 this.renderFood(entity, elapsedTime);
                 break;
             case 'resource_patch':
-                this.renderResourcePatch(entity, elapsedTime);
+                this.renderResourcePatch(entity);
                 break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
@@ -1300,7 +1300,7 @@ export class Renderer {
         this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
     }
 
-    private renderResourcePatch(patch: EntityData, _elapsedTime: number) {
+    private renderResourcePatch(patch: EntityData) {
         const { ctx } = this;
         const ratio = Math.max(0, Math.min(1, patch.stock !== undefined && patch.max_stock ? patch.stock / patch.max_stock : 0));
         const color = patch.patch_kind === 'protein' ? '#d890ff' : '#55d6a1';

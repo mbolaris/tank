@@ -5,6 +5,7 @@ import {
     useCallback,
     useEffect,
     useRef,
+    useMemo,
     type ChangeEvent,
     type ReactNode,
 } from 'react';
@@ -118,7 +119,10 @@ export function TankView({ worldId }: TankViewProps) {
     // Effective world ID - use connected ID which is available immediately
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
-    const liveEntities = state?.snapshot?.entities ?? state?.entities ?? [];
+    const liveEntities = useMemo(
+        () => state?.snapshot?.entities ?? state?.entities ?? [],
+        [state?.snapshot?.entities, state?.entities],
+    );
     useEffect(() => {
         if (liveEntities.some((entity) => entity.type === 'resource_patch')) {
             setShowResourcePatches(true);
