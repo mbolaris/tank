@@ -4,6 +4,7 @@
  */
 
 import type { EntityData } from '../types/simulation';
+import { renderResourcePatch } from './renderResourcePatch';
 import { ImageLoader } from './ImageLoader';
 import { getFishPath, getEyePosition, getPatternOpacity, type FishParams } from './fishTemplates';
 import {
@@ -14,10 +15,8 @@ import {
 } from './plant';
 import { drawSoccerBall } from './drawSoccerBall';
 
-// Animation constants
 const IMAGE_CHANGE_RATE = 500; // milliseconds
 
-// Particle system constants
 const PARTICLE_COUNT = 30;
 const PARTICLE_SIZE_MIN = 1;
 const PARTICLE_SIZE_RANGE = 3;
@@ -79,10 +78,8 @@ const FOOD_TYPE_IMAGES: Record<string, string[]> = {
     live: ['food_live1.png', 'food_live2.png'], // Live food uses energy images but with special effects
 };
 
-// Default food images for unknown types
 const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
-// Default fish images for fallback rendering
 const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
 // Minimum horizontal velocity magnitude before we flip the fish sprite.
@@ -476,7 +473,7 @@ export class Renderer {
                 this.renderFood(entity, elapsedTime);
                 break;
             case 'resource_patch':
-                this.renderResourcePatch(entity);
+                renderResourcePatch(this.ctx, entity);
                 break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
@@ -1298,36 +1295,6 @@ export class Renderer {
 
         // Food images don't flip
         this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
-    }
-
-    private renderResourcePatch(patch: EntityData) {
-        const { ctx } = this;
-        const ratio = Math.max(0, Math.min(1, patch.stock !== undefined && patch.max_stock ? patch.stock / patch.max_stock : 0));
-        const color = patch.patch_kind === 'protein' ? '#d890ff' : '#55d6a1';
-        const x = patch.x;
-        const y = patch.y;
-        const w = patch.width;
-        const h = patch.height;
-
-        ctx.save();
-        ctx.globalAlpha = 0.18 + ratio * 0.22;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x, y, w, h, 18);
-        ctx.fill();
-        ctx.globalAlpha = 0.8;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.globalAlpha = 0.75;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.roundRect(x + 5, y + h - 10, Math.max(0, (w - 10) * ratio), 5, 2);
-        ctx.fill();
-        ctx.globalAlpha = 0.55;
-        ctx.font = '11px sans-serif';
-        ctx.fillText(patch.patch_kind === 'protein' ? 'PROTEIN PATCH' : 'ALGAE PATCH', x + 9, y + 17);
-        ctx.restore();
     }
 
     // Unified plant rendering now uses renderFractalPlant. Legacy static plant renderer removed.

@@ -5,7 +5,6 @@ import {
     useCallback,
     useEffect,
     useRef,
-    useMemo,
     type ChangeEvent,
     type ReactNode,
 } from 'react';
@@ -21,6 +20,7 @@ import { PanelToggleBar } from './PanelToggleBar';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
+import { useLiveEntities } from '../hooks/useLiveEntities';
 import { PlantIcon } from './ui';
 import styles from './TankView.module.css';
 
@@ -64,7 +64,6 @@ export function TankView({ worldId }: TankViewProps) {
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
-    const [showResourcePatches, setShowResourcePatches] = useState(false);
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, isVisible } = useVisiblePanels(['skills', 'soccer', 'ecosystem', 'insights']);
 
@@ -113,21 +112,11 @@ export function TankView({ worldId }: TankViewProps) {
         setWorldType,
     } = useViewMode(serverViewMode, state?.world_type, worldId || state?.world_id);
 
-    // Effective world type for rendering - prefer server state when available
     const effectiveWorldType = state?.world_type ?? worldType;
 
-    // Effective world ID - use connected ID which is available immediately
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
-    const liveEntities = useMemo(
-        () => state?.snapshot?.entities ?? state?.entities ?? [],
-        [state?.snapshot?.entities, state?.entities],
-    );
-    useEffect(() => {
-        if (liveEntities.some((entity) => entity.type === 'resource_patch')) {
-            setShowResourcePatches(true);
-        }
-    }, [liveEntities]);
+    const liveEntities = useLiveEntities(state);
     const selectedEntity =
         selection.selectedEntityId !== null
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
@@ -160,15 +149,7 @@ export function TankView({ worldId }: TankViewProps) {
                             data: { enabled: newValue },
                         });
                     }}
-                    showResourcePatches={showResourcePatches}
-                    onToggleResourcePatches={() => {
-                        const newValue = !showResourcePatches;
-                        setShowResourcePatches(newValue);
-                        sendCommand({
-                            command: 'set_local_resource_patches',
-                            data: { enabled: newValue },
-                        });
-                    }}
+                    showResourcePatches={liveEntities.some((entity) => entity.type === 'resource_patch')}
                 />
 
                 <WorldModeSelector worldType={worldType} onChange={setWorldType} />
