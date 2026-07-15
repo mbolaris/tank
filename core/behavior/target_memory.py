@@ -359,3 +359,16 @@ def decide_target(
         candidate_value=cand_value,
     )
     return next_state, decision
+
+
+def invalidate_target_memory(
+    fish,
+    domain: str,
+    target_id: TargetId,
+) -> None:
+    """Invalidate a target memory if the fish knows it is completed."""
+    if not hasattr(fish, "target_memory_state"):
+        return
+    state = fish.target_memory_state.get(domain)
+    if state is not None and state.target_id == target_id:
+        fish.target_memory_state[domain] = TargetMemoryState.empty()

@@ -92,6 +92,8 @@ def run_evolution(
     if target_score_threshold is not None:
         gen0_gate_score = best_validation_score if validation_scenarios is not None else best_score
         if gen0_gate_score >= target_score_threshold:
+            if shuffle_fitness:
+                return population[rng.randrange(len(population))], history, 0
             return best_params, history, 0
 
     for gen in range(1, generations + 1):
@@ -143,7 +145,15 @@ def run_evolution(
                 selected_params = elite
 
         if target_score_threshold is not None and gate_score >= target_score_threshold:
+            if shuffle_fitness:
+                return population[rng.randrange(len(population))], history, gen
             return selected_params, history, gen
+
+    if shuffle_fitness:
+        return population[rng.randrange(len(population))], history, generations
+
+    if validation_scenarios is None:
+        return best_params, history, generations
 
     return selected_params, history, generations
 
@@ -271,6 +281,19 @@ def evaluate_target_memory_transfer(
     ball_reference_score = sum(ball_reference_val_scores) / len(ball_reference_val_scores)
     reference_gap = ball_reference_score - default_score_val
 
+    # Calculate source domain validation performance
+    food_val_score_default = evaluate_params_on_set(default_params, validation_food).overall_score
+    food_val_scores_food_trained = [
+        evaluate_params_on_set(p, validation_food).overall_score for p in food_trained_params
+    ]
+    food_val_score_food_trained = sum(food_val_scores_food_trained) / len(
+        food_val_scores_food_trained
+    )
+
+    # Convert genomes/params to dicts for reporting
+    food_trained_genomes = [p.to_dict() for p in food_trained_params]
+    ball_trained_genomes = [p.to_dict() for p in ball_trained_params]
+
     if reference_gap < MIN_REFERENCE_EFFECT:
         # ball_trained didn't establish a meaningfully better-than-default
         # bar in-domain, so any threshold derived from it would be noise, not
@@ -283,6 +306,10 @@ def evaluate_target_memory_transfer(
             adaptation_threshold=None,
             adaptation_reference_established=False,
             adaptation_reference_gap=reference_gap,
+            food_validation_score_default=food_val_score_default,
+            food_validation_score_food_trained=food_val_score_food_trained,
+            food_trained_genomes=food_trained_genomes,
+            ball_trained_genomes=ball_trained_genomes,
         )
 
     adaptation_threshold = default_score_val + reference_gap * 0.75
@@ -329,4 +356,8 @@ def evaluate_target_memory_transfer(
         adaptation_threshold=adaptation_threshold,
         adaptation_reference_established=True,
         adaptation_reference_gap=reference_gap,
+        food_validation_score_default=food_val_score_default,
+        food_validation_score_food_trained=food_val_score_food_trained,
+        food_trained_genomes=food_trained_genomes,
+        ball_trained_genomes=ball_trained_genomes,
     )

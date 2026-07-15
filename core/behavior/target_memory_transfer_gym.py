@@ -41,6 +41,8 @@ from core.behavior.target_memory import (
     TargetId,
     TargetMemoryParams,
     TargetMemoryState,
+    TargetMemoryAction,
+    TargetMemoryDecision,
     decide_target,
 )
 from core.behavior.target_memory_transfer_scenarios import (  # noqa: F401 - re-exported
@@ -106,6 +108,13 @@ class TargetMemoryEpisodeResult:
     reacquisition_frames_total: int = 0
     distance_traveled: float = 0.0
 
+    # New diagnostic metrics
+    occlusion_survived_ratio: float = 0.0
+    occlusion_dropped_ratio: float = 0.0
+    wasted_frames: float = 0.0
+    chasing_stale_frames: float = 0.0
+    distance_error_at_reappearance: float = 0.0
+
     @property
     def capture_ratio(self) -> float:
         return self.captured_value / self.available_value if self.available_value else 0.0
@@ -130,6 +139,13 @@ class EvaluationSummary:
     mean_reacquisition_frames: float = 0.0
     mean_distance_traveled: float = 0.0
 
+    # New diagnostic metrics
+    mean_occlusion_survived_ratio: float = 0.0
+    mean_occlusion_dropped_ratio: float = 0.0
+    mean_wasted_frames: float = 0.0
+    mean_chasing_stale_frames: float = 0.0
+    mean_distance_error_at_reappearance: float = 0.0
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "capture_ratio": self.capture_ratio,
@@ -140,6 +156,11 @@ class EvaluationSummary:
             "mean_stale_pursuit_frames": self.mean_stale_pursuit_frames,
             "mean_reacquisition_frames": self.mean_reacquisition_frames,
             "mean_distance_traveled": self.mean_distance_traveled,
+            "mean_occlusion_survived_ratio": self.mean_occlusion_survived_ratio,
+            "mean_occlusion_dropped_ratio": self.mean_occlusion_dropped_ratio,
+            "mean_wasted_frames": self.mean_wasted_frames,
+            "mean_chasing_stale_frames": self.mean_chasing_stale_frames,
+            "mean_distance_error_at_reappearance": self.mean_distance_error_at_reappearance,
         }
 
 
@@ -166,6 +187,14 @@ class TargetMemoryTransferEvaluation:
     adaptation_threshold: float | None
     adaptation_reference_established: bool
     adaptation_reference_gap: float
+
+    # Source learning (food task performance)
+    food_validation_score_default: float | None = None
+    food_validation_score_food_trained: float | None = None
+
+    # Evolved parameters
+    food_trained_genomes: list[dict[str, float]] | None = None
+    ball_trained_genomes: list[dict[str, float]] | None = None
 
     @property
     def naive_greedy_score(self) -> float:
@@ -222,9 +251,14 @@ class _EpisodeTrace:
 
     selections: list[TargetId | None]
     visible_ids: list[frozenset[TargetId]]
+    actions: list[TargetMemoryAction]
+    decisions: list[TargetMemoryDecision | None]
+    observer_positions: list[tuple[float, float]]
+    target_positions: list[dict[TargetId, tuple[float, float]]]
+    captured_frames: dict[TargetId, int]
     distance_traveled: float = 0.0
 
-    def metrics(self) -> dict[str, Any]:
+    def metrics(self, scenario: TargetMemoryScenario) -> dict[str, Any]:
         switches = 0
         stale = 0
         for f, selected in enumerate(self.selections):
@@ -232,10 +266,17 @@ class _EpisodeTrace:
                 continue
             if selected not in self.visible_ids[f]:
                 stale += 1
-            if f > 0:
+
+        # Count actual SWITCH events when actions is populated, otherwise count transitions
+        if self.actions:
+            switches = sum(1 for act in self.actions if act == TargetMemoryAction.SWITCH)
+        else:
+            for f in range(1, len(self.selections)):
                 prev = self.selections[f - 1]
-                if prev is not None and prev != selected:
-                    switches += 1
+                curr = self.selections[f]
+                if prev is not None and curr is not None and prev != curr:
+                    if prev not in self.captured_frames or self.captured_frames[prev] != f - 1:
+                        switches += 1
 
         events = 0
         frames_total = 0
@@ -255,12 +296,105 @@ class _EpisodeTrace:
                 events += 1
                 frames_total += (g if g < n else n) - f
 
+        # New occlusion diagnostics
+        occlusion_events = 0
+        commitment_survived = 0
+        dropped_prematurely = 0
+        wasted_frames = 0
+        chasing_stale_frames = 0
+        distance_errors = []
+
+        for track in scenario.tracks:
+            tid = track.target_id
+            cap_frame = self.captured_frames.get(tid, n - 1)
+            end_active_idx = min(cap_frame, track.start_frame + len(track.positions) - 1)
+            if end_active_idx < track.start_frame:
+                continue
+
+            local_start = 0
+            while local_start < len(track.visible_mask):
+                if not track.visible_mask[local_start]:
+                    global_idx = track.start_frame + local_start
+                    if global_idx > end_active_idx:
+                        break
+
+                    local_end = local_start
+                    while local_end < len(track.visible_mask) and not track.visible_mask[local_end]:
+                        local_end += 1
+                    local_end -= 1
+
+                    global_end = min(end_active_idx, track.start_frame + local_end)
+
+                    prev_frame = global_idx - 1
+                    if prev_frame >= 0 and prev_frame < n:
+                        was_visible = (
+                            prev_frame >= track.start_frame
+                            and track.visible_mask[prev_frame - track.start_frame]
+                        )
+                        if was_visible and self.selections[prev_frame] == tid:
+                            occlusion_events += 1
+
+                            dropped_at = None
+                            for f in range(global_idx, global_end + 1):
+                                if f == cap_frame:
+                                    break
+                                if self.selections[f] != tid or (
+                                    f < len(self.actions)
+                                    and self.actions[f] == TargetMemoryAction.DROP
+                                ):
+                                    dropped_at = f
+                                    break
+
+                            if dropped_at is not None:
+                                dropped_prematurely += 1
+                                end_gap = min(global_end + 1, n - 1)
+                                for f in range(dropped_at, end_gap + 1):
+                                    if self.selections[f] != tid:
+                                        wasted_frames += 1
+                            else:
+                                commitment_survived += 1
+                                next_frame = global_end + 1
+                                if next_frame < n and next_frame <= end_active_idx:
+                                    if tid in self.target_positions[global_end]:
+                                        true_pos = self.target_positions[global_end][tid]
+                                        if (
+                                            global_end < len(self.decisions)
+                                            and self.decisions[global_end] is not None
+                                        ):
+                                            pred_pos = self.decisions[global_end].target_position
+                                            err = math.hypot(
+                                                pred_pos[0] - true_pos[0], pred_pos[1] - true_pos[1]
+                                            )
+                                            distance_errors.append(err)
+
+                    local_start = local_end + 1
+                else:
+                    local_start += 1
+
+        for f, selected in enumerate(self.selections):
+            if selected is not None and selected in self.captured_frames:
+                if f > self.captured_frames[selected]:
+                    chasing_stale_frames += 1
+
+        occlusion_survived_ratio = (
+            commitment_survived / occlusion_events if occlusion_events else 0.0
+        )
+        occlusion_dropped_ratio = (
+            dropped_prematurely / occlusion_events if occlusion_events else 0.0
+        )
+        avg_dist_error = sum(distance_errors) / len(distance_errors) if distance_errors else 0.0
+
         return {
             "switches": switches,
             "stale_pursuit_frames": stale,
             "reacquisition_events": events,
             "reacquisition_frames_total": frames_total,
             "distance_traveled": self.distance_traveled,
+            "occlusion_survived_ratio": occlusion_survived_ratio,
+            "occlusion_dropped_ratio": occlusion_dropped_ratio,
+            "wasted_frames": float(wasted_frames),
+            "chasing_stale_frames": float(chasing_stale_frames),
+            "distance_error_at_reappearance": avg_dist_error,
         }
 
 
@@ -274,13 +408,34 @@ def run_target_memory_episode(
     state = TargetMemoryState.empty()
     captured: set[TargetId] = set()
     captured_value = 0.0
-    trace = _EpisodeTrace(selections=[], visible_ids=[])
+    trace = _EpisodeTrace(
+        selections=[],
+        visible_ids=[],
+        actions=[],
+        decisions=[],
+        observer_positions=[],
+        target_positions=[],
+        captured_frames={},
+    )
 
     for frame in range(scenario.max_frames + 1):
         visible = _visible_candidates(scenario, frame, captured)
         state, decision = decide_target(state, visible, (observer.x, observer.y), params)
         trace.selections.append(decision.selected_target_id)
         trace.visible_ids.append(frozenset(c.target_id for c in visible))
+        trace.actions.append(decision.action)
+        trace.decisions.append(decision)
+        trace.observer_positions.append((observer.x, observer.y))
+        trace.target_positions.append(
+            {
+                t.target_id: (
+                    t.positions[frame - t.start_frame].x,
+                    t.positions[frame - t.start_frame].y,
+                )
+                for t in scenario.tracks
+                if 0 <= frame - t.start_frame < len(t.positions)
+            }
+        )
 
         if decision.selected_target_id is not None:
             dx, dy = decision.target_vector
@@ -288,20 +443,28 @@ def run_target_memory_episode(
             trace.distance_traveled += math.hypot(moved.x - observer.x, moved.y - observer.y)
             observer = moved
 
-            selected = next(
-                (c for c in visible if c.target_id == decision.selected_target_id), None
+            selected_track = next(
+                (t for t in scenario.tracks if t.target_id == decision.selected_target_id), None
             )
-            if selected is not None:
-                d = math.hypot(selected.position[0] - observer.x, selected.position[1] - observer.y)
-                if d <= CAPTURE_RADIUS:
-                    captured.add(selected.target_id)
-                    captured_value += _capture_credit(selected.value, frame, scenario.max_frames)
+            if selected_track is not None and selected_track.target_id not in captured:
+                local = frame - selected_track.start_frame
+                if 0 <= local < len(selected_track.positions):
+                    pos = selected_track.positions[local]
+                    d = math.hypot(pos.x - observer.x, pos.y - observer.y)
+                    if d <= CAPTURE_RADIUS:
+                        captured.add(selected_track.target_id)
+                        trace.captured_frames[selected_track.target_id] = frame
+                        captured_value += _capture_credit(
+                            selected_track.value, frame, scenario.max_frames
+                        )
+                        if state.target_id == selected_track.target_id:
+                            state = TargetMemoryState.empty()
 
     return TargetMemoryEpisodeResult(
         captured_value=captured_value,
         available_value=scenario.available_value,
         captures=len(captured),
-        **trace.metrics(),
+        **trace.metrics(scenario),
     )
 
 
@@ -324,29 +487,61 @@ def run_naive_greedy_episode(scenario: TargetMemoryScenario) -> TargetMemoryEpis
     observer = scenario.observer_start.copy()
     captured: set[TargetId] = set()
     captured_value = 0.0
-    trace = _EpisodeTrace(selections=[], visible_ids=[])
+    trace = _EpisodeTrace(
+        selections=[],
+        visible_ids=[],
+        actions=[],
+        decisions=[],
+        observer_positions=[],
+        target_positions=[],
+        captured_frames={},
+    )
 
     for frame in range(scenario.max_frames + 1):
         visible = _visible_candidates(scenario, frame, captured)
         target = _best_visible(visible)
         trace.selections.append(target.target_id if target is not None else None)
         trace.visible_ids.append(frozenset(c.target_id for c in visible))
+        trace.actions.append(
+            TargetMemoryAction.ACQUIRE if target is not None else TargetMemoryAction.IDLE
+        )
+        trace.decisions.append(None)
+        trace.observer_positions.append((observer.x, observer.y))
+        trace.target_positions.append(
+            {
+                t.target_id: (
+                    t.positions[frame - t.start_frame].x,
+                    t.positions[frame - t.start_frame].y,
+                )
+                for t in scenario.tracks
+                if 0 <= frame - t.start_frame < len(t.positions)
+            }
+        )
+
         if target is not None:
             dx = target.position[0] - observer.x
             dy = target.position[1] - observer.y
             moved = _step_toward(observer, dx, dy)
             trace.distance_traveled += math.hypot(moved.x - observer.x, moved.y - observer.y)
             observer = moved
-            d = math.hypot(target.position[0] - observer.x, target.position[1] - observer.y)
-            if d <= CAPTURE_RADIUS:
-                captured.add(target.target_id)
-                captured_value += _capture_credit(target.value, frame, scenario.max_frames)
+            selected_track = next(
+                (t for t in scenario.tracks if t.target_id == target.target_id), None
+            )
+            if selected_track is not None and selected_track.target_id not in captured:
+                local = frame - selected_track.start_frame
+                if 0 <= local < len(selected_track.positions):
+                    pos = selected_track.positions[local]
+                    d = math.hypot(pos.x - observer.x, pos.y - observer.y)
+                    if d <= CAPTURE_RADIUS:
+                        captured.add(target.target_id)
+                        trace.captured_frames[target.target_id] = frame
+                        captured_value += _capture_credit(target.value, frame, scenario.max_frames)
 
     return TargetMemoryEpisodeResult(
         captured_value=captured_value,
         available_value=scenario.available_value,
         captures=len(captured),
-        **trace.metrics(),
+        **trace.metrics(scenario),
     )
 
 
@@ -380,6 +575,14 @@ def _summarize(
             total_reacq_frames / total_reacq_events if total_reacq_events else 0.0
         ),
         mean_distance_traveled=sum(r.distance_traveled for _, r in results) / n,
+        mean_occlusion_survived_ratio=sum(r.occlusion_survived_ratio for _, r in results) / n,
+        mean_occlusion_dropped_ratio=sum(r.occlusion_dropped_ratio for _, r in results) / n,
+        mean_wasted_frames=sum(r.wasted_frames for _, r in results) / n,
+        mean_chasing_stale_frames=sum(r.chasing_stale_frames for _, r in results) / n,
+        mean_distance_error_at_reappearance=sum(
+            r.distance_error_at_reappearance for _, r in results
+        )
+        / n,
     )
 
 
@@ -411,4 +614,12 @@ def average_summaries(evals: list[EvaluationSummary]) -> EvaluationSummary:
         mean_stale_pursuit_frames=sum(e.mean_stale_pursuit_frames for e in evals) / n,
         mean_reacquisition_frames=sum(e.mean_reacquisition_frames for e in evals) / n,
         mean_distance_traveled=sum(e.mean_distance_traveled for e in evals) / n,
+        mean_occlusion_survived_ratio=sum(e.mean_occlusion_survived_ratio for e in evals) / n,
+        mean_occlusion_dropped_ratio=sum(e.mean_occlusion_dropped_ratio for e in evals) / n,
+        mean_wasted_frames=sum(e.mean_wasted_frames for e in evals) / n,
+        mean_chasing_stale_frames=sum(e.mean_chasing_stale_frames for e in evals) / n,
+        mean_distance_error_at_reappearance=sum(
+            e.mean_distance_error_at_reappearance for e in evals
+        )
+        / n,
     )

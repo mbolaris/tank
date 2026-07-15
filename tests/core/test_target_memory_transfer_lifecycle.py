@@ -38,7 +38,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _PER_EVAL_TIMEOUT_SECONDS = 150.0
 
 _CHILD_SCRIPT = r"""
-import faulthandler, gc, json, resource, sys, time
+import faulthandler, gc, json, sys, time
 
 faulthandler.enable()
 
@@ -51,14 +51,23 @@ per_eval_timeout = float(sys.argv[3])
 
 def _current_rss_kb() -> int:
     try:
+        import psutil
+        return int(psutil.Process().memory_info().rss // 1024)
+    except ImportError:
+        pass
+    try:
         with open("/proc/self/status") as f:
             for line in f:
                 if line.startswith("VmRSS:"):
                     return int(line.split()[1])
     except OSError:
         pass
-    # Fallback: peak RSS (monotonic, so growth checks stay valid but coarser).
-    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    try:
+        import resource
+        # Fallback: peak RSS (monotonic, so growth checks stay valid but coarser).
+        return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    except (ImportError, NameError, OSError):
+        return 0
 
 
 for i in range(n_evals):
