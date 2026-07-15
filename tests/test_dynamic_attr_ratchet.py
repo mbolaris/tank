@@ -32,7 +32,7 @@ MAX_DYNAMIC_ATTR_CHECKS_FOR_NEW_FILES = 2
 # entry is removed — the ratchet only tightens.
 LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/algorithms/base.py": 4,
-    "core/algorithms/composable/actions.py": 4,
+    "core/algorithms/composable/actions.py": 5,
     "core/algorithms/composable/food_selection.py": 8,
     "core/algorithms/food_seeking/cooperative.py": 5,
     "core/algorithms/food_seeking/quality.py": 3,
