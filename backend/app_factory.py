@@ -273,7 +273,9 @@ def create_app(
 
                 request_shutdown()
             except Exception:
-                pass
+                # Teardown may race interpreter shutdown; never mask the real
+                # lifespan error with a secondary shutdown failure.
+                ctx.logger.debug("poker auto-eval shutdown request failed", exc_info=True)
 
             if ctx.skill_evaluation_service:
                 await ctx.skill_evaluation_service.stop()

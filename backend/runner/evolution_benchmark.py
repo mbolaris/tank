@@ -91,7 +91,9 @@ def run_evolution_benchmark_if_needed(runner: SimulationRunner) -> None:
                 try:
                     guard.release()
                 except Exception:
-                    pass
+                    # Releasing an already-released/unheld guard is harmless;
+                    # anything else is still worth a trace in debug logs.
+                    logger.debug("benchmark guard release failed", exc_info=True)
 
         thread = threading.Thread(
             target=run_benchmark,

@@ -56,7 +56,7 @@ class MigrationHandler:
                 if value is not None:
                     return value
             except Exception:
-                pass
+                logger.debug("get_entity_id() raised; falling back to id attributes", exc_info=True)
 
         for attr in ("fish_id", "plant_id", "entity_id", "id"):
             value = getattr(entity, attr, None)
@@ -365,9 +365,9 @@ class MigrationHandler:
                 try:
                     source_lock.release()
                 except Exception:
-                    pass
+                    logger.debug("source tank lock release failed", exc_info=True)
             if dest_lock is not None and dest_lock_acquired:
                 try:
                     dest_lock.release()
                 except Exception:
-                    pass
+                    logger.debug("dest tank lock release failed", exc_info=True)

@@ -7,12 +7,15 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 import os
 import subprocess
 import sys
 import time
 import uuid
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def _get_git_info() -> dict[str, str | None]:
@@ -52,7 +55,7 @@ def _get_git_info() -> dict[str, str | None]:
         if res.returncode == 0:
             diff_stat = res.stdout.strip()
     except Exception:
-        pass
+        logger.debug("git context collection failed; recording partial context", exc_info=True)
 
     return {"branch": branch, "commit": commit, "diff_stat": diff_stat}
 
@@ -130,7 +133,7 @@ def log_attempt(
             if res.returncode == 0:
                 base_commit = res.stdout.strip()
         except Exception:
-            pass
+            logger.debug("base commit detection failed; leaving unset", exc_info=True)
 
     # Detect files changed
     if files_changed is None:
@@ -168,7 +171,7 @@ def log_attempt(
                         files.append(line[3:])
             files_changed = sorted(set(files))
         except Exception:
-            pass
+            logger.debug("changed-files detection failed; leaving unset", exc_info=True)
 
     # Detect patch_type
     if patch_type is None:
@@ -236,7 +239,7 @@ def log_attempt(
             if res.returncode == 0 and res.stdout.strip():
                 description = res.stdout.strip()
         except Exception:
-            pass
+            logger.debug("description detection from git log failed", exc_info=True)
         if not description:
             description = "No description provided"
 
