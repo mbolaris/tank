@@ -13,7 +13,11 @@ import time
 from typing import Any
 
 from core.behavior.target_memory_transfer_evolution import evaluate_target_memory_transfer
-from core.behavior.target_memory_transfer_gym import MUTATION_RATE, MUTATION_STRENGTH
+from core.behavior.target_memory_transfer_gym import (
+    MIN_REFERENCE_EFFECT,
+    MUTATION_RATE,
+    MUTATION_STRENGTH,
+)
 
 BENCHMARK_ID = "tank/target_memory_transfer"
 # Raised from 15: fixing the adaptation-phase held-out leakage (see
@@ -24,8 +28,15 @@ EXPECTED_RUNTIME_SECONDS = 25
 
 CONFIG: dict[str, Any] = {
     "module": "target_memory_v1",
-    "study_version": "v1",
-    "training": "population_evolution_moving_food_v1",
+    # v1.1: adaptation reference + generations-to-adapt are measured on the
+    # ball-validation set (selection still on ball-training); v1 measured
+    # both on the training set itself.
+    "study_version": "v1.1",
+    # Food scenarios are stationary targets (the earlier "moving_food" label
+    # was inaccurate); target motion only appears in the ball domain, so food
+    # training exerts no selection pressure on motion_extrapolation_duration.
+    # See metadata.validity.known_limitations.
+    "training": "population_evolution_stationary_food_v1",
     "comparison_groups": "naive-greedy,default,random,food-trained,ball-trained",
 }
 
@@ -91,6 +102,26 @@ def run(seed: int) -> dict[str, Any]:
                 "gens_disjoint_default_start": evaluation.adaptation_generations_default,
                 "acceleration_generations": adaptation_accel,
                 "threshold": evaluation.adaptation_threshold,
+            },
+            # Machine-readable statement of what this run's numbers do and do
+            # not support, so downstream consumers (validators, dashboards,
+            # agents comparing runs) never have to infer validity from prose.
+            "validity": {
+                "adaptation_reference_established": (evaluation.adaptation_reference_established),
+                "adaptation_fields_meaningful": evaluation.adaptation_reference_established,
+                "min_reference_effect": MIN_REFERENCE_EFFECT,
+                "adaptation_reference_measured_on": "ball_validation_v1",
+                "adaptation_training_set": "ball_train_v1",
+                "held_out_used_only_for_zero_shot_scoring": True,
+                "adaptation_arms_rng": "paired_independent_streams_per_run",
+                "known_limitations": [
+                    "food training uses stationary targets, so it exerts no "
+                    "selection pressure on motion_extrapolation_duration",
+                    "random_search control is one-step mutation around the "
+                    "default, not lineage-matched to the evolutionary arms",
+                    "single-seed scores are trajectory-sensitive; aggregate "
+                    "across seeds before drawing transfer conclusions",
+                ],
             },
             "mutation_schedule": {
                 "mutation_rate": MUTATION_RATE,

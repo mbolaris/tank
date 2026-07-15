@@ -52,7 +52,8 @@ MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.1
 CROSSOVER_WEIGHT = 0.5
 # Minimum ball_trained-vs-default gap (in overall_score, [0,1]) required before
-# the adaptation-speed comparison is considered meaningful. Below this, the
+# the adaptation-speed comparison is considered meaningful. Measured on the
+# ball-validation set (never the training or held-out sets). Below this, the
 # gap is indistinguishable from run-to-run evolution noise (empirically,
 # repeated ball_trained runs land within a few hundredths of default on many
 # seeds), so gating adaptation generations on it would measure noise, not
@@ -168,10 +169,15 @@ class TargetMemoryTransferEvaluation:
 
     ``adaptation_generations_*``/``adaptation_threshold`` are ``None`` when
     ``adaptation_reference_established`` is False: the ball_trained group
-    failed to clear ``MIN_REFERENCE_EFFECT`` over default on the ball-training
-    set, so there is no meaningful bar to measure "generations to adapt"
-    against for this seed. Consumers must check the flag before reading those
-    fields, rather than treating a near-zero threshold as a real result.
+    failed to clear ``MIN_REFERENCE_EFFECT`` over default on the
+    ball-validation set, so there is no meaningful bar to measure
+    "generations to adapt" against for this seed. Consumers must check the
+    flag before reading those fields, rather than treating a near-zero
+    threshold as a real result. When established, the threshold and each
+    generation's crossing check are also measured on ball-validation while
+    selection runs on ball-training, so the metric reflects generalization
+    rather than training fit; the held-out set is never touched by any
+    adaptation machinery.
     """
 
     group_summaries: dict[str, EvaluationSummary]

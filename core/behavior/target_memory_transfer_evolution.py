@@ -41,7 +41,20 @@ def run_evolution(
     validation_scenarios: list[TargetMemoryScenario] | None = None,
 ) -> tuple[TargetMemoryParams, list[float], int]:
     """Run genetic algorithm over TargetMemoryParams with optional validation
-    selection. Mirrors core/pursuit/transfer_gym.py's run_evolution shape."""
+    selection. Mirrors core/pursuit/transfer_gym.py's run_evolution shape.
+
+    ``target_score_threshold`` semantics depend on whether validation
+    scenarios are provided:
+
+    - With ``validation_scenarios``: the threshold is compared against each
+      generation's elite score *on the validation set*, never against
+      training fitness. Selection still happens on ``scenarios`` (the
+      training set), so "generations to threshold" measures how fast the
+      lineage *generalizes* to the reference bar rather than how fast it
+      fits the exact training scenarios.
+    - Without ``validation_scenarios``: the threshold is compared against
+      the best training score (legacy in-domain behavior).
+    """
     population = list(initial_population)
     while len(population) < pop_size:
         seed_params = population[rng.randrange(len(population))]
@@ -69,8 +82,10 @@ def run_evolution(
             best_params, validation_scenarios
         ).overall_score
 
-    if target_score_threshold is not None and best_score >= target_score_threshold:
-        return best_params, history, 0
+    if target_score_threshold is not None:
+        gen0_gate_score = best_validation_score if validation_scenarios is not None else best_score
+        if gen0_gate_score >= target_score_threshold:
+            return best_params, history, 0
 
     for gen in range(1, generations + 1):
         new_population = []
@@ -109,14 +124,16 @@ def run_evolution(
 
         history.append(best_score)
 
+        gate_score = best_score
         if validation_scenarios is not None:
             elite = population[pop_scores.index(max(pop_scores))]
             validation_score = evaluate_params_on_set(elite, validation_scenarios).overall_score
+            gate_score = validation_score
             if validation_score > best_validation_score:
                 best_validation_score = validation_score
                 selected_params = elite
 
-        if target_score_threshold is not None and best_score >= target_score_threshold:
+        if target_score_threshold is not None and gate_score >= target_score_threshold:
             return selected_params, history, gen
 
     return selected_params, history, generations
@@ -196,16 +213,20 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
     # Adaptation speed: shared arm (continuing from food-trained values) vs
     # disjoint arm (starting from founder/default params - never touched by
     # food selection), both unfrozen under the same ball-domain training set
-    # and budget. Trains and is gated on train_ball only - test_ball (the
-    # zero-shot held-out set scored above) must stay untouched from here on,
-    # or "adaptation speed" would just be re-measuring fit to the same data
-    # already used to claim zero-shot transfer.
-    default_score_train = evaluate_params_on_set(default_params, train_ball).overall_score
-    ball_reference_train_scores = [
-        evaluate_params_on_set(p, train_ball).overall_score for p in ball_trained_params
+    # and budget. Training and selection happen on train_ball; the reference
+    # bar and each generation's threshold check are measured on
+    # validation_ball, so "generations to adapt" means generations until the
+    # lineage *generalizes* to reference level, not until it fits the exact
+    # training scenarios. test_ball (the zero-shot held-out set scored above)
+    # must stay untouched from here on, or "adaptation speed" would just be
+    # re-measuring fit to the same data already used to claim zero-shot
+    # transfer.
+    default_score_val = evaluate_params_on_set(default_params, validation_ball).overall_score
+    ball_reference_val_scores = [
+        evaluate_params_on_set(p, validation_ball).overall_score for p in ball_trained_params
     ]
-    ball_reference_score = sum(ball_reference_train_scores) / len(ball_reference_train_scores)
-    reference_gap = ball_reference_score - default_score_train
+    ball_reference_score = sum(ball_reference_val_scores) / len(ball_reference_val_scores)
+    reference_gap = ball_reference_score - default_score_val
 
     if reference_gap < MIN_REFERENCE_EFFECT:
         # ball_trained didn't establish a meaningfully better-than-default
@@ -221,8 +242,12 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
             adaptation_reference_gap=reference_gap,
         )
 
-    adaptation_threshold = default_score_train + reference_gap * 0.75
+    adaptation_threshold = default_score_val + reference_gap * 0.75
 
+    # Both arms get paired but independent RNG streams per run (distinct
+    # fixed salts, same run index), the same training set, the same budget,
+    # and the same validation-measured bar - the starting population is the
+    # only difference between them.
     adapt_runs_food = []
     adapt_runs_default = []
     for run_idx in range(EVOLUTION_RUNS):
@@ -235,6 +260,7 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
             POPULATION_SIZE,
             random.Random(seed + 11000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
+            validation_scenarios=validation_ball,
         )
         adapt_runs_food.append(gens_shared)
 
@@ -246,6 +272,7 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
             POPULATION_SIZE,
             random.Random(seed + 12000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
+            validation_scenarios=validation_ball,
         )
         adapt_runs_default.append(gens_disjoint)
 

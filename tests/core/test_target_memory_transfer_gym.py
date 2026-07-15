@@ -121,10 +121,11 @@ def test_comparison_groups_include_the_disjoint_control(evaluation_42, evaluatio
 
 @pytest.mark.slow
 def test_adaptation_fields_are_null_unless_reference_established(evaluation_42, evaluation_7):
-    """ball_trained must clear MIN_REFERENCE_EFFECT over default in-domain
-    (on train_ball, never on the held-out set) before generations-to-adapt is
-    reported; otherwise every adaptation field must be None rather than a
-    threshold manufactured from a near-zero or negative gap."""
+    """ball_trained must clear MIN_REFERENCE_EFFECT over default on the
+    ball-validation set (never on the training or held-out sets) before
+    generations-to-adapt is reported; otherwise every adaptation field must be
+    None rather than a threshold manufactured from a near-zero or negative
+    gap."""
     for evaluation in (evaluation_42, evaluation_7):
         if evaluation.adaptation_reference_established:
             assert evaluation.adaptation_reference_gap >= MIN_REFERENCE_EFFECT
@@ -139,11 +140,18 @@ def test_adaptation_fields_are_null_unless_reference_established(evaluation_42, 
             assert evaluation.adaptation_generations_food is None
             assert evaluation.adaptation_generations_default is None
 
-    # Locks in the current seed-42/seed-7 split so a regression that silently
-    # re-widens or re-narrows MIN_REFERENCE_EFFECT (or reintroduces held-out
-    # leakage, which inflated seed 7's apparent gap under the old code) is
-    # caught rather than passing unnoticed.
-    assert evaluation_42.adaptation_reference_established is True
+    # Locks in the current v1.1 behavior so a regression that silently
+    # re-widens or re-narrows MIN_REFERENCE_EFFECT, reintroduces held-out
+    # leakage, or moves the reference back onto the training set is caught
+    # rather than passing unnoticed. Under v1.1 (reference measured on
+    # ball-validation instead of ball-training) NO tested seed establishes a
+    # reference at the current tiny budget: seed 42's v1 "established"
+    # reference was a training-fit artifact - its ball-trained params score
+    # a full -0.08 BELOW default on unseen ball scenarios. Growing the study
+    # (v2 multi-run budgets) is the sanctioned way to flip these, not
+    # loosening the measurement.
+    assert evaluation_42.adaptation_reference_established is False
+    assert evaluation_42.adaptation_reference_gap < 0
     assert evaluation_7.adaptation_reference_established is False
 
 
@@ -158,6 +166,18 @@ def test_benchmark_is_deterministic_and_reports_both_transfer_benefits():
     assert first["score_breakdown"]["transfer_benefit_vs_disjoint"] == first["score"]
     assert "transfer_benefit_vs_random" in first["metadata"]
     assert first["metadata"]["mutation_schedule"]["mutation_rate"] > 0
+
+    # The validity block is the machine-readable contract for what this run's
+    # numbers support; adaptation fields must never be read without it.
+    validity = first["metadata"]["validity"]
+    assert validity["adaptation_reference_measured_on"] == "ball_validation_v1"
+    assert validity["held_out_used_only_for_zero_shot_scoring"] is True
+    assert validity["min_reference_effect"] == MIN_REFERENCE_EFFECT
+    assert (
+        validity["adaptation_fields_meaningful"]
+        == first["metadata"]["adaptation"]["reference_established"]
+    )
+    assert validity["known_limitations"]
 
 
 @pytest.mark.slow
