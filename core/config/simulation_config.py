@@ -185,6 +185,9 @@ class FoodConfig:
     high_pop_threshold_1: int = AUTO_FOOD_HIGH_POP_THRESHOLD_1
     high_pop_threshold_2: int = AUTO_FOOD_HIGH_POP_THRESHOLD_2
     live_food_chance: float = LIVE_FOOD_SPAWN_CHANCE
+    local_resource_patches_enabled: bool = False
+    resource_patch_stock: float = 240.0
+    resource_patch_regrowth_rate: float = 0.25
 
 
 @dataclass
@@ -347,6 +350,9 @@ class SimulationConfig:
             "auto_food_enabled": "auto_food_enabled",
             "auto_food_spawn_rate": "spawn_rate",
             "food_spawn_rate": "spawn_rate",
+            "local_resource_patches_enabled": "local_resource_patches_enabled",
+            "resource_patch_stock": "resource_patch_stock",
+            "resource_patch_regrowth_rate": "resource_patch_regrowth_rate",
         }
         for flat_key, attr in food_map.items():
             if flat_key in config_dict:

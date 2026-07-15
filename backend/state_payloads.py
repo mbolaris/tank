@@ -114,6 +114,9 @@ class EntitySnapshot:
     species: str | None = None
     genome_data: dict[str, Any] | None = None
     food_type: str | None = None
+    patch_kind: str | None = None
+    stock: float | None = None
+    max_stock: float | None = None
     plant_type: int | None = None
     # Fractal plant fields
     genome: dict[str, Any] | None = None
@@ -177,6 +180,12 @@ class EntitySnapshot:
             data["genome_data"] = self.genome_data
         if self.food_type is not None:
             data["food_type"] = self.food_type
+        if self.patch_kind is not None:
+            data["patch_kind"] = self.patch_kind
+        if self.stock is not None:
+            data["stock"] = self.stock
+        if self.max_stock is not None:
+            data["max_stock"] = self.max_stock
         if self.plant_type is not None:
             data["plant_type"] = self.plant_type
         if self.genome is not None:

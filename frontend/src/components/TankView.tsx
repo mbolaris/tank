@@ -63,6 +63,7 @@ export function TankView({ worldId }: TankViewProps) {
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
+    const [showResourcePatches, setShowResourcePatches] = useState(false);
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, isVisible } = useVisiblePanels(['skills', 'soccer', 'ecosystem', 'insights']);
 
@@ -118,6 +119,11 @@ export function TankView({ worldId }: TankViewProps) {
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
     const liveEntities = state?.snapshot?.entities ?? state?.entities ?? [];
+    useEffect(() => {
+        if (liveEntities.some((entity) => entity.type === 'resource_patch')) {
+            setShowResourcePatches(true);
+        }
+    }, [liveEntities]);
     const selectedEntity =
         selection.selectedEntityId !== null
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
@@ -147,6 +153,15 @@ export function TankView({ worldId }: TankViewProps) {
                         setShowSoccer(newValue);
                         sendCommand({
                             command: 'set_tank_soccer_enabled',
+                            data: { enabled: newValue },
+                        });
+                    }}
+                    showResourcePatches={showResourcePatches}
+                    onToggleResourcePatches={() => {
+                        const newValue = !showResourcePatches;
+                        setShowResourcePatches(newValue);
+                        sendCommand({
+                            command: 'set_local_resource_patches',
                             data: { enabled: newValue },
                         });
                     }}
