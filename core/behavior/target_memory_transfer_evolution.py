@@ -39,6 +39,7 @@ def run_evolution(
     rng: random.Random,
     target_score_threshold: float | None = None,
     validation_scenarios: list[TargetMemoryScenario] | None = None,
+    shuffle_fitness: bool = False,
 ) -> tuple[TargetMemoryParams, list[float], int]:
     """Run genetic algorithm over TargetMemoryParams with optional validation
     selection. Mirrors core/pursuit/transfer_gym.py's run_evolution shape.
@@ -54,6 +55,14 @@ def run_evolution(
       fits the exact training scenarios.
     - Without ``validation_scenarios``: the threshold is compared against
       the best training score (legacy in-domain behavior).
+
+    ``shuffle_fitness=True`` turns the run into a structurally matched
+    no-selection control: fitness is still evaluated for every candidate
+    (same compute), but the scores are shuffled among the population before
+    elitism/tournaments act on them, decoupling selection from genotype
+    while preserving lineage depth, crossover count, and mutation count.
+    The returned "best" individual is then a random draw from the drifted
+    population - exactly what a selection-removed control should hand back.
     """
     population = list(initial_population)
     while len(population) < pop_size:
@@ -63,15 +72,12 @@ def run_evolution(
         )
         population.append(var)
 
-    best_params = population[0]
-    best_score = float("-inf")
-    pop_scores = []
-    for candidate in population:
-        score = evaluate_params_on_set(candidate, scenarios).overall_score
-        pop_scores.append(score)
-        if score > best_score:
-            best_score = score
-            best_params = candidate
+    pop_scores = [evaluate_params_on_set(c, scenarios).overall_score for c in population]
+    if shuffle_fitness:
+        rng.shuffle(pop_scores)
+
+    best_score = max(pop_scores)
+    best_params = population[pop_scores.index(best_score)]
 
     history = [best_score]
 
@@ -113,14 +119,16 @@ def run_evolution(
             new_population.append(child)
 
         population = new_population
-        pop_scores = [best_score]
+        pop_scores = [best_score] + [
+            evaluate_params_on_set(c, scenarios).overall_score for c in population[1:]
+        ]
+        if shuffle_fitness:
+            rng.shuffle(pop_scores)
 
-        for candidate in population[1:]:
-            score = evaluate_params_on_set(candidate, scenarios).overall_score
-            pop_scores.append(score)
-            if score > best_score:
-                best_score = score
-                best_params = candidate
+        gen_best = max(pop_scores)
+        if gen_best > best_score:
+            best_score = gen_best
+            best_params = population[pop_scores.index(gen_best)]
 
         history.append(best_score)
 
@@ -158,23 +166,29 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
     # baseline (a target_memory that food selection never touched).
     summaries["default_params"] = evaluate_params_on_set(default_params, test_ball)
 
-    # Group 3: compute-matched random search on food, zero-shot on ball
-    rng_random = random.Random(seed + 8000)
-    best_random = default_params
-    best_random_score = float("-inf")
-    for _ in range(POPULATION_SIZE * GENERATIONS * EVOLUTION_RUNS):
-        candidate = default_params.crossed_over(
-            default_params,
-            weight1=1.0,
-            mutation_rate=1.0,
-            mutation_strength=MUTATION_STRENGTH,
-            rng=rng_random,
+    # Group 3: structurally matched no-selection control. Replaces v1's
+    # random search (one-step mutations around the default), which was not
+    # lineage-matched to the evolutionary arms: evolution explores cumulative
+    # lineages through selection, crossover, and repeated mutation, so "does
+    # food *selection* matter" needs a control with the same lineage depth,
+    # operator mix, and compute but selection decoupled from genotype
+    # (shuffled fitness). The difference between food_trained and this group
+    # is then attributable to selection, not to mutation-walk drift.
+    neutral_params = []
+    for run_idx in range(EVOLUTION_RUNS):
+        run_rng = random.Random(seed + 8000 + run_idx * 100)
+        best_of_run, _, _ = run_evolution(
+            [default_params],
+            train_food,
+            GENERATIONS,
+            POPULATION_SIZE,
+            run_rng,
+            shuffle_fitness=True,
         )
-        cand_score = evaluate_params_on_set(candidate, train_food).overall_score
-        if cand_score > best_random_score:
-            best_random = candidate
-            best_random_score = cand_score
-    summaries["random_search"] = evaluate_params_on_set(best_random, test_ball)
+        neutral_params.append(best_of_run)
+    summaries["neutral_evolution"] = average_summaries(
+        [evaluate_params_on_set(p, test_ball) for p in neutral_params]
+    )
 
     # Group 4: food-trained populations (shared arm's basis) - zero-shot on ball
     food_trained_params = []

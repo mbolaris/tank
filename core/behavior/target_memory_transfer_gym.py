@@ -9,6 +9,12 @@ logic capture more value than naive frame-by-frame reselection - and does
 food-adapted commitment transfer zero-shot to the ball domain versus a
 founder-default ("disjoint") baseline that food selection never touched?
 
+Scenario generation (including the food/ball capability-matching rationale)
+lives in core/behavior/target_memory_transfer_scenarios.py; the evolution
+loop and top-level assay live in target_memory_transfer_evolution.py. This
+module owns episode execution, per-episode diagnostic metrics, and summary
+aggregation.
+
 Mutation uses a single fixed (mutation_rate, mutation_strength) constant for
 both training arms (MUTATION_RATE/MUTATION_STRENGTH below), matching
 TargetMemoryParams.crossed_over()'s own contract. This is deliberate, not an
@@ -27,7 +33,6 @@ should be re-verified against the new mechanism.
 from __future__ import annotations
 
 import math
-import random
 from dataclasses import dataclass
 from typing import Any
 
@@ -38,12 +43,16 @@ from core.behavior.target_memory import (
     TargetMemoryState,
     decide_target,
 )
+from core.behavior.target_memory_transfer_scenarios import (  # noqa: F401 - re-exported
+    MAX_FRAMES,
+    CandidateTrack,
+    TargetMemoryScenario,
+    generate_scenario_set,
+)
 from core.math_utils import Vector2
-from core.pursuit.transfer_gym import generate_ball_trajectory
 
 PURSUER_SPEED = 3.0
 CAPTURE_RADIUS = 12.0
-MAX_FRAMES = 250
 
 POPULATION_SIZE = 16
 GENERATIONS = 15
@@ -60,65 +69,6 @@ CROSSOVER_WEIGHT = 0.5
 # adaptation. See TargetMemoryTransferEvaluation.adaptation_reference_established.
 MIN_REFERENCE_EFFECT = 0.02
 
-_LENGTH = MAX_FRAMES + 1
-# Spans a meaningful fraction of TargetMemoryParams' memory_duration bounds
-# (10-300, see core/behavior/target_memory.py::_PARAM_BOUNDS) so survival is a
-# graded function of the tuned value rather than a near-universal freebie -
-# a 15-frame ceiling was comfortably beaten by nearly every legal value,
-# flattening the zero-shot fitness landscape (see substrate board build log).
-_OCCLUSION_MIN_LEN = 10
-_OCCLUSION_MAX_LEN = 80
-
-_FOOD_FAMILY_NAMES = {0: "stable_commitment", 1: "true_switch_required", 2: "occlusion_survival"}
-# generate_ball_trajectory's family 4 ("speed_ratio", up to 1.3x pursuer speed)
-# is deliberately excluded: target_memory only decides *what* to commit to, not
-# *how* to steer (no lead-prediction parameter exists on TargetMemoryParams -
-# see core/behavior/target_memory.py's module docstring), so a target that
-# outruns PURSUER_SPEED is uncatchable regardless of selection quality. That
-# family tests pursuit capability, not target memory, so it can't discriminate
-# policies here and would only add noise.
-_BALL_FAMILY_NAMES = {
-    0: "decelerating",
-    1: "bouncing",
-    2: "swerve",
-    3: "sudden_kick_with_decoy",
-}
-_SET_SALTS = {
-    "train": 1000,
-    "validation": 2000,
-    "held_out": 3000,
-    "ball_train": 4000,
-    "ball_validation": 5000,
-}
-
-
-@dataclass(frozen=True)
-class CandidateTrack:
-    """One candidate's full scripted lifetime within a scenario."""
-
-    target_id: TargetId
-    value: float
-    start_frame: int
-    positions: tuple[Vector2, ...]
-    velocities: tuple[Vector2, ...]
-    visible_mask: tuple[bool, ...]
-
-
-@dataclass(frozen=True)
-class TargetMemoryScenario:
-    """Several independently scripted candidates competing (or not) for the
-    observer's commitment over time."""
-
-    scenario_id: str
-    family_name: str
-    observer_start: Vector2
-    tracks: tuple[CandidateTrack, ...]
-    max_frames: int
-
-    @property
-    def available_value(self) -> float:
-        return sum(track.value for track in self.tracks)
-
 
 @dataclass(frozen=True)
 class TargetMemoryEpisodeResult:
@@ -128,11 +78,33 @@ class TargetMemoryEpisodeResult:
     (memory only changes *how fast*, e.g. coasting through an occlusion gap
     via extrapolation versus idling after a premature DROP), so a plain
     captured/available ratio can't tell them apart. Discounting by capture
-    frame makes that speed difference visible as a fitness gradient."""
+    frame makes that speed difference visible as a fitness gradient.
+
+    The remaining fields are *diagnostic* observations that never feed the
+    score (overall_score stays a pure capture_ratio): they exist so a
+    transfer result can be explained - which behaviors a parameter set
+    exhibits, not just how much value it banked.
+
+    - ``switches``: frame-to-frame commitment changes between two distinct
+      targets (a DROP followed by a fresh commitment is not a switch).
+    - ``stale_pursuit_frames``: frames spent steering at a target that is not
+      currently visible (memory/extrapolation-driven pursuit).
+    - ``reacquisition_events``/``reacquisition_frames_total``: each time the
+      committed target reappears after an invisible gap, how many frames pass
+      before it is selected again (a never-reselected reappearance counts the
+      remaining episode frames rather than being dropped).
+    - ``distance_traveled``: total observer movement, the energy proxy at
+      constant pursuit speed.
+    """
 
     captured_value: float
     available_value: float
     captures: int
+    switches: int = 0
+    stale_pursuit_frames: int = 0
+    reacquisition_events: int = 0
+    reacquisition_frames_total: int = 0
+    distance_traveled: float = 0.0
 
     @property
     def capture_ratio(self) -> float:
@@ -153,6 +125,10 @@ class EvaluationSummary:
     mean_captures: float
     family_fitness: dict[str, float]
     overall_score: float
+    mean_switches: float = 0.0
+    mean_stale_pursuit_frames: float = 0.0
+    mean_reacquisition_frames: float = 0.0
+    mean_distance_traveled: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -160,6 +136,10 @@ class EvaluationSummary:
             "mean_captures": self.mean_captures,
             "family_fitness": self.family_fitness,
             "overall_score": self.overall_score,
+            "mean_switches": self.mean_switches,
+            "mean_stale_pursuit_frames": self.mean_stale_pursuit_frames,
+            "mean_reacquisition_frames": self.mean_reacquisition_frames,
+            "mean_distance_traveled": self.mean_distance_traveled,
         }
 
 
@@ -205,140 +185,6 @@ class TargetMemoryTransferEvaluation:
 
 
 # ---------------------------------------------------------------------------
-# Scenario generation
-# ---------------------------------------------------------------------------
-def _spawn_position(rng: random.Random) -> Vector2:
-    angle = rng.uniform(0, 2 * math.pi)
-    distance = rng.uniform(80.0, 160.0)
-    return Vector2(math.cos(angle) * distance, math.sin(angle) * distance)
-
-
-def _apply_occlusion(visible: list[bool], rng: random.Random, windows: int, max_start: int) -> None:
-    """Punch `windows` brief invisible gaps into an otherwise-visible track,
-    simulating another fish/object briefly blocking the line of sight. Gaps
-    are placed early (before ``max_start``) so they land during the pursuer's
-    approach rather than after it has already captured the target - a gap
-    that only ever occurs post-capture can never test memory at all."""
-    n = len(visible)
-    span = _OCCLUSION_MAX_LEN + 2
-    if n <= span:
-        return
-    start_ceiling = min(max_start, n - span)
-    if start_ceiling < 1:
-        return
-    for _ in range(windows):
-        gap_len = rng.randint(_OCCLUSION_MIN_LEN, _OCCLUSION_MAX_LEN)
-        start = rng.randint(1, start_ceiling)
-        for i in range(start, start + gap_len):
-            visible[i] = False
-
-
-def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[CandidateTrack]:
-    primary_value = rng.uniform(40.0, 60.0)
-    primary_pos = _spawn_position(rng)
-    primary_visible = [True] * length
-
-    if family_idx == 2:  # occlusion_survival
-        _apply_occlusion(primary_visible, rng, windows=2, max_start=40)
-
-    tracks = [
-        CandidateTrack(
-            target_id=TargetId("food", 0),
-            value=primary_value,
-            start_frame=0,
-            positions=tuple(primary_pos.copy() for _ in range(length)),
-            velocities=tuple(Vector2(0.0, 0.0) for _ in range(length)),
-            visible_mask=tuple(primary_visible),
-        )
-    ]
-
-    if family_idx == 1:  # true_switch_required
-        # A spawns far enough that transit takes a while; B appears early,
-        # during that transit (not after A would already be captured), so a
-        # genuine redirect decision is required rather than a moot one.
-        spawn_at = rng.randint(15, 35)
-        better_len = length - spawn_at
-        better_value = primary_value * rng.uniform(2.5, 3.5)
-        better_pos = _spawn_position(rng)
-        tracks.append(
-            CandidateTrack(
-                target_id=TargetId("food", 1),
-                value=better_value,
-                start_frame=spawn_at,
-                positions=tuple(better_pos.copy() for _ in range(better_len)),
-                velocities=tuple(Vector2(0.0, 0.0) for _ in range(better_len)),
-                visible_mask=tuple([True] * better_len),
-            )
-        )
-
-    return tracks
-
-
-def _ball_tracks(family_idx: int, rng: random.Random, length: int) -> list[CandidateTrack]:
-    _, positions, velocities = generate_ball_trajectory(family_idx, rng)
-    positions = positions[:length]
-    velocities = velocities[:length]
-    value = rng.uniform(50.0, 80.0)
-    visible = [True] * length
-    _apply_occlusion(visible, rng, windows=1, max_start=40)
-
-    tracks = [
-        CandidateTrack(
-            target_id=TargetId("ball", 0),
-            value=value,
-            start_frame=0,
-            positions=tuple(p.copy() for p in positions),
-            velocities=tuple(v.copy() for v in velocities),
-            visible_mask=tuple(visible),
-        )
-    ]
-
-    if family_idx == 3:  # sudden_kick_with_decoy
-        decoy_at = rng.randint(40, min(160, length - 40))
-        decoy_len = rng.randint(10, 20)
-        decoy_pos = _spawn_position(rng)
-        decoy_value = value * rng.uniform(0.3, 0.5)
-        tracks.append(
-            CandidateTrack(
-                target_id=TargetId("ball", 1),
-                value=decoy_value,
-                start_frame=decoy_at,
-                positions=tuple(decoy_pos.copy() for _ in range(decoy_len)),
-                velocities=tuple(Vector2(0.0, 0.0) for _ in range(decoy_len)),
-                visible_mask=tuple([True] * decoy_len),
-            )
-        )
-
-    return tracks
-
-
-def generate_scenario_set(
-    set_type: str, seed: int, version: str = "v1"
-) -> list[TargetMemoryScenario]:
-    """Generate a versioned, deterministic set of target-memory scenarios."""
-    salt = _SET_SALTS[set_type]
-    rng = random.Random(seed + salt)
-    is_ball = set_type != "train" and set_type != "validation"
-    family_distribution = [0, 1, 2, 3] if is_ball else [0, 0, 1, 1, 2, 2]
-    family_names = _BALL_FAMILY_NAMES if is_ball else _FOOD_FAMILY_NAMES
-
-    scenarios = []
-    for idx, fam in enumerate(family_distribution):
-        scenario_id = f"{set_type}_{version}_{idx}"
-        tracks = _ball_tracks(fam, rng, _LENGTH) if is_ball else _food_tracks(fam, rng, _LENGTH)
-        scenarios.append(
-            TargetMemoryScenario(
-                scenario_id=scenario_id,
-                family_name=family_names[fam],
-                observer_start=Vector2(0.0, 0.0),
-                tracks=tuple(tracks),
-                max_frames=MAX_FRAMES,
-            )
-        )
-    return scenarios
-
-
-# ---------------------------------------------------------------------------
 # Episode evaluation
 # ---------------------------------------------------------------------------
 def _visible_candidates(
@@ -368,6 +214,56 @@ def _step_toward(observer: Vector2, dx: float, dy: float) -> Vector2:
     return observer + Vector2(dx / dist, dy / dist) * PURSUER_SPEED
 
 
+@dataclass
+class _EpisodeTrace:
+    """Per-frame observations collected while an episode runs, folded into
+    diagnostic metrics afterwards. Observation only - never fed back into
+    decisions, so metrics cannot perturb determinism."""
+
+    selections: list[TargetId | None]
+    visible_ids: list[frozenset[TargetId]]
+    distance_traveled: float = 0.0
+
+    def metrics(self) -> dict[str, Any]:
+        switches = 0
+        stale = 0
+        for f, selected in enumerate(self.selections):
+            if selected is None:
+                continue
+            if selected not in self.visible_ids[f]:
+                stale += 1
+            if f > 0:
+                prev = self.selections[f - 1]
+                if prev is not None and prev != selected:
+                    switches += 1
+
+        events = 0
+        frames_total = 0
+        n = len(self.selections)
+        for f in range(1, n):
+            for tid in self.visible_ids[f] - self.visible_ids[f - 1]:
+                s = f - 1
+                while s >= 0 and tid not in self.visible_ids[s]:
+                    s -= 1
+                if s < 0:
+                    continue  # first appearance, not a reappearance
+                if self.selections[s] != tid:
+                    continue  # wasn't the committed target when it vanished
+                g = f
+                while g < n and self.selections[g] != tid:
+                    g += 1
+                events += 1
+                frames_total += (g if g < n else n) - f
+
+        return {
+            "switches": switches,
+            "stale_pursuit_frames": stale,
+            "reacquisition_events": events,
+            "reacquisition_frames_total": frames_total,
+            "distance_traveled": self.distance_traveled,
+        }
+
+
 def run_target_memory_episode(
     params: TargetMemoryParams, scenario: TargetMemoryScenario
 ) -> TargetMemoryEpisodeResult:
@@ -378,14 +274,19 @@ def run_target_memory_episode(
     state = TargetMemoryState.empty()
     captured: set[TargetId] = set()
     captured_value = 0.0
+    trace = _EpisodeTrace(selections=[], visible_ids=[])
 
     for frame in range(scenario.max_frames + 1):
         visible = _visible_candidates(scenario, frame, captured)
         state, decision = decide_target(state, visible, (observer.x, observer.y), params)
+        trace.selections.append(decision.selected_target_id)
+        trace.visible_ids.append(frozenset(c.target_id for c in visible))
 
         if decision.selected_target_id is not None:
             dx, dy = decision.target_vector
-            observer = _step_toward(observer, dx, dy)
+            moved = _step_toward(observer, dx, dy)
+            trace.distance_traveled += math.hypot(moved.x - observer.x, moved.y - observer.y)
+            observer = moved
 
             selected = next(
                 (c for c in visible if c.target_id == decision.selected_target_id), None
@@ -400,6 +301,7 @@ def run_target_memory_episode(
         captured_value=captured_value,
         available_value=scenario.available_value,
         captures=len(captured),
+        **trace.metrics(),
     )
 
 
@@ -422,14 +324,19 @@ def run_naive_greedy_episode(scenario: TargetMemoryScenario) -> TargetMemoryEpis
     observer = scenario.observer_start.copy()
     captured: set[TargetId] = set()
     captured_value = 0.0
+    trace = _EpisodeTrace(selections=[], visible_ids=[])
 
     for frame in range(scenario.max_frames + 1):
         visible = _visible_candidates(scenario, frame, captured)
         target = _best_visible(visible)
+        trace.selections.append(target.target_id if target is not None else None)
+        trace.visible_ids.append(frozenset(c.target_id for c in visible))
         if target is not None:
             dx = target.position[0] - observer.x
             dy = target.position[1] - observer.y
-            observer = _step_toward(observer, dx, dy)
+            moved = _step_toward(observer, dx, dy)
+            trace.distance_traveled += math.hypot(moved.x - observer.x, moved.y - observer.y)
+            observer = moved
             d = math.hypot(target.position[0] - observer.x, target.position[1] - observer.y)
             if d <= CAPTURE_RADIUS:
                 captured.add(target.target_id)
@@ -439,15 +346,17 @@ def run_naive_greedy_episode(scenario: TargetMemoryScenario) -> TargetMemoryEpis
         captured_value=captured_value,
         available_value=scenario.available_value,
         captures=len(captured),
+        **trace.metrics(),
     )
 
 
 def _summarize(
     results: list[tuple[TargetMemoryScenario, TargetMemoryEpisodeResult]],
 ) -> EvaluationSummary:
+    n = len(results)
     ratios = [r.capture_ratio for _, r in results]
-    capture_ratio = sum(ratios) / len(ratios)
-    mean_captures = sum(r.captures for _, r in results) / len(results)
+    capture_ratio = sum(ratios) / n
+    mean_captures = sum(r.captures for _, r in results) / n
 
     family_scores: dict[str, float] = {}
     family_counts: dict[str, int] = {}
@@ -457,11 +366,20 @@ def _summarize(
         family_counts[fam] = family_counts.get(fam, 0) + 1
     family_fitness = {fam: family_scores[fam] / family_counts[fam] for fam in family_scores}
 
+    total_reacq_events = sum(r.reacquisition_events for _, r in results)
+    total_reacq_frames = sum(r.reacquisition_frames_total for _, r in results)
+
     return EvaluationSummary(
         capture_ratio=capture_ratio,
         mean_captures=mean_captures,
         family_fitness=family_fitness,
         overall_score=capture_ratio,
+        mean_switches=sum(r.switches for _, r in results) / n,
+        mean_stale_pursuit_frames=sum(r.stale_pursuit_frames for _, r in results) / n,
+        mean_reacquisition_frames=(
+            total_reacq_frames / total_reacq_events if total_reacq_events else 0.0
+        ),
+        mean_distance_traveled=sum(r.distance_traveled for _, r in results) / n,
     )
 
 
@@ -489,4 +407,8 @@ def average_summaries(evals: list[EvaluationSummary]) -> EvaluationSummary:
         mean_captures=sum(e.mean_captures for e in evals) / n,
         family_fitness=family_fitness,
         overall_score=sum(e.overall_score for e in evals) / n,
+        mean_switches=sum(e.mean_switches for e in evals) / n,
+        mean_stale_pursuit_frames=sum(e.mean_stale_pursuit_frames for e in evals) / n,
+        mean_reacquisition_frames=sum(e.mean_reacquisition_frames for e in evals) / n,
+        mean_distance_traveled=sum(e.mean_distance_traveled for e in evals) / n,
     )
