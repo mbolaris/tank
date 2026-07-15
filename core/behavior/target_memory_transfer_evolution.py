@@ -11,6 +11,7 @@ target_memory today).
 from __future__ import annotations
 
 import random
+from dataclasses import dataclass
 
 from core.behavior.target_memory import TargetMemoryParams
 from core.behavior.target_memory_transfer_gym import (
@@ -147,14 +148,42 @@ def run_evolution(
     return selected_params, history, generations
 
 
-def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation:
+@dataclass(frozen=True)
+class TransferStudyConfig:
+    """Evolution/scenario budget for one transfer evaluation.
+
+    The defaults reproduce the frozen CI benchmark budget exactly (see the
+    module constants in target_memory_transfer_gym.py), so
+    ``evaluate_target_memory_transfer(seed)`` is unchanged. Scaled-up budgets
+    are the multi-run study's business (core/behavior/
+    target_memory_transfer_study.py + scripts/run_target_memory_transfer_
+    study.py); the CI benchmark must stay fast, so its budget is not raised
+    here. ``None`` scenario counts mean "the generator's default set size".
+    """
+
+    population_size: int = POPULATION_SIZE
+    generations: int = GENERATIONS
+    evolution_runs: int = EVOLUTION_RUNS
+    food_train_count: int | None = None
+    food_validation_count: int | None = None
+    ball_held_out_count: int | None = None
+    ball_train_count: int | None = None
+    ball_validation_count: int | None = None
+
+
+def evaluate_target_memory_transfer(
+    seed: int, config: TransferStudyConfig | None = None
+) -> TargetMemoryTransferEvaluation:
     """Evolve populations over food scenarios; evaluate zero-shot and measure
     adaptation on ball scenarios, against a founder-default disjoint control."""
-    train_food = generate_scenario_set("train", seed)
-    validation_food = generate_scenario_set("validation", seed)
-    test_ball = generate_scenario_set("held_out", seed)
-    train_ball = generate_scenario_set("ball_train", seed)
-    validation_ball = generate_scenario_set("ball_validation", seed)
+    cfg = config if config is not None else TransferStudyConfig()
+    train_food = generate_scenario_set("train", seed, count=cfg.food_train_count)
+    validation_food = generate_scenario_set("validation", seed, count=cfg.food_validation_count)
+    test_ball = generate_scenario_set("held_out", seed, count=cfg.ball_held_out_count)
+    train_ball = generate_scenario_set("ball_train", seed, count=cfg.ball_train_count)
+    validation_ball = generate_scenario_set(
+        "ball_validation", seed, count=cfg.ball_validation_count
+    )
 
     default_params = TargetMemoryParams()
     summaries: dict[str, EvaluationSummary] = {}
@@ -175,13 +204,13 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
     # (shuffled fitness). The difference between food_trained and this group
     # is then attributable to selection, not to mutation-walk drift.
     neutral_params = []
-    for run_idx in range(EVOLUTION_RUNS):
+    for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 8000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
             [default_params],
             train_food,
-            GENERATIONS,
-            POPULATION_SIZE,
+            cfg.generations,
+            cfg.population_size,
             run_rng,
             shuffle_fitness=True,
         )
@@ -192,13 +221,13 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
 
     # Group 4: food-trained populations (shared arm's basis) - zero-shot on ball
     food_trained_params = []
-    for run_idx in range(EVOLUTION_RUNS):
+    for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 9000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
             [default_params],
             train_food,
-            GENERATIONS,
-            POPULATION_SIZE,
+            cfg.generations,
+            cfg.population_size,
             run_rng,
             validation_scenarios=validation_food,
         )
@@ -209,13 +238,13 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
 
     # Group 5: ball-trained (task-specific reference)
     ball_trained_params = []
-    for run_idx in range(EVOLUTION_RUNS):
+    for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 10000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
             [default_params],
             train_ball,
-            GENERATIONS,
-            POPULATION_SIZE,
+            cfg.generations,
+            cfg.population_size,
             run_rng,
             validation_scenarios=validation_ball,
         )
@@ -264,26 +293,26 @@ def evaluate_target_memory_transfer(seed: int) -> TargetMemoryTransferEvaluation
     # only difference between them.
     adapt_runs_food = []
     adapt_runs_default = []
-    for run_idx in range(EVOLUTION_RUNS):
+    for run_idx in range(cfg.evolution_runs):
         food_seed = food_trained_params[run_idx % len(food_trained_params)]
-        initial_pop_shared = [food_seed] * POPULATION_SIZE
+        initial_pop_shared = [food_seed] * cfg.population_size
         _, _, gens_shared = run_evolution(
             initial_pop_shared,
             train_ball,
-            GENERATIONS * 2,
-            POPULATION_SIZE,
+            cfg.generations * 2,
+            cfg.population_size,
             random.Random(seed + 11000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
             validation_scenarios=validation_ball,
         )
         adapt_runs_food.append(gens_shared)
 
-        initial_pop_disjoint = [default_params] * POPULATION_SIZE
+        initial_pop_disjoint = [default_params] * cfg.population_size
         _, _, gens_disjoint = run_evolution(
             initial_pop_disjoint,
             train_ball,
-            GENERATIONS * 2,
-            POPULATION_SIZE,
+            cfg.generations * 2,
+            cfg.population_size,
             random.Random(seed + 12000 + run_idx * 100),
             target_score_threshold=adaptation_threshold,
             validation_scenarios=validation_ball,
