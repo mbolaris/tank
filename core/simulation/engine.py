@@ -297,6 +297,9 @@ class SimulationEngine:
             high_pop_threshold_1=food_cfg.high_pop_threshold_1,
             high_pop_threshold_2=food_cfg.high_pop_threshold_2,
             live_food_chance=food_cfg.live_food_chance,
+            local_resource_patches_enabled=food_cfg.local_resource_patches_enabled,
+            resource_patch_stock=food_cfg.resource_patch_stock,
+            resource_patch_regrowth_rate=food_cfg.resource_patch_regrowth_rate,
         )
 
     # =========================================================================

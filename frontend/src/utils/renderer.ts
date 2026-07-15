@@ -475,6 +475,9 @@ export class Renderer {
             case 'food':
                 this.renderFood(entity, elapsedTime);
                 break;
+            case 'resource_patch':
+                this.renderResourcePatch(entity, elapsedTime);
+                break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
                 break;
@@ -1295,6 +1298,36 @@ export class Renderer {
 
         // Food images don't flip
         this.drawImage(image, x + offsetX, y + offsetY, scaledWidth, scaledHeight, false);
+    }
+
+    private renderResourcePatch(patch: EntityData, _elapsedTime: number) {
+        const { ctx } = this;
+        const ratio = Math.max(0, Math.min(1, patch.stock !== undefined && patch.max_stock ? patch.stock / patch.max_stock : 0));
+        const color = patch.patch_kind === 'protein' ? '#d890ff' : '#55d6a1';
+        const x = patch.x;
+        const y = patch.y;
+        const w = patch.width;
+        const h = patch.height;
+
+        ctx.save();
+        ctx.globalAlpha = 0.18 + ratio * 0.22;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 18);
+        ctx.fill();
+        ctx.globalAlpha = 0.8;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 0.75;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x + 5, y + h - 10, Math.max(0, (w - 10) * ratio), 5, 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.55;
+        ctx.font = '11px sans-serif';
+        ctx.fillText(patch.patch_kind === 'protein' ? 'PROTEIN PATCH' : 'ALGAE PATCH', x + 9, y + 17);
+        ctx.restore();
     }
 
     // Unified plant rendering now uses renderFractalPlant. Legacy static plant renderer removed.

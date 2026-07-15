@@ -14,6 +14,8 @@ interface ControlPanelProps {
     onToggleEffects?: () => void;
     showSoccer?: boolean;
     onToggleSoccer?: () => void;
+    showResourcePatches?: boolean;
+    onToggleResourcePatches?: () => void;
 }
 
 export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, ...props }: ControlPanelProps & { showSoccer?: boolean, onToggleSoccer?: () => void }) {
@@ -90,6 +92,12 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
                     </Button>
                 )}
 
+                {props.onToggleResourcePatches && (
+                    <Button onClick={props.onToggleResourcePatches} variant={props.showResourcePatches ? 'primary' : 'secondary'} title="Toggle experimental local resource patches">
+                        <span style={{ fontSize: '14px' }}>🪸</span> Patches
+                    </Button>
+                )}
+
                 {props.onToggleSoccer && (
                     <Button onClick={props.onToggleSoccer} variant={props.showSoccer ? 'primary' : 'secondary'} title={props.showSoccer ? "Hide Ball/Goals" : "Show Ball/Goals"}>
                         <span style={{ fontSize: '14px' }}>⚽</span>
@@ -99,4 +107,3 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
         </div>
     );
 }
-
