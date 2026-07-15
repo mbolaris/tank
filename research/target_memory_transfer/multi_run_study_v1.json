@@ -1,0 +1,781 @@
+{
+  "study": {
+    "name": "target_memory_transfer_multi_run",
+    "scenario_set_version": "v2",
+    "config": {
+      "population_size": 32,
+      "generations": 30,
+      "evolution_runs": 5,
+      "food_train_count": 16,
+      "food_validation_count": 8,
+      "ball_held_out_count": 16,
+      "ball_train_count": 16,
+      "ball_validation_count": 8
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      42,
+      123
+    ],
+    "primary_effect": "transfer_vs_disjoint",
+    "decision_rule": "verdict is positive/negative only when the 95% bootstrap CI of the mean effect excludes zero; otherwise inconclusive",
+    "wall_time_seconds": 1550.2,
+    "quick_mode_not_evidence": false
+  },
+  "aggregate": {
+    "effects": {
+      "transfer_vs_disjoint": {
+        "n": 12,
+        "mean": 0.0028183511817925964,
+        "median": 0.004207354365583116,
+        "stdev": 0.009038424207081966,
+        "ci95_low": -0.002267629535374479,
+        "ci95_high": 0.007461492253810746,
+        "fraction_positive": 0.6666666666666666,
+        "verdict": "inconclusive"
+      },
+      "transfer_vs_neutral": {
+        "n": 12,
+        "mean": 0.02669491204285651,
+        "median": 0.02722316608252834,
+        "stdev": 0.01633190669400395,
+        "ci95_low": 0.017677688678641012,
+        "ci95_high": 0.035196033489123535,
+        "fraction_positive": 0.9166666666666666,
+        "verdict": "positive"
+      }
+    },
+    "family_effects": {
+      "bouncing": {
+        "n": 12,
+        "mean": 0.001012616201859227,
+        "median": 0.0004980079681274896,
+        "stdev": 0.01984456045846667,
+        "ci95_low": -0.011088977423638758,
+        "ci95_high": 0.010308764940239043,
+        "fraction_positive": 0.5,
+        "verdict": "inconclusive"
+      },
+      "decelerating": {
+        "n": 12,
+        "mean": 0.003917662682602907,
+        "median": 0.0029880478087649376,
+        "stdev": 0.007334619614029118,
+        "ci95_low": 0.00019920318725098288,
+        "ci95_high": 0.008100929614873825,
+        "fraction_positive": 0.6666666666666666,
+        "verdict": "positive"
+      },
+      "sudden_kick_with_decoy": {
+        "n": 12,
+        "mean": 0.009098769933013826,
+        "median": 0.008525335800030176,
+        "stdev": 0.02404553585518821,
+        "ci95_low": -0.0037081717015838844,
+        "ci95_high": 0.022037750781002643,
+        "fraction_positive": 0.75,
+        "verdict": "inconclusive"
+      },
+      "swerve": {
+        "n": 12,
+        "mean": -0.0027556440903054543,
+        "median": 0.0003984063745020028,
+        "stdev": 0.014302035528354715,
+        "ci95_low": -0.011188579017264283,
+        "ci95_high": 0.004233067729083662,
+        "fraction_positive": 0.5,
+        "verdict": "inconclusive"
+      }
+    },
+    "adaptation": {
+      "seeds_with_reference": 5,
+      "seeds_total": 12,
+      "reference_gaps": [
+        0.0026160130001056103,
+        0.02788844621513953,
+        0.025481275792473168,
+        0.014279643315852186,
+        0.05055767384352772,
+        -0.001892430278884638,
+        0.037722717561451846,
+        0.003486055776892427,
+        0.027290836653386497,
+        0.007978903212491839,
+        0.0028071265486757646,
+        0.016300615675492902
+      ],
+      "acceleration_generations": {
+        "values": [
+          3,
+          0,
+          0,
+          24,
+          2
+        ],
+        "mean": 5.8,
+        "median": 2,
+        "fraction_positive": 0.6
+      }
+    },
+    "overall_verdict": "inconclusive"
+  },
+  "per_seed": [
+    {
+      "seed": 0,
+      "group_scores": {
+        "naive_greedy": 0.48292362111067416,
+        "default_params": 0.5849572961828456,
+        "neutral_evolution": 0.5277370901715412,
+        "food_trained": 0.5703700369550799,
+        "ball_trained": 0.6006340869139193
+      },
+      "transfer_vs_disjoint": -0.014587259227765714,
+      "transfer_vs_neutral": 0.04263294678353868,
+      "family_effect_vs_default": {
+        "bouncing": -0.011155378486055745,
+        "decelerating": -0.009561752988047845,
+        "sudden_kick_with_decoy": -0.03344863850468843,
+        "swerve": -0.0041832669322710014
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.0026160130001056103,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 219.0
+        },
+        "default_params": {
+          "mean_switches": 0.3125,
+          "mean_stale_pursuit_frames": 144.25,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 566.625
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.2625,
+          "mean_stale_pursuit_frames": 125.7,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 558.7125
+        },
+        "food_trained": {
+          "mean_switches": 0.4375,
+          "mean_stale_pursuit_frames": 184.95,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 703.9875
+        },
+        "ball_trained": {
+          "mean_switches": 0.275,
+          "mean_stale_pursuit_frames": 143.025,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 550.575
+        }
+      }
+    },
+    {
+      "seed": 1,
+      "group_scores": {
+        "naive_greedy": 0.5481549398576028,
+        "default_params": 0.6455676625323109,
+        "neutral_evolution": 0.6181154199791946,
+        "food_trained": 0.6615837382670041,
+        "ball_trained": 0.6596953190138976
+      },
+      "transfer_vs_disjoint": 0.016016075734693214,
+      "transfer_vs_neutral": 0.043468318287809504,
+      "family_effect_vs_default": {
+        "bouncing": 0.0,
+        "decelerating": 0.0019920318725099584,
+        "sudden_kick_with_decoy": 0.05510015951247804,
+        "swerve": 0.006972111553784854
+      },
+      "adaptation_reference_established": true,
+      "adaptation_reference_gap": 0.02788844621513953,
+      "adaptation_generations_food": 0,
+      "adaptation_generations_default": 3,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 220.6875
+        },
+        "default_params": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 123.125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 507.9375
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 122.4625,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 528.75
+        },
+        "food_trained": {
+          "mean_switches": 0.2125,
+          "mean_stale_pursuit_frames": 153.5625,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 595.05
+        },
+        "ball_trained": {
+          "mean_switches": 0.1625,
+          "mean_stale_pursuit_frames": 170.6125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 645.375
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "group_scores": {
+        "naive_greedy": 0.5257124809494692,
+        "default_params": 0.5726393046946356,
+        "neutral_evolution": 0.5825066379416771,
+        "food_trained": 0.5757768180301959,
+        "ball_trained": 0.6130476868440213
+      },
+      "transfer_vs_disjoint": 0.003137513335560227,
+      "transfer_vs_neutral": -0.00672981991148125,
+      "family_effect_vs_default": {
+        "bouncing": -0.0011952191235060639,
+        "decelerating": 0.0035856573705178585,
+        "sudden_kick_with_decoy": 0.007569973660966234,
+        "swerve": 0.0025896414342628793
+      },
+      "adaptation_reference_established": true,
+      "adaptation_reference_gap": 0.025481275792473168,
+      "adaptation_generations_food": 1,
+      "adaptation_generations_default": 1,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 215.4375
+        },
+        "default_params": {
+          "mean_switches": 0.25,
+          "mean_stale_pursuit_frames": 139.875,
+          "mean_reacquisition_frames": 0.6666666666666666,
+          "mean_distance_traveled": 595.875
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.2,
+          "mean_stale_pursuit_frames": 151.5,
+          "mean_reacquisition_frames": 0.2533333333333333,
+          "mean_distance_traveled": 617.325
+        },
+        "food_trained": {
+          "mean_switches": 0.225,
+          "mean_stale_pursuit_frames": 145.5875,
+          "mean_reacquisition_frames": 0.8133333333333332,
+          "mean_distance_traveled": 611.25
+        },
+        "ball_trained": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 199.7875,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 726.1125
+        }
+      }
+    },
+    {
+      "seed": 3,
+      "group_scores": {
+        "naive_greedy": 0.5729804531091935,
+        "default_params": 0.665767446011048,
+        "neutral_evolution": 0.6550310765384071,
+        "food_trained": 0.6746106976135137,
+        "ball_trained": 0.6724267361374302
+      },
+      "transfer_vs_disjoint": 0.008843251602465685,
+      "transfer_vs_neutral": 0.01957962107510658,
+      "family_effect_vs_default": {
+        "bouncing": 0.022111553784860516,
+        "decelerating": -0.0011952191235059528,
+        "sudden_kick_with_decoy": 0.014456671748508287,
+        "swerve": 0.0
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.014279643315852186,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 205.6875
+        },
+        "default_params": {
+          "mean_switches": 0.125,
+          "mean_stale_pursuit_frames": 135.125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 537.5625
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.15,
+          "mean_stale_pursuit_frames": 157.575,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 613.425
+        },
+        "food_trained": {
+          "mean_switches": 0.2,
+          "mean_stale_pursuit_frames": 164.15,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 620.5875
+        },
+        "ball_trained": {
+          "mean_switches": 0.1375,
+          "mean_stale_pursuit_frames": 138.1125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 541.4625
+        }
+      }
+    },
+    {
+      "seed": 4,
+      "group_scores": {
+        "naive_greedy": 0.5592941288937823,
+        "default_params": 0.6344755481676866,
+        "neutral_evolution": 0.6220839551746226,
+        "food_trained": 0.6344755481676867,
+        "ball_trained": 0.638758416693583
+      },
+      "transfer_vs_disjoint": 1.1102230246251565e-16,
+      "transfer_vs_neutral": 0.012391592993064138,
+      "family_effect_vs_default": {
+        "bouncing": 0.009163346613545897,
+        "decelerating": 0.0023904382470120167,
+        "sudden_kick_with_decoy": 0.0,
+        "swerve": -0.011553784860557803
+      },
+      "adaptation_reference_established": true,
+      "adaptation_reference_gap": 0.05055767384352772,
+      "adaptation_generations_food": 36,
+      "adaptation_generations_default": 36,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 197.4375
+        },
+        "default_params": {
+          "mean_switches": 0.125,
+          "mean_stale_pursuit_frames": 137.75,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 549.9375
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.1375,
+          "mean_stale_pursuit_frames": 128.55,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 532.5
+        },
+        "food_trained": {
+          "mean_switches": 0.1,
+          "mean_stale_pursuit_frames": 108.3875,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 462.75
+        },
+        "ball_trained": {
+          "mean_switches": 0.1375,
+          "mean_stale_pursuit_frames": 172.9,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 650.4375
+        }
+      }
+    },
+    {
+      "seed": 5,
+      "group_scores": {
+        "naive_greedy": 0.5282286796682474,
+        "default_params": 0.6577333302171726,
+        "neutral_evolution": 0.617323684779725,
+        "food_trained": 0.6685232878195965,
+        "ball_trained": 0.6639038032592239
+      },
+      "transfer_vs_disjoint": 0.01078995760242385,
+      "transfer_vs_neutral": 0.05119960303987148,
+      "family_effect_vs_default": {
+        "bouncing": 0.013545816733067761,
+        "decelerating": 0.003984063745019806,
+        "sudden_kick_with_decoy": 0.012283336385791488,
+        "swerve": 0.013346613545816788
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": -0.001892430278884638,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 224.4375
+        },
+        "default_params": {
+          "mean_switches": 0.25,
+          "mean_stale_pursuit_frames": 140.3125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 543.0
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.125,
+          "mean_stale_pursuit_frames": 128.925,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 536.4375
+        },
+        "food_trained": {
+          "mean_switches": 0.25,
+          "mean_stale_pursuit_frames": 161.325,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 597.8625
+        },
+        "ball_trained": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 161.025,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 590.2125
+        }
+      }
+    },
+    {
+      "seed": 6,
+      "group_scores": {
+        "naive_greedy": 0.4151125703364389,
+        "default_params": 0.5373320587406021,
+        "neutral_evolution": 0.5123001539114225,
+        "food_trained": 0.5426092541362081,
+        "ball_trained": 0.5527796898366126
+      },
+      "transfer_vs_disjoint": 0.005277195395606005,
+      "transfer_vs_neutral": 0.030309100224785612,
+      "family_effect_vs_default": {
+        "bouncing": -0.0027888446215139084,
+        "decelerating": 0.007768924302788749,
+        "sudden_kick_with_decoy": 0.016128701901149733,
+        "swerve": 0.0
+      },
+      "adaptation_reference_established": true,
+      "adaptation_reference_gap": 0.037722717561451846,
+      "adaptation_generations_food": 13,
+      "adaptation_generations_default": 37,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 296.625
+        },
+        "default_params": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 135.9375,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 598.3125
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.0125,
+          "mean_stale_pursuit_frames": 154.6,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 670.275
+        },
+        "food_trained": {
+          "mean_switches": 0.075,
+          "mean_stale_pursuit_frames": 154.875,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 645.0
+        },
+        "ball_trained": {
+          "mean_switches": 0.1,
+          "mean_stale_pursuit_frames": 163.55,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 660.9375
+        }
+      }
+    },
+    {
+      "seed": 7,
+      "group_scores": {
+        "naive_greedy": 0.5342002646264685,
+        "default_params": 0.638665932282772,
+        "neutral_evolution": 0.6205478360514392,
+        "food_trained": 0.6353937181317377,
+        "ball_trained": 0.6385334643562152
+      },
+      "transfer_vs_disjoint": -0.0032722141510342917,
+      "transfer_vs_neutral": 0.014845882080298578,
+      "family_effect_vs_default": {
+        "bouncing": 0.0,
+        "decelerating": 0.0,
+        "sudden_kick_with_decoy": 0.004042617499448453,
+        "swerve": -0.017131474103585675
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.003486055776892427,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 221.8125
+        },
+        "default_params": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 131.25,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 528.375
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.2375,
+          "mean_stale_pursuit_frames": 160.05,
+          "mean_reacquisition_frames": 0.09333333333333334,
+          "mean_distance_traveled": 630.075
+        },
+        "food_trained": {
+          "mean_switches": 0.15,
+          "mean_stale_pursuit_frames": 168.0125,
+          "mean_reacquisition_frames": 0.09333333333333334,
+          "mean_distance_traveled": 638.9625
+        },
+        "ball_trained": {
+          "mean_switches": 0.0875,
+          "mean_stale_pursuit_frames": 192.55,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 707.625
+        }
+      }
+    },
+    {
+      "seed": 8,
+      "group_scores": {
+        "naive_greedy": 0.4583352523121612,
+        "default_params": 0.497780893218725,
+        "neutral_evolution": 0.4696118046719273,
+        "food_trained": 0.48746459718432156,
+        "ball_trained": 0.48797310522156334
+      },
+      "transfer_vs_disjoint": -0.010316296034403427,
+      "transfer_vs_neutral": 0.017852792512394244,
+      "family_effect_vs_default": {
+        "bouncing": -0.05298804780876498,
+        "decelerating": 0.008764940239043839,
+        "sudden_kick_with_decoy": 0.04140413857154962,
+        "swerve": -0.03844621513944224
+      },
+      "adaptation_reference_established": true,
+      "adaptation_reference_gap": 0.027290836653386497,
+      "adaptation_generations_food": 0,
+      "adaptation_generations_default": 2,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 248.0625
+        },
+        "default_params": {
+          "mean_switches": 0.125,
+          "mean_stale_pursuit_frames": 130.5,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 596.25
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.1125,
+          "mean_stale_pursuit_frames": 52.825,
+          "mean_reacquisition_frames": 0.09333333333333334,
+          "mean_distance_traveled": 393.8625
+        },
+        "food_trained": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 141.1625,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 634.5375
+        },
+        "ball_trained": {
+          "mean_switches": 0.1625,
+          "mean_stale_pursuit_frames": 129.2,
+          "mean_reacquisition_frames": 0.05333333333333333,
+          "mean_distance_traveled": 597.15
+        }
+      }
+    },
+    {
+      "seed": 9,
+      "group_scores": {
+        "naive_greedy": 0.546089369745409,
+        "default_params": 0.6052449619114383,
+        "neutral_evolution": 0.5890139674315142,
+        "food_trained": 0.6131511993717853,
+        "ball_trained": 0.6121024669575549
+      },
+      "transfer_vs_disjoint": 0.007906237460347021,
+      "transfer_vs_neutral": 0.024137231940271064,
+      "family_effect_vs_default": {
+        "bouncing": 0.0009960159362549792,
+        "decelerating": 0.020916334661354563,
+        "sudden_kick_with_decoy": 0.008716583307523895,
+        "swerve": 0.0009960159362549792
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.007978903212491839,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 204.5625
+        },
+        "default_params": {
+          "mean_switches": 0.125,
+          "mean_stale_pursuit_frames": 135.625,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 561.75
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.0875,
+          "mean_stale_pursuit_frames": 120.2,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 526.575
+        },
+        "food_trained": {
+          "mean_switches": 0.25,
+          "mean_stale_pursuit_frames": 184.4125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 704.25
+        },
+        "ball_trained": {
+          "mean_switches": 0.225,
+          "mean_stale_pursuit_frames": 181.225,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 695.2125
+        }
+      }
+    },
+    {
+      "seed": 42,
+      "group_scores": {
+        "naive_greedy": 0.4942371258236093,
+        "default_params": 0.5596300850947575,
+        "neutral_evolution": 0.5305106707107871,
+        "food_trained": 0.5702295434228716,
+        "ball_trained": 0.5713413293155485
+      },
+      "transfer_vs_disjoint": 0.010599458328114042,
+      "transfer_vs_neutral": 0.03971887271208452,
+      "family_effect_vs_default": {
+        "bouncing": 0.01215139442231078,
+        "decelerating": 0.008366533864541892,
+        "sudden_kick_with_decoy": 0.008334088292536457,
+        "swerve": 0.013545816733067761
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.0028071265486757646,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 220.5
+        },
+        "default_params": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 131.6875,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 562.6875
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.15,
+          "mean_stale_pursuit_frames": 95.9125,
+          "mean_reacquisition_frames": 0.15714285714285714,
+          "mean_distance_traveled": 478.125
+        },
+        "food_trained": {
+          "mean_switches": 0.3125,
+          "mean_stale_pursuit_frames": 163.0125,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 648.45
+        },
+        "ball_trained": {
+          "mean_switches": 0.025,
+          "mean_stale_pursuit_frames": 157.425,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 625.65
+        }
+      }
+    },
+    {
+      "seed": 123,
+      "group_scores": {
+        "naive_greedy": 0.5425163792964871,
+        "default_params": 0.628543522526235,
+        "neutral_evolution": 0.5970370138852045,
+        "food_trained": 0.6279698166617395,
+        "ball_trained": 0.632426244048323
+      },
+      "transfer_vs_disjoint": -0.0005737058644955662,
+      "transfer_vs_neutral": 0.030932802776534984,
+      "family_effect_vs_default": {
+        "bouncing": 0.02231075697211149,
+        "decelerating": 0.0,
+        "sudden_kick_with_decoy": -0.02540239317909787,
+        "swerve": 0.0007968127490040056
+      },
+      "adaptation_reference_established": false,
+      "adaptation_reference_gap": 0.016300615675492902,
+      "adaptation_generations_food": null,
+      "adaptation_generations_default": null,
+      "diagnostics": {
+        "naive_greedy": {
+          "mean_switches": 0.0625,
+          "mean_stale_pursuit_frames": 0.0,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 221.25
+        },
+        "default_params": {
+          "mean_switches": 0.1875,
+          "mean_stale_pursuit_frames": 128.9375,
+          "mean_reacquisition_frames": 0.7857142857142857,
+          "mean_distance_traveled": 551.25
+        },
+        "neutral_evolution": {
+          "mean_switches": 0.1125,
+          "mean_stale_pursuit_frames": 55.35,
+          "mean_reacquisition_frames": 0.48571428571428565,
+          "mean_distance_traveled": 350.8875
+        },
+        "food_trained": {
+          "mean_switches": 0.3375,
+          "mean_stale_pursuit_frames": 184.05,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 704.4
+        },
+        "ball_trained": {
+          "mean_switches": 0.0875,
+          "mean_stale_pursuit_frames": 150.8375,
+          "mean_reacquisition_frames": 0.0,
+          "mean_distance_traveled": 596.775
+        }
+      }
+    }
+  ]
+}
