@@ -14,6 +14,7 @@ from core.behavior.target_memory_transfer_evolution import (
     evaluate_target_memory_transfer,
 )
 from core.behavior.target_memory_transfer_gym import (
+    MIN_REFERENCE_EFFECT,
     evaluate_naive_greedy_on_set,
     evaluate_params_on_set,
     generate_scenario_set,
@@ -106,8 +107,8 @@ def test_memory_beats_naive_greedy_on_occlusion_across_seeds():
 def test_comparison_groups_include_the_disjoint_control(evaluation_42, evaluation_7):
     """default_params doubles as the disjoint-arm's zero-shot baseline (a
     target_memory that food selection never touched, per the substrate
-    board's design) - the group must exist and the adaptation threshold must
-    sit strictly above it."""
+    board's design) - the group must exist for every seed regardless of
+    whether an adaptation reference was established."""
     for evaluation in (evaluation_42, evaluation_7):
         assert set(evaluation.group_summaries) == {
             "naive_greedy",
@@ -116,7 +117,34 @@ def test_comparison_groups_include_the_disjoint_control(evaluation_42, evaluatio
             "food_trained",
             "ball_trained",
         }
-        assert evaluation.adaptation_threshold > evaluation.default_score
+
+
+@pytest.mark.slow
+def test_adaptation_fields_are_null_unless_reference_established(evaluation_42, evaluation_7):
+    """ball_trained must clear MIN_REFERENCE_EFFECT over default in-domain
+    (on train_ball, never on the held-out set) before generations-to-adapt is
+    reported; otherwise every adaptation field must be None rather than a
+    threshold manufactured from a near-zero or negative gap."""
+    for evaluation in (evaluation_42, evaluation_7):
+        if evaluation.adaptation_reference_established:
+            assert evaluation.adaptation_reference_gap >= MIN_REFERENCE_EFFECT
+            assert evaluation.adaptation_threshold is not None
+            assert evaluation.adaptation_generations_food is not None
+            assert evaluation.adaptation_generations_default is not None
+            assert evaluation.adaptation_generations_food >= 0
+            assert evaluation.adaptation_generations_default >= 0
+        else:
+            assert evaluation.adaptation_reference_gap < MIN_REFERENCE_EFFECT
+            assert evaluation.adaptation_threshold is None
+            assert evaluation.adaptation_generations_food is None
+            assert evaluation.adaptation_generations_default is None
+
+    # Locks in the current seed-42/seed-7 split so a regression that silently
+    # re-widens or re-narrows MIN_REFERENCE_EFFECT (or reintroduces held-out
+    # leakage, which inflated seed 7's apparent gap under the old code) is
+    # caught rather than passing unnoticed.
+    assert evaluation_42.adaptation_reference_established is True
+    assert evaluation_7.adaptation_reference_established is False
 
 
 @pytest.mark.slow

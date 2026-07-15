@@ -13,7 +13,7 @@
 | `tank/pursuit_transfer` | `benchmarks/tank/pursuit_transfer.py` | ~15s | Zero-shot pursuit-transfer benchmark for the shared Target Pursuit Module (v2). |
 | `tank/selection_response_10k` | `benchmarks/tank/selection_response_10k.py` | ~90s | Frozen selection-response assay for Tank World evolvability. |
 | `tank/survival_5k` | `benchmarks/tank/survival_5k.py` | ~45s | Tank Survival Benchmark (5k frames). |
-| `tank/target_memory_transfer` | `benchmarks/tank/target_memory_transfer.py` | ~15s | Zero-shot target-memory transfer benchmark: food-to-ball target commitment. |
+| `tank/target_memory_transfer` | `benchmarks/tank/target_memory_transfer.py` | ~25s | Zero-shot target-memory transfer benchmark: food-to-ball target commitment. |
 
 ## Running a benchmark
 

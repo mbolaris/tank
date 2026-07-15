@@ -51,6 +51,13 @@ EVOLUTION_RUNS = 2
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.1
 CROSSOVER_WEIGHT = 0.5
+# Minimum ball_trained-vs-default gap (in overall_score, [0,1]) required before
+# the adaptation-speed comparison is considered meaningful. Below this, the
+# gap is indistinguishable from run-to-run evolution noise (empirically,
+# repeated ball_trained runs land within a few hundredths of default on many
+# seeds), so gating adaptation generations on it would measure noise, not
+# adaptation. See TargetMemoryTransferEvaluation.adaptation_reference_established.
+MIN_REFERENCE_EFFECT = 0.02
 
 _LENGTH = MAX_FRAMES + 1
 # Spans a meaningful fraction of TargetMemoryParams' memory_duration bounds
@@ -157,12 +164,22 @@ class EvaluationSummary:
 
 @dataclass(frozen=True)
 class TargetMemoryTransferEvaluation:
-    """Rich evaluation payload comparing multiple groups on the zero-shot ball set."""
+    """Rich evaluation payload comparing multiple groups on the zero-shot ball set.
+
+    ``adaptation_generations_*``/``adaptation_threshold`` are ``None`` when
+    ``adaptation_reference_established`` is False: the ball_trained group
+    failed to clear ``MIN_REFERENCE_EFFECT`` over default on the ball-training
+    set, so there is no meaningful bar to measure "generations to adapt"
+    against for this seed. Consumers must check the flag before reading those
+    fields, rather than treating a near-zero threshold as a real result.
+    """
 
     group_summaries: dict[str, EvaluationSummary]
-    adaptation_generations_food: int
-    adaptation_generations_default: int
-    adaptation_threshold: float
+    adaptation_generations_food: int | None
+    adaptation_generations_default: int | None
+    adaptation_threshold: float | None
+    adaptation_reference_established: bool
+    adaptation_reference_gap: float
 
     @property
     def naive_greedy_score(self) -> float:
