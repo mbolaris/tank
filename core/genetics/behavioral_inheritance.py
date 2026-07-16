@@ -192,14 +192,32 @@ def inherit_behavior_graph(
     if graph1 is None and graph2 is None:
         return None
 
+    # Calculate effective heritable mutation rate and strength (meta-genes)
+    if parent1_trait is not None and parent2_trait is not None:
+        eff_rate = mutation_rate * (parent1_trait.mutation_rate + parent2_trait.mutation_rate) / 2
+        eff_strength = (
+            mutation_strength
+            * (parent1_trait.mutation_strength + parent2_trait.mutation_strength)
+            / 2
+        )
+    elif parent1_trait is not None:
+        eff_rate = mutation_rate * parent1_trait.mutation_rate
+        eff_strength = mutation_strength * parent1_trait.mutation_strength
+    elif parent2_trait is not None:
+        eff_rate = mutation_rate * parent2_trait.mutation_rate
+        eff_strength = mutation_strength * parent2_trait.mutation_strength
+    else:
+        eff_rate = mutation_rate
+        eff_strength = mutation_strength
+
     if graph1 is None:
         assert graph2 is not None
         copied = type(graph2).from_dict(graph2.to_dict())
         evolved = copied.crossed_over(
             copied,
             weight1=1.0,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
             rng=rng,
         )
     elif graph2 is None:
@@ -207,8 +225,8 @@ def inherit_behavior_graph(
         evolved = copied.crossed_over(
             copied,
             weight1=1.0,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
             rng=rng,
         )
     else:
@@ -218,8 +236,8 @@ def inherit_behavior_graph(
         evolved = base.crossed_over(
             mate,
             weight1=weight1,
-            mutation_rate=mutation_rate,
-            mutation_strength=mutation_strength,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
             rng=rng,
         )
     return inherit_trait_meta(parent1_trait, parent2_trait, evolved, rng)

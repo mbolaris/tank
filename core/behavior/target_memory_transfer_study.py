@@ -214,6 +214,8 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "switch_threshold",
         "commitment_strength",
         "motion_extrapolation_duration",
+        "mutation_rate",
+        "mutation_strength",
     ]
     founder_defaults = {
         "memory_duration": 90.0,
@@ -221,6 +223,8 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "switch_threshold": 1.4,
         "commitment_strength": 0.5,
         "motion_extrapolation_duration": 30.0,
+        "mutation_rate": 1.0,
+        "mutation_strength": 1.0,
     }
 
     evolved_params = {}
