@@ -107,7 +107,13 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
                 )}
 
                 {props.onToggleSoccer && (
-                    <Button onClick={props.onToggleSoccer} variant={props.showSoccer ? 'primary' : 'secondary'} title={props.showSoccer ? "Hide Ball/Goals" : "Show Ball/Goals"}>
+                    <Button
+                        onClick={props.onToggleSoccer}
+                        variant={props.showSoccer ? 'primary' : 'secondary'}
+                        title={props.showSoccer ? "Hide Ball and goals" : "Show Ball and goals"}
+                        aria-label={props.showSoccer ? "Hide Ball and goals" : "Show Ball and goals"}
+                        aria-pressed={Boolean(props.showSoccer)}
+                    >
                         <span style={{ fontSize: '14px' }}>⚽</span>
                     </Button>
                 )}

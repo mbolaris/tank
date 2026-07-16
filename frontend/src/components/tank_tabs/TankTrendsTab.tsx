@@ -13,6 +13,7 @@ import {
     YAxis
 } from 'recharts';
 import type { MetricsHistory, MetricsSample } from '../../types/simulation';
+import { recentDeathStats } from './trendUtils';
 
 interface TankTrendsTabProps {
     history: MetricsHistory | null;
@@ -592,6 +593,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
 
     // Reproduction ratio (births vs deaths) over the most recent quarter of history
     const recentStart = samples[Math.max(0, samples.length - Math.max(2, Math.floor(samples.length / 4)))];
+    const recentFrameSpan = Math.max(0, last.frame - recentStart.frame);
     const recentBirths = last.births_total - recentStart.births_total;
     const recentDeaths = last.deaths_total - recentStart.deaths_total;
     const reproRatio = recentDeaths > 0 ? recentBirths / recentDeaths : null;
@@ -607,12 +609,15 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
     const sparkWindow = samples.slice(-40);
     const popTrend = calculateTrend(samples.map(s => s.population));
     const divTrend = calculateTrend(samples.map(s => s.diversity_score ?? 0));
+    const { starvationDeaths: recentStarvationDeaths, totalDeaths: recentTotalDeaths } = recentDeathStats(recentStart, last);
+    const recentStarvationRate = recentTotalDeaths > 0
+        ? (recentStarvationDeaths / recentTotalDeaths) * 100
+        : null;
+    const recentWindowLabel = recentFrameSpan > 0
+        ? `last ${recentFrameSpan.toLocaleString()} frames`
+        : 'latest sample interval';
 
-    // --------------------------------------------------------------------
-    // Chart-level derived data
-    // --------------------------------------------------------------------
-
-    // Identify generation boundary markers for vertical reference lines (only in frames mode)
+    // Chart-level derived data: generation boundary markers for frames mode.
     const genMarkers: { frame: number; gen: number }[] = [];
     if (xAxisMode === 'frames') {
         for (let i = 1; i < samples.length; i++) {
@@ -809,7 +814,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                     sparkColor="#06b6d4"
                 />
                 <StatTile
-                    label="Births : Deaths (recent)"
+                    label={`Births : Deaths (${recentWindowLabel})`}
                     value={reproLabel}
                     sub={reproRatio === null ? 'no recent deaths' : reproRatio >= 1 ? 'growing' : 'declining'}
                     subColor={reproColor}
@@ -827,19 +832,14 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                     sparkColor="#8b5cf6"
                 />
                 <StatTile
-                    label="Starvation Rate"
-                    value={`${(() => {
-                        const starvationCount = last.death_causes?.starvation ?? 0;
-                        const totalDeathCount = Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0);
-                        return totalDeathCount > 0 ? ((starvationCount / totalDeathCount) * 100).toFixed(1) : '0.0';
-                    })()}%`}
-                    sub={`${(last.death_causes?.starvation ?? 0).toLocaleString()} / ${Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0).toLocaleString()} deaths`}
-                    subColor={(() => {
-                        const starvationCount = last.death_causes?.starvation ?? 0;
-                        const totalDeathCount = Object.values(last.death_causes ?? {}).reduce((a, b) => a + b, 0);
-                        const starvationPct = totalDeathCount > 0 ? (starvationCount / totalDeathCount) * 100 : 0;
-                        return starvationPct >= 90 ? 'var(--color-danger)' : starvationPct < 80 ? 'var(--color-success)' : 'var(--color-warning)';
-                    })()}
+                    label={`Starvation (${recentWindowLabel})`}
+                    value={recentStarvationRate === null ? '—' : `${recentStarvationRate.toFixed(1)}%`}
+                    sub={recentStarvationRate === null
+                        ? `No deaths observed in ${recentWindowLabel}`
+                        : `${recentStarvationDeaths.toLocaleString()} / ${recentTotalDeaths.toLocaleString()} deaths`}
+                    subColor={recentStarvationRate === null
+                        ? 'var(--color-text-muted)'
+                        : recentStarvationRate >= 90 ? 'var(--color-danger)' : recentStarvationRate < 80 ? 'var(--color-success)' : 'var(--color-warning)'}
                     spark={sparkWindow.map(s => {
                         const sc = s.death_causes?.starvation ?? 0;
                         const tc = Object.values(s.death_causes ?? {}).reduce((a, b) => a + b, 0);
@@ -948,7 +948,7 @@ function TankTrendsTabComponent({ history }: TankTrendsTabProps) {
                 {/* Mortality Causes Trend */}
                 <ChartCard
                     title="☠️ Mortality Causes"
-                    subtitle="deaths per interval by cause"
+                    subtitle={`deaths per sample interval · sampled every ${history.sample_interval_frames.toLocaleString()} frames`}
                     right={<LegendKey items={[
                         { label: 'Starvation', color: '#ef4444' },
                         { label: 'Old Age', color: '#22c55e' },

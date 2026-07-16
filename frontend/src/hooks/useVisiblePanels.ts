@@ -2,39 +2,39 @@ import { useCallback, useMemo, useState } from 'react';
 
 export type PanelId = 'skills' | 'soccer' | 'poker' | 'ecosystem' | 'genetics' | 'trends' | 'insights';
 
-const STORAGE_KEY = 'tankview.visiblePanels.v2';
-const LEGACY_STORAGE_KEY = 'tankview.visiblePanels.v1';
+// v3 changes the dashboard from a stack of independently-open panels to a
+// focused workspace.  A new key deliberately gives existing users the new
+// compact default instead of restoring the old, very tall stack.
+const STORAGE_KEY = 'tankview.visiblePanels.v3';
 const ALL_PANELS: PanelId[] = ['skills', 'soccer', 'poker', 'ecosystem', 'genetics', 'trends', 'insights'];
 
-function sanitizePanels(value: unknown, fallback: PanelId[]): PanelId[] {
-    if (!Array.isArray(value)) return fallback;
+function sanitizePanels(value: unknown): PanelId[] | null {
+    if (!Array.isArray(value)) return null;
     const filtered = value.filter((v): v is PanelId => ALL_PANELS.includes(v as PanelId));
-    return filtered.length ? Array.from(new Set(filtered)) : fallback;
+    // The workspace intentionally permits no open panel, but never more than
+    // one.  Keeping the latest selection is most useful to callers that pass
+    // a list while restoring state.
+    return Array.from(new Set(filtered)).slice(-1);
 }
 
-export function useVisiblePanels(defaultPanels: PanelId[] = ['soccer', 'poker']): {
+export function useVisiblePanels(defaultPanels: PanelId[] = ['trends']): {
     visible: PanelId[];
     isVisible: (id: PanelId) => boolean;
     toggle: (id: PanelId) => void;
     setVisible: (ids: PanelId[]) => void;
     showOnly: (id: PanelId) => void;
-    showAll: () => void;
     hideAll: () => void;
 } {
+    const focusedDefault = defaultPanels.slice(-1);
     const [visible, setVisibleState] = useState<PanelId[]>(() => {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) return sanitizePanels(JSON.parse(raw), defaultPanels);
-
-            // Preserve existing panel choices while surfacing the new Skills
-            // panel once after the navigation migration.
-            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-            if (!legacyRaw) return defaultPanels;
-            const legacyPanels = sanitizePanels(JSON.parse(legacyRaw), defaultPanels);
-            return legacyPanels.includes('skills') ? legacyPanels : [...legacyPanels, 'skills'];
+            if (raw) return sanitizePanels(JSON.parse(raw)) ?? focusedDefault;
         } catch {
-            return defaultPanels;
+            // Fall through to the focused default when storage is malformed
+            // or unavailable.
         }
+        return focusedDefault;
     });
 
     const persist = useCallback((next: PanelId[]) => {
@@ -62,13 +62,12 @@ export function useVisiblePanels(defaultPanels: PanelId[] = ['soccer', 'poker'])
 
     const setVisible = useCallback(
         (ids: PanelId[]) => {
-            persist(sanitizePanels(ids, defaultPanels));
+            persist(sanitizePanels(ids) ?? focusedDefault);
         },
-        [persist, defaultPanels]
+        [persist, focusedDefault]
     );
 
     const showOnly = useCallback((id: PanelId) => persist([id]), [persist]);
-    const showAll = useCallback(() => persist([...ALL_PANELS]), [persist]);
     const hideAll = useCallback(() => persist([]), [persist]);
 
     return useMemo(
@@ -78,9 +77,8 @@ export function useVisiblePanels(defaultPanels: PanelId[] = ['soccer', 'poker'])
             toggle,
             setVisible,
             showOnly,
-            showAll,
             hideAll,
         }),
-        [visible, isVisible, toggle, setVisible, showOnly, showAll, hideAll]
+        [visible, isVisible, toggle, setVisible, showOnly, hideAll]
     );
 }

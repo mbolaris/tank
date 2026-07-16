@@ -124,6 +124,8 @@ export function TransferHistory({ onClose, worldId }: TransferHistoryProps) {
                     </h2>
                     <button
                         onClick={onClose}
+                        aria-label="Close transfer history"
+                        title="Close transfer history"
                         style={{
                             background: 'transparent',
                             border: 'none',

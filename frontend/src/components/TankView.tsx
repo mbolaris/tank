@@ -18,6 +18,7 @@ import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
+import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
@@ -70,7 +71,7 @@ export function TankView({ worldId }: TankViewProps) {
     const [buildGhost, setBuildGhost] = useState<{ kind: string; x: number; y: number; width: number; height: number } | null>(null);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
-    const { visible, toggle, isVisible } = useVisiblePanels(['skills', 'soccer', 'ecosystem', 'insights']);
+    const { visible, toggle, showOnly, isVisible } = useVisiblePanels(['trends']);
 
     // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
@@ -193,10 +194,11 @@ export function TankView({ worldId }: TankViewProps) {
 
                 {/* Plant Energy Input Control */}
                 <div className={`glass-panel ${styles.plantEnergyControl}`}>
-                    <span className={styles.plantEnergyLabel}>
+                    <label htmlFor="plant-energy-input" className={styles.plantEnergyLabel}>
                         <PlantIcon size={12} /> PLANT ENERGY
-                    </span>
+                    </label>
                     <input
+                        id="plant-energy-input"
                         type="range"
                         min="0"
                         max="1"
@@ -248,9 +250,6 @@ export function TankView({ worldId }: TankViewProps) {
                             {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
                         </span>
                     </div>
-
-
-
                     <div
                         style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
                     />
@@ -397,7 +396,7 @@ export function TankView({ worldId }: TankViewProps) {
             </div>
 
             {/* Always-visible Canvas */}
-            <div className="top-section">
+            <div className={styles.sceneWorkspace}>
                 <div className="canvas-wrapper">
                     <Canvas
                         state={state}
@@ -462,6 +461,7 @@ export function TankView({ worldId }: TankViewProps) {
                         </div>
                     </div>
                 </div>
+                <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => showOnly('trends')} />
             </div>
 
             <BuildMode
@@ -478,10 +478,7 @@ export function TankView({ worldId }: TankViewProps) {
                 onSelectKind={setBuildKind}
             />
 
-            {/* Panel Toggle Bar */}
-            <PanelToggleBar visible={visible} onToggle={toggle} />
-
-            {/* Panel Grid */}
+            <PanelToggleBar visible={visible} onSelect={showOnly} />
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
                     {isVisible('insights') && (

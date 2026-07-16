@@ -13,6 +13,20 @@
     flex-wrap: wrap;
 }
 
+.sceneWorkspace {
+    width: 100%;
+    max-width: 1140px;
+    margin: 0 auto;
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+}
+
+.sceneWorkspace :global(.canvas-wrapper) {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 /* Stats HUD bar */
 .statsBar {
     margin-bottom: 20px;
@@ -327,6 +341,12 @@
     transition: all 0.15s ease;
 }
 
+.panelToggle:focus-visible,
+.panelClose:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 2px;
+}
+
 .panelToggle:hover {
     background: rgba(51, 65, 85, 0.6);
     border-color: rgba(100, 116, 139, 0.6);
@@ -419,6 +439,9 @@
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
+    .sceneWorkspace {
+        flex-direction: column;
+    }
     .panelToggleBar {
         justify-content: center;
     }

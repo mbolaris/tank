@@ -124,6 +124,13 @@
     animation: pulse-glow 2s infinite ease-in-out;
 }
 
+.app-nav a:focus-visible,
+.app-nav button:focus-visible,
+.app-nav select:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 2px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .main {
@@ -134,6 +141,32 @@
         flex-direction: column;
         gap: 8px;
         align-items: flex-start;
+    }
+
+    .app-nav {
+        padding: 10px 16px !important;
+        align-items: center !important;
+    }
+
+    .app-nav-brand {
+        gap: 12px !important;
+        min-width: 0;
+    }
+
+    .app-nav-brand a {
+        font-size: 16px !important;
+        white-space: nowrap;
+    }
+
+    .app-nav-views {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px !important;
+    }
+
+    .app-nav-utility {
+        margin-left: auto;
     }
 }
 
