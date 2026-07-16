@@ -66,6 +66,8 @@ def seed_row(seed: int, config: TransferStudyConfig) -> dict[str, Any]:
     food = groups["food_trained"]
     default = groups["default_params"]
     neutral = groups["neutral_evolution"]
+    founders = groups["founders"]
+    ball_trained = groups["ball_trained"]
 
     family_effect_vs_default = {
         fam: food.family_fitness[fam] - default.family_fitness[fam]
@@ -73,21 +75,39 @@ def seed_row(seed: int, config: TransferStudyConfig) -> dict[str, Any]:
         if fam in food.family_fitness
     }
 
+    # Food held-out set summaries
+    food_groups = evaluation.group_summaries_food
+
     # Validity ladder gains
     memory_mechanism_gain = default.overall_score - groups["naive_greedy"].overall_score
     source_learning_gain = (
-        evaluation.food_validation_score_food_trained - evaluation.food_validation_score_default
-        if evaluation.food_validation_score_food_trained is not None
-        and evaluation.food_validation_score_default is not None
+        food_groups["food_trained"].overall_score - food_groups["founders"].overall_score
+        if food_groups is not None
         else 0.0
     )
-    target_learnability_gain = groups["ball_trained"].overall_score - default.overall_score
+    target_learnability_gain = ball_trained.overall_score - founders.overall_score
+
+    # Transfer stats
+    transfer_vs_founders = food.overall_score - founders.overall_score
+    transfer_vs_neutral = food.overall_score - neutral.overall_score
+
+    denom = ball_trained.overall_score - founders.overall_score
+    transfer_efficiency = (
+        (food.overall_score - founders.overall_score) / denom if abs(denom) > 1e-5 else 0.0
+    )
 
     return {
         "seed": seed,
         "group_scores": {name: summary.overall_score for name, summary in groups.items()},
+        "group_scores_food": (
+            {name: summary.overall_score for name, summary in food_groups.items()}
+            if food_groups
+            else {}
+        ),
         "transfer_vs_disjoint": food.overall_score - default.overall_score,
-        "transfer_vs_neutral": food.overall_score - neutral.overall_score,
+        "transfer_vs_founders": transfer_vs_founders,
+        "transfer_vs_neutral": transfer_vs_neutral,
+        "transfer_efficiency": transfer_efficiency,
         "memory_mechanism_gain": memory_mechanism_gain,
         "source_learning_gain": source_learning_gain,
         "target_learnability_gain": target_learnability_gain,
@@ -98,6 +118,8 @@ def seed_row(seed: int, config: TransferStudyConfig) -> dict[str, Any]:
         "adaptation_generations_default": evaluation.adaptation_generations_default,
         "food_trained_genomes": evaluation.food_trained_genomes,
         "ball_trained_genomes": evaluation.ball_trained_genomes,
+        "founder_genomes": evaluation.founder_genomes,
+        "neutral_genomes": evaluation.neutral_genomes,
         "diagnostics": {
             name: {
                 "mean_switches": summary.mean_switches,
@@ -165,7 +187,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     effects = {
         "transfer_vs_disjoint": _effect_stats([r["transfer_vs_disjoint"] for r in rows]),
+        "transfer_vs_founders": _effect_stats([r["transfer_vs_founders"] for r in rows]),
         "transfer_vs_neutral": _effect_stats([r["transfer_vs_neutral"] for r in rows]),
+        "transfer_efficiency": _effect_stats([r["transfer_efficiency"] for r in rows]),
         "memory_mechanism_gain": _effect_stats([r["memory_mechanism_gain"] for r in rows]),
         "source_learning": _effect_stats([r["source_learning_gain"] for r in rows]),
         "target_learnability": _effect_stats([r["target_learnability_gain"] for r in rows]),
@@ -202,42 +226,39 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     # Aggregate evolved genomes
     food_genomes = []
     ball_genomes = []
+    founder_genomes = []
+    neutral_genomes = []
     for r in rows:
         if r.get("food_trained_genomes"):
             food_genomes.extend(r["food_trained_genomes"])
         if r.get("ball_trained_genomes"):
             ball_genomes.extend(r["ball_trained_genomes"])
+        if r.get("founder_genomes"):
+            founder_genomes.extend(r["founder_genomes"])
+        if r.get("neutral_genomes"):
+            neutral_genomes.extend(r["neutral_genomes"])
 
     param_keys = [
         "memory_duration",
-        "confidence_decay",
-        "switch_threshold",
-        "commitment_strength",
         "motion_extrapolation_duration",
-        "mutation_rate",
-        "mutation_strength",
     ]
-    founder_defaults = {
-        "memory_duration": 90.0,
-        "confidence_decay": 0.02,
-        "switch_threshold": 1.4,
-        "commitment_strength": 0.5,
-        "motion_extrapolation_duration": 30.0,
-        "mutation_rate": 1.0,
-        "mutation_strength": 1.0,
-    }
 
     evolved_params = {}
     for key in param_keys:
+        f_vals = [g[key] for g in founder_genomes if key in g]
         food_vals = [g[key] for g in food_genomes if key in g]
         ball_vals = [g[key] for g in ball_genomes if key in g]
+        neutral_vals = [g[key] for g in neutral_genomes if key in g]
 
         evolved_params[key] = {
-            "founder": founder_defaults[key],
-            "food_mean": statistics.fmean(food_vals) if food_vals else founder_defaults[key],
+            "founder_mean": statistics.fmean(f_vals) if f_vals else 0.0,
+            "founder_stdev": statistics.stdev(f_vals) if len(f_vals) > 1 else 0.0,
+            "food_mean": statistics.fmean(food_vals) if food_vals else 0.0,
             "food_stdev": statistics.stdev(food_vals) if len(food_vals) > 1 else 0.0,
-            "ball_mean": statistics.fmean(ball_vals) if ball_vals else founder_defaults[key],
+            "ball_mean": statistics.fmean(ball_vals) if ball_vals else 0.0,
             "ball_stdev": statistics.stdev(ball_vals) if len(ball_vals) > 1 else 0.0,
+            "neutral_mean": statistics.fmean(neutral_vals) if neutral_vals else 0.0,
+            "neutral_stdev": statistics.stdev(neutral_vals) if len(neutral_vals) > 1 else 0.0,
         }
 
     return {
@@ -245,7 +266,7 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "family_effects": family_effects,
         "adaptation": adaptation,
         "evolved_params": evolved_params,
-        "overall_verdict": effects["transfer_vs_disjoint"]["verdict"],
+        "overall_verdict": effects["transfer_vs_founders"]["verdict"],
     }
 
 
@@ -316,34 +337,40 @@ def render_markdown(report: dict[str, Any]) -> str:
             agg["effects"]["memory_mechanism_gain"],
         ),
         fmt_effect(
-            "2. source learning (food_trained - default on food val)",
+            "2. source learning (food_trained - founders on food test)",
             agg["effects"]["source_learning"],
         ),
         fmt_effect(
-            "3. target learnability (ball_trained - default on ball)",
+            "3. target learnability (ball_trained - founders on ball)",
             agg["effects"]["target_learnability"],
         ),
         fmt_effect(
-            "4. zero-shot transfer (food_trained - default on ball)",
-            agg["effects"]["transfer_vs_disjoint"],
+            "4. zero-shot transfer (food_trained - founders on ball)",
+            agg["effects"]["transfer_vs_founders"],
         ),
         fmt_effect(
-            "5. selection-specific transfer (food_trained - neutral)",
+            "5. selection-specific transfer (food_trained - neutral on ball)",
             agg["effects"]["transfer_vs_neutral"],
+        ),
+        fmt_effect(
+            "6. transfer efficiency (zero-shot / target learning)",
+            agg["effects"]["transfer_efficiency"],
         ),
     ]
 
     # Add Evolved Genomes table
     lines += [
         "",
-        "## Evolved Genomes (Parameter Drift)",
+        "## Evolved Genomes (Parameter Drift & Trajectories)",
         "",
-        "| Parameter | Founder | Food-Trained (Mean ± SD) | Ball-Trained (Mean ± SD) |",
-        "|---|---|---|---|",
+        "| Parameter | Founder (Mean ± SD) | Neutral (Mean ± SD) | Food-Trained (Mean ± SD) | Ball-Trained (Mean ± SD) |",
+        "|---|---|---|---|---|",
     ]
     for key, p in agg["evolved_params"].items():
         lines.append(
-            f"| {key} | {p['founder']:.4f} | {p['food_mean']:.4f} ± {p['food_stdev']:.4f} | "
+            f"| {key} | {p['founder_mean']:.4f} ± {p['founder_stdev']:.4f} | "
+            f"{p['neutral_mean']:.4f} ± {p['neutral_stdev']:.4f} | "
+            f"{p['food_mean']:.4f} ± {p['food_stdev']:.4f} | "
             f"{p['ball_mean']:.4f} ± {p['ball_stdev']:.4f} |"
         )
 
@@ -362,6 +389,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Adaptation",
         "",
+        "Ref established: "
         f"Reference established on {adaptation['seeds_with_reference']} of "
         f"{adaptation['seeds_total']} seeds.",
     ]

@@ -97,8 +97,8 @@ def main() -> int:
             for row in pool.map(_worker, [(seed, cfg_kwargs) for seed in args.seeds]):
                 rows.append(row)
                 print(
-                    f"  seed {row['seed']}: vs_disjoint {row['transfer_vs_disjoint']:+.4f}, "
-                    f"vs_neutral {row['transfer_vs_neutral']:+.4f}",
+                    f"  seed {row['seed']}: vs_founders {row['transfer_vs_founders']:+.4f}, "
+                    f"vs_neutral {row['transfer_vs_neutral']:+.4f}, efficiency {row['transfer_efficiency']:.2%}",
                     flush=True,
                 )
     else:
@@ -106,8 +106,8 @@ def main() -> int:
             row = seed_row(seed, config)
             rows.append(row)
             print(
-                f"  seed {seed}: vs_disjoint {row['transfer_vs_disjoint']:+.4f}, "
-                f"vs_neutral {row['transfer_vs_neutral']:+.4f}",
+                f"  seed {seed}: vs_founders {row['transfer_vs_founders']:+.4f}, "
+                f"vs_neutral {row['transfer_vs_neutral']:+.4f}, efficiency {row['transfer_efficiency']:.2%}",
                 flush=True,
             )
 

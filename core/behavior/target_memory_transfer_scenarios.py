@@ -110,6 +110,7 @@ _SET_SALTS = {
     "held_out": 3000,
     "ball_train": 4000,
     "ball_validation": 5000,
+    "food_held_out": 6000,
 }
 
 SCENARIO_SET_VERSION = "v4"
@@ -506,7 +507,7 @@ def generate_scenario_set(
     """
     salt = _SET_SALTS[set_type]
     rng = random.Random(seed + salt)
-    is_ball = set_type != "train" and set_type != "validation"
+    is_ball = "ball" in set_type or set_type == "held_out"
     base_distribution = _BALL_FAMILY_DISTRIBUTION if is_ball else _FOOD_FAMILY_DISTRIBUTION
     family_names = _BALL_FAMILY_NAMES if is_ball else _FOOD_FAMILY_NAMES
 
