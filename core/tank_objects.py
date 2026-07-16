@@ -9,7 +9,7 @@ normal entity lifecycle.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from core.entities.base import Entity
 from core.world import World
@@ -191,8 +191,10 @@ class Castle(metaclass=_CastleCompatibilityMeta):
     shim avoids treating every generic tank object as a castle in legacy code.
     """
 
-    def __new__(cls, environment: World, x: float = 431.0, y: float = 387.0) -> TankObject:
-        return TankObject(environment, x, y, object_kind="castle")
+    def __new__(cls, environment: World, x: float = 431.0, y: float = 387.0) -> Castle:
+        # ``Castle`` is a type-only compatibility surface; its concrete
+        # instances are the generic TankObject configured as a castle.
+        return cast(Castle, TankObject(environment, x, y, object_kind="castle"))
 
     @property
     def snapshot_type(self) -> str:
