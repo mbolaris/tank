@@ -6,7 +6,6 @@ export function renderResourcePatch(ctx: CanvasRenderingContext2D, patch: Entity
     
     // Curated glowing neon palettes
     const baseColor = kind === 'protein' ? '#e29eff' : '#6effb6';
-    const glowColor = kind === 'protein' ? 'rgba(226, 158, 255, 0.25)' : 'rgba(110, 255, 182, 0.25)';
     const barGradientStart = kind === 'protein' ? '#f3d5ff' : '#a8ffd3';
     const barGradientEnd = kind === 'protein' ? '#c46eff' : '#3be88b';
     
