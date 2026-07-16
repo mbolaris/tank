@@ -32,16 +32,6 @@ from core.behavior.target_memory_transfer_gym import (
 )
 
 
-from core.genetics.trait import (
-    META_MUTATION_CHANCE,
-    META_MUTATION_SIGMA,
-    META_MUTATION_RATE_MIN,
-    META_MUTATION_RATE_MAX,
-    META_MUTATION_STRENGTH_MIN,
-    META_MUTATION_STRENGTH_MAX,
-)
-
-
 @dataclass
 class TargetMemoryGenome:
     """Standalone evolutionary wrapper for TargetMemoryParams in the transfer gym assay.
@@ -67,41 +57,34 @@ class TargetMemoryGenome:
         mutation_strength: float,
         rng: random.Random,
     ) -> TargetMemoryGenome:
-        eff_rate = mutation_rate * (self.mutation_rate + other.mutation_rate) / 2
-        eff_strength = mutation_strength * (self.mutation_strength + other.mutation_strength) / 2
+        from core.genetics.behavioral_inheritance import inherit_behavior_graph
+        from core.genetics.trait import GeneticTrait
 
-        child_params = self.params.crossed_over(
+        t1 = GeneticTrait(
+            self.params,
+            mutation_rate=self.mutation_rate,
+            mutation_strength=self.mutation_strength,
+        )
+        t2 = GeneticTrait(
             other.params,
-            weight1=weight1,
-            mutation_rate=eff_rate,
-            mutation_strength=eff_strength,
-            rng=rng,
+            mutation_rate=other.mutation_rate,
+            mutation_strength=other.mutation_strength,
         )
 
-        child_mutation_rate = (self.mutation_rate + other.mutation_rate) / 2
-        child_mutation_strength = (self.mutation_strength + other.mutation_strength) / 2
-
-        if rng.random() < META_MUTATION_CHANCE:
-            child_mutation_rate = max(
-                META_MUTATION_RATE_MIN,
-                min(
-                    META_MUTATION_RATE_MAX,
-                    child_mutation_rate + rng.gauss(0.0, META_MUTATION_SIGMA),
-                ),
-            )
-        if rng.random() < META_MUTATION_CHANCE:
-            child_mutation_strength = max(
-                META_MUTATION_STRENGTH_MIN,
-                min(
-                    META_MUTATION_STRENGTH_MAX,
-                    child_mutation_strength + rng.gauss(0.0, META_MUTATION_SIGMA),
-                ),
-            )
+        child_trait = inherit_behavior_graph(
+            t1,
+            t2,
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
+        assert child_trait is not None
 
         return TargetMemoryGenome(
-            params=child_params,
-            mutation_rate=child_mutation_rate,
-            mutation_strength=child_mutation_strength,
+            params=child_trait.value,
+            mutation_rate=child_trait.mutation_rate,
+            mutation_strength=child_trait.mutation_strength,
         )
 
 
@@ -256,6 +239,22 @@ class TransferStudyConfig:
     ball_validation_count: int | None = None
 
 
+def generate_diverse_population(
+    default_genome: TargetMemoryGenome,
+    pop_size: int,
+    rng: random.Random,
+) -> list[TargetMemoryGenome]:
+    """Initialize a diverse population by mutating the default genome."""
+    population = [default_genome]
+    while len(population) < pop_size:
+        seed_genome = population[rng.randrange(len(population))]
+        var = seed_genome.crossed_over(
+            seed_genome, weight1=1.0, mutation_rate=1.0, mutation_strength=0.3, rng=rng
+        )
+        population.append(var)
+    return population
+
+
 def evaluate_target_memory_transfer(
     seed: int, config: TransferStudyConfig | None = None
 ) -> TargetMemoryTransferEvaluation:
@@ -280,6 +279,13 @@ def evaluate_target_memory_transfer(
     # baseline (a target_memory that food selection never touched).
     summaries["default_params"] = evaluate_params_on_set(default_genome.params, test_ball)
 
+    # Generate shared diverse founder populations for all runs
+    shared_founders = []
+    for run_idx in range(cfg.evolution_runs):
+        init_rng = random.Random(seed + 7000 + run_idx * 100)
+        pop = generate_diverse_population(default_genome, cfg.population_size, init_rng)
+        shared_founders.append(pop)
+
     # Group 3: structurally matched no-selection control. Replaces v1's
     # random search (one-step mutations around the default), which was not
     # lineage-matched to the evolutionary arms: evolution explores cumulative
@@ -292,7 +298,7 @@ def evaluate_target_memory_transfer(
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 8000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_genome],
+            shared_founders[run_idx],
             train_food,
             cfg.generations,
             cfg.population_size,
@@ -305,11 +311,12 @@ def evaluate_target_memory_transfer(
     )
 
     # Group 4: food-trained populations (shared arm's basis) - zero-shot on ball
+    # Evolved from the same shared diverse founder population as Group 3 and Group 5
     food_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 9000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_genome],
+            shared_founders[run_idx],
             train_food,
             cfg.generations,
             cfg.population_size,
@@ -322,11 +329,12 @@ def evaluate_target_memory_transfer(
     summaries["food_trained"] = average_summaries(food_evals)
 
     # Group 5: ball-trained (task-specific reference)
+    # Evolved from the same shared diverse founder population
     ball_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 10000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_genome],
+            shared_founders[run_idx],
             train_ball,
             cfg.generations,
             cfg.population_size,

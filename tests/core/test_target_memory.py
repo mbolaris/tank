@@ -338,8 +338,10 @@ def test_old_genome_dict_without_target_memory_key_loads_fine():
 
 
 def test_genome_validate_flags_out_of_bounds_target_memory():
+    from core.behavior.target_memory import TargetMemoryParams
+
     genome = Genome.random(rng=random.Random(5))
-    genome.behavioral.target_memory = GeneticTrait(TargetMemoryParams(switch_threshold=999.0))
+    genome.behavioral.target_memory = GeneticTrait(TargetMemoryParams(memory_duration=999.0))
     result = genome.validate()
     assert any("target_memory" in issue for issue in result["issues"])
 
@@ -885,3 +887,57 @@ def test_influencing_movement_and_diagnostics(monkeypatch):
     details = get_target_memory_details(fish)
     assert details["domains"]["food"]["influencing_movement"] is False
     assert details["domains"]["ball"]["influencing_movement"] is False
+
+
+def test_target_memory_genome_equivalence_to_genetic_trait():
+    from core.genetics.behavioral_inheritance import inherit_behavior_graph
+    from core.genetics.trait import GeneticTrait
+    from core.behavior.target_memory_transfer_evolution import TargetMemoryGenome
+    from core.behavior.target_memory import TargetMemoryParams, _PARAM_BOUNDS
+
+    # We will test equivalence for all active bounds across many seeds
+    for seed in range(50):
+        rng1 = random.Random(seed)
+        rng2 = random.Random(seed)
+
+        # Parent meta-genes
+        mr1, ms1 = rng1.uniform(0.4, 3.0), rng1.uniform(0.4, 3.0)
+        mr2, ms2 = rng1.uniform(0.4, 3.0), rng1.uniform(0.4, 3.0)
+
+        # Generate parent parameter values
+        p1_dict = {k: rng1.uniform(lo, hi) for k, (lo, hi) in _PARAM_BOUNDS.items()}
+        p1_dict.update(
+            {"confidence_decay": 0.02, "switch_threshold": 1.4, "commitment_strength": 0.5}
+        )
+        p1_params = TargetMemoryParams(**p1_dict)
+
+        p2_dict = {k: rng1.uniform(lo, hi) for k, (lo, hi) in _PARAM_BOUNDS.items()}
+        p2_dict.update(
+            {"confidence_decay": 0.02, "switch_threshold": 1.4, "commitment_strength": 0.5}
+        )
+        p2_params = TargetMemoryParams(**p2_dict)
+
+        # 1. TargetMemoryGenome inheritance
+        g1 = TargetMemoryGenome(params=p1_params, mutation_rate=mr1, mutation_strength=ms1)
+        g2 = TargetMemoryGenome(params=p2_params, mutation_rate=mr2, mutation_strength=ms2)
+
+        # Re-seed to synchronize RNG state before crossover
+        rng1 = random.Random(seed + 9999)
+        rng2 = random.Random(seed + 9999)
+
+        child_genome = g1.crossed_over(
+            g2, weight1=0.4, mutation_rate=1.0, mutation_strength=1.0, rng=rng1
+        )
+
+        # 2. Live GeneticTrait inheritance
+        t1 = GeneticTrait(p1_params, mutation_rate=mr1, mutation_strength=ms1)
+        t2 = GeneticTrait(p2_params, mutation_rate=mr2, mutation_strength=ms2)
+        child_trait = inherit_behavior_graph(
+            t1, t2, weight1=0.4, mutation_rate=1.0, mutation_strength=1.0, rng=rng2
+        )
+        assert child_trait is not None
+
+        # Assert identical values and meta-genes
+        assert child_genome.params == child_trait.value
+        assert child_genome.mutation_rate == child_trait.mutation_rate
+        assert child_genome.mutation_strength == child_trait.mutation_strength

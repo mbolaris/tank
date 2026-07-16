@@ -1,4 +1,4 @@
-"""Scenario generation for the target-memory transfer gym (study v1.2).
+"""Scenario generation for the target-memory transfer gym (study v1.2 -> v4).
 
 Split out of core/behavior/target_memory_transfer_gym.py (which owns episode
 evaluation and metrics) to stay under the repo's god-class line-limit ratchet.
@@ -8,23 +8,34 @@ Food/ball capability matching
 The food and ball domains must differ in surface (values, spawn geometry,
 track shapes) but exercise the *same reusable capabilities*, otherwise the
 transfer question degenerates into "does an untrained parameter happen to
-work elsewhere". v1 food was entirely stationary, so food selection exerted
-no pressure on ``motion_extrapolation_duration`` while every ball scenario
-demanded it. v2 adds moving-food families matched to the ball families'
-latent demands:
+work elsewhere".
+
+v4 redesigns food families to create real selective pressure on every
+TargetMemoryParams parameter, based on the Learnability Audit v1 findings
+that the v3 landscape was a flat plateau for all parameters except
+motion_extrapolation_duration. The core insight: scenarios must create
+*tradeoffs* where different parameter values represent genuinely different
+strategies with measurable fitness consequences.
 
 ===========================  ==============================  =======================
-Food family (v2)             Latent capability               Ball family analogue
+Food family (v4)             Targeted parameter(s)           Design rationale
 ===========================  ==============================  =======================
-stable_commitment            hold commitment, no distractor  (baseline for all)
-true_switch_required         genuine value-driven switch     sudden_kick_with_decoy
-occlusion_survival           persistence through occlusion   (all: occluded window)
-drifting_food                linear extrapolation + occl.    decelerating
-decelerating_drift           non-constant speed + occl.      decelerating
-occluded_turn                reappearance off the linear     bouncing / swerve
-                             prediction
-competing_drifters           commitment among moving         sudden_kick_with_decoy
-                             alternatives
+stable_commitment            (baseline)                      hold commitment, no alt
+permanent_disappearance      memory_duration                 target vanishes forever;
+                                                             long memory wastes time
+marginal_alternative         switch_threshold,               alternative is only
+                             commitment_strength             1.1-1.8x better; tight
+                                                             switching decisions
+fading_alternative           confidence_decay                high-value alt appears
+                                                             during occlusion; fast
+                                                             decay = willing to switch
+occlusion_survival           memory_duration,                long gap tests memory;
+                             motion_extrapolation_duration   shorter memory = DROP
+drifting_food                motion_extrapolation_duration   linear extrapolation
+occluded_turn                motion_extrapolation_duration   reappearance off linear
+competing_drifters           commitment_strength,            moving decoy vs moving
+                             switch_threshold                prize, marginal values
+true_switch_required         switch_threshold                obvious 3x better target
 ===========================  ==============================  =======================
 
 Ball-side generation is unchanged from v1 (same rng consumption, so same
@@ -55,20 +66,30 @@ _LENGTH = MAX_FRAMES + 1
 _OCCLUSION_MIN_LEN = 10
 _OCCLUSION_MAX_LEN = 80
 
+# v4: long occlusions that span the memory_duration boundary, so the DROP
+# threshold becomes a real decision rather than a freebie. Combined with
+# permanent_disappearance scenarios, this makes memory_duration face a real
+# tradeoff: too short = drop early and lose the target, too long = waste
+# frames searching for a target that's permanently gone.
+_LONG_OCCLUSION_MIN_LEN = 60
+_LONG_OCCLUSION_MAX_LEN = 150
+
 # Food drifts well below PURSUER_SPEED (3.0, see the gym module): moving food
 # must remain catchable so the families discriminate *commitment* quality,
 # not raw pursuit capability.
-_FOOD_DRIFT_SPEED_MIN = 0.6
-_FOOD_DRIFT_SPEED_MAX = 1.4
+_FOOD_DRIFT_SPEED_MIN = 1.0
+_FOOD_DRIFT_SPEED_MAX = 2.0
 
 _FOOD_FAMILY_NAMES = {
     0: "stable_commitment",
-    1: "true_switch_required",
-    2: "occlusion_survival",
-    3: "drifting_food",
-    4: "decelerating_drift",
-    5: "occluded_turn",
-    6: "competing_drifters",
+    1: "permanent_disappearance",
+    2: "marginal_alternative",
+    3: "fading_alternative",
+    4: "occlusion_survival",
+    5: "drifting_food",
+    6: "occluded_turn",
+    7: "competing_drifters",
+    8: "true_switch_required",
 }
 # generate_ball_trajectory's family 4 ("speed_ratio", up to 1.3x pursuer speed)
 # is deliberately excluded: target_memory only decides *what* to commit to, not
@@ -91,12 +112,11 @@ _SET_SALTS = {
     "ball_validation": 5000,
 }
 
-SCENARIO_SET_VERSION = "v3"
+SCENARIO_SET_VERSION = "v4"
 
-# One scenario per food family: the moving families joined in v2 and the
-# budget stays comparable to v1's six-scenario sets (scale-up is the multi-run
-# study's job, not this one's).
-_FOOD_FAMILY_DISTRIBUTION = [0, 1, 2, 3, 4, 5, 6]
+# Interleaved to ensure a representative sample of both moving and stationary
+# families even for small sets (like validation count = 8)
+_FOOD_FAMILY_DISTRIBUTION = [0, 5, 1, 6, 2, 7, 3, 4, 8]
 _BALL_FAMILY_DISTRIBUTION = [0, 1, 2, 3]
 
 
@@ -110,6 +130,7 @@ class CandidateTrack:
     positions: tuple[Vector2, ...]
     velocities: tuple[Vector2, ...]
     visible_mask: tuple[bool, ...]
+    exists_mask: tuple[bool, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -176,7 +197,12 @@ def _integrate_drift(
 
 
 def _stationary_track(
-    target_id: TargetId, value: float, pos: Vector2, length: int, visible: list[bool]
+    target_id: TargetId,
+    value: float,
+    pos: Vector2,
+    length: int,
+    visible: list[bool],
+    exists: list[bool] | None = None,
 ) -> CandidateTrack:
     return CandidateTrack(
         target_id=target_id,
@@ -185,6 +211,7 @@ def _stationary_track(
         positions=tuple(pos.copy() for _ in range(length)),
         velocities=tuple(Vector2(0.0, 0.0) for _ in range(length)),
         visible_mask=tuple(visible),
+        exists_mask=tuple(exists) if exists is not None else None,
     )
 
 
@@ -195,6 +222,7 @@ def _moving_track(
     velocities: list[Vector2],
     visible: list[bool],
     start_frame: int = 0,
+    exists: list[bool] | None = None,
 ) -> CandidateTrack:
     return CandidateTrack(
         target_id=target_id,
@@ -203,6 +231,7 @@ def _moving_track(
         positions=tuple(positions),
         velocities=tuple(velocities),
         visible_mask=tuple(visible),
+        exists_mask=tuple(exists) if exists is not None else None,
     )
 
 
@@ -218,40 +247,123 @@ def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
             )
         ]
 
-    if family_idx == 1:  # true_switch_required
+    if family_idx == 1:  # permanent_disappearance
+        # Target is visible for a while, then permanently vanishes.
+        # A fallback target of moderate value is always available.
+        # memory_duration tradeoff: too long = waste frames searching for
+        # something that's gone, too short = give up too early on temporary
+        # occlusions in other scenarios.
+        # Calculate approximate capture frame: distance / PURSUER_SPEED (3.0)
+        dist = math.hypot(primary_pos.x, primary_pos.y)
+        est_capture_frame = int(dist / 3.0)
+        # Vanish at 40-80% of the way to capture, guaranteeing vanishing occurs before capture
+        vanish_at = rng.randint(
+            max(10, int(est_capture_frame * 0.4)), max(15, int(est_capture_frame * 0.8))
+        )
+        for i in range(vanish_at, length):
+            primary_visible[i] = False
+        # Pass primary_visible as exists mask too, so it despawns permanently when vanishing
+        tracks = [
+            _stationary_track(
+                TargetId("food", 0),
+                primary_value,
+                primary_pos,
+                length,
+                primary_visible,
+                exists=primary_visible,
+            )
+        ]
+        # Fallback target: always visible, moderate value. If you DROP the
+        # vanished primary quickly, you can pursue this instead of wasting
+        # frames searching. The value is set so pursuing it is clearly better
+        # than searching for a gone target, but worse than actually catching
+        # the primary.
+        fallback_value = primary_value * rng.uniform(0.5, 0.7)
+        fallback_pos = _spawn_position(rng)
+        tracks.append(
+            _stationary_track(
+                TargetId("food", 1), fallback_value, fallback_pos, length, [True] * length
+            )
+        )
+        return tracks
+
+    if family_idx == 2:  # marginal_alternative
+        # Primary target being pursued; an alternative appears whose value
+        # is only marginally better (1.1x-1.8x, not the 3x of v3). This
+        # creates real pressure on switch_threshold and commitment_strength:
+        # too eager = switch on noise, too stubborn = miss real upgrades.
         tracks = [
             _stationary_track(
                 TargetId("food", 0), primary_value, primary_pos, length, primary_visible
             )
         ]
-        # A spawns far enough that transit takes a while; B appears early,
-        # during that transit (not after A would already be captured), so a
-        # genuine redirect decision is required rather than a moot one.
-        spawn_at = rng.randint(15, 35)
-        better_len = length - spawn_at
-        better_value = primary_value * rng.uniform(2.5, 3.5)
-        better_pos = _spawn_position(rng)
+        spawn_at = rng.randint(20, 50)
+        alt_len = length - spawn_at
+        # Marginal improvement: 1.1x to 1.8x (the decision boundary region)
+        alt_value = primary_value * rng.uniform(1.1, 1.8)
+        alt_pos = _spawn_position(rng)
         tracks.append(
             _moving_track(
                 TargetId("food", 1),
-                better_value,
-                [better_pos.copy() for _ in range(better_len)],
-                [Vector2(0.0, 0.0) for _ in range(better_len)],
-                [True] * better_len,
+                alt_value,
+                [alt_pos.copy() for _ in range(alt_len)],
+                [Vector2(0.0, 0.0) for _ in range(alt_len)],
+                [True] * alt_len,
                 start_frame=spawn_at,
             )
         )
         return tracks
 
-    if family_idx == 2:  # occlusion_survival
-        _apply_occlusion(primary_visible, rng, windows=2, max_start=40)
+    if family_idx == 3:  # fading_alternative
+        # Primary target goes behind occlusion. While hidden, a moderately
+        # valuable alternative appears. confidence_decay pressure: faster
+        # decay lowers the effective memory value sooner, making the switch
+        # to the alternative happen earlier (capturing more time-discounted
+        # value). Too-fast decay = switch prematurely on short occlusions
+        # in other scenarios.
+        gap_start = rng.randint(15, 35)
+        gap_len = rng.randint(40, 90)
+        for i in range(gap_start, min(gap_start + gap_len, length)):
+            primary_visible[i] = False
+        tracks = [
+            _stationary_track(
+                TargetId("food", 0), primary_value, primary_pos, length, primary_visible
+            )
+        ]
+        # Alternative appears during the gap, value is around 1.2-1.6x.
+        # With default decay (0.02), confidence drops slowly and the
+        # effective memory value stays high enough to block the switch.
+        # With faster decay, the switch happens sooner.
+        alt_appear = gap_start + rng.randint(5, 15)
+        alt_len = length - alt_appear
+        alt_value = primary_value * rng.uniform(1.2, 1.6)
+        alt_pos = _spawn_position(rng)
+        tracks.append(
+            _moving_track(
+                TargetId("food", 1),
+                alt_value,
+                [alt_pos.copy() for _ in range(alt_len)],
+                [Vector2(0.0, 0.0) for _ in range(alt_len)],
+                [True] * alt_len,
+                start_frame=alt_appear,
+            )
+        )
+        return tracks
+
+    if family_idx == 4:  # occlusion_survival
+        # Long occlusion that spans the memory_duration boundary for many
+        # legal values, so the DROP/SEARCH decision is a real gradient.
+        gap_len = rng.randint(_LONG_OCCLUSION_MIN_LEN, _LONG_OCCLUSION_MAX_LEN)
+        gap_start = rng.randint(15, 40)
+        for i in range(gap_start, min(gap_start + gap_len, length)):
+            primary_visible[i] = False
         return [
             _stationary_track(
                 TargetId("food", 0), primary_value, primary_pos, length, primary_visible
             )
         ]
 
-    if family_idx == 3:  # drifting_food: straight constant-velocity drift
+    if family_idx == 5:  # drifting_food: straight constant-velocity drift
         drift = _drift_velocity(rng)
         positions, velocities = _integrate_drift(primary_pos, length, lambda _f: drift.copy())
         _apply_occlusion(primary_visible, rng, windows=1, max_start=40)
@@ -261,23 +373,7 @@ def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
             )
         ]
 
-    if family_idx == 4:  # decelerating_drift: drifts fast, coasts to a stop
-        drift = _drift_velocity(rng)
-        decay = rng.uniform(0.975, 0.99)
-
-        def _decel(frame: int) -> Vector2:
-            factor = decay**frame
-            return Vector2(drift.x * factor, drift.y * factor)
-
-        positions, velocities = _integrate_drift(primary_pos, length, _decel)
-        _apply_occlusion(primary_visible, rng, windows=1, max_start=40)
-        return [
-            _moving_track(
-                TargetId("food", 0), primary_value, positions, velocities, primary_visible
-            )
-        ]
-
-    if family_idx == 5:  # occluded_turn: direction change hidden inside the gap
+    if family_idx == 6:  # occluded_turn: direction change hidden inside the gap
         drift = _drift_velocity(rng)
         gap_start = rng.randint(20, 40)
         gap_len = rng.randint(30, _OCCLUSION_MAX_LEN)
@@ -301,7 +397,7 @@ def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
             )
         ]
 
-    if family_idx == 6:  # competing_drifters: moving decoy against a moving prize
+    if family_idx == 7:  # competing_drifters: marginal moving alternatives
         drift = _drift_velocity(rng)
         positions, velocities = _integrate_drift(primary_pos, length, lambda _f: drift.copy())
         _apply_occlusion(primary_visible, rng, windows=1, max_start=40)
@@ -310,9 +406,11 @@ def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
                 TargetId("food", 0), primary_value, positions, velocities, primary_visible
             )
         ]
+        # v4: marginal competitor (1.1-1.5x, not the trivially-worse 0.3-0.5x
+        # of v3) to create a real commitment_strength/switch_threshold decision
         decoy_at = rng.randint(20, 60)
         decoy_len = length - decoy_at
-        decoy_value = primary_value * rng.uniform(0.3, 0.5)
+        decoy_value = primary_value * rng.uniform(1.1, 1.5)
         decoy_drift = _drift_velocity(rng)
         decoy_positions, decoy_velocities = _integrate_drift(
             _spawn_position(rng), decoy_len, lambda _f: decoy_drift.copy()
@@ -325,6 +423,28 @@ def _food_tracks(family_idx: int, rng: random.Random, length: int) -> list[Candi
                 decoy_velocities,
                 [True] * decoy_len,
                 start_frame=decoy_at,
+            )
+        )
+        return tracks
+
+    if family_idx == 8:  # true_switch_required (legacy: obviously better target)
+        tracks = [
+            _stationary_track(
+                TargetId("food", 0), primary_value, primary_pos, length, primary_visible
+            )
+        ]
+        spawn_at = rng.randint(15, 35)
+        better_len = length - spawn_at
+        better_value = primary_value * rng.uniform(2.5, 3.5)
+        better_pos = _spawn_position(rng)
+        tracks.append(
+            _moving_track(
+                TargetId("food", 1),
+                better_value,
+                [better_pos.copy() for _ in range(better_len)],
+                [Vector2(0.0, 0.0) for _ in range(better_len)],
+                [True] * better_len,
+                start_frame=spawn_at,
             )
         )
         return tracks

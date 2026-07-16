@@ -45,13 +45,9 @@ class TargetId:
 BALL_TARGET_ID = TargetId("ball", 0)
 
 
-# Starting bounds/defaults - refineable via the food-to-soccer transfer study
-# (a later step), not load-bearing for the mechanism itself.
+# Active evolvable parameter bounds. Other parameters are frozen to defaults.
 _PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "memory_duration": (10.0, 300.0),
-    "confidence_decay": (0.001, 0.10),
-    "switch_threshold": (1.0, 3.0),
-    "commitment_strength": (0.0, 1.0),
     "motion_extrapolation_duration": (0.0, 120.0),
 }
 
@@ -110,7 +106,11 @@ class TargetMemoryParams:
         """
         self_values = self.to_dict()
         other_values = other.to_dict()
-        blended: dict[str, float] = {}
+        blended: dict[str, float] = {
+            "confidence_decay": 0.02,
+            "switch_threshold": 1.4,
+            "commitment_strength": 0.5,
+        }
         for key, (lo, hi) in _PARAM_BOUNDS.items():
             value = self_values[key] * weight1 + other_values[key] * (1.0 - weight1)
             if rng.random() < mutation_rate:
