@@ -60,7 +60,9 @@ def test_food_and_ball_sets_use_distinct_family_names():
         "true_switch_required",
         "occlusion_survival",
         "drifting_food",
-        "decelerating_drift",
+        "permanent_disappearance",
+        "marginal_alternative",
+        "fading_alternative",
         "occluded_turn",
         "competing_drifters",
     }
