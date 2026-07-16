@@ -449,16 +449,18 @@ def run_target_memory_episode(
             if selected_track is not None and selected_track.target_id not in captured:
                 local = frame - selected_track.start_frame
                 if 0 <= local < len(selected_track.positions):
-                    pos = selected_track.positions[local]
-                    d = math.hypot(pos.x - observer.x, pos.y - observer.y)
-                    if d <= CAPTURE_RADIUS:
-                        captured.add(selected_track.target_id)
-                        trace.captured_frames[selected_track.target_id] = frame
-                        captured_value += _capture_credit(
-                            selected_track.value, frame, scenario.max_frames
-                        )
-                        if state.target_id == selected_track.target_id:
-                            state = TargetMemoryState.empty()
+                    # Only allow capture if the target actually exists at this frame
+                    if selected_track.exists_mask is None or selected_track.exists_mask[local]:
+                        pos = selected_track.positions[local]
+                        d = math.hypot(pos.x - observer.x, pos.y - observer.y)
+                        if d <= CAPTURE_RADIUS:
+                            captured.add(selected_track.target_id)
+                            trace.captured_frames[selected_track.target_id] = frame
+                            captured_value += _capture_credit(
+                                selected_track.value, frame, scenario.max_frames
+                            )
+                            if state.target_id == selected_track.target_id:
+                                state = TargetMemoryState.empty()
 
     return TargetMemoryEpisodeResult(
         captured_value=captured_value,
@@ -530,12 +532,16 @@ def run_naive_greedy_episode(scenario: TargetMemoryScenario) -> TargetMemoryEpis
             if selected_track is not None and selected_track.target_id not in captured:
                 local = frame - selected_track.start_frame
                 if 0 <= local < len(selected_track.positions):
-                    pos = selected_track.positions[local]
-                    d = math.hypot(pos.x - observer.x, pos.y - observer.y)
-                    if d <= CAPTURE_RADIUS:
-                        captured.add(target.target_id)
-                        trace.captured_frames[target.target_id] = frame
-                        captured_value += _capture_credit(target.value, frame, scenario.max_frames)
+                    # Only allow capture if the target actually exists at this frame
+                    if selected_track.exists_mask is None or selected_track.exists_mask[local]:
+                        pos = selected_track.positions[local]
+                        d = math.hypot(pos.x - observer.x, pos.y - observer.y)
+                        if d <= CAPTURE_RADIUS:
+                            captured.add(target.target_id)
+                            trace.captured_frames[target.target_id] = frame
+                            captured_value += _capture_credit(
+                                target.value, frame, scenario.max_frames
+                            )
 
     return TargetMemoryEpisodeResult(
         captured_value=captured_value,
