@@ -266,7 +266,10 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "family_effects": family_effects,
         "adaptation": adaptation,
         "evolved_params": evolved_params,
-        "overall_verdict": effects["transfer_vs_founders"]["verdict"],
+        # Keep the headline verdict aligned with the declared primary effect.
+        # The founders comparison is useful context, but must not override the
+        # transfer-vs-disjoint decision rule shown in the report.
+        "overall_verdict": effects["transfer_vs_disjoint"]["verdict"],
     }
 
 

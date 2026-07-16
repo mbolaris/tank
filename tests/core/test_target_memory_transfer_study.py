@@ -150,6 +150,18 @@ def test_verdict_requires_ci_to_exclude_zero():
     assert agg["effects"]["transfer_vs_disjoint"]["fraction_positive"] == 0.5
 
 
+def test_overall_verdict_uses_the_declared_primary_effect():
+    rows = [_row(seed, -0.05 - 0.001 * seed) for seed in range(10)]
+    for row in rows:
+        row["transfer_vs_founders"] = 0.05
+
+    aggregate = aggregate_rows(rows)
+
+    assert aggregate["effects"]["transfer_vs_disjoint"]["verdict"] == "negative"
+    assert aggregate["effects"]["transfer_vs_founders"]["verdict"] == "positive"
+    assert aggregate["overall_verdict"] == "negative"
+
+
 def test_aggregate_reports_adaptation_only_where_established():
     rows = [
         _row(0, 0.01, established=True, gens_food=3, gens_default=7),
