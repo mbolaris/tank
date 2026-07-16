@@ -195,6 +195,11 @@ class TargetMemoryTransferEvaluation:
     # Evolved parameters
     food_trained_genomes: list[dict[str, float]] | None = None
     ball_trained_genomes: list[dict[str, float]] | None = None
+    founder_genomes: list[dict[str, float]] | None = None
+    neutral_genomes: list[dict[str, float]] | None = None
+
+    # Food held-out set evaluations
+    group_summaries_food: dict[str, EvaluationSummary] | None = None
 
     @property
     def naive_greedy_score(self) -> float:

@@ -263,6 +263,9 @@ def evaluate_target_memory_transfer(
     cfg = config if config is not None else TransferStudyConfig()
     train_food = generate_scenario_set("train", seed, count=cfg.food_train_count)
     validation_food = generate_scenario_set("validation", seed, count=cfg.food_validation_count)
+    test_food = generate_scenario_set(
+        "food_held_out", seed, count=cfg.food_validation_count
+    )  # food held-out set
     test_ball = generate_scenario_set("held_out", seed, count=cfg.ball_held_out_count)
     train_ball = generate_scenario_set("ball_train", seed, count=cfg.ball_train_count)
     validation_ball = generate_scenario_set(
@@ -271,13 +274,7 @@ def evaluate_target_memory_transfer(
 
     default_genome = TargetMemoryGenome(params=TargetMemoryParams())
     summaries: dict[str, EvaluationSummary] = {}
-
-    # Group 1: naive greedy (no memory at all)
-    summaries["naive_greedy"] = evaluate_naive_greedy_on_set(test_ball)
-
-    # Group 2: default/founder params - also the disjoint arm's zero-shot
-    # baseline (a target_memory that food selection never touched).
-    summaries["default_params"] = evaluate_params_on_set(default_genome.params, test_ball)
+    summaries_food: dict[str, EvaluationSummary] = {}
 
     # Generate shared diverse founder populations for all runs
     shared_founders = []
@@ -286,15 +283,24 @@ def evaluate_target_memory_transfer(
         pop = generate_diverse_population(default_genome, cfg.population_size, init_rng)
         shared_founders.append(pop)
 
-    # Group 3: structurally matched no-selection control. Replaces v1's
-    # random search (one-step mutations around the default), which was not
-    # lineage-matched to the evolutionary arms: evolution explores cumulative
-    # lineages through selection, crossover, and repeated mutation, so "does
-    # food *selection* matter" needs a control with the same lineage depth,
-    # operator mix, and compute but selection decoupled from genotype
-    # (shuffled fitness). The difference between food_trained and this group
-    # is then attributable to selection, not to mutation-walk drift.
-    neutral_genomes = []
+    # Group 1: naive greedy (no memory at all)
+    summaries["naive_greedy"] = evaluate_naive_greedy_on_set(test_ball)
+
+    # Group 2: default/founder params reference
+    summaries["default_params"] = evaluate_params_on_set(default_genome.params, test_ball)
+    summaries_food["default_params"] = evaluate_params_on_set(default_genome.params, test_food)
+
+    # Evaluate the starting founders on both sets
+    all_founder_genomes = [g for pop in shared_founders for g in pop]
+    summaries["founders"] = average_summaries(
+        [evaluate_params_on_set(g.params, test_ball) for g in all_founder_genomes]
+    )
+    summaries_food["founders"] = average_summaries(
+        [evaluate_params_on_set(g.params, test_food) for g in all_founder_genomes]
+    )
+
+    # Group 3: structurally matched no-selection control (neutral drift)
+    neutral_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 8000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
@@ -305,13 +311,15 @@ def evaluate_target_memory_transfer(
             run_rng,
             shuffle_fitness=True,
         )
-        neutral_genomes.append(best_of_run)
+        neutral_genomes_list.append(best_of_run)
     summaries["neutral_evolution"] = average_summaries(
-        [evaluate_params_on_set(p.params, test_ball) for p in neutral_genomes]
+        [evaluate_params_on_set(p.params, test_ball) for p in neutral_genomes_list]
+    )
+    summaries_food["neutral_evolution"] = average_summaries(
+        [evaluate_params_on_set(p.params, test_food) for p in neutral_genomes_list]
     )
 
     # Group 4: food-trained populations (shared arm's basis) - zero-shot on ball
-    # Evolved from the same shared diverse founder population as Group 3 and Group 5
     food_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 9000 + run_idx * 100)
@@ -325,11 +333,14 @@ def evaluate_target_memory_transfer(
         )
         food_trained_genomes_list.append(best_of_run)
 
-    food_evals = [evaluate_params_on_set(p.params, test_ball) for p in food_trained_genomes_list]
-    summaries["food_trained"] = average_summaries(food_evals)
+    summaries["food_trained"] = average_summaries(
+        [evaluate_params_on_set(p.params, test_ball) for p in food_trained_genomes_list]
+    )
+    summaries_food["food_trained"] = average_summaries(
+        [evaluate_params_on_set(p.params, test_food) for p in food_trained_genomes_list]
+    )
 
     # Group 5: ball-trained (task-specific reference)
-    # Evolved from the same shared diverse founder population
     ball_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 10000 + run_idx * 100)
@@ -343,20 +354,19 @@ def evaluate_target_memory_transfer(
         )
         ball_trained_genomes_list.append(best_of_run)
 
-    ball_evals = [evaluate_params_on_set(p.params, test_ball) for p in ball_trained_genomes_list]
-    summaries["ball_trained"] = average_summaries(ball_evals)
+    summaries["ball_trained"] = average_summaries(
+        [evaluate_params_on_set(p.params, test_ball) for p in ball_trained_genomes_list]
+    )
+    summaries_food["ball_trained"] = average_summaries(
+        [evaluate_params_on_set(p.params, test_food) for p in ball_trained_genomes_list]
+    )
 
     # Adaptation speed: shared arm (continuing from food-trained values) vs
     # disjoint arm (starting from founder/default params - never touched by
     # food selection), both unfrozen under the same ball-domain training set
     # and budget. Training and selection happen on train_ball; the reference
     # bar and each generation's threshold check are measured on
-    # validation_ball, so "generations to adapt" means generations until the
-    # lineage *generalizes* to reference level, not until it fits the exact
-    # training scenarios. test_ball (the zero-shot held-out set scored above)
-    # must stay untouched from here on, or "adaptation speed" would just be
-    # re-measuring fit to the same data already used to claim zero-shot
-    # transfer.
+    # validation_ball.
     default_score_val = evaluate_params_on_set(default_genome.params, validation_ball).overall_score
     ball_reference_val_scores = [
         evaluate_params_on_set(p.params, validation_ball).overall_score
@@ -380,12 +390,10 @@ def evaluate_target_memory_transfer(
     # Convert genomes/params to dicts for reporting
     food_trained_genomes = [p.to_dict() for p in food_trained_genomes_list]
     ball_trained_genomes = [p.to_dict() for p in ball_trained_genomes_list]
+    founder_genomes = [p.to_dict() for p in all_founder_genomes]
+    neutral_genomes = [p.to_dict() for p in neutral_genomes_list]
 
     if reference_gap < MIN_REFERENCE_EFFECT:
-        # ball_trained didn't establish a meaningfully better-than-default
-        # bar in-domain, so any threshold derived from it would be noise, not
-        # a real target. Report the gap for diagnostics and skip the
-        # generations-to-adapt runs rather than manufacture a near-zero bar.
         return TargetMemoryTransferEvaluation(
             group_summaries=summaries,
             adaptation_generations_food=None,
@@ -397,14 +405,13 @@ def evaluate_target_memory_transfer(
             food_validation_score_food_trained=food_val_score_food_trained,
             food_trained_genomes=food_trained_genomes,
             ball_trained_genomes=ball_trained_genomes,
+            founder_genomes=founder_genomes,
+            neutral_genomes=neutral_genomes,
+            group_summaries_food=summaries_food,
         )
 
     adaptation_threshold = default_score_val + reference_gap * 0.75
 
-    # Both arms get paired but independent RNG streams per run (distinct
-    # fixed salts, same run index), the same training set, the same budget,
-    # and the same validation-measured bar - the starting population is the
-    # only difference between them.
     adapt_runs_food = []
     adapt_runs_default = []
     for run_idx in range(cfg.evolution_runs):
@@ -447,4 +454,7 @@ def evaluate_target_memory_transfer(
         food_validation_score_food_trained=food_val_score_food_trained,
         food_trained_genomes=food_trained_genomes,
         ball_trained_genomes=ball_trained_genomes,
+        founder_genomes=founder_genomes,
+        neutral_genomes=neutral_genomes,
+        group_summaries_food=summaries_food,
     )

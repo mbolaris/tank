@@ -42,7 +42,9 @@ def _row(
         "seed": seed,
         "group_scores": {},
         "transfer_vs_disjoint": vs_disjoint,
+        "transfer_vs_founders": vs_disjoint,
         "transfer_vs_neutral": vs_neutral,
+        "transfer_efficiency": 0.5,
         "memory_mechanism_gain": 0.0,
         "source_learning_gain": 0.0,
         "target_learnability_gain": 0.0,
@@ -53,6 +55,8 @@ def _row(
         "adaptation_generations_default": gens_default,
         "food_trained_genomes": [],
         "ball_trained_genomes": [],
+        "founder_genomes": [],
+        "neutral_genomes": [],
         "diagnostics": {},
     }
 
@@ -98,6 +102,7 @@ def test_tiny_config_runs_all_groups_and_is_deterministic():
     assert set(first.group_summaries) == {
         "naive_greedy",
         "default_params",
+        "founders",
         "neutral_evolution",
         "food_trained",
         "ball_trained",
