@@ -32,8 +32,81 @@ from core.behavior.target_memory_transfer_gym import (
 )
 
 
+from core.genetics.trait import (
+    META_MUTATION_CHANCE,
+    META_MUTATION_SIGMA,
+    META_MUTATION_RATE_MIN,
+    META_MUTATION_RATE_MAX,
+    META_MUTATION_STRENGTH_MIN,
+    META_MUTATION_STRENGTH_MAX,
+)
+
+
+@dataclass
+class TargetMemoryGenome:
+    """Standalone evolutionary wrapper for TargetMemoryParams in the transfer gym assay.
+    Carries its own heritable, evolvable mutation rate and strength (meta-genes),
+    matching the semantics and bounds of GeneticTrait under live behavioral inheritance."""
+
+    params: TargetMemoryParams
+    mutation_rate: float = 1.0
+    mutation_strength: float = 1.0
+
+    def to_dict(self) -> dict[str, float]:
+        d = self.params.to_dict()
+        d["mutation_rate"] = self.mutation_rate
+        d["mutation_strength"] = self.mutation_strength
+        return d
+
+    def crossed_over(
+        self,
+        other: TargetMemoryGenome,
+        *,
+        weight1: float,
+        mutation_rate: float,
+        mutation_strength: float,
+        rng: random.Random,
+    ) -> TargetMemoryGenome:
+        eff_rate = mutation_rate * (self.mutation_rate + other.mutation_rate) / 2
+        eff_strength = mutation_strength * (self.mutation_strength + other.mutation_strength) / 2
+
+        child_params = self.params.crossed_over(
+            other.params,
+            weight1=weight1,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
+            rng=rng,
+        )
+
+        child_mutation_rate = (self.mutation_rate + other.mutation_rate) / 2
+        child_mutation_strength = (self.mutation_strength + other.mutation_strength) / 2
+
+        if rng.random() < META_MUTATION_CHANCE:
+            child_mutation_rate = max(
+                META_MUTATION_RATE_MIN,
+                min(
+                    META_MUTATION_RATE_MAX,
+                    child_mutation_rate + rng.gauss(0.0, META_MUTATION_SIGMA),
+                ),
+            )
+        if rng.random() < META_MUTATION_CHANCE:
+            child_mutation_strength = max(
+                META_MUTATION_STRENGTH_MIN,
+                min(
+                    META_MUTATION_STRENGTH_MAX,
+                    child_mutation_strength + rng.gauss(0.0, META_MUTATION_SIGMA),
+                ),
+            )
+
+        return TargetMemoryGenome(
+            params=child_params,
+            mutation_rate=child_mutation_rate,
+            mutation_strength=child_mutation_strength,
+        )
+
+
 def run_evolution(
-    initial_population: list[TargetMemoryParams],
+    initial_population: list[TargetMemoryGenome],
     scenarios: list[TargetMemoryScenario],
     generations: int,
     pop_size: int,
@@ -41,8 +114,8 @@ def run_evolution(
     target_score_threshold: float | None = None,
     validation_scenarios: list[TargetMemoryScenario] | None = None,
     shuffle_fitness: bool = False,
-) -> tuple[TargetMemoryParams, list[float], int]:
-    """Run genetic algorithm over TargetMemoryParams with optional validation
+) -> tuple[TargetMemoryGenome, list[float], int]:
+    """Run genetic algorithm over TargetMemoryGenome with optional validation
     selection. Mirrors core/pursuit/transfer_gym.py's run_evolution shape.
 
     ``target_score_threshold`` semantics depend on whether validation
@@ -67,26 +140,26 @@ def run_evolution(
     """
     population = list(initial_population)
     while len(population) < pop_size:
-        seed_params = population[rng.randrange(len(population))]
-        var = seed_params.crossed_over(
-            seed_params, weight1=1.0, mutation_rate=1.0, mutation_strength=0.3, rng=rng
+        seed_genome = population[rng.randrange(len(population))]
+        var = seed_genome.crossed_over(
+            seed_genome, weight1=1.0, mutation_rate=1.0, mutation_strength=0.3, rng=rng
         )
         population.append(var)
 
-    pop_scores = [evaluate_params_on_set(c, scenarios).overall_score for c in population]
+    pop_scores = [evaluate_params_on_set(c.params, scenarios).overall_score for c in population]
     if shuffle_fitness:
         rng.shuffle(pop_scores)
 
     best_score = max(pop_scores)
-    best_params = population[pop_scores.index(best_score)]
+    best_genome = population[pop_scores.index(best_score)]
 
     history = [best_score]
 
-    selected_params = best_params
+    selected_genome = best_genome
     best_validation_score = float("-inf")
     if validation_scenarios is not None:
         best_validation_score = evaluate_params_on_set(
-            best_params, validation_scenarios
+            best_genome.params, validation_scenarios
         ).overall_score
 
     if target_score_threshold is not None:
@@ -94,7 +167,7 @@ def run_evolution(
         if gen0_gate_score >= target_score_threshold:
             if shuffle_fitness:
                 return population[rng.randrange(len(population))], history, 0
-            return best_params, history, 0
+            return best_genome, history, 0
 
     for gen in range(1, generations + 1):
         new_population = []
@@ -123,7 +196,7 @@ def run_evolution(
 
         population = new_population
         pop_scores = [best_score] + [
-            evaluate_params_on_set(c, scenarios).overall_score for c in population[1:]
+            evaluate_params_on_set(c.params, scenarios).overall_score for c in population[1:]
         ]
         if shuffle_fitness:
             rng.shuffle(pop_scores)
@@ -131,31 +204,33 @@ def run_evolution(
         gen_best = max(pop_scores)
         if gen_best > best_score:
             best_score = gen_best
-            best_params = population[pop_scores.index(gen_best)]
+            best_genome = population[pop_scores.index(gen_best)]
 
         history.append(best_score)
 
         gate_score = best_score
         if validation_scenarios is not None:
             elite = population[pop_scores.index(max(pop_scores))]
-            validation_score = evaluate_params_on_set(elite, validation_scenarios).overall_score
+            validation_score = evaluate_params_on_set(
+                elite.params, validation_scenarios
+            ).overall_score
             gate_score = validation_score
             if validation_score > best_validation_score:
                 best_validation_score = validation_score
-                selected_params = elite
+                selected_genome = elite
 
         if target_score_threshold is not None and gate_score >= target_score_threshold:
             if shuffle_fitness:
                 return population[rng.randrange(len(population))], history, gen
-            return selected_params, history, gen
+            return selected_genome, history, gen
 
     if shuffle_fitness:
         return population[rng.randrange(len(population))], history, generations
 
     if validation_scenarios is None:
-        return best_params, history, generations
+        return best_genome, history, generations
 
-    return selected_params, history, generations
+    return selected_genome, history, generations
 
 
 @dataclass(frozen=True)
@@ -195,7 +270,7 @@ def evaluate_target_memory_transfer(
         "ball_validation", seed, count=cfg.ball_validation_count
     )
 
-    default_params = TargetMemoryParams()
+    default_genome = TargetMemoryGenome(params=TargetMemoryParams())
     summaries: dict[str, EvaluationSummary] = {}
 
     # Group 1: naive greedy (no memory at all)
@@ -203,7 +278,7 @@ def evaluate_target_memory_transfer(
 
     # Group 2: default/founder params - also the disjoint arm's zero-shot
     # baseline (a target_memory that food selection never touched).
-    summaries["default_params"] = evaluate_params_on_set(default_params, test_ball)
+    summaries["default_params"] = evaluate_params_on_set(default_genome.params, test_ball)
 
     # Group 3: structurally matched no-selection control. Replaces v1's
     # random search (one-step mutations around the default), which was not
@@ -213,54 +288,54 @@ def evaluate_target_memory_transfer(
     # operator mix, and compute but selection decoupled from genotype
     # (shuffled fitness). The difference between food_trained and this group
     # is then attributable to selection, not to mutation-walk drift.
-    neutral_params = []
+    neutral_genomes = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 8000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_params],
+            [default_genome],
             train_food,
             cfg.generations,
             cfg.population_size,
             run_rng,
             shuffle_fitness=True,
         )
-        neutral_params.append(best_of_run)
+        neutral_genomes.append(best_of_run)
     summaries["neutral_evolution"] = average_summaries(
-        [evaluate_params_on_set(p, test_ball) for p in neutral_params]
+        [evaluate_params_on_set(p.params, test_ball) for p in neutral_genomes]
     )
 
     # Group 4: food-trained populations (shared arm's basis) - zero-shot on ball
-    food_trained_params = []
+    food_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 9000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_params],
+            [default_genome],
             train_food,
             cfg.generations,
             cfg.population_size,
             run_rng,
             validation_scenarios=validation_food,
         )
-        food_trained_params.append(best_of_run)
+        food_trained_genomes_list.append(best_of_run)
 
-    food_evals = [evaluate_params_on_set(p, test_ball) for p in food_trained_params]
+    food_evals = [evaluate_params_on_set(p.params, test_ball) for p in food_trained_genomes_list]
     summaries["food_trained"] = average_summaries(food_evals)
 
     # Group 5: ball-trained (task-specific reference)
-    ball_trained_params = []
+    ball_trained_genomes_list = []
     for run_idx in range(cfg.evolution_runs):
         run_rng = random.Random(seed + 10000 + run_idx * 100)
         best_of_run, _, _ = run_evolution(
-            [default_params],
+            [default_genome],
             train_ball,
             cfg.generations,
             cfg.population_size,
             run_rng,
             validation_scenarios=validation_ball,
         )
-        ball_trained_params.append(best_of_run)
+        ball_trained_genomes_list.append(best_of_run)
 
-    ball_evals = [evaluate_params_on_set(p, test_ball) for p in ball_trained_params]
+    ball_evals = [evaluate_params_on_set(p.params, test_ball) for p in ball_trained_genomes_list]
     summaries["ball_trained"] = average_summaries(ball_evals)
 
     # Adaptation speed: shared arm (continuing from food-trained values) vs
@@ -274,25 +349,29 @@ def evaluate_target_memory_transfer(
     # must stay untouched from here on, or "adaptation speed" would just be
     # re-measuring fit to the same data already used to claim zero-shot
     # transfer.
-    default_score_val = evaluate_params_on_set(default_params, validation_ball).overall_score
+    default_score_val = evaluate_params_on_set(default_genome.params, validation_ball).overall_score
     ball_reference_val_scores = [
-        evaluate_params_on_set(p, validation_ball).overall_score for p in ball_trained_params
+        evaluate_params_on_set(p.params, validation_ball).overall_score
+        for p in ball_trained_genomes_list
     ]
     ball_reference_score = sum(ball_reference_val_scores) / len(ball_reference_val_scores)
     reference_gap = ball_reference_score - default_score_val
 
     # Calculate source domain validation performance
-    food_val_score_default = evaluate_params_on_set(default_params, validation_food).overall_score
+    food_val_score_default = evaluate_params_on_set(
+        default_genome.params, validation_food
+    ).overall_score
     food_val_scores_food_trained = [
-        evaluate_params_on_set(p, validation_food).overall_score for p in food_trained_params
+        evaluate_params_on_set(p.params, validation_food).overall_score
+        for p in food_trained_genomes_list
     ]
     food_val_score_food_trained = sum(food_val_scores_food_trained) / len(
         food_val_scores_food_trained
     )
 
     # Convert genomes/params to dicts for reporting
-    food_trained_genomes = [p.to_dict() for p in food_trained_params]
-    ball_trained_genomes = [p.to_dict() for p in ball_trained_params]
+    food_trained_genomes = [p.to_dict() for p in food_trained_genomes_list]
+    ball_trained_genomes = [p.to_dict() for p in ball_trained_genomes_list]
 
     if reference_gap < MIN_REFERENCE_EFFECT:
         # ball_trained didn't establish a meaningfully better-than-default
@@ -321,7 +400,7 @@ def evaluate_target_memory_transfer(
     adapt_runs_food = []
     adapt_runs_default = []
     for run_idx in range(cfg.evolution_runs):
-        food_seed = food_trained_params[run_idx % len(food_trained_params)]
+        food_seed = food_trained_genomes_list[run_idx % len(food_trained_genomes_list)]
         initial_pop_shared = [food_seed] * cfg.population_size
         _, _, gens_shared = run_evolution(
             initial_pop_shared,
@@ -334,7 +413,7 @@ def evaluate_target_memory_transfer(
         )
         adapt_runs_food.append(gens_shared)
 
-        initial_pop_disjoint = [default_params] * cfg.population_size
+        initial_pop_disjoint = [default_genome] * cfg.population_size
         _, _, gens_disjoint = run_evolution(
             initial_pop_disjoint,
             train_ball,

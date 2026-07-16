@@ -266,17 +266,19 @@ def test_params_crossed_over_stays_within_bounds_and_round_trips():
 
 
 def test_meta_genetic_adaptive_mutation():
+    from core.behavior.target_memory_transfer_evolution import TargetMemoryGenome
+
     # If parent mutation_rate is 0.0, effective mutation rate should be 0.0
-    p1 = TargetMemoryParams(mutation_rate=0.0)
-    p2 = TargetMemoryParams(mutation_rate=0.0)
+    p1 = TargetMemoryGenome(params=TargetMemoryParams(), mutation_rate=0.0)
+    p2 = TargetMemoryGenome(params=TargetMemoryParams(), mutation_rate=0.0)
     child = p1.crossed_over(
         p2, weight1=0.5, mutation_rate=1.0, mutation_strength=1.0, rng=random.Random(42)
     )
     # The child parameters should match the blended values exactly (no mutation)
-    # since effective rate is 0.0 (though the final parameter itself is clamped to its min 0.1).
-    assert child.memory_duration == 90.0
-    assert child.switch_threshold == 1.4
-    assert child.mutation_rate == 0.1
+    # since effective rate is 0.0.
+    assert child.params.memory_duration == 90.0
+    assert child.params.switch_threshold == 1.4
+    assert child.mutation_rate == 0.0
     assert child.mutation_strength == 1.0
 
 

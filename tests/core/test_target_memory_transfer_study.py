@@ -182,15 +182,15 @@ def test_neutral_evolution_returns_descendant():
     than returning the unmodified gen-0 founder/default params."""
     import random
     from core.behavior.target_memory import TargetMemoryParams
-    from core.behavior.target_memory_transfer_evolution import run_evolution
+    from core.behavior.target_memory_transfer_evolution import run_evolution, TargetMemoryGenome
 
     rng = random.Random(42)
-    default_params = TargetMemoryParams()
+    default_genome = TargetMemoryGenome(params=TargetMemoryParams())
     scenarios = generate_scenario_set("train", 42, count=2)
 
     # Run for 5 generations with shuffle_fitness=True
     best_of_run, _, _ = run_evolution(
-        [default_params],
+        [default_genome],
         scenarios,
         generations=5,
         pop_size=6,
@@ -201,4 +201,4 @@ def test_neutral_evolution_returns_descendant():
     # A descendant from the final generation will have had mutations and/or crossovers,
     # so its parameters should differ from the starting default_params.
     # If the bug was present, it would return unmodified default_params.
-    assert best_of_run != default_params
+    assert best_of_run.params != default_genome.params
