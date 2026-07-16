@@ -39,6 +39,37 @@ researcher trying to observe, understand, and safely operate a live world.
   standings with played matches alongside "No matches recorded yet", and leader
   rows should identify their source tank.
 
+## High-value next steps
+
+Identified while shipping Watch Mode (see `git log` on `TankView.tsx` /
+`EvolutionHealthReadout.tsx` / `EntityInspectorDrawer.tsx`): a lot of the
+"make it fun to watch" wishlist turned out to already have backend or
+frontend infrastructure sitting unused behind a dashboard tab. These three
+are the highest-leverage remaining gaps, ordered by how much already exists
+to build on.
+
+- [ ] **Surface the Board as ambient events over the tank, not a buried tab.**
+  `CommentaryFeed.tsx` / `backend/commentary_store.py` already carry
+  agent-posted observations (species emerging, population crashes, new
+  records) with topics and reactions, polled every 4s — but they're only
+  visible behind the "Board" entry in the Analysis tab bar, and invisible
+  entirely in the new Watch Mode. Float new posts as small dismissible
+  toasts over the canvas using the same fetch/poll the feed already does;
+  clicking one can jump into the full Board. No new backend work required.
+- [ ] **Add a free pan/zoom canvas camera.** The existing follow camera
+  (`followViewport.ts`) only re-centers on a selected entity. There is no
+  way to freely explore the tank — mouse-wheel zoom and click-drag pan,
+  independent of any selection, would make Watch Mode substantially more
+  engaging on its own.
+- [ ] **Give Algae Reef / Protein Grotto an actual feeding capability, then
+  react to it visually.** `core/tank_objects.py`'s own catalog descriptions
+  call them "ready for a feeding capability" — today they are purely
+  decorative placements with no stock, depletion, or usage tracking at all.
+  This is a bigger, two-sided item (a real backend feeding mechanic before
+  any lush/depleted/glow visual can mean anything), but it is the
+  prerequisite for the single most-requested "glance at the tank and
+  understand the ecosystem" improvement.
+
 ## P2 — later
 
 - [ ] **Collapse the empty Board state.** Show a compact invitation to observe
