@@ -473,33 +473,6 @@
     }
 }
 
-/* Watch Mode toggle: floats over the canvas so it's reachable in both modes */
-.watchModeToggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-full);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-text-main);
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.watchModeToggle:hover {
-    background: rgba(0, 0, 0, 0.8);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-.watchModeToggle:focus-visible {
-    outline: 2px solid #67e8f9;
-    outline-offset: 2px;
-}
-
 .schemaError {
     margin-bottom: 16px;
     width: 100%;
