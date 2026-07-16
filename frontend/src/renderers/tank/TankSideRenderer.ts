@@ -218,8 +218,6 @@ export class TankSideRenderer implements Renderer {
             && nowMs - this.lastPlantLayerRenderMs >= PLANT_LAYER_FRAME_MS
         ) {
             this.plantLayerCtx.clearRect(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
-            this.plantLayerCtx.save();
-            this.plantLayerCtx.globalAlpha = 0.82;
             for (const entity of entities) {
                 if (entity.type === 'plant') {
                     this.plantLayerRenderer.renderEntity(
@@ -230,7 +228,6 @@ export class TankSideRenderer implements Renderer {
                     );
                 }
             }
-            this.plantLayerCtx.restore();
             this.lastPlantLayerRenderMs = nowMs;
         }
 
