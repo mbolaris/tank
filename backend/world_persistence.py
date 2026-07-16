@@ -268,6 +268,7 @@ def restore_world_from_snapshot(
         from core.contracts import VersionMismatchError
         from core.entities import Food
         from core.entities.plant import PlantNectar
+        from core.tank_objects import OBJECT_DEFINITIONS, TankObject
         from core.transfer.entity_transfer import deserialize_entity
 
         # Validate snapshot version (strict: no legacy compatibility)
@@ -350,6 +351,21 @@ def restore_world_from_snapshot(
                     if getattr(entity, "snapshot_type", None) == "plant":
                         plants_by_id[cast(Any, entity).plant_id] = entity
 
+            elif entity_type in OBJECT_DEFINITIONS and entity_type != "castle":
+                object_entity = TankObject(
+                    environment=engine.environment,
+                    x=entity_data.get("x", 0.0),
+                    y=entity_data.get("y", 0.0),
+                    object_kind=entity_type,
+                    object_id=entity_data.get("object_id"),
+                    width=entity_data.get("width"),
+                    height=entity_data.get("height"),
+                    rotation=entity_data.get("rotation", 0.0),
+                    capability_config=entity_data.get("capability_config", ()),
+                )
+                engine.add_entity(object_entity)
+                restored_count += 1
+
             elif entity_type == "food":
                 # Restore food
                 from core.entities.resources import LiveFood
@@ -396,12 +412,25 @@ def restore_world_from_snapshot(
         # Iterate again to find castles (or could initiate in pass 1, but order matters little for castle)
         for entity_data in snapshot.get("entities", []):
             if entity_data.get("type") == "castle":
-                from core.entities.base import Castle
+                from core.tank_objects import TankObject
 
-                x = entity_data.get("x", 375)
-                y = entity_data.get("y", 475)
+                from core.tank_objects import DEFAULT_TANK_LAYOUT
 
-                castle = Castle(environment=engine.environment, x=x, y=y)
+                castle_layout = next(
+                    layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle"
+                )
+                x = entity_data.get("x", castle_layout.x)
+                y = entity_data.get("y", castle_layout.y)
+
+                castle = TankObject(
+                    environment=engine.environment,
+                    x=x,
+                    y=y,
+                    object_kind="castle",
+                    object_id=entity_data.get("object_id"),
+                    rotation=entity_data.get("rotation", 0.0),
+                    capability_config=entity_data.get("capability_config", ()),
+                )
                 # Apply size if stored
                 if "width" in entity_data and "height" in entity_data:
                     castle.set_size(entity_data["width"], entity_data["height"])
@@ -446,15 +475,15 @@ def _validate_restored_world(engine: Any) -> bool:
     Returns:
         True if valid, False otherwise
     """
-    from core.entities.base import Castle
-
     # The Castle is a tank-mode static entity (and is what
     # _bootstrap_static_elements recreates). Other world types (petri) have no
     # castle, so requiring one would reject every valid snapshot.
     env = getattr(engine, "environment", None)
     world_type = getattr(env, "world_type", None) if env is not None else None
     if world_type in (None, "tank"):
-        has_castle = any(isinstance(e, Castle) for e in engine.entities_list)
+        has_castle = any(
+            getattr(e, "snapshot_type", None) == "castle" for e in engine.entities_list
+        )
         if not has_castle:
             logger.error("Validation Failed: Missing required entity 'Castle'")
             return False
@@ -475,13 +504,23 @@ def _bootstrap_static_elements(engine: Any) -> None:
     if world_type not in (None, "tank"):
         return
 
-    from core.entities.base import Castle
-
-    if any(isinstance(e, Castle) for e in engine.entities_list):
+    if any(getattr(e, "snapshot_type", None) == "castle" for e in engine.entities_list):
         return
 
     # Default tank castle position (matches TankWorldHooks restore behavior)
-    castle = Castle(environment=env, x=375, y=475)
+    from core.tank_objects import TankObject
+
+    from core.tank_objects import DEFAULT_TANK_LAYOUT
+
+    castle_layout = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle")
+    castle = TankObject(
+        environment=env,
+        x=castle_layout.x,
+        y=castle_layout.y,
+        object_kind="castle",
+        width=castle_layout.width,
+        height=castle_layout.height,
+    )
     engine.add_entity(castle)
 
 

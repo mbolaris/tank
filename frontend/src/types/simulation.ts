@@ -70,7 +70,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'resource_patch' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
+    type: 'fish' | 'food' | 'resource_patch' | 'plant' | 'crab' | 'castle' | 'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
     x: number;
     y: number;
     width: number;
@@ -609,7 +609,10 @@ export interface Command {
     | 'soccer_step'
     | 'end_soccer'
     | 'set_tank_soccer_enabled'
-    | 'get_entity_details';
+    | 'get_entity_details'
+    | 'place_tank_object'
+    | 'move_tank_object'
+    | 'delete_tank_object';
     data?: Record<string, unknown>;
 }
 

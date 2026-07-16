@@ -42,6 +42,9 @@ export interface RenderOptions {
     viewMode?: ViewMode;
     pursuitOverlay?: PursuitOverlayData | null;
     targetMemoryOverlay?: TargetMemoryOverlayData | null;
+    buildGhost?: { kind: string; x: number; y: number; width: number; height: number } | null;
+    /** Build mode exposes ecosystem interaction geometry; Observe mode stays clean. */
+    buildMode?: boolean;
 }
 
 export interface RenderFrame {

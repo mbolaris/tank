@@ -178,6 +178,7 @@ class SimulationEngine:
         self.lifecycle_system: EntityLifecycleSystem | None = None
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None
+        self.tank_interaction_system: Any = None
         self.plant_manager: PlantManager | None = None
 
         # Soccer event management (extracted from engine)

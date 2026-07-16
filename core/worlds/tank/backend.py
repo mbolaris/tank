@@ -412,7 +412,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         # Import locally to avoid circular imports
         from core.entities import Fish, Food, Plant, PlantNectar
-        from core.entities.base import Castle
+        from core.tank_objects import TankObject
         from core.entities.predators import Crab
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
@@ -472,14 +472,8 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                         "dir": entity._orbit_dir,
                     },
                 }
-            elif isinstance(entity, Castle):
-                entity_dict = {
-                    "type": "castle",
-                    "x": entity.pos.x,
-                    "y": entity.pos.y,
-                    "width": entity.width,
-                    "height": entity.height,
-                }
+            elif isinstance(entity, TankObject):
+                entity_dict = entity.to_object_state()
             else:
                 # Fallback for unknown entity types
                 entity_dict = {

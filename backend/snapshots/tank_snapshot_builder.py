@@ -8,6 +8,7 @@ from typing import Any
 
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY
+from core.tank_objects import TankObject
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,8 @@ class TankSnapshotBuilder:
         elif entity_type == "castle":
             # Castle is simple, just needs type (already set)
             pass
+        elif isinstance(entity, TankObject):
+            self._enrich_tank_object(snapshot, entity)
         elif entity_type == "ball":
             self._enrich_ball(snapshot, entity)
         elif entity_type == "goalzone" or entity_type == "goal_zone":
@@ -150,6 +153,24 @@ class TankSnapshotBuilder:
 
         self._apply_render_hint_overlay(snapshot)
         return snapshot
+
+    def _enrich_tank_object(self, snapshot: EntitySnapshot, obj: TankObject) -> None:
+        """Expose human/UI metadata without changing organism observations."""
+        snapshot.render_hint = {
+            "style": "tank_object",
+            "kind": obj.object_kind,
+            "object_id": obj.object_id,
+            "rotation": obj.rotation,
+            "capabilities": [
+                {
+                    "capability_id": config.get("capability_id"),
+                    "type": config.get("type"),
+                    "resource_type": config.get("resource_type"),
+                    "trigger": config.get("trigger", {}).get("type"),
+                }
+                for config in obj.capability_config
+            ],
+        }
 
     def _apply_render_hint_overlay(self, snapshot: EntitySnapshot) -> None:
         if self._view_mode != "topdown":
@@ -324,8 +345,15 @@ class TankSnapshotBuilder:
         }
 
     def _get_z_order(self, snapshot: EntitySnapshot) -> int:
-        if snapshot.type == "castle":
+        if snapshot.type in ("castle", "protein_grotto"):
             return 0
-        if snapshot.type in ("plant", "food", "resource_patch", "plant_nectar"):
+        if snapshot.type in (
+            "algae_reef",
+            "decorative_rock",
+            "plant",
+            "food",
+            "resource_patch",
+            "plant_nectar",
+        ):
             return 1
         return 2

@@ -1,6 +1,12 @@
 """Entity package exposing simulation agents."""
 
-from core.entities.base import Agent, Castle, Entity, LifeStage, Rect
+from core.entities.base import Agent, Entity, LifeStage, Rect
+from core.tank_objects import Castle, TankObject, TankObjectDefinition, TankObjectLayout
+import core.entities.base as _base_entities
+
+# Keep old ``core.entities.base.Castle`` imports source-compatible while the
+# implementation is now the generic entity-backed TankObject.
+setattr(_base_entities, "Castle", Castle)  # noqa: B010
 from core.entities.fish import Fish
 from core.entities.generic_agent import AgentComponents, GenericAgent
 from core.entities.plant import Plant
@@ -12,6 +18,9 @@ __all__ = [
     # Base classes
     "Agent",
     "Castle",
+    "TankObject",
+    "TankObjectDefinition",
+    "TankObjectLayout",
     "Entity",
     "LifeStage",
     "Rect",
