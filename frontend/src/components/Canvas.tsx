@@ -27,17 +27,25 @@ interface CanvasProps {
     style?: CSSProperties;
     viewMode?: ViewMode;
     worldType?: string;  // Optional override for renderer selection (e.g., 'petri' for circular dish)
+    buildMode?: boolean;
+    buildPlacementActive?: boolean;
+    onBuildPlace?: (x: number, y: number) => void;
+    onBuildPointerMove?: (x: number, y: number) => void;
+    onBuildDragStart?: (objectId: number) => void;
+    onBuildDragEnd?: (objectId: number, x: number, y: number) => void;
+    buildGhost?: { kind: string; x: number; y: number; width: number; height: number } | null;
 }
 
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const followCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const draggingObjectIdRef = useRef<number | null>(null);
 
     // Use ref to track if error has been set to avoid repeated setState calls
     const errorSetRef = useRef(false);
@@ -50,11 +58,9 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         }
     }, []);
 
-    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!state || !onEntityClick || error) return;
-
+    const getWorldPoint = (event: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !state) return null;
 
         // Get click coordinates relative to canvas
         const rect = canvas.getBoundingClientRect();
@@ -78,6 +84,20 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         const worldX = clickX * worldScaleX;
         const worldY = clickY * worldScaleY;
 
+        return { worldX, worldY };
+    };
+
+    const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!state || error) return;
+        const point = getWorldPoint(event);
+        if (!point) return;
+        if (buildMode && buildPlacementActive) {
+            onBuildPlace?.(point.worldX, point.worldY);
+            return;
+        }
+        if (!onEntityClick) return;
+        const { worldX, worldY } = point;
+
         // Find clicked entity (check in reverse order to prioritize entities rendered on top)
         const entities = state.snapshot?.entities ?? state.entities ?? [];
         for (let i = entities.length - 1; i >= 0; i--) {
@@ -99,6 +119,37 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         }
     };
 
+    const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!buildMode || buildPlacementActive) return;
+        const point = getWorldPoint(event);
+        if (!point || !state) return;
+        const entities = state.snapshot?.entities ?? state.entities ?? [];
+        const objectTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
+        for (let i = entities.length - 1; i >= 0; i -= 1) {
+            const entity = entities[i];
+            if (!objectTypes.has(entity.type)) continue;
+            if (point.worldX >= entity.x && point.worldX <= entity.x + entity.width && point.worldY >= entity.y && point.worldY <= entity.y + entity.height) {
+                draggingObjectIdRef.current = entity.id;
+                onBuildDragStart?.(entity.id);
+                return;
+            }
+        }
+    };
+
+    const handleCanvasMouseUp = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        const objectId = draggingObjectIdRef.current;
+        if (objectId === null) return;
+        const point = getWorldPoint(event);
+        draggingObjectIdRef.current = null;
+        if (point) onBuildDragEnd?.(objectId, point.worldX, point.worldY);
+    };
+
+    const handleCanvasPointerMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!buildMode || !onBuildPointerMove) return;
+        const point = getWorldPoint(event);
+        if (point) onBuildPointerMove(point.worldX, point.worldY);
+    };
+
     // Refs to hold latest state for the animation loop
     const stateRef = useRef(state);
     const imagesLoadedRef = useRef(imagesLoaded);
@@ -108,6 +159,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
     const followEntityIdRef = useRef(followEntityId);
     const showEffectsRef = useRef(showEffects);
     const showSoccerRef = useRef(showSoccer);
+    const buildGhostRef = useRef(buildGhost);
+    const buildModeRef = useRef(buildMode);
     const viewModeRef = useRef(viewMode);
     const worldTypePropRef = useRef(worldTypeProp);
 
@@ -120,9 +173,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         followEntityIdRef.current = followEntityId;
         showEffectsRef.current = showEffects;
         showSoccerRef.current = showSoccer;
+        buildGhostRef.current = buildGhost;
+        buildModeRef.current = buildMode;
         viewModeRef.current = viewMode;
         worldTypePropRef.current = worldTypeProp;
-    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp]);
+    }, [state, imagesLoaded, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects, showSoccer, viewMode, worldTypeProp, buildGhost, buildMode]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -235,6 +290,8 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
                         snapshot: currentState,
                         options: {
                             showEffects: showEffectsRef.current,
+                            buildGhost: buildGhostRef.current,
+                            buildMode: buildModeRef.current,
                             showSoccer: showSoccerRef.current,
                             selectedEntityId: selectedEntityIdRef.current,
                             pursuitOverlay: pursuitOverlayRef.current,
@@ -340,8 +397,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             height={height}
             className="tank-canvas"
             onClick={handleCanvasClick}
+            onMouseDown={handleCanvasMouseDown}
+            onMouseUp={handleCanvasMouseUp}
+            onMouseMove={handleCanvasPointerMove}
             style={{
-                cursor: onEntityClick ? 'pointer' : 'default',
+                cursor: buildMode ? 'crosshair' : onEntityClick ? 'pointer' : 'default',
                 ...style,
             }}
         />

@@ -5,6 +5,7 @@ Logic has been extracted to backend/runner/commands/*.
 """
 
 from backend.runner.commands.benchmark import BenchmarkCommands
+from backend.runner.commands.build import BuildCommands
 from backend.runner.commands.control import ControlCommands
 from backend.runner.commands.fish import FishCommands
 from backend.runner.commands.food import FoodCommands
@@ -19,6 +20,7 @@ class CommandHandlerMixin(
     PokerCommands,
     SoccerCommands,
     BenchmarkCommands,
+    BuildCommands,
 ):
     """Mixin class composing all command handler methods for SimulationRunner.
 

@@ -14,6 +14,8 @@ from core.config.simulation_config import DisplayConfig, EcosystemConfig
 from core.ecosystem import EcosystemManager
 from core.genetics import Genome
 from core.util.rng import require_rng_param
+from core.tank_interactions import DwellTrigger, FeedingCapability, ProximityTrigger
+from core.tank_objects import DEFAULT_TANK_LAYOUT, TankObject
 
 
 def create_initial_population(
@@ -100,9 +102,46 @@ def create_initial_population(
 
     # Create crab and castle
     crab = entities.Crab(env, None, *display_config.init_pos["crab"])
-    castle = entities.Castle(env, *display_config.init_pos["castle"])
+    reef_capability = FeedingCapability(
+        capability_id="feeding-primary",
+        resource_type="algae",
+        capacity=240.0,
+        stock=240.0,
+        recharge_rate=0.25,
+        dispense_amount=12.0,
+        cooldown_frames=30,
+        trigger=ProximityTrigger(radius=72.0),
+    )
+    grotto_capability = FeedingCapability(
+        capability_id="feeding-primary",
+        resource_type="protein",
+        capacity=180.0,
+        stock=180.0,
+        recharge_rate=0.12,
+        dispense_amount=18.0,
+        cooldown_frames=45,
+        trigger=DwellTrigger(duration_frames=60, radius=58.0),
+    )
+    layout_capabilities = {
+        "algae_reef": (reef_capability.to_config(),),
+        "protein_grotto": (grotto_capability.to_config(),),
+    }
+    object_entities: list[entities.Entity] = []
+    for layout in DEFAULT_TANK_LAYOUT:
+        object_entities.append(
+            TankObject(
+                env,
+                layout.x,
+                layout.y,
+                object_kind=layout.kind,
+                width=layout.width,
+                height=layout.height,
+                rotation=layout.rotation,
+                capability_config=layout_capabilities.get(layout.kind, ()),
+            )
+        )
 
     # Add all non-fish entities
-    population.extend(initial_food + [crab, castle])
+    population.extend(initial_food + [crab] + object_entities)
 
     return population

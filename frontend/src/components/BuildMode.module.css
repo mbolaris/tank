@@ -1,0 +1,21 @@
+.wrapper { width: 100%; max-width: 1088px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.toggle, .toggleActive { border: 1px solid rgba(113, 226, 188, .45); border-radius: 999px; padding: 9px 18px; color: #d9fff2; background: rgba(23, 82, 72, .72); cursor: pointer; font-weight: 700; letter-spacing: .04em; }
+.toggleActive { background: linear-gradient(135deg, #197766, #245c89); box-shadow: 0 0 20px rgba(91, 235, 195, .2); }
+.tray { width: 100%; box-sizing: border-box; padding: 14px 18px 16px; border: 1px solid rgba(130, 226, 201, .24); border-radius: 18px; background: linear-gradient(180deg, rgba(9, 40, 47, .96), rgba(7, 24, 38, .96)); box-shadow: 0 18px 35px rgba(0, 0, 0, .25); }
+.trayHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.eyebrow, .groupLabel { display: block; color: #82d6be; font-size: 10px; letter-spacing: .14em; font-weight: 800; text-transform: uppercase; }
+.instruction { color: #c7e7df; font-size: 13px; margin-top: 3px; }
+.cancel { color: #a6c7c5; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); border-radius: 7px; padding: 5px 9px; cursor: pointer; }
+.groups { display: flex; gap: 20px; flex-wrap: wrap; }
+.group { flex: 1 1 250px; min-width: 230px; }
+.cards { display: flex; gap: 8px; margin-top: 6px; }
+.card, .cardSelected { flex: 1; min-height: 78px; display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; column-gap: 5px; text-align: left; padding: 8px; border-radius: 11px; color: #d9efea; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.06); cursor: pointer; }
+.cardSelected { border-color: #72e6c3; background: rgba(52, 157, 131, .3); box-shadow: inset 0 0 0 1px rgba(114, 230, 195, .18); }
+.card:hover { border-color: rgba(114, 230, 195, .6); background: rgba(255,255,255,.1); }
+.icon { grid-row: 1 / span 2; font-size: 23px; align-self: center; }
+.cardName { font-size: 12px; font-weight: 800; align-self: end; }
+.cardDetail { color: #8eb4b0; font-size: 10px; line-height: 1.25; margin-top: 3px; }
+.inspector { display: flex; gap: 8px; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.1); color: #a9cbc6; font-size: 12px; }
+.inspector strong { color: #e5fff8; text-transform: capitalize; }
+.inspector button { margin-left: auto; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #c8e7e1; border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+.inspector button + button { margin-left: 0; }

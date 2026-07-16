@@ -31,7 +31,9 @@ INIT_POS = {
     "plant2": (10, 510),
     "plant3": (500, 510),
     "plant4": (700, 510),
-    "castle": (431, 387),
+    # Kept as a display fallback for legacy callers. The authoritative default
+    # placement is DEFAULT_TANK_LAYOUT in core.tank_objects.
+    "castle": (585, 418),
 }
 
 # UI Constants - Poker Notifications

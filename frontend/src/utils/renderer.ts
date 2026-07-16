@@ -11,7 +11,6 @@
  */
 
 import type { EntityData } from '../types/simulation';
-import { renderResourcePatch } from './renderResourcePatch';
 import { ImageLoader } from './ImageLoader';
 import { type FishParams } from './fishTemplates';
 import {
@@ -164,8 +163,10 @@ export class Renderer {
             case 'food':
                 this.renderFood(entity, elapsedTime);
                 break;
-            case 'resource_patch':
-                renderResourcePatch(this.ctx, entity);
+            case 'algae_reef':
+            case 'protein_grotto':
+            case 'decorative_rock':
+                this.renderTankObject(entity, elapsedTime);
                 break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
@@ -174,7 +175,7 @@ export class Renderer {
                 this.renderCrab(entity, elapsedTime);
                 break;
             case 'castle':
-                this.renderCastle(entity);
+                this.renderCastle(entity, elapsedTime);
                 break;
             case 'plant_nectar':
                 this.renderPlantNectar(entity, elapsedTime);
@@ -186,6 +187,26 @@ export class Renderer {
                 this.renderGoalZone(entity);
                 break;
         }
+    }
+
+    renderBuildGhost(ghost: { kind: string; x: number; y: number; width: number; height: number }) {
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.42;
+        this.renderTankObject({
+            id: -1,
+            type: ghost.kind as EntityData['type'],
+            x: ghost.x,
+            y: ghost.y,
+            width: ghost.width,
+            height: ghost.height,
+            render_hint: { rotation: 0 },
+        }, 0);
+        this.ctx.globalAlpha = 0.9;
+        this.ctx.strokeStyle = '#a7ffe4';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([6, 5]);
+        this.ctx.strokeRect(ghost.x, ghost.y, ghost.width, ghost.height);
+        this.ctx.restore();
     }
 
     private renderBall(entity: EntityData) {
@@ -211,8 +232,8 @@ export class Renderer {
         const radius = entity.radius || 30;
         const team = entity.team;
         const isLeft = team === 'left';
-        const color = isLeft ? 'rgba(255, 100, 100, 0.3)' : 'rgba(100, 100, 255, 0.3)';
-        const borderColor = isLeft ? '#ff4444' : '#4444ff';
+        const color = isLeft ? 'rgba(91, 161, 144, 0.12)' : 'rgba(82, 137, 174, 0.12)';
+        const borderColor = isLeft ? 'rgba(112, 207, 174, 0.5)' : 'rgba(121, 190, 229, 0.5)';
 
         ctx.save();
         ctx.translate(entity.x, entity.y); // Center (assuming backend sends center coords)
@@ -220,8 +241,8 @@ export class Renderer {
         // Goal area
         ctx.fillStyle = color;
         ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.25;
+        ctx.setLineDash([4, 7]);
 
         ctx.beginPath();
         ctx.arc(0, 0, radius, 0, Math.PI * 2);
@@ -229,8 +250,8 @@ export class Renderer {
         ctx.stroke();
 
         // Label
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 16px Arial";
+        ctx.fillStyle = 'rgba(228, 245, 241, 0.82)';
+        ctx.font = '600 12px "Segoe UI", sans-serif';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText("GOAL", 0, 0);
@@ -290,7 +311,9 @@ export class Renderer {
         }
         ctx.restore();
 
-        if (showEffects && fish.energy !== undefined) {
+        // Routine energy bars turn a lively school into a dashboard. Only
+        // surface an energy meter when a fish genuinely needs attention.
+        if (showEffects && fish.energy !== undefined && fish.energy < maxEnergy * 0.28) {
             drawEnhancedEnergyBar(ctx, x, y - 12, scaledWidth, fish.energy);
         }
 
@@ -364,7 +387,7 @@ export class Renderer {
         );
 
         // Draw enhanced energy bar
-        if (showEffects && fish.energy !== undefined) {
+        if (showEffects && fish.energy !== undefined && fish.energy < maxEnergy * 0.28) {
             drawEnhancedEnergyBar(ctx, x, y - 12, scaledSize, fish.energy);
         }
 
@@ -524,16 +547,182 @@ export class Renderer {
         }
     }
 
-    private renderCastle(castle: EntityData) {
+    private renderCastle(castle: EntityData, elapsedTime: number) {
         const { x, y, width, height } = castle;
+        const { ctx } = this;
+        const sway = Math.sin(elapsedTime / 900) * 2;
+        ctx.save();
+        ctx.translate(x, y);
+        // A broad, soft shadow grounds the ruin in the sand rather than making
+        // it read as a bright foreground icon.
+        ctx.fillStyle = 'rgba(8, 35, 42, 0.28)';
+        ctx.beginPath();
+        ctx.ellipse(width / 2, height * 0.94, width * 0.48, height * 0.11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const stone = ctx.createLinearGradient(0, height * 0.22, 0, height * 0.92);
+        stone.addColorStop(0, '#708889');
+        stone.addColorStop(1, '#3d5b5d');
+        ctx.fillStyle = stone;
+        ctx.strokeStyle = '#93aaa0';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.12, height * 0.88);
+        ctx.lineTo(width * 0.16, height * 0.44);
+        ctx.lineTo(width * 0.30, height * 0.50);
+        ctx.lineTo(width * 0.34, height * 0.30);
+        ctx.lineTo(width * 0.45, height * 0.45);
+        ctx.lineTo(width * 0.55, height * 0.42);
+        ctx.lineTo(width * 0.64, height * 0.25);
+        ctx.lineTo(width * 0.75, height * 0.46);
+        ctx.lineTo(width * 0.88, height * 0.40);
+        ctx.lineTo(width * 0.91, height * 0.88);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#142d35';
+        ctx.beginPath();
+        ctx.arc(width * 0.54, height * 0.70, width * 0.11, Math.PI, 0);
+        ctx.lineTo(width * 0.65, height * 0.88);
+        ctx.lineTo(width * 0.43, height * 0.88);
+        ctx.closePath();
+        ctx.fill();
+        // Algae growth and a few broken stone seams unite the silhouette with
+        // the rest of the underwater scenery.
+        ctx.strokeStyle = '#3f9278';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.22, height * 0.48);
+        ctx.quadraticCurveTo(width * 0.17, height * 0.62, width * 0.25, height * 0.78);
+        ctx.moveTo(width * 0.79, height * 0.47);
+        ctx.quadraticCurveTo(width * 0.73, height * 0.61, width * 0.80, height * 0.76);
+        ctx.stroke();
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = '#aec1b2';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.35, height * 0.52);
+        ctx.lineTo(width * 0.55, height * 0.50);
+        ctx.moveTo(width * 0.67, height * 0.64);
+        ctx.lineTo(width * 0.82, height * 0.61);
+        ctx.stroke();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#62b88f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(width * 0.18, height * 0.88);
+        ctx.quadraticCurveTo(width * 0.16 + sway, height * 0.60, width * 0.24 + sway, height * 0.42);
+        ctx.moveTo(width * 0.83, height * 0.88);
+        ctx.quadraticCurveTo(width * 0.88 - sway, height * 0.68, width * 0.82 - sway, height * 0.51);
+        ctx.stroke();
+        ctx.restore();
+    }
 
-        const imageName = 'castle-improved.png';
-        const image = ImageLoader.getCachedImage(imageName);
+    private renderTankObject(object: EntityData, elapsedTime: number) {
+        const { ctx } = this;
+        const { x, y, width, height } = object;
+        const kind = object.type;
+        const pulse = Math.sin(elapsedTime / 350) * 0.5 + 0.5;
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
 
-        if (!image) return;
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(Number(object.render_hint?.rotation ?? 0) * Math.PI / 180);
+        ctx.translate(-width / 2, -height / 2);
 
-        // Castles don't flip or animate
-        drawImage(this.ctx, image, x, y, width, height, false);
+        if (kind === 'algae_reef') {
+            const reefRock = ctx.createLinearGradient(0, height * 0.48, 0, height * 0.94);
+            reefRock.addColorStop(0, '#466969');
+            reefRock.addColorStop(1, '#25494a');
+            ctx.fillStyle = reefRock;
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.72, width * 0.48, height * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5ec48b';
+            ctx.lineWidth = 3.5;
+            for (let i = 0; i < 7; i++) {
+                const stemX = width * (0.12 + i * 0.13);
+                ctx.beginPath();
+                ctx.moveTo(stemX, height * 0.72);
+                ctx.quadraticCurveTo(stemX - 8 + Math.sin(elapsedTime / 700 + i) * 5, height * 0.35, stemX + 5, height * (0.16 + (i % 2) * 0.08));
+                ctx.stroke();
+            }
+            ctx.strokeStyle = '#a5d37d';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const stemX = width * (0.25 + i * 0.16);
+                ctx.beginPath();
+                ctx.moveTo(stemX, height * 0.76);
+                ctx.quadraticCurveTo(stemX + 9, height * 0.54, stemX + 4, height * 0.40);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 0.25 + pulse * 0.18;
+            ctx.fillStyle = '#9dffd0';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.48, width * 0.38, height * 0.34, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 0.32;
+            ctx.fillStyle = '#d4ffd2';
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.arc(width * (0.22 + i * 0.14), height * (0.36 + (i % 2) * 0.18), 1.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (kind === 'protein_grotto') {
+            const rock = ctx.createLinearGradient(0, height * 0.24, 0, height * 0.9);
+            rock.addColorStop(0, '#535877');
+            rock.addColorStop(1, '#31394f');
+            ctx.fillStyle = rock;
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.58, width * 0.46, height * 0.36, 0, Math.PI, Math.PI * 2);
+            ctx.lineTo(width * 0.96, height * 0.85);
+            ctx.lineTo(width * 0.04, height * 0.85);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#70809a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = '#171529';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.62, width * 0.28, height * 0.22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 0.35 + pulse * 0.25;
+            ctx.fillStyle = '#e2a6ff';
+            ctx.shadowColor = '#d77cff';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(width * 0.5, height * 0.62, 5 + pulse * 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#cbdcff';
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(width * (0.28 + i * 0.19), height * (0.78 - ((elapsedTime / 700 + i) % 1) * 0.22), 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            ctx.fillStyle = 'rgba(8, 35, 42, 0.22)';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.84, width * 0.47, height * 0.16, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#5f7772';
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.62, width * 0.44, height * 0.28, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#9da89a';
+            ctx.beginPath();
+            ctx.ellipse(width * 0.43, height * 0.42, width * 0.22, height * 0.18, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#8bb38a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(width * 0.62, height * 0.67);
+            ctx.quadraticCurveTo(width * 0.68, height * 0.42, width * 0.72, height * 0.31);
+            ctx.moveTo(width * 0.68, height * 0.68);
+            ctx.quadraticCurveTo(width * 0.78, height * 0.51, width * 0.83, height * 0.45);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 
     private renderPlant(plant: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
@@ -593,44 +782,6 @@ export class Renderer {
                 x + width / 2,
                 y + height / 2
             );
-        }
-
-        // Render strategy type label for baseline plants (hidden when HUD is hidden)
-        if (showEffects && genome.strategy_type) {
-            ctx.save();
-            ctx.font = 'bold 9px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-
-            // Get display-friendly label
-            const strategyLabels: Record<string, string> = {
-                'always_fold': 'FOLDER',
-                'random': 'RANDOM',
-                'loose_passive': 'PASSIVE',
-                'tight_passive': 'ROCK',
-                'tight_aggressive': 'TAG',
-                'loose_aggressive': 'LAG',
-                'balanced': 'BALANCED',
-                'maniac': 'MANIAC',
-                'gto_expert': 'GTO'
-            };
-            const label = strategyLabels[genome.strategy_type] || genome.strategy_type;
-
-            // Draw background pill
-            const labelWidth = ctx.measureText(label).width + 8;
-            const labelX = x + width / 2;
-            const staggerOffset = (plant.id % 3) * 15;
-            const labelY = baseY - 20 - staggerOffset;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-            ctx.beginPath();
-            ctx.roundRect(labelX - labelWidth / 2, labelY, labelWidth, 14, 3);
-            ctx.fill();
-
-            // Draw text
-            ctx.fillStyle = '#fff';
-            ctx.fillText(label, labelX, labelY + 2);
-            ctx.restore();
         }
 
         // Plants no longer display an energy/health meter in the UI.

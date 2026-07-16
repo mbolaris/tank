@@ -112,19 +112,35 @@ export class TankSideRenderer implements Renderer {
             const showEffects = frame.options?.showEffects ?? true;
             r.clear(this.WORLD_WIDTH, this.WORLD_HEIGHT, stats?.time, showEffects);
 
-            // Render entities
-            let plantLayerDrawn = false;
-            renderedEntities.forEach((entity: EntityData) => {
-                if (entity.type === 'plant' && plantLayer) {
-                    if (!plantLayerDrawn) {
-                        ctx.drawImage(plantLayer, 0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
-                        plantLayerDrawn = true;
-                    }
-                    return;
-                }
+            // A small rendering-only depth model: goals and scenery recede,
+            // food and animals inhabit the middle, and vegetation softens the
+            // foreground. It does not affect simulation or collision order.
+            const layer = (entity: EntityData) => {
+                if (entity.type === 'goal_zone') return 0;
+                if (['castle', 'algae_reef', 'protein_grotto', 'decorative_rock'].includes(entity.type)) return 1;
+                if (entity.type === 'food' || entity.type === 'plant_nectar') return 2;
+                if (entity.type === 'ball') return 4;
+                return 3;
+            };
+            renderedEntities
+                .filter((entity) => entity.type !== 'plant')
+                .map((entity, index) => ({ entity, index }))
+                .sort((a, b) => layer(a.entity) - layer(b.entity) || a.index - b.index)
+                .forEach(({ entity }) => {
                 r.renderEntity(entity, elapsedTime, renderedEntities, showEffects);
                 this.drawSoccerEffect(ctx, entity);
             });
+            if (plantLayer) {
+                // Plants remain present but intentionally subdued in the
+                // normal view so their color does not compete with fish.
+                ctx.save();
+                ctx.globalAlpha = 0.68;
+                ctx.drawImage(plantLayer, 0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+                ctx.restore();
+            }
+            if (frame.options?.buildGhost) {
+                r.renderBuildGhost(frame.options.buildGhost);
+            }
 
             const selected = frame.options?.selectedEntityId;
             if (selected !== undefined && selected !== null) {
@@ -141,6 +157,27 @@ export class TankSideRenderer implements Renderer {
                     ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                     ctx.stroke();
                     ctx.restore();
+
+                    // Build Mode reveals the otherwise invisible interaction
+                    // geometry, while the ordinary aquarium view remains calm.
+                    const capabilities = entity.render_hint?.capabilities as Array<{ type?: string; trigger?: string }> | undefined;
+                    if (frame.options?.buildMode && capabilities?.length) {
+                        const feeding = capabilities.find((capability) => capability.type === 'feeding');
+                        if (feeding) {
+                            const trigger = feeding.trigger;
+                            const interactionRadius = trigger === 'dwell' ? 58 : 72;
+                            ctx.save();
+                            ctx.strokeStyle = trigger === 'dwell' ? 'rgba(205, 169, 255, 0.8)' : 'rgba(142, 244, 176, 0.8)';
+                            ctx.fillStyle = trigger === 'dwell' ? 'rgba(144, 104, 210, 0.08)' : 'rgba(72, 193, 124, 0.08)';
+                            ctx.lineWidth = 1.5;
+                            ctx.setLineDash([5, 5]);
+                            ctx.beginPath();
+                            ctx.arc(centerX, centerY, interactionRadius, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
 
                     if (frame.options?.pursuitOverlay) {
                         drawPursuitOverlay(ctx, centerX, centerY, frame.options.pursuitOverlay);
@@ -181,6 +218,8 @@ export class TankSideRenderer implements Renderer {
             && nowMs - this.lastPlantLayerRenderMs >= PLANT_LAYER_FRAME_MS
         ) {
             this.plantLayerCtx.clearRect(0, 0, this.WORLD_WIDTH, this.WORLD_HEIGHT);
+            this.plantLayerCtx.save();
+            this.plantLayerCtx.globalAlpha = 0.82;
             for (const entity of entities) {
                 if (entity.type === 'plant') {
                     this.plantLayerRenderer.renderEntity(
@@ -191,6 +230,7 @@ export class TankSideRenderer implements Renderer {
                     );
                 }
             }
+            this.plantLayerCtx.restore();
             this.lastPlantLayerRenderMs = nowMs;
         }
 

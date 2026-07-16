@@ -436,37 +436,3 @@ class Agent(MobileEntity):
         diff_length = difference.length()
         if diff_length > 0:
             self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
-
-
-class Castle(Entity):
-    """A decorative castle entity that doesn't move.
-
-    Inherits from Entity (not Agent) as it has no movement or behavior.
-    """
-
-    def __init__(
-        self,
-        environment: World,
-        x: float = 431,
-        y: float = 387,
-    ) -> None:
-        """Initialize a castle.
-
-        Args:
-            environment: The world the castle lives in
-            x: Initial x position
-            y: Initial y position
-        """
-        super().__init__(environment, x, y)
-        self.blocks_root_spots = True
-        # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
-        self.set_size(225.0, 225.0)
-
-    @property
-    def snapshot_type(self) -> str:
-        """Return entity type for snapshot serialization."""
-        return "castle"
-
-    def is_dead(self) -> bool:
-        """Castle is never dead (decorative only)."""
-        return False

@@ -16,6 +16,7 @@ import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
+import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
@@ -63,6 +64,10 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
+    const [buildMode, setBuildMode] = useState(false);
+    const [buildKind, setBuildKind] = useState<'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'castle' | null>(null);
+    const [buildSelectedObjectId, setBuildSelectedObjectId] = useState<number | null>(null);
+    const [buildGhost, setBuildGhost] = useState<{ kind: string; x: number; y: number; width: number; height: number } | null>(null);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, isVisible } = useVisiblePanels(['skills', 'soccer', 'ecosystem', 'insights']);
@@ -121,6 +126,38 @@ export function TankView({ worldId }: TankViewProps) {
         selection.selectedEntityId !== null
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
             : null;
+
+    const buildObjectTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
+    const toggleBuildMode = () => {
+        const next = !buildMode;
+        setBuildMode(next);
+        setBuildKind(null);
+        setBuildSelectedObjectId(null);
+        sendCommand({ command: next ? 'pause' : 'resume' });
+    };
+    const handleBuildPlace = (x: number, y: number) => {
+        if (!buildKind) return;
+        const sizes: Record<string, [number, number]> = {
+            algae_reef: [150, 100],
+            protein_grotto: [145, 110],
+            decorative_rock: [86, 54],
+            castle: [120, 120],
+        };
+        const [width, height] = sizes[buildKind];
+        sendCommand({
+            command: 'place_tank_object',
+            data: { object_kind: buildKind, x: x - width / 2, y: y - height / 2, width, height },
+        });
+        setBuildKind(null);
+        setBuildGhost(null);
+    };
+    const handleBuildEntityClick = (entityId: number, entityType: string) => {
+        if (buildMode && buildObjectTypes.has(entityType)) {
+            setBuildSelectedObjectId(entityId);
+            return;
+        }
+        selection.selectEntity(entityId, entityType);
+    };
 
     useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
@@ -366,7 +403,34 @@ export function TankView({ worldId }: TankViewProps) {
                         state={state}
                         width={1088}
                         height={612}
-                        onEntityClick={selection.selectEntity}
+                        onEntityClick={handleBuildEntityClick}
+                        buildMode={buildMode}
+                        buildPlacementActive={buildKind !== null}
+                        onBuildPlace={handleBuildPlace}
+                        buildGhost={buildGhost}
+                        onBuildPointerMove={(x, y) => {
+                            if (!buildKind) {
+                                setBuildGhost(null);
+                                return;
+                            }
+                            const sizes: Record<string, [number, number]> = {
+                                algae_reef: [150, 100],
+                                protein_grotto: [145, 110],
+                                decorative_rock: [86, 54],
+                                castle: [120, 120],
+                            };
+                            const [width, height] = sizes[buildKind];
+                            setBuildGhost({ kind: buildKind, x: x - width / 2, y: y - height / 2, width, height });
+                        }}
+                        onBuildDragStart={setBuildSelectedObjectId}
+                        onBuildDragEnd={(objectId, x, y) => {
+                            const object = liveEntities.find((entity) => entity.id === objectId);
+                            if (!object) return;
+                            sendCommand({
+                                command: 'move_tank_object',
+                                data: { object_id: objectId, x: x - object.width / 2, y: y - object.height / 2 },
+                            });
+                        }}
                         selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
                         pursuitOverlay={selection.selectedEntityMissing ? null : pursuitOverlay}
                         targetMemoryOverlay={selection.selectedEntityMissing ? null : targetMemoryOverlay}
@@ -399,6 +463,20 @@ export function TankView({ worldId }: TankViewProps) {
                     </div>
                 </div>
             </div>
+
+            <BuildMode
+                active={buildMode}
+                entities={liveEntities}
+                onToggle={toggleBuildMode}
+                onCommand={sendCommand}
+                onDelete={(objectId) => {
+                    sendCommand({ command: 'delete_tank_object', data: { object_id: objectId } });
+                    setBuildSelectedObjectId(null);
+                }}
+                selectedObjectId={buildSelectedObjectId}
+                selectedKind={buildKind}
+                onSelectKind={setBuildKind}
+            />
 
             {/* Panel Toggle Bar */}
             <PanelToggleBar visible={visible} onToggle={toggle} />

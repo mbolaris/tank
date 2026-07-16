@@ -33,6 +33,7 @@ from core.reproduction.reproduction_service import ReproductionService
 from core.reproduction.reproduction_system import ReproductionSystem
 from core.systems.entity_lifecycle import EntityLifecycleSystem
 from core.systems.food_spawning import FoodSpawningSystem
+from core.tank_interactions import TankInteractionSystem
 from core.systems.poker_proximity import PokerProximitySystem
 from core.worlds.shared.tank_like_phase_hooks import TankLikePhaseHooks
 
@@ -183,6 +184,7 @@ class TankLikePackBase(ABC):
             auto_food_enabled=self.config.food.auto_food_enabled,
             display_config=self.config.display,
         )
+        engine.tank_interaction_system = TankInteractionSystem(engine)
         engine.food_spawning_system.config.local_resource_patches_enabled = (
             self.config.food.local_resource_patches_enabled
         )
@@ -229,6 +231,7 @@ class TankLikePackBase(ABC):
             )
 
         engine._system_registry.register(food_spawning_system)
+        engine._system_registry.register(engine.tank_interaction_system)
         engine._system_registry.register(collision_system)
         engine._system_registry.register(poker_proximity_system)
         engine._system_registry.register(reproduction_system)
