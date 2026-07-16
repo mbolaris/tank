@@ -767,6 +767,13 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # Apply energy immediately (modify_energy handles overflow banking)
         actual_energy = self.modify_energy(potential_energy, source="ate_food")
 
+        if food.is_fully_consumed():
+            from core.behavior.target_memory import invalidate_target_memory, TargetId
+
+            food_id = food.get_entity_id()
+            if food_id is not None:
+                invalidate_target_memory(self, "food", TargetId("food", food_id))
+
         # Record food location in memory (MemoryType imported at module level)
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)
 

@@ -43,11 +43,16 @@ def _row(
         "group_scores": {},
         "transfer_vs_disjoint": vs_disjoint,
         "transfer_vs_neutral": vs_neutral,
+        "memory_mechanism_gain": 0.0,
+        "source_learning_gain": 0.0,
+        "target_learnability_gain": 0.0,
         "family_effect_vs_default": {"bouncing": vs_disjoint},
         "adaptation_reference_established": established,
         "adaptation_reference_gap": 0.05 if established else -0.01,
         "adaptation_generations_food": gens_food,
         "adaptation_generations_default": gens_default,
+        "food_trained_genomes": [],
+        "ball_trained_genomes": [],
         "diagnostics": {},
     }
 
@@ -169,3 +174,31 @@ def test_report_and_markdown_are_complete():
     assert "transfer_vs_disjoint" in markdown
     assert "bouncing" in markdown
     assert "Reference established" in markdown
+
+
+def test_neutral_evolution_returns_descendant():
+    """Ensure that a constant-fitness/shuffled neutral run actually returns a
+    descendant from the final generation (with mutations and crossovers) rather
+    than returning the unmodified gen-0 founder/default params."""
+    import random
+    from core.behavior.target_memory import TargetMemoryParams
+    from core.behavior.target_memory_transfer_evolution import run_evolution
+
+    rng = random.Random(42)
+    default_params = TargetMemoryParams()
+    scenarios = generate_scenario_set("train", 42, count=2)
+
+    # Run for 5 generations with shuffle_fitness=True
+    best_of_run, _, _ = run_evolution(
+        [default_params],
+        scenarios,
+        generations=5,
+        pop_size=6,
+        rng=rng,
+        shuffle_fitness=True,
+    )
+
+    # A descendant from the final generation will have had mutations and/or crossovers,
+    # so its parameters should differ from the starting default_params.
+    # If the bug was present, it would return unmodified default_params.
+    assert best_of_run != default_params

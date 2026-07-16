@@ -73,22 +73,42 @@ def seed_row(seed: int, config: TransferStudyConfig) -> dict[str, Any]:
         if fam in food.family_fitness
     }
 
+    # Validity ladder gains
+    memory_mechanism_gain = default.overall_score - groups["naive_greedy"].overall_score
+    source_learning_gain = (
+        evaluation.food_validation_score_food_trained - evaluation.food_validation_score_default
+        if evaluation.food_validation_score_food_trained is not None
+        and evaluation.food_validation_score_default is not None
+        else 0.0
+    )
+    target_learnability_gain = groups["ball_trained"].overall_score - default.overall_score
+
     return {
         "seed": seed,
         "group_scores": {name: summary.overall_score for name, summary in groups.items()},
         "transfer_vs_disjoint": food.overall_score - default.overall_score,
         "transfer_vs_neutral": food.overall_score - neutral.overall_score,
+        "memory_mechanism_gain": memory_mechanism_gain,
+        "source_learning_gain": source_learning_gain,
+        "target_learnability_gain": target_learnability_gain,
         "family_effect_vs_default": family_effect_vs_default,
         "adaptation_reference_established": evaluation.adaptation_reference_established,
         "adaptation_reference_gap": evaluation.adaptation_reference_gap,
         "adaptation_generations_food": evaluation.adaptation_generations_food,
         "adaptation_generations_default": evaluation.adaptation_generations_default,
+        "food_trained_genomes": evaluation.food_trained_genomes,
+        "ball_trained_genomes": evaluation.ball_trained_genomes,
         "diagnostics": {
             name: {
                 "mean_switches": summary.mean_switches,
                 "mean_stale_pursuit_frames": summary.mean_stale_pursuit_frames,
                 "mean_reacquisition_frames": summary.mean_reacquisition_frames,
                 "mean_distance_traveled": summary.mean_distance_traveled,
+                "mean_occlusion_survived_ratio": summary.mean_occlusion_survived_ratio,
+                "mean_occlusion_dropped_ratio": summary.mean_occlusion_dropped_ratio,
+                "mean_wasted_frames": summary.mean_wasted_frames,
+                "mean_chasing_stale_frames": summary.mean_chasing_stale_frames,
+                "mean_distance_error_at_reappearance": summary.mean_distance_error_at_reappearance,
             }
             for name, summary in groups.items()
         },
@@ -146,6 +166,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     effects = {
         "transfer_vs_disjoint": _effect_stats([r["transfer_vs_disjoint"] for r in rows]),
         "transfer_vs_neutral": _effect_stats([r["transfer_vs_neutral"] for r in rows]),
+        "memory_mechanism_gain": _effect_stats([r["memory_mechanism_gain"] for r in rows]),
+        "source_learning": _effect_stats([r["source_learning_gain"] for r in rows]),
+        "target_learnability": _effect_stats([r["target_learnability_gain"] for r in rows]),
     }
 
     family_names = sorted({fam for r in rows for fam in r["family_effect_vs_default"]})
@@ -176,10 +199,48 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     else:
         adaptation["acceleration_generations"] = None
 
+    # Aggregate evolved genomes
+    food_genomes = []
+    ball_genomes = []
+    for r in rows:
+        if r.get("food_trained_genomes"):
+            food_genomes.extend(r["food_trained_genomes"])
+        if r.get("ball_trained_genomes"):
+            ball_genomes.extend(r["ball_trained_genomes"])
+
+    param_keys = [
+        "memory_duration",
+        "confidence_decay",
+        "switch_threshold",
+        "commitment_strength",
+        "motion_extrapolation_duration",
+    ]
+    founder_defaults = {
+        "memory_duration": 90.0,
+        "confidence_decay": 0.02,
+        "switch_threshold": 1.4,
+        "commitment_strength": 0.5,
+        "motion_extrapolation_duration": 30.0,
+    }
+
+    evolved_params = {}
+    for key in param_keys:
+        food_vals = [g[key] for g in food_genomes if key in g]
+        ball_vals = [g[key] for g in ball_genomes if key in g]
+
+        evolved_params[key] = {
+            "founder": founder_defaults[key],
+            "food_mean": statistics.fmean(food_vals) if food_vals else founder_defaults[key],
+            "food_stdev": statistics.stdev(food_vals) if len(food_vals) > 1 else 0.0,
+            "ball_mean": statistics.fmean(ball_vals) if ball_vals else founder_defaults[key],
+            "ball_stdev": statistics.stdev(ball_vals) if len(ball_vals) > 1 else 0.0,
+        }
+
     return {
         "effects": effects,
         "family_effects": family_effects,
         "adaptation": adaptation,
+        "evolved_params": evolved_params,
         "overall_verdict": effects["transfer_vs_disjoint"]["verdict"],
     }
 
@@ -238,6 +299,49 @@ def render_markdown(report: dict[str, Any]) -> str:
     ]
     for name, e in agg["effects"].items():
         lines.append(fmt_effect(name, e))
+
+    # Add the Validity Ladder
+    lines += [
+        "",
+        "## Validity Ladder",
+        "",
+        "| step | metric | mean | median | 95% CI | seeds positive | verdict |",
+        "|---|---|---|---|---|---|---|",
+        fmt_effect(
+            "1. memory mechanism gain (default - naive on ball)",
+            agg["effects"]["memory_mechanism_gain"],
+        ),
+        fmt_effect(
+            "2. source learning (food_trained - default on food val)",
+            agg["effects"]["source_learning"],
+        ),
+        fmt_effect(
+            "3. target learnability (ball_trained - default on ball)",
+            agg["effects"]["target_learnability"],
+        ),
+        fmt_effect(
+            "4. zero-shot transfer (food_trained - default on ball)",
+            agg["effects"]["transfer_vs_disjoint"],
+        ),
+        fmt_effect(
+            "5. selection-specific transfer (food_trained - neutral)",
+            agg["effects"]["transfer_vs_neutral"],
+        ),
+    ]
+
+    # Add Evolved Genomes table
+    lines += [
+        "",
+        "## Evolved Genomes (Parameter Drift)",
+        "",
+        "| Parameter | Founder | Food-Trained (Mean ± SD) | Ball-Trained (Mean ± SD) |",
+        "|---|---|---|---|",
+    ]
+    for key, p in agg["evolved_params"].items():
+        lines.append(
+            f"| {key} | {p['founder']:.4f} | {p['food_mean']:.4f} ± {p['food_stdev']:.4f} | "
+            f"{p['ball_mean']:.4f} ± {p['ball_stdev']:.4f} |"
+        )
 
     lines += [
         "",

@@ -91,7 +91,7 @@ _SET_SALTS = {
     "ball_validation": 5000,
 }
 
-SCENARIO_SET_VERSION = "v2"
+SCENARIO_SET_VERSION = "v3"
 
 # One scenario per food family: the moving families joined in v2 and the
 # budget stays comparable to v1's six-scenario sets (scale-up is the multi-run

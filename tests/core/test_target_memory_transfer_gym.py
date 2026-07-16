@@ -142,7 +142,7 @@ def _synthetic_occlusion_scenario() -> TargetMemoryScenario:
     memory_duration (90) never gives up."""
     length = MAX_FRAMES + 1
     visible = [True] * length
-    for i in range(10, 61):
+    for i in range(5, 15):
         visible[i] = False
     track = CandidateTrack(
         target_id=TargetId("food", 0),
