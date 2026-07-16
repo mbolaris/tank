@@ -357,15 +357,15 @@ class _EpisodeTrace:
                                 if next_frame < n and next_frame <= end_active_idx:
                                     if tid in self.target_positions[global_end]:
                                         true_pos = self.target_positions[global_end][tid]
-                                        if (
-                                            global_end < len(self.decisions)
-                                            and self.decisions[global_end] is not None
-                                        ):
-                                            pred_pos = self.decisions[global_end].target_position
-                                            err = math.hypot(
-                                                pred_pos[0] - true_pos[0], pred_pos[1] - true_pos[1]
-                                            )
-                                            distance_errors.append(err)
+                                        if global_end < len(self.decisions):
+                                            dec = self.decisions[global_end]
+                                            if dec is not None:
+                                                pred_pos = dec.target_position
+                                                err = math.hypot(
+                                                    pred_pos[0] - true_pos[0],
+                                                    pred_pos[1] - true_pos[1],
+                                                )
+                                                distance_errors.append(err)
 
                     local_start = local_end + 1
                 else:
