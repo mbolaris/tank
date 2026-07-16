@@ -65,6 +65,7 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
+    const [watchMode, setWatchMode] = useState(false);
     const [buildMode, setBuildMode] = useState(false);
     const [buildKind, setBuildKind] = useState<'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'castle' | null>(null);
     const [buildSelectedObjectId, setBuildSelectedObjectId] = useState<number | null>(null);
@@ -136,6 +137,10 @@ export function TankView({ worldId }: TankViewProps) {
         setBuildSelectedObjectId(null);
         sendCommand({ command: next ? 'pause' : 'resume' });
     };
+    const openTrends = useCallback(() => {
+        setWatchMode(false);
+        showOnly('trends');
+    }, [showOnly]);
     const handleBuildPlace = (x: number, y: number) => {
         if (!buildKind) return;
         const sizes: Record<string, [number, number]> = {
@@ -169,6 +174,8 @@ export function TankView({ worldId }: TankViewProps) {
                     {schemaError}
                 </div>
             )}
+            {!watchMode && (
+            <>
             {/* Single row of compact controls */}
             <div className={styles.controlBar}>
                 <ControlPanel
@@ -394,6 +401,8 @@ export function TankView({ worldId }: TankViewProps) {
                         )}
                 </div>
             </div>
+            </>
+            )}
 
             {/* Always-visible Canvas */}
             <div className={styles.sceneWorkspace}>
@@ -459,11 +468,31 @@ export function TankView({ worldId }: TankViewProps) {
                                 {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
                             </div>
                         </div>
+                        <div className="hud-group">
+                            <button
+                                className={styles.watchModeToggle}
+                                onClick={() => setWatchMode((w) => !w)}
+                                title={watchMode ? 'Exit Watch Mode' : 'Enter Watch Mode: hide the dashboard and just watch the tank'}
+                            >
+                                {watchMode ? '✕ Exit Watch' : '🎬 Watch Mode'}
+                            </button>
+                        </div>
                     </div>
+                    {watchMode && (
+                        <EvolutionHealthReadout
+                            compact
+                            history={state?.metrics_history ?? null}
+                            onOpenTrends={openTrends}
+                        />
+                    )}
                 </div>
-                <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => showOnly('trends')} />
+                {!watchMode && (
+                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={openTrends} />
+                )}
             </div>
 
+            {!watchMode && (
+            <>
             <BuildMode
                 active={buildMode}
                 entities={liveEntities}
@@ -551,6 +580,8 @@ export function TankView({ worldId }: TankViewProps) {
                         </Panel>
                     )}
                 </div>
+            )}
+            </>
             )}
 
             {/* Entity Inspector Drawer */}
