@@ -224,10 +224,45 @@ export function EntityInspectorDrawer({
         }
     };
 
-    const details = fetchState.phase === 'loaded' ? fetchState.details : null;
     const isGone = entity === null || fetchState.phase === 'not_found';
-    const canTransfer =
-        TRANSFERABLE_TYPES.has(entityType) && !isGone && isConnected;
+
+    // A gone entity has nothing left to inspect — collapse to a small card
+    // instead of the full-size drawer with an empty body (U4/E1 follow-up).
+    if (isGone) {
+        return (
+            <div
+                ref={drawerRef}
+                className={styles.goneCard}
+                role="dialog"
+                aria-label={`${entityTypeLabel(entityType)} inspector`}
+                tabIndex={-1}
+                onKeyDown={handleKeyDown}
+            >
+                <header className={styles.header}>
+                    <div className={styles.headerTitle}>
+                        <span className={styles.entityType}>{entityTypeLabel(entityType)}</span>
+                        <span className={styles.entityId}>{`#${entityId}`}</span>
+                    </div>
+                    <button
+                        className={styles.closeButton}
+                        onClick={onClose}
+                        aria-label="Close inspector"
+                        title="Close inspector (Esc)"
+                    >
+                        ×
+                    </button>
+                </header>
+                <div className={styles.goneCardBody}>
+                    <div className={styles.goneBanner} role="status">
+                        No longer in the world — it may have died or been transferred.
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const details = fetchState.phase === 'loaded' ? fetchState.details : null;
+    const canTransfer = TRANSFERABLE_TYPES.has(entityType) && isConnected;
 
     // Prefer live broadcast values so vitals update in real time.
     const energy = entity?.energy ?? details?.energy;
@@ -274,13 +309,7 @@ export function EntityInspectorDrawer({
             </header>
 
             <div className={styles.body}>
-                {isGone && (
-                    <div className={styles.goneBanner} role="status">
-                        No longer in the world — it may have died or been transferred.
-                    </div>
-                )}
-
-                {details?.status && !isGone && (
+                {details?.status && (
                     <p className={styles.statusLine}>
                         {STATUS_COPY[details.status] ?? details.status}
                         {details.reproduction?.is_gravid ? ' · carrying an egg' : ''}
@@ -592,7 +621,6 @@ export function EntityInspectorDrawer({
                     <Button
                         variant={followEnabled ? 'primary' : 'secondary'}
                         onClick={onToggleFollow}
-                        disabled={isGone}
                         aria-pressed={followEnabled}
                         title={followEnabled ? 'Stop following this organism' : 'Keep this organism in view'}
                     >

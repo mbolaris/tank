@@ -4,6 +4,8 @@ import styles from './EvolutionHealthReadout.module.css';
 interface EvolutionHealthReadoutProps {
     history: MetricsHistory | null;
     onOpenTrends: () => void;
+    /** Renders a small floating pill instead of the full side panel (Watch Mode). */
+    compact?: boolean;
 }
 
 function driftPercent(history: MetricsHistory): number | null {
@@ -14,12 +16,20 @@ function driftPercent(history: MetricsHistory): number | null {
     return ((last - first) / Math.abs(first)) * 100;
 }
 
-export function EvolutionHealthReadout({ history, onOpenTrends }: EvolutionHealthReadoutProps) {
+export function EvolutionHealthReadout({ history, onOpenTrends, compact = false }: EvolutionHealthReadoutProps) {
     const samples = history?.samples ?? [];
     const first = samples[0];
     const last = samples[samples.length - 1];
 
     if (!history || samples.length < 2 || !first || !last) {
+        if (compact) {
+            return (
+                <button className={styles.badge} onClick={onOpenTrends} title="Open Trends">
+                    <span className={styles.badgeDot} style={{ background: '#94a3b8' }} />
+                    Collecting history…
+                </button>
+            );
+        }
         return (
             <aside className={styles.readout} aria-label="Evolution health">
                 <div className={styles.header}>Evolution health</div>
@@ -35,6 +45,20 @@ export function EvolutionHealthReadout({ history, onOpenTrends }: EvolutionHealt
     const populationTone = last.population >= 20 ? styles.good : styles.warning;
     const diversityTone = (last.diversity_score ?? 0) >= 0.15 ? styles.good : styles.warning;
     const selectionTone = pursuitDrift !== null && Math.abs(pursuitDrift) >= 5 ? styles.good : styles.neutral;
+
+    if (compact) {
+        return (
+            <button className={styles.badge} onClick={onOpenTrends} title="Open Trends">
+                <span
+                    className={styles.badgeDot}
+                    style={{ background: last.population >= 20 ? '#4ade80' : '#fbbf24' }}
+                />
+                <span className={styles.badgeText}>
+                    <strong>{last.population}</strong> fish · {generationRate.toFixed(1)} gen/10k
+                </span>
+            </button>
+        );
+    }
 
     return (
         <aside className={styles.readout} aria-label="Evolution health">

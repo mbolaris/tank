@@ -79,11 +79,13 @@ describe('EntityInspectorDrawer', () => {
         expect(html).toContain('Transfer to another world');
     });
 
-    it('shows a clear state instead of stale data when the entity is gone', () => {
+    it('collapses to a compact card instead of stale data when the entity is gone', () => {
         const html = renderDrawer({ entity: null });
+        expect(html).toContain('role="dialog"');
         expect(html).toContain('No longer in the world');
-        // The transfer action must be disabled for a missing entity.
-        expect(html).toMatch(/<button[^>]*disabled[^>]*>[^<]*Transfer/);
+        // Nothing left to act on for a missing entity — no Follow/Transfer footer.
+        expect(html).not.toContain('Transfer to another world');
+        expect(html).not.toContain('Follow');
     });
 
     it('disables transfer while disconnected', () => {

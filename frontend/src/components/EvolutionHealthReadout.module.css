@@ -26,3 +26,47 @@
     .readout { width: 100%; flex-basis: auto; }
     .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Compact badge — Watch Mode's floating stand-in for the full readout. */
+.badge {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-full);
+    color: var(--color-text-main);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.badge:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.badge:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 2px;
+}
+
+.badgeDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.badgeText {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    white-space: nowrap;
+}

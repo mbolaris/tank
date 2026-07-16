@@ -232,6 +232,42 @@
     }
 }
 
+/* Compact "gone" card — replaces the full drawer once the entity has left
+   the world, so a dead/transferred selection doesn't pin a tall, mostly
+   empty panel open (see the drawer's `body`/`footer` for the full layout). */
+.goneCard {
+    position: fixed;
+    top: 72px;
+    right: var(--spacing-md);
+    width: 340px;
+    max-width: calc(100vw - 2 * var(--spacing-md));
+    background: var(--color-bg-surface);
+    backdrop-filter: var(--backdrop-blur);
+    border: var(--glass-border);
+    border-top: var(--glass-shine);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-lg);
+    z-index: 100;
+    overflow: hidden;
+    outline: none;
+}
+
+.goneCard:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.goneCardBody {
+    padding: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+    .goneCard {
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        width: auto;
+    }
+}
+
 .paramEvolutionContainer {
     display: flex;
     flex-direction: column;
