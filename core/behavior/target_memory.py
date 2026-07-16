@@ -53,8 +53,6 @@ _PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "switch_threshold": (1.0, 3.0),
     "commitment_strength": (0.0, 1.0),
     "motion_extrapolation_duration": (0.0, 120.0),
-    "mutation_rate": (0.1, 5.0),
-    "mutation_strength": (0.1, 5.0),
 }
 
 
@@ -80,8 +78,6 @@ class TargetMemoryParams:
     switch_threshold: float = 1.4
     commitment_strength: float = 0.5
     motion_extrapolation_duration: float = 30.0
-    mutation_rate: float = 1.0
-    mutation_strength: float = 1.0
 
     def to_dict(self) -> dict[str, float]:
         return {
@@ -90,8 +86,6 @@ class TargetMemoryParams:
             "switch_threshold": self.switch_threshold,
             "commitment_strength": self.commitment_strength,
             "motion_extrapolation_duration": self.motion_extrapolation_duration,
-            "mutation_rate": self.mutation_rate,
-            "mutation_strength": self.mutation_strength,
         }
 
     @classmethod
@@ -117,15 +111,11 @@ class TargetMemoryParams:
         self_values = self.to_dict()
         other_values = other.to_dict()
         blended: dict[str, float] = {}
-
-        eff_rate = mutation_rate * (self.mutation_rate + other.mutation_rate) / 2
-        eff_strength = mutation_strength * (self.mutation_strength + other.mutation_strength) / 2
-
         for key, (lo, hi) in _PARAM_BOUNDS.items():
             value = self_values[key] * weight1 + other_values[key] * (1.0 - weight1)
-            if rng.random() < eff_rate:
+            if rng.random() < mutation_rate:
                 span = hi - lo
-                value += rng.gauss(0.0, eff_strength * span)
+                value += rng.gauss(0.0, mutation_strength * span)
             blended[key] = max(lo, min(hi, value))
         return TargetMemoryParams(**blended)
 
