@@ -85,6 +85,10 @@ export function TankSoccerTab({
                 <SoccerLeagueEventsFiltered
                     events={filteredEvents}
                     currentFrame={currentFrame}
+                    hasLeagueHistory={Boolean(
+                        liveState?.active_match ||
+                        liveState?.leaderboard.some((entry) => entry.matches_played > 0)
+                    )}
                 />
             </div>
 
@@ -97,9 +101,11 @@ export function TankSoccerTab({
 function SoccerLeagueEventsFiltered({
     events,
     currentFrame,
+    hasLeagueHistory,
 }: {
     events: SoccerEventData[];
     currentFrame: number;
+    hasLeagueHistory: boolean;
 }) {
     const items = events.slice().reverse().slice(0, 10);
 
@@ -115,7 +121,11 @@ function SoccerLeagueEventsFiltered({
                 fontSize: '13px',
                 textAlign: 'center',
             }}>
-                No matches to display. {events.length === 0 ? 'No matches recorded yet.' : 'Enable "Show skipped" to see all matches.'}
+                No matches to display. {events.length === 0
+                    ? hasLeagueHistory
+                        ? 'The standings above retain league history; recent results will appear after the next match completes.'
+                        : 'No league matches have completed yet.'
+                    : 'Enable "Show skipped" to see all matches.'}
             </div>
         );
     }

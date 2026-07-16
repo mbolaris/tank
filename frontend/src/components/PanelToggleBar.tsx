@@ -13,21 +13,22 @@ const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
 
 interface PanelToggleBarProps {
     visible: PanelId[];
-    onToggle: (id: PanelId) => void;
+    onSelect: (id: PanelId) => void;
 }
 
-export function PanelToggleBar({ visible, onToggle }: PanelToggleBarProps) {
+export function PanelToggleBar({ visible, onSelect }: PanelToggleBarProps) {
     return (
-        <div className={styles.panelToggleBar}>
-            <span className={styles.panelToggleLabel}>Panels</span>
+        <div className={styles.panelToggleBar} role="toolbar" aria-label="Analysis workspace">
+            <span className={styles.panelToggleLabel}>Analysis</span>
             {PANEL_CONFIG.map(({ id, label, icon }) => {
                 const isVisible = visible.includes(id);
                 return (
                     <button
                         key={id}
                         className={`${styles.panelToggle} ${isVisible ? styles.active : ''}`}
-                        onClick={() => onToggle(id)}
+                        onClick={() => onSelect(id)}
                         aria-pressed={isVisible}
+                        title={`Open ${label}`}
                     >
                         <span className={styles.panelToggleIcon}>{icon}</span>
                         <span>{label}</span>

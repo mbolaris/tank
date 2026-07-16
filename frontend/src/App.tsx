@@ -249,7 +249,7 @@ function NavBar() {
     const currentTankId = tankIdMatch ? tankIdMatch[1] : undefined;
 
     return (
-        <nav style={{
+        <nav className="app-nav" style={{
             position: 'sticky',
             top: 0,
             zIndex: 50,
@@ -263,7 +263,7 @@ function NavBar() {
             flexWrap: 'wrap',
             gap: '8px 16px',
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <div className="app-nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                 <Link
                     to="/"
                     style={{
@@ -294,12 +294,12 @@ function NavBar() {
                 </Link>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="app-nav-views" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <ViewToggle isNetwork={isNetwork} />
                 {isTankView && <TankNavigator currentTankId={currentTankId} />}
             </div>
 
-            <div style={{
+            <div className="app-nav-utility" style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',

@@ -98,7 +98,11 @@ export function PokerLeaders({ leaders }: { leaders: PokerLeaderboardEntry[] }) 
     const rows = leaders
         .slice(0, TOP_N)
         .map((entry, index) => {
-            const tankName = entry.tank_name || (entry.tank_id ? `Tank ${entry.tank_id}` : 'Unknown Tank');
+            const tankName = entry.tank_name && entry.tank_name !== 'Unknown Tank'
+                ? entry.tank_name
+                : entry.tank_id && entry.tank_id !== 'unknown'
+                    ? `Tank ${entry.tank_id}`
+                    : 'Origin not recorded';
             const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
             return (
                 <LeaderRow
@@ -127,7 +131,11 @@ export function SoccerLeaders({ leaders }: { leaders: SoccerFishLeaderEntry[] })
         .map((entry, index) => {
             const roundedEnergy = Math.round(entry.net_energy);
             const energyText = `${roundedEnergy >= 0 ? '+' : ''}${roundedEnergy} net energy`;
-            const tankName = entry.tank_name || (entry.tank_id ? `Tank ${entry.tank_id}` : 'Unknown Tank');
+            const tankName = entry.tank_name && entry.tank_name !== 'Unknown Tank'
+                ? entry.tank_name
+                : entry.tank_id && entry.tank_id !== 'unknown'
+                    ? `Tank ${entry.tank_id}`
+                    : 'Origin not recorded';
             const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
             const stats = ` — ${entry.goals} goals — ${entry.assists} assists — ${energyText} — ${entry.wins} wins${offspring}`;
             return (
