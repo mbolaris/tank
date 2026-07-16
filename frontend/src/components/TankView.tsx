@@ -18,6 +18,7 @@ import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
+import { WatchModeToggle } from './WatchModeToggle';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
@@ -174,8 +175,7 @@ export function TankView({ worldId }: TankViewProps) {
                     {schemaError}
                 </div>
             )}
-            {!watchMode && (
-            <>
+            {!watchMode && <>
             {/* Single row of compact controls */}
             <div className={styles.controlBar}>
                 <ControlPanel
@@ -401,8 +401,7 @@ export function TankView({ worldId }: TankViewProps) {
                         )}
                 </div>
             </div>
-            </>
-            )}
+            </>}
 
             {/* Always-visible Canvas */}
             <div className={styles.sceneWorkspace}>
@@ -469,13 +468,7 @@ export function TankView({ worldId }: TankViewProps) {
                             </div>
                         </div>
                         <div className="hud-group">
-                            <button
-                                className={styles.watchModeToggle}
-                                onClick={() => setWatchMode((w) => !w)}
-                                title={watchMode ? 'Exit Watch Mode' : 'Enter Watch Mode: hide the dashboard and just watch the tank'}
-                            >
-                                {watchMode ? '✕ Exit Watch' : '🎬 Watch Mode'}
-                            </button>
+                            <WatchModeToggle active={watchMode} onToggle={() => setWatchMode((w) => !w)} />
                         </div>
                     </div>
                     {watchMode && (
@@ -491,8 +484,7 @@ export function TankView({ worldId }: TankViewProps) {
                 )}
             </div>
 
-            {!watchMode && (
-            <>
+            {!watchMode && <>
             <BuildMode
                 active={buildMode}
                 entities={liveEntities}
@@ -581,8 +573,7 @@ export function TankView({ worldId }: TankViewProps) {
                     )}
                 </div>
             )}
-            </>
-            )}
+            </>}
 
             {/* Entity Inspector Drawer */}
             {selection.inspectorOpen &&

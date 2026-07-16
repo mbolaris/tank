@@ -19,7 +19,8 @@ import {
     formatSpecies,
     formatTraitName,
 } from './entityInspectorFormat';
-import type { ParameterEvolutionData } from '../types/entityDetails';
+import { GoneEntityCard } from './GoneEntityCard';
+import { ParameterEvolutionRow } from './ParameterEvolutionRow';
 import styles from './EntityInspectorDrawer.module.css';
 
 interface EntityInspectorDrawerProps {
@@ -46,45 +47,6 @@ type FetchState =
     | { phase: 'loaded'; details: EntityDetails }
     | { phase: 'not_found' }
     | { phase: 'error'; message: string };
-
-interface ParameterEvolutionRowProps {
-    label: string;
-    currentValue: number;
-    evolutionData?: ParameterEvolutionData | null;
-    isInteger?: boolean;
-}
-
-function ParameterEvolutionRow({
-    label,
-    currentValue,
-    evolutionData,
-    isInteger = false,
-}: ParameterEvolutionRowProps) {
-    const formattedVal = isInteger ? currentValue.toFixed(0) : currentValue.toFixed(2);
-
-    if (!evolutionData) {
-        return <StatRow label={label} value={formattedVal} />;
-    }
-
-    const { parent, species_median, carriers_pct, trend } = evolutionData;
-
-    const trendText = trend === 'increasing' ? 'rising' : trend === 'declining' ? 'falling' : 'stable';
-    const parentText = parent !== null ? (isInteger ? parent.toFixed(0) : parent.toFixed(2)) : 'N/A';
-    const medianText = isInteger ? species_median.toFixed(0) : species_median.toFixed(2);
-
-    return (
-        <div className={styles.paramEvolutionContainer}>
-            <div className={styles.paramHeader}>
-                <span className={styles.paramLabel}>{label}</span>
-                <span className={styles.paramValue}>{formattedVal}</span>
-            </div>
-            <div className={styles.paramSubDetails}>
-                <div>Parent: {parentText} | Species median: {medianText}</div>
-                <div>Present in {carriers_pct.toFixed(0)}% of the population and {trendText}</div>
-            </div>
-        </div>
-    );
-}
 
 const TRANSFERABLE_TYPES = new Set(['fish', 'plant']);
 
@@ -230,34 +192,13 @@ export function EntityInspectorDrawer({
     // instead of the full-size drawer with an empty body (U4/E1 follow-up).
     if (isGone) {
         return (
-            <div
-                ref={drawerRef}
-                className={styles.goneCard}
-                role="dialog"
-                aria-label={`${entityTypeLabel(entityType)} inspector`}
-                tabIndex={-1}
+            <GoneEntityCard
+                entityId={entityId}
+                entityType={entityType}
+                onClose={onClose}
+                dialogRef={drawerRef}
                 onKeyDown={handleKeyDown}
-            >
-                <header className={styles.header}>
-                    <div className={styles.headerTitle}>
-                        <span className={styles.entityType}>{entityTypeLabel(entityType)}</span>
-                        <span className={styles.entityId}>{`#${entityId}`}</span>
-                    </div>
-                    <button
-                        className={styles.closeButton}
-                        onClick={onClose}
-                        aria-label="Close inspector"
-                        title="Close inspector (Esc)"
-                    >
-                        ×
-                    </button>
-                </header>
-                <div className={styles.goneCardBody}>
-                    <div className={styles.goneBanner} role="status">
-                        No longer in the world — it may have died or been transferred.
-                    </div>
-                </div>
-            </div>
+            />
         );
     }
 
