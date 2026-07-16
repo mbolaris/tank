@@ -10,42 +10,44 @@ _verdict is positive/negative only when the 95% bootstrap CI of the mean effect 
 
 | effect | mean | median | 95% CI | seeds positive | verdict |
 |---|---|---|---|---|---|
-| transfer_vs_disjoint | -0.0008 | +0.0007 | [-0.0092, +0.0060] | 50% | inconclusive |
-| transfer_vs_neutral | +0.0040 | +0.0028 | [-0.0036, +0.0109] | 75% | inconclusive |
+| transfer_vs_disjoint | +0.0003 | +0.0000 | [-0.0036, +0.0046] | 42% | inconclusive |
+| transfer_vs_neutral | +0.0131 | +0.0110 | [+0.0079, +0.0189] | 92% | positive |
 | memory_mechanism_gain | +0.1581 | +0.1686 | [+0.1422, +0.1741] | 100% | positive |
-| source_learning | +0.0012 | -0.0000 | [-0.0030, +0.0060] | 25% | inconclusive |
-| target_learnability | +0.0004 | +0.0000 | [-0.0029, +0.0037] | 42% | inconclusive |
+| source_learning | +0.0022 | +0.0000 | [-0.0016, +0.0074] | 25% | inconclusive |
+| target_learnability | +0.0001 | -0.0000 | [-0.0029, +0.0031] | 33% | inconclusive |
 
 ## Validity Ladder
 
 | step | metric | mean | median | 95% CI | seeds positive | verdict |
 |---|---|---|---|---|---|---|
 | 1. memory mechanism gain (default - naive on ball) | +0.1581 | +0.1686 | [+0.1422, +0.1741] | 100% | positive |
-| 2. source learning (food_trained - default on food val) | +0.0012 | -0.0000 | [-0.0030, +0.0060] | 25% | inconclusive |
-| 3. target learnability (ball_trained - default on ball) | +0.0004 | +0.0000 | [-0.0029, +0.0037] | 42% | inconclusive |
-| 4. zero-shot transfer (food_trained - default on ball) | -0.0008 | +0.0007 | [-0.0092, +0.0060] | 50% | inconclusive |
-| 5. selection-specific transfer (food_trained - neutral) | +0.0040 | +0.0028 | [-0.0036, +0.0109] | 75% | inconclusive |
+| 2. source learning (food_trained - default on food val) | +0.0022 | +0.0000 | [-0.0016, +0.0074] | 25% | inconclusive |
+| 3. target learnability (ball_trained - default on ball) | +0.0001 | -0.0000 | [-0.0029, +0.0031] | 33% | inconclusive |
+| 4. zero-shot transfer (food_trained - default on ball) | +0.0003 | +0.0000 | [-0.0036, +0.0046] | 42% | inconclusive |
+| 5. selection-specific transfer (food_trained - neutral) | +0.0131 | +0.0110 | [+0.0079, +0.0189] | 92% | positive |
 
 ## Evolved Genomes (Parameter Drift)
 
 | Parameter | Founder | Food-Trained (Mean ± SD) | Ball-Trained (Mean ± SD) |
 |---|---|---|---|
-| memory_duration | 90.0000 | 143.4130 ± 73.1007 | 133.1773 ± 67.2187 |
-| confidence_decay | 0.0200 | 0.0224 ± 0.0229 | 0.0272 ± 0.0263 |
-| switch_threshold | 1.4000 | 1.8066 ± 0.6251 | 1.5129 ± 0.4605 |
-| commitment_strength | 0.5000 | 0.5508 ± 0.3053 | 0.4788 ± 0.2316 |
-| motion_extrapolation_duration | 30.0000 | 59.0143 ± 32.5283 | 53.8627 ± 27.1948 |
+| memory_duration | 90.0000 | 127.3302 ± 64.4733 | 137.5377 ± 78.4214 |
+| confidence_decay | 0.0200 | 0.0215 ± 0.0215 | 0.0205 ± 0.0207 |
+| switch_threshold | 1.4000 | 1.6890 ± 0.4835 | 1.4740 ± 0.5904 |
+| commitment_strength | 0.5000 | 0.5386 ± 0.2118 | 0.4744 ± 0.2696 |
+| motion_extrapolation_duration | 30.0000 | 51.5135 ± 27.7852 | 52.7604 ± 27.1205 |
+| mutation_rate | 1.0000 | 1.1174 ± 1.0441 | 1.5131 ± 1.3399 |
+| mutation_strength | 1.0000 | 1.2871 ± 1.1437 | 1.3161 ± 1.0736 |
 
 ## Per-family effects (food_trained - default)
 
 | ball family | mean | median | 95% CI | seeds positive | verdict |
 |---|---|---|---|---|---|
-| bouncing | +0.0036 | +0.0000 | [-0.0107, +0.0215] | 25% | inconclusive |
-| decelerating | -0.0027 | -0.0005 | [-0.0091, +0.0017] | 25% | inconclusive |
-| sudden_kick_with_decoy | +0.0002 | +0.0000 | [-0.0193, +0.0154] | 25% | inconclusive |
-| swerve | -0.0044 | +0.0000 | [-0.0104, +0.0006] | 33% | inconclusive |
+| bouncing | +0.0018 | +0.0000 | [-0.0110, +0.0175] | 33% | inconclusive |
+| decelerating | -0.0028 | -0.0010 | [-0.0056, -0.0004] | 8% | negative |
+| sudden_kick_with_decoy | +0.0039 | +0.0000 | [+0.0006, +0.0090] | 33% | positive |
+| swerve | -0.0016 | +0.0000 | [-0.0049, +0.0012] | 33% | inconclusive |
 
 ## Adaptation
 
 Reference established on 2 of 12 seeds.
-Where established, adaptation acceleration (default - food, generations): mean +0.0, median +0.0, 50% of established seeds positive.
+Where established, adaptation acceleration (default - food, generations): mean -5.5, median -5.5, 0% of established seeds positive.
