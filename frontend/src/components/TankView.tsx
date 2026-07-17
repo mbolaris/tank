@@ -8,7 +8,7 @@ import {
     type ChangeEvent,
     type ReactNode,
 } from 'react';
-import { useWebSocket, type ConnectionStatus } from '../hooks/useWebSocket';
+import { useWebSocket } from '../hooks/useWebSocket';
 import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/types';
 import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
@@ -18,12 +18,13 @@ import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
-import { WatchModeToggle } from './WatchModeToggle';
+import { CanvasOverlays } from './CanvasOverlays';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
 import { useLiveEntities } from '../hooks/useLiveEntities';
+import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
 import { PlantIcon } from './ui';
 import styles from './TankView.module.css';
 
@@ -55,12 +56,6 @@ const TankGeneticsTab = lazy(() =>
 const TankTrendsTab = lazy(() =>
     import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
 );
-
-const CONNECTION_STATUS_DISPLAY: Record<ConnectionStatus, { label: string; color: string }> = {
-    live: { label: 'LIVE', color: 'var(--color-success)' },
-    connecting: { label: 'CONNECTING', color: 'var(--color-primary)' },
-    reconnecting: { label: 'RECONNECTING', color: 'var(--color-warning)' },
-};
 
 export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
@@ -141,6 +136,10 @@ export function TankView({ worldId }: TankViewProps) {
     const openTrends = useCallback(() => {
         setWatchMode(false);
         showOnly('trends');
+    }, [showOnly]);
+    const openBoard = useCallback(() => {
+        setWatchMode(false);
+        showOnly('insights');
     }, [showOnly]);
     const handleBuildPlace = (x: number, y: number) => {
         if (!buildKind) return;
@@ -451,33 +450,15 @@ export function TankView({ worldId }: TankViewProps) {
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
-                    <div className="canvas-glow" aria-hidden />
-                    <div className="canvas-hud">
-                        <div className="hud-group">
-                            <div className="hud-item">
-                                <span
-                                    className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
-                                    style={{
-                                        width: 6,
-                                        height: 6,
-                                        borderRadius: '50%',
-                                        background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
-                                    }}
-                                />
-                                {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
-                            </div>
-                        </div>
-                        <div className="hud-group">
-                            <WatchModeToggle active={watchMode} onToggle={() => setWatchMode((w) => !w)} />
-                        </div>
-                    </div>
-                    {watchMode && (
-                        <EvolutionHealthReadout
-                            compact
-                            history={state?.metrics_history ?? null}
-                            onOpenTrends={openTrends}
-                        />
-                    )}
+                    <CanvasOverlays
+                        connectionStatus={connectionStatus}
+                        watchMode={watchMode}
+                        onToggleWatchMode={() => setWatchMode((w) => !w)}
+                        worldId={effectiveWorldId}
+                        onOpenBoard={openBoard}
+                        metricsHistory={state?.metrics_history ?? null}
+                        onOpenTrends={openTrends}
+                    />
                 </div>
                 {!watchMode && (
                     <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={openTrends} />

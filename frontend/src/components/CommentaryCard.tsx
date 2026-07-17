@@ -7,33 +7,16 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { CommentaryItem, CommentarySeverity, CommentaryTopic } from '../types/simulation';
+import type { CommentaryItem } from '../types/simulation';
+import { TOPIC_META, severityStyle } from '../utils/commentaryDisplay';
 import styles from './CommentaryCard.module.css';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const SEVERITY: Record<CommentarySeverity, { icon: string; color: string }> = {
-    info: { icon: '💬', color: '#94a3b8' },
-    insight: { icon: '🔬', color: '#3b82f6' },
-    warning: { icon: '⚠️', color: '#fbbf24' },
-    concern: { icon: '🚨', color: '#ef4444' },
-};
-
-const TOPIC_META: Record<CommentaryTopic, { icon: string; label: string }> = {
-    ecosystem: { icon: '🌱', label: 'Ecosystem' },
-    substrate: { icon: '🧬', label: 'Substrate' },
-    environment: { icon: '🪸', label: 'Environment' },
-    ui: { icon: '🖥️', label: 'UI' },
-};
-
 /** The curated palette - must match backend REACTION_EMOJI. */
 const REACTION_PALETTE = ['👍', '👎', '❤️', '😂', '🎉', '💡', '👀', '⚠️'];
-
-function severityStyle(severity: CommentarySeverity) {
-    return SEVERITY[severity] ?? SEVERITY.info;
-}
 
 function timeAgo(epochSeconds: number): string {
     const secs = Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
