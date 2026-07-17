@@ -14,6 +14,24 @@ interface CanvasProps {
     state: SimulationUpdate | null;
     width?: number;
     height?: number;
+    /**
+     * When true, the canvas measures its parent container and sizes its
+     * backing store to (container size x devicePixelRatio) instead of a
+     * fixed width/height, so it stays crisp at any display size. The
+     * width/height props still seed the initial render before the first
+     * measurement. Off by default so fixed-size callers (e.g. the small
+     * TankThumbnail preview) are unaffected.
+     */
+    responsive?: boolean;
+    /**
+     * Opaque value to re-measure the container on, in addition to organic
+     * resizes. ResizeObserver alone can be slow (or in some environments
+     * never fire) for a size change caused by a CSS class toggle rather
+     * than the window itself resizing, so callers whose layout can change
+     * discontinuously (e.g. entering/exiting a fullscreen mode) should pass
+     * something that changes when that happens, such as the mode flag.
+     */
+    layoutSignal?: unknown;
     onEntityClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
     /** Selected fish's pursuit-module vectors, drawn for it only. */
@@ -39,13 +57,55 @@ interface CanvasProps {
 // Tank world dimensions (from core/constants.py)
 const WORLD_WIDTH = 1088;
 const WORLD_HEIGHT = 612;
-export function Canvas({ state, width = 800, height = 600, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, responsive = false, layoutSignal, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
     const [imagesLoaded, setImagesLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const followCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const draggingObjectIdRef = useRef<number | null>(null);
+
+    // Backing-store (device pixel) size plus the CSS display size. In
+    // non-responsive mode these stay equal to the width/height props,
+    // matching the previous fixed-size behavior exactly.
+    const [renderSize, setRenderSize] = useState({
+        bufferWidth: width,
+        bufferHeight: height,
+        cssWidth: width,
+        cssHeight: height,
+    });
+
+    useEffect(() => {
+        if (!responsive) {
+            setRenderSize({ bufferWidth: width, bufferHeight: height, cssWidth: width, cssHeight: height });
+            return;
+        }
+        const container = containerRef.current;
+        if (!container) return;
+
+        const recompute = () => {
+            const rect = container.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+            const scale = Math.min(rect.width / WORLD_WIDTH, rect.height / WORLD_HEIGHT);
+            const cssWidth = WORLD_WIDTH * scale;
+            const cssHeight = WORLD_HEIGHT * scale;
+            const dpr = window.devicePixelRatio || 1;
+            setRenderSize({
+                bufferWidth: Math.round(cssWidth * dpr),
+                bufferHeight: Math.round(cssHeight * dpr),
+                cssWidth,
+                cssHeight,
+            });
+        };
+
+        recompute();
+        const observer = new ResizeObserver(recompute);
+        observer.observe(container);
+        return () => observer.disconnect();
+        // layoutSignal forces a re-measure for layout changes (e.g. a CSS
+        // mode toggle) that don't reliably reach ResizeObserver.
+    }, [responsive, width, height, layoutSignal]);
 
     // Use ref to track if error has been set to avoid repeated setState calls
     const errorSetRef = useRef(false);
@@ -78,9 +138,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             clickY = viewport.sourceY + clickY / FOLLOW_ZOOM;
         }
 
-        // Account for world-to-canvas scaling
-        const worldScaleX = WORLD_WIDTH / width;
-        const worldScaleY = WORLD_HEIGHT / height;
+        // Account for world-to-canvas scaling. Derived from the canvas's
+        // actual backing-store size (not the width/height props), so this
+        // stays correct whether or not `responsive` has resized the buffer.
+        const worldScaleX = WORLD_WIDTH / canvas.width;
+        const worldScaleY = WORLD_HEIGHT / canvas.height;
         const worldX = clickX * worldScaleX;
         const worldY = clickY * worldScaleY;
 
@@ -390,11 +452,11 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
         );
     }
 
-    return (
+    const canvasEl = (
         <canvas
             ref={canvasRef}
-            width={width}
-            height={height}
+            width={renderSize.bufferWidth}
+            height={renderSize.bufferHeight}
             className="tank-canvas"
             onClick={handleCanvasClick}
             onMouseDown={handleCanvasMouseDown}
@@ -402,8 +464,20 @@ export function Canvas({ state, width = 800, height = 600, onEntityClick, select
             onMouseMove={handleCanvasPointerMove}
             style={{
                 cursor: buildMode ? 'crosshair' : onEntityClick ? 'pointer' : 'default',
+                ...(responsive ? { width: renderSize.cssWidth, height: renderSize.cssHeight } : {}),
                 ...style,
             }}
         />
+    );
+
+    if (!responsive) return canvasEl;
+
+    return (
+        <div
+            ref={containerRef}
+            style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+            {canvasEl}
+        </div>
     );
 }

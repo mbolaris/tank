@@ -27,6 +27,12 @@
     min-width: 0;
 }
 
+/* Watch Mode: let the tank claim the viewport instead of the content column. */
+.sceneWorkspaceWatch { max-width: none; height: calc(100vh - 150px); }
+
+/* Compound selector outranks the global .canvas-wrapper max-width regardless of bundling order. */
+.canvasWrapperWatch:global(.canvas-wrapper) { max-width: none; height: 100%; }
+
 /* Stats HUD bar */
 .statsBar {
     margin-bottom: 20px;

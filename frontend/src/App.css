@@ -34,6 +34,11 @@
     position: relative;
     width: 100%;
     max-width: 1200px;
+    /* Gives the wrapper a definite height from its width alone (matches the
+       simulation's 1088x612 world) so the responsive canvas inside always has
+       a real box to measure and fit into, with no dependency on canvas
+       content for sizing. Watch Mode overrides height explicitly instead. */
+    aspect-ratio: 1088 / 612;
     padding: 4px;
     box-sizing: border-box;
     /* Slim border for the "tank glass" effect */

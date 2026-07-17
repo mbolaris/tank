@@ -403,12 +403,12 @@ export function TankView({ worldId }: TankViewProps) {
             </>}
 
             {/* Always-visible Canvas */}
-            <div className={styles.sceneWorkspace}>
-                <div className="canvas-wrapper">
+            <div className={`${styles.sceneWorkspace} ${watchMode ? styles.sceneWorkspaceWatch : ''}`}>
+                <div className={`canvas-wrapper${watchMode ? ` ${styles.canvasWrapperWatch}` : ''}`}>
                     <Canvas
                         state={state}
-                        width={1088}
-                        height={612}
+                        width={1088} height={612} responsive
+                        layoutSignal={watchMode}
                         onEntityClick={handleBuildEntityClick}
                         buildMode={buildMode}
                         buildPlacementActive={buildKind !== null}
