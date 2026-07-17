@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from core.entities.fish import Fish
     from core.entities.visual_state import FishVisualState
     from core.genetics import Genome
+    from core.genetics.reproduction import ReproductionMutationContext
     from core.math_utils import Vector2
     from core.movement_strategy import MovementStrategy
     from core.world import World
@@ -62,20 +63,53 @@ class ReproductionMixin:
     pos: Vector2
     visual_state: FishVisualState
 
+    @property
+    def reproduction_cooldown(self) -> int:
+        """Frames until this fish can reproduce again (Reproducible protocol)."""
+        return self._reproduction_component.reproduction_cooldown
+
     def can_reproduce(self) -> bool:
         """Check if fish can reproduce (delegates to ReproductionComponent)."""
+        fish = cast("Fish", self)
         return self._reproduction_component.can_reproduce(
             self._lifecycle_component.life_stage,
             self.energy,
-            self.max_energy,  # type: ignore[attr-defined]  # provided by EnergyManagementMixin
+            fish.max_energy,
         )
 
     def try_mate(self, other: Fish) -> bool:
-        """Attempt to mate with another fish.
+        """Return whether this fish can standard-mate with another fish.
 
-        Standard mating is disabled; fish only reproduce sexually after poker games.
+        Offspring creation is centralized in ReproductionService; this method
+        preserves the protocol-facing eligibility check.
         """
-        return False
+        from core.config.fish import STANDARD_MATING_DISTANCE, STANDARD_MATING_MIN_ENERGY_RATIO
+        from core.entities.base import LifeStage
+
+        fish = cast("Fish", self)
+        if other is fish or other.species != fish.species:
+            return False
+        if fish.is_dead():
+            return False
+        if hasattr(other, "is_dead") and other.is_dead():
+            return False
+        if fish.life_stage != LifeStage.ADULT or other.life_stage != LifeStage.ADULT:
+            return False
+        if (
+            fish._reproduction_component.reproduction_cooldown > 0
+            or other._reproduction_component.reproduction_cooldown > 0
+        ):
+            return False
+        self_max_energy = fish.max_energy
+        other_max_energy = float(other.max_energy)
+        if fish.energy < self_max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+            return False
+        if other.energy < other_max_energy * STANDARD_MATING_MIN_ENERGY_RATIO:
+            return False
+
+        dx = (fish.pos.x + fish.width * 0.5) - (other.pos.x + other.width * 0.5)
+        dy = (fish.pos.y + fish.height * 0.5) - (other.pos.y + other.height * 0.5)
+        return bool(dx * dx + dy * dy <= STANDARD_MATING_DISTANCE * STANDARD_MATING_DISTANCE)
 
     def update_reproduction(self) -> Fish | None:
         """Update reproduction state and potentially create offspring.
@@ -91,7 +125,9 @@ class ReproductionMixin:
         self._reproduction_component.update_cooldown()
         return ReproductionService.maybe_create_banked_offspring(cast("Fish", self))
 
-    def _create_asexual_offspring(self) -> Fish | None:
+    def _create_asexual_offspring(
+        self, mutation_context: ReproductionMutationContext | None = None
+    ) -> Fish | None:
         """Create an offspring through asexual reproduction.
 
         Called when conditions are met for instant asexual reproduction.
@@ -103,4 +139,6 @@ class ReproductionMixin:
 
         from core.reproduction.reproduction_service import ReproductionService
 
-        return ReproductionService.create_asexual_offspring(cast("Fish", self))
+        return ReproductionService.create_asexual_offspring(
+            cast("Fish", self), mutation_context=mutation_context
+        )

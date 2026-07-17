@@ -1,33 +1,16 @@
-"""Food-seeking behavior algorithms."""
+"""Food-seeking behavior algorithms.
 
-from core.algorithms.food_seeking.aggressive import AggressiveHunter
-from core.algorithms.food_seeking.ambush import AmbushFeeder
-from core.algorithms.food_seeking.bottom import BottomFeeder
-from core.algorithms.food_seeking.circular import CircularHunter
+ADR-006 stage 2: 11 deprecated monolithic food-seekers removed.
+Only the 3 winners retained (beat the composable baseline on every seed).
+See docs/adr/006-deprecate-monolithic-food-seekers.md.
+"""
+
 from core.algorithms.food_seeking.cooperative import CooperativeForager
-from core.algorithms.food_seeking.energy_aware import EnergyAwareFoodSeeker
-from core.algorithms.food_seeking.greedy import GreedyFoodSeeker
-from core.algorithms.food_seeking.memory import FoodMemorySeeker
 from core.algorithms.food_seeking.opportunistic import OpportunisticFeeder
-from core.algorithms.food_seeking.patrol import PatrolFeeder
 from core.algorithms.food_seeking.quality import FoodQualityOptimizer
-from core.algorithms.food_seeking.spiral import SpiralForager
-from core.algorithms.food_seeking.surface import SurfaceSkimmer
-from core.algorithms.food_seeking.zigzag import ZigZagForager
 
 __all__ = [
-    "AggressiveHunter",
-    "AmbushFeeder",
-    "BottomFeeder",
-    "CircularHunter",
     "CooperativeForager",
-    "EnergyAwareFoodSeeker",
-    "FoodMemorySeeker",
     "FoodQualityOptimizer",
-    "GreedyFoodSeeker",
     "OpportunisticFeeder",
-    "PatrolFeeder",
-    "SpiralForager",
-    "SurfaceSkimmer",
-    "ZigZagForager",
 ]

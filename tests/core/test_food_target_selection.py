@@ -9,25 +9,28 @@ foraging-contention diagnosis in docs/IMPROVEMENT_PROPOSALS.md).
 from unittest.mock import MagicMock
 
 from core.algorithms.composable import food_selection
-from core.algorithms.composable.food_selection import select_food_target
+from core.algorithms.composable.food_selection import score_food_candidates, select_food_target
 from core.config.food import FOOD_QUALITY_DISTANCE_WEIGHT
 from core.math_utils import Vector2
 
 
-def _food(x: float, y: float, energy: float) -> MagicMock:
+def _food(x: float, y: float, energy: float, vel: tuple[float, float] = (0.0, 0.0)) -> MagicMock:
     food = MagicMock()
     food.pos = Vector2(x, y)
+    food.vel = Vector2(*vel)
     food.get_energy_value.return_value = energy
     return food
 
 
-def _fish_in(foods: list) -> MagicMock:
+def _fish_in(foods: list, energy_ratio: float | None = None) -> MagicMock:
     env = MagicMock()
     env.get_detection_modifier.return_value = 1.0
     env.nearby_resources.return_value = foods
     fish = MagicMock()
     fish.pos = Vector2(0.0, 0.0)
     fish.environment = env
+    if energy_ratio is not None:
+        fish.get_energy_ratio.return_value = energy_ratio
     return fish
 
 
@@ -57,6 +60,37 @@ def test_ignores_food_beyond_detection_range():
     assert select_food_target(_fish_in([too_far])) is None
 
 
+def test_safe_energy_limits_wasteful_long_chases():
+    """Well-fed fish ignore rich food beyond the safe chase cap."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(200.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.50)) is near_poor
+
+
+def test_low_energy_extends_chase_distance():
+    """Hungry fish can pursue farther food when its value justifies the trip."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(250.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.20)) is far_rich
+
+
+def test_recovery_band_uses_low_chase_distance_until_safe():
+    """Fish between low and safe energy still get enough reach to recover."""
+    near_poor = _food(100.0, 0.0, 65.0)
+    far_rich = _food(250.0, 0.0, 300.0)
+
+    assert select_food_target(_fish_in([near_poor, far_rich], energy_ratio=0.30)) is far_rich
+
+
+def test_critical_energy_preserves_full_detection_reach():
+    """Critical fish keep status-quo reach while the critical cap is A/B tested."""
+    far_food = _food(500.0, 0.0, 100.0)
+
+    assert select_food_target(_fish_in([far_food], energy_ratio=0.05)) is far_food
+
+
 def test_tie_break_is_deterministic_and_order_independent():
     """Equal-desirability foods resolve to the lowest (pos.x, pos.y), regardless
     of the order the spatial query returns them in."""
@@ -83,3 +117,47 @@ def test_weight_zero_picks_globally_richest_in_range():
     assert target is far_rich
     # Guard against accidentally shipping weight=0 (which disables proximity).
     assert FOOD_QUALITY_DISTANCE_WEIGHT > 0.0
+
+
+def test_score_food_candidates_returns_every_in_range_item_not_just_the_winner():
+    """Unlike select_food_target, the candidate list exposes every option so
+    callers (e.g. target-memory) can compare more than just the winner."""
+    near_poor = _food(10.0, 0.0, 65.0)
+    far_rich = _food(30.0, 0.0, 120.0)
+
+    candidates = score_food_candidates(_fish_in([near_poor, far_rich]))
+
+    assert {c.food for c in candidates} == {near_poor, far_rich}
+    assert len(candidates) == 2
+
+
+def test_score_food_candidates_score_matches_select_food_target_winner():
+    """score_food_candidates and select_food_target must never disagree on
+    what counts as the best candidate - select_food_target is a thin wrapper
+    over this list, not an independent computation."""
+    near_poor = _food(10.0, 0.0, 65.0)
+    far_rich = _food(30.0, 0.0, 120.0)
+    fish = _fish_in([near_poor, far_rich])
+
+    candidates = score_food_candidates(fish)
+    winner = max(candidates, key=lambda c: c.score)
+
+    assert winner.food is select_food_target(fish)
+
+
+def test_score_food_candidates_excludes_out_of_range_food():
+    too_far = _food(600.0, 0.0, 1000.0)
+    assert score_food_candidates(_fish_in([too_far])) == []
+
+
+def test_score_food_candidates_returns_empty_list_when_none_detected():
+    assert score_food_candidates(_fish_in([])) == []
+
+
+def test_score_food_candidates_reports_position_and_velocity():
+    moving = _food(15.0, 0.0, 80.0, vel=(1.5, -2.0))
+
+    (candidate,) = score_food_candidates(_fish_in([moving]))
+
+    assert candidate.position == (15.0, 0.0)
+    assert candidate.velocity == (1.5, -2.0)

@@ -272,6 +272,34 @@ full relocation needs inversion of control (the world/pack *registers* its
 considerations into the arbiter instead of the generic factory naming them);
 deferred until that seam exists. Tracked in `docs/ARCHITECTURE_REVIEW.md`.
 
+## Follow-up: graph consideration yields on leisure-tier output (shipped)
+
+`GraphBehaviorConsideration` sat above `BallPursuitConsideration` and fired on *any*
+nonzero graph output (`allow_zero=False`), so a graph-carrying fish's food or cohesion
+output unconditionally blocked soccer - the exact "leisure structurally outranks
+survival-adjacent leisure" smell this ADR fixed for the ball/composable-behavior seam,
+reintroduced at a new seam. `core.behavior.tank_adapter.classify_foraging_intent` now
+classifies the graph's own pending output (threat / food / cohesion, read from the same
+observation values plus the graph's own mutable `urgency.threshold` parameter - a pure
+function, no RNG involved) and `GraphBehaviorConsideration.intent()` yields (returns
+`None`) on a `COHESION` classification, letting `BallPursuitConsideration` be evaluated
+next. Threat and food classifications are unchanged - still unconditional top priority.
+
+Same determinism reasoning as step 2 above applies and was re-verified: because the
+classifier consumes no RNG, this only changes *which consideration's* RNG gets drawn on
+a given frame (ball's roll becomes reachable when the graph yields), not the sequence of
+draws for any fish where the graph doesn't yield. `graph_behavior_enabled` defaults
+`False` and no champion/benchmark config enables it, so every existing seed-42/7/123
+champion trajectory is unaffected; this only changes behavior for the opt-in graph
+experiment.
+
+The same classifier is now the single source of truth for the inspector's Behavior Lens
+(`backend/runner/hooks/entity_details_mixin.py::_graph_behavior_lens`), which previously
+re-derived a similar-looking classification independently (and could disagree with it -
+its `intent` label branched on `has_target` where `_graph_contributions` separately and
+correctly branched on `energy_ratio` vs. a hardcoded `0.35` literal, rather than the
+graph's actual, mutable `urgency.threshold`).
+
 ## Related
 - [ADR-003: Phase-Based Execution](003-phase-based-execution.md)
 - [ADR-007: Error-Handling Strategy](007-error-handling-strategy.md)

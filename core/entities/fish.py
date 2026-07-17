@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from random import Random
+from typing import TYPE_CHECKING, TypedDict, Any
 
 from core.config.fish import (
     ENERGY_MAX_DEFAULT,
@@ -28,23 +30,32 @@ from core.util.stable_hash import stable_algorithm_id
 
 logger = logging.getLogger(__name__)
 
+MovementPolicyOverride = Callable[[dict[str, object], Random], tuple[float, float]]
+
+
+class SoccerEffectState(TypedDict):
+    type: str
+    amount: float
+    timer: int
+
+
 if TYPE_CHECKING:
+    from core.behavior.target_memory import TargetMemoryDecision, TargetMemoryState
     from core.ecosystem import EcosystemManager
     from core.entities.resources import Food
     from core.fish.poker_stats_component import FishPokerStats
     from core.movement_strategy import MovementStrategy
+    from core.poker.strategy.implementations import PokerStrategyAlgorithm
     from core.world import World
-
-# Runtime imports (moved from local scopes)
 
 from core.agent_memory import AgentMemorySystem, MemoryType
 from core.agents.components.lifecycle_component import LifecycleComponent
 from core.agents.components.reproduction_component import ReproductionComponent
+from core.behavior.feature_flags import install_default_behavior_graph_features
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
 from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
 from core.genetics import Genome
-from core.genetics.trait import GeneticTrait
 from core.telemetry.events import BirthEvent, FoodEatenEvent
 
 
@@ -123,47 +134,34 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             rng = require_rng(environment, "Fish.__init__.genome")
             self.genome = Genome.random(rng=rng)
 
-        # Ensure poker strategy is initialized (self-healing for older saves/migrations)
-        if (
-            self.genome.behavioral.poker_strategy is None
-            or self.genome.behavioral.poker_strategy.value is None
-        ):
-            from core.poker.strategy.implementations import get_random_poker_strategy
-
-            rng = require_rng(environment, "Fish.__init__.poker_strategy")
-            strategy = get_random_poker_strategy(rng=rng)
-
-            if self.genome.behavioral.poker_strategy is None:
-                self.genome.behavioral.poker_strategy = GeneticTrait(strategy)
-            else:
-                self.genome.behavioral.poker_strategy.value = strategy
-
-        # Ensure soccer policy is set when soccer is enabled
+        # Ensure the genome satisfies its invariants (self-healing for older
+        # saves/migrations or hand-built genomes). The repair logic itself
+        # lives on Genome (see Genome.normalize()) so every construction path
+        # gets the same guarantee instead of re-implementing it here.
         _sim_config = getattr(environment, "simulation_config", None)
         _soccer_cfg = getattr(_sim_config, "soccer", None) if _sim_config else None
-        if getattr(_soccer_cfg, "enabled", False):
-            _soccer_trait = self.genome.behavioral.soccer_policy_id
-            if _soccer_trait is None or _soccer_trait.value is None:
-                _pool = getattr(environment, "genome_code_pool", None)
-                if _pool is not None:
-                    from core.genetics.code_policy_traits import SOCCER_POLICY
-
-                    _rng = require_rng(environment, "Fish.__init__.soccer_policy")
-                    _default_id = _pool.get_default(SOCCER_POLICY)
-                    if _default_id:
-                        self.genome.behavioral.soccer_policy_id = GeneticTrait(_default_id)
-                        self.genome.behavioral.soccer_policy_params = GeneticTrait({})
-                    else:
-                        # No default; pick random from pool
-                        _available = _pool.get_components_by_kind(SOCCER_POLICY)
-                        if _available:
-                            _chosen = _rng.choice(_available)
-                            self.genome.behavioral.soccer_policy_id = GeneticTrait(_chosen)
-                            self.genome.behavioral.soccer_policy_params = GeneticTrait({})
+        self.genome.normalize(
+            rng=require_rng(environment, "Fish.__init__.genome_normalize"),
+            code_pool=getattr(environment, "genome_code_pool", None),
+            soccer_enabled=getattr(_soccer_cfg, "enabled", False),
+        )
+        install_default_behavior_graph_features(self.genome, _sim_config)
 
         self.generation: int = generation
         self.species: str = species
+        # Taxonomy fields (observational only)
+        self.taxon_id: str = ""
+        self.common_name: str = ""
+        self.scientific_name: str = ""
+        self.strain_id: str | None = None
+        self.species_confidence: str = ""
+        self.origin_tank_id: str | None = None
+        self.type_specimen_id: int | None = None
+
         self.team: str | None = team  # Team affiliation ('A' or 'B' for soccer mode)
+        self.tank_name: str | None = getattr(environment, "tank_name", None)
+        self.tank_id: str | None = getattr(environment, "tank_id", None)
+        self.offspring_count: int = 0
         self.poker_stats: FishPokerStats | None = None
 
         # OPTIMIZATION: Cache for is_dead() result to avoid repeated checks
@@ -227,13 +225,20 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         if initial_credits > 0:
             self._reproduction_component.repro_credits = initial_credits
 
-        # NEW: Enhanced memory system
-
         self.memory_system = AgentMemorySystem(
             max_memories_per_type=FISH_MEMORY_MAX_PER_TYPE,
             decay_rate=FISH_MEMORY_DECAY_RATE,
             learning_rate=FISH_MEMORY_LEARNING_RATE,
         )
+        self.target_memory_state: dict[str, TargetMemoryState] = {}
+        # Latest decision per domain, advanced exactly once per frame by
+        # core.behavior.target_memory_controller.advance_target_memory (called
+        # from update() below) - build_tank_behavior_observation and
+        # ball_pursuit_velocity only ever read these, never recompute them.
+        self.last_target_memory_decisions: dict[str, TargetMemoryDecision | None] = {}
+        self.target_memory_updated_frame: int | None = None
+        self.last_target_memory_event: dict[str, Any] | None = None
+        self.last_target_memory_events: dict[str, dict[str, Any]] = {}
 
         # ID tracking
         self.ecosystem: EcosystemManager | None = ecosystem
@@ -250,7 +255,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # Size is now managed by lifecycle component, but keep reference for rendering
         self.base_width: int = FISH_BASE_WIDTH  # Will be updated by sprite adapter
         self.base_height: int = FISH_BASE_HEIGHT
-        self.soccer_effect_state: dict[str, Any] | None = None
+        self.soccer_effect_state: SoccerEffectState | None = None
 
         # Behavior execution - coordinates movement, turn costs, and cooldowns
         self._behavior_executor = BehaviorExecutor(movement_strategy)
@@ -284,6 +289,7 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
 
         # Store parent ID for delayed registration
         self.parent_id = parent_id
+        self.parent_pursuit_params: dict[str, float] | None = None
 
         self.team = team
 
@@ -294,15 +300,15 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         self.visual_state = FishVisualState()
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
-        self._movement_policy: Any | None = None
+        self._movement_policy: MovementPolicyOverride | None = None
 
     @property
-    def movement_policy(self) -> Any | None:
+    def movement_policy(self) -> MovementPolicyOverride | None:
         """Get the override movement policy, if any."""
         return self._movement_policy
 
     @movement_policy.setter
-    def movement_policy(self, policy: Any | None) -> None:
+    def movement_policy(self, policy: MovementPolicyOverride | None) -> None:
         """Set an override movement policy.
 
         If set, this policy will be used instead of the genome-based behavior.
@@ -417,10 +423,10 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             Aggression value for poker decisions (0.0-1.0)
         """
         if hasattr(self.genome.behavioral, "aggression"):
-            return self.genome.behavioral.aggression.value
+            return float(self.genome.behavioral.aggression.value)
         return 0.5
 
-    def get_poker_strategy(self):
+    def get_poker_strategy(self) -> PokerStrategyAlgorithm | None:
         """Get poker strategy for this fish (implements PokerPlayer protocol).
 
         Returns:
@@ -470,6 +476,12 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         """
         if self.ecosystem is None:
             return
+
+        try:
+            self.ecosystem.taxonomy.register_birth(self)
+        except AttributeError:
+            # Lightweight test ecosystems predate observational taxonomy.
+            pass
 
         # Get behavior ID from behavior for tracking
         algorithm_id = None
@@ -686,6 +698,13 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         # Age - managed by LifecycleComponent
         self._lifecycle_component.increment_age()
         age = self._lifecycle_component.age  # Cache for use below
+        if age >= self._lifecycle_component.max_age:
+            from core.constants import DEATH_REASON_OLD_AGE
+            from core.state_machine import EntityState
+
+            if self.state.state == EntityState.ACTIVE:
+                self.state.transition(EntityState.DEAD, reason=DEATH_REASON_OLD_AGE)
+            self._cached_is_dead = True
 
         # Performance: Update enhanced memory system less frequently (every 10 frames)
         if age % 10 == 0:
@@ -709,6 +728,14 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
             # but we could move that here.
             # Keeping strictly to refactoring return type for now.
             return EntityUpdateResult()
+
+        # Advance target memory (food/ball) exactly once for this frame, before
+        # movement arbitration runs - see target_memory_controller's docstring
+        # for why this must happen here rather than inside the adapters that
+        # read it.
+        from core.behavior.target_memory_controller import advance_target_memory
+
+        advance_target_memory(self, frame_count)
 
         # Execute behavior (movement, turn costs, poker cooldown)
         # Delegates to BehaviorExecutor for cleaner separation
@@ -739,6 +766,13 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         potential_energy = food.take_bite(effective_bite_size)
         # Apply energy immediately (modify_energy handles overflow banking)
         actual_energy = self.modify_energy(potential_energy, source="ate_food")
+
+        if food.is_fully_consumed():
+            from core.behavior.target_memory import invalidate_target_memory, TargetId
+
+            food_id = food.get_entity_id()
+            if food_id is not None:
+                invalidate_target_memory(self, "food", TargetId("food", food_id))
 
         # Record food location in memory (MemoryType imported at module level)
         self.memory_system.add_memory(MemoryType.FOOD_LOCATION, food.pos)

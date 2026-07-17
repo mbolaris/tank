@@ -9,7 +9,21 @@ logger = logging.getLogger(__name__)
 
 # Bumped to 2 when per-trait means ("traits") were added to each sample so the
 # running UI/API can show directional selection over time, not just churn.
-SCHEMA_VERSION = 2
+# Bumped to 3 when boot_id was added to each sample so evolution_report.py can
+# detect code-epoch mixing across server restarts (Proposal #27).
+# Bumped to 4 when cumulative death_causes were added to track starvation trends (Proposal #2).
+SCHEMA_VERSION = 4
+
+# ---------------------------------------------------------------------------
+# Boot-ID counter
+# ---------------------------------------------------------------------------
+# Each MetricsHistory instance is created once per server start (inside the
+# AppContext / WorldRunner).  We bump a module-level counter at construction
+# time so every sample recorded in *this process* shares the same boot_id,
+# and samples from a previous process have a *different* id.
+# This is intentionally process-local: it resets to 0 whenever the module is
+# imported freshly (i.e. on a new server start).
+_BOOT_ID_COUNTER: int = 0
 
 
 def get_val(obj: Any, attr: str, default: Any = 0) -> Any:
@@ -30,6 +44,10 @@ class MetricsHistory:
         sample_interval_frames: int = 500,
         max_samples: int = 2000,
     ) -> None:
+        global _BOOT_ID_COUNTER
+        _BOOT_ID_COUNTER += 1
+        self.boot_id: int = _BOOT_ID_COUNTER
+
         self.schema_version = SCHEMA_VERSION
         self.world_id = world_id or "unknown"
         self.sample_interval_frames = sample_interval_frames
@@ -120,6 +138,7 @@ class MetricsHistory:
 
                 sample = {
                     "frame": frame,
+                    "boot_id": self.boot_id,
                     "max_generation": get_val(stats, "max_generation", 0),
                     "population": get_val(stats, "population", 0),
                     "births_total": get_val(stats, "births", 0),
@@ -140,6 +159,7 @@ class MetricsHistory:
                     },
                     "diversity_score": round(get_val(stats, "diversity_score", 0.0), 4),
                     "traits": dict(trait_means) if trait_means else {},
+                    "death_causes": dict(get_val(stats, "death_causes", {}) or {}),
                 }
 
                 self.samples.append(sample)

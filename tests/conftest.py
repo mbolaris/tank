@@ -36,6 +36,23 @@ def _register_contracts():
     register_builtin_contracts_for_tests()
 
 
+@pytest.fixture(autouse=True)
+def _reset_poker_shutdown_flag():
+    """Reset the global poker auto-evaluate shutdown flag between tests.
+
+    ``core.poker.evaluation.auto_evaluate_poker`` uses a process-global
+    ``_shutdown_requested`` flag so Ctrl+C can stop background games. Any test
+    that spins up the app (e.g. via ``TestClient``) trips ``request_shutdown``
+    in the lifespan teardown, leaving the flag set for the rest of the process -
+    which then makes later poker evaluations bail out early. Clearing it before
+    each test keeps that state from leaking across tests.
+    """
+    from core.poker.evaluation.auto_evaluate_poker import clear_shutdown
+
+    clear_shutdown()
+    yield
+
+
 @pytest.fixture
 def seeded_rng():
     """Provide a deterministic RNG for tests."""
@@ -104,3 +121,13 @@ def _force_mutation_invariants_in_tests():
     os.environ["TANK_ENFORCE_MUTATION_INVARIANTS"] = "1"
     yield
     os.environ.pop("TANK_ENFORCE_MUTATION_INVARIANTS", None)
+
+
+@pytest.fixture(autouse=True)
+def _reset_broadcast_globals():
+    """Reset global broadcast tasks and locks between tests to prevent loop pollution."""
+    from backend.broadcast import clear_broadcast_state
+
+    clear_broadcast_state()
+    yield
+    clear_broadcast_state()

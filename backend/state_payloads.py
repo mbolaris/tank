@@ -71,6 +71,7 @@ class MetricsSamplePayload:
     # Population mean of tracked heritable traits at this sample (may be empty
     # for pre-trait history or non-fish worlds). See trait_trends.py.
     traits: dict[str, float] = field(default_factory=dict)
+    death_causes: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         data = _to_dict(self)
@@ -143,6 +144,7 @@ class EntitySnapshot:
     can_hunt: bool | None = None
     # Rendering metadata hints
     render_hint: dict[str, Any] | None = None
+    taxonomy: dict[str, Any] | None = None
 
     def to_full_dict(self) -> dict[str, Any]:
         """Return the full payload used on sync frames."""
@@ -217,6 +219,9 @@ class EntitySnapshot:
             data["render_hint"] = self.render_hint
         if self.soccer_effect_state is not None:
             data["soccer_effect_state"] = self.soccer_effect_state
+
+        if self.taxonomy is not None:
+            data.update(self.taxonomy)
 
         return data
 
@@ -593,6 +598,11 @@ class PokerEventPayload:
     message: str
     is_plant: bool = False
     plant_id: int | None = None
+    # Per-fish reward detail (keys are stringified fish ids)
+    energy_deltas: dict[str, float] = field(default_factory=dict)
+    pot: float = 0.0
+    house_cut: float = 0.0
+    reproduction: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)
@@ -647,6 +657,9 @@ class PokerLeaderboardEntryPayload:
     positional_advantage: float
     recent_win_rate: float = 0.0
     skill_trend: str = "stable"
+    tank_name: str = "Unknown Tank"
+    tank_id: str = "unknown"
+    offspring_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return _to_dict(self)

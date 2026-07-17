@@ -29,7 +29,7 @@ Tank World operates as a three-layer evolutionary system. Each layer has measura
 
 ### Layer 0: In-World Evolution (Inside the Simulation)
 
-Traditional evolutionary computation. Fish compete for survival using 58 parametrizable behavior algorithms encoded in their genome:
+Traditional evolutionary computation. Fish compete for survival using parametrizable composable behaviors encoded in their genome:
 
 - Natural selection optimizes combinations of algorithms and parameters
 - Better strategies lead to more reproduction and survival
@@ -160,7 +160,7 @@ The goal: AI proposes "this simulation would be more engaging with X" and genera
 
 ### Phase 0: Foundation -- Complete
 
-- 58 parametrizable behavior algorithms with registry
+- Parametrizable behavior algorithm library with registry (later consolidated into the composable framework - see ADR-006/ADR-016)
 - Deterministic simulation with headless mode (10-300x speedup)
 - Fish tank visualization with fractal plants and predators
 - Basic AI code evolution workflow
@@ -204,13 +204,21 @@ The goal: AI proposes "this simulation would be more engaging with X" and genera
 - Reproducibility tools for exact replay
 - Publication-ready data collection
 
-### Phase 5: Distributed Compute
+### Phase 5: Distributed Compute & Federation
 
-**Goal**: Scale through entertainment.
+**Goal**: Scale through entertainment — a shared online ecosystem where anyone runs a
+tank and watches their fish evolve, improve, and interact with fish from other tanks.
+
+*Full design: [FEDERATION.md](FEDERATION.md).*
 
 - Browser-based client, no installation required
 - Multi-tank network sharing discoveries
-- Algorithm migration across the network
+- Fish/genome migration across the network via a **data-only, versioned wire
+  format** — genomes are data, never code (the composable behavior system makes this
+  natural: four enums plus a bounded parameter dict)
+- **Sealed vs Open mode**: benchmarks stay byte-for-byte reproducible; federated play
+  is non-deterministic but replayable from `seed + migration event log`
+- Cross-tank lineage and a federated Hall of Fame
 - Fair credit for compute contributions
 
 ### Phase 6: Evolving Visualization
@@ -259,6 +267,8 @@ All AI improvements grounded in simulation data. Performance metrics drive prior
 ### Entertainment as Utility
 
 Making simulations entertaining is not frivolous. Engaged users run longer experiments. Visualization reveals insights. Distributed compute needs motivation. Science communication is built into the framework.
+
+The minigames (poker, soccer) are part of this — they are the adoption engine, not scope creep. But entertainment must be *aligned* with evolution, not taxed against it: today minigames burn the overflow energy that funds reproduction, so any benchmark rewarding generation turnover implicitly selects for fish that avoid the fun. The fix is to make play net-positive for reproduction and to score engagement and ecosystem health *jointly*. See [MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md).
 
 ## How AI Agents Participate
 

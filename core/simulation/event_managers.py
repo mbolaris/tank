@@ -15,6 +15,8 @@ from collections import deque
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
+
 if TYPE_CHECKING:
     from core.minigames.soccer.evaluator import SoccerMinigameOutcome
 
@@ -39,6 +41,7 @@ class SoccerEventManager:
         self._events: deque[dict[str, Any]] = deque(maxlen=max_events)
         self._league_live_state: dict[str, Any] | None = None
         self._frame_provider = frame_provider or (lambda: 0)
+        self._fish_stats = SoccerFishStatsTracker()
 
     def record_outcome(self, outcome: SoccerMinigameOutcome) -> None:
         """Record an outcome, sourcing the current frame from the provider."""
@@ -52,8 +55,13 @@ class SoccerEventManager:
         """Record a soccer match outcome event."""
         self._events.append(event)
 
+    def fish_leaders(self, top_n: int = 10) -> list[dict[str, Any]]:
+        """Top-N per-fish soccer standings aggregated across matches."""
+        return self._fish_stats.leaders(top_n)
+
     def add_outcome(self, frame: int, outcome: SoccerMinigameOutcome) -> None:
         """Build and record an event dict from a soccer minigame outcome."""
+        self._fish_stats.record(outcome)
 
         def stringify_keys(values: dict[Any, Any]) -> dict[str, Any]:
             return {str(key): value for key, value in values.items()}

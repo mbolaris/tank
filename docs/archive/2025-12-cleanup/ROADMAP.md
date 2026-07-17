@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/ROADMAP.md](../ROADMAP.md).
+
 # Tank World Roadmap
 
 > **Vision**: A framework for AI-driven automated Artificial Life research, where entertaining visualizations drive real scientific discovery through two-layer evolution.

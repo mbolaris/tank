@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Proof: AI Code Evolution Workflow Successfully Improved Fish Behavior
 
 **Date**: 2025-11-19

@@ -24,10 +24,11 @@ ELDER_METABOLISM_MULTIPLIER = 1.5  # Elders need more energy
 # =============================================================================
 
 # 1. Existence cost - just being alive each frame
-# Reduced from 0.06 -> 0.05 -> 0.04 -> 0.035 based on experiments showing 98.5% starvation deaths.
-# At 0.04 fish still starve heavily; 0.035 preserves selection pressure while giving
-# fish enough energy budget to reach food sources before dying.
-EXISTENCE_ENERGY_COST = 0.035  # Per-frame cost (tuned for balance)
+# Reduced from 0.06 -> 0.05 -> 0.04 -> 0.035 -> 0.025 after survival probes
+# showed that baseline metabolism still consumed too much of a forager's food
+# return.  Movement and sprint costs remain intact, so efficient foraging is
+# still selected for instead of making stationary fish viable.
+EXISTENCE_ENERGY_COST = 0.025  # Per-frame cost (tuned for balance)
 EXISTENCE_SIZE_EXPONENT = 1.0  # Linear with size (bigger fish pay more)
 
 # 2. Movement cost - swimming around
@@ -58,7 +59,11 @@ LIFE_STAGE_BABY_MAX = 600  # 20 seconds (babies grow slower)
 LIFE_STAGE_JUVENILE_MAX = 900  # 30 seconds
 LIFE_STAGE_YOUNG_ADULT_MAX = 1800  # 60 seconds (1 minute)
 LIFE_STAGE_ADULT_MAX = 3600  # 120 seconds (2 minutes)
-LIFE_STAGE_MATURE_MAX = 5400  # 180 seconds (3 minutes)
+# A 60-second baseline lifespan (before the evolvable 0.5-2.0x modifier)
+# makes natural turnover observable during the standard 5k-frame experiment.
+# Previously most fish outlived that benchmark, so nearly every recorded death
+# was starvation rather than a meaningful lifecycle outcome.
+LIFE_STAGE_MATURE_MAX = 1800  # 60 seconds
 # After MATURE_MAX = Elder
 
 # Fish Energy System Constants
@@ -79,6 +84,13 @@ REPRODUCTION_MIN_ENERGY = 35.0  # Minimum energy to initiate reproduction
 REPRODUCTION_COOLDOWN = 0  # No cooldown - reproduce whenever bank has enough energy
 REPRODUCTION_ENERGY_COST = 60.0  # Energy cost to give birth
 MATING_DISTANCE = 60.0  # Maximum distance for mating (pixels)
+
+# Standard proximity mating: symmetric "sneaker" sex-vs-cloning trade-off.
+STANDARD_MATING_DISTANCE = 60.0
+STANDARD_MATING_MIN_ENERGY_RATIO = 0.50
+STANDARD_MATING_PARENT_ENERGY_CONTRIBUTION = 0.50
+STANDARD_MATING_MUTATION_RATE = 0.15
+STANDARD_MATING_MUTATION_STRENGTH = 0.15
 
 # Lowered to 0.70 to make reproduction achievable while still requiring healthy fish
 POST_POKER_REPRODUCTION_ENERGY_THRESHOLD = 0.70

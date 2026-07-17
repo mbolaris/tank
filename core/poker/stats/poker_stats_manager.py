@@ -287,6 +287,9 @@ class PokerStatsManager:
                     "positional_advantage": round(stats.get_positional_advantage() * 100, 1),
                     "recent_win_rate": round(stats.get_recent_win_rate() * 100, 1),
                     "skill_trend": stats.get_skill_trend(),
+                    "tank_name": getattr(fish, "tank_name", "Unknown Tank") or "Unknown Tank",
+                    "tank_id": getattr(fish, "tank_id", "unknown") or "unknown",
+                    "offspring_count": getattr(fish, "offspring_count", 0),
                 }
             )
 

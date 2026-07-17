@@ -6,11 +6,16 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.energy.energy_utils import apply_energy_delta
-from core.util.stable_hash import stable_algorithm_id
+from core.reproduction.asexual_factory import (
+    create_asexual_offspring,
+    maybe_create_banked_offspring,
+)
+from core.reproduction.mutation_controller import DiversityMutationController
+from core.reproduction.sexual_factory import create_post_poker_offspring, run_proximity_mating_cycle
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.genetics.reproduction import ReproductionMutationContext
     from core.poker.integration.poker_interaction import PokerInteraction
     from core.simulation import SimulationEngine
 
@@ -23,11 +28,14 @@ class ReproductionFrameStats:
 
     banked_asexual: int = 0
     trait_asexual: int = 0
+    proximity_sexual: int = 0
     emergency_spawns: int = 0
 
     @property
     def total(self) -> int:
-        return self.banked_asexual + self.trait_asexual + self.emergency_spawns
+        return (
+            self.banked_asexual + self.trait_asexual + self.proximity_sexual + self.emergency_spawns
+        )
 
 
 class ReproductionService:
@@ -41,7 +49,12 @@ class ReproductionService:
         self._banked_asexual_triggered: int = 0
         self._emergency_spawns: int = 0
         self._poker_reproductions: int = 0
+        self._proximity_reproductions: int = 0
         self._plant_asexual_reproductions: int = 0
+        self._mutation_controller = DiversityMutationController(
+            diversity_score_provider=self._get_diversity_score,
+            fish_provider=self._get_fish_entities,
+        )
 
         try:
             cooldown = engine.config.ecosystem.emergency_spawn_cooldown
@@ -53,8 +66,11 @@ class ReproductionService:
         """Run reproduction logic for the current frame."""
         fish_list = self._get_fish_entities()
         self._update_cooldowns(fish_list)
+        self._mutation_controller.record_diversity_sample(frame)
 
         fish_count = len(fish_list)
+        proximity = self._handle_proximity_mating(fish_list, fish_count)
+        fish_count += proximity
 
         banked = self._handle_banked_asexual_reproduction(fish_list, fish_count)
         fish_count += banked
@@ -67,6 +83,7 @@ class ReproductionService:
         return ReproductionFrameStats(
             banked_asexual=banked,
             trait_asexual=trait,
+            proximity_sexual=proximity,
             emergency_spawns=emergency,
         )
 
@@ -98,6 +115,27 @@ class ReproductionService:
         if winner is None or getattr(winner, "environment", None) is None:
             return None
 
+        # Ecological viability guard (Proposal #86):
+        # Skip spawning another baby if adult ratio or energy levels indicate famine.
+        from core.config.fish import POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+        from core.entities.base import LifeStage
+
+        fish_list = self._get_fish_entities()
+        if fish_list:
+            adult_count = sum(
+                1 for f in fish_list if f.life_stage in (LifeStage.ADULT, LifeStage.ELDER)
+            )
+            adult_fraction = adult_count / len(fish_list)
+
+            total_energy_ratio = sum(f.energy / max(f.max_energy, 1.0) for f in fish_list)
+            mean_energy_ratio = total_energy_ratio / len(fish_list)
+
+            if (
+                adult_fraction < 0.25
+                or mean_energy_ratio < POST_POKER_REPRODUCTION_ENERGY_THRESHOLD
+            ):
+                return None
+
         required_credits = self._get_repro_credit_required()
         if required_credits > 0 and not winner._reproduction_component.has_repro_credits(
             required_credits
@@ -127,10 +165,23 @@ class ReproductionService:
         if not eligible_mates:
             return None
 
-        if not is_post_poker_reproduction_eligible(winner, eligible_mates[0]):
-            return None
+        # Sort candidates by attraction score, breaking ties by distance and ID
+        candidates = []
+        for fish in eligible_mates:
+            attraction = winner.genome.calculate_mate_attraction(fish.genome)
+            dx = (fish.pos.x + fish.width * 0.5) - winner_cx
+            dy = (fish.pos.y + fish.height * 0.5) - winner_cy
+            dist_sq = dx * dx + dy * dy
+            candidates.append((attraction, dist_sq, fish.fish_id, fish))
 
-        mate = self._engine.rng.choice(eligible_mates)
+        candidates.sort(key=lambda item: (-item[0], item[1], item[2]))
+        mate = candidates[0][3]
+
+        # Consumes one RNG value to maintain deterministic stream alignment with baseline
+        self._engine.rng.random()
+
+        if not is_post_poker_reproduction_eligible(winner, mate):
+            return None
 
         if self._engine.ecosystem is not None:
             if not self._engine.ecosystem.can_reproduce(
@@ -147,6 +198,10 @@ class ReproductionService:
         if required_credits > 0:
             winner._reproduction_component.consume_repro_credits(required_credits)
         baby.register_birth()
+        if hasattr(winner, "offspring_count"):
+            winner.offspring_count += 1
+        if hasattr(mate, "offspring_count"):
+            mate.offspring_count += 1
         lifecycle_system = self._engine.lifecycle_system
         if lifecycle_system is not None:
             lifecycle_system.record_birth()
@@ -166,8 +221,8 @@ class ReproductionService:
             required_credits
         ):
             return None
-
-        baby = winner_fish._create_asexual_offspring()
+        mutation_context = self._mutation_context_for_parents(winner_fish)
+        baby = self.create_asexual_offspring(winner_fish, mutation_context=mutation_context)
         if baby is None:
             return None
 
@@ -175,6 +230,8 @@ class ReproductionService:
             baby.register_birth()
             if required_credits > 0:
                 winner_fish._reproduction_component.consume_repro_credits(required_credits)
+            if hasattr(winner_fish, "offspring_count"):
+                winner_fish.offspring_count += 1
             self._plant_asexual_reproductions += 1
             return baby
 
@@ -189,18 +246,33 @@ class ReproductionService:
             "emergency_spawns": self._emergency_spawns,
             "last_emergency_spawn_frame": self._last_emergency_spawn_frame,
             "poker_reproductions": self._poker_reproductions,
+            "proximity_reproductions": self._proximity_reproductions,
             "plant_asexual_reproductions": self._plant_asexual_reproductions,
         }
 
     def _get_fish_entities(self) -> list[Fish]:
-        # engine.entity_manager is a typed property and get_fish() is the canonical
-        # typed fish view; the prior getattr/callable/cast dance guarded a fallback
-        # branch that could never run (get_fish always exists).
         return self._engine.entity_manager.get_fish()
 
     def _update_cooldowns(self, fish_list: list[Fish]) -> None:
         for fish in fish_list:
             fish._reproduction_component.update_cooldown()
+
+    def _get_diversity_score(self) -> float | None:
+        ecosystem = self._engine.ecosystem
+        if ecosystem is None:
+            return None
+        diversity_stats = getattr(ecosystem, "genetic_diversity_stats", None)
+        if diversity_stats is None:
+            return None
+        score = diversity_stats.get_diversity_score()
+        return None if score is None else float(score)
+
+    def _mutation_context_for_parents(self, *parents: Fish) -> ReproductionMutationContext:
+        eco_cfg = getattr(self._engine.config, "ecosystem", None)
+        try:
+            return self._mutation_controller.context_for_parents(*parents, ecosystem_config=eco_cfg)
+        except TypeError:
+            return self._mutation_controller.context_for_parents(*parents)
 
     def _handle_banked_asexual_reproduction(self, fish_list: list[Fish], fish_count: int) -> int:
         spawned = 0
@@ -217,13 +289,15 @@ class ReproductionService:
                 required_credits
             ):
                 continue
-
-            baby = self.maybe_create_banked_offspring(fish)
+            mutation_context = self._mutation_context_for_parents(fish)
+            baby = self.maybe_create_banked_offspring(fish, mutation_context=mutation_context)
             if baby is None:
                 continue
 
             if self._engine.request_spawn(baby, reason="banked_asexual_reproduction"):
                 baby.register_birth()
+                if hasattr(fish, "offspring_count"):
+                    fish.offspring_count += 1
                 lifecycle_system = self._engine.lifecycle_system
                 if lifecycle_system is not None:
                     lifecycle_system.record_birth()
@@ -251,8 +325,12 @@ class ReproductionService:
             life_stage = fish.life_stage
             if life_stage is None:
                 continue
+            mutation_context = self._mutation_context_for_parents(fish)
             if not fish._reproduction_component.can_asexually_reproduce(
-                life_stage, fish.energy, fish.max_energy
+                life_stage,
+                fish.energy,
+                fish.max_energy,
+                mutation_context,
             ):
                 continue
 
@@ -260,16 +338,32 @@ class ReproductionService:
             asexual_trait = fish.genome.behavioral.asexual_reproduction_chance.value
             rng = fish.environment.rng
             if rng.random() < asexual_trait:
-                baby = fish._create_asexual_offspring()
+                try:
+                    baby = fish._create_asexual_offspring(mutation_context=mutation_context)
+                except TypeError:
+                    baby = fish._create_asexual_offspring()
                 if baby is not None:
                     if self._engine.request_spawn(baby, reason="asexual_reproduction"):
                         baby.register_birth()
+                        if hasattr(fish, "offspring_count"):
+                            fish.offspring_count += 1
                         if required_credits > 0:
                             fish._reproduction_component.consume_repro_credits(required_credits)
                         self._asexual_triggered += 1
                         spawned += 1
                         fish_count += 1
 
+        return spawned
+
+    def _handle_proximity_mating(self, fish_list: list[Fish], fish_count: int) -> int:
+        spawned = run_proximity_mating_cycle(
+            engine=self._engine,
+            fish_list=fish_list,
+            fish_count=fish_count,
+            required_credits=self._get_repro_credit_required(),
+            mutation_context_provider=self._mutation_context_for_parents,
+        )
+        self._proximity_reproductions += spawned
         return spawned
 
     def _handle_emergency_spawning(self, frame: int, fish_count: int) -> int:
@@ -334,10 +428,12 @@ class ReproductionService:
         fish_list = self._get_fish_entities()
         if fish_list:
             parent = self._select_diverse_parent(fish_list)
+            mutation_context = self._mutation_context_for_parents(parent)
             # Clone with light mutation to maintain diversity
             genome = Genome.clone_with_mutation(
                 parent=parent.genome,
                 rng=self._engine.rng,
+                mutation_context=mutation_context,
             )
             generation = parent.generation  # Inherit generation for tracking
         else:
@@ -423,220 +519,29 @@ class ReproductionService:
         return best_fish
 
     def _get_repro_credit_required(self) -> float:
-        # config and config.soccer are always present (typed dataclass fields with
-        # defaults), so read them directly and let mypy guard the field names.
         soccer_cfg = self._engine.config.soccer
         if not soccer_cfg.enabled or soccer_cfg.repro_reward_mode != "credits":
             return 0.0
         return max(0.0, soccer_cfg.repro_credit_required)
 
     @staticmethod
-    def maybe_create_banked_offspring(fish: Fish) -> Fish | None:
-        """Attempt a bank-funded asexual reproduction for a single fish."""
-        from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE
-        from core.entities.base import LifeStage
-
-        bank = fish._reproduction_component.overflow_energy_bank
-        baby_energy_needed = ENERGY_MAX_DEFAULT * FISH_BABY_SIZE
-
-        life_stage = fish.life_stage
-
-        if (
-            fish._reproduction_component.reproduction_cooldown <= 0
-            and life_stage == LifeStage.ADULT
-            and bank >= baby_energy_needed
-        ):
-            return fish._create_asexual_offspring()
-
-        return None
+    def maybe_create_banked_offspring(
+        fish: Fish,
+        mutation_context: ReproductionMutationContext | None = None,
+    ) -> Fish | None:
+        return maybe_create_banked_offspring(fish, mutation_context=mutation_context)
 
     def _create_post_poker_offspring(self, winner: Fish, mate: Fish) -> Fish | None:
-        from core.config.fish import (
-            ENERGY_MAX_DEFAULT,
-            FISH_BABY_SIZE,
-            FISH_BASE_SPEED,
-            POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            POST_POKER_MUTATION_RATE,
-            POST_POKER_MUTATION_STRENGTH,
-            POST_POKER_PARENT_ENERGY_CONTRIBUTION,
-            REPRODUCTION_COOLDOWN,
+        return create_post_poker_offspring(
+            winner,
+            mate,
+            self._engine,
+            self._mutation_context_for_parents(winner, mate),
         )
-        from core.entities import Fish
-        from core.genetics import Genome, ReproductionParams
-
-        if winner.environment is None:
-            return None
-
-        offspring_genome = Genome.from_parents_weighted_params(
-            parent1=winner.genome,
-            parent2=mate.genome,
-            parent1_weight=POST_POKER_CROSSOVER_WINNER_WEIGHT,
-            params=ReproductionParams(
-                mutation_rate=POST_POKER_MUTATION_RATE,
-                mutation_strength=POST_POKER_MUTATION_STRENGTH,
-            ),
-            rng=self._engine.rng,
-        )
-
-        # Pool-aware per-kind policy mutation (prevents cross-kind contamination)
-        pool = getattr(winner.environment, "genome_code_pool", None)
-        if pool is not None:
-            from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
-
-            mutate_code_policies(offspring_genome.behavioral, pool, self._engine.rng)
-            validate_code_policy_ids(offspring_genome.behavioral, pool, self._engine.rng)
-
-        baby_max_energy = (
-            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-        )
-        if baby_max_energy <= 0:
-            return None
-
-        winner_contrib = max(0.0, winner.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
-        mate_contrib = max(0.0, mate.energy * POST_POKER_PARENT_ENERGY_CONTRIBUTION)
-        total_contrib = winner_contrib + mate_contrib
-        if total_contrib <= 0:
-            return None
-
-        if total_contrib > baby_max_energy:
-            scale = baby_max_energy / total_contrib
-            winner_contrib *= scale
-            mate_contrib *= scale
-            total_contrib = baby_max_energy
-
-        apply_energy_delta(winner, -winner_contrib, source="post_poker_reproduction")
-        apply_energy_delta(mate, -mate_contrib, source="post_poker_reproduction")
-
-        winner._reproduction_component.reproduction_cooldown = max(
-            winner._reproduction_component.reproduction_cooldown,
-            REPRODUCTION_COOLDOWN,
-        )
-        mate._reproduction_component.reproduction_cooldown = max(
-            mate._reproduction_component.reproduction_cooldown,
-            REPRODUCTION_COOLDOWN,
-        )
-
-        (min_x, min_y), (max_x, max_y) = winner.environment.get_bounds()
-        mid_x = (winner.pos.x + mate.pos.x) * 0.5
-        mid_y = (winner.pos.y + mate.pos.y) * 0.5
-        baby_x = mid_x + self._engine.rng.uniform(-30, 30)
-        baby_y = mid_y + self._engine.rng.uniform(-30, 30)
-        baby_x = max(min_x, min(max_x - 50, baby_x))
-        baby_y = max(min_y, min(max_y - 50, baby_y))
-
-        baby = Fish(
-            environment=winner.environment,
-            movement_strategy=winner.movement_strategy.__class__(),
-            species=winner.species,
-            x=baby_x,
-            y=baby_y,
-            speed=FISH_BASE_SPEED,
-            genome=offspring_genome,
-            generation=max(winner.generation, mate.generation) + 1,
-            ecosystem=winner.ecosystem,
-            initial_energy=total_contrib,
-            parent_id=winner.fish_id,
-        )
-
-        if winner.ecosystem is not None:
-            composable = winner.genome.behavioral.behavior
-            if composable is not None and composable.value is not None:
-                behavior_id = composable.value.behavior_id
-                algorithm_id = stable_algorithm_id(behavior_id)
-                winner.ecosystem.record_reproduction(algorithm_id, is_asexual=False)
-            winner.ecosystem.record_mating_attempt(True)
-
-        winner.visual_state.set_birth_effect(60)
-        mate.visual_state.set_birth_effect(60)
-
-        # Determinism anchor: post-poker reproduction has always drawn one engine
-        # RNG value here (it picked which parent's learned state the offspring
-        # inherited). That inherited state has been removed, but dropping the draw
-        # would reshuffle the shared seeded stream for every poker-on config and
-        # trip the golden-replay/benchmark guards. Retain the draw so this removal
-        # stays byte-identical; drop it via a coordinated re-record when this path
-        # is next intentionally changed. (See docs/POKER_SEAM_PROPOSAL.md: minigame
-        # state should not draw from the core RNG.)
-        self._engine.rng.random()
-
-        return baby
 
     @staticmethod
-    def create_asexual_offspring(fish: Fish) -> Fish | None:
-        """Create an offspring from a parent fish through asexual reproduction."""
-        from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE, FISH_BASE_SPEED
-        from core.entities.fish import Fish
-        from core.telemetry.events import ReproductionEvent
-        from core.util.rng import require_rng
-
-        rng = require_rng(fish.environment, "ReproductionService.create_asexual_offspring")
-
-        # Generate offspring genome (also sets cooldown)
-        (
-            offspring_genome,
-            _unused_fraction,
-        ) = fish._reproduction_component.trigger_asexual_reproduction(
-            fish.genome,
-            rng=rng,
-        )
-
-        # Pool-aware per-kind policy mutation
-        pool = getattr(fish.environment, "genome_code_pool", None)
-        if pool is not None:
-            from core.genetics.code_policy_traits import (
-                mutate_code_policies,
-                validate_code_policy_ids,
-            )
-
-            mutate_code_policies(offspring_genome.behavioral, pool, rng)
-            validate_code_policy_ids(offspring_genome.behavioral, pool, rng)
-
-        # Calculate baby's max energy capacity
-        baby_max_energy = (
-            ENERGY_MAX_DEFAULT * FISH_BABY_SIZE * offspring_genome.physical.size_modifier.value
-        )
-
-        # Use banked overflow energy first, then draw from parent
-        bank_used = fish._reproduction_component.consume_overflow_energy_bank(baby_max_energy)
-        remaining_needed = baby_max_energy - bank_used
-        parent_transfer = min(fish.energy, remaining_needed)
-        apply_energy_delta(fish, -parent_transfer, source="asexual_reproduction")
-        baby_initial_energy = bank_used + parent_transfer
-
-        # Create offspring near parent
-        bounds = fish.environment.get_bounds()
-        (min_x, min_y), (max_x, max_y) = bounds
-
-        offset_x = rng.uniform(-30, 30)
-        offset_y = rng.uniform(-30, 30)
-        baby_x = max(min_x, min(max_x - 50, fish.pos.x + offset_x))
-        baby_y = max(min_y, min(max_y - 50, fish.pos.y + offset_y))
-
-        baby = Fish(
-            environment=fish.environment,
-            movement_strategy=fish.movement_strategy.__class__(),
-            species=fish.species,
-            x=baby_x,
-            y=baby_y,
-            speed=FISH_BASE_SPEED,
-            genome=offspring_genome,
-            generation=fish.generation + 1,
-            ecosystem=fish.ecosystem,
-            initial_energy=baby_initial_energy,
-            parent_id=fish.fish_id,
-        )
-
-        # Record reproduction stats
-        composable = fish.genome.behavioral.behavior
-        if composable is not None and composable.value is not None:
-            behavior_id = composable.value.behavior_id
-            algorithm_id = stable_algorithm_id(behavior_id)
-            fish._emit_event(ReproductionEvent(algorithm_id, is_asexual=True))
-
-        # Set visual birth effect timer
-        fish.visual_state.set_birth_effect(60)
-
-        return baby
+    def create_asexual_offspring(
+        fish: Fish,
+        mutation_context: ReproductionMutationContext | None = None,
+    ) -> Fish | None:
+        return create_asexual_offspring(fish, mutation_context=mutation_context)

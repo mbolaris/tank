@@ -22,7 +22,12 @@ This index provides a guide to all documentation in the Tank World project.
 | [ROADMAP.md](ROADMAP.md) | Development roadmap and milestones |
 | [IMPROVEMENT_PROPOSALS.md](IMPROVEMENT_PROPOSALS.md) | Prioritized engineering backlog with implementation plans |
 | [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) | Must-implement UI roadmap, including soccer/poker skill-over-time tracking |
+| [DISCUSSION_BOARD.md](DISCUSSION_BOARD.md) | Discussion board v2 (shipped): topic-filtered Insights feed + emoji reactions |
+| [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md) | Strategic "make it fun to watch" roadmap: entity inspector, Living History, presentation modes, ecosystem trust states |
 | [MULTILEVEL_EVOLUTION_STRATEGY.md](MULTILEVEL_EVOLUTION_STRATEGY.md) | Multi-level evolutionary optimization strategy |
+| [MULTI_PROBLEM_SPACE_SEARCH.md](MULTI_PROBLEM_SPACE_SEARCH.md) | Assessment + plan for cross-domain transfer (searching many problem spaces at once) |
+| [FEDERATION.md](FEDERATION.md) | Design for connecting tanks online: data-only genome wire format, sealed vs open mode, cross-tank lineage |
+| [MINIGAME_PLUGINS.md](MINIGAME_PLUGINS.md) | Minigames as a plugin API + making entertainment net-positive for evolution |
 
 ### Architecture
 
@@ -30,6 +35,7 @@ This index provides a guide to all documentation in the Tank World project.
 |----------|-------------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and module layout |
 | [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) | Architecture review and analysis |
+| [TAXONOMY.md](TAXONOMY.md) | Species classification, stable naming, and taxonomy lifecycle |
 | [WORLDS.md](WORLDS.md) | World types and backend implementations |
 
 ### Development Guides

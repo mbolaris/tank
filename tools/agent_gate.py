@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """Run the under-90-second curated agent gate.
 
-This sits between the smoke gate and the fast gate:
-  smoke (under 30s) -> agent (under 90s) -> fast (under 3 min) -> full (nightly)
+This sits between the smoke gate and the pre-PR gate:
+  smoke (under 30s) -> agent (under 90s) -> pre-PR (broad suite) -> full (nightly)
 
 Use agent gate before a local commit. It runs the smoke gate first, then a
 curated set of architecture, determinism, energy, genetics, protocol, and
 import-boundary tests - broader than smoke, but much cheaper than the full
-non-slow suite that the fast gate runs.
+non-slow suite that the pre-PR gate runs.
 """
 
 try:
     from tools.gate_common import exit_for_gate, print_gate_header, python_command, run_steps
 except ImportError:
-    from gate_common import exit_for_gate, print_gate_header, python_command, run_steps  # type: ignore[import-not-found,no-redef]
+    from gate_common import (  # type: ignore[import-not-found,no-redef]
+        exit_for_gate,
+        print_gate_header,
+        python_command,
+        run_steps,
+    )
 
 
 # Curated test modules for the agent gate (beyond what smoke already covers).
@@ -38,6 +43,7 @@ _AGENT_CURATED_TESTS = [
     "tests/test_engine_no_tank_imports.py",
     "tests/test_behavioral_trait_wiring.py",
     "tests/test_algorithm_decoupling.py",
+    "tests/test_evolution_comprehensive.py",
 ]
 
 
@@ -52,6 +58,16 @@ def main() -> None:
     )
     steps = [
         (python_command("tools/smoke_gate.py"), "Tier 1: smoke gate"),
+        (
+            python_command(
+                "-m",
+                "mypy",
+                "core",
+                "backend",
+                "tools",
+            ),
+            "Mypy type check",
+        ),
         (
             python_command(
                 "-m",

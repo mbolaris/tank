@@ -64,19 +64,16 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 
 If you don't beat the BKS, iterate on your approach and try again!
 
-### 3. Update the Champion Registry
+### 3. Report the Candidate Improvement
 
-If you have an improvement, update the champion file with your new result:
+If you have an improvement, keep the champion registry unchanged by default and
+record the evidence a reviewer needs to reproduce it:
 
 ```bash
 # Create a branch for your improvement
 git checkout -b improve/survival-energy-conserver
 
-# Edit champions/tank/survival_5k.json with your new champion data
-# (tools/validate_improvement.py can generate this for you)
-
 # Commit with a descriptive message
-git add champions/tank/survival_5k.json
 git commit -m "Improve Tank survival: EnergyConserver parameter optimization
 
 New score: 1247.3 (previous: 1201.6, +45.7)
@@ -88,6 +85,13 @@ Reproduction: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 - Allows fish to conserve energy more aggressively
 - Improves average lifespan by 12%"
 ```
+
+Agents and ordinary contributors may run benchmarks and compare against
+champions, but they must not edit `champions/**/*.json` or use champion-update
+tooling unless explicitly authorized by a maintainer or task prompt. A strong PR
+reports the reproduction command, deterministic seed, score, metadata payload,
+and code diff. Maintainers handle any champion registry update after reviewing
+the evidence and running the appropriate validation tier.
 
 ### 4. Push and Open PR
 
@@ -104,10 +108,10 @@ git push -u origin improve/survival-energy-conserver
 
 The CI system will automatically:
 
-1. **Detect** that you modified a champion file
-2. **Re-run** the claimed benchmark with the same seed
-3. **Verify** that the score matches what you claimed
-4. **Check** for regressions on other benchmarks
+1. **Run** the configured validation gates for your code and docs change
+2. **Check** benchmark determinism and champion provenance
+3. **Verify** any maintainer-authorized champion update against its recorded seed and metadata
+4. **Check** for regressions on relevant benchmarks
 5. **Approve or reject** based on results
 
 **If CI passes**: Your PR is approved for merge (automatic for Layer 1, human review for Layer 2)
@@ -229,7 +233,8 @@ BENCHMARK_FRAMES = 1_000_000  # Too slow for CI
 
 ## CI Validation Process
 
-When you open a PR that modifies champion files, CI runs this workflow:
+Champion-file PRs are restricted to maintainer-authorized work. When such a PR
+modifies champion files, CI runs this workflow:
 
 ### 1. Detect Changes
 
@@ -289,9 +294,9 @@ python tools/run_bench.py benchmarks/soccer/training_5k.py --seed 42
 
 **Solutions**:
 1. This is expected! An algorithm improvement establishes a new deterministic lineage.
-2. Run `python tools/verify_all_champions.py` locally to generate the new baseline JSON files (labeled `verify_*.json`).
-3. Manually overwrite the affected champion files in the `champions/**/*.json` directory using the newly generated outputs.
-4. Commit these updated champions to your branch so the CI accepts your new deterministic baseline!
+2. Report the mismatch with the exact command, seed, score, metadata, and code diff.
+3. Do not overwrite `champions/**/*.json` unless a maintainer or task prompt explicitly authorizes a champion update.
+4. If authorized, keep the champion update isolated from unrelated changes and include the full reproduction evidence.
 
 ### Issue: "My improvement was rejected due to regression"
 

@@ -55,25 +55,16 @@ class TestProtocolConformance:
         # Initially alive
         assert not fish.is_dead()
 
-    @pytest.mark.skip(reason="Fish exposes _reproduction_component as private, not public")
     def test_fish_implements_reproducible(self, sample_fish):
-        """Fish should satisfy the Reproducible protocol.
-
-        NOTE: Currently fails because Fish stores reproduction_component as
-        _reproduction_component (private). To fully implement Reproducible protocol,
-        Fish would need a @property reproduction_component getter.
-
-        This demonstrates how protocols help identify interface gaps!
-        """
+        """Fish should satisfy the Reproducible protocol."""
         fish = sample_fish()
 
         assert isinstance(fish, Reproducible)
-        assert hasattr(fish, "reproduction_component")
+        assert callable(fish.can_reproduce)
+        assert callable(fish.try_mate)
 
-        # Can access reproduction state
-        component = fish.reproduction_component
-        assert hasattr(component, "reproduction_cooldown")
-        assert hasattr(component, "repro_credits")
+        # Freshly created fish are off cooldown
+        assert fish.reproduction_cooldown == 0
 
     def test_fish_implements_movable(self, sample_fish):
         """Fish should satisfy the Movable protocol."""
@@ -106,14 +97,8 @@ class TestProtocolConformance:
 
         assert isinstance(fish.life_stage, LifeStage)
 
-    @pytest.mark.skip(reason="Food doesn't have is_consumed() method (has is_fully_consumed)")
     def test_food_implements_consumable(self, sample_food):
-        """Food should satisfy the Consumable protocol.
-
-        NOTE: Food has is_fully_consumed() but not is_consumed().
-        The protocol could be refined to match actual Food interface,
-        or Food could be updated to implement both methods.
-        """
+        """Food should satisfy the Consumable protocol."""
         food = sample_food()
 
         assert isinstance(food, Consumable)
@@ -121,13 +106,8 @@ class TestProtocolConformance:
         assert callable(food.is_fully_consumed)
         assert callable(food.get_eaten)
 
-    @pytest.mark.skip(reason="Crab constructor signature differs from test assumptions")
     def test_crab_implements_predator(self, sample_crab):
-        """Crab should satisfy the Predator protocol.
-
-        NOTE: Test fixture needs updating to match actual Crab constructor.
-        Once fixed, this test should verify Predator protocol conformance.
-        """
+        """Crab should satisfy the Predator protocol."""
         crab = sample_crab()
 
         assert isinstance(crab, Predator)

@@ -29,6 +29,8 @@ import random
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from core.code_pool.genome_code_pool import GenomeCodePool
+    from core.config.simulation_config import SimulationConfig
     from core.entities.base import Entity
 
 
@@ -52,6 +54,8 @@ class World(Protocol):
     """
 
     # --- Spatial Queries ---
+
+    simulation_config: "SimulationConfig | None"
 
     def nearby_agents(self, agent: "Entity", radius: float) -> list["Entity"]:
         """Find all agents within a radius of the given agent.
@@ -113,6 +117,11 @@ class World(Protocol):
         Returns:
             List of resource agents within radius
         """
+        ...
+
+    @property
+    def genome_code_pool(self) -> "GenomeCodePool | None":
+        """Pool of evolvable code components, or None when code policies are disabled."""
         ...
 
     def update_agent_position(self, agent: "Entity") -> None:

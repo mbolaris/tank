@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
+
 # Architecture Quality Improvements - December 2024
 
 ## Summary

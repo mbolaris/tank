@@ -7,6 +7,7 @@ from external brains to domain-specific actions for each world type.
 from core.actions.action_registry import (
     ActionSpace,
     ActionTranslator,
+    RawAction,
     get_action_space,
     list_registered_translators,
     register_action_translator,
@@ -16,6 +17,7 @@ from core.actions.action_registry import (
 __all__ = [
     "ActionSpace",
     "ActionTranslator",
+    "RawAction",
     "get_action_space",
     "list_registered_translators",
     "register_action_translator",

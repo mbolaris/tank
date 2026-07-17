@@ -52,7 +52,7 @@ class EcosystemManager:
     - PokerStatsManager: poker game statistics
     - ReproductionStatsManager: reproduction statistics
     - EnergyTracker: energy flow tracking
-    - EnhancedStatisticsTracker: time series and correlations
+    - EvolutionAnalyticsTracker: time series and correlations
     - GeneticDiversityTracker: genetic diversity statistics
     - EcosystemTelemetryRouter: event/energy-delta ingestion
     - PokerOutcomeRecorder: poker outcome recording
@@ -100,9 +100,9 @@ class EcosystemManager:
         self.diversity = GeneticDiversityTracker()
 
         # Enhanced statistics tracker (time series, correlations, extinctions)
-        from core.enhanced_statistics import EnhancedStatisticsTracker
+        from core.evolution_analytics import EvolutionAnalyticsTracker
 
-        self.enhanced_stats: EnhancedStatisticsTracker = EnhancedStatisticsTracker(
+        self.evolution_analytics: EvolutionAnalyticsTracker = EvolutionAnalyticsTracker(
             max_history_length=1000
         )
 
@@ -119,6 +119,14 @@ class EcosystemManager:
         self.event_bus = event_bus
         if event_bus is not None:
             self._subscribe_to_events(event_bus)
+
+        self.environment: Any | None = None
+        from core.taxonomy.system import TaxonomySystem
+
+        # Taxonomy is observational state owned by this ecosystem.  Loading a
+        # process-wide file here would leak classifications between worlds and
+        # make a seeded run depend on stale local files.
+        self.taxonomy = TaxonomySystem()
 
     def _subscribe_to_events(self, event_bus: "EventBus") -> None:
         """Subscribe handlers to domain events on the EventBus."""
@@ -274,10 +282,13 @@ class EcosystemManager:
         self.frame_count = frame
 
         # Check for algorithm extinctions
-        self.enhanced_stats.check_for_extinctions(frame, self)
+        self.evolution_analytics.check_for_extinctions(frame, self)
 
         # Check for population extinction
         self.population.check_for_extinction(frame)
+
+        # Update taxonomy system
+        self.taxonomy.update(self.environment, frame)
 
     def generate_new_fish_id(self) -> int:
         """Generate a new unique fish ID."""
@@ -346,7 +357,7 @@ class EcosystemManager:
             algorithm_id=algorithm_id,
             color=color,
             lineage_log=None,  # We'll handle lineage separately
-            enhanced_stats=self.enhanced_stats,
+            evolution_analytics=self.evolution_analytics,
         )
 
         # Record in lineage tracker
@@ -380,15 +391,16 @@ class EcosystemManager:
             genome=genome,
             algorithm_id=algorithm_id,
             remaining_energy=remaining_energy,
-            enhanced_stats=self.enhanced_stats,
+            evolution_analytics=self.evolution_analytics,
             record_energy_burn=self.record_energy_burn,
         )
+        self.taxonomy.record_death(fish_id)
 
     def update_population_stats(self, fish_list: list["Fish"]) -> None:
         """Update population statistics from current fish list."""
         self.population.update_population_stats(
             fish_list=fish_list,
-            enhanced_stats=self.enhanced_stats,
+            evolution_analytics=self.evolution_analytics,
         )
         self._update_genetic_diversity_stats(fish_list)
         self.update_pregnant_count(0)  # No pregnancy in current system
@@ -438,9 +450,9 @@ class EcosystemManager:
         """Get summary genetic diversity statistics."""
         return self.diversity.get_summary()
 
-    def get_enhanced_stats_summary(self) -> dict[str, Any]:
-        """Get comprehensive enhanced statistics report."""
-        return self.enhanced_stats.get_full_report()
+    def get_evolution_analytics_summary(self) -> dict[str, Any]:
+        """Get comprehensive evolution analytics report."""
+        return self.evolution_analytics.get_full_report()
 
     # =========================================================================
     # Reproduction Recording

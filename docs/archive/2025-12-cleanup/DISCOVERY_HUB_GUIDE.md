@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Discovery Hub Guide
 
 ## Overview

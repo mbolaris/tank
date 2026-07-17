@@ -1,7 +1,10 @@
-"""Utilities for working with enums."""
+from enum import Enum
+from typing import Any, TypeVar
+
+T = TypeVar("T", bound=Enum)
 
 
-def coerce_enum(enum_cls, value, default: int = 0):
+def coerce_enum(enum_cls: type[T], value: Any, default: int = 0) -> T:
     """Coerce a value to an enum instance.
 
     Handles multiple input types:

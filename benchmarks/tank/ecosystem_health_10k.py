@@ -27,10 +27,12 @@ from collections.abc import Callable
 from typing import Any
 
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 BENCHMARK_ID = "tank/ecosystem_health_10k"
 FRAMES = 10000
 SAMPLE_INTERVAL = 100  # Sample every 100 frames for population stability tracking
+EXPECTED_RUNTIME_SECONDS = 75
 
 WORLD_CONFIG: dict[str, Any] = {
     "headless": True,
@@ -80,8 +82,12 @@ def run(
     starvation_deaths = 0
     max_generation = 0
 
+    # Stats are only read every SAMPLE_INTERVAL frames (below) and once more
+    # at the end, so step()'s own internal metrics/event computation would be
+    # wasted on the other ~99% of frames - skip it via the fast-step path
+    # (see core/worlds/tank/backend.py::step).
     for i in range(FRAMES):
-        world.step()
+        world.step({FAST_STEP_ACTION: True})
         if fingerprint_callback is not None:
             fingerprint_callback(world, i + 1)
 
@@ -156,6 +162,12 @@ def run(
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": {
+            "generation_rate": generation_rate,
+            "diversity_bonus": round(diversity_bonus, 4),
+            "stability_bonus": round(stability_bonus, 4),
+            "starvation_penalty": round(starvation_penalty, 4),
+        },
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,

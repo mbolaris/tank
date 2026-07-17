@@ -19,6 +19,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _positive_frame(value: str) -> int:
+    """Parse a 1-based debug frame for argparse."""
+    try:
+        frame = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("debug frame must be an integer") from exc
+    if frame < 1:
+        raise argparse.ArgumentTypeError("debug frame must be >= 1")
+    return frame
+
+
 def _request_shutdown_best_effort() -> None:
     try:
         from core.poker.evaluation.auto_evaluate_poker import request_shutdown
@@ -61,7 +72,14 @@ def run_web_server():
 
 
 def run_headless(
-    max_frames: int, stats_interval: int, seed=None, export_stats=None, trace_output=None
+    max_frames: int,
+    stats_interval: int,
+    seed=None,
+    export_stats=None,
+    trace_output=None,
+    profile_phases=False,
+    debug_frame=None,
+    debug_entity=None,
 ):
     """Run the simulation in headless mode (no visualization).
 
@@ -70,28 +88,45 @@ def run_headless(
         stats_interval: Print stats every N frames
         seed: Optional random seed for deterministic behavior
         export_stats: Optional filename to export JSON stats for LLM analysis
-        trace_output: Optional filename to export debug trace data (currently unused)
+        trace_output: Optional filename to export debug trace data
+        profile_phases: Profile and print cumulative time spent in update phases
+        debug_frame: Optional 1-based frame to trace
+        debug_entity: Optional entity ID to trace within selected outputs
     """
     import json
 
+    from core.simulation.debug_trace import DebugTraceCollector
     from core.worlds import WorldRegistry
     from core.worlds.interfaces import FAST_STEP_ACTION
 
+    tracer = None
+    if trace_output or debug_frame is not None or debug_entity is not None:
+        tracer = DebugTraceCollector(
+            seed=seed,
+            max_frames=max_frames,
+            debug_frame=debug_frame,
+            debug_entity=debug_entity,
+        )
+
     # Create world via the canonical WorldRegistry path
-    world = WorldRegistry.create_world("tank", seed=seed, headless=True)
+    world = WorldRegistry.create_world(
+        "tank", seed=seed, headless=True, profile_phases=profile_phases
+    )
     world.reset(seed=seed)
 
     world_update = getattr(world, "update", None)
-    if callable(world_update):
-        advance_frame = world_update
-    elif getattr(world, "supports_fast_step", False):
-        fast_step_action = {FAST_STEP_ACTION: True}
 
-        def advance_frame() -> None:
-            world.step(fast_step_action)
-
-    else:
-        advance_frame = world.step
+    def advance_frame() -> None:
+        if tracer is not None:
+            # The observable step path is intentionally used only for debug
+            # runs; ordinary headless runs retain the cheaper update path.
+            tracer.record(world.step())
+        elif callable(world_update):
+            world_update()
+        elif getattr(world, "supports_fast_step", False):
+            world.step({FAST_STEP_ACTION: True})
+        else:
+            world.step()
 
     # Run simulation loop
     for frame in range(max_frames):
@@ -102,13 +137,36 @@ def run_headless(
             pop = stats.get("population", len(world.get_entities_for_snapshot()))
             logger.info(f"Frame {frame + 1}/{max_frames}: population={pop}")
 
+    # Log profiling results if requested
+    if profile_phases and hasattr(world, "engine") and world.engine:
+        logger.info("=" * 60)
+        logger.info("PHASE PROFILING RESULTS (Cumulative Wall Time)")
+        logger.info("=" * 60)
+        total_time = sum(world.engine.profiler.times.values())
+        for phase, t in sorted(
+            world.engine.profiler.times.items(), key=lambda x: x[1], reverse=True
+        ):
+            pct = (t / total_time * 100) if total_time > 0 else 0
+            logger.info(f"  {phase:<20}: {t:8.4f}s ({pct:5.1f}%)")
+        logger.info(f"  {'TOTAL':<20}: {total_time:8.4f}s (100.0%)")
+        logger.info("=" * 60)
+
     # Export stats if requested
     if export_stats:
         stats = world.get_current_metrics(include_distributions=True)
         stats["frame"] = max_frames
+        if profile_phases and hasattr(world, "engine") and world.engine:
+            stats["phase_profiling"] = world.engine.profiler.times
         with open(export_stats, "w") as f:
             json.dump(stats, f, indent=2, default=str)
         logger.info(f"Stats exported to: {export_stats}")
+
+    if tracer is not None:
+        if trace_output:
+            tracer.write(trace_output)
+            logger.info(f"Debug trace exported to: {trace_output}")
+        else:
+            print(json.dumps(tracer.to_dict(), indent=2, sort_keys=True))
 
 
 def main():
@@ -146,6 +204,12 @@ Examples:
     )
 
     parser.add_argument(
+        "--profile-phases",
+        action="store_true",
+        help="Profile and print cumulative time spent in update phases",
+    )
+
+    parser.add_argument(
         "--max-frames",
         type=int,
         default=10000,
@@ -176,7 +240,23 @@ Examples:
         type=str,
         default=None,
         metavar="TRACEFILE",
-        help="Dump debug traces to JSON for offline analysis",
+        help="Write selected debug traces to JSON for offline analysis",
+    )
+
+    parser.add_argument(
+        "--debug-frame",
+        type=_positive_frame,
+        default=None,
+        metavar="N",
+        help="Trace one 1-based simulation frame (requires no extra setup)",
+    )
+
+    parser.add_argument(
+        "--debug-entity",
+        type=str,
+        default=None,
+        metavar="ID",
+        help="Trace energy/events involving one entity ID",
     )
 
     parser.add_argument(
@@ -226,6 +306,10 @@ Examples:
             logger.info("Stats will be exported to: %s", args.export_stats)
         if args.trace_json:
             logger.info("Trace output will be saved to: %s", args.trace_json)
+        if args.debug_frame is not None:
+            logger.info("Debug frame selected: %d", args.debug_frame)
+        if args.debug_entity is not None:
+            logger.info("Debug entity selected: %s", args.debug_entity)
         logger.info("")
 
         if args.replay:
@@ -272,6 +356,9 @@ Examples:
             seed=args.seed,
             export_stats=args.export_stats,
             trace_output=args.trace_json,
+            profile_phases=args.profile_phases,
+            debug_frame=args.debug_frame,
+            debug_entity=args.debug_entity,
         )
     else:
         if args.record or args.replay:

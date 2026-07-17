@@ -62,6 +62,8 @@ class MultiAgentWorldBackend(ABC):
     """
 
     runner: Any = None
+    tank_name: str | None = None
+    tank_id: str | None = None
 
     @abstractmethod
     def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:

@@ -258,9 +258,8 @@ def test_shaped_reward_adds_to_total_reward():
     """Test that ball progress toward goal contributes to total_reward.
 
     Note: In balanced 1v1 games, shaped rewards may sum to zero if ball
-    movement is symmetric. This test uses a longer episode to increase
-    likelihood of asymmetric play, but the shaped reward mechanism works
-    correctly even when the final values are close to zero.
+    movement is symmetric. This fast test checks that the shaped reward field is
+    populated without turning the ordinary suite into a long simulation run.
     """
     from typing import cast
 
@@ -284,9 +283,7 @@ def test_shaped_reward_adds_to_total_reward():
 
     runner = SoccerMatchRunner(team_size=1, genome_code_pool=pool)
 
-    # Run episode with active policies - use longer match and different seed
-    # to increase chance of asymmetric ball movement
-    episode_result, _ = runner.run_episode(genomes, seed=999, frames=1000)
+    episode_result, _ = runner.run_episode(genomes, seed=999, frames=100)
 
     # Check that the shaped reward mechanism is present
     # (total_reward field exists and is tracked)

@@ -26,6 +26,35 @@ from core.util.rng import require_rng_param
 
 logger = logging.getLogger(__name__)
 
+GENOME_DECODE_ERRORS = (AttributeError, ImportError, KeyError, TypeError, ValueError)
+
+
+def _has_graph_value(trait: Any) -> bool:
+    """True when an optional opt-in trait (BehaviorGraph- or
+    TargetMemoryParams-valued) actually carries a value."""
+    return bool(trait and trait.value is not None)
+
+
+def genome_schema_version_for(genome: Any, max_version: int) -> int:
+    """Compute the schema version a genome should serialize at.
+
+    A genome using none of the opt-in traits serializes at the original
+    (pre-graph) payload shape; each opt-in trait, in the order it was added
+    (``behavior_graph`` -> ``target_pursuit_module`` -> ``target_memory``),
+    bumps one version further - so an old save/replay that never touches any
+    of them stays byte-identical to its original payload.
+    """
+    has_target_memory = _has_graph_value(genome.behavioral.target_memory)
+    has_pursuit_module = _has_graph_value(genome.behavioral.target_pursuit_module)
+    has_behavior_graph = _has_graph_value(genome.behavioral.behavior_graph)
+    if has_target_memory:
+        return max_version
+    if has_pursuit_module:
+        return max_version - 1
+    if has_behavior_graph:
+        return max_version - 2
+    return max_version - 3
+
 
 def genome_to_dict(
     genome: Any,
@@ -39,6 +68,16 @@ def genome_to_dict(
         genome.behavioral.poker_strategy.value if genome.behavioral.poker_strategy else None
     )
     poker_strategy_dict = poker_strategy.to_dict() if poker_strategy is not None else None
+    behavior_graph = genome.behavioral.behavior_graph
+    behavior_graph_dict = (
+        behavior_graph.value.to_dict() if _has_graph_value(behavior_graph) else None
+    )
+    pursuit_module = genome.behavioral.target_pursuit_module
+    pursuit_module_dict = (
+        pursuit_module.value.to_dict() if _has_graph_value(pursuit_module) else None
+    )
+    target_memory = genome.behavioral.target_memory
+    target_memory_dict = target_memory.value.to_dict() if _has_graph_value(target_memory) else None
 
     values: dict[str, Any] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
@@ -53,6 +92,9 @@ def genome_to_dict(
         ("behavior", genome.behavioral.behavior),
         ("poker_strategy", genome.behavioral.poker_strategy),
         ("mate_preferences", genome.behavioral.mate_preferences),
+        ("behavior_graph", genome.behavioral.behavior_graph),
+        ("target_pursuit_module", genome.behavioral.target_pursuit_module),
+        ("target_memory", genome.behavioral.target_memory),
     ):
         if trait is not None:
             meta = trait_meta_for_trait(trait)
@@ -60,13 +102,13 @@ def genome_to_dict(
                 trait_meta[name] = meta
 
     # Helper to safely get policy value
-    def _get_policy_value(trait):
+    def _get_policy_value(trait: Any) -> Any:
         if trait is None:
             return None
         val = trait.value if hasattr(trait, "value") else trait
         return val if val else None
 
-    def _get_policy_params(trait):
+    def _get_policy_params(trait: Any) -> dict[str, Any] | None:
         if trait is None:
             return None
         val = trait.value if hasattr(trait, "value") else trait
@@ -94,7 +136,7 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
-    return {
+    result = {
         "schema_version": schema_version,
         **values,
         # Behavior (new system - replaces behavior_algorithm + poker_algorithm)
@@ -115,6 +157,15 @@ def genome_to_dict(
         "soccer_policy_params": soccer_policy_params,
         "trait_meta": trait_meta,
     }
+    # Omit dormant fields when absent so existing genome payloads retain
+    # their shape apart from the explicit schema-version bump.
+    if behavior_graph_dict is not None:
+        result["behavior_graph"] = behavior_graph_dict
+    if pursuit_module_dict is not None:
+        result["target_pursuit_module"] = pursuit_module_dict
+    if target_memory_dict is not None:
+        result["target_memory"] = target_memory_dict
+    return result
 
 
 def genome_from_dict(
@@ -162,7 +213,7 @@ def genome_from_dict(
         try:
             apply_trait_meta_from_dict(PHYSICAL_TRAIT_SPECS, genome.physical, trait_meta)
             apply_trait_meta_from_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral, trait_meta)
-        except Exception:
+        except GENOME_DECODE_ERRORS:
             logger.debug("Failed applying trait_meta; continuing with defaults", exc_info=True)
 
         # Apply metadata for non-spec traits on BehavioralTraits.
@@ -188,7 +239,7 @@ def genome_from_dict(
                 genome.behavioral.behavior = GeneticTrait(cb)
             else:
                 genome.behavioral.behavior.value = cb
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing behavior; keeping default", exc_info=True)
 
     # Poker strategy (in-game betting decisions)
@@ -203,15 +254,72 @@ def genome_from_dict(
                 genome.behavioral.poker_strategy = GeneticTrait(strat)
             else:
                 genome.behavioral.poker_strategy.value = strat
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing poker_strategy; keeping default", exc_info=True)
+
+    # Opt-in behavior graph. Loading it does not activate it; the movement
+    # path remains the existing composable behavior until a later graph adapter
+    # explicitly opts in.
+    try:
+        from core.behavior.graph import BehaviorGraph
+        from core.genetics.trait import GeneticTrait
+
+        graph_data = data.get("behavior_graph")
+        if isinstance(graph_data, dict):
+            graph = BehaviorGraph.from_dict(graph_data)
+            graph_trait = GeneticTrait(graph)
+            if isinstance(trait_meta, dict):
+                graph_meta = trait_meta.get("behavior_graph")
+                if isinstance(graph_meta, dict):
+                    apply_trait_meta_to_trait(graph_trait, graph_meta)
+            genome.behavioral.behavior_graph = graph_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing behavior_graph; keeping default", exc_info=True)
+
+    # Opt-in target pursuit module (independent of behavior_graph). Loading it
+    # does not activate it; each adapter gates its own use on the trait plus
+    # its own config flags (see core.behavior.feature_flags).
+    try:
+        from core.behavior.graph import BehaviorGraph
+        from core.genetics.trait import GeneticTrait
+
+        pursuit_data = data.get("target_pursuit_module")
+        if isinstance(pursuit_data, dict):
+            pursuit_graph = BehaviorGraph.from_dict(pursuit_data)
+            pursuit_trait = GeneticTrait(pursuit_graph)
+            if isinstance(trait_meta, dict):
+                pursuit_meta = trait_meta.get("target_pursuit_module")
+                if isinstance(pursuit_meta, dict):
+                    apply_trait_meta_to_trait(pursuit_trait, pursuit_meta)
+            genome.behavioral.target_pursuit_module = pursuit_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing target_pursuit_module; keeping default", exc_info=True)
+
+    # Opt-in target memory (independent of the other two opt-in traits).
+    # Loading it does not activate it; each adapter gates its own use on the
+    # trait plus its own config flag (see core.behavior.feature_flags).
+    try:
+        from core.behavior.target_memory import TargetMemoryParams
+        from core.genetics.trait import GeneticTrait
+
+        target_memory_data = data.get("target_memory")
+        if isinstance(target_memory_data, dict):
+            params = TargetMemoryParams.from_dict(target_memory_data)
+            params_trait = GeneticTrait(params)
+            if isinstance(trait_meta, dict):
+                params_meta = trait_meta.get("target_memory")
+                if isinstance(params_meta, dict):
+                    apply_trait_meta_to_trait(params_trait, params_meta)
+            genome.behavioral.target_memory = params_trait
+    except GENOME_DECODE_ERRORS:
+        logger.debug("Failed deserializing target_memory; keeping default", exc_info=True)
 
     # New per-kind policy fields
     try:
         from core.genetics.trait import GeneticTrait
 
         # Helper to deserialize and validate policy params
-        def _deserialize_params(params_data):
+        def _deserialize_params(params_data: Any) -> dict[str, float] | None:
             if params_data is None or not isinstance(params_data, dict):
                 return None
             validated = {}
@@ -269,7 +377,7 @@ def genome_from_dict(
                     meta = trait_meta.get(name)
                     if isinstance(meta, dict):
                         apply_trait_meta_to_trait(trait, meta)
-    except Exception:
+    except GENOME_DECODE_ERRORS:
         logger.debug("Failed deserializing per-kind policies; keeping defaults", exc_info=True)
 
     invalidate = getattr(genome, "invalidate_caches", None)

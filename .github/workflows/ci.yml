@@ -8,11 +8,15 @@ on:
   schedule:
     - cron: '0 8 * * *'
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   smoke-gate:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Check for compiled Python artifacts
       run: |
         if find backend/ core/ -name "__pycache__" -type d 2>/dev/null | grep -q .; then
@@ -26,9 +30,11 @@ jobs:
           exit 1
         fi
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -37,31 +43,129 @@ jobs:
       env:
         TANK_ENFORCE_MUTATION_INVARIANTS: "1"
       run: python tools/smoke_gate.py
+    - name: Run wheel packaging check
+      run: python tools/check_wheel.py
 
-  fast-gate:
+  pre-pr-shard:
     runs-on: ubuntu-latest
-    needs: smoke-gate
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [worlds, evolution, backend_tools, core_infra, core]
+    env:
+      TANK_ENFORCE_MUTATION_INVARIANTS: "1"
+      COVERAGE_FILE: .coverage.${{ matrix.shard }}
     steps:
-    - uses: actions/checkout@v3
+    - name: Record start time
+      run: echo "JOB_START_TIME=$(date +%s)" >> $GITHUB_ENV
+    - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev]
-    - name: Run named fast gate
-      env:
-        TANK_ENFORCE_MUTATION_INVARIANTS: "1"
-      run: python tools/fast_gate.py
+    - name: Record setup duration
+      run: |
+        python -c "import json, time, os; t = time.time() - float(os.environ.get('JOB_START_TIME', 0)); json.dump({'deps_install_duration': t}, open('.ci_timings.json', 'w'))"
+    - name: Run pre-PR shard ${{ matrix.shard }}
+      # Smoke coverage runs concurrently as its own job (see smoke-gate above),
+      # and coverage is collected here per-shard instead of in a separate final
+      # full-suite pass, so combine both without re-running either.
+      run: |
+        python tools/pre_pr_gate.py --shard ${{ matrix.shard }} --skip-smoke \
+          --coverage --xdist --workers 2
+    - name: Record coverage upload start
+      if: always()
+      run: echo "UPLOAD_START_TIME=$(date +%s)" >> $GITHUB_ENV
+    - name: Upload coverage data
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.shard }}
+        path: .coverage.${{ matrix.shard }}
+        include-hidden-files: true
+        if-no-files-found: error
+    - name: Record coverage upload end and save
+      if: always()
+      run: |
+        python -c "import json, time, os; t = time.time() - float(os.environ.get('UPLOAD_START_TIME', 0)); d = json.load(open('.ci_timings.json')) if os.path.exists('.ci_timings.json') else {}; d['coverage_upload_duration'] = t; json.dump(d, open('.ci_timings.json', 'w'))"
+    - name: Generate CI summary
+      if: always()
+      run: python tools/ci_summary.py
+
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
     - name: Type check with mypy
-      run: python -m mypy core/
+      run: python -m mypy core/ backend/ tools/
+
+  pre-pr-gate:
+    # Thin aggregator: combines shard coverage and enforces the floor. Kept as
+    # a job literally named `pre-pr-gate` so branch-protection required-status
+    # rules that reference this name by job id keep working unchanged. GitHub
+    # skips this job (which blocks merging, same as a failure) if any of the
+    # jobs below fail, so no extra `if:` logic is needed to preserve gating.
+    runs-on: ubuntu-latest
+    needs: [smoke-gate, pre-pr-shard, mypy]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install "coverage[toml]"
+    - name: Download shard coverage data
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-*
+        merge-multiple: true
+    - name: Combine coverage and enforce floor
+      run: |
+        python -m coverage combine
+        python -m coverage report --fail-under=70
+
+  check-locked-paths:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'override-locked-paths')
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Check locked paths
+      run: |
+        python tools/check_locked_paths.py --locked \
+          benchmarks/poker/ladder_20k.py benchmarks/tank/foraging_gym.py \
+          --base origin/${{ github.base_ref }}
+
 
   frontend-ci:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
@@ -81,15 +185,50 @@ jobs:
       run: npm run test
       working-directory: frontend
 
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+    - name: Install pip-audit
+      run: |
+        python -m pip install --upgrade pip
+        pip install pip-audit
+    - name: Audit Python dependencies
+      # Audit the project's declared dependency graph instead of the temporary
+      # runner environment, so vulnerabilities in CI tooling (pip, pip-audit,
+      # etc.) do not block unrelated project changes.
+      run: pip-audit . --skip-editable
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    - name: Install frontend dependencies
+      run: npm ci
+      working-directory: frontend
+    - name: Audit frontend dependencies
+      # Fail only on high/critical so the gate stays actionable; low/moderate
+      # advisories are visible in the log without blocking unrelated PRs.
+      run: npm audit --audit-level=high
+      working-directory: frontend
+
   nightly-full:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || contains(github.event.pull_request.labels.*.name, 'full-test')
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -101,7 +240,7 @@ jobs:
     - name: Enforce coverage floor
       run: |
         pytest tests/ -m "not slow and not integration and not manual" \
-          --cov=core --cov=backend --cov-fail-under=70 -q
+          --cov=core --cov=backend --cov-fail-under=70 -n auto -q
     - name: Upload champion verification results
       if: always()
       uses: actions/upload-artifact@v4

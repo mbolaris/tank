@@ -16,7 +16,7 @@ module for backwards compatibility.
 """
 
 import random as pyrandom
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from core.genetics.behavioral_inheritance import (
@@ -48,10 +48,13 @@ from core.genetics.policy_inheritance import (
     validate_code_policy,
     validate_policy_fields,
 )
+from core.genetics.reproduction import ReproductionMutationContext
 from core.genetics.trait import GeneticTrait, TraitSpec, random_genetic_trait
 
 if TYPE_CHECKING:
     from core.algorithms.composable import ComposableBehavior
+    from core.behavior.graph import BehaviorGraph
+    from core.behavior.target_memory import TargetMemoryParams
     from core.genetics.physical import PhysicalTraits
     from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -91,6 +94,7 @@ BEHAVIORAL_TRAIT_SPECS: list[TraitSpec] = [
     TraitSpec("prediction_skill", 0.0, 1.0),
     TraitSpec("hunting_stamina", 0.0, 1.0),
     TraitSpec("asexual_reproduction_chance", 0.0, 1.0),
+    TraitSpec("exploration_tendency", 0.0, 1.0),
 ]
 
 # Behavioral traits that can be selected for via mate preferences.
@@ -139,6 +143,7 @@ class BehavioralTraits:
     prediction_skill: GeneticTrait[float]
     hunting_stamina: GeneticTrait[float]
     asexual_reproduction_chance: GeneticTrait[float]
+    exploration_tendency: GeneticTrait[float] = field(default_factory=lambda: GeneticTrait(0.5))
 
     # Composable behavior (replaces behavior_algorithm + poker_algorithm)
     # This single field encodes: threat response, food approach, energy style,
@@ -170,6 +175,22 @@ class BehavioralTraits:
     # Soccer policy (soccer training world behavior)
     soccer_policy_id: GeneticTrait[str | None] | None = None
     soccer_policy_params: GeneticTrait[dict[str, float] | None] | None = None
+
+    # Dormant graph substrate.  A missing trait deliberately keeps the current
+    # composable behavior path and consumes no additional RNG during founding.
+    behavior_graph: GeneticTrait["BehaviorGraph | None"] | None = None
+
+    # Independently evolvable Target Pursuit Module: food and soccer-ball
+    # pursuit evaluate this SAME inherited/mutated graph (see
+    # core.behavior.pursuit_nodes.default_pursuit_module_graph). Dormant by
+    # default, mirroring behavior_graph's opt-in founding contract.
+    target_pursuit_module: GeneticTrait["BehaviorGraph | None"] | None = None
+
+    # Independently evolvable Target Memory module: decides what target a
+    # fish is committed to and when to switch (see
+    # core.behavior.target_memory.decide_target), shared by food and
+    # soccer-ball pursuit. Dormant by default, same opt-in founding contract.
+    target_memory: GeneticTrait["TargetMemoryParams | None"] | None = None
 
     @classmethod
     def random(
@@ -220,6 +241,8 @@ class BehavioralTraits:
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits from two parents.
 
@@ -241,6 +264,8 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
         return cls(**inherited)
 
@@ -255,6 +280,9 @@ class BehavioralTraits:
         mutation_strength: float = 0.1,
         rng: pyrandom.Random,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
+        parent1_dominant: bool | None = None,
     ) -> "BehavioralTraits":
         """Inherit behavioral traits by choosing a parent per trait (recombination)."""
         inherited = recombine_behavioral_traits(
@@ -266,5 +294,8 @@ class BehavioralTraits:
             mutation_strength=mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
+            parent1_dominant=parent1_dominant,
         )
         return cls(**inherited)

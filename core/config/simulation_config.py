@@ -90,6 +90,9 @@ class EcosystemConfig:
     spawn_margin_pixels: int = SPAWN_MARGIN_PIXELS
     total_algorithm_count: int = TOTAL_ALGORITHM_COUNT
     total_species_count: int = TOTAL_SPECIES_COUNT
+    panic_button_enabled: bool = False
+    panic_button_k: float = 1.0
+    panic_button_target: float = 0.30
 
     @property
     def initial_fish_count(self) -> int:
@@ -182,6 +185,9 @@ class FoodConfig:
     high_pop_threshold_1: int = AUTO_FOOD_HIGH_POP_THRESHOLD_1
     high_pop_threshold_2: int = AUTO_FOOD_HIGH_POP_THRESHOLD_2
     live_food_chance: float = LIVE_FOOD_SPAWN_CHANCE
+    local_resource_patches_enabled: bool = False
+    resource_patch_stock: float = 240.0
+    resource_patch_regrowth_rate: float = 0.25
 
 
 @dataclass
@@ -195,6 +201,16 @@ class TankConfig:
     """
 
     brain_mode: str = "builtin"  # "builtin" | "external"
+    # Experimental fixed-topology behavior graph controller.  Disabled by
+    # default so existing replays retain their exact RNG schedule.
+    graph_behavior_enabled: bool = False
+    # Shared Target Pursuit Module for food AND soccer-ball pursuit. Independent
+    # from graph_behavior_enabled so experiments can isolate either component.
+    target_pursuit_module_enabled: bool = False
+    # Target Memory: decides what target a fish is committed to and when to
+    # switch, for food AND soccer-ball pursuit. Independent from the other
+    # two flags so experiments can isolate any component.
+    target_memory_enabled: bool = False
 
 
 @dataclass
@@ -211,6 +227,7 @@ class SimulationConfig:
     tank: TankConfig = field(default_factory=TankConfig)
     headless: bool = True
     enable_phase_debug: bool = False
+    profile_phases: bool = False
 
     def validate(self) -> None:
         """Validate the configuration for conflicting settings."""
@@ -320,6 +337,9 @@ class SimulationConfig:
             "initial_fish_count": "initial_fish_count",
             "critical_population_threshold": "critical_population_threshold",
             "emergency_spawn_cooldown": "emergency_spawn_cooldown",
+            "panic_button_enabled": "panic_button_enabled",
+            "panic_button_k": "panic_button_k",
+            "panic_button_target": "panic_button_target",
         }
         for flat_key, attr in ecosystem_map.items():
             if flat_key in config_dict:
@@ -330,6 +350,9 @@ class SimulationConfig:
             "auto_food_enabled": "auto_food_enabled",
             "auto_food_spawn_rate": "spawn_rate",
             "food_spawn_rate": "spawn_rate",
+            "local_resource_patches_enabled": "local_resource_patches_enabled",
+            "resource_patch_stock": "resource_patch_stock",
+            "resource_patch_regrowth_rate": "resource_patch_regrowth_rate",
         }
         for flat_key, attr in food_map.items():
             if flat_key in config_dict:
@@ -343,6 +366,15 @@ class SimulationConfig:
         for flat_key, attr in server_map.items():
             if flat_key in config_dict:
                 setattr(cfg.server, attr, config_dict[flat_key])
+
+        if "graph_behavior_enabled" in config_dict:
+            cfg.tank.graph_behavior_enabled = bool(config_dict["graph_behavior_enabled"])
+        if "target_pursuit_module_enabled" in config_dict:
+            cfg.tank.target_pursuit_module_enabled = bool(
+                config_dict["target_pursuit_module_enabled"]
+            )
+        if "target_memory_enabled" in config_dict:
+            cfg.tank.target_memory_enabled = bool(config_dict["target_memory_enabled"])
 
         # Soccer evaluator
         soccer_map = {

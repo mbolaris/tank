@@ -143,3 +143,26 @@ def test_overflow_spills_to_food_when_bank_is_full(simulation_env):
     )
 
     assert entities_after == entities_before + 1
+
+
+def test_banked_reproduction_uses_configured_cooldown(simulation_env):
+    _unused_env, _agents_wrapper = simulation_env
+    env = _EnvironmentStub()
+    eco = _EcosystemStub()
+
+    fish = _make_fish(env, fish_id=1, ecosystem=eco)
+    _set_adult(fish)
+    fish.energy = fish.max_energy
+    fish._reproduction_component.bank_overflow_energy(160.0, max_bank=fish.max_energy * 3)
+
+    from core.config.fish import REPRODUCTION_COOLDOWN
+    from core.reproduction.reproduction_service import ReproductionService
+
+    first_baby = ReproductionService.maybe_create_banked_offspring(fish)
+
+    assert first_baby is not None
+    assert fish._reproduction_component.reproduction_cooldown == REPRODUCTION_COOLDOWN
+
+    second_baby = ReproductionService.maybe_create_banked_offspring(fish)
+
+    assert second_baby is not None

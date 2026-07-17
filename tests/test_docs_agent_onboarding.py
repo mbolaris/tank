@@ -4,6 +4,18 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PUBLIC_AGENT_DOCS = [
+    ROOT / "README.md",
+    ROOT / "docs" / "EVO_CONTRIBUTING.md",
+    ROOT / "docs" / "AGENT_QUICKSTART.md",
+    ROOT / "AGENTS.md",
+    ROOT / "docs" / "AGENT_FIELD_GUIDE.md",
+    ROOT / "CLAUDE.md",
+    ROOT / "SETUP.md",
+    ROOT / "docs" / "ALGORITHM_CATALOG.md",
+    ROOT / "docs" / "BENCHMARK_CATALOG.md",
+]
+ARCHIVED_ADR_DIR = ROOT / "docs" / "adr"
 
 
 def _workflow_job_names() -> set[str]:
@@ -47,13 +59,56 @@ def _markdown_section(content: str, heading: str) -> str:
     return content[start:next_heading]
 
 
-def test_readme_references_smoke_and_fast_gates():
+def test_readme_references_smoke_and_pre_pr_gates():
     readme_path = ROOT / "README.md"
     assert readme_path.exists(), "README.md does not exist"
     content = readme_path.read_text(encoding="utf-8")
     assert "tools/smoke_gate.py" in content, "README.md must reference tools/smoke_gate.py"
     assert "tools/agent_gate.py" in content, "README.md must reference tools/agent_gate.py"
-    assert "tools/fast_gate.py" in content, "README.md must reference tools/fast_gate.py"
+    assert "tools/pre_pr_gate.py" in content, "README.md must reference tools/pre_pr_gate.py"
+
+
+def test_active_docs_never_reference_fast_gate():
+    """The renamed tools/fast_gate.py -> tools/pre_pr_gate.py must not resurface.
+
+    These are the live, forward-looking docs an agent reads to decide what command
+    to run; a stale mention here would send a vague-prompt agent looking for a
+    script that no longer exists. Historical mentions belong only in docs/adr/,
+    where test_archived_adr_fast_gate_mentions_are_marked_historical enforces they
+    stay clearly marked as such.
+    """
+    for doc_path in PUBLIC_AGENT_DOCS:
+        assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
+        content = doc_path.read_text(encoding="utf-8")
+        assert "fast_gate" not in content, (
+            f"{doc_path.relative_to(ROOT)} references the retired tools/fast_gate.py. "
+            "Use tools/pre_pr_gate.py instead."
+        )
+
+
+def test_archived_adr_fast_gate_mentions_are_marked_historical():
+    """ADRs may cite the retired `fast_gate` name only as historical record.
+
+    If any ADR still mentions it, docs/adr/README.md must carry an explicit
+    historical-record note explaining the rename - so a reader (or an agent)
+    cannot mistake old verification notes for current instructions.
+    """
+    adr_files_with_mentions = [
+        path
+        for path in sorted(ARCHIVED_ADR_DIR.glob("*.md"))
+        if path.name != "README.md" and "fast_gate" in path.read_text(encoding="utf-8")
+    ]
+    if not adr_files_with_mentions:
+        return
+
+    readme_path = ARCHIVED_ADR_DIR / "README.md"
+    assert readme_path.exists(), "docs/adr/README.md does not exist"
+    readme_content = readme_path.read_text(encoding="utf-8")
+
+    assert "fast_gate" in readme_content and "historical" in readme_content.lower(), (
+        "docs/adr/README.md must clearly mark 'fast_gate' mentions as historical "
+        f"(found live references in: {[p.name for p in adr_files_with_mentions]})"
+    )
 
 
 def test_agents_references_agent_quickstart():
@@ -66,12 +121,12 @@ def test_agents_references_agent_quickstart():
     assert "tools/agent_gate.py" in content, "AGENTS.md must reference tools/agent_gate.py"
 
 
-def test_vague_prompt_guidance_starts_with_smoke_gate_not_fast_gate():
+def test_vague_prompt_guidance_starts_with_smoke_gate_not_pre_pr_gate():
     agents_path = ROOT / "AGENTS.md"
     content = agents_path.read_text(encoding="utf-8")
     section = _markdown_section(content, "If you were given a vague prompt")
 
-    gate_commands = re.findall(r"python tools/(?:smoke|agent|fast|full)_gate\.py", section)
+    gate_commands = re.findall(r"python tools/(?:smoke|agent|pre_pr|full)_gate\.py", section)
 
     assert gate_commands, "AGENTS.md vague-prompt section must name a validation gate"
     assert (
@@ -148,3 +203,84 @@ def test_ci_job_names_in_readme_match_workflow_files():
     )
     stale_mentions = sorted(all_readme_job_mentions - actual_jobs)
     assert not stale_mentions, f"README.md mentions stale/nonexistent CI jobs: {stale_mentions}"
+
+
+def test_agent_quickstart_does_not_mention_update_champion():
+    quickstart_path = ROOT / "docs" / "AGENT_QUICKSTART.md"
+    content = quickstart_path.read_text(encoding="utf-8")
+    assert "--update-champion" not in content, (
+        "docs/AGENT_QUICKSTART.md must not instruct agents to use --update-champion. "
+        "Updating champion files is restricted to authorized agents/maintainers."
+    )
+    assert (
+        "verify_all_champions.py" not in content
+    ), "docs/AGENT_QUICKSTART.md must not instruct agents to use verify_all_champions.py."
+    assert (
+        "Do NOT edit the `champions/**/*.json` files directly" in content
+        or "do not edit the champions/**/*.json files" in content
+    )
+
+
+def test_public_agent_docs_restrict_champion_update_guidance():
+    """Public agent docs may compare against champions, but not casually update them."""
+    forbidden_unconditional_patterns = [
+        r"if\s+better,\s*update\s+the\s+champion\s+file",
+        r"if\s+you\s+have\s+an\s+improvement,\s*update\s+the\s+champion\s+file",
+        r"git\s+add\s+champions/[^\n]+\.json",
+        r"manually\s+overwrite\s+the\s+affected\s+champion\s+files",
+    ]
+    restricted_words = ("maintainer", "authorized", "must not", "do not", "unless explicitly")
+
+    for doc_path in PUBLIC_AGENT_DOCS:
+        assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
+        content = doc_path.read_text(encoding="utf-8")
+        lower = content.lower()
+
+        for pattern in forbidden_unconditional_patterns:
+            assert not re.search(pattern, lower), (
+                f"{doc_path.relative_to(ROOT)} contains unconditional champion-update guidance "
+                f"matching {pattern!r}. Agents should report evidence, not update champions."
+            )
+
+        for match in re.finditer(r"--update-champion", lower):
+            start = max(0, match.start() - 240)
+            end = min(len(lower), match.end() + 240)
+            context = lower[start:end]
+            assert any(word in context for word in restricted_words), (
+                f"{doc_path.relative_to(ROOT)} mentions --update-champion without clear "
+                "maintainer/task authorization language nearby."
+            )
+
+
+def test_algorithm_catalog_is_up_to_date():
+    from tools.generate_algorithm_catalog import generate_catalog
+
+    catalog_path = ROOT / "docs" / "ALGORITHM_CATALOG.md"
+    assert catalog_path.exists(), "ALGORITHM_CATALOG.md does not exist"
+
+    current_content = catalog_path.read_text(encoding="utf-8")
+    expected_content = generate_catalog()
+
+    # Normalize line endings to avoid OS-specific test failures
+    current_content = current_content.replace("\r\n", "\n")
+    expected_content = expected_content.replace("\r\n", "\n")
+
+    assert current_content == expected_content, (
+        "docs/ALGORITHM_CATALOG.md is out of date. "
+        "Run 'python tools/generate_algorithm_catalog.py' to update it."
+    )
+
+
+def test_benchmark_catalog_is_up_to_date():
+    from tools.generate_benchmark_catalog import generate_catalog
+
+    catalog_path = ROOT / "docs" / "BENCHMARK_CATALOG.md"
+    assert catalog_path.exists(), "BENCHMARK_CATALOG.md does not exist"
+
+    current_content = catalog_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    expected_content = generate_catalog().replace("\r\n", "\n")
+
+    assert current_content == expected_content, (
+        "docs/BENCHMARK_CATALOG.md is out of date. "
+        "Run 'python tools/generate_benchmark_catalog.py' to update it."
+    )

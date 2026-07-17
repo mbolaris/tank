@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from backend.world_manager import WorldManager
     from core.entities import Fish
 
+from backend.commentary_store import CommentaryStore
+from backend.metrics_history import MetricsHistory
 from backend.runner import (
     CommandHandlerMixin,
     evolution_benchmark,
@@ -24,7 +26,6 @@ from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
-from backend.metrics_history import MetricsHistory
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
@@ -87,6 +88,23 @@ class SimulationRunner(CommandHandlerMixin):
         self.world_id = world_id or str(uuid.uuid4())
         self.world_name = world_name or f"World {self.world_id[:8]}"
 
+        self.world.tank_name = self.world_name
+        self.world.tank_id = self.world_id
+
+        env = None
+        if hasattr(self.world, "environment") and self.world.environment is not None:
+            env = self.world.environment
+        elif hasattr(self.world, "world") and self.world.world is not None:
+            env = self.world.world
+        else:
+            engine = getattr(self.world, "_engine", None)
+            if engine is not None and hasattr(engine, "environment"):
+                env = engine.environment
+
+        if env is not None:
+            env.tank_name = self.world_name
+            env.tank_id = self.world_id
+
         # Target frame rate
         self.fps = FRAME_RATE
         self.frame_time = 1.0 / self.fps
@@ -129,6 +147,9 @@ class SimulationRunner(CommandHandlerMixin):
 
         # Initialize metrics history tracking
         self.metrics_history = MetricsHistory(world_id=self.world_id)
+
+        # Initialize agent commentary buffer (the "Insights" feed)
+        self.commentary = CommentaryStore(world_id=self.world_id)
 
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
@@ -195,6 +216,10 @@ class SimulationRunner(CommandHandlerMixin):
         # Update metrics history world_id
         if hasattr(self, "metrics_history") and self.metrics_history is not None:
             self.metrics_history.world_id = world_id
+
+        # Update commentary buffer world_id
+        if hasattr(self, "commentary") and self.commentary is not None:
+            self.commentary.world_id = world_id
 
         # Update hooks with new world identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
@@ -410,6 +435,7 @@ class SimulationRunner(CommandHandlerMixin):
             )
             self.world.runner = self
             self.metrics_history = MetricsHistory(world_id=self.world_id)
+            self.commentary = CommentaryStore(world_id=self.world_id)
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
@@ -484,6 +510,81 @@ class SimulationRunner(CommandHandlerMixin):
         frame = self.world.frame_count
         if frame > 0 and frame % self.metrics_history.sample_interval_frames == 0:
             self._collect_stats(frame, include_distributions=False)
+            self._check_noteworthy_pursuit_variants(frame)
+
+    def _check_noteworthy_pursuit_variants(self, frame: int) -> None:
+        """Scan population to identify and announce spread of new pursuit module variants."""
+        config = getattr(self.world, "simulation_config", None)
+        if config is None or not getattr(config.tank, "target_pursuit_module_enabled", False):
+            return
+
+        living_fish = []
+        entities = getattr(self.world, "entities_list", None) or []
+        for e in entities:
+            if hasattr(e, "genome") and hasattr(e, "fish_id"):
+                living_fish.append(e)
+
+        if not living_fish:
+            return
+
+        from collections import defaultdict
+
+        variant_counts: dict[str, int] = defaultdict(int)
+        variant_carriers: dict[str, list[Any]] = defaultdict(list)
+        for f in living_fish:
+            trait = getattr(f.genome.behavioral, "target_pursuit_module", None)
+            module = trait.value if trait is not None else None
+            if module is not None:
+                fp = module.fingerprint()
+                variant_counts[fp] += 1
+                variant_carriers[fp].append(f)
+
+        if not hasattr(self, "_announced_noteworthy_variants"):
+            self._announced_noteworthy_variants: set[str] = set()
+
+        if not hasattr(self, "_pursuit_variant_origins"):
+            self._pursuit_variant_origins: dict[str, int] = {}
+
+        for f in living_fish:
+            trait = getattr(f.genome.behavioral, "target_pursuit_module", None)
+            module = trait.value if trait is not None else None
+            if module is not None:
+                fp = module.fingerprint()
+                if fp not in self._pursuit_variant_origins:
+                    self._pursuit_variant_origins[fp] = f.fish_id
+
+        for fp, count in variant_counts.items():
+            pct = count / len(living_fish)
+            if pct >= 0.25 and count >= 3 and fp not in self._announced_noteworthy_variants:
+                self._announced_noteworthy_variants.add(fp)
+
+                origin_id = self._pursuit_variant_origins.get(fp, "unknown")
+
+                species_counts: dict[str, int] = defaultdict(int)
+                for f in variant_carriers[fp]:
+                    species_counts[f.species] = species_counts[f.species] + 1
+                most_common_species = (
+                    max(species_counts, key=lambda k: species_counts[k])
+                    if species_counts
+                    else "Fish"
+                )
+
+                comment_text = (
+                    f"A pursuit mutation first seen in Fish #{origin_id} has spread to {int(pct * 100)}% "
+                    f"of the {most_common_species}. Its performance impact has not yet been measured."
+                )
+
+                self.add_commentary(
+                    text=comment_text,
+                    author="Ecosystem Monitor",
+                    tags=["selection", "pursuit"],
+                    severity="insight",
+                    metrics={
+                        "variant_fingerprint": fp,
+                        "origin_fish_id": origin_id,
+                        "prevalence_pct": int(pct * 100),
+                    },
+                )
 
     # Removed: _collect_poker_events, _collect_soccer_events, _collect_soccer_league_live,
     # _collect_poker_leaderboard, _collect_auto_eval (moved to WorldHooks)
@@ -508,6 +609,34 @@ class SimulationRunner(CommandHandlerMixin):
         """
 
         return self._entity_snapshot_builder.to_snapshot(entity)
+
+    def add_commentary(
+        self,
+        text: str,
+        *,
+        author: str | None = None,
+        tags: Any = None,
+        severity: str | None = None,
+        metrics: Any = None,
+        topic: str | None = None,
+    ) -> dict[str, Any]:
+        """Record an agent observation about this world (the Board feed).
+
+        Stamps the comment with the current simulation frame and appends it to
+        the commentary buffer. This is purely additive telemetry - it reads
+        ``frame_count`` but never mutates simulation state, so posting a comment
+        cannot perturb a running experiment.
+        """
+        with self.lock:
+            return self.commentary.add(
+                text,
+                author=author,
+                tags=tags,
+                severity=severity,
+                metrics=metrics,
+                topic=topic,
+                frame=self.frame_count,
+            )
 
     def handle_command(self, command: str, data: dict[str, Any] | None = None):
         """Handle a command from the client.
@@ -541,6 +670,10 @@ class SimulationRunner(CommandHandlerMixin):
                 "resume": self._cmd_resume,
                 "reset": self._cmd_reset,
                 "fast_forward": self._cmd_fast_forward,
+                "set_local_resource_patches": self._cmd_set_local_resource_patches,
+                "place_tank_object": self._cmd_place_tank_object,
+                "move_tank_object": self._cmd_move_tank_object,
+                "delete_tank_object": self._cmd_delete_tank_object,
             }
 
             tank_handlers = {

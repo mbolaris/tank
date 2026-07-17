@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Base entity classes for the simulation.
 
 Entity Hierarchy
@@ -23,7 +25,7 @@ non-steering movers don't inherit AI behaviors.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Protocol
 
 from core.config.display import DEFAULT_AGENT_SIZE
 from core.config.fish import ALIGNMENT_SPEED_CHANGE, AVOIDANCE_SPEED_CHANGE
@@ -44,8 +46,16 @@ class EntityUpdateResult:
         events: List of events emitted by this entity (e.g. death, interaction)
     """
 
-    spawned_entities: list["Entity"] = field(default_factory=list)
-    events: list[Any] = field(default_factory=list)
+    spawned_entities: list[Entity] = field(default_factory=list)
+    events: list[object] = field(default_factory=list)
+
+
+class SpriteGroup(Protocol):
+    """Minimal group protocol needed for entity removal."""
+
+    def remove(self, entity: Entity) -> object:
+        """Remove an entity from the group."""
+        ...
 
 
 class Rect:
@@ -58,11 +68,11 @@ class Rect:
         self.height = height
 
     @property
-    def topleft(self):
+    def topleft(self) -> tuple[float, float]:
         return (self.x, self.y)
 
     @topleft.setter
-    def topleft(self, value):
+    def topleft(self, value: tuple[float, float] | Vector2) -> None:
         if isinstance(value, Vector2):
             self.x = value.x
             self.y = value.y
@@ -70,11 +80,11 @@ class Rect:
             self.x, self.y = value
 
     @property
-    def center(self):
+    def center(self) -> tuple[float, float]:
         return (self.x + self.width / 2, self.y + self.height / 2)
 
     @center.setter
-    def center(self, value):
+    def center(self, value: tuple[float, float] | Vector2) -> None:
         if isinstance(value, Vector2):
             self.x = value.x - self.width / 2
             self.y = value.y - self.height / 2
@@ -82,7 +92,7 @@ class Rect:
             self.x = value[0] - self.width / 2
             self.y = value[1] - self.height / 2
 
-    def colliderect(self, other: "Rect") -> bool:
+    def colliderect(self, other: Rect) -> bool:
         """Check if this rect collides with another rect."""
         return (
             self.x < other.x + other.width
@@ -120,7 +130,7 @@ class Entity:
         self.blocks_root_spots: bool = False
 
         self.rect: Rect = Rect(x, y, self.width, self.height)
-        self._groups: list = []  # Track sprite groups for kill() method
+        self._groups: list[SpriteGroup] = []  # Track sprite groups for kill() method
 
         # Lifecycle state machine (Active -> Dead/Removed)
         self.state = create_entity_state_machine(track_history=True)
@@ -140,7 +150,7 @@ class Entity:
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the entity state (pure logic, no rendering).
 
         Returns:
@@ -148,7 +158,7 @@ class Entity:
         """
         return EntityUpdateResult()
 
-    def add_internal(self, group) -> None:
+    def add_internal(self, group: SpriteGroup) -> None:
         """Track group for kill() method."""
         if group not in self._groups:
             self._groups.append(group)
@@ -311,7 +321,7 @@ class MobileEntity(Entity):
 
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
-    ) -> "EntityUpdateResult":
+    ) -> EntityUpdateResult:
         """Update the mobile entity state.
 
         Returns:
@@ -354,7 +364,7 @@ class Agent(MobileEntity):
         # Keep rect in sync with position
         self.rect.topleft = self.pos
 
-    def avoid(self, other_sprites: list["Agent"], min_distance: float) -> None:
+    def avoid(self, other_sprites: list[Agent], min_distance: float) -> None:
         """Avoid other agents."""
         any_sprite_close = False
 
@@ -384,7 +394,7 @@ class Agent(MobileEntity):
             if self.avoidance_velocity.length_squared() > max_avoidance * max_avoidance:
                 self.avoidance_velocity = self.avoidance_velocity.normalize() * max_avoidance
 
-    def align_near(self, other_sprites: list["Agent"], min_distance: float) -> None:
+    def align_near(self, other_sprites: list[Agent], min_distance: float) -> None:
         """Align with nearby agents."""
         if not other_sprites:
             return
@@ -395,12 +405,12 @@ class Agent(MobileEntity):
         if self.vel.x != 0 or self.vel.y != 0:  # Checking if it's a zero vector
             self.vel = self.vel.normalize() * abs(self.speed)
 
-    def get_average_position(self, other_sprites: list["Agent"]) -> Vector2:
+    def get_average_position(self, other_sprites: list[Agent]) -> Vector2:
         """Calculate the average position of other agents."""
         return sum((other.pos for other in other_sprites), Vector2()) / len(other_sprites)
 
     def adjust_velocity_towards_or_away_from_other_sprites(
-        self, other_sprites: list["Agent"], avg_pos: Vector2, min_distance: float
+        self, other_sprites: list[Agent], avg_pos: Vector2, min_distance: float
     ) -> None:
         """Adjust velocity based on the position of other agents."""
         for other in other_sprites:
@@ -426,37 +436,3 @@ class Agent(MobileEntity):
         diff_length = difference.length()
         if diff_length > 0:
             self.vel += difference.normalize() * ALIGNMENT_SPEED_CHANGE
-
-
-class Castle(Entity):
-    """A decorative castle entity that doesn't move.
-
-    Inherits from Entity (not Agent) as it has no movement or behavior.
-    """
-
-    def __init__(
-        self,
-        environment: World,
-        x: float = 375,
-        y: float = 475,
-    ) -> None:
-        """Initialize a castle.
-
-        Args:
-            environment: The world the castle lives in
-            x: Initial x position
-            y: Initial y position
-        """
-        super().__init__(environment, x, y)
-        self.blocks_root_spots = True
-        # Make castle 50% larger than previous size (was 150x150 -> now 225x225)
-        self.set_size(225.0, 225.0)
-
-    @property
-    def snapshot_type(self) -> str:
-        """Return entity type for snapshot serialization."""
-        return "castle"
-
-    def is_dead(self) -> bool:
-        """Castle is never dead (decorative only)."""
-        return False

@@ -73,6 +73,7 @@ const MAX_PATH_CACHE_SIZE = 500;
  */
 export function clearAvatarPathCache(): void {
     pathCache.clear();
+    entityFacingLeft.clear();
 }
 
 /**
@@ -186,12 +187,30 @@ function drawFishPattern(ctx: CanvasRenderingContext2D, params: FishParams, base
     ctx.restore();
 }
 
+// --- Stable Facing State Cache ---
+const entityFacingLeft = new Map<number, boolean>();
+const MIN_FLIP_SPEED = 0.15; // Tailored for soccer/petri speed scales, since max speed is ~1.05
+
+function getStableFacingLeft(entityId: number, velX?: number, team?: string): boolean {
+    const defaultFacing = team === 'right'; // Right team starts facing left
+    const previousFacing = entityFacingLeft.get(entityId) ?? defaultFacing;
+
+    if (velX === undefined || Math.abs(velX) < MIN_FLIP_SPEED) {
+        return previousFacing;
+    }
+
+    const facingLeft = velX < 0;
+    entityFacingLeft.set(entityId, facingLeft);
+    return facingLeft;
+}
+
 export function drawSVGFish(
     ctx: CanvasRenderingContext2D,
-    _entityId: number,
+    entityId: number,
     radius: number,
     velX: number | undefined,
-    genomeData: FishGenomeData | null | undefined
+    genomeData: FishGenomeData | null | undefined,
+    team?: string
 ) {
     if (!genomeData) return;
 
@@ -216,8 +235,8 @@ export function drawSVGFish(
     const sizeModifier = fishParams.size;
     const scaledSize = baseSize * sizeModifier;
 
-    // Flip logic (simplified)
-    const flipHorizontal = (velX ?? 0) < -0.1;
+    // Flip based on velocity direction with stability for low speeds
+    const flipHorizontal = getStableFacingLeft(entityId, velX, team);
 
     ctx.save();
 
@@ -515,7 +534,8 @@ export function drawAvatar(
     velX: number | undefined,
     velY: number | undefined,
     genomeData: FishGenomeData | null | undefined,
-    forceMicrobe: boolean = false
+    forceMicrobe: boolean = false,
+    team?: string
 ) {
     if (!genomeData) return;
 
@@ -528,7 +548,7 @@ export function drawAvatar(
     // Check if we should render as SVG fish
     // If template_id is defined, we prefer SVG fish
     if (genomeData.template_id !== undefined && genomeData.template_id !== null) {
-        drawSVGFish(ctx, entityId, radius, velX, genomeData);
+        drawSVGFish(ctx, entityId, radius, velX, genomeData, team);
     } else {
         drawMicrobe(ctx, entityId, radius, velX, velY, genomeData);
     }

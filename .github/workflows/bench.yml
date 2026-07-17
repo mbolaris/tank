@@ -38,7 +38,7 @@ jobs:
 
   benchmark-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
@@ -48,6 +48,27 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
       - name: Run Tank Benchmark (determinism check)
-        run: python benchmarks/tank/survival_5k.py --verify-determinism
+        timeout-minutes: 10
+        run: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42 --verify-determinism
       - name: Run Soccer Benchmark (determinism check)
+        timeout-minutes: 5
         run: python benchmarks/soccer/training_5k.py --verify-determinism
+      - name: Run Poker Ladder Benchmark (determinism check)
+        timeout-minutes: 5
+        run: |
+          mkdir -p research
+          python tools/run_bench.py benchmarks/poker/ladder_20k.py --seed 42 --verify-determinism \
+            --record-skill --skill-ledger research/skill_history.jsonl
+      - name: Record foraging skill history
+        run: |
+          python tools/run_bench.py benchmarks/tank/foraging_gym.py --seed 42 \
+            --record-skill --skill-ledger research/skill_history.jsonl
+      - name: Build longitudinal skill report
+        run: python tools/skill_report.py --format html --out skill_report.html
+      - name: Upload skill history artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-ruler-skill-history
+          path: |
+            research/skill_history.jsonl
+            skill_report.html

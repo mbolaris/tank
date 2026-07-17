@@ -22,6 +22,8 @@ from core.config.server import POKER_ACTIVITY_ENABLED
 from core.mixed_poker import MixedPokerInteraction
 from core.poker.integration.poker_interaction import MAX_PLAYERS as POKER_MAX_PLAYERS
 from core.poker.integration.poker_interaction import PokerInteraction
+from core.poker.integration.poker_rewards import annotate_reproduction_reward, fish_energy_deltas
+from core.poker.integration.post_poker_reproduction import handle_fish_post_poker_reproduction
 from core.systems.base import BaseSystem, SystemResult
 from core.update_phases import UpdatePhase, runs_in_phase
 
@@ -88,7 +90,7 @@ class PokerSystem(BaseSystem):
         Args:
             poker: The completed poker interaction
         """
-        self.add_poker_event(poker)
+        event = self.add_poker_event(poker)
 
         # Count the completed fish-vs-fish game so the UI's total_fish_games and
         # poker-rate stats advance. Per-fish FishPokerStats are recorded inside
@@ -103,6 +105,8 @@ class PokerSystem(BaseSystem):
         if reproduction_service is not None:
             baby = reproduction_service.handle_post_poker_reproduction(poker)
             if baby is not None:
+                winner_id = poker.result.winner_id if poker.result is not None else None
+                annotate_reproduction_reward(event, winner_id, baby)
                 return
 
     def _add_poker_event_to_history(
@@ -113,7 +117,8 @@ class PokerSystem(BaseSystem):
         loser_hand: str,
         energy_transferred: float,
         message: str,
-    ) -> None:
+        extra: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Add a poker event to the history.
 
         Args:
@@ -123,6 +128,10 @@ class PokerSystem(BaseSystem):
             loser_hand: Description of loser's hand
             energy_transferred: Amount of energy transferred
             message: Human-readable message describing the outcome
+            extra: Additional reward-log fields to merge into the event
+
+        Returns:
+            The recorded event dict (still mutable while in the history deque)
         """
         event = {
             "frame": self._engine.frame_count,
@@ -133,18 +142,24 @@ class PokerSystem(BaseSystem):
             "energy_transferred": energy_transferred,
             "message": message,
         }
+        if extra:
+            event.update(extra)
         self.poker_events.append(event)
         self._games_played += 1
         self._total_energy_transferred += energy_transferred
+        return event
 
-    def add_poker_event(self, poker: PokerInteraction) -> None:
+    def add_poker_event(self, poker: PokerInteraction) -> dict[str, Any] | None:
         """Add a poker event to the recent events list.
 
         Args:
             poker: The completed poker interaction
+
+        Returns:
+            The recorded event dict, or None if there was no result
         """
         if poker.result is None:
-            return
+            return None
 
         result = poker.result
         # Get player count from poker.players (MixedPokerInteraction stores players list)
@@ -194,18 +209,25 @@ class PokerSystem(BaseSystem):
             else "Unknown"
         )
 
-        self._add_poker_event_to_history(
+        event = self._add_poker_event_to_history(
             result.winner_id,
             result.loser_ids[0] if result.loser_ids else -1,
             winner_hand_desc,
             loser_hand_desc,
             result.energy_transferred,
             message,
+            extra={
+                "energy_deltas": fish_energy_deltas(poker),
+                "pot": float(getattr(result, "total_pot", 0.0) or 0.0),
+                "house_cut": float(getattr(result, "house_cut", 0.0) or 0.0),
+            },
         )
 
         emitter = getattr(self._engine, "_emit_poker_outcome", None)
         if emitter is not None:
             emitter(result)
+
+        return event
 
     def add_plant_poker_event(
         self,
@@ -215,7 +237,8 @@ class PokerSystem(BaseSystem):
         fish_hand: str,
         plant_hand: str,
         energy_transferred: float,
-    ) -> None:
+        energy_deltas: dict[str, float] | None = None,
+    ) -> dict[str, Any]:
         """Record a poker event between a fish and a plant.
 
         Args:
@@ -225,6 +248,10 @@ class PokerSystem(BaseSystem):
             fish_hand: Description of fish's hand
             plant_hand: Description of plant's hand
             energy_transferred: Amount of energy transferred
+            energy_deltas: Net per-fish energy change, keyed by stringified fish id
+
+        Returns:
+            The recorded event dict (still mutable while in the history deque)
         """
         if fish_won:
             winner_id = fish_id
@@ -251,6 +278,7 @@ class PokerSystem(BaseSystem):
             "message": message,
             "is_plant": True,
             "plant_id": plant_id,
+            "energy_deltas": dict(energy_deltas or {}),
         }
 
         self.poker_events.append(event)
@@ -272,6 +300,8 @@ class PokerSystem(BaseSystem):
                     house_cut=0.0,
                 )
             )
+
+        return event
 
     def get_recent_poker_events(self, max_age_frames: int) -> list[dict[str, Any]]:
         """Get recent poker events within a frame window.
@@ -416,6 +446,8 @@ class PokerSystem(BaseSystem):
 
         result = poker.result
 
+        plant_event: dict[str, Any] | None = None
+
         # Add poker event for display
         if result.plant_count > 0:
             from core.entities import Fish
@@ -464,13 +496,14 @@ class PokerSystem(BaseSystem):
 
             # Record directly on the owning system instead of bouncing through
             # the engine (which delegated right back here). See ADR-011.
-            self.add_plant_poker_event(
+            plant_event = self.add_plant_poker_event(
                 fish_id=fish_display_id,
                 plant_id=plant_display_id,
                 fish_won=winner_is_fish,
                 fish_hand=winner_hand_desc,
                 plant_hand=loser_hand_desc,
                 energy_transferred=abs(result.energy_transferred),
+                energy_deltas=fish_energy_deltas(poker),
             )
 
         # Record mixed fish+plant poker energy economy with correct attribution.
@@ -507,6 +540,8 @@ class PokerSystem(BaseSystem):
             if emitter is not None:
                 emitter(result)
 
+        handle_fish_post_poker_reproduction(self._engine, poker, plant_event)
+
         # Trigger asexual reproduction if fish won against only plants
         # (fish_count == 1 means only the winner was a fish, all opponents were plants)
         if (
@@ -526,7 +561,9 @@ class PokerSystem(BaseSystem):
             if isinstance(winner_fish, Fish):
                 reproduction_service = self._engine.reproduction_service
                 if reproduction_service is not None:
-                    reproduction_service.handle_plant_poker_asexual_reproduction(winner_fish)
+                    baby = reproduction_service.handle_plant_poker_asexual_reproduction(winner_fish)
+                    if baby is not None:
+                        annotate_reproduction_reward(plant_event, winner_fish.fish_id, baby)
 
     # =========================================================================
     # Spawn Helper

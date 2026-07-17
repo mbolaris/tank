@@ -22,177 +22,29 @@ from core.algorithms.composable import (
     ThreatResponse,
 )
 
-# Import all energy management algorithms
-from core.algorithms.energy_management import (
-    AdaptivePacer,
-    BurstSwimmer,
-    EnergyBalancer,
-    EnergyConserver,
-    MetabolicOptimizer,
-    OpportunisticRester,
-    StarvationPreventer,
-    SustainableCruiser,
-)
-
-# Import all food-seeking algorithms
+# Import surviving food-seeking algorithms (ADR-006 stage 2:
+# 11 deprecated monoliths removed; 3 winners retained)
 from core.algorithms.food_seeking import (
-    AggressiveHunter,
-    AmbushFeeder,
-    BottomFeeder,
-    CircularHunter,
     CooperativeForager,
-    EnergyAwareFoodSeeker,
-    FoodMemorySeeker,
     FoodQualityOptimizer,
-    GreedyFoodSeeker,
     OpportunisticFeeder,
-    PatrolFeeder,
-    SpiralForager,
-    SurfaceSkimmer,
-    ZigZagForager,
-)
-
-# Import all poker interaction algorithms
-from core.algorithms.poker import (
-    PokerBluffer,
-    PokerChallenger,
-    PokerConservative,
-    PokerDodger,
-    PokerGambler,
-    PokerOpportunist,
-    PokerStrategist,
-    SelectivePoker,
-)
-
-# Import all predator avoidance algorithms
-from core.algorithms.predator_avoidance import (
-    BorderHugger,
-    DistanceKeeper,
-    ErraticEvader,
-    FreezeResponse,
-    GroupDefender,
-    PanicFlee,
-    PerpendicularEscape,
-    SpiralEscape,
-    StealthyAvoider,
-    VerticalEscaper,
-)
-
-# Import all schooling algorithms
-from core.algorithms.schooling import (
-    AlignmentMatcher,
-    BoidsBehavior,
-    DynamicSchooler,
-    FrontRunner,
-    LeaderFollower,
-    LooseSchooler,
-    MirrorMover,
-    PerimeterGuard,
-    SeparationSeeker,
-    TightSchooler,
-)
-
-# Import all territory/exploration algorithms
-from core.algorithms.territory import (
-    BoundaryExplorer,
-    CenterHugger,
-    CornerSeeker,
-    NomadicWanderer,
-    RandomExplorer,
-    RoutePatroller,
-    TerritorialDefender,
-    WallFollower,
 )
 from core.util.rng import require_rng_param
 
-# Monolithic food-seekers slated for removal (metadata only - selection is
-# untouched because excluding entries from ALL_ALGORITHMS changes rng.choice
-# outcomes and invalidates every recorded champion). Removal + champion
-# re-baselining happen together in a future release.
-# See docs/adr/006-deprecate-monolithic-food-seekers.md for the benchmark
-# data behind this list.
-DEPRECATED_ALGORITHMS: frozenset[str] = frozenset(
-    {
-        "aggressive_hunter",
-        "ambush_feeder",
-        "bottom_feeder",
-        "circular_hunter",
-        "energy_aware_food_seeker",
-        "food_memory_seeker",
-        "greedy_food_seeker",
-        "patrol_feeder",
-        "spiral_forager",
-        "surface_skimmer",
-        "zigzag_forager",
-    }
-)
-
-# All available algorithms (stable ordering for deterministic indexing)
+# All available algorithms (stable ordering for deterministic indexing).
+# ADR-006 removed the 11 deprecated monolithic food-seekers; ADR-016 removed
+# the remaining vestigial monolith categories (predator avoidance, schooling,
+# energy management, territory, poker interaction), which no production code
+# path ever selected. Production fish behavior is the genome's
+# ComposableBehavior; these survivors beat the composable baseline on every
+# benchmark seed and remain the comparison candidates for
+# tools/benchmark_algorithms.py.
+# See docs/adr/016-remove-vestigial-monolith-algorithms.md.
 ALL_ALGORITHMS = [
-    # Food seeking
-    GreedyFoodSeeker,
-    EnergyAwareFoodSeeker,
+    # Food seeking (survivors only — see ADR-006 / ADR-016)
     OpportunisticFeeder,
     FoodQualityOptimizer,
-    AmbushFeeder,
-    PatrolFeeder,
-    SurfaceSkimmer,
-    BottomFeeder,
-    ZigZagForager,
-    CircularHunter,
-    FoodMemorySeeker,
     CooperativeForager,
-    AggressiveHunter,  # NEW: High-speed food pursuit
-    SpiralForager,  # NEW: Systematic spiral search pattern
-    # Predator avoidance
-    PanicFlee,
-    StealthyAvoider,
-    FreezeResponse,
-    ErraticEvader,
-    VerticalEscaper,
-    GroupDefender,
-    SpiralEscape,
-    BorderHugger,
-    PerpendicularEscape,
-    DistanceKeeper,
-    # Schooling/social
-    TightSchooler,
-    LooseSchooler,
-    LeaderFollower,
-    AlignmentMatcher,
-    SeparationSeeker,
-    FrontRunner,
-    PerimeterGuard,
-    MirrorMover,
-    BoidsBehavior,
-    DynamicSchooler,
-    # Energy management
-    EnergyConserver,
-    BurstSwimmer,
-    OpportunisticRester,
-    EnergyBalancer,
-    SustainableCruiser,
-    StarvationPreventer,
-    MetabolicOptimizer,
-    AdaptivePacer,
-    # Territory/exploration
-    TerritorialDefender,
-    RandomExplorer,
-    WallFollower,
-    CornerSeeker,
-    CenterHugger,
-    RoutePatroller,
-    BoundaryExplorer,
-    NomadicWanderer,
-    # Poker interactions
-    PokerChallenger,
-    PokerDodger,
-    PokerGambler,
-    SelectivePoker,
-    PokerOpportunist,
-    PokerStrategist,
-    PokerBluffer,
-    PokerConservative,
 ]
 
 # Algorithm registry for deserialization (maps class names to classes)
@@ -706,73 +558,12 @@ __all__ = [
     "BehaviorHelpersMixin",
     "ALGORITHM_PARAMETER_BOUNDS",
     "Vector2",
-    # Food seeking
-    "GreedyFoodSeeker",
-    "EnergyAwareFoodSeeker",
+    # Food seeking (survivors — ADR-006 / ADR-016)
     "OpportunisticFeeder",
     "FoodQualityOptimizer",
-    "AmbushFeeder",
-    "PatrolFeeder",
-    "SurfaceSkimmer",
-    "BottomFeeder",
-    "ZigZagForager",
-    "CircularHunter",
-    "FoodMemorySeeker",
     "CooperativeForager",
-    "AggressiveHunter",
-    "SpiralForager",
-    # Predator avoidance
-    "PanicFlee",
-    "StealthyAvoider",
-    "FreezeResponse",
-    "ErraticEvader",
-    "VerticalEscaper",
-    "GroupDefender",
-    "SpiralEscape",
-    "BorderHugger",
-    "PerpendicularEscape",
-    "DistanceKeeper",
-    # Schooling
-    "TightSchooler",
-    "LooseSchooler",
-    "LeaderFollower",
-    "AlignmentMatcher",
-    "SeparationSeeker",
-    "FrontRunner",
-    "PerimeterGuard",
-    "MirrorMover",
-    "BoidsBehavior",
-    "DynamicSchooler",
-    # Energy management
-    "EnergyConserver",
-    "BurstSwimmer",
-    "OpportunisticRester",
-    "EnergyBalancer",
-    "SustainableCruiser",
-    "StarvationPreventer",
-    "MetabolicOptimizer",
-    "AdaptivePacer",
-    # Territory/exploration
-    "TerritorialDefender",
-    "RandomExplorer",
-    "WallFollower",
-    "CornerSeeker",
-    "CenterHugger",
-    "RoutePatroller",
-    "BoundaryExplorer",
-    "NomadicWanderer",
-    # Poker interactions
-    "PokerChallenger",
-    "PokerDodger",
-    "PokerGambler",
-    "SelectivePoker",
-    "PokerOpportunist",
-    "PokerStrategist",
-    "PokerBluffer",
-    "PokerConservative",
     # Utilities
     "ALL_ALGORITHMS",
-    "DEPRECATED_ALGORITHMS",
     "get_algorithm_index",
     "get_algorithm_name",
     "get_random_algorithm",

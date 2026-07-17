@@ -12,11 +12,39 @@ export interface RenderContext {
     nowMs: number;
 }
 
+/** The selected fish's shared Target Pursuit Module vectors, for the overlay. */
+export interface PursuitOverlayData {
+    targetVector: [number, number] | null;
+    aimVector: [number, number] | null;
+}
+
+/** The selected fish's Target Memory details, for the overlay. */
+export interface TargetMemoryOverlayRecentEvent {
+    domain: string;
+    action: string;
+    ageFrames: number;
+}
+
+export interface TargetMemoryOverlayData {
+    domain: string;
+    action: string;
+    lastSeenPosition: [number, number];
+    predictedPosition: [number, number];
+    searchVector: [number, number];
+    confidence: number;
+    recentEvent: TargetMemoryOverlayRecentEvent | null;
+}
+
 export interface RenderOptions {
     showEffects?: boolean;
     showSoccer?: boolean;
     selectedEntityId?: number | null;
     viewMode?: ViewMode;
+    pursuitOverlay?: PursuitOverlayData | null;
+    targetMemoryOverlay?: TargetMemoryOverlayData | null;
+    buildGhost?: { kind: string; x: number; y: number; width: number; height: number } | null;
+    /** Build mode exposes ecosystem interaction geometry; Observe mode stays clean. */
+    buildMode?: boolean;
 }
 
 export interface RenderFrame {

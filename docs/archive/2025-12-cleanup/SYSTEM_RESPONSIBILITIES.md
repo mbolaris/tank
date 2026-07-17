@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # System Responsibilities
 
 This document defines clear responsibilities for each system in the simulation architecture.

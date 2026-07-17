@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # AI Code Evolution Workflow
 
 This document describes the **Continuous Improvement (CI) Loop** for automated algorithm evolution using an AI coding agent.

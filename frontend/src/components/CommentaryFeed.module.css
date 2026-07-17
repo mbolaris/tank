@@ -1,0 +1,131 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    max-height: 520px;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* Topic filter chip bar */
+.chipBar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.chip:hover {
+    background: rgba(148, 163, 184, 0.14);
+    color: #e2e8f0;
+}
+
+.chipActive {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.45);
+    color: #93c5fd;
+}
+
+.chipActive:hover {
+    background: rgba(59, 130, 246, 0.22);
+}
+
+.chipIcon {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.chipCount {
+    font-size: 10px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Discussion prompt copy buttons */
+.promptBar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.promptButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 14px;
+    background: rgba(148, 163, 184, 0.06);
+    color: #94a3b8;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.promptButton:hover {
+    background: rgba(59, 130, 246, 0.14);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+.copiedHint {
+    font-size: 11px;
+    color: #4ade80;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.empty {
+    padding: 16px 12px;
+    font-size: 12px;
+    color: #94a3b8;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.empty code {
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.12);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 11px;
+}
+
+.error {
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+}

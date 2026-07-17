@@ -14,8 +14,8 @@ python tools/smoke_gate.py
 # 3. Use the agent gate for local validation (under 90 seconds)
 python tools/agent_gate.py
 
-# 4. Use the fast gate before submitting a PR (under 3 minutes)
-python tools/fast_gate.py
+# 4. Use the pre-PR gate before submitting a PR (under 3 minutes)
+python tools/pre_pr_gate.py
 ```
 
 For detailed setup or troubleshooting, follow the normal setup paths below.

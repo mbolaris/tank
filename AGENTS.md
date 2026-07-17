@@ -37,7 +37,7 @@ python main.py --headless --max-frames 30000 --stats-interval 10000 --export-sta
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 
 # 5. Identify what needs improvement, make changes, run the agent gate, commit
-#    Run the fast gate before opening a PR
+#    Run the pre-PR gate before opening a PR
 ```
 
 ---
@@ -135,12 +135,81 @@ python tools/evolution_report.py --history evolution_journal.jsonl
 When the human asks you to *act* on the findings, drive the top-ranked
 recommendation through the normal **Evolution Loop** (do not hand-wave a fix):
 reproduce it with the named diagnostic, make the smallest change, run the smoke
-then fast gate, benchmark the candidate against the `champions/` registry
+then pre-PR gate, benchmark the candidate against the `champions/` registry
 (`ecosystem_health_10k` is the evolution-quality benchmark), and only claim an
 improvement with a reproduction command, seed, score, and metadata. Keep Layer 1
 (algorithm/config) changes separate from any Layer 2 change to the report tool,
 benchmarks, or telemetry. Confirm selection is genuinely occurring (trait drift),
 not just generation churn, with `scripts/diagnose_evolution.py`.
+
+### Narrating the simulation to the UI (the Board panel)
+
+> The feed is a topic-filtered discussion board with emoji reactions, per the
+> design in [docs/DISCUSSION_BOARD.md](docs/DISCUSSION_BOARD.md) (shipped).
+
+Assessment usually lives only in your chat transcript. To surface what you notice
+**on the simulation UI itself**, post it to the world's **Board** feed, where
+it shows up live in the web UI's `📋 Board` tab. Any agent with network access
+to the server can do this - it is a plain HTTP POST, so you do not need to be the
+process running the sim.
+
+The `/observe-sim` slash command wraps the whole observe -> distill -> post loop.
+Under it are two read/write tools:
+
+```bash
+# Read what's already been posted for a specific topic (to avoid duplication)
+python tools/post_commentary.py --url http://127.0.0.1:8000 --read --topic ecosystem --limit 15
+
+# Post a short, evidence-backed observation to the Board under a specific topic
+python tools/post_commentary.py --url http://127.0.0.1:8000 \
+  --text "Directional selection on pursuit_aggression: mean +12% over 40k frames" \
+  --topic ecosystem --severity insight --tags selection,foraging \
+  --metric max_generation=14 --metric pursuit_aggression_drift_pct=12
+
+# React to a proposal or finding (idempotent add)
+python tools/post_commentary.py --react 3 --emoji 👍 --as claude
+```
+
+The REST surface (see `backend/routers/commentary.py`) is:
+
+- `POST /api/world/<id>/commentary` - body `{text, author?, tags?, severity?, metrics?, topic?}`; `<id>` may be the literal `default`.
+- `GET  /api/world/<id>/commentary?limit=&since_id=&topic=` - recent comments filtered by topic.
+- `POST /api/world/<id>/commentary/<comment_id>/reactions` - body `{"emoji": "👍", "reactor": "claude"}`.
+- `DELETE /api/world/<id>/commentary/<comment_id>/reactions?emoji=👍&reactor=claude` - remove reaction.
+
+What makes a **good** comment: it is *specific and evidence-backed*, tied to a
+number and a frame horizon, and *non-repetitive*. Pull the signal from the
+`evolution_report.py` JSON - directional **selection vs churn** (trait drift),
+**foraging / death causes**, **population turnover**, **diversity**, and the
+**energy economy** that funds reproduction. Choose a `severity`
+(`info` < `insight` < `warning` < `concern`) that matches the signal, and tag it
+(`selection`, `foraging`, `turnover`, `diversity`, `population`, `energy`, ...).
+Bad: "Fish are evolving." Good: "Starvation is 91% of deaths and fish are
+clustering at the ball instead of foraging - foraging is broken, not slow."
+
+Every message belongs to one of four fixed topics: `ecosystem` (🌱 observations),
+`substrate` (🧬 evolution algorithms & gates), `environment` (🪸 world richness/rules),
+and `ui` (🖥️ UI requests). If you agree with a proposal or finding, react with 👍/👎 or 💡/👀
+instead of posting duplicate commentary.
+
+Commentary is **Layer 2** (telemetry/UI): posting/reacting never perturbs the sim, and it
+is separate from any Layer 1 fix. If an observation warrants a change, hand it to
+`/study-sim improve` and the full Evolution Loop.
+
+**Deliberating on the next improvement.** The same board doubles as a multi-agent
+decision chamber: with `/deliberate`, models propose candidate improvements, debate
+them, and run a ranked-choice vote on what to build next — anchored to the evolvability
+levers in [docs/EVOLVABILITY.md](docs/EVOLVABILITY.md). The goal is not a healthier tank
+but a more *evolvable* engine; read that doc before proposing.
+
+**Open-ended discussion.** For a lighter-weight thread than a formal `/deliberate`
+proposal-and-vote cycle, `/discussion-leader [topic]` posts one genuinely interesting,
+evidence-backed question under a topic (tagged `discussion`), and `/participate [topic]`
+monitors the board and contributes a real response or reaction to an open one. The
+Board UI's topic filter bar has "Copy Discussion Leader Prompt" / "Copy Participate
+Prompt" buttons that put a self-contained, ready-to-paste version of each on the
+clipboard — for when you want to hand another agent (in this repo or elsewhere) a
+one-message way to join in.
 
 ---
 
@@ -226,7 +295,7 @@ python tools/validate_improvement.py results.json champions/tank/survival_5k.jso
 
 ### Priority Areas
 
-1. **Layer 1 (Algorithms)**: Improve the 58 behavior algorithms in `core/algorithms/`
+1. **Layer 1 (Algorithms)**: Improve the behavior algorithms in `core/algorithms/` (see `core/algorithms/registry.py::ALL_ALGORITHMS` for the current list)
 2. **Layer 0 (In-World)**: Tune parameters in `core/config/` for better ecosystem dynamics
 3. **Layer 2 (Meta)**: Improve benchmarks, CI, documentation, and workflows
 
@@ -281,14 +350,34 @@ python tools/agent_gate.py
 ```
 It runs the smoke gate plus a curated correctness suite of architecture, energy, genetics, and protocol tests. It targets under 90 seconds.
 
-### Tier 2: Fast Gate (Before PR)
+### Tier 2: Pre-PR Gate (Before PR)
 
-Run the fast gate before opening or updating a PR:
+Run the pre-PR gate before opening or updating a PR:
 ```bash
-python tools/fast_gate.py
+python tools/pre_pr_gate.py
 ```
-It runs the smoke gate plus the broad non-slow test suite. It targets under
-2-3 minutes and excludes integration/slow/manual tests and full benchmarks.
+It runs the smoke gate plus the broad non-slow test suite (parallelized
+across cores via pytest-xdist). Runtime varies by hardware — typically a
+few minutes on multi-core CI, longer on constrained or single-core sandboxes.
+It excludes integration/slow/manual tests and full benchmarks.
+
+The broad suite is split into named shards (`worlds`, `evolution`,
+`backend_tools`, `core` — see `tools/pre_pr_shards.py`) that exactly
+partition the suite. The default run executes all of them; to isolate or
+re-run one failing slice:
+```bash
+python tools/pre_pr_gate.py --list-shards        # shard names and sizes
+python tools/pre_pr_gate.py --shard evolution    # smoke gate + one shard
+```
+
+**In constrained / sandboxed agent environments** where pytest-xdist hangs or
+wedges (a known interaction with some CI sandboxes), use `--no-xdist` to fall
+back to serial execution, and `--timeout` to override the per-shard wall-clock limit (default 600s):
+```bash
+python tools/pre_pr_gate.py --no-xdist
+python tools/pre_pr_gate.py --shard backend_tools --no-xdist --timeout 300
+# or set PRE_PR_NO_XDIST=1 in your environment
+```
 
 ### Tier 3: Full Validation (Maintainers/Nightly)
 
@@ -301,7 +390,7 @@ for nightly or explicit maintainer use, not routine agent iteration.
 
 ### Run Full Benchmarks (Only for Candidate Improvements)
 
-Only run full benchmarks after you have confirmed that the fast gate passes and you have a candidate algorithm/config improvement:
+Only run full benchmarks after you have confirmed that the pre-PR gate passes and you have a candidate algorithm/config improvement:
 ```bash
 # Run benchmark
 python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
@@ -391,7 +480,7 @@ Tank World has built-in support for Claude Code agentic development:
 3. Run a benchmark to understand current baseline
 4. Analyze results and identify improvement targets
 5. Make changes and run `python tools/agent_gate.py` before local commit
-6. Run `python tools/fast_gate.py` before PR
+6. Run `python tools/pre_pr_gate.py` before PR
 7. Commit with clear metrics in the message
 
 ### What Claude Code Can Do Here
@@ -473,6 +562,7 @@ pre-commit run --all-files  # Run before committing
 | `docs/AGENT_FIELD_GUIDE.md` | Foolproof recipe-driven starter-task menu for agents of any capability |
 | `SETUP.md` | Environment setup |
 | `docs/VISION.md` | Long-term goals |
+| `docs/EVOLVABILITY.md` | Evolvability levers → code, the research canon, the ideas graveyard (read before proposing improvements) |
 | `docs/ARCHITECTURE.md` | Technical architecture |
 | `docs/EVO_CONTRIBUTING.md` | Evolutionary PR protocol |
 | `docs/BEHAVIOR_DEVELOPMENT_GUIDE.md` | Creating new behaviors |
@@ -481,7 +571,7 @@ pre-commit run --all-files  # Run before committing
 
 | Directory | Contents |
 |-----------|----------|
-| `core/algorithms/` | 58 behavior algorithms |
+| `core/algorithms/` | behavior algorithm library (composable + specialized) |
 | `core/config/` | Tunable parameters |
 | `benchmarks/` | Evaluation harnesses |
 | `champions/` | Best-known solutions |
@@ -533,13 +623,13 @@ Workflow:
 2. Run baseline: python main.py --headless --max-frames 30000 --export-stats results.json --seed 42
 3. Analyze: Review results.json for underperformers
 4. Improve: Modify relevant code in core/
-5. Validate: Run agent gate (python tools/agent_gate.py) before local commit, then fast gate (python tools/fast_gate.py) before PR; run full benchmarks only for a candidate improvement
+5. Validate: Run agent gate (python tools/agent_gate.py) before local commit, then pre-PR gate (python tools/pre_pr_gate.py) before PR; run full benchmarks only for a candidate improvement
 6. Commit: Clear message with metrics and reproduction command
 7. Push: git push -u origin [branch]
 
 Rules:
 - Always use deterministic seeds
-- Run the agent gate (python tools/agent_gate.py) before committing, and the fast gate (python tools/fast_gate.py) before opening a PR
+- Run the agent gate (python tools/agent_gate.py) before committing, and the pre-PR gate (python tools/pre_pr_gate.py) before opening a PR
 - Never claim benchmark improvement without reproduction command, seed, score, and metadata
 - Layer 2 changes (benchmarks, CI, scoring, prompts, gates, champion metadata) must be separate from Layer 1 improvements
 - One focused improvement per PR

@@ -1,0 +1,369 @@
+/* EntityInspectorDrawer — glass side drawer (bottom sheet on narrow screens). */
+
+.drawer {
+    position: fixed;
+    top: 72px; /* clears the sticky NavBar (z-index 50) */
+    right: var(--spacing-md);
+    bottom: var(--spacing-md);
+    width: 340px;
+    max-width: calc(100vw - 2 * var(--spacing-md));
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-surface);
+    backdrop-filter: var(--backdrop-blur);
+    border: var(--glass-border);
+    border-top: var(--glass-shine);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-lg);
+    z-index: 100; /* overlay layer (UI_SPEC section 12) */
+    overflow: hidden;
+    outline: none;
+}
+
+.drawer:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.headerTitle {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    min-width: 0;
+}
+
+.entityType {
+    color: var(--color-text-main);
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+}
+
+.entityId {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+}
+
+.generationBadge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px var(--spacing-sm);
+    border-radius: 4px;
+    text-transform: uppercase;
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--color-primary);
+}
+
+.closeButton {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-full);
+    color: var(--color-text-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-main);
+}
+
+.body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.goneBanner {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--color-warning);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.statusLine {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.sectionTitle {
+    margin: 0 0 var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+}
+
+.behaviorLens {
+    padding: var(--spacing-sm);
+    border-left: 2px solid var(--color-primary);
+    background: rgba(6, 182, 212, 0.06);
+}
+
+.movementIntent {
+    padding: var(--spacing-sm);
+    border-left: 2px solid var(--color-success);
+    background: rgba(34, 197, 94, 0.06);
+}
+
+.suppressedSources {
+    margin: var(--spacing-xs) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+}
+
+.intent {
+    margin: 0 0 var(--spacing-xs);
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.graphDetails {
+    margin-top: var(--spacing-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+}
+
+.graphDetails summary {
+    cursor: pointer;
+    color: var(--color-primary);
+}
+
+.graphDetails ul {
+    margin: var(--spacing-xs) 0 0;
+    padding-left: var(--spacing-md);
+}
+
+.graphFingerprint {
+    margin: var(--spacing-xs) 0;
+    font-family: var(--font-mono);
+}
+
+.commonName,
+.scientificName {
+    margin: 0;
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.scientificName {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
+.energyBar {
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    margin-bottom: var(--spacing-xs);
+}
+
+.energyFill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+.stateMessage {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* Bottom sheet on narrow screens: keep the canvas visible above it. */
+@media (max-width: 768px) {
+    .drawer {
+        top: auto;
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        bottom: var(--spacing-md);
+        width: auto;
+        max-height: 60vh;
+    }
+}
+
+/* Compact "gone" card — replaces the full drawer once the entity has left
+   the world, so a dead/transferred selection doesn't pin a tall, mostly
+   empty panel open (see the drawer's `body`/`footer` for the full layout). */
+.goneCard {
+    position: fixed;
+    top: 72px;
+    right: var(--spacing-md);
+    width: 340px;
+    max-width: calc(100vw - 2 * var(--spacing-md));
+    background: var(--color-bg-surface);
+    backdrop-filter: var(--backdrop-blur);
+    border: var(--glass-border);
+    border-top: var(--glass-shine);
+    box-shadow: var(--glass-shadow);
+    border-radius: var(--radius-lg);
+    z-index: 100;
+    overflow: hidden;
+    outline: none;
+}
+
+.goneCard:focus-visible {
+    border-color: var(--color-primary);
+}
+
+.goneCardBody {
+    padding: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+    .goneCard {
+        left: var(--spacing-md);
+        right: var(--spacing-md);
+        width: auto;
+    }
+}
+
+.paramEvolutionContainer {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+}
+
+.paramHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+}
+
+.paramLabel {
+    color: var(--color-text-main);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.paramValue {
+    color: var(--color-text-main);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+.paramSubDetails {
+    margin-top: 4px;
+    padding-left: var(--spacing-sm);
+    border-left: 2px solid rgba(148, 163, 184, 0.2);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.domainBlock {
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.domainInfluencing {
+    border-left: 2px solid var(--color-success);
+    background: rgba(34, 197, 94, 0.04);
+}
+
+.domainHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+    padding-bottom: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.domainName {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-main);
+}
+
+.statusBadge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.statusInfluencing {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--color-success);
+}
+
+.statusBackground {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--color-primary);
+}
+
+.statusInactive {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--color-text-muted);
+}
+
+.domainDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}

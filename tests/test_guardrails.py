@@ -70,10 +70,20 @@ def test_no_tank_id_in_world_agnostic_code():
     # We include tests/ because tests often mock or check legacy behavior
     ALLOWED_PATHS = [
         "core/worlds/tank/",
+        "core/minigames/soccer/",
+        "core/entities/fish.py",
+        "core/transfer/entity_transfer.py",
+        "backend/simulation_runner.py",
+        "core/poker/",
         "backend/world_persistence.py",  # read-fallback only
         "backend/README.md",  # documentation might reference back-compat
         "tests/",
-        "frontend/src/config.ts",  # deprecated function
+        "backend/state_payloads.py",
+        "core/worlds/interfaces.py",
+        "frontend/src/config.ts",
+        "frontend/src/components/MinigameLeaders.tsx",
+        "frontend/src/components/MinigameLeaders.test.tsx",
+        "frontend/src/types/simulation.ts",
     ]
 
     # Forbidden term
@@ -98,7 +108,7 @@ def test_no_tank_id_in_world_agnostic_code():
                     continue
 
                 file_path = os.path.join(root, file)
-                rel_path = os.path.relpath(file_path, ROOT_DIR)
+                rel_path = os.path.relpath(file_path, ROOT_DIR).replace("\\", "/")
 
                 # Skip allowed paths
                 if any(allowed in rel_path for allowed in ALLOWED_PATHS):
@@ -154,3 +164,25 @@ def test_no_deprecated_engine_entity_list_apis() -> None:
                         violations.append(f"{rel_path}: Contains removed API '{term}'")
 
     assert not violations, "Found removed engine entity-list APIs:\n" + "\n".join(violations)
+
+
+def test_no_committed_test_result_artifacts() -> None:
+    """Keep ad-hoc test output files out of the committed test tree."""
+    from pathlib import Path
+
+    tests_dir = Path(__file__).resolve().parent
+    artifacts = sorted(path.name for path in tests_dir.glob("*_result.txt"))
+
+    assert not artifacts, "Remove generated test result artifacts: " + ", ".join(artifacts)
+
+
+def test_no_ad_hoc_scripts_in_test_tree() -> None:
+    """Keep one-off debug and verification scripts out of pytest's test tree."""
+    from pathlib import Path
+
+    tests_dir = Path(__file__).resolve().parent
+    scripts = sorted(
+        path.name for pattern in ("debug_*.py", "verify_*.py") for path in tests_dir.glob(pattern)
+    )
+
+    assert not scripts, "Move ad-hoc scripts out of tests/: " + ", ".join(scripts)

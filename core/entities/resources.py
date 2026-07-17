@@ -34,12 +34,10 @@ class Food(MobileEntity):
     def get_entity_id(self) -> int | None:
         """Get the unique identifier for this food (Identifiable protocol).
 
-        Food has no intrinsic ID - identity provider will use python id mapping.
-
         Returns:
-            None (food uses stable counter-based IDs from identity provider)
+            The food's stable, deterministic id (see ``food_id``).
         """
-        return None
+        return self.food_id
 
     @property
     def snapshot_type(self) -> str:
@@ -60,6 +58,7 @@ class Food(MobileEntity):
         allow_stationary_types: bool = True,
         speed: float = 0.0,
         rng: random.Random | None = None,
+        food_id: int | None = None,
     ) -> None:
         """Initialize a food item.
 
@@ -71,6 +70,14 @@ class Food(MobileEntity):
             food_type: Type of food (random if None)
             allow_stationary_types: Whether to allow stationary food types
             rng: Random number generator for deterministic food type selection
+            food_id: Stable id for this food item. Defaults to
+                ``environment.generate_new_food_id()`` (deterministic, per-world
+                counter); falls back to 0 for lightweight environment stand-ins
+                that don't expose it (tests only - real worlds always do). An
+                explicit food_id reserves that value on the environment's
+                counter (see ``Environment.reserve_food_id``), so it can never
+                collide with a later auto-generated id - production code never
+                passes this; it exists for tests that need a specific id.
         """
         # Select random food type based on rarity if not specified
         if food_type is None:
@@ -88,6 +95,15 @@ class Food(MobileEntity):
 
         super().__init__(environment, x, y, speed)
         self.source_plant: Plant | None = source_plant
+
+        if food_id is not None:
+            self.food_id = food_id
+            reserve_id = getattr(environment, "reserve_food_id", None)
+            if callable(reserve_id):
+                reserve_id(food_id)
+        else:
+            generate_id = getattr(environment, "generate_new_food_id", None)
+            self.food_id = generate_id() if callable(generate_id) else 0
 
         # Energy tracking for partial consumption
         energy_value = self.food_properties.get("energy", 0.0)
@@ -162,6 +178,10 @@ class Food(MobileEntity):
         """Check if food is fully consumed."""
         return self.energy <= 0.1  # Small threshold for float comparison
 
+    def is_consumed(self) -> bool:
+        """Check if food has been consumed (Consumable protocol)."""
+        return self.is_fully_consumed()
+
     def update(
         self, frame_count: int, time_modifier: float = 1.0, time_of_day: float | None = None
     ) -> "EntityUpdateResult":
@@ -194,6 +214,89 @@ class Food(MobileEntity):
         # Notify plant that food was consumed
         if self.source_plant is not None:
             self.source_plant.notify_food_eaten()
+
+
+class ResourcePatch(Food):
+    """Stationary, renewable food stock used by the niche experiment.
+
+    A patch deliberately remains in the world at zero stock.  This makes
+    depletion visible to agents and to the renderer, while the spawn system
+    independently regrows it over time.
+    """
+
+    def __init__(
+        self,
+        environment: "World",
+        x: float,
+        y: float,
+        *,
+        patch_id: int,
+        food_type: str,
+        stock: float,
+        regrowth_rate: float,
+    ) -> None:
+        super().__init__(
+            environment,
+            x,
+            y,
+            food_type=food_type,
+            allow_stationary_types=False,
+            speed=0.0,
+        )
+        self.patch_id = patch_id
+        self.regrowth_rate = max(0.0, float(regrowth_rate))
+        self.max_energy = max(0.0, float(stock))
+        apply_energy_delta(
+            self,
+            self.max_energy - self.energy,
+            source="resource_patch_initialization",
+            allow_direct_assignment=True,
+        )
+        self.set_size(96.0, 64.0)
+        self.original_width = self.width
+        self.original_height = self.height
+        self.is_stationary = True
+
+    @property
+    def snapshot_type(self) -> str:
+        return "resource_patch"
+
+    def get_entity_id(self) -> int | None:
+        return self.patch_id
+
+    def take_bite(self, bite_size: float) -> float:
+        consumed = min(max(0.0, self.energy), max(0.0, bite_size))
+        if consumed:
+            apply_energy_delta(
+                self,
+                -consumed,
+                source="resource_patch_consumption",
+                allow_direct_assignment=True,
+            )
+        return consumed
+
+    def is_fully_consumed(self) -> bool:
+        return False
+
+    def is_consumed(self) -> bool:
+        return False
+
+    def regrow(self) -> float:
+        return apply_energy_delta(
+            self,
+            self.regrowth_rate,
+            source="resource_patch_regrowth",
+            allow_direct_assignment=True,
+        )
+
+    def get_patch_state(self) -> dict[str, float | str | int]:
+        return {
+            "patch_id": self.patch_id,
+            "food_type": self.food_type,
+            "stock": self.energy,
+            "max_stock": self.max_energy,
+            "regrowth_rate": self.regrowth_rate,
+        }
 
 
 class LiveFood(Food):

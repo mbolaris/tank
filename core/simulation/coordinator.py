@@ -29,6 +29,7 @@ if TYPE_CHECKING:
     from core.simulation.phase_hooks import PhaseHooks
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem
+    from core.tank_interactions import TankInteractionSystem
     from core.systems.poker_proximity import PokerProximitySystem
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ class SystemCoordinator:
         self.lifecycle_system: EntityLifecycleSystem | None = None
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None
+        self.tank_interaction_system: TankInteractionSystem | None = None
 
         # Managers
         self.plant_manager: PlantManager | None = None
@@ -91,6 +93,8 @@ class SystemCoordinator:
         """Execute SPAWN phase logic."""
         if self.food_spawning_system:
             self.food_spawning_system.update(frame_count)
+        if self.tank_interaction_system:
+            self.tank_interaction_system.materialize_pending(frame_count)
 
     def run_collision(self, frame_count: int) -> None:
         """Execute COLLISION phase logic."""
@@ -105,6 +109,9 @@ class SystemCoordinator:
         if self.poker_system:
             self.poker_system.update(frame_count)
             self.poker_system.handle_mixed_poker_games()
+
+        if self.tank_interaction_system:
+            self.tank_interaction_system.update(frame_count)
 
     def run_reproduction(self, frame_count: int) -> None:
         """Execute REPRODUCTION phase logic."""

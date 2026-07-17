@@ -32,6 +32,7 @@ import os
 import random
 import time
 import uuid
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import core.simulation.diagnostics as diagnostics
@@ -49,6 +50,7 @@ from core.simulation.mutation import MutationTransaction
 from core.simulation.mutation_executor import MutationExecutor
 from core.simulation.phase_executor import PhaseExecutor
 from core.simulation.phase_hooks import NoOpPhaseHooks, PhaseHooks
+from core.simulation.profiler import PhaseProfiler
 from core.simulation.system_registry import SystemRegistry
 from core.systems.base import BaseSystem
 from core.systems.food_spawning import SpawnRateConfig
@@ -56,14 +58,18 @@ from core.time_system import TimeSystem
 
 if TYPE_CHECKING:
     from core import entities, environment
+    from core.code_pool import GenomeCodePool
     from core.collision_system import CollisionSystem
     from core.ecosystem import EcosystemManager
+    from core.events import EventBus
+    from core.object_pool import FoodPool
     from core.plant_manager import PlantManager
     from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
     from core.poker.integration.poker_system import PokerSystem
     from core.reproduction.reproduction_service import ReproductionService
     from core.reproduction.reproduction_system import ReproductionSystem
     from core.root_spots import RootSpotManager
+    from core.simulation.entity_mutation_queue import EntityMutationQueue
     from core.simulation.pipeline import EnginePipeline
     from core.systems.entity_lifecycle import EntityLifecycleSystem
     from core.systems.food_spawning import FoodSpawningSystem
@@ -124,8 +130,8 @@ class SimulationEngine:
         self.view_mode: str = "side"
 
         # Optional wiring points populated by SystemPacks (typed for mypy)
-        self.event_bus: Any | None = None
-        self.genome_code_pool: Any | None = None
+        self.event_bus: EventBus | None = None
+        self.genome_code_pool: GenomeCodePool | None = None
 
         # Components (delegated to managers)
         self._entity_manager = EntityManager(
@@ -172,6 +178,7 @@ class SimulationEngine:
         self.lifecycle_system: EntityLifecycleSystem | None = None
         self.poker_proximity_system: PokerProximitySystem | None = None
         self.food_spawning_system: FoodSpawningSystem | None = None
+        self.tank_interaction_system: Any = None
         self.plant_manager: PlantManager | None = None
 
         # Soccer event management (extracted from engine)
@@ -200,21 +207,30 @@ class SimulationEngine:
         self._phase_hooks: PhaseHooks = NoOpPhaseHooks()
         self.coordinator.set_phase_hooks(self._phase_hooks)
 
+        # Phase profiler
+        profile_phases_env = os.environ.get("TANK_PROFILE_PHASES", "0") == "1"
+        profile_phases_enabled = getattr(self.config, "profile_phases", False) or profile_phases_env
+        self.profiler = PhaseProfiler(enabled=profile_phases_enabled)
+
     def drain_frame_outputs(self) -> FrameOutputs:
         """Return this frame's outputs and clear internal buffers."""
         return self.frame_aggregator.drain()
 
+    @property
+    def profile_phases(self) -> bool:
+        """Whether phase profiling is enabled."""
+        return self.profiler.enabled
+
     # =========================================================================
     # Compatibility Properties
     # =========================================================================
-
     @property
     def entities_list(self) -> list[entities.Entity]:
         """All entities in the simulation (delegates to EntityManager)."""
         return self._entity_manager.entities_list
 
     @property
-    def food_pool(self):
+    def food_pool(self) -> FoodPool:
         """Food object pool (delegates to EntityManager)."""
         return self._entity_manager.food_pool
 
@@ -260,13 +276,12 @@ class SimulationEngine:
 
     # Expose mutation queue for tests that access private member
     @property
-    def _entity_mutations(self):
+    def _entity_mutations(self) -> EntityMutationQueue:
         return self.mutations._queue
 
     # =========================================================================
     # Setup (assembly sequence lives in core.simulation.engine_setup)
     # =========================================================================
-
     def setup(self, pack: SystemPack | None = None) -> None:
         """Setup the simulation using the provided SystemPack."""
         setup_engine(self, pack)
@@ -302,7 +317,7 @@ class SimulationEngine:
         """Get a system by name."""
         return self._system_registry.get(name)
 
-    def get_systems_debug_info(self) -> dict[str, Any]:
+    def get_systems_debug_info(self) -> dict[str, object]:
         """Get debug information from all registered systems."""
         return self._system_registry.get_debug_info()
 
@@ -504,7 +519,7 @@ class SimulationEngine:
             return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
 
-    def _create_energy_recorder(self):
+    def _create_energy_recorder(self) -> Callable[[Any, float, str, dict[str, Any]], None]:
         """Create a recorder callback for energy delta tracking.
 
         Returns a function that can be passed to environment.set_energy_delta_recorder().

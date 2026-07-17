@@ -2,6 +2,9 @@
  * TypeScript types for simulation data
  */
 
+import type { DeltaStateSnapshot, FullStateSnapshot } from './payload';
+import type { EntityDetails } from './entityDetails';
+
 export interface FishGenomeData {
     speed: number;
     size: number;
@@ -14,6 +17,16 @@ export interface FishGenomeData {
     eye_size: number;
     pattern_intensity: number;
     pattern_type: number;
+    // Behavioral traits (heritable; see docs/EVOLVABILITY.md sec 3.5 phenotype legibility).
+    // Already present in the wire payload via Genome.to_dict() - optional here since
+    // fish without a resolved genome (or older cached snapshots) may omit them.
+    aggression?: number;
+    pursuit_aggression?: number;
+    hunting_stamina?: number;
+    prediction_skill?: number;
+    behavior?: {
+        food_approach?: number;
+    };
 }
 
 /**
@@ -57,7 +70,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
+    type: 'fish' | 'food' | 'resource_patch' | 'plant' | 'crab' | 'castle' | 'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
     x: number;
     y: number;
     width: number;
@@ -72,6 +85,14 @@ export interface EntityData {
     species?: 'solo' | 'algorithmic' | 'neural' | 'schooling';
     generation?: number;
     age?: number;
+    taxon_id?: string;
+    common_name?: string;
+    scientific_name?: string;
+    strain_id?: string | null;
+    species_confidence?: string;
+    origin_tank_id?: string | null;
+    type_specimen_id?: number | null;
+    taxonomy?: Record<string, string | number | null>;
     genome_data?: FishGenomeData;
     poker_effect_state?: {
         status: 'playing' | 'won' | 'lost' | 'tie';
@@ -91,6 +112,9 @@ export interface EntityData {
 
     // Food-specific
     food_type?: string;
+    patch_kind?: string;
+    stock?: number;
+    max_stock?: number;
 
     // Plant-specific (original static plants)
     plant_type?: number;
@@ -131,6 +155,11 @@ export interface EntityData {
     render_hint?: Record<string, unknown>;
 }
 
+export interface PokerRewardReproduction {
+    parent_id?: number | null;
+    baby_id?: number | null;
+}
+
 export interface PokerEventData {
     frame: number;
     winner_id: number;  // -1 for tie
@@ -140,6 +169,12 @@ export interface PokerEventData {
     energy_transferred: number;
     message: string;
     is_plant?: boolean;  // True if this is a plant poker game
+    plant_id?: number;
+    // Per-fish reward detail (keys are stringified fish ids)
+    energy_deltas?: Record<string, number>;
+    pot?: number;
+    house_cut?: number;
+    reproduction?: PokerRewardReproduction | null;
 }
 
 export interface SoccerGoalEvent {
@@ -225,10 +260,31 @@ export interface TeamAvailability {
     count: number;
 }
 
+export interface SoccerFishLeaderEntry {
+    fish_id: number;
+    name?: string;
+    display_id?: string;
+    matches: number;
+    matches_played?: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    goals: number;
+    assists: number;
+    net_energy: number;
+    net_energy_earned?: number;
+    contribution_score?: number;
+    tank_id?: string;
+    tank_name?: string;
+    offspring_count?: number;
+}
+
+
 export interface SoccerLeagueLiveState {
     leaderboard: LeagueLeaderboardEntry[];
     availability: Record<string, TeamAvailability>;
     active_match: SoccerMatchState | null;
+    fish_leaders?: SoccerFishLeaderEntry[];
 }
 
 export interface PokerLeaderboardEntry {
@@ -254,6 +310,9 @@ export interface PokerLeaderboardEntry {
     positional_advantage: number;  // Percentage (0-100)
     recent_win_rate: number;  // Recent win rate (0-100)
     skill_trend: string;  // "improving", "declining", or "stable"
+    tank_id?: string;
+    tank_name?: string;
+    offspring_count?: number;
 }
 
 export interface PokerStatsData {
@@ -477,6 +536,7 @@ export interface StatsData {
     fish_health_low: number;       // 15-30% energy
     fish_health_healthy: number;   // 30-80% energy
     fish_health_full: number;      // >80% energy
+    diversity_score: number;
     poker_stats: PokerStatsData;
     total_sexual_births: number;
     total_asexual_births: number;
@@ -498,19 +558,7 @@ export interface SimulationUpdate {
     render_hint?: Record<string, unknown>;
 
     // V1 schema: All data flows through nested snapshot
-    snapshot: {
-        frame: number;
-        elapsed_time: number;
-        entities: EntityData[];
-        stats: StatsData;
-        poker_events: PokerEventData[];
-        soccer_events: SoccerEventData[];
-        soccer_league_live?: SoccerLeagueLiveState | null;
-        poker_leaderboard: PokerLeaderboardEntry[];
-        auto_evaluation?: AutoEvaluateStats;
-        render_hint?: Record<string, unknown>;
-        metrics_history?: MetricsHistory | null;
-    };
+    snapshot: FullStateSnapshot;
 
     // Convenience fields (populated by useWebSocket from snapshot)
     frame?: number;
@@ -535,30 +583,7 @@ export interface DeltaUpdate {
     tank_soccer_enabled?: boolean;  // Whether tank practice soccer (ball/goals) is enabled
 
     // V1 schema: All data flows through nested snapshot
-    snapshot: {
-        frame: number;
-        elapsed_time: number;
-        updates: Pick<
-            EntityData,
-            'id'
-            | 'x'
-            | 'y'
-            | 'vel_x'
-            | 'vel_y'
-            | 'poker_effect_state'
-            | 'birth_effect_timer'
-            | 'death_effect_state'
-            | 'soccer_effect_state'
-        >[];
-        added: EntityData[];
-        removed: number[];
-        poker_events: PokerEventData[];
-        soccer_events?: SoccerEventData[];
-        soccer_league_live?: SoccerLeagueLiveState | null;
-        stats?: StatsData;
-        render_hint?: Record<string, unknown>;
-        new_metrics_sample?: MetricsSample | null;
-    };
+    snapshot: DeltaStateSnapshot;
 }
 
 export interface Command {
@@ -576,13 +601,18 @@ export interface Command {
     | 'standard_poker_series'
     | 'poker_autopilot_action'
     | 'fast_forward'
+    | 'set_local_resource_patches'
     | 'set_plant_energy_input'
     | 'set_soccer_league_enabled'
     | 'set_soccer_league_config'
     | 'start_soccer'
     | 'soccer_step'
     | 'end_soccer'
-    | 'set_tank_soccer_enabled';
+    | 'set_tank_soccer_enabled'
+    | 'get_entity_details'
+    | 'place_tank_object'
+    | 'move_tank_object'
+    | 'delete_tank_object';
     data?: Record<string, unknown>;
 }
 
@@ -701,6 +731,7 @@ export interface CommandResponse {
     state?: PokerGameState;
     stats?: AutoEvaluateStats;
     action_taken?: boolean;
+    details?: EntityDetails;
 }
 
 // Evolution Benchmark Types
@@ -805,6 +836,7 @@ export interface MetricsSample {
     // Population mean of tracked heritable traits at this sample (schema v2+).
     // Optional so pre-trait history (older schemas) still type-checks.
     traits?: Record<string, number>;
+    death_causes?: Record<string, number>;
 }
 
 export interface MetricsHistory {
@@ -813,4 +845,39 @@ export interface MetricsHistory {
     sample_interval_frames: number;
     max_samples: number;
     samples: MetricsSample[];
+}
+
+/**
+ * A single agent observation posted to a world's "Board" feed (formerly "Insights").
+ * Mirrors backend/commentary_store.py schema v2.
+ */
+export type CommentarySeverity = 'info' | 'insight' | 'warning' | 'concern';
+
+/**
+ * Fixed topic set for the discussion board (v2).
+ * See docs/DISCUSSION_BOARD.md §3.1.
+ */
+export type CommentaryTopic = 'ecosystem' | 'substrate' | 'environment' | 'ui';
+
+export interface CommentaryItem {
+    id: number;
+    created_at: number; // epoch seconds
+    frame: number; // simulation frame at post time
+    author: string;
+    text: string;
+    tags: string[];
+    severity: CommentarySeverity;
+    metrics?: Record<string, number | string | boolean | null> | null;
+    topic: CommentaryTopic; // v2: which conversation this belongs to
+    reactions: Record<string, string[]>; // v2: emoji -> list of reactor names
+}
+
+/**
+ * Response shape from GET /api/world/{world_id}/commentary.
+ */
+export interface CommentaryResponse {
+    schema_version: number;
+    world_id: string;
+    count: number;
+    comments: CommentaryItem[];
 }

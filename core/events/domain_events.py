@@ -16,6 +16,29 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class FeederTriggeredEvent:
+    """A fish satisfied a feeding capability trigger."""
+
+    frame: int
+    object_id: int
+    capability_id: str
+    trigger_type: str
+    actor_id: int
+
+
+@dataclass(frozen=True)
+class ResourceDispensedEvent:
+    """A feeding capability queued ordinary food for spawning."""
+
+    frame: int
+    object_id: int
+    capability_id: str
+    actor_ids: tuple[int, ...]
+    resource_type: str
+    amount: float
+
+
+@dataclass(frozen=True)
 class EntityAteFoodEvent:
     """An entity consumed food.
 

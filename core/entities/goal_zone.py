@@ -164,7 +164,7 @@ class GoalZoneManager:
     Handles goal detection and energy distribution.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the goal zone manager."""
         self.zones: dict[str, GoalZone] = {}
         self.recent_goals: list[GoalEvent] = []

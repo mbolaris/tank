@@ -17,7 +17,7 @@
 > the population is improving at poker and soccer over time. Do not change any
 > simulation behavior, RNG consumption, or benchmark scoring — this is a Layer 2
 > (tooling/UI) change and must be a separate PR from any algorithm work. Run
-> `python tools/smoke_gate.py` before coding and `python tools/fast_gate.py`
+> `python tools/smoke_gate.py` before coding and `python tools/pre_pr_gate.py`
 > plus `cd frontend && npm run lint && npm run build` before pushing.
 
 ---
@@ -165,7 +165,7 @@ export function TankTrendsTab({ history }: TankTrendsTabProps) {
 - [ ] Empty/fresh world shows the empty state, not a crash or blank panel.
 - [ ] Reconnect mid-run does not duplicate or reorder samples (delta resync
       happens every 90 frames — see `backend/runner/state_publisher.py`).
-- [ ] `python tools/fast_gate.py` passes; `cd frontend && npm run lint && npm run build` pass.
+- [ ] `python tools/pre_pr_gate.py` passes; `cd frontend && npm run lint && npm run build` pass.
 - [ ] No UI_SPEC violations: tokens only, dashboard-card pattern, panel toggle
       added with `aria-pressed`.
 - [ ] PR contains only Layer 2 changes (no `core/algorithms/`, `core/config/`,

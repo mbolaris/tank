@@ -1,0 +1,17 @@
+{
+  "graph": {
+    "nodes": [
+      {"id": "energy", "type": "energy_sensor", "parameters": {"field": "energy"}},
+      {"id": "fed", "type": "threshold", "parameters": {"minimum": 0.5}}
+    ],
+    "connections": [
+      {"source": "energy", "target": "fed", "port": "value"}
+    ],
+    "output": "fed"
+  },
+  "replay": [
+    {"context": {"energy": 0.25}, "output": false},
+    {"context": {"energy": 0.5}, "output": true},
+    {"context": {"energy": 0.9}, "output": true}
+  ]
+}

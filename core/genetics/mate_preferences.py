@@ -10,7 +10,7 @@ compatibility.
 """
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional, SupportsFloat, SupportsIndex, cast
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -31,6 +31,12 @@ DEFAULT_MATE_PREFERENCES: dict[str, float] = {
     # evolutionary pressure for behavioral compatibility and specialization.
     "prefer_high_aggression": 0.5,
     "prefer_high_social_tendency": 0.5,
+    # Assortative-mating weight on composable behavior profile similarity
+    # (threat_response/food_approach/social_mode/poker_engagement match).
+    # 0.5 = neutral (no effect), >0.5 = prefer similar (assortative,
+    # protects niches -> sympatric speciation), <0.5 = prefer different
+    # (disassortative). Heritable and mutable like every other preference.
+    "prefer_similar_behavior": 0.5,
 }
 
 MATE_PREFERENCE_TRAIT_NAMES = (
@@ -56,9 +62,9 @@ def default_preference_value(spec: TraitSpec) -> float:
     return float(midpoint)
 
 
-def coerce_preference_value(value: Any, spec: TraitSpec) -> float:
+def coerce_preference_value(value: object, spec: TraitSpec) -> float:
     try:
-        numeric = float(value)
+        numeric = float(cast(str | SupportsFloat | SupportsIndex, value))
     except (TypeError, ValueError):
         numeric = default_preference_value(spec)
     if spec.discrete:

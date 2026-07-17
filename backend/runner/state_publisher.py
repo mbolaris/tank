@@ -32,6 +32,14 @@ class StatePublisher:
         # Delta sync state
         self._last_full_frame: int | None = None
         self._last_entities: dict[int, EntitySnapshot] = {}
+        self._delta_metrics = {
+            "frames": 0,
+            "entities_total": 0,
+            "entities_changed": 0,
+            "entities_added": 0,
+            "entities_removed": 0,
+            "bytes": 0,
+        }
 
     def invalidate_cache(self) -> None:
         """Invalidate the current cache to force a rebuild."""
@@ -40,6 +48,12 @@ class StatePublisher:
         self._frames_since_update = 0
         self._last_full_frame = None
         self._last_entities.clear()
+        for key in self._delta_metrics:
+            self._delta_metrics[key] = 0
+
+    def delta_metrics(self) -> dict[str, int]:
+        """Return wire-level counters for the most recently published deltas."""
+        return dict(self._delta_metrics)
 
     def get_state(
         self, runner: Any, force_full: bool = False, allow_delta: bool = True
@@ -131,6 +145,18 @@ class StatePublisher:
         serialized = orjson.dumps(payload)
 
         duration_ms = self.perf_tracker.stop("serialize")
+
+        if isinstance(state, DeltaStatePayload):
+            self._delta_metrics["bytes"] = len(serialized)
+            logger.debug(
+                "delta frame=%s entities=%d changed=%d added=%d removed=%d bytes=%d",
+                state.frame,
+                self._delta_metrics["entities_total"],
+                self._delta_metrics["entities_changed"],
+                self._delta_metrics["entities_added"],
+                self._delta_metrics["entities_removed"],
+                len(serialized),
+            )
 
         if duration_ms > 50:
             frame = getattr(state, "frame", "unknown")
@@ -243,7 +269,23 @@ class StatePublisher:
 
         removed = [eid for eid in self._last_entities if eid not in current_entities_map]
 
-        updates = [e.to_delta_dict() for e in entities]
+        # Compare the fields that are actually present in a delta payload.
+        # Comparing complete snapshots would make unrelated backend changes
+        # (for example energy updates) defeat wire-level sparsity.
+        updates = []
+        for eid, entity in current_entities_map.items():
+            previous = self._last_entities.get(eid)
+            if previous is None:
+                continue
+            current_delta = entity.to_delta_dict()
+            if current_delta != previous.to_delta_dict():
+                updates.append(current_delta)
+
+        self._delta_metrics["frames"] += 1
+        self._delta_metrics["entities_total"] = len(current_entities_map)
+        self._delta_metrics["entities_changed"] = len(updates)
+        self._delta_metrics["entities_added"] = len(added)
+        self._delta_metrics["entities_removed"] = len(removed)
 
         # Extras from hooks (lean version)
         # We might want to skip building expensive extras for deltas
@@ -299,6 +341,7 @@ class StatePublisher:
                     soccer=MetricsSoccerSamplePayload(**s["soccer"]),
                     diversity_score=s.get("diversity_score", 0.0),
                     traits=s.get("traits", {}),
+                    death_causes=s.get("death_causes", {}),
                 )
 
         return DeltaStatePayload(

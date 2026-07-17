@@ -3,15 +3,18 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["core", "backend"]
 py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "backend*"]
 
 [tool.setuptools.package-data]
 core = ["py.typed"]
 
 [project]
 name = "tankworld"
-version = "0.1.0"
+version = "1.0.0"
 description = "An artificial life research framework with evolving agent behaviors, modes, and deterministic benchmarking"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -44,9 +47,11 @@ dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.0",
+    "pytest-xdist>=3.5.0",
     "mypy>=1.0",
     "black==24.4.2",
     "ruff>=0.1.0",
+    "psutil",
 ]
 ai = [
     "anthropic>=0.18.0",  # For AI Code Evolution with Claude
@@ -132,7 +137,6 @@ ignore = [
     "E402",  # Module level import not at top of file (needed for sys.path setup)
     "E712",  # Comparison to True/False (intentional in test assertions for clarity)
     "N999",  # Invalid module name (BEHAVIOR_TEMPLATE is intentional)
-    "F821",  # Undefined name in quotes (type hints with forward references)
     "B024",  # Abstract base class without abstract methods (marker classes are intentional)
     "B027",  # Empty method in abstract class (intentional default implementations)
     "E721",  # Type comparison with == (needed for comparing algorithm class types)
@@ -172,8 +176,63 @@ exclude = [
     "frontend/",
     ".venv/",
     "venv/",
-    "tools/archive/debug_poker_match.py",
+    "tools/archive/",
 ]
+
+# Overrides
+[[tool.mypy.overrides]]
+module = "core.simulation.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.worlds.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.worlds.*.tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "core.genetics.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.transfer.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.entities.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.spatial.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.solutions.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.util.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "backend.state_payloads"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+
+
+
 
 [tool.coverage.run]
 source = ["core"]

@@ -1,5 +1,9 @@
 import random
 
+import pytest
+
+import core.genetics.genome_codec as genome_codec
+from core.behavior.graph import BehaviorGraph
 from core.genetics import Genome
 from core.genetics.trait import GeneticTrait
 
@@ -132,6 +136,59 @@ def test_genome_with_code_policy_round_trip():
     assert g2.behavioral.poker_policy_id.value == "comp_poker"
     assert g2.behavioral.poker_policy_params is not None
     assert g2.behavioral.poker_policy_params.value == {"bet": 0.5}
+
+
+def test_dormant_behavior_graph_round_trip_without_affecting_default_payload():
+    graph_data = {
+        "nodes": [{"id": "sensor", "type": "energy_sensor", "parameters": {}}],
+        "connections": [],
+        "output": "sensor",
+    }
+    genome = Genome.random(use_algorithm=False, rng=random.Random(456))
+    assert genome.behavioral.behavior_graph is None
+    default_payload = genome.to_dict()
+    assert "behavior_graph" not in default_payload
+    assert default_payload["schema_version"] == 2
+
+    genome.behavioral.behavior_graph = GeneticTrait(BehaviorGraph.from_dict(graph_data))
+    encoded = genome.to_dict()
+    assert encoded["schema_version"] == 3
+    restored = Genome.from_dict(encoded, rng=random.Random(456), use_algorithm=False)
+
+    assert restored.behavioral.behavior_graph is not None
+    assert restored.behavioral.behavior_graph.value == genome.behavioral.behavior_graph.value
+
+
+def test_malformed_behavior_payload_keeps_default_behavior():
+    """Malformed persisted behavior data should not block genome loading."""
+    rng = random.Random(457)
+    data = {
+        "schema_version": 2,
+        "behavior": {
+            "threat_response": object(),
+        },
+    }
+
+    genome = Genome.from_dict(data, rng=rng, use_algorithm=True)
+
+    assert genome.behavioral.behavior is not None
+    assert genome.behavioral.behavior.value is not None
+
+
+def test_unexpected_genome_decode_errors_surface(monkeypatch):
+    """Unexpected decode failures should not be hidden by persistence fallbacks."""
+
+    def raise_runtime_error(*_args, **_kwargs):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(genome_codec, "apply_trait_meta_from_dict", raise_runtime_error)
+    data = {
+        "schema_version": 2,
+        "trait_meta": {"speed": {"mutation_rate": 1.0}},
+    }
+
+    with pytest.raises(RuntimeError, match="unexpected"):
+        Genome.from_dict(data, rng=random.Random(458), use_algorithm=False)
 
 
 def test_code_policy_validation():

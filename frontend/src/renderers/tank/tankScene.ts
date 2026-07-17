@@ -21,6 +21,7 @@ export interface TankEntity {
     energy?: number;
     food_type?: string;
     plant_type?: number;
+    generation?: number;
     genome_data?: FishGenomeData;
     plant_genome?: EntityData['genome'];
     size_multiplier?: number;
@@ -86,6 +87,7 @@ export function buildTankScene(snapshot: TankSceneSnapshot): TankScene {
                 energy: e.energy,
                 food_type: e.food_type,
                 plant_type: e.plant_type,
+                generation: e.generation,
                 genome_data: e.genome_data,
                 plant_genome: e.genome,
                 size_multiplier: e.size_multiplier,

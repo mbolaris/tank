@@ -9,7 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.config.fish import PREDATOR_ENCOUNTER_WINDOW
-from core.constants import DEATH_REASON_MIGRATION, DEATH_REASON_OLD_AGE, DEATH_REASON_STARVATION
+from core.constants import DEATH_REASON_MIGRATION
 from core.entities.base import EntityState
 
 if TYPE_CHECKING:
@@ -50,24 +50,7 @@ class MortalityMixin:
 
         Uses cached dead state when possible to avoid repeated checks.
         """
-        if self._cached_is_dead:
-            return True
-
-        if self.state.state in (EntityState.DEAD, EntityState.REMOVED):
-            self._cached_is_dead = True
-            return True
-
-        if self.energy <= 0:
-            self.state.transition(EntityState.DEAD, reason=DEATH_REASON_STARVATION)
-            self._cached_is_dead = True
-            return True
-
-        if self._lifecycle_component.age >= self._lifecycle_component.max_age:
-            self.state.transition(EntityState.DEAD, reason=DEATH_REASON_OLD_AGE)
-            self._cached_is_dead = True
-            return True
-
-        return False
+        return self._cached_is_dead
 
     def get_death_cause(self) -> str:
         """Determine the cause of death.
@@ -165,6 +148,7 @@ class MortalityMixin:
             success = migration_handler.attempt_entity_migration(self, direction, world_id)
             if success:
                 self.state.transition(EntityState.REMOVED, reason=DEATH_REASON_MIGRATION)
+                self._cached_is_dead = True
                 logger.debug(f"Fish #{self.fish_id} successfully migrated {direction}")
             return success
         except Exception as e:

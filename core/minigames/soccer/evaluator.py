@@ -34,6 +34,7 @@ def create_soccer_match_from_participants(
     match_counter: int = 0,
     selection_seed: int | None = None,
     entry_fee_energy: float = 0.0,
+    target_pursuit_module_enabled: bool | None = None,
 ) -> SoccerMatchSetup:
     """Create a soccer match from pre-selected participants."""
     participants = list(participants)
@@ -68,6 +69,7 @@ def create_soccer_match_from_participants(
         code_source=code_source,
         view_mode=view_mode,
         seed=effective_seed,
+        target_pursuit_module_enabled=target_pursuit_module_enabled,
     )
 
     return SoccerMatchSetup(
@@ -97,6 +99,7 @@ def create_soccer_match(
     selection_seed: int | None = None,
     allow_repeat_within_match: bool = False,
     entry_fee_energy: float = 0.0,
+    target_pursuit_module_enabled: bool | None = None,
 ) -> SoccerMatchSetup:
     """Create a soccer match with deterministic participant selection and seed."""
     effective_selection_seed = selection_seed
@@ -129,6 +132,7 @@ def create_soccer_match(
         match_counter=match_counter,
         selection_seed=effective_selection_seed,
         entry_fee_energy=entry_fee_energy,
+        target_pursuit_module_enabled=target_pursuit_module_enabled,
     )
 
 
@@ -148,6 +152,20 @@ def finalize_soccer_match(
     state = match.get_state()
     entry_fees = dict(entry_fees or {})
 
+    # Per-fish scoring stats from the match's goal log (participant -> fish id)
+    goals_by_fish: dict[int, int] = {}
+    assists_by_fish: dict[int, int] = {}
+    for goal in getattr(match, "goal_log", []):
+        for key, counts in (("scorer_id", goals_by_fish), ("assist_id", assists_by_fish)):
+            participant_id = goal.get(key)
+            if not participant_id:
+                continue
+            entity = match.player_map.get(participant_id)
+            if entity is None:
+                continue
+            fish_id = get_entity_id(entity)
+            counts[fish_id] = counts.get(fish_id, 0) + 1
+
     # Dispatch reward logic based on reward_mode
     if reward_mode.lower().strip() == "shaped_pot":
         rewards = apply_shaped_soccer_rewards(
@@ -156,6 +174,8 @@ def finalize_soccer_match(
             match.telemetry,
             entry_fees=entry_fees,
             reward_multiplier=reward_multiplier,
+            goals_by_fish=goals_by_fish,
+            assists_by_fish=assists_by_fish,
         )
     else:
         rewards = apply_soccer_rewards(
@@ -164,6 +184,8 @@ def finalize_soccer_match(
             reward_mode=reward_mode,
             entry_fees=entry_fees,
             reward_multiplier=reward_multiplier,
+            goals_by_fish=goals_by_fish,
+            assists_by_fish=assists_by_fish,
         )
 
     repro_credit_deltas = apply_soccer_repro_rewards(
@@ -182,6 +204,16 @@ def finalize_soccer_match(
             continue
         fish_id = get_entity_id(entity)
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) + delta
+
+    tank_names_by_fish: dict[int, str] = {}
+    tank_ids_by_fish: dict[int, str] = {}
+    offspring_count_by_fish: dict[int, int] = {}
+    for participant_id, entity in match.player_map.items():
+        fish_id = get_entity_id(entity)
+        if fish_id is not None:
+            tank_names_by_fish[fish_id] = getattr(entity, "tank_name", None) or "Unknown Tank"
+            tank_ids_by_fish[fish_id] = getattr(entity, "tank_id", None) or "unknown"
+            offspring_count_by_fish[fish_id] = getattr(entity, "offspring_count", 0)
 
     return SoccerMinigameOutcome(
         match_id=match.match_id,
@@ -203,6 +235,11 @@ def finalize_soccer_match(
             "right": list(state.get("teams", {}).get("right", [])),
         },
         telemetry=match.telemetry,
+        goals_by_fish=goals_by_fish,
+        assists_by_fish=assists_by_fish,
+        tank_names_by_fish=tank_names_by_fish,
+        tank_ids_by_fish=tank_ids_by_fish,
+        offspring_count_by_fish=offspring_count_by_fish,
     )
 
 

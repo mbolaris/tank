@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Callable
 
 from core.modes.interfaces import ModePackDefinition
 from core.modes.tank import normalize_tank_config
@@ -10,7 +10,7 @@ from core.modes.tank import normalize_tank_config
 
 def create_petri_mode_pack(
     *,
-    snapshot_builder_factory: Any | None = None,
+    snapshot_builder_factory: Callable[[], object] | None = None,
 ) -> ModePackDefinition:
     """Create the Petri Dish mode pack.
 

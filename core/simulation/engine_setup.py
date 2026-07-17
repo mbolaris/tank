@@ -39,6 +39,8 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
 
     # 2. Let the pack build the environment
     engine.environment = cast(Environment, pack.build_environment(engine))
+    if engine.environment is not None:
+        engine.environment.engine = engine
 
     # Wire up energy delta recorder for immediate tracking
     if engine.environment and hasattr(engine.environment, "set_energy_delta_recorder"):
@@ -62,6 +64,7 @@ def setup_engine(engine: SimulationEngine, pack: SystemPack | None = None) -> No
     engine.coordinator.lifecycle_system = engine.lifecycle_system
     engine.coordinator.poker_proximity_system = engine.poker_proximity_system
     engine.coordinator.food_spawning_system = engine.food_spawning_system
+    engine.coordinator.tank_interaction_system = engine.tank_interaction_system
     engine.coordinator.plant_manager = engine.plant_manager
     engine.coordinator.entity_manager = engine.entity_manager
     engine.coordinator.environment = engine.environment

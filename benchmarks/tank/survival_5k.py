@@ -14,10 +14,16 @@ from collections.abc import Callable
 from typing import Any
 
 from core.worlds import WorldRegistry
+from core.worlds.interfaces import FAST_STEP_ACTION
 
 BENCHMARK_ID = "tank/survival_5k"
 FRAMES = 5000
-METRICS_INTERVAL = 250  # Sample metrics periodically, not every frame
+EXPECTED_RUNTIME_SECONDS = 45
+SCORING_VERSION = 2
+# A survival benchmark must measure organisms that can find food, not merely
+# population turnover.  A candidate at or above this mortality share is
+# invalid and cannot become a champion under this ruler.
+MAX_VALID_STARVATION_RATE = 0.95
 
 # World configuration, replicating SimulationConfig.headless_fast() parameters.
 WORLD_CONFIG: dict[str, Any] = {
@@ -39,7 +45,55 @@ WORLD_CONFIG: dict[str, Any] = {
 
 # Effective configuration captured by the champion config hash
 # (core/solutions/config_hash.py). Anything that changes the score belongs here.
-CONFIG: dict[str, Any] = {"frames": FRAMES, "world_config": WORLD_CONFIG}
+CONFIG: dict[str, Any] = {
+    "frames": FRAMES,
+    "scoring_version": SCORING_VERSION,
+    "max_valid_starvation_rate": MAX_VALID_STARVATION_RATE,
+    "world_config": WORLD_CONFIG,
+}
+
+
+def calculate_score(
+    *,
+    avg_fish_energy: float,
+    avg_fish_pop: float,
+    max_generation: int,
+    starvation_rate: float,
+) -> tuple[float, dict[str, float], bool, str | None]:
+    """Calculate the survival score and report benchmark validity.
+
+    The hard starvation gate prevents an ecology whose deaths are primarily
+    starvation from ranking as a survival champion.  Keeping this calculation
+    pure makes the scoring contract cheap to test without running a world.
+    """
+    raw_score = (avg_fish_energy * avg_fish_pop) / 1000.0
+    score_valid = starvation_rate < MAX_VALID_STARVATION_RATE
+    starvation_penalty = 1.0
+    if starvation_rate > MAX_VALID_STARVATION_RATE:
+        starvation_penalty = max(0.1, 1.0 - (starvation_rate - MAX_VALID_STARVATION_RATE) * 10.0)
+
+    generation_multiplier = 1.0 + (max_generation * 0.05)
+    validity_gate = 1.0 if score_valid else 0.0
+    score = raw_score * starvation_penalty * generation_multiplier * validity_gate
+    invalid_reason = (
+        f"starvation_rate {starvation_rate:.4f} >= "
+        f"maximum valid rate {MAX_VALID_STARVATION_RATE:.4f}"
+        if not score_valid
+        else None
+    )
+    return (
+        score,
+        {
+            "avg_energy": avg_fish_energy,
+            "avg_pop": avg_fish_pop,
+            "raw_score": raw_score,
+            "starvation_penalty": starvation_penalty,
+            "generation_multiplier": generation_multiplier,
+            "validity_gate": validity_gate,
+        },
+        score_valid,
+        invalid_reason,
+    )
 
 
 def run(
@@ -70,19 +124,21 @@ def run(
     max_generation = 0
 
     # Run loop
+    # Step via the fast-step path (see core/worlds/tank/backend.py::step)
+    # to avoid expensive per-frame metrics/event computation inside the world.
     for i in range(FRAMES):
-        world.step()
+        world.step({FAST_STEP_ACTION: True})
         if fingerprint_callback is not None:
             fingerprint_callback(world, i + 1)
 
-        # Sample metrics every frame for accuracy
-        stats = world.get_stats(include_distributions=False)
-
-        # BUG FIX: Use fish_count from stats, NOT len(world.entities_list).
-        # entities_list includes Food, LiveFood, Crab, Ball, GoalZone, Castle,
-        # etc. — inflating the population count and corrupting the score.
-        current_fish_pop = stats.get("fish_count", 0)
-        current_fish_energy = stats.get("fish_energy", 0)
+        # Get fish count, total fish energy, and max generation directly from entities
+        fish_list = [e for e in world.entities_list if getattr(e, "snapshot_type", None) == "fish"]
+        current_fish_pop = len(fish_list)
+        current_fish_energy = sum(
+            getattr(fish, "energy", 0.0)
+            + getattr(getattr(fish, "_reproduction_component", None), "overflow_energy_bank", 0.0)
+            for fish in fish_list
+        )
 
         total_fish_energy_integral += current_fish_energy
         total_fish_pop_integral += current_fish_pop
@@ -91,9 +147,10 @@ def run(
         if current_fish_pop == 0:
             extinctions += 1
 
-        gen = stats.get("max_generation", 0)
-        if gen > max_generation:
-            max_generation = gen
+        if fish_list:
+            gen = max(getattr(fish, "generation", 0) for fish in fish_list)
+            if gen > max_generation:
+                max_generation = gen
 
         if (i + 1) % 1000 == 0:
             print(f"  Frame {i+1}/{FRAMES} (fish={current_fish_pop})...", file=sys.stderr)
@@ -113,15 +170,18 @@ def run(
     # (Penalizing early extinction heavily since integrals will be small)
     avg_fish_energy = total_fish_energy_integral / FRAMES
     avg_fish_pop = total_fish_pop_integral / FRAMES
-
-    # Score definition: (Avg Fish Energy * Avg Fish Pop) / 1000
-    # Higher is better.
-    score = (avg_fish_energy * avg_fish_pop) / 1000.0
+    score, score_breakdown, score_valid, invalid_reason = calculate_score(
+        avg_fish_energy=avg_fish_energy,
+        avg_fish_pop=avg_fish_pop,
+        max_generation=max_generation,
+        starvation_rate=starvation_rate,
+    )
 
     return {
         "benchmark_id": BENCHMARK_ID,
         "seed": seed,
         "score": score,
+        "score_breakdown": score_breakdown,
         "runtime_seconds": runtime,
         "metadata": {
             "frames": FRAMES,
@@ -133,6 +193,8 @@ def run(
             "max_generation": max_generation,
             "extinction_frames": extinctions,
             "starvation_rate": round(starvation_rate, 4),
+            "score_valid": score_valid,
+            "score_invalid_reason": invalid_reason,
             "starvation_deaths": starvation_deaths,
             "total_deaths": total_deaths,
             "death_causes": death_causes,
@@ -150,6 +212,7 @@ def run(
 if __name__ == "__main__":
     import argparse
     import json
+    import subprocess
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=42)
@@ -157,13 +220,41 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.verify_determinism:
-        res1 = run(args.seed)
-        res2 = run(args.seed)
-        if res1["score"] == res2["score"]:
-            print(f"DETERMINISM PASSED: {res1['score']}")
+        # Run both checks as fresh subprocesses so in-process global state
+        # (threads, WorldRegistry, asyncio loops) cannot prevent clean exit.
+        # Timeout is generous (3× expected runtime) but finite so CI cannot hang.
+        timeout_s = int(EXPECTED_RUNTIME_SECONDS * 3)
+        cmd = [sys.executable, __file__, "--seed", str(args.seed)]
+        for run_num in (1, 2):
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_s,
+                )
+            except subprocess.TimeoutExpired:
+                print(
+                    f"DETERMINISM FAILED: Run {run_num} timed out after {timeout_s}s",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if proc.returncode != 0:
+                print(
+                    f"DETERMINISM FAILED: Run {run_num} exited {proc.returncode}\n"
+                    f"STDERR: {proc.stderr}",
+                    file=sys.stderr,
+                )
+                sys.exit(proc.returncode)
+            if run_num == 1:
+                data1 = json.loads(proc.stdout)
+            else:
+                data2 = json.loads(proc.stdout)
+        if data1["score"] == data2["score"]:
+            print(f"DETERMINISM PASSED: {data1['score']}")
             sys.exit(0)
         else:
-            print(f"DETERMINISM FAILED: {res1['score']} != {res2['score']}")
+            print(f"DETERMINISM FAILED: {data1['score']} != {data2['score']}")
             sys.exit(1)
 
     result = run(args.seed)

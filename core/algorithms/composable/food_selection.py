@@ -9,14 +9,19 @@ and where to intercept it (:func:`predict_food_target`).
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
+from core.behavior.primitives.steering import blend_prediction, predict_linear_intercept
+from core.config.fish import CRITICAL_ENERGY_THRESHOLD_RATIO, SAFE_ENERGY_THRESHOLD_RATIO
 from core.config.food import (
     BASE_FOOD_DETECTION_RANGE,
+    CHASE_DISTANCE_LOW,
+    CHASE_DISTANCE_SAFE_BASE,
     FOOD_QUALITY_DISTANCE_WEIGHT,
     FOOD_SINK_ACCELERATION,
 )
-from core.entities import Food as FoodClass
+from core.entities import Food
 from core.math_utils import Vector2
 from core.predictive_movement import predict_falling_intercept
 
@@ -24,7 +29,43 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 
-def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill: float) -> Vector2:
+# Critical fish keep the status-quo detection reach; the low/safe caps below
+# are the actual energy-saving change for fish with enough energy to be choosy.
+COMPOSABLE_CHASE_DISTANCE_CRITICAL = BASE_FOOD_DETECTION_RANGE
+
+
+def _numeric_energy_ratio(fish: Fish) -> float | None:
+    """Return the fish energy ratio when the object exposes it numerically."""
+    get_energy_ratio = getattr(fish, "get_energy_ratio", None)
+    if callable(get_energy_ratio):
+        ratio = get_energy_ratio()
+        if isinstance(ratio, (int, float)):
+            return max(0.0, ratio)
+
+    energy = getattr(fish, "energy", None)
+    max_energy = getattr(fish, "max_energy", None)
+    if isinstance(energy, (int, float)) and isinstance(max_energy, (int, float)) and max_energy > 0:
+        return max(0.0, energy / max_energy)
+
+    return None
+
+
+def _food_chase_distance_for_energy(fish: Fish) -> float:
+    """Return the energy-state chase cap for composable food selection."""
+    energy_ratio = _numeric_energy_ratio(fish)
+    if energy_ratio is None:
+        return BASE_FOOD_DETECTION_RANGE
+
+    if energy_ratio < CRITICAL_ENERGY_THRESHOLD_RATIO:
+        return COMPOSABLE_CHASE_DISTANCE_CRITICAL
+    if energy_ratio < SAFE_ENERGY_THRESHOLD_RATIO:
+        return float(CHASE_DISTANCE_LOW)
+    return float(CHASE_DISTANCE_SAFE_BASE)
+
+
+def predict_food_target(
+    fish: Fish, food: Food, distance: float, prediction_skill: float
+) -> Vector2:
     """Return the predicted intercept position for a food item.
 
     Falls back to the food's current position when it isn't moving.
@@ -41,33 +82,91 @@ def predict_food_target(fish: Fish, food: Any, distance: float, prediction_skill
         return target_pos
 
     if hasattr(food, "food_properties"):
-        sink_multiplier = food.food_properties.get("sink_multiplier", 1.0)
+        sink_multiplier = cast(float, food.food_properties.get("sink_multiplier", 1.0))
         acceleration = FOOD_SINK_ACCELERATION * sink_multiplier
         if acceleration > 0 and food_vel.y >= 0:
             predicted_pos, _ = predict_falling_intercept(
                 fish.pos, fish.speed, food.pos, food_vel, acceleration
             )
         else:
-            time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
-            predicted_pos = Vector2(
-                food.pos.x + food_vel.x * time_to_reach,
-                food.pos.y + food_vel.y * time_to_reach,
+            predicted_pos = predict_linear_intercept(
+                fish.pos, fish.speed, food.pos, food_vel, distance
             )
     else:
-        time_to_reach = min(distance / max(fish.speed, 0.1), 60.0)
-        predicted_pos = Vector2(
-            food.pos.x + food_vel.x * time_to_reach,
-            food.pos.y + food_vel.y * time_to_reach,
+        predicted_pos = predict_linear_intercept(fish.pos, fish.speed, food.pos, food_vel, distance)
+
+    return blend_prediction(food.pos, predicted_pos, prediction_skill)
+
+
+@dataclass(frozen=True)
+class FoodCandidateScore:
+    """A food item within detection/chase range, with its selection score.
+
+    ``score`` is the exact distance-discounted desirability
+    ``select_food_target`` picks the winner by - exposed per-candidate (not
+    just for the winner) so other callers needing to compare multiple
+    candidates - e.g. target-memory's continue/switch decision - use the same
+    definition of "value" instead of recomputing a different one.
+    """
+
+    food: Food
+    position: tuple[float, float]
+    velocity: tuple[float, float]
+    score: float
+
+
+def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
+    """Score every food item within detection/chase range.
+
+    See ``select_food_target`` for the desirability formula this applies.
+    Returns every in-range candidate (not just the best) in iteration order;
+    ``select_food_target`` is a thin wrapper that picks the max from this list,
+    so the two can never disagree on what "value" means.
+    """
+    env = fish.environment
+
+    detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
+    detection_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    chase_distance = _food_chase_distance_for_energy(fish)
+    max_distance = min(detection_distance, chase_distance)
+    max_distance_sq = max_distance * max_distance
+
+    if hasattr(env, "nearby_resources"):
+        nearby = cast(list[Food], env.nearby_resources(fish, int(max_distance) + 1))
+    else:
+        nearby = cast(list[Food], env.nearby_agents_by_type(fish, int(max_distance) + 1, Food))
+    if not nearby:
+        return []
+
+    fish_x = fish.pos.x
+    fish_y = fish.pos.y
+    candidates: list[FoodCandidateScore] = []
+
+    for food in nearby:
+        dx = food.pos.x - fish_x
+        dy = food.pos.y - fish_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq > max_distance_sq:
+            continue
+
+        get_energy = getattr(food, "get_energy_value", None)
+        energy = get_energy() if callable(get_energy) else 1.0
+        distance = math.sqrt(dist_sq)
+        score = energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
+
+        candidates.append(
+            FoodCandidateScore(
+                food=food,
+                position=(float(food.pos.x), float(food.pos.y)),
+                velocity=(float(food.vel.x), float(food.vel.y)),
+                score=score,
+            )
         )
 
-    skill_factor = 0.30 + prediction_skill * 0.70
-    return Vector2(
-        food.pos.x * (1 - skill_factor) + predicted_pos.x * skill_factor,
-        food.pos.y * (1 - skill_factor) + predicted_pos.y * skill_factor,
-    )
+    return candidates
 
 
-def select_food_target(fish: Fish) -> Any | None:
+def select_food_target(fish: Fish) -> Food | None:
     """Pick the best food to pursue within detection range.
 
     Unlike the proximity-only ``_find_nearest_food`` helper (kept for the cheap
@@ -86,41 +185,17 @@ def select_food_target(fish: Fish) -> Any | None:
     IEEE-754), with an explicit ``(pos.x, pos.y)`` tie-break so the choice never
     depends on spatial-query iteration order.
     """
-    env = fish.environment
-
-    detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
-    max_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
-    max_distance_sq = max_distance * max_distance
-
-    if hasattr(env, "nearby_resources"):
-        nearby = env.nearby_resources(fish, int(max_distance) + 1)
-    else:
-        nearby = env.nearby_agents_by_type(fish, int(max_distance) + 1, FoodClass)
-    if not nearby:
-        return None
-
-    fish_x = fish.pos.x
-    fish_y = fish.pos.y
-    best = None
+    best: Food | None = None
     best_score = -1.0
     best_key: tuple[float, float] | None = None
 
-    for food in nearby:
-        dx = food.pos.x - fish_x
-        dy = food.pos.y - fish_y
-        dist_sq = dx * dx + dy * dy
-        if dist_sq > max_distance_sq:
-            continue
-
-        get_energy = getattr(food, "get_energy_value", None)
-        energy = get_energy() if callable(get_energy) else 1.0
-        distance = math.sqrt(dist_sq)
-        score = energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
-
-        key = (food.pos.x, food.pos.y)
-        if score > best_score or (score == best_score and (best_key is None or key < best_key)):
-            best_score = score
-            best = food
+    for candidate in score_food_candidates(fish):
+        key = candidate.position
+        if candidate.score > best_score or (
+            candidate.score == best_score and (best_key is None or key < best_key)
+        ):
+            best_score = candidate.score
+            best = candidate.food
             best_key = key
 
     return best

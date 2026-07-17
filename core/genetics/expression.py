@@ -161,15 +161,30 @@ def calculate_mate_attraction(
             continue
 
         mate_value = float(get_trait_value(other_trait, default=0.0))
-        score = _normalized_similarity(
+        similarity = _normalized_similarity(
             mate_value,
             desired,
             spec.min_val,
             spec.max_val,
             circular=(trait_name == "color_hue"),
         )
+
+        if trait_name == "size_modifier":
+            p_sim_size = normalized_prefs.get("prefer_similar_size", 0.5)
+            alpha = (p_sim_size - 0.5) * 2.0  # ranges from -1.0 to 1.0
+            weight = abs(alpha)
+            score = similarity if alpha >= 0 else (1.0 - similarity)
+        elif trait_name == "color_hue":
+            p_diff_color = normalized_prefs.get("prefer_different_color", 0.5)
+            beta = (p_diff_color - 0.5) * 2.0  # ranges from -1.0 to 1.0
+            weight = abs(beta)
+            score = (1.0 - similarity) if beta >= 0 else similarity
+        else:
+            score = similarity
+            weight = 1.0
+
         scores.append(score)
-        weights.append(1.0)
+        weights.append(weight)
 
     pattern_weight = normalized_prefs.get("prefer_high_pattern_intensity", 0.5)
     if pattern_weight > 0.0 and has_trait_value(other_physical.pattern_intensity):
@@ -204,6 +219,25 @@ def calculate_mate_attraction(
             preference_strength = abs(pref_weight - 0.5) * 2.0  # 0.0 to 1.0
             scores.append(score)
             weights.append(preference_strength * 0.5)  # Cap behavioral weight at 0.5
+
+    # Behavioral-profile assortative mating: prefer (or avoid) mates whose
+    # composable behavior (threat_response/food_approach/social_mode/
+    # poker_engagement) matches this fish's own. This shields minority/novel
+    # behavior profiles from being bred out by the majority strategy, enabling
+    # sympatric speciation. Same double-sided pattern as prefer_similar_size.
+    self_behavior = self_behavioral.behavior.value if self_behavioral.behavior else None
+    other_behavior = (
+        other_behavioral.behavior.value if other_behavioral and other_behavioral.behavior else None
+    )
+    if self_behavior is not None and other_behavior is not None:
+        p_sim_behavior = normalized_prefs.get("prefer_similar_behavior", 0.5)
+        gamma = (p_sim_behavior - 0.5) * 2.0  # -1.0 (prefer different) .. 1.0 (prefer similar)
+        weight = abs(gamma)
+        if weight > 0.0:
+            behavior_similarity = self_behavior.similarity(other_behavior)
+            score = behavior_similarity if gamma >= 0 else (1.0 - behavior_similarity)
+            scores.append(score)
+            weights.append(weight)
 
     total_weight = sum(weights)
     if total_weight <= 0.0:

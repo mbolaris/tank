@@ -100,6 +100,16 @@ CFR_ACTIONS = ("fold", "call", "raise_small", "raise_big")
 # Inheritance decay for Lamarckian learning (80% as approved)
 CFR_INHERITANCE_DECAY = 0.80
 
+# Evolvable bounds for the CFR learning rate (regret-update scale).
+# Historically ``learning_rate`` was a heritable field frozen at 1.0: it was
+# never randomized nor mutated, so the whole population always learned poker at
+# the identical speed and selection had no variation to act on. Treating it as
+# a real gene (mutated in ComposablePokerStrategy.mutate, blended in crossover,
+# clamped to these bounds) lets a lineage evolve *how fast it adapts* its play -
+# fast learners exploit quickly but overfit noisy regret; slow learners are
+# steadier. The default 1.0 sits inside these bounds so founders stay neutral.
+LEARNING_RATE_BOUNDS = (0.25, 2.5)
+
 # Maximum number of info sets to track (memory cap)
 CFR_MAX_INFO_SETS = 100
 

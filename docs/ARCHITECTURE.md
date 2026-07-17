@@ -10,7 +10,7 @@ Tank World is an artificial life (ALife) simulation framework featuring parametr
 - **Simulation**: Pure Python core with no UI dependencies
 
 **Architecture highlights:**
-- 58 registered behavior strategies across food seeking, predator avoidance, schooling, energy, territory, and poker interaction (see `core/algorithms/registry.py`)
+- Composable behavior framework (`core/algorithms/composable/`) drives all production fish behavior, plus 3 standalone forager strategies kept as benchmark comparison candidates (see `core/algorithms/registry.py`, ADR-016)
 - Explicit phase loop in `core/simulation/engine.py`; systems are registered for introspection and runtime enable/disable
 - Dual execution modes: web UI and headless
 
@@ -75,9 +75,12 @@ tank/
 - **fish/**: Componentized fish systems (energy, lifecycle, reproduction, poker stats)
 - **genetics/**: Genome definitions, mutation, crossover, adaptive inheritance helpers
 - **algorithms/**: Behavior strategy library with registry + adaptive mutation
-  - 58 strategies registered in `core/algorithms/registry.py`
-  - Categories: 14 food seeking, 10 predator avoidance, 10 schooling, 8 energy, 8 territory, 8 poker interaction
-  - Composable behaviors (`core/algorithms/composable/`) expose sub-behavior knobs for hybrids
+  - Production fish behavior is the composable framework (`core/algorithms/composable/`):
+    orthogonal, genetically tuned sub-behaviors (threat response, food approach,
+    social mode, poker engagement)
+  - 3 standalone forager strategies remain registered in `core/algorithms/registry.py`
+    as benchmark comparison candidates (ADR-006 survivors; the vestigial monolith
+    categories were removed in ADR-016)
 - **environment.py**: Spatial grid for efficient proximity queries
 - **ecosystem.py / ecosystem_stats.py / population_tracker.py**: Population tracking, death cause tallies, and reproduction stats
 - **agent_memory.py / agent_signals.py**: Shared memory and signaling helpers for strategies and agent components
@@ -137,7 +140,7 @@ loop were removed as inert duplicates (see ADR-009).
 - Deterministic list (`ALL_ALGORITHMS`) for serialization and indexing
 - Adaptive mutation utilities (`inherit_algorithm_with_mutation`, `calculate_adaptive_mutation_factor`)
 - Sub-behavior controls in `core/algorithms/composable/` for hybrid behaviors (threat response, food approach, energy style, social mode, poker engagement)
-`core/registry.py` is a separate introspection helper used by AI tooling to map algorithms to source files.
+`core/algorithms/introspection.py` is a separate discovery/metadata helper used by AI tooling to map algorithms to source files; it is a tooling view only and does not define the algorithm-id space.
 
 ### Poker Systems
 
@@ -506,7 +509,7 @@ lightweight reference composition used in tests.
 
 ### Genetic Evolution
 - Fish inherit traits from parents with mutation
-- 58 registered behavior algorithms compete for survival across six categories
+- Fish behavior evolves through the composable behavior framework (genetically tuned sub-behavior combinations; see docs/ALGORITHM_CATALOG.md)
 - Natural selection based on survival and reproduction
 - Genetic diversity tracking
 

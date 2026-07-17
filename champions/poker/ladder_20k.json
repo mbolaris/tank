@@ -1,0 +1,154 @@
+{
+  "benchmark_id": "poker/ladder_20k",
+  "version": 1,
+  "champion": {
+    "score": 676.1522815496628,
+    "seed": 42,
+    "timestamp": 1783543837.2208123,
+    "metadata": {
+      "hero": "composable_default",
+      "ladder_rungs": [
+        "random",
+        "loose_passive",
+        "tight_aggressive",
+        "gto_expert"
+      ],
+      "rungs_beaten": 4,
+      "total_rungs": 4,
+      "total_hands": 12764,
+      "num_duplicate_sets": 25,
+      "hands_per_match": 100,
+      "small_blind": 50,
+      "big_blind": 100,
+      "starting_stack": 10000,
+      "score_mode": "mean bb/100 across ladder rungs (duplicate-deal HU)",
+      "top_rung_note": "gto_expert is a GTO-inspired scripted heuristic, not a solver-verified GTO agent; treat it as the strongest scripted ruler, not an unexploitable ceiling.",
+      "vs_top_rung_bb_per_100": 588.7031373582917,
+      "per_rung_results": [
+        {
+          "rung": "L0",
+          "rung_id": "random",
+          "bb_per_100": 1063.2414975845409,
+          "bb_per_100_ci_95": [
+            945.2107299412481,
+            1291.7658783404113
+          ],
+          "hands_played": 2070,
+          "sample_variance": 187578.82790811025,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L1",
+          "rung_id": "loose_passive",
+          "bb_per_100": 667.4797334986057,
+          "bb_per_100_ci_95": [
+            641.6584189178593,
+            754.4506294520384
+          ],
+          "hands_played": 3227,
+          "sample_variance": 19869.975151790743,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L2",
+          "rung_id": "tight_aggressive",
+          "bb_per_100": 385.1847577572128,
+          "bb_per_100_ci_95": [
+            322.5392995576424,
+            565.5104556825169
+          ],
+          "hands_played": 3674,
+          "sample_variance": 92203.74225633814,
+          "statistically_significant": true,
+          "beaten": true
+        },
+        {
+          "rung": "L3",
+          "rung_id": "gto_expert",
+          "bb_per_100": 588.7031373582917,
+          "bb_per_100_ci_95": [
+            526.9655034013663,
+            747.9906168731418
+          ],
+          "hands_played": 3793,
+          "sample_variance": 76299.61597023836,
+          "statistically_significant": true,
+          "beaten": true
+        }
+      ],
+      "skill": {
+        "domain": "poker",
+        "benchmark_id": "poker/ladder_20k",
+        "metric_name": "bb_per_100",
+        "skill_index": 100.0,
+        "rungs_beaten": 4,
+        "total_rungs": 4,
+        "rungs": [
+          {
+            "rung": "L0",
+            "rung_id": "random",
+            "metric": 1063.2414975845409,
+            "beaten": true,
+            "ci_95": [
+              945.2107299412481,
+              1291.7658783404113
+            ],
+            "detail": {
+              "hands_played": 2070
+            }
+          },
+          {
+            "rung": "L1",
+            "rung_id": "loose_passive",
+            "metric": 667.4797334986057,
+            "beaten": true,
+            "ci_95": [
+              641.6584189178593,
+              754.4506294520384
+            ],
+            "detail": {
+              "hands_played": 3227
+            }
+          },
+          {
+            "rung": "L2",
+            "rung_id": "tight_aggressive",
+            "metric": 385.1847577572128,
+            "beaten": true,
+            "ci_95": [
+              322.5392995576424,
+              565.5104556825169
+            ],
+            "detail": {
+              "hands_played": 3674
+            }
+          },
+          {
+            "rung": "L3",
+            "rung_id": "gto_expert",
+            "metric": 588.7031373582917,
+            "beaten": true,
+            "ci_95": [
+              526.9655034013663,
+              747.9906168731418
+            ],
+            "detail": {
+              "hands_played": 3793
+            }
+          }
+        ],
+        "notes": "Ladder-position index: 100 = beats every current rung (ceiling saturated, add a taller rung). gto_expert is a GTO-inspired scripted heuristic, not solver-verified GTO."
+      }
+    },
+    "score_breakdown": {
+      "random": 1063.2414975845409,
+      "loose_passive": 667.4797334986057,
+      "tight_aggressive": 385.1847577572128,
+      "gto_expert": 588.7031373582917
+    },
+    "config_hash": "b80b0eb402b070fe"
+  },
+  "history": []
+}

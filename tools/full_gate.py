@@ -4,18 +4,23 @@
 try:
     from tools.gate_common import exit_for_gate, print_gate_header, python_command, run_steps
 except ImportError:
-    from gate_common import exit_for_gate, print_gate_header, python_command, run_steps  # type: ignore[import-not-found,no-redef]
+    from gate_common import (  # type: ignore[import-not-found,no-redef]
+        exit_for_gate,
+        print_gate_header,
+        python_command,
+        run_steps,
+    )
 
 
 def main() -> None:
     print_gate_header(
         name="FULL",
         target="unbounded; nightly or explicit maintainer use only",
-        includes="fast gate, integration/slow tests, and strict champion reproduction",
+        includes="pre-PR gate, integration/slow tests, and strict champion reproduction",
         excludes="manual tests",
     )
     steps = [
-        (python_command("tools/fast_gate.py"), "Tier 2: fast gate"),
+        (python_command("tools/pre_pr_gate.py"), "Tier 2: pre-PR gate"),
         (
             python_command(
                 "-m",

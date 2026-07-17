@@ -1,3 +1,5 @@
+> Archived 2025-12. Superseded by [docs/AGENT_FIELD_GUIDE.md](../AGENT_FIELD_GUIDE.md).
+
 # Quick Reference: Code Issues by File
 
 ## File-by-File Issues Summary

@@ -5,11 +5,17 @@ simulation. It directly uses the SimulationEngine with TankPack, providing
 a clean interface without any legacy wrappers.
 """
 
+from __future__ import annotations
+
 import logging
 import random
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, cast
 
 from core.config.simulation_config import SimulationConfig
+from core.ecosystem import EcosystemManager
+from core.entities import Entity
+from core.environment import Environment
+from core.exceptions import SimulationError
 from core.simulation import SimulationEngine
 from core.worlds.interfaces import FAST_STEP_ACTION, MultiAgentWorldBackend, StepResult
 from core.worlds.tank.action_bridge import apply_actions
@@ -45,9 +51,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def __init__(
         self,
         seed: int | None = None,
-        config: SimulationConfig | dict[str, Any] | None = None,
-        **config_overrides,
-    ):
+        config: SimulationConfig | dict[str, object] | None = None,
+        **config_overrides: object,
+    ) -> None:
         """Initialize the Tank world backend adapter.
 
         Args:
@@ -60,7 +66,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Start with production defaults
         base_config = SimulationConfig.production(headless=True)
 
-        merged_config: dict[str, Any] = {}
+        merged_config: dict[str, object] = {}
         if isinstance(config, dict):
             merged_config.update(config)
         elif isinstance(config, SimulationConfig):
@@ -79,26 +85,26 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         self.supports_fast_step = True
 
     @property
-    def environment(self):
+    def environment(self) -> Environment | None:
         """Expose the underlying simulation environment."""
         return self._engine.environment if self._engine else None
 
     @property
-    def world(self) -> Any:
+    def world(self) -> Environment | None:
         """Expose the underlying world (alias for environment)."""
         return self.environment
 
-    def add_entity(self, entity) -> None:
+    def add_entity(self, entity: Entity) -> None:
         """Add an entity to the world (shim for tests)."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before add_entity().")
+            raise SimulationError("World not initialized. Call reset() before add_entity().")
         self._engine.add_entity(entity)
 
     def reset(
         self,
         seed: int | None = None,
-        config: dict[str, Any] | None = None,
-        pack: Optional["SystemPack"] = None,
+        config: dict[str, object] | None = None,
+        pack: SystemPack | None = None,
     ) -> StepResult:
         """Reset the tank world to initial state.
 
@@ -107,12 +113,10 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             config: Tank-specific configuration overrides
             pack: Optional SystemPack to use
         """
-        # Use provided seed or fall back to constructor seed
         reset_seed = seed if seed is not None else self._seed
         if config:
             self._simulation_config = self._simulation_config.apply_flat_config(config)
 
-        # Create RNG from seed
         if reset_seed is None:
             # Fallback to a default seed if none provided to satisfy determinism policy
             reset_seed = 42
@@ -126,7 +130,6 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             seed=reset_seed,
         )
 
-        # Setup with pack (either provided or default TankPack)
         self._pack = pack or TankPack(self._simulation_config)
         self._engine.setup(self._pack)
         self._current_frame = 0
@@ -138,7 +141,6 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             f"Tank world reset with seed={reset_seed}, " f"config={self._simulation_config}"
         )
 
-        # Return initial state
         snapshot = self._build_snapshot()
         self._last_step_result = StepResult(
             obs_by_agent={},  # No agent observations yet
@@ -150,7 +152,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             spawns=[],
             removals=[],
             energy_deltas=[],
-            render_hint=snapshot.get("render_hint"),
+            render_hint=cast(dict[str, object] | None, snapshot.get("render_hint")),
         )
         return self._last_step_result
 
@@ -158,7 +160,9 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def frame_count(self) -> int:
         """Current frame count."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing frame_count.")
+            raise SimulationError(
+                "World not initialized. Call reset() before accessing frame_count."
+            )
         return self._engine.frame_count
 
     @frame_count.setter
@@ -172,14 +176,14 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def paused(self) -> bool:
         """Whether the simulation is paused."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing paused.")
+            raise SimulationError("World not initialized. Call reset() before accessing paused.")
         return self._engine.paused
 
     @paused.setter
     def paused(self, value: bool) -> None:
         """Set paused state on the underlying engine."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before setting paused.")
+            raise SimulationError("World not initialized. Call reset() before setting paused.")
         self._engine.paused = value
 
     @property
@@ -192,19 +196,19 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
     def set_paused(self, value: bool) -> None:
         """Set the simulation paused state (protocol method)."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before setting paused.")
+            raise SimulationError("World not initialized. Call reset() before setting paused.")
         self._engine.paused = value
 
     @property
-    def entities_list(self) -> list[Any]:
+    def entities_list(self) -> list[Entity]:
         """Expose entities list for snapshot builders."""
         if self._engine is None:
-            raise RuntimeError(
+            raise SimulationError(
                 "World not initialized. Call reset() before accessing entities_list."
             )
         return self._engine.entities_list
 
-    def get_entities_for_snapshot(self) -> list[Any]:
+    def get_entities_for_snapshot(self) -> list[Entity]:
         """Get entities for snapshot building (protocol method)."""
         if self._engine is None:
             return []
@@ -226,16 +230,12 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         brain_mode = "builtin"
         if self._engine is not None:
-            config = getattr(self._engine, "config", None)
-            if config is not None:
-                tank_config = getattr(config, "tank", None)
-                if tank_config is not None:
-                    brain_mode = getattr(tank_config, "brain_mode", "builtin")
+            brain_mode = self._engine.config.tank.brain_mode
 
         self._cached_brain_mode = brain_mode
         return brain_mode
 
-    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, object] | None = None) -> StepResult:
         """Advance the tank world by one time step.
 
         The step now follows an action pipeline internally:
@@ -252,7 +252,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             StepResult with updated snapshot, events, metrics
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before step().")
+            raise SimulationError("World not initialized. Call reset() before step().")
 
         fast_step = bool(actions_by_agent and actions_by_agent.get(FAST_STEP_ACTION))
 
@@ -260,7 +260,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         brain_mode = self._get_brain_mode()
 
         # External brain mode: build observations and apply actions
-        obs_by_agent: dict[str, Any] = {}
+        obs_by_agent: dict[str, object] = {}
         if brain_mode == "external" and not fast_step:
             observations = build_tank_observations(self)
             obs_by_agent = {str(k): v.__dict__ for k, v in observations.items()}
@@ -293,9 +293,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         frame_outputs = self._engine.drain_frame_outputs()
 
         # Feed energy deltas to ecosystem for stats tracking
-        if self._engine.ecosystem is not None and hasattr(
-            self._engine.ecosystem, "ingest_energy_deltas"
-        ):
+        if self._engine.ecosystem is not None:
             self._engine.ecosystem.ingest_energy_deltas(frame_outputs.energy_deltas)
 
         # Build result
@@ -310,7 +308,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             spawns=frame_outputs.spawns,
             removals=frame_outputs.removals,
             energy_deltas=frame_outputs.energy_deltas,
-            render_hint=snapshot.get("render_hint"),
+            render_hint=cast(dict[str, object] | None, snapshot.get("render_hint")),
         )
         return self._last_step_result
 
@@ -321,18 +319,18 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         path that avoids expensive metrics/event collection.
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before update().")
+            raise SimulationError("World not initialized. Call reset() before update().")
 
         self._engine.update()
         self._current_frame = self._engine.frame_count
 
-    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, object]:
         """Return current metrics."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before get_stats().")
+            raise SimulationError("World not initialized. Call reset() before get_stats().")
         return self.get_current_metrics(include_distributions=include_distributions)
 
-    def get_current_snapshot(self) -> dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, object]:
         """Get current world state snapshot.
 
         Returns:
@@ -343,7 +341,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return self._build_snapshot()
 
-    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, object]:
         """Get current simulation metrics/statistics.
 
         Returns:
@@ -358,7 +356,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             metrics["frame"] = self._engine.frame_count
         return metrics
 
-    def _build_snapshot(self) -> dict[str, Any]:
+    def _build_snapshot(self) -> dict[str, object]:
         """Build a minimal snapshot of current world state.
 
         Returns only cheap metadata. Entity data is built separately by the
@@ -382,7 +380,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             },
         }
 
-    def get_debug_snapshot(self) -> dict[str, Any]:
+    def get_debug_snapshot(self) -> dict[str, object]:
         """Build a full snapshot including all entities (for debugging/testing).
 
         This method builds a complete snapshot with entity data. It should NOT
@@ -400,7 +398,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         snapshot["entities"] = self._build_entities_list()
         return snapshot
 
-    def _build_entities_list(self) -> list[dict[str, Any]]:
+    def _build_entities_list(self) -> list[dict[str, object]]:
         """Build list of all entities for persistence/debugging.
 
         Uses the proper entity transfer codecs to ensure full serialization
@@ -414,13 +412,13 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         # Import locally to avoid circular imports
         from core.entities import Fish, Food, Plant, PlantNectar
-        from core.entities.base import Castle
+        from core.tank_objects import TankObject
         from core.entities.predators import Crab
         from core.transfer.entity_transfer import serialize_entity_for_transfer
 
         # Import soccer types
-        BallCls: type[Any] | None
-        GoalZoneCls: type[Any] | None
+        BallCls: type[Entity] | None
+        GoalZoneCls: type[Entity] | None
         try:
             from core.entities.ball import Ball as BallCls
             from core.entities.goal_zone import GoalZone as GoalZoneCls
@@ -459,7 +457,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "food_type": getattr(entity, "food_type", "regular"),
+                    "food_type": entity.food_type,
                 }
             elif isinstance(entity, Crab):
                 entity_dict = {
@@ -467,21 +465,15 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                     "x": entity.pos.x,
                     "y": entity.pos.y,
                     "energy": entity.energy,
-                    "hunt_cooldown": getattr(entity, "hunt_cooldown", 0),
+                    "hunt_cooldown": entity.hunt_cooldown,
                     "genome_data": entity.genome.to_dict(),
                     "motion": {
-                        "theta": getattr(entity, "_orbit_theta", None),
-                        "dir": getattr(entity, "_orbit_dir", None),
+                        "theta": entity._orbit_theta,
+                        "dir": entity._orbit_dir,
                     },
                 }
-            elif isinstance(entity, Castle):
-                entity_dict = {
-                    "type": "castle",
-                    "x": entity.pos.x,
-                    "y": entity.pos.y,
-                    "width": entity.width,
-                    "height": entity.height,
-                }
+            elif isinstance(entity, TankObject):
+                entity_dict = entity.to_object_state()
             else:
                 # Fallback for unknown entity types
                 entity_dict = {
@@ -499,48 +491,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         return entities_snapshot
 
-    def _extract_genome_data(self, entity: Any) -> dict[str, Any] | None:
-        """Extract minimal genome data for rendering.
-
-        Args:
-            entity: Entity with genome attribute
-
-        Returns:
-            Dictionary with visual genome traits or None
-        """
-        if not hasattr(entity, "genome"):
-            return None
-
-        genome = entity.genome
-
-        # Extract visual traits for rendering
-        genome_data = {}
-
-        # Fish genome
-        if hasattr(genome, "physical"):
-            physical = genome.physical
-            genome_data.update(
-                {
-                    "color_hue": getattr(physical, "color_hue", None),
-                    "size": getattr(physical, "size_modifier", None),
-                    "template_id": getattr(physical, "template_id", None),
-                }
-            )
-
-        # Plant genome
-        if hasattr(genome, "visual"):
-            visual = genome.visual
-            genome_data.update(
-                {
-                    "hue": getattr(visual, "hue", None),
-                    "stem_height": getattr(visual, "stem_height", None),
-                    "leaf_count": getattr(visual, "leaf_count", None),
-                }
-            )
-
-        return genome_data if genome_data else None
-
-    def _collect_recent_events(self) -> list[dict[str, Any]]:
+    def _collect_recent_events(self) -> list[dict[str, object]]:
         """Collect recent events from the simulation.
 
         Returns:
@@ -595,20 +546,20 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return self._last_step_result
 
     @property
-    def engine(self) -> Any:
+    def engine(self) -> SimulationEngine:
         """Access underlying simulation engine.
 
         This allows existing backend code to access adapter.engine.
         """
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing engine.")
+            raise SimulationError("World not initialized. Call reset() before accessing engine.")
         return self._engine
 
     @property
-    def ecosystem(self) -> Any:
+    def ecosystem(self) -> EcosystemManager | None:
         """Access underlying ecosystem."""
         if self._engine is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing ecosystem.")
+            raise SimulationError("World not initialized. Call reset() before accessing ecosystem.")
         return self._engine.ecosystem
 
     @property
@@ -617,17 +568,17 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         return self._simulation_config
 
     @property
-    def rng(self) -> Any:
+    def rng(self) -> random.Random:
         """Access random number generator."""
         if self._rng is None:
-            raise RuntimeError("World not initialized. Call reset() before accessing rng.")
+            raise SimulationError("World not initialized. Call reset() before accessing rng.")
         return self._rng
 
     # ========================================================================
     # Protocol methods for state persistence
     # ========================================================================
 
-    def capture_state_for_save(self) -> dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, object]:
         """Capture complete world state for persistence.
 
         This provides a lightweight snapshot that can be serialized.
@@ -657,7 +608,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             ],
         }
 
-    def restore_state_from_save(self, state: dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, object]) -> None:
         """Restore world state from a saved snapshot.
 
         Note: Full restoration including entities is handled by
@@ -672,4 +623,4 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
 
         # Restore pause state if present
         if "paused" in state:
-            self._engine.paused = state["paused"]
+            self._engine.paused = cast(bool, state["paused"])

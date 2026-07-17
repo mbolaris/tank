@@ -95,8 +95,8 @@ class SoccerCommands:
 
         if "reward_mode" in data:
             mode = str(data["reward_mode"]).strip().lower()
-            if mode not in {"pot_payout", "refill_to_max"}:
-                errors.append("reward_mode must be 'pot_payout' or 'refill_to_max'")
+            if mode not in {"pot_payout", "refill_to_max", "shaped_pot"}:
+                errors.append("reward_mode must be 'pot_payout', 'refill_to_max', or 'shaped_pot'")
             else:
                 soccer_cfg.reward_mode = mode
 

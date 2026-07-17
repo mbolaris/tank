@@ -7,7 +7,7 @@ delegating facades, and all calls go back through the manager so
 monkeypatched manager methods are honored.
 """
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.constants import SOURCE_POKER_FISH
 from core.telemetry.events import BirthEvent, FoodEatenEvent, ReproductionEvent
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from core.ecosystem import EcosystemManager
     from core.events import EventBus
     from core.genetics import Genome
+    from core.telemetry.events import TelemetryEvent
+    from core.worlds.contracts import EnergyDeltaRecord
 
 
 class EcosystemTelemetryRouter:
@@ -72,7 +74,7 @@ class EcosystemTelemetryRouter:
         """Handle reproduction events."""
         self._manager.record_reproduction(event.algorithm_id, is_asexual=event.is_asexual)
 
-    def record_event(self, event: Any) -> None:
+    def record_event(self, event: "TelemetryEvent") -> None:
         """Record a telemetry event emitted by domain entities.
 
         This delegates to the specific event handlers to ensure consistent logic
@@ -89,7 +91,7 @@ class EcosystemTelemetryRouter:
         elif isinstance(event, ReproductionEvent):
             self.on_reproduction(event)
 
-    def ingest_energy_deltas(self, deltas: list[Any]) -> None:
+    def ingest_energy_deltas(self, deltas: list["EnergyDeltaRecord"]) -> None:
         """Process a batch of energy deltas from the engine recorder.
 
         This replaces the old event-based telemetry for energy.
@@ -135,7 +137,7 @@ class EcosystemTelemetryRouter:
         """Record nectar consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("nectar", energy_gained)
 
     def record_live_food_eaten(
@@ -148,9 +150,9 @@ class EcosystemTelemetryRouter:
         """Record live food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         if genome is not None:
-            self._manager.enhanced_stats.record_live_food_capture(
+            self._manager.evolution_analytics.record_live_food_capture(
                 algorithm_id, energy_gained, genome, generation
             )
         self._manager.record_energy_gain("live_food", energy_gained)
@@ -159,12 +161,12 @@ class EcosystemTelemetryRouter:
         """Record falling food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("falling_food", energy_gained)
 
     def record_food_eaten(self, algorithm_id: int, energy_gained: float = 10.0) -> None:
         """Record generic food consumption."""
         if algorithm_id in self._manager.algorithm_stats:
             self._manager.algorithm_stats[algorithm_id].total_food_eaten += 1
-        self._manager.enhanced_stats.record_energy_from_food(energy_gained)
+        self._manager.evolution_analytics.record_energy_from_food(energy_gained)
         self._manager.record_energy_gain("food", energy_gained)

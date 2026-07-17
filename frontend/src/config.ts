@@ -150,6 +150,24 @@ export const config = {
     get serversApiUrl(): string {
         return `${this.apiBaseUrl}/api/servers`;
     },
+
+    /**
+     * Get API URL for a world's agent-commentary feed (the "Board" tab).
+     * Accepts "default" to target the server's default world.
+     * @param worldId - The world ID (or "default")
+     */
+    commentaryUrl(worldId: string): string {
+        return `${this.apiBaseUrl}/api/world/${worldId}/commentary`;
+    },
+
+    /**
+     * Get API URL for reacting to a specific comment.
+     * @param worldId - The world ID (or "default")
+     * @param commentId - The comment ID
+     */
+    reactionUrl(worldId: string, commentId: number): string {
+        return `${this.apiBaseUrl}/api/world/${worldId}/commentary/${commentId}/reactions`;
+    },
 } as const;
 
 export type Config = typeof config;

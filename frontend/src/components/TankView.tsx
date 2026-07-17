@@ -1,42 +1,74 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+    lazy,
+    Suspense,
+    useState,
+    useCallback,
+    useEffect,
+    useRef,
+    type ChangeEvent,
+    type ReactNode,
+} from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { useVisiblePanels, type PanelId } from '../hooks/useVisiblePanels';
+import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/types';
+import { useEntitySelection } from '../hooks/useEntitySelection';
+import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
+import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { Canvas } from './Canvas';
+import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
+import { BuildMode } from './BuildMode';
+import { PanelToggleBar } from './PanelToggleBar';
+import { CanvasOverlays } from './CanvasOverlays';
+import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
-import { initRenderers } from '../renderers/init';
-import { TransferDialog } from './TransferDialog';
+import { useLiveEntities } from '../hooks/useLiveEntities';
+import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
 import { PlantIcon } from './ui';
-import {
-    TankSoccerTab,
-    TankPokerTab,
-    TankEcosystemTab,
-    TankGeneticsTab,
-    TankTrendsTab,
-} from './tank_tabs';
 import styles from './TankView.module.css';
 
 interface TankViewProps {
     worldId?: string;
 }
 
-const PANEL_CONFIG: { id: PanelId; label: string; icon: string }[] = [
-    { id: 'soccer', label: 'Soccer', icon: '⚽' },
-    { id: 'poker', label: 'Poker', icon: '♠' },
-    { id: 'trends', label: 'Trends', icon: '📈' },
-    { id: 'ecosystem', label: 'Ecosystem', icon: '🌿' },
-    { id: 'genetics', label: 'Genetics', icon: '🧬' },
-];
+const TransferDialog = lazy(() =>
+    import('./TransferDialog').then((module) => ({ default: module.TransferDialog }))
+);
+const EntityInspectorDrawer = lazy(() =>
+    import('./EntityInspectorDrawer').then((module) => ({ default: module.EntityInspectorDrawer }))
+);
+const TankSoccerTab = lazy(() =>
+    import('./tank_tabs/TankSoccerTab').then((module) => ({ default: module.TankSoccerTab }))
+);
+const TankPokerTab = lazy(() =>
+    import('./tank_tabs/TankPokerTab').then((module) => ({ default: module.TankPokerTab }))
+);
+const TankSkillsTab = lazy(() =>
+    import('./tank_tabs/TankSkillsTab').then((module) => ({ default: module.TankSkillsTab }))
+);
+const TankEcosystemTab = lazy(() =>
+    import('./tank_tabs/TankEcosystemTab').then((module) => ({ default: module.TankEcosystemTab }))
+);
+const TankGeneticsTab = lazy(() =>
+    import('./tank_tabs/TankGeneticsTab').then((module) => ({ default: module.TankGeneticsTab }))
+);
+const TankTrendsTab = lazy(() =>
+    import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
+);
 
 export function TankView({ worldId }: TankViewProps) {
-    const { state, isConnected, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
+    const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
+    const [watchMode, setWatchMode] = useState(false);
+    const [buildMode, setBuildMode] = useState(false);
+    const [buildKind, setBuildKind] = useState<'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'castle' | null>(null);
+    const [buildSelectedObjectId, setBuildSelectedObjectId] = useState<number | null>(null);
+    const [buildGhost, setBuildGhost] = useState<{ kind: string; x: number; y: number; width: number; height: number } | null>(null);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
-    const { visible, toggle, isVisible } = useVisiblePanels(['soccer', 'ecosystem']);
+    const { visible, toggle, showOnly, isVisible } = useVisiblePanels(['trends']);
 
     // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
@@ -49,10 +81,10 @@ export function TankView({ worldId }: TankViewProps) {
     const effectiveShowSoccer = showSoccer ?? false;
 
     // Plant energy input control
-    const [plantEnergyInput, setPlantEnergyInput] = useState(0.15);
+    const [plantEnergyInput, setPlantEnergyInput] = useState(0.5);
 
     const handlePlantEnergyChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
+        (e: ChangeEvent<HTMLInputElement>) => {
             const rate = parseFloat(e.target.value);
             setPlantEnergyInput(rate);
             sendCommand({ command: 'set_plant_energy_input', data: { rate } });
@@ -60,14 +92,17 @@ export function TankView({ worldId }: TankViewProps) {
         [sendCommand]
     );
 
-    // Entity transfer state
-    const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
-    const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
-    const [showTransferDialog, setShowTransferDialog] = useState(false);
-    const [transferMessage, setTransferMessage] = useState<{
-        type: 'success' | 'error';
-        text: string;
-    } | null>(null);
+    // Entity selection: a click opens the inspector; transfer is an explicit
+    // secondary action inside it (U4/E1).
+    const selection = useEntitySelection();
+
+    // Selected fish's pursuit vectors, owned here so Canvas can read them too.
+    const [pursuitOverlay, setPursuitOverlay] = useState<PursuitOverlayData | null>(null);
+    const [targetMemoryOverlay, setTargetMemoryOverlay] = useState<TargetMemoryOverlayData | null>(null);
+    useEffect(() => {
+        setPursuitOverlay(null);
+        setTargetMemoryOverlay(null);
+    }, [selection.selectedEntityId]);
 
     const serverViewMode =
         state?.view_mode === 'side' || state?.view_mode === 'topdown'
@@ -80,33 +115,57 @@ export function TankView({ worldId }: TankViewProps) {
         setWorldType,
     } = useViewMode(serverViewMode, state?.world_type, worldId || state?.world_id);
 
-    // Effective world type for rendering - prefer server state when available
     const effectiveWorldType = state?.world_type ?? worldType;
 
-    // Effective world ID - use connected ID which is available immediately
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
 
-    // Ensure renderers are initialized
-    initRenderers();
+    const liveEntities = useLiveEntities(state);
+    const selectedEntity =
+        selection.selectedEntityId !== null
+            ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
+            : null;
 
-    const handleEntityClick = (entityId: number, entityType: string) => {
-        setSelectedEntityId(entityId);
-        setSelectedEntityType(entityType);
-        setShowTransferDialog(true);
+    const buildObjectTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
+    const toggleBuildMode = () => {
+        const next = !buildMode;
+        setBuildMode(next);
+        setBuildKind(null);
+        setBuildSelectedObjectId(null);
+        sendCommand({ command: next ? 'pause' : 'resume' });
+    };
+    const openTrends = useCallback(() => {
+        setWatchMode(false);
+        showOnly('trends');
+    }, [showOnly]);
+    const openBoard = useCallback(() => {
+        setWatchMode(false);
+        showOnly('insights');
+    }, [showOnly]);
+    const handleBuildPlace = (x: number, y: number) => {
+        if (!buildKind) return;
+        const sizes: Record<string, [number, number]> = {
+            algae_reef: [150, 100],
+            protein_grotto: [145, 110],
+            decorative_rock: [86, 54],
+            castle: [120, 120],
+        };
+        const [width, height] = sizes[buildKind];
+        sendCommand({
+            command: 'place_tank_object',
+            data: { object_kind: buildKind, x: x - width / 2, y: y - height / 2, width, height },
+        });
+        setBuildKind(null);
+        setBuildGhost(null);
+    };
+    const handleBuildEntityClick = (entityId: number, entityType: string) => {
+        if (buildMode && buildObjectTypes.has(entityType)) {
+            setBuildSelectedObjectId(entityId);
+            return;
+        }
+        selection.selectEntity(entityId, entityType);
     };
 
-    const handleTransferComplete = (success: boolean, message: string) => {
-        setTransferMessage({ type: success ? 'success' : 'error', text: message });
-        setSelectedEntityId(null);
-        setSelectedEntityType(null);
-        setTimeout(() => setTransferMessage(null), 5000);
-    };
-
-    const handleCloseTransferDialog = () => {
-        setShowTransferDialog(false);
-        setSelectedEntityId(null);
-        setSelectedEntityType(null);
-    };
+    useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
     return (
         <>
@@ -115,6 +174,7 @@ export function TankView({ worldId }: TankViewProps) {
                     {schemaError}
                 </div>
             )}
+            {!watchMode && <>
             {/* Single row of compact controls */}
             <div className={styles.controlBar}>
                 <ControlPanel
@@ -133,16 +193,18 @@ export function TankView({ worldId }: TankViewProps) {
                             data: { enabled: newValue },
                         });
                     }}
+                    showResourcePatches={liveEntities.some((entity) => entity.type === 'resource_patch')}
                 />
 
                 <WorldModeSelector worldType={worldType} onChange={setWorldType} />
 
                 {/* Plant Energy Input Control */}
                 <div className={`glass-panel ${styles.plantEnergyControl}`}>
-                    <span className={styles.plantEnergyLabel}>
+                    <label htmlFor="plant-energy-input" className={styles.plantEnergyLabel}>
                         <PlantIcon size={12} /> PLANT ENERGY
-                    </span>
+                    </label>
                     <input
+                        id="plant-energy-input"
                         type="range"
                         min="0"
                         max="1"
@@ -168,17 +230,19 @@ export function TankView({ worldId }: TankViewProps) {
             >
                 <div
                     className="glass-panel"
-                    style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '32px' }}
+                    style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px 32px', flexWrap: 'wrap' }}
                 >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
-                            className={`status-dot ${isConnected ? 'online' : 'offline'}`}
+                            className={`status-dot ${connectionStatus}${connectionStatus !== 'live' ? ' animate-pulse' : ''}`}
                             style={{
                                 width: 8,
                                 height: 8,
                                 borderRadius: '50%',
-                                background: isConnected ? 'var(--color-success)' : 'var(--color-warning)',
-                                boxShadow: isConnected ? '0 0 8px var(--color-success)' : 'none',
+                                background: CONNECTION_STATUS_DISPLAY[connectionStatus].color,
+                                boxShadow: connectionStatus === 'live'
+                                    ? '0 0 8px var(--color-success)'
+                                    : 'none',
                             }}
                         />
                         <span
@@ -189,12 +253,9 @@ export function TankView({ worldId }: TankViewProps) {
                                 letterSpacing: '0.05em',
                             }}
                         >
-                            {isConnected ? 'LIVE' : 'OFFLINE'}
+                            {CONNECTION_STATUS_DISPLAY[connectionStatus].label}
                         </span>
                     </div>
-
-
-
                     <div
                         style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.1)' }}
                     />
@@ -237,7 +298,7 @@ export function TankView({ worldId }: TankViewProps) {
                                         letterSpacing: '0.05em',
                                     }}
                                 >
-                                    FPS
+                                    SIM FPS
                                 </span>
                                 <span
                                     style={{
@@ -339,109 +400,202 @@ export function TankView({ worldId }: TankViewProps) {
                         )}
                 </div>
             </div>
+            </>}
 
             {/* Always-visible Canvas */}
-            <div className="top-section">
+            <div className={styles.sceneWorkspace}>
                 <div className="canvas-wrapper">
                     <Canvas
                         state={state}
                         width={1088}
                         height={612}
-                        onEntityClick={handleEntityClick}
-                        selectedEntityId={selectedEntityId}
+                        onEntityClick={handleBuildEntityClick}
+                        buildMode={buildMode}
+                        buildPlacementActive={buildKind !== null}
+                        onBuildPlace={handleBuildPlace}
+                        buildGhost={buildGhost}
+                        onBuildPointerMove={(x, y) => {
+                            if (!buildKind) {
+                                setBuildGhost(null);
+                                return;
+                            }
+                            const sizes: Record<string, [number, number]> = {
+                                algae_reef: [150, 100],
+                                protein_grotto: [145, 110],
+                                decorative_rock: [86, 54],
+                                castle: [120, 120],
+                            };
+                            const [width, height] = sizes[buildKind];
+                            setBuildGhost({ kind: buildKind, x: x - width / 2, y: y - height / 2, width, height });
+                        }}
+                        onBuildDragStart={setBuildSelectedObjectId}
+                        onBuildDragEnd={(objectId, x, y) => {
+                            const object = liveEntities.find((entity) => entity.id === objectId);
+                            if (!object) return;
+                            sendCommand({
+                                command: 'move_tank_object',
+                                data: { object_id: objectId, x: x - object.width / 2, y: y - object.height / 2 },
+                            });
+                        }}
+                        selectedEntityId={selection.selectedEntityMissing ? null : selection.selectedEntityId}
+                        pursuitOverlay={selection.selectedEntityMissing ? null : pursuitOverlay}
+                        targetMemoryOverlay={selection.selectedEntityMissing ? null : targetMemoryOverlay}
+                        followEntityId={
+                            selection.followEnabled && !selection.selectedEntityMissing
+                                ? selection.selectedEntityId
+                                : null
+                        }
                         showEffects={showEffects}
                         showSoccer={effectiveShowSoccer}
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
-                    <div className="canvas-glow" aria-hidden />
+                    <CanvasOverlays
+                        connectionStatus={connectionStatus}
+                        watchMode={watchMode}
+                        onToggleWatchMode={() => setWatchMode((w) => !w)}
+                        worldId={effectiveWorldId}
+                        onOpenBoard={openBoard}
+                        metricsHistory={state?.metrics_history ?? null}
+                        onOpenTrends={openTrends}
+                    />
                 </div>
+                {!watchMode && (
+                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={openTrends} />
+                )}
             </div>
 
-            {/* Panel Toggle Bar */}
-            <div className={styles.panelToggleBar}>
-                <span className={styles.panelToggleLabel}>Show panels:</span>
-                {PANEL_CONFIG.map(({ id, label, icon }) => (
-                    <button
-                        key={id}
-                        className={`${styles.panelToggle} ${isVisible(id) ? styles.active : ''}`}
-                        onClick={() => toggle(id)}
-                        aria-pressed={isVisible(id)}
-                    >
-                        <span className={styles.panelToggleIcon}>{icon}</span>
-                        <span>{label}</span>
-                    </button>
-                ))}
-            </div>
+            {!watchMode && <>
+            <BuildMode
+                active={buildMode}
+                entities={liveEntities}
+                onToggle={toggleBuildMode}
+                onCommand={sendCommand}
+                onDelete={(objectId) => {
+                    sendCommand({ command: 'delete_tank_object', data: { object_id: objectId } });
+                    setBuildSelectedObjectId(null);
+                }}
+                selectedObjectId={buildSelectedObjectId}
+                selectedKind={buildKind}
+                onSelectKind={setBuildKind}
+            />
 
-            {/* Panel Grid */}
+            <PanelToggleBar visible={visible} onSelect={showOnly} />
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
+                    {isVisible('insights') && (
+                        <Panel title="Board" icon="📋" onClose={() => toggle('insights')}>
+                            <CommentaryFeed worldId={effectiveWorldId} />
+                        </Panel>
+                    )}
+
+                    {isVisible('skills') && (
+                        <Panel title="Skills & Benchmarks" icon="🎯" onClose={() => toggle('skills')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankSkillsTab worldId={effectiveWorldId} onSelectEntity={selection.selectEntity} />
+                            </Suspense>
+                        </Panel>
+                    )}
+
                     {isVisible('soccer') && (
-                        <CollapsiblePanel title="Soccer League" icon="⚽">
-                            <TankSoccerTab
-                                liveState={state?.soccer_league_live ?? null}
-                                events={state?.soccer_events ?? []}
-                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                            />
-                        </CollapsiblePanel>
+                        <Panel title="Soccer League" icon="⚽" onClose={() => toggle('soccer')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankSoccerTab
+                                    liveState={state?.soccer_league_live ?? null}
+                                    events={state?.soccer_events ?? []}
+                                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                />
+                            </Suspense>
+                        </Panel>
                     )}
 
                     {isVisible('poker') && (
-                        <CollapsiblePanel title="Poker" icon="♠">
-                            <TankPokerTab
-                                worldId={effectiveWorldId}
-                                isConnected={isConnected}
-                                pokerLeaderboard={state?.poker_leaderboard ?? []}
-                                pokerEvents={state?.poker_events ?? []}
-                                pokerStats={state?.stats?.poker_stats}
-                                currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                                sendCommandWithResponse={sendCommandWithResponse}
-                                worldType={effectiveWorldType}
-                            />
-                        </CollapsiblePanel>
+                        <Panel title="Poker" icon="♠" onClose={() => toggle('poker')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankPokerTab
+                                    worldId={effectiveWorldId}
+                                    isConnected={isConnected}
+                                    pokerLeaderboard={state?.poker_leaderboard ?? []}
+                                    pokerEvents={state?.poker_events ?? []}
+                                    pokerStats={state?.stats?.poker_stats}
+                                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                    sendCommandWithResponse={sendCommandWithResponse}
+                                    worldType={effectiveWorldType}
+                                />
+                            </Suspense>
+                        </Panel>
                     )}
 
                     {isVisible('trends') && (
-                        <CollapsiblePanel title="Trends" icon="📈">
-                            <TankTrendsTab history={state?.metrics_history ?? null} />
-                        </CollapsiblePanel>
+                        <Panel title="Trends" icon="📈" onClose={() => toggle('trends')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankTrendsTab history={state?.metrics_history ?? null} />
+                            </Suspense>
+                        </Panel>
                     )}
 
                     {isVisible('ecosystem') && (
-                        <CollapsiblePanel title="Ecosystem" icon="🌿">
-                            <TankEcosystemTab
-                                stats={state?.stats ?? null}
-                                autoEvaluation={state?.auto_evaluation}
-                            />
-                        </CollapsiblePanel>
+                        <Panel title="Ecosystem" icon="🌿" onClose={() => toggle('ecosystem')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankEcosystemTab
+                                    stats={state?.stats ?? null}
+                                    autoEvaluation={state?.auto_evaluation}
+                                />
+                            </Suspense>
+                        </Panel>
                     )}
 
                     {isVisible('genetics') && (
-                        <CollapsiblePanel title="Genetics" icon="🧬">
-                            <TankGeneticsTab worldId={effectiveWorldId} />
-                        </CollapsiblePanel>
+                        <Panel title="Genetics" icon="🧬" onClose={() => toggle('genetics')}>
+                            <Suspense fallback={<PanelLoading />}>
+                                <TankGeneticsTab worldId={effectiveWorldId} />
+                            </Suspense>
+                        </Panel>
                     )}
                 </div>
             )}
+            </>}
 
-            {/* Transfer Dialog */}
-            {showTransferDialog &&
-                selectedEntityId !== null &&
-                selectedEntityType !== null &&
+            {/* Entity Inspector Drawer */}
+            {selection.inspectorOpen &&
+                selection.selectedEntityId !== null &&
+                selection.selectedEntityType !== null && (
+                    <Suspense fallback={null}>
+                        <EntityInspectorDrawer
+                            entityId={selection.selectedEntityId}
+                            entityType={selection.selectedEntityType}
+                            entity={selectedEntity}
+                            isConnected={isConnected}
+                            sendCommandWithResponse={sendCommandWithResponse}
+                            onClose={selection.closeInspector}
+                            onRequestTransfer={selection.openTransfer}
+                            followEnabled={selection.followEnabled}
+                            onToggleFollow={selection.toggleFollow}
+                            onPursuitOverlayChange={setPursuitOverlay}
+                            onTargetMemoryOverlayChange={setTargetMemoryOverlay}
+                        />
+                    </Suspense>
+                )}
+
+            {/* Transfer Dialog (explicit secondary action from the inspector) */}
+            {selection.transferOpen &&
+                selection.selectedEntityId !== null &&
+                selection.selectedEntityType !== null &&
                 state?.world_id && (
-                    <TransferDialog
-                        entityId={selectedEntityId}
-                        entityType={selectedEntityType}
-                        sourceWorldId={state.world_id}
-                        sourceWorldName={state.world_id}
-                        onClose={handleCloseTransferDialog}
-                        onTransferComplete={handleTransferComplete}
-                    />
+                    <Suspense fallback={null}>
+                        <TransferDialog
+                            entityId={selection.selectedEntityId}
+                            entityType={selection.selectedEntityType}
+                            sourceWorldId={state.world_id}
+                            sourceWorldName={state.world_id}
+                            onClose={selection.closeTransfer}
+                            onTransferComplete={selection.completeTransfer}
+                        />
+                    </Suspense>
                 )}
 
             {/* Transfer Notification */}
-            {transferMessage && (
+            {selection.transferMessage && (
                 <div
                     style={{
                         position: 'fixed',
@@ -450,64 +604,68 @@ export function TankView({ worldId }: TankViewProps) {
                         padding: '16px 20px',
                         borderRadius: '8px',
                         backgroundColor:
-                            transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
-                        color: transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
-                        border: `1px solid ${transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
+                            selection.transferMessage.type === 'success' ? '#166534' : '#7f1d1d',
+                        color: selection.transferMessage.type === 'success' ? '#bbf7d0' : '#fecaca',
+                        border: `1px solid ${selection.transferMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                         zIndex: 1001,
                         maxWidth: '400px',
                         fontWeight: 500,
                     }}
                 >
-                    {transferMessage.text}
+                    {selection.transferMessage.text}
                 </div>
             )}
         </>
     );
 }
 
-function CollapsiblePanel({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
-    const [isOpen, setIsOpen] = useState(true);
+function PanelLoading() {
+    return (
+        <div
+            style={{
+                minHeight: '96px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-text-muted)',
+                fontSize: '12px',
+                fontWeight: 600,
+            }}
+        >
+            Loading panel...
+        </div>
+    );
+}
 
+function Panel({
+    title,
+    icon,
+    onClose,
+    children,
+}: {
+    title: string;
+    icon: string;
+    onClose: () => void;
+    children: ReactNode;
+}) {
     return (
         <div className={styles.dashboardPanel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: 'none',
-                    borderBottom: isOpen ? '1px solid var(--card-border)' : 'none',
-                    color: 'var(--color-text-main)',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    transition: 'background 0.2s',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className={styles.panelHeader}>
+                <div className={styles.panelHeaderTitle}>
                     <span style={{ fontSize: '16px' }}>{icon}</span>
                     <span>{title}</span>
                 </div>
-                <div style={{
-                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s',
-                    opacity: 0.5
-                }}>
-                    ▼
-                </div>
-            </button>
-            {isOpen && (
-                <div style={{ padding: '16px' }}>
-                    {children}
-                </div>
-            )}
+                <button
+                    className={styles.panelClose}
+                    onClick={onClose}
+                    aria-label={`Hide ${title} panel`}
+                    title={`Hide ${title} panel`}
+                >
+                    ×
+                </button>
+            </div>
+            <div className={styles.panelBody}>{children}</div>
         </div>
     );
 }

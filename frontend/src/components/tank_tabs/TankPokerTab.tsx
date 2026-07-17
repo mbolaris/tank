@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { PokerGame } from '../PokerGame';
 import { PokerLeaderboard } from '../PokerLeaderboard';
 import PokerEvents from '../PokerEvents';
+import { PokerLeaders } from '../MinigameLeaders';
 import { EvolutionBenchmarkDisplay } from '../EvolutionBenchmarkDisplay';
 import { Button, CardsIcon, PlantIcon, CollapsibleSection } from '../ui';
 import type {
@@ -53,11 +54,34 @@ export function TankPokerTab({
         gameStateRef.current = pokerGameState;
     }, [pokerGameState]);
 
+    const isMountedRef = useRef(true);
+    const isConnectedRef = useRef(isConnected);
+    const worldIdRef = useRef(worldId);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        isConnectedRef.current = isConnected;
+    }, [isConnected]);
+
+    useEffect(() => {
+        worldIdRef.current = worldId;
+    }, [worldId]);
+
     const handlePokerError = useCallback((message: string, error?: unknown) => {
         const errorDetail = error instanceof Error ? error.message : String(error ?? '');
         const fullMessage = errorDetail ? `${message}: ${errorDetail}` : message;
         setPokerError(fullMessage);
-        setTimeout(() => setPokerError(null), 5000);
+        setTimeout(() => {
+            if (isMountedRef.current) {
+                setPokerError(null);
+            }
+        }, 5000);
     }, []);
 
     const clearInactivePokerGame = useCallback(() => {
@@ -65,6 +89,11 @@ export function TankPokerTab({
         setShowPokerGame(false);
         hasStartedRef.current = false;
     }, []);
+
+    // Reset poker state when switching worlds/tanks
+    useEffect(() => {
+        clearInactivePokerGame();
+    }, [worldId, clearInactivePokerGame]);
 
     const handleInactivePokerResponse = useCallback((response: PokerCommandResponse): boolean => {
         if (response.success !== false) {
@@ -82,15 +111,28 @@ export function TankPokerTab({
         const AI_TURN_DELAY = 1000;
         let consecutiveErrors = 0;
         const MAX_CONSECUTIVE_ERRORS = 3;
+        const currentWorldId = worldId;
 
         const processNextAiTurn = async (): Promise<void> => {
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
+
             try {
                 await new Promise(resolve => setTimeout(resolve, AI_TURN_DELAY));
+
+                if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                    return;
+                }
 
                 const response = await sendCommandWithResponse({
                     command: 'poker_process_ai_turn',
                     data: {},
                 });
+
+                if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                    return;
+                }
 
                 if (handleInactivePokerResponse(response)) {
                     return;
@@ -108,6 +150,15 @@ export function TankPokerTab({
                     await processNextAiTurn();
                 }
             } catch (error) {
+                if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                    return;
+                }
+
+                // If error is due to WebSocket disconnection, don't show the error banner or retry
+                if (error instanceof Error && error.message === 'WebSocket not connected') {
+                    return;
+                }
+
                 consecutiveErrors++;
                 handlePokerError('Failed to process AI turn', error);
 
@@ -124,9 +175,14 @@ export function TankPokerTab({
         };
 
         await processNextAiTurn();
-    }, [sendCommandWithResponse, handleInactivePokerResponse, handlePokerError]);
+    }, [worldId, sendCommandWithResponse, handleInactivePokerResponse, handlePokerError]);
 
     const handleStartPoker = useCallback(async () => {
+        const currentWorldId = worldId;
+        if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+            return;
+        }
+
         try {
             setPokerLoading(true);
             setShowPokerGame(true);
@@ -134,6 +190,11 @@ export function TankPokerTab({
                 command: 'start_poker',
                 data: { energy: 500 },
             });
+
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
+
             if (response.success === false) {
                 console.warn("Failed to auto-start poker:", response.error);
                 handlePokerError('Failed to start poker game', response.error);
@@ -148,6 +209,10 @@ export function TankPokerTab({
                 clearInactivePokerGame();
             }
         } catch (error) {
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
+
             // Suppress ghost-mount errors in StrictMode and allow retry
             if (error instanceof Error && error.message === 'WebSocket not connected') {
                 hasStartedRef.current = false;
@@ -157,9 +222,11 @@ export function TankPokerTab({
                 clearInactivePokerGame();
             }
         } finally {
-            setPokerLoading(false);
+            if (isMountedRef.current) {
+                setPokerLoading(false);
+            }
         }
-    }, [sendCommandWithResponse, processAiTurnsWithDelay, clearInactivePokerGame, handlePokerError]);
+    }, [worldId, sendCommandWithResponse, processAiTurnsWithDelay, clearInactivePokerGame, handlePokerError]);
 
     // Auto-restart game when session ends
     useEffect(() => {
@@ -203,12 +270,22 @@ export function TankPokerTab({
     }, [isConnected, pokerGameState, pokerLoading, handleStartPoker]);
 
     const handlePokerAction = useCallback(async (action: string, amount?: number) => {
+        const currentWorldId = worldId;
+        if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+            return;
+        }
+
         try {
             setPokerLoading(true);
             const response = await sendCommandWithResponse({
                 command: 'poker_action',
                 data: { action, amount: amount || 0 },
             });
+
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
+
             if (response.success === false) {
                 if (handleInactivePokerResponse(response)) {
                     return;
@@ -219,11 +296,16 @@ export function TankPokerTab({
                 processAiTurnsWithDelay();
             }
         } catch (error) {
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
             handlePokerError('Failed to send poker action', error);
         } finally {
-            setPokerLoading(false);
+            if (isMountedRef.current) {
+                setPokerLoading(false);
+            }
         }
-    }, [sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
+    }, [worldId, sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
 
     const handleClosePoker = useCallback(() => {
         setShowPokerGame(false);
@@ -231,12 +313,22 @@ export function TankPokerTab({
     }, []);
 
     const handleNewRound = useCallback(async () => {
+        const currentWorldId = worldId;
+        if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+            return;
+        }
+
         try {
             setPokerLoading(true);
             const response = await sendCommandWithResponse({
                 command: 'poker_new_round',
                 data: {},
             });
+
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
+
             if (response.success === false) {
                 if (handleInactivePokerResponse(response)) {
                     return;
@@ -249,24 +341,47 @@ export function TankPokerTab({
                 }
             }
         } catch (error) {
+            if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+                return;
+            }
             handlePokerError('Failed to start new poker round', error);
         } finally {
-            setPokerLoading(false);
+            if (isMountedRef.current) {
+                setPokerLoading(false);
+            }
         }
-    }, [sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
+    }, [worldId, sendCommandWithResponse, processAiTurnsWithDelay, handleInactivePokerResponse, handlePokerError]);
 
     const handleGetAutopilotAction = useCallback(async () => {
+        const currentWorldId = worldId;
+        if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+            return {
+                success: false,
+                action: 'wait',
+                amount: 0,
+            };
+        }
+
         const response = await sendCommandWithResponse({
             command: 'poker_autopilot_action',
             data: {},
         });
+
+        if (!isMountedRef.current || !isConnectedRef.current || worldIdRef.current !== currentWorldId) {
+            return {
+                success: false,
+                action: 'wait',
+                amount: 0,
+            };
+        }
+
         handleInactivePokerResponse(response);
         return {
             success: response.success,
             action: response.action ?? 'wait',
             amount: response.amount ?? 0,
         };
-    }, [sendCommandWithResponse, handleInactivePokerResponse]);
+    }, [worldId, sendCommandWithResponse, handleInactivePokerResponse]);
 
     return (
         <div className={styles.pokerTab}>
@@ -331,6 +446,9 @@ export function TankPokerTab({
                         </div>
                     )}
                 </div>
+
+                {/* Standings under the table: the tank's best poker players */}
+                <PokerLeaders leaders={pokerLeaderboard} />
             </div>
 
             {/* Evolution Benchmark */}

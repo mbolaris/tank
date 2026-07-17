@@ -16,14 +16,13 @@ def test_no_external_lifecycle_component_usage():
         (core_dir / "entities" / "mixins" / "reproduction_mixin.py").resolve(),
     }
 
+    from tests.ast_utils import get_file_content, walk_python_files
+
     offenders: list[Path] = []
-    for path in core_dir.rglob("*.py"):
+    for path in walk_python_files(core_dir):
         if path.resolve() in allowed_paths:
             continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
+        text = get_file_content(path)
         if "_lifecycle_component" in text:
             offenders.append(path.relative_to(repo_root))
 

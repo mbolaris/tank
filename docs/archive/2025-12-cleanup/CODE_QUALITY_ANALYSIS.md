@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Code Quality Analysis Report
 
 Generated: 2025-11-20

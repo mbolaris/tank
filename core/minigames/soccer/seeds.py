@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Any
 
 
-def stable_seed_from_parts(*parts: Any) -> int:
+def stable_seed_from_parts(*parts: object) -> int:
     """Build a stable 32-bit seed from arbitrary parts."""
     seed_material = "|".join(str(part) for part in parts).encode("utf-8")
     return int.from_bytes(hashlib.sha256(seed_material).digest()[:4], "little") & 0xFFFFFFFF

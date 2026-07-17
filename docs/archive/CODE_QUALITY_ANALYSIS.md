@@ -1,3 +1,5 @@
+> Archived 2026-07. Superseded by [docs/ARCHITECTURE_REVIEW.md](../ARCHITECTURE_REVIEW.md).
+
 # Code Quality Analysis Report - Tank Fish Simulation
 
 ## Executive Summary

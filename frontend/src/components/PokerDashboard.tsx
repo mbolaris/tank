@@ -4,6 +4,7 @@ import { PokerLeaderboard } from './PokerLeaderboard';
 import PokerEvents from './PokerEvents';
 import { AutoEvaluateDisplay } from './AutoEvaluateDisplay';
 import { EvolutionBenchmarkDisplay } from './EvolutionBenchmarkDisplay';
+import { SkillLadderPanel } from './SkillLadderPanel';
 import './PokerDashboard.css';
 
 interface PokerDashboardProps {
@@ -93,6 +94,14 @@ export const PokerDashboard: React.FC<PokerDashboardProps> = ({ state }) => {
                     <span>🎯</span> Poker Skill Benchmark (bb/100)
                 </div>
                 <EvolutionBenchmarkDisplay worldId={state.world_id} />
+            </div>
+
+            {/* Cross-domain skill ladders vs frozen rulers (poker / foraging / soccer) */}
+            <div className="section-container">
+                <div className="section-title">
+                    <span>🪜</span> Skill Ladders (absolute, vs frozen rulers)
+                </div>
+                <SkillLadderPanel />
             </div>
 
             {/* Detailed Split View */}

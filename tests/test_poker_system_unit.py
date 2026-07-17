@@ -2,6 +2,7 @@
 
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import Mock
 
 from core.poker.integration.poker_system import PokerSystem
 from core.simulation.engine import SimulationEngine
@@ -130,6 +131,115 @@ def test_handle_poker_result_adds_offspring():
     assert len(system.poker_events) == 1
     assert system.poker_events[0]["winner_id"] == 1
     assert system.poker_events[0]["energy_transferred"] == 3.0
+
+
+def _rewarded_poker(result):
+    """Poker stub rich enough for the per-fish reward fields."""
+    fish1 = SimpleNamespace(fish_id=1, energy=120.0)
+    fish1.get_poker_id = lambda: 1
+    fish2 = SimpleNamespace(fish_id=2, energy=80.0)
+    fish2.get_poker_id = lambda: 2
+    poker = SimpleNamespace(
+        result=result,
+        players=[fish1, fish2],
+        fish_players=[fish1, fish2],
+        _initial_player_energies=[110.0, 90.0],
+    )
+    poker._get_player_id = lambda p: p.get_poker_id()
+    return poker, fish1, fish2
+
+
+def test_handle_poker_result_records_per_fish_rewards():
+    engine = DummyEngine()
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+
+    result = _base_result(
+        winner_id=1,
+        loser_id=2,
+        loser_ids=[2],
+        is_tie=False,
+        energy_transferred=10.0,
+        winner_type="fish",
+        total_pot=20.0,
+        house_cut=2.0,
+    )
+    poker, _, _ = _rewarded_poker(result)
+
+    system.handle_poker_result(poker)
+
+    event = system.poker_events[-1]
+    assert event["energy_deltas"] == {"1": 10.0, "2": -10.0}
+    assert event["pot"] == 20.0
+    assert event["house_cut"] == 2.0
+
+
+def test_handle_poker_result_annotates_reproduction():
+    engine = DummyEngine()
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+    engine.reproduction_service = SimpleNamespace(
+        handle_post_poker_reproduction=lambda poker: SimpleNamespace(fish_id=99)
+    )
+
+    result = _base_result(
+        winner_id=1,
+        loser_id=2,
+        loser_ids=[2],
+        is_tie=False,
+        energy_transferred=5.0,
+        winner_type="fish",
+    )
+    poker, _, _ = _rewarded_poker(result)
+
+    system.handle_poker_result(poker)
+
+    event = system.poker_events[-1]
+    assert event["reproduction"] == {"parent_id": 1, "baby_id": 99}
+    assert "baby #99" in event["message"]
+
+
+def test_mixed_table_fish_winner_with_fish_opponent_attempts_reproduction():
+    engine = DummyEngine()
+    engine.ecosystem = SimpleNamespace(record_mixed_poker_outcome_record=lambda _record: None)
+    engine.reproduction_service = SimpleNamespace(
+        handle_post_poker_reproduction=Mock(return_value=SimpleNamespace(fish_id=99))
+    )
+    system = PokerSystem(cast(SimulationEngine, engine), max_events=10)
+
+    fish1 = SimpleNamespace(fish_id=1, energy=120.0)
+    fish2 = SimpleNamespace(fish_id=2, energy=80.0)
+    plant = SimpleNamespace(plant_id=7, energy=60.0)
+    poker = SimpleNamespace(
+        result=_base_result(
+            winner_id=1,
+            loser_ids=[2, 1_000_007],
+            is_tie=False,
+            winner_type="fish",
+            loser_types=["fish", "plant"],
+            winner_hand=SimpleNamespace(description="Flush"),
+            loser_hands=[
+                SimpleNamespace(description="Pair"),
+                SimpleNamespace(description="High Card"),
+            ],
+            energy_transferred=12.0,
+            total_pot=30.0,
+            house_cut=3.0,
+            fish_count=2,
+            plant_count=1,
+        ),
+        players=[fish1, fish2, plant],
+        fish_players=[fish1, fish2],
+        _initial_player_energies=[108.0, 88.0, 64.0],
+    )
+    poker._get_player_id = lambda player: getattr(
+        player, "fish_id", getattr(player, "plant_id", 0) + 1_000_000
+    )
+
+    system._record_and_apply_mixed_poker_outcome(poker)
+
+    engine.reproduction_service.handle_post_poker_reproduction.assert_called_once_with(poker)
+    event = system.poker_events[-1]
+    assert event["reproduction"] == {"parent_id": 1, "baby_id": 99}
+    assert "baby #99" in event["message"]
 
 
 def test_plant_event_adds_metadata():

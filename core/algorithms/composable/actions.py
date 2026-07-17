@@ -1,6 +1,15 @@
-import math
 from typing import TYPE_CHECKING, Any
 
+from core.behavior.primitives.steering import (
+    blend_patrol_steering,
+    boids_steering,
+    circling_target,
+    erratic_evade,
+    flee_direction,
+    seek_direction,
+    wander_step,
+    zigzag_steering,
+)
 from core.entities import Crab
 from core.entities import Fish as FishClass
 from core.math_utils import Vector2
@@ -49,29 +58,29 @@ class BehaviorActionsMixin:
     def _find_nearest_food(self, fish: "Fish") -> Any | None:
         raise NotImplementedError
 
-    def has_survival_priority(self, fish: "Fish") -> bool:
-        """Whether the fish has an active survival drive (threat or food).
-
-        RNG-free predicate used by the movement arbiter so that external leisure
-        drives (e.g. soccer-ball pursuit) never pre-empt fleeing or feeding
-        (ADR-010). Mirrors the activation conditions of
-        ``_execute_threat_response`` and ``_execute_food_approach`` without
-        producing a velocity or drawing from the RNG.
-        """
-        # Threat: a predator within the aggression-modulated flee threshold.
+    def has_threat_priority(self, fish: "Fish") -> bool:
         predator = self._find_nearest(fish, Crab, max_distance=200.0)
-        if predator is not None:
-            distance = (predator.pos - fish.pos).length()
-            flee_threshold = self.parameters.get("flee_threshold", 120.0)
-            aggression = fish.genome.behavioral.aggression.value
-            flee_threshold *= 1.2 - aggression * 0.4
-            if distance <= flee_threshold:
-                return True
+        if predator is None:
+            return False
+        distance = (predator.pos - fish.pos).length()
+        flee_threshold = self.parameters.get("flee_threshold", 120.0)
+        aggression = fish.genome.behavioral.aggression.value
+        return bool(distance <= flee_threshold * (1.2 - aggression * 0.4))
 
-        # Food: the fish has capacity to eat and food is detectable.
+    def has_food_priority(self, fish: "Fish") -> bool:
         if hasattr(fish, "can_eat") and not fish.can_eat():
             return False
         return self._find_nearest_food(fish) is not None
+
+    def has_survival_priority(self, fish: "Fish") -> bool:
+        """Whether the fish has an active survival drive (threat or food).
+
+        RNG-free predicate used by the movement arbiter so leisure drives do not
+        pre-empt fleeing or feeding (ADR-010).
+        """
+        if self.has_threat_priority(fish):
+            return True
+        return self.has_food_priority(fish)
 
     def _execute_threat_response(self, fish: "Fish") -> tuple[float, float, bool]:
         """Execute the selected threat response sub-behavior.
@@ -100,7 +109,7 @@ class BehaviorActionsMixin:
         if distance > flee_threshold:
             return 0.0, 0.0, False
 
-        escape_dir = self._safe_normalize(fish.pos - predator.pos)
+        escape_dir = flee_direction(fish.pos, predator.pos)
 
         # Aggression modulates flee speed: low aggression = faster flee,
         # high aggression = slower (more defiant) escape
@@ -124,12 +133,8 @@ class BehaviorActionsMixin:
         elif self.threat_response == ThreatResponse.ERRATIC_EVADE:
             speed = self.parameters.get("flee_speed", 1.0) * aggression_speed_mod
             amplitude = self.parameters.get("erratic_amplitude", 0.5)
-            # Add random perpendicular component (use environment RNG for determinism)
-            perp = Vector2(-escape_dir.y, escape_dir.x)
             rng = fish.environment.rng
-            erratic = (rng.random() - 0.5) * 2 * amplitude
-            vx = escape_dir.x * speed + perp.x * erratic
-            vy = escape_dir.y * speed + perp.y * erratic
+            vx, vy = erratic_evade(escape_dir, speed, rng.random(), amplitude)
             return vx, vy, True
 
         return 0.0, 0.0, False
@@ -152,6 +157,29 @@ class BehaviorActionsMixin:
 
         nearest_food = select_food_target(fish)
         if not nearest_food:
+            # No visible food — proactive exploration via remembered locations.
+            # exploration_tendency gates how likely a fish is to navigate toward
+            # a remembered food location *before* reaching critical energy.
+            # This is the cognitive upgrade that makes spatial strategies viable.
+            exploration_trait = getattr(fish.genome.behavioral, "exploration_tendency", None)
+            exploration = exploration_trait.value if exploration_trait is not None else 0.0
+            if exploration > 0.05 and hasattr(fish, "get_remembered_food_locations"):
+                remembered = fish.get_remembered_food_locations()
+                if remembered:
+                    # Scale exploration probability with trait and hunger:
+                    # hungry fish explore more, sated fish less.
+                    energy_ratio = fish.get_energy_ratio()
+                    # Hunger factor: 1.0 at critical, 0.3 at safe, 0.1 at full
+                    hunger_factor = max(0.1, 1.0 - energy_ratio)
+                    explore_prob = exploration * hunger_factor
+                    rng = fish.environment.rng
+                    if rng.random() < explore_prob:
+                        # Navigate toward the strongest remembered food location
+                        closest = min(remembered, key=lambda pos: (pos - fish.pos).length())
+                        direction = self._safe_normalize(closest - fish.pos)
+                        # Move at moderate speed — exploring, not sprinting
+                        explore_speed = 0.5 + exploration * 0.3
+                        return direction.x * explore_speed, direction.y * explore_speed
             return 0.0, 0.0
 
         distance = (nearest_food.pos - fish.pos).length()
@@ -169,7 +197,7 @@ class BehaviorActionsMixin:
         target_pos = predict_food_target(fish, nearest_food, distance, prediction_skill)
 
         # Now calculate direction to predicted target position
-        direction = self._safe_normalize(target_pos - fish.pos)
+        direction = seek_direction(fish.pos, target_pos)
         predicted_distance = (target_pos - fish.pos).length()
 
         # hunting_stamina provides sustained speed boost for longer chases
@@ -204,12 +232,8 @@ class BehaviorActionsMixin:
             elif predicted_distance < circle_radius * 2:
                 # Circle around predicted food position
                 self._circle_angle += circle_speed
-                offset = Vector2(
-                    math.cos(self._circle_angle) * circle_radius,
-                    math.sin(self._circle_angle) * circle_radius,
-                )
-                circle_target = Vector2(target_pos.x + offset.x, target_pos.y + offset.y)
-                circle_dir = self._safe_normalize(circle_target - fish.pos)
+                target_circle_pos = circling_target(target_pos, self._circle_angle, circle_radius)
+                circle_dir = seek_direction(fish.pos, target_circle_pos)
                 return circle_dir.x * base_speed * 0.8, circle_dir.y * base_speed * 0.8
             else:
                 # Too far - approach predicted position
@@ -237,13 +261,8 @@ class BehaviorActionsMixin:
             amplitude = self.parameters.get("zigzag_amplitude", 0.6)
             frequency = self.parameters.get("zigzag_frequency", 0.05)
             self._zigzag_phase += frequency
-            # Zigzag toward predicted position - stamina helps maintain pattern
             speed = base_speed * stamina_boost
-            perp = Vector2(-direction.y, direction.x)
-            zigzag = math.sin(self._zigzag_phase) * amplitude
-            vx = direction.x * speed + perp.x * zigzag
-            vy = direction.y * speed + perp.y * zigzag
-            return vx, vy
+            return zigzag_steering(direction, speed, self._zigzag_phase, amplitude)
 
         elif self.food_approach == FoodApproach.PATROL_ROUTE:
             patrol_radius = self.parameters.get("patrol_radius", 100.0)
@@ -258,12 +277,8 @@ class BehaviorActionsMixin:
             # Otherwise, blend patrol with predicted food direction
             # Increase food_priority weighting so patrol doesn't ignore visible food
             self._patrol_angle += 0.02
-            patrol_dir = Vector2(math.cos(self._patrol_angle), math.sin(self._patrol_angle))
-            blend = min(1.0, food_priority)  # Clamp to avoid > 1.0
-            vx = direction.x * blend + patrol_dir.x * (1 - blend)
-            vy = direction.y * blend + patrol_dir.y * (1 - blend)
             speed = base_speed * 0.8 * stamina_boost
-            return vx * speed, vy * speed
+            return blend_patrol_steering(direction, self._patrol_angle, food_priority, speed)
 
         # Default fallback - apply genomic boosts
         speed = base_speed * stamina_boost
@@ -323,7 +338,7 @@ class BehaviorActionsMixin:
                     leader = other
 
             if leader:
-                direction = self._safe_normalize(leader.pos - fish.pos)
+                direction = seek_direction(fish.pos, leader.pos)
                 dist = (leader.pos - fish.pos).length()
                 if dist > follow_dist:
                     return direction.x * 0.6, direction.y * 0.6
@@ -357,7 +372,7 @@ class BehaviorActionsMixin:
             if nearby:
                 # Move away from nearest fish
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(fish.pos - nearest.pos)
+                direction = flee_direction(fish.pos, nearest.pos)
                 return direction.x * 0.5, direction.y * 0.5, True
             return 0.0, 0.0, False
 
@@ -373,7 +388,7 @@ class BehaviorActionsMixin:
             engage_chance = 0.2 + aggression * 0.2
             if nearby and fish.environment.rng.random() < engage_chance:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(nearest.pos - fish.pos)
+                direction = seek_direction(fish.pos, nearest.pos)
                 speed = 0.5 + aggression * 0.2  # 0.5 to 0.7
                 return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
@@ -385,7 +400,7 @@ class BehaviorActionsMixin:
             nearby = self._find_nearby_fish(fish, seek_radius)
             if nearby:
                 nearest = min(nearby, key=lambda f: (f.pos - fish.pos).length())
-                direction = self._safe_normalize(nearest.pos - fish.pos)
+                direction = seek_direction(fish.pos, nearest.pos)
                 speed = 0.7 + aggression * 0.3  # 0.7 to 1.0
                 return direction.x * speed, direction.y * speed, True
             return 0.0, 0.0, False
@@ -419,8 +434,7 @@ class BehaviorActionsMixin:
         """
         # Use environment RNG for determinism
         rng = fish.environment.rng
-        # Wider turning angle for more area coverage
-        self._patrol_angle += (rng.random() - 0.5) * 0.3
+        dx, dy, self._patrol_angle = wander_step(self._patrol_angle, rng.random(), max_change=0.3)
 
         # Scale exploration speed by energy urgency
         # Raised thresholds and speeds to help fish find food before starvation.
@@ -433,9 +447,7 @@ class BehaviorActionsMixin:
         else:
             speed = 0.35  # Comfortable: gentle exploration
 
-        vx = math.cos(self._patrol_angle) * speed
-        vy = math.sin(self._patrol_angle) * speed
-        return vx, vy
+        return dx * speed, dy * speed
 
     def _find_nearby_fish(self, fish: "Fish", radius: float) -> list["Fish"]:
         """Find nearby fish within radius."""
@@ -459,37 +471,4 @@ class BehaviorActionsMixin:
         separation: float,
     ) -> tuple[float, float]:
         """Classic boids algorithm for schooling."""
-        if not neighbors:
-            return 0.0, 0.0
-
-        # Cohesion: steer toward center of neighbors
-        center_x = sum(f.pos.x for f in neighbors) / len(neighbors)
-        center_y = sum(f.pos.y for f in neighbors) / len(neighbors)
-        cohesion_dir = self._safe_normalize(Vector2(center_x - fish.pos.x, center_y - fish.pos.y))
-
-        # Alignment: match average heading (approximate from positions)
-        # Simplified: move toward where neighbors are heading (their forward direction)
-        align_x, align_y = 0.0, 0.0
-        for neighbor in neighbors:
-            if hasattr(neighbor, "vel"):
-                align_x += neighbor.vel.x
-                align_y += neighbor.vel.y
-        if len(neighbors) > 0:
-            align_x /= len(neighbors)
-            align_y /= len(neighbors)
-        align_dir = self._safe_normalize(Vector2(align_x, align_y))
-
-        # Separation: steer away from very close neighbors
-        sep_x, sep_y = 0.0, 0.0
-        for neighbor in neighbors:
-            dist = (neighbor.pos - fish.pos).length()
-            if dist < separation and dist > 0:
-                away = self._safe_normalize(fish.pos - neighbor.pos)
-                sep_x += away.x / dist
-                sep_y += away.y / dist
-
-        # Combine forces
-        vx = cohesion_dir.x * cohesion + align_dir.x * alignment + sep_x * 0.5
-        vy = cohesion_dir.y * cohesion + align_dir.y * alignment + sep_y * 0.5
-
-        return vx, vy
+        return boids_steering(fish.pos, neighbors, cohesion, alignment, separation)

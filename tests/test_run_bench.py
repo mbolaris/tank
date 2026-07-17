@@ -16,6 +16,7 @@ def create_fake_benchmark(tmp_path: Path) -> Path:
     content = """
 BENCHMARK_ID = "tank/survival_5k"
 CONFIG = {"frames": 2, "world_config": {}}
+EXPECTED_RUNTIME_SECONDS = 3.5
 
 def run(seed, fingerprint_callback=None):
     if fingerprint_callback is not None:
@@ -33,6 +34,65 @@ def run(seed, fingerprint_callback=None):
             "avg_energy": 100.0,
             "avg_pop": 10.0,
         }
+    }
+"""
+    bench_path.write_text(content, encoding="utf-8")
+    return bench_path
+
+
+def create_real_world_short_benchmark(tmp_path: Path) -> Path:
+    bench_path = tmp_path / "real_world_short_bench.py"
+    content = """
+BENCHMARK_ID = "tank/survival_5k"
+CONFIG = {"frames": 2, "world_config": {"headless": True}}
+EXPECTED_RUNTIME_SECONDS = 3.5
+
+def run(seed, fingerprint_callback=None):
+    from core.worlds import WorldRegistry
+    from core.worlds.interfaces import FAST_STEP_ACTION
+
+    world = WorldRegistry.create_world("tank", seed=seed, config={"headless": True})
+    world.reset(seed=seed)
+    world.step({FAST_STEP_ACTION: True})
+
+    return {
+        "benchmark_id": BENCHMARK_ID,
+        "seed": seed,
+        "score": 12.34,
+        "runtime_seconds": 0.01,
+        "metadata": {
+            "frames": 2,
+            "avg_energy": 100.0,
+            "avg_pop": 10.0,
+        }
+    }
+"""
+    bench_path.write_text(content, encoding="utf-8")
+    return bench_path
+
+
+def create_skill_benchmark(tmp_path: Path) -> Path:
+    bench_path = tmp_path / "skill_bench.py"
+    content = """
+BENCHMARK_ID = "tank/foraging_gym"
+CONFIG = {"fixture": True}
+EXPECTED_RUNTIME_SECONDS = 1
+
+def run(seed, fingerprint_callback=None):
+    return {
+        "benchmark_id": BENCHMARK_ID,
+        "seed": seed,
+        "score": 0.5,
+        "runtime_seconds": 0.01,
+        "metadata": {
+            "skill": {
+                "domain": "foraging",
+                "benchmark_id": BENCHMARK_ID,
+                "metric_name": "energy_ratio",
+                "skill_index": 50.0,
+                "rungs": [{"rung": "L0", "rung_id": "random", "metric": 0.1, "beaten": True}],
+            }
+        },
     }
 """
     bench_path.write_text(content, encoding="utf-8")
@@ -70,6 +130,8 @@ class TestRunBench:
         assert "score" in data
         assert "benchmark_id" in data
         assert data["benchmark_id"] == "tank/survival_5k"
+        assert data["expected_runtime_seconds"] == 3.5
+        assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
 
         Path(out_path).unlink()
 
@@ -102,6 +164,7 @@ class TestRunBench:
         with open(out_path) as f:
             data = json.load(f)
         assert "score" in data
+        assert data["expected_runtime_seconds"] == 3.5
 
         Path(out_path).unlink()
 
@@ -127,3 +190,55 @@ class TestRunBench:
             "Determinism check PASSED" in result.stderr
             or "Determinism check PASSED" in result.stdout
         )
+        assert "Runtime: 0.0s (budget ~3.5s)" in result.stdout
+
+    def test_record_skill_appends_history(self, tmp_path):
+        fake_bench = create_skill_benchmark(tmp_path)
+        ledger = tmp_path / "skill_history.jsonl"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH),
+                str(fake_bench),
+                "--seed",
+                "42",
+                "--record-skill",
+                "--skill-ledger",
+                str(ledger),
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        assert "Skill history appended: 1 rows" in result.stdout
+        rows = [json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines()]
+        assert rows[0]["benchmark_id"] == "tank/foraging_gym"
+        assert rows[0]["seeds"] == [42]
+
+    def test_run_bench_survival_5k_exits_cleanly(self, tmp_path):
+        """Verify that tools/run_bench.py exits cleanly with 0 and doesn't hang after running survival_5k using a real world."""
+        benchmark_file = create_real_world_short_benchmark(tmp_path)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RUN_BENCH),
+                str(benchmark_file),
+                "--seed",
+                "42",
+            ],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        # Output should be printed, and config_hash / expected_runtime_seconds should be populated
+        assert (
+            "expected_runtime_seconds" in result.stdout
+            or "expected_runtime_seconds" in result.stderr
+        )
+        assert "config_hash" in result.stdout or "config_hash" in result.stderr

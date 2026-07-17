@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.poker.betting.actions import BettingAction
+from core.poker.strategy.composable.cfr_decision import decide_from_cfr_regret
 from core.poker.strategy.composable.cfr_inheritance import CFRInheritance, CFRInheritanceMode
 from core.poker.strategy.composable.codec import PokerStrategyCodec
 from core.poker.strategy.composable.definitions import (
@@ -22,6 +23,7 @@ from core.poker.strategy.composable.definitions import (
     CFR_HAND_STRENGTH_BUCKETS,
     CFR_MAX_INFO_SETS,
     CFR_POT_RATIO_BUCKETS,
+    LEARNING_RATE_BOUNDS,
     BettingStyle,
     BluffingApproach,
     HandSelection,
@@ -34,9 +36,9 @@ from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 from core.util.rng import require_rng_param
 
-# Backwards-compatible aliases for the pre-split module-level helpers.
 _random_params = PokerStrategyValidator.random_parameters
 _blend_regret_tables = CFRInheritance.blend_tables
+_clamp_learning_rate = PokerStrategyValidator.clamp_learning_rate
 
 
 @dataclass
@@ -79,6 +81,9 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         """Initialize default parameters if not provided."""
         if not self.parameters:
             self.parameters = PokerStrategyValidator.default_parameters()
+        # Keep the learning rate inside its evolvable bounds even for hand-built
+        # or deserialized instances (an old save may predate these bounds).
+        self.learning_rate = _clamp_learning_rate(self.learning_rate)
 
     @classmethod
     def create_random(cls, rng: random.Random | None = None) -> "ComposablePokerStrategy":
@@ -98,16 +103,15 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             ),
             parameters=PokerStrategyValidator.random_parameters(rng),
         )
+        # learning_rate stays at its neutral default (1.0) for founders;
+        # variation enters via mutate(), not an extra RNG draw here (which would
+        # shift the whole genome-construction stream). Same neutral-default,
+        # diverge-via-mutation pattern the soccer params use.
 
-    # Alias for consistency with other strategy classes
     @classmethod
     def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         """Create a random instance (alias for create_random)."""
         return cls.create_random(rng)
-
-    # -------------------------------------------------------------------------
-    # Main Decision Method
-    # -------------------------------------------------------------------------
 
     def decide_action(
         self,
@@ -143,6 +147,18 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         # Can't call if insufficient energy
         if call_amount > player_energy:
             return (BettingAction.FOLD, 0.0)
+
+        cfr_decision = decide_from_cfr_regret(
+            self,
+            hand_strength=hand_strength,
+            call_amount=call_amount,
+            pot=pot,
+            player_energy=player_energy,
+            position_on_button=position_on_button,
+            rng=_rng,
+        )
+        if cfr_decision is not None:
+            return cfr_decision
 
         # Premium hands should always raise when facing a bet
         # Check this BEFORE position adjustment to avoid missing premium hands OOP
@@ -182,10 +198,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         return self._call_or_fold(
             adjusted_strength, call_amount, pot, player_energy, opponent_adjustment, _rng
         )
-
-    # -------------------------------------------------------------------------
-    # Sub-behavior Execution Methods
-    # -------------------------------------------------------------------------
 
     def _should_play_hand(
         self, strength: float, position_on_button: bool, is_desperate: bool
@@ -457,6 +469,14 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             if isinstance(value, (int, float)):
                 self.parameters[key] = PokerStrategyValidator.clamp_known(key, value)
 
+        # Mutate the CFR learning rate (adaptation speed). Drawn last so this
+        # gene does not shift the RNG stream the mutations above consume, and
+        # gated on mutation_rate so a mutation_rate=0.0 clone stays untouched.
+        if rng.random() < mutation_rate:
+            lr_span = LEARNING_RATE_BOUNDS[1] - LEARNING_RATE_BOUNDS[0]
+            self.learning_rate += rng.gauss(0, mutation_strength * lr_span)
+        self.learning_rate = _clamp_learning_rate(self.learning_rate)
+
     # -------------------------------------------------------------------------
     # CFR Learning Methods (Lamarckian-inheritable)
     # -------------------------------------------------------------------------
@@ -714,12 +734,13 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     ) -> "ComposablePokerStrategy":
         """Create a mutated clone (for asexual reproduction).
 
-        CFR learning state is not copied: clones start as fresh learners
-        (CFRInheritanceMode.RESET).
+        CFR learning state is inherited with decay so useful lifetime poker
+        learning can persist through asexual reproduction without freezing
+        stale regrets indefinitely.
         """
         rng = require_rng_param(rng, "__init__")
         regret, strategy_sum, learning_rate = CFRInheritance.inherit(
-            self, self, mode=CFRInheritanceMode.RESET
+            self, self, weight1=1.0, mode=CFRInheritanceMode.BLEND_DECAY
         )
         clone = ComposablePokerStrategy(
             hand_selection=self.hand_selection,
@@ -739,10 +760,6 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             rng=rng,
         )
         return clone
-
-    # -------------------------------------------------------------------------
-    # Display / Debug
-    # -------------------------------------------------------------------------
 
     def get_style_description(self) -> str:
         """Get human-readable description of this strategy blend."""

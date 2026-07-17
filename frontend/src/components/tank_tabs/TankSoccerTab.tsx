@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
+import { SoccerLeaders } from '../MinigameLeaders';
 
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
@@ -39,6 +40,8 @@ export function TankSoccerTab({
             {/* League Live Section */}
             <div className="glass-panel" style={{ padding: '16px' }}>
                 <SoccerLeagueLive liveState={liveState} />
+                {/* Standings under the field: the tank's best soccer players */}
+                <SoccerLeaders leaders={liveState?.fish_leaders ?? []} />
             </div>
 
             {/* League Events Section with Filter */}
@@ -82,6 +85,10 @@ export function TankSoccerTab({
                 <SoccerLeagueEventsFiltered
                     events={filteredEvents}
                     currentFrame={currentFrame}
+                    hasLeagueHistory={Boolean(
+                        liveState?.active_match ||
+                        liveState?.leaderboard.some((entry) => entry.matches_played > 0)
+                    )}
                 />
             </div>
 
@@ -94,9 +101,11 @@ export function TankSoccerTab({
 function SoccerLeagueEventsFiltered({
     events,
     currentFrame,
+    hasLeagueHistory,
 }: {
     events: SoccerEventData[];
     currentFrame: number;
+    hasLeagueHistory: boolean;
 }) {
     const items = events.slice().reverse().slice(0, 10);
 
@@ -112,7 +121,11 @@ function SoccerLeagueEventsFiltered({
                 fontSize: '13px',
                 textAlign: 'center',
             }}>
-                No matches to display. {events.length === 0 ? 'No matches recorded yet.' : 'Enable "Show skipped" to see all matches.'}
+                No matches to display. {events.length === 0
+                    ? hasLeagueHistory
+                        ? 'The standings above retain league history; recent results will appear after the next match completes.'
+                        : 'No league matches have completed yet.'
+                    : 'Enable "Show skipped" to see all matches.'}
             </div>
         );
     }
@@ -122,10 +135,6 @@ function SoccerLeagueEventsFiltered({
             {items.map((event, index) => {
                 const participants = (event.teams?.left?.length ?? 0) + (event.teams?.right?.length ?? 0);
                 const energyDelta = Object.values(event.energy_deltas ?? {}).reduce(
-                    (total, value) => total + value,
-                    0
-                );
-                const reproDelta = Object.values(event.repro_credit_deltas ?? {}).reduce(
                     (total, value) => total + value,
                     0
                 );
@@ -186,9 +195,6 @@ function SoccerLeagueEventsFiltered({
                             <span style={{ color: '#94a3b8' }}>Players: {participants}</span>
                             <span style={{ color: energyDelta >= 0 ? '#4ade80' : '#f87171' }}>
                                 Energy Delta {energyDelta >= 0 ? '+' : ''}{energyDelta.toFixed(1)}
-                            </span>
-                            <span style={{ color: reproDelta >= 0 ? '#38bdf8' : '#f87171' }}>
-                                Repro Delta {reproDelta >= 0 ? '+' : ''}{reproDelta.toFixed(1)}
                             </span>
                         </div>
 

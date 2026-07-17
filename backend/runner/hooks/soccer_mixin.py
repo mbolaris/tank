@@ -71,4 +71,12 @@ class SoccerMixin:
             return None
 
         live = engine.soccer_events.league_live_state
-        return live if isinstance(live, dict) else None
+        if not isinstance(live, dict):
+            return None
+
+        # Attach per-fish standings (aggregated across matches) for the
+        # compact Soccer Leaders panel; shallow copy so the engine's live
+        # state dict stays untouched.
+        live = dict(live)
+        live["fish_leaders"] = engine.soccer_events.fish_leaders(10)
+        return live

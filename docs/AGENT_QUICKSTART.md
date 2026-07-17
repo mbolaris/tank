@@ -4,7 +4,7 @@ This document provides a clear, consistent on-ramp for AI agents (and human deve
 
 ## What is Tank World?
 
-Tank World is an artificial life research framework where fish compete for survival and reproduce under 58 parametrizable behavior algorithms. The codebase itself evolves using Git as heredity:
+Tank World is an artificial life research framework where fish compete for survival and reproduce using parametrizable, genetically tuned composable behaviors. The codebase itself evolves using Git as heredity:
 - **PRs are mutations**: A code change is a genetic variant.
 - **CI is natural selection**: Automated validation (tests, determinism, scoring) filters out regressions.
 - **Merged PRs are offspring**: Merged code becomes the baseline for future agent runs.
@@ -35,9 +35,10 @@ pre-commit install
   ```bash
   python tools/agent_gate.py
   ```
-* **Fast Gate (Pre-PR Check)**: Runs the smoke gate plus all non-slow unit tests. Runs in under 3 minutes.
+* **Pre-PR Gate**: Runs the smoke gate plus all non-slow unit tests (parallelized). Runtime varies by hardware. The suite runs as named shards (`worlds`, `evolution`, `backend_tools`, `core`); use `--shard NAME` to isolate or re-run one failing slice.
   ```bash
-  python tools/fast_gate.py
+  python tools/pre_pr_gate.py
+  python tools/pre_pr_gate.py --shard evolution   # one shard only
   ```
 * **Full Gate (Nightly/Maintainers only)**: Runs everything, including integration/slow tests and strict champion reproduction. Do not run this for routine local iterations.
   ```bash
@@ -64,7 +65,7 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 ## What should it avoid?
 
 - **Mixing Layers**: Do not combine Layer 1 behavior optimizations with Layer 2 tooling, documentation, or workflow modifications in a single PR.
-- **Unverified Champion Updates**: Do not update `champions/**/*.json` files unless you have reproduced the benchmark score deterministically and have a valid reason to do so.
+- **Champion File Modifications**: Do not edit `champions/**/*.json` files unless explicitly authorized by a maintainer or task prompt. Unauthorized changes will be rejected.
 - **Breaking Determinism**: Do not use non-deterministic inputs (like system time, global random, or network calls) in simulations or benchmarks.
 - **Placeholder Work**: Do not leave TODOs or generic placeholders in code or documentation.
 
@@ -78,15 +79,8 @@ python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
    ```bash
    python tools/validate_improvement.py results.json champions/tank/survival_5k.json
    ```
-3. If the change represents a valid improvement, update the champion file:
-   ```bash
-   python tools/validate_improvement.py results.json champions/tank/survival_5k.json --update-champion
-   ```
-4. If a legitimate codebase change (like a bug fix) breaks deterministic outcomes and necessitates updating all champion baselines, run:
-   ```bash
-   python tools/verify_all_champions.py
-   ```
-   And commit the resulting `verify_*.json` outputs as your new baselines.
+3. If the change represents a candidate improvement, report the score, seed, reproduction command, and all metadata in your PR description.
+4. **Do NOT edit the `champions/**/*.json` files directly** unless you are explicitly authorized by a maintainer or task prompt. Maintainers will run the full validation gate and update champions upon merging.
 
 ## What should a PR include?
 
@@ -94,7 +88,7 @@ A PR title must describe the improvement clearly. The description must include:
 1. **Summary**: What was changed and why.
 2. **Benchmark Results**: Before and after scores.
 3. **Reproduction Command**: The exact command and seed used to reproduce the score.
-4. **Validation Evidence**: Confirmation that `python tools/agent_gate.py` and `python tools/fast_gate.py` pass.
+4. **Validation Evidence**: Confirmation that `python tools/agent_gate.py` and `python tools/pre_pr_gate.py` pass.
 5. **No Regressions**: Evidence that other active benchmarks were not degraded.
 
 ---
@@ -115,8 +109,8 @@ Your task is to identify and optimize a Layer 1 behavior algorithm or configurat
 3. Run a baseline benchmark: python tools/run_bench.py benchmarks/tank/survival_5k.py --seed 42
 4. Modify fish parameters in core/config/fish.py or behavior logic in core/algorithms/composable/.
 5. Validate locally using the agent gate: python tools/agent_gate.py
-6. Before PR, run the fast gate: python tools/fast_gate.py
-7. Compare scores against the champion; update champion metadata only with explicit benchmark evidence and maintainer-approved scope.
+6. Before PR, run the pre-PR gate: python tools/pre_pr_gate.py
+7. Compare scores against the champion; do not edit the champions/**/*.json files unless explicitly authorized by a maintainer or task prompt.
 8. Commit only the Layer 1 changes with a detailed message following the AGENTS.md format.
 Do not modify workflows, CI configurations, or unrelated documentation.
 ```
@@ -129,7 +123,7 @@ Your task is to improve documentation, testing, or benchmark usability.
 2. Run the smoke gate: python tools/smoke_gate.py
 3. Propose/implement edits to documentation, test harnesses under tests/, or tools in tools/.
 4. Run the agent gate: python tools/agent_gate.py
-5. Before PR, run the fast gate: python tools/fast_gate.py
+5. Before PR, run the pre-PR gate: python tools/pre_pr_gate.py
 6. Verify changes do not introduce type errors or lint failures.
 7. Commit only Layer 2 changes.
 Do not modify fish behaviors, game rules, physics, or champion scores.

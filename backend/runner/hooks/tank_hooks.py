@@ -8,13 +8,14 @@ import logging
 from typing import Any
 
 from backend.runner.hooks.benchmark_mixin import BenchmarkMixin
+from backend.runner.hooks.entity_details_mixin import GET_ENTITY_DETAILS_COMMAND, EntityDetailsMixin
 from backend.runner.hooks.poker_mixin import PokerMixin
 from backend.runner.hooks.soccer_mixin import SoccerMixin
 
 logger = logging.getLogger(__name__)
 
 
-class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
+class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin, EntityDetailsMixin):
     """Hooks for Tank world mode - provides poker, benchmarking, and tank-specific features.
 
     This encapsulates all tank-specific logic that was previously embedded
@@ -39,6 +40,7 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
             "stop_human_poker",
             "auto_evaluate_poker",
             "cancel_auto_evaluate",
+            GET_ENTITY_DETAILS_COMMAND,
         }
         return command in tank_commands
 
@@ -61,6 +63,8 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
             return self._handle_auto_evaluate_poker(runner, data)
         elif command == "cancel_auto_evaluate":
             return self._handle_cancel_auto_evaluate(runner, data)
+        elif command == GET_ENTITY_DETAILS_COMMAND:
+            return self._handle_get_entity_details(runner, data)
         return None
 
     def build_world_extras(self, runner: Any) -> dict[str, Any]:
@@ -124,16 +128,22 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin):
 
     def _restore_castle_position(self, runner: Any) -> None:
         """Restore castle to its default tank position."""
+        from core.tank_objects import DEFAULT_TANK_LAYOUT
+
+        castle_layout = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle")
         for entity in runner.engine.entities_list:
             # Use snapshot_type for generic entity classification
             if getattr(entity, "snapshot_type", None) == "castle":
-                # Default tank castle position (from Castle.__init__)
-                entity.pos.x = 375.0
-                entity.pos.y = 475.0
+                entity.pos.x = castle_layout.x
+                entity.pos.y = castle_layout.y
                 if hasattr(entity, "rect"):
                     entity.rect.x = entity.pos.x
                     entity.rect.y = entity.pos.y
-                logger.info("Restored castle to default tank position (375, 475)")
+                logger.info(
+                    "Restored castle to default tank position (%s, %s)",
+                    castle_layout.x,
+                    castle_layout.y,
+                )
                 break  # Only one castle expected
 
     def _restore_soccer_positions(self, runner: Any) -> None:

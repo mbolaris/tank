@@ -77,6 +77,8 @@ the code, 2026-06):
 | Ball drive lifted out of generic movement (ADR-010 follow-through) | `_get_ball_pursuit_velocity` removed from `core/movement_strategy.py` (the generic strategy no longer imports `core.entities.ball.Ball` or carries any soccer concept). The drive is now the self-contained `BallPursuitConsideration` + `ball_pursuit_velocity()` in `core/movement/ball_pursuit.py`, owning its own energy gate and survival-yield (the "self-contained Consideration" ADR-010 designed). Byte-identical seed-42 30k. Residual (full relocation to `core/minigames/soccer` via IoC registration) tracked in Open item 5 |
 | Internal movement path no longer round-trips the external-brain action layer | `AlgorithmicMovement.move()` clamped each fish's desired velocity inline (`MAX_ACTION_VELOCITY`) instead of allocating an `Action` per fish per frame via `translate_action` wrapped in a bare `except Exception`. The translation registry (`core/actions`) remains the seam for *external* brains; it was never needed on the internal composable-behavior path, where it only re-applied the same ±5.0 clamp. Removes the silent-fallback ADR-007 flagged at `movement_strategy.py`. Byte-identical seed-42 30k; `tests/core/test_movement_actions.py` rewritten to assert the inline-clamp contract |
 | `getattr` lies removed from ball pursuit | `getattr(fish, "max_speed", 2.0)` (Fish has **no** `max_speed`; only `Food`/`Ball` do — the default always fired) → explicit `BALL_PURSUIT_TARGET_SPEED`; `getattr(fish, "energy"/"max_energy", …)` (Fish is an `EnergyHolder`, always has them) → direct access. Genuinely-optional `environment.ball` access *kept* as `getattr` — the point is to distinguish optional from guaranteed, not to ban the tool |
+| `transfer/entity_transfer.py` / `worlds/*/backend.py` gratuitous-distrust sweep (open-item-5 category **b** follow-through) | Converted `getattr`/`hasattr` to direct access wherever the concrete type is already known in-scope: `Fish.parent_id`, `Plant.plant_id`/`.poker_cooldown`/`.nectar_cooldown`/`.poker_wins`/`.poker_losses`/`.nectar_produced`/`._update_size()`, `Crab.hunt_cooldown`/`._orbit_theta`/`._orbit_dir` (both in `entity_transfer.py` and the `tank/backend.py` snapshot builder), `RootSpot.spot_id`, and `SimulationEngine.config`/`.ecosystem`/`.root_spot_manager`/`.plant_manager` (all declared, always-present fields — confirmed by grepping their `__init__`/dataclass declarations) once `target_world.engine` was already trusted unguarded elsewhere in the same function. `petri/backend.py._get_dish_dict` similarly trusts `TankWorldBackendAdapter.engine.environment` (a declared attribute) and only null-checks the genuinely-optional `.dish` value. Left untouched: the `target_world`-shape and `rng`-lookup chains (category (a) — see above) and the dead-codec-name fallback in `codec_for_entity`'s exception handler (guards a diagnostic log against malformed third-party codecs registered via the `register_transfer_codec` extension point). **Bonus finds while verifying "is this attribute really always present":** `fish.memory` doesn't exist on `Fish` (only `.memory_system`, a structurally-different `AgentMemorySystem`) — the `food_memories`/`predator_last_seen` transfer fields were always-empty, never-restored dead code since the day they were added; `Plant.growth_stage`/`.nectar_ready` are rendering-only derived values (`PlantVisualComponent`, recomputed from `energy`/`max_energy`/`nectar_cooldown`, all of which already transfer) that were never read back on deserialize; `Plant` has no `generation` concept at all (the field was always `0`). Removed all three as dead per the "finish or delete" principle rather than wiring up unused restore paths. Also deleted `TankWorldBackendAdapter._extract_genome_data`, an entirely uncalled method. **Determinism:** none of this is reachable from simulation decision logic (transfer/snapshot code is read-only relative to physics), confirmed by a seed-42 5k-frame headless before/after diff (byte-identical except wall-clock fields). The three dead-field removals do change the `Fish`/`Plant` transfer-codec JSON shape, which is embedded in the debug snapshot the golden-replay fingerprint hashes — `tests/fixtures/replays/tank_petri_seed42_v2.jsonl` was regenerated with its original recording parameters (`seed=42, initial_mode="tank", steps=18, plan={10: "petri"}`, recovered from the fixture's own header/frame sequence) and reproduces the identical frame/mode-switch timeline, only the fingerprint hashes changed. `agent_gate`/`pre_pr_gate` green (1898+ tests), mypy clean on `core/`. |
+| Genome invariant repair moved from `Fish.__init__` onto `Genome` (open item 5's "Related smell") | Added `Genome.normalize(rng, code_pool=None, soccer_enabled=False)` (`core/genetics/genome.py`) — back-fills a missing/valueless `poker_strategy` and, when soccer is enabled, a missing `soccer_policy_id` (default from the pool, else a random pool component), exactly reproducing the old inline logic's structure and RNG draw order (poker check, then soccer check; short-circuits identically). `Fish.__init__` now computes `rng`/`code_pool`/`soccer_enabled` from `environment` (the untyped service-locator reads are category (a), left in place — see item 5(a)) and calls `self.genome.normalize(...)` once, instead of inlining the repair. The invariant "a genome is complete" now lives on the type it constrains, reusable by any future non-`Fish` consumer. **Verification:** new `tests/test_genome_normalize.py` (9 cases: no-op on a complete genome, both poker-strategy repair branches, soccer backfill with/without a pool default, soccer skipped when disabled/no-pool, existing soccer policy left untouched, idempotency). Behavior-neutral — a seed-42 5k-frame headless before/after diff is identical except the wall-clock `simulation_speed` field; golden replay and `test_determinism.py` still pass; `mypy` clean on 329 `core/` files; `agent_gate`/`pre_pr_gate` green (1929 passed). While touching the file, also promoted three now-safely-reachable in-function imports to module scope per item 4 (`BEHAVIORAL_TRAIT_SPECS`/`validate_policy_fields` and `PHYSICAL_TRAIT_SPECS` — both already-imported sibling modules; `SOCCER_POLICY` from `core.genetics.code_policy_traits`, confirmed acyclic). **Note for the next agent:** `get_random_poker_strategy` from `core.poker.strategy.implementations` looked equally promotable by the same reachability check on that leaf module, but a fresh-interpreter import proved otherwise — importing it runs `core/poker/__init__.py` first (parent-package init), which imports `core.poker.table` → `core.entities.Fish`, a real cycle back into the module being loaded. Checking only the target module's own imports misses cycles introduced by its package's `__init__.py`; that import was kept function-local. `tests/test_import_acyclic.py`/`test_import_boundaries.py` green either way. |
 
 ## Open items
 
@@ -101,11 +103,32 @@ touching a module — no big-bang rewrite. Do not delete the currently-unused
 
 Adopted so far (reference examples to copy): `ConfigurationError`
 (`SimulationConfig.validate`, every unknown-world/mode lookup), `GeneticsError`
-(`Genome.assert_valid`), and `PersistenceError` (snapshot restore;
-`VersionMismatchError` now subclasses it). Many generic `raise ValueError`/
+(`Genome.assert_valid`), `PersistenceError` (snapshot restore;
+`VersionMismatchError` now subclasses it), and `SimulationError`
+(`core/worlds/tank/backend.py`'s 12 "World not initialized. Call reset()
+before …()" precondition guards — a caller-misuse invariant violation, the
+textbook `SimulationError` case per the table above; verified no
+`except RuntimeError` anywhere caught these specifically before the swap,
+`tests/test_world_registry.py`'s 10 matching `pytest.raises` updated in the
+same change). Extended to the same "engine/system must be initialized before
+registering systems" invariant in `core/worlds/shared/tank_like_pack_base.py`
+(7 sites) and its near-duplicate in `core/worlds/petri/pack.py` (7 sites) —
+identical pattern, no test depended on the exact exception type in either
+file, so no test changes were needed there. Many generic `raise ValueError`/
 `RuntimeError` sites remain — note that genuine *argument-type* misuse (e.g.
 `"interval must be >= 1"`) correctly stays `ValueError`; only domain failures
 move to the hierarchy.
+
+**Fresh finding (not yet acted on):** `core.exceptions.TransferError` — the one
+this ADR's own text names as "ever adopted" — has **zero real call sites**.
+The actual in-use `TransferError` is an unrelated local dataclass in
+`core/transfer/entity_transfer.py` (an error-payload value object inside its
+`TransferOutcome` Result type, correctly following ADR-007's `Result` guidance
+for that module). The names collide only because they're in different
+modules today; adopting the real exception class inside `entity_transfer.py`
+later will need an import alias (or a rename of one of the two). Left
+untouched here — renaming either is a judgment call with real callers on the
+dataclass side, not a mechanical fix.
 
 ### 4. In-function import debt (now measured & guarded, per ADR-008)
 `core/` carries hundreds of function-level (in-function) imports originally
@@ -140,8 +163,57 @@ never evaluated, so they need no runtime import); and redundant re-imports
 (e.g. `Vector2`, already re-exported via `core.algorithms.base`) were dropped.
 Aliased imports (`Fish as FishClass`) stay as runtime aliases alongside the
 type-only `Fish`. Determinism was reconfirmed by a seed-42 headless before/after
-diff (identical simulation state). ~199 cycle-safe in-function imports remain
-across the rest of `core/`. Still incremental, still test-backed.
+diff (identical simulation state).
+
+**Progress (2026-07):** `core/services/stats/genetic_stats.py` (7 repeated
+`core.config.fish` constant imports, one per small stat helper — the module
+is a pure leaf with zero `core.*` imports of its own) and
+`core/transfer/entity_transfer.py` (10 imports of `Fish`/`Plant`/`Crab`/
+`Genome`/`PlantGenome`/`AlgorithmicMovement`, confirmed acyclic by grepping
+`core/entities/`, `core/genetics/`, and `core/movement_strategy.py` for any
+reference back to `core.transfer`) converted to module-level imports.
+Deliberately **left alone**: two sites in `genetic_stats.py` that import
+`core.algorithms.composable`/`core.poker.strategy.composable` inside a
+`try: … except ImportError: return []` — these catch `ImportError` as
+deliberate graceful degradation (not a cycle workaround), so promoting them
+would trade a per-call fallback for a hard module-load crash, a behavior
+change outside this cleanup's scope. Verified with the acyclicity test, a
+fresh-interpreter import of each module, `mypy` (329 files), and a seed-42
+headless before/after diff (identical modulo the wall-clock field).
+
+**Progress (2026-07, cont.):** `core/worlds/shared/tank_like_pack_base.py` (12
+imports across 4 methods: `CollisionSystem`, `PokerSystem`,
+`ReproductionService`/`ReproductionSystem`, `EntityLifecycleSystem`,
+`PokerProximitySystem`, `PeriodicBenchmarkEvaluator`, `EventBus`,
+`EcosystemManager`, `PlantManager`, `FoodSpawningSystem`,
+`TankLikePhaseHooks`) and `core/reproduction/asexual_factory.py` (8 imports,
+incl. `Fish` itself). The `tank_like_pack_base.py` case was the riskiest
+promotion so far — it is the shared base both `TankPack` and `PetriPack`
+subclass, its own docstring says it exists specifically "to enable clean mode
+boundaries... without tangled import chains," and one target
+(`core.poker.integration.poker_system`) pulls in `core/poker/__init__.py` →
+`core.poker.table` → `Fish`, the exact shape that bit the `genome.py`
+promotion two rounds ago. Verified safe (no target, or its parent-package
+`__init__.py` chain, references `core.worlds`) and confirmed empirically:
+both `WorldRegistry.create_world("tank", ...)` and `("petri", ...)` still
+construct and step correctly, plus the usual acyclicity/mypy/fresh-import/
+seed-42-diff bar. One style fix alongside: `from core import environment`
+(the top-level-facade-for-one-submodule anti-pattern ADR-008 names) became
+`import core.environment as environment`; a same-named *local variable*
+(`environment = engine.environment`) already existed in a different method
+of the same class, confirmed harmless (mypy clean, and Python function-local
+scoping means the two never collide) rather than reason to avoid the fix.
+`asexual_factory.py` confirmed safe via the established precedent: `Fish`'s
+reverse dependency on `core.reproduction.reproduction_service` (inside
+`core/entities/mixins/reproduction_mixin.py`) is already function-local on
+that side, so promoting the forward direction here doesn't close a cycle.
+
+~168 cycle-safe in-function imports remain
+across the rest of `core/` (measured, not estimated — see the AST-based
+counting script this pass used, `sys.argv`-free and reusable: walk each
+file's AST, count `Import`/`ImportFrom` nodes for `core.*` targets that are
+nested inside a `FunctionDef`/`AsyncFunctionDef` and not inside a
+`TYPE_CHECKING` block). Still incremental, still test-backed.
 
 ### 5. Defensive access erodes the protocol layer (systemic; **three distinct root causes**)
 `core/` (excl. tests) carries ~347 `getattr` and ~192 `hasattr` (bare `except` is
@@ -172,10 +244,13 @@ modeling decision. Triage by root cause:
 - **(b) Gratuitous distrust of typed attributes.** `getattr(engine, "lifecycle_
   system", None)` where the engine *declares* `lifecycle_system: … | None`. The
   default never fires; the only effect is to silence mypy. Fix = direct access;
-  pure win, mypy-verified. **Largely done** — see Recently completed (11 sites).
-  The same pattern likely remains on `*.engine`/world handles in
-  `transfer/entity_transfer.py` and `worlds/*/backend.py`; verify the holder is
-  typed, then convert.
+  pure win, mypy-verified. **Largely done** — see Recently completed (11 sites,
+  plus the `transfer/entity_transfer.py` / `worlds/*/backend.py` follow-through).
+  Remaining `getattr`/`hasattr` in those two files are the genuine
+  multi-shape-adapter case (category (a): `target_world` is sometimes an engine
+  handle, sometimes `.engine`, sometimes nested `.world.engine` — the same shape
+  `backend/world_persistence.py`'s `_resolve_engine()` exists to handle) — do not
+  sweep those without resolving (a) first.
 - **(c) Genuine cross-mode optionality.** `getattr(fish.environment, "ball",
   None)`, `getattr(kicker, "team", None)` — state that legitimately may be absent
   because it belongs to a *mode* (soccer), not the generic core. `getattr` here
@@ -187,18 +262,11 @@ modeling decision. Triage by root cause:
 Treat (b) like the in-function import debt (item 4): opportunistic, test-backed,
 no big-bang. Treat (a) and (c) as **decisions to make**, not sweeps to do.
 
-**Related smell — invariant placement (`Fish.__init__`).** The constructor
-*repairs* its genome at construction time (back-fills a missing
-`poker_strategy`; defaults a `soccer_policy_id` from the code pool when soccer is
-on) and reads mode config via the (a)-chain above. That places the invariant
-"a genome is complete/valid" in a *consumer's constructor* rather than in the
-genome itself — so every other site that builds or loads a genome must
-re-remember to repair it, or silently won't have the guarantee. Extract to a
-`Genome.normalize()` invoked once at load/construction (SRP: a constructor
-should construct; an invariant should live with the type it constrains).
-**Determinism caveat:** the back-fill draws from the RNG, so the extraction must
-preserve draw order exactly or be re-recorded against the golden replay — do it
-as a deliberate, verified change, not a drive-by.
+**Remaining part of this item:** `Fish.__init__` still reads mode config via
+the (a)-chain above (`getattr(environment, "simulation_config", …)`) to decide
+`soccer_enabled` before calling `genome.normalize()`. That's the untyped
+service-locator problem, not the invariant-placement one — see (a) above; do
+not sweep it without resolving (a) first.
 
 ### 6. Movement-consideration IoC (deferred, enables full ADR-011 compliance)
 `default_considerations()` (generic `core/movement`) still *names* the ball

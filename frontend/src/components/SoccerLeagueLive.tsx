@@ -140,22 +140,29 @@ function LeaderboardTable({ entries }: { entries: LeagueLeaderboardEntry[] }) {
                         <th style={{ padding: '4px', textAlign: 'center' }}>W</th>
                         <th style={{ padding: '4px', textAlign: 'center' }}>D</th>
                         <th style={{ padding: '4px', textAlign: 'center' }}>L</th>
+                        <th style={{ padding: '4px', textAlign: 'center' }}>GD</th>
                         <th style={{ padding: '4px', textAlign: 'center' }}>Pts</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {entries.map((entry) => (
-                        <tr key={entry.team_id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)' }}>
-                            <td style={{ padding: '4px 8px 4px 4px', fontWeight: 500 }} title={entry.display_name}>
-                                {entry.display_name}
-                            </td>
-                            <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.matches_played}</td>
-                            <td style={{ padding: '4px', textAlign: 'center', color: '#4ade80' }}>{entry.wins}</td>
-                            <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.draws}</td>
-                            <td style={{ padding: '4px', textAlign: 'center', color: '#f87171' }}>{entry.losses}</td>
-                            <td style={{ padding: '4px', textAlign: 'center', fontWeight: 'bold', color: '#fbbf24' }}>{entry.points}</td>
-                        </tr>
-                    ))}
+                    {entries.map((entry) => {
+                        const gd = (entry.gf ?? 0) - (entry.ga ?? 0);
+                        const gdColor = gd > 0 ? '#4ade80' : gd < 0 ? '#f87171' : '#94a3b8';
+                        const gdText = gd > 0 ? `+${gd}` : `${gd}`;
+                        return (
+                            <tr key={entry.team_id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.3)' }}>
+                                <td style={{ padding: '4px 8px 4px 4px', fontWeight: 500 }} title={entry.display_name}>
+                                    {entry.display_name}
+                                </td>
+                                <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.matches_played}</td>
+                                <td style={{ padding: '4px', textAlign: 'center', color: '#4ade80' }}>{entry.wins}</td>
+                                <td style={{ padding: '4px', textAlign: 'center', color: '#94a3b8' }}>{entry.draws}</td>
+                                <td style={{ padding: '4px', textAlign: 'center', color: '#f87171' }}>{entry.losses}</td>
+                                <td style={{ padding: '4px', textAlign: 'center', color: gdColor }}>{gdText}</td>
+                                <td style={{ padding: '4px', textAlign: 'center', fontWeight: 'bold', color: '#fbbf24' }}>{entry.points}</td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

@@ -1,3 +1,5 @@
+> Archived 2026-07.
+
 # Codebase Refactoring Summary
 
 ## Overview

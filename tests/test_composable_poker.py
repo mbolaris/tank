@@ -22,6 +22,11 @@ from core.poker.strategy.composable import (
     PositionAwareness,
     ShowdownTendency,
 )
+from core.poker.strategy.composable.cfr_decision import CFR_DECISION_MIN_VISITS
+from core.poker.strategy.composable.definitions import (
+    CFR_INHERITANCE_DECAY,
+    CFR_MIN_VISITS_FOR_INHERITANCE,
+)
 from core.poker.strategy.implementations import crossover_poker_strategies
 
 
@@ -160,6 +165,36 @@ class TestComposablePokerStrategyMutation:
         assert clone.hand_selection == original.hand_selection
         assert clone.betting_style == original.betting_style
 
+    def test_clone_with_mutation_inherits_decayed_cfr_state(self):
+        """Asexual clones keep qualified CFR learning with decay."""
+        rng = random.Random(1)
+        original = ComposablePokerStrategy()
+        info_set = "bucket:turn:button"
+        original.regret[info_set] = {
+            "fold": 10.0,
+            "call": -2.0,
+            "raise_small": 5.0,
+        }
+        original.strategy_sum[info_set] = {
+            "fold": 3.0,
+            "call": 1.0,
+            "raise_small": 2.0,
+        }
+        original.visit_count[info_set] = CFR_MIN_VISITS_FOR_INHERITANCE
+        original.learning_rate = 0.7
+
+        clone = original.clone_with_mutation(
+            mutation_rate=0.0, sub_behavior_switch_rate=0.0, rng=rng
+        )
+
+        assert clone.regret[info_set]["fold"] == pytest.approx(10.0 * CFR_INHERITANCE_DECAY)
+        assert clone.regret[info_set]["call"] == pytest.approx(-2.0 * CFR_INHERITANCE_DECAY)
+        assert clone.strategy_sum[info_set]["raise_small"] == pytest.approx(
+            2.0 * CFR_INHERITANCE_DECAY
+        )
+        assert clone.learning_rate == pytest.approx(original.learning_rate)
+        assert clone.visit_count == {}
+
 
 class TestComposablePokerStrategySerialization:
     """Test serialization and deserialization."""
@@ -288,6 +323,130 @@ class TestComposablePokerStrategyDecisions:
         )
         # At least the adjusted strength should differ
         # (Can't guarantee different actions due to randomness)
+
+    def test_uses_cfr_fold_when_regret_available(self):
+        """Learned CFR actions override the default heuristic decision path."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.9,
+            pot_ratio=50 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 100.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.9,
+            current_bet=0,
+            opponent_bet=10,
+            pot=50,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.FOLD
+        assert amount == 0.0
+
+    def test_uses_cfr_call_when_regret_available(self):
+        """CFR call regret maps to a concrete call amount."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.4,
+            pot_ratio=60 / 120,
+            position_on_button=True,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 0.0,
+            "call": 100.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.4,
+            current_bet=5,
+            opponent_bet=20,
+            pot=60,
+            player_energy=120,
+            position_on_button=True,
+            rng=rng,
+        )
+
+        assert action == BettingAction.CALL
+        assert amount == 15.0
+
+    def test_uses_cfr_raise_bucket_when_regret_available(self):
+        """CFR raise buckets map to concrete raises above the call amount."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.45,
+            pot_ratio=100 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 0.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 100.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.45,
+            current_bet=0,
+            opponent_bet=10,
+            pot=100,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.RAISE
+        assert amount > 10.0
+
+    def test_ignores_cfr_regret_before_minimum_visits(self):
+        """Under-sampled CFR regrets are too noisy to drive live decisions."""
+        rng = random.Random(42)
+        strategy = ComposablePokerStrategy()
+        info_set = strategy.get_info_set(
+            hand_strength=0.9,
+            pot_ratio=50 / 200,
+            position_on_button=False,
+            street=0,
+        )
+        strategy.regret[info_set] = {
+            "fold": 100.0,
+            "call": 0.0,
+            "raise_small": 0.0,
+            "raise_big": 0.0,
+        }
+        strategy.visit_count[info_set] = CFR_DECISION_MIN_VISITS - 1
+
+        action, amount = strategy.decide_action(
+            hand_strength=0.9,
+            current_bet=0,
+            opponent_bet=10,
+            pot=50,
+            player_energy=200,
+            position_on_button=False,
+            rng=rng,
+        )
+
+        assert action == BettingAction.RAISE
+        assert amount > 0.0
 
 
 class TestOpponentModeling:

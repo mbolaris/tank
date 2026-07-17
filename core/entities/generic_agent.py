@@ -11,6 +11,7 @@ from core.entities.base import Agent, EntityUpdateResult
 if TYPE_CHECKING:
     from core.agents.components.lifecycle_component import LifecycleComponent
     from core.agents.components.reproduction_component import ReproductionComponent
+    from core.state_machine import LifeStage
     from core.world import World
 
 
@@ -109,7 +110,7 @@ class GenericAgent(Agent, ABC):
         return self.__class__.__name__.lower()
 
     @property
-    def life_stage(self):
+    def life_stage(self) -> LifeStage | None:
         """Current life stage.
 
         Returns None if no lifecycle component is present.
@@ -129,7 +130,7 @@ class GenericAgent(Agent, ABC):
         return 0
 
     @property
-    def reproduction_component(self):
+    def reproduction_component(self) -> ReproductionComponent | None:
         """Access to reproduction mechanics.
 
         Returns None if no reproduction component is present.

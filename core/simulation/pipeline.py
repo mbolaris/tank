@@ -145,24 +145,64 @@ def _step_spawn(engine: SimulationEngine, ctx: FrameContext) -> None:
 
 def _step_collision(engine: SimulationEngine, ctx: FrameContext) -> None:
     """COLLISION: Handle physical collisions between entities."""
-    engine._phase_collision()
+    from core.simulation.profiler import is_profiling
+
+    if is_profiling(engine):
+        import time
+
+        start = time.perf_counter()
+        with engine.profiler.context("collision"):
+            engine._phase_collision()
+        engine.profiler.record_collision(time.perf_counter() - start)
+    else:
+        engine._phase_collision()
 
 
 def _step_interaction(engine: SimulationEngine, ctx: FrameContext) -> None:
     """INTERACTION: Handle social interactions between entities."""
-    engine._phase_interaction()
+    from core.simulation.profiler import is_profiling
+
+    if is_profiling(engine):
+        import time
+
+        start = time.perf_counter()
+        with engine.profiler.context("poker"):
+            engine._phase_interaction()
+        engine.profiler.record_poker(time.perf_counter() - start)
+    else:
+        engine._phase_interaction()
 
 
 def _step_reproduction(engine: SimulationEngine, ctx: FrameContext) -> None:
     """REPRODUCTION: Handle mating and emergency spawns."""
-    engine._phase_reproduction()
+    from core.simulation.profiler import is_profiling
+
+    if is_profiling(engine):
+        import time
+
+        start = time.perf_counter()
+        with engine.profiler.context("reproduction"):
+            engine._phase_reproduction()
+        engine.profiler.record_reproduction(time.perf_counter() - start)
+    else:
+        engine._phase_reproduction()
 
 
 def _step_soccer(engine: SimulationEngine, ctx: FrameContext) -> None:
     """SOCCER: Update ball physics and agent-ball interactions."""
     soccer_system = engine.soccer_system
     if soccer_system and soccer_system.enabled:
-        soccer_system.update(engine.frame_count)
+        from core.simulation.profiler import is_profiling
+
+        if is_profiling(engine):
+            import time
+
+            start = time.perf_counter()
+            with engine.profiler.context("soccer"):
+                soccer_system.update(engine.frame_count)
+            engine.profiler.record_soccer(time.perf_counter() - start)
+        else:
+            soccer_system.update(engine.frame_count)
 
 
 def _step_frame_end(engine: SimulationEngine, ctx: FrameContext) -> None:

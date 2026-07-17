@@ -234,6 +234,15 @@ class SoccerLeagueRuntime:
         collect_team_participants(home_team, "home", home_participants)
         collect_team_participants(away_team, "away", away_participants)
 
+        # Drop participants that cannot afford the entry fee. create_soccer_match_*
+        # raises if a fee is unaffordable, so filtering here keeps a nonzero fee from
+        # crashing the league tick. Bots report a zero-energy delta and never pay, so
+        # they pass the affordability check unconditionally.
+        entry_fee = float(getattr(self.config, "entry_fee_energy", 0.0) or 0.0)
+        if entry_fee > 0:
+            home_participants = [p for p in home_participants if self._can_afford_fee(p, entry_fee)]
+            away_participants = [p for p in away_participants if self._can_afford_fee(p, entry_fee)]
+
         # Balance teams to ensure equal numbers (and thus even total for evaluator)
         common_count = min(len(home_participants), len(away_participants))
         if common_count < 1:
@@ -253,6 +262,14 @@ class SoccerLeagueRuntime:
         # Determine view mode from world state (default to side/tank)
         view_mode = getattr(world_state, "view_mode", "side")
 
+        sim_config = getattr(world_state, "simulation_config", None)
+        tank_config = getattr(sim_config, "tank", None) if sim_config is not None else None
+        target_pursuit_enabled = (
+            getattr(tank_config, "target_pursuit_module_enabled", False)
+            if tank_config is not None
+            else False
+        )
+
         setup = create_soccer_match_from_participants(
             participants,
             duration_frames=self.config.duration_frames,
@@ -263,11 +280,21 @@ class SoccerLeagueRuntime:
             selection_seed=selection_seed,
             entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
             view_mode=view_mode,
+            target_pursuit_module_enabled=target_pursuit_enabled,
         )
 
         self._active_match = setup.match
         self._active_setup = setup
         self._current_league_match = league_match
+
+    @staticmethod
+    def _can_afford_fee(entity: Any, entry_fee: float) -> bool:
+        """Whether an entity can pay the entry fee (mirrors evaluator's guard)."""
+        from core.minigames.soccer.selection import get_entity_energy
+
+        if not hasattr(entity, "modify_energy"):
+            return False
+        return get_entity_energy(entity) > entry_fee
 
     def _finalize_active_match(self, teams: dict[str, Any]) -> None:
         if self._active_match is None or self._active_setup is None:

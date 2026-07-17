@@ -13,7 +13,7 @@ split): RNG call order is determinism-critical and must not change.
 """
 
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 from core.genetics.mate_preferences import (
     DEFAULT_MATE_PREFERENCES,
@@ -23,6 +23,7 @@ from core.genetics.mate_preferences import (
     inherit_mate_preferences,
 )
 from core.genetics.policy_inheritance import inherit_single_policy
+from core.genetics.reproduction import DEFAULT_SUB_BEHAVIOR_SWITCH_RATE, ReproductionMutationContext
 from core.genetics.trait import (
     GeneticTrait,
     TraitSpec,
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
 def inherit_trait_meta(
     parent1_trait: GeneticTrait | None,
     parent2_trait: GeneticTrait | None,
-    value: Any,
+    value: object,
     rng: pyrandom.Random,
 ) -> GeneticTrait:
     """Create a GeneticTrait with inherited meta-values from parents.
@@ -87,6 +88,8 @@ def inherit_composable_behavior(
     mutation_rate: float,
     mutation_strength: float,
     rng: pyrandom.Random,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
 ) -> "ComposableBehavior":
     """Inherit composable behavior from two parents.
 
@@ -97,6 +100,9 @@ def inherit_composable_behavior(
     """
     from core.algorithms.composable import ComposableBehavior
 
+    context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
+    sub_behavior_switch_rate = context.sub_behavior_switch_rate(DEFAULT_SUB_BEHAVIOR_SWITCH_RATE)
+
     if behavior1 is None and behavior2 is None:
         return ComposableBehavior.create_random(rng=rng)
     elif behavior1 is None:
@@ -105,7 +111,7 @@ def inherit_composable_behavior(
         child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            sub_behavior_switch_rate=0.08,
+            sub_behavior_switch_rate=sub_behavior_switch_rate,
             rng=rng,
         )
         return child
@@ -115,7 +121,7 @@ def inherit_composable_behavior(
         child.mutate(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-            sub_behavior_switch_rate=0.08,
+            sub_behavior_switch_rate=sub_behavior_switch_rate,
             rng=rng,
         )
         return child
@@ -126,7 +132,7 @@ def inherit_composable_behavior(
         weight1=weight1,
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
-        sub_behavior_switch_rate=0.08,  # Increased from 0.03 for more behavioral diversity
+        sub_behavior_switch_rate=sub_behavior_switch_rate,  # Increased from 0.03 for more behavioral diversity
         rng=rng,
     )
 
@@ -171,6 +177,72 @@ def inherit_poker_strategy(
         return ComposablePokerStrategy.create_random(rng=rng)
 
 
+def inherit_behavior_graph(
+    parent1_trait: GeneticTrait | None,
+    parent2_trait: GeneticTrait | None,
+    *,
+    weight1: float,
+    mutation_rate: float,
+    mutation_strength: float,
+    rng: pyrandom.Random,
+) -> GeneticTrait | None:
+    """Cross matching-node parameters while preserving the fixed topology."""
+    graph1 = parent1_trait.value if parent1_trait is not None else None
+    graph2 = parent2_trait.value if parent2_trait is not None else None
+    if graph1 is None and graph2 is None:
+        return None
+
+    # Calculate effective heritable mutation rate and strength (meta-genes)
+    if parent1_trait is not None and parent2_trait is not None:
+        eff_rate = mutation_rate * (parent1_trait.mutation_rate + parent2_trait.mutation_rate) / 2
+        eff_strength = (
+            mutation_strength
+            * (parent1_trait.mutation_strength + parent2_trait.mutation_strength)
+            / 2
+        )
+    elif parent1_trait is not None:
+        eff_rate = mutation_rate * parent1_trait.mutation_rate
+        eff_strength = mutation_strength * parent1_trait.mutation_strength
+    elif parent2_trait is not None:
+        eff_rate = mutation_rate * parent2_trait.mutation_rate
+        eff_strength = mutation_strength * parent2_trait.mutation_strength
+    else:
+        eff_rate = mutation_rate
+        eff_strength = mutation_strength
+
+    if graph1 is None:
+        assert graph2 is not None
+        copied = type(graph2).from_dict(graph2.to_dict())
+        evolved = copied.crossed_over(
+            copied,
+            weight1=1.0,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
+            rng=rng,
+        )
+    elif graph2 is None:
+        copied = type(graph1).from_dict(graph1.to_dict())
+        evolved = copied.crossed_over(
+            copied,
+            weight1=1.0,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
+            rng=rng,
+        )
+    else:
+        # Keep topology from a parent, then crossover parameters by matching
+        # node id/type.  No add/remove/rewire mutation occurs in this stage.
+        base, mate = (graph1, graph2) if rng.random() < weight1 else (graph2, graph1)
+        evolved = base.crossed_over(
+            mate,
+            weight1=weight1,
+            mutation_rate=eff_rate,
+            mutation_strength=eff_strength,
+            rng=rng,
+        )
+    return inherit_trait_meta(parent1_trait, parent2_trait, evolved, rng)
+
+
 def inherit_behavioral_traits(
     specs: list[TraitSpec],
     parent1: "BehavioralTraits",
@@ -181,6 +253,8 @@ def inherit_behavioral_traits(
     mutation_strength: float = 0.1,
     rng: pyrandom.Random,
     available_policies: list[str] | None = None,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
 ) -> dict:
     """Build the inherited trait dict for BehavioralTraits.from_parents.
 
@@ -218,6 +292,8 @@ def inherit_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        diversity_score=diversity_score,
+        mutation_context=mutation_context,
     )
     inherited["behavior"] = inherit_trait_meta(
         parent1.behavior, parent2.behavior, behavior_val, rng
@@ -252,6 +328,22 @@ def inherit_behavioral_traits(
     inherited["mate_preferences"] = inherit_trait_meta(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
+
+    # behavior_graph, target_pursuit_module, and target_memory are each an
+    # optional GeneticTrait[T | None]; inherit_behavior_graph is generic over
+    # any T exposing to_dict/from_dict/crossed_over (not specific to
+    # BehaviorGraph - TargetMemoryParams uses the same duck-typed contract),
+    # and already no-ops without consuming RNG when neither parent has a
+    # given field (see its own graph1/graph2 None check).
+    for graph_field in ("behavior_graph", "target_pursuit_module", "target_memory"):
+        inherited[graph_field] = inherit_behavior_graph(
+            getattr(parent1, graph_field),
+            getattr(parent2, graph_field),
+            weight1=weight1,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
 
     # Inherit per-kind policy traits (new multi-policy system)
     for kind in ("movement_policy", "poker_policy", "soccer_policy"):
@@ -294,6 +386,9 @@ def recombine_behavioral_traits(
     mutation_strength: float = 0.1,
     rng: pyrandom.Random,
     available_policies: list[str] | None = None,
+    diversity_score: float | None = None,
+    mutation_context: ReproductionMutationContext | None = None,
+    parent1_dominant: bool | None = None,
 ) -> dict:
     """Build the inherited trait dict for BehavioralTraits.from_parents_recombination.
 
@@ -310,6 +405,7 @@ def recombine_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        parent1_dominant=parent1_dominant,
     )
 
     # Inherit composable behavior with recombination-style weighting
@@ -320,6 +416,8 @@ def recombine_behavioral_traits(
         mutation_rate=mutation_rate,
         mutation_strength=mutation_strength,
         rng=rng,
+        diversity_score=diversity_score,
+        mutation_context=mutation_context,
     )
     inherited["behavior"] = inherit_trait_meta(
         parent1.behavior, parent2.behavior, behavior_val, rng
@@ -360,6 +458,28 @@ def recombine_behavioral_traits(
     inherited["mate_preferences"] = inherit_trait_meta(
         parent1.mate_preferences, parent2.mate_preferences, mate_prefs, rng
     )
+
+    # Each graph field gets its own recombination weight and its own RNG-free
+    # short-circuit when neither parent has it, matching the per-kind policy
+    # loop below - so an old genome without target_pursuit_module/target_memory
+    # draws no extra RNG here (it only reaches the "both None" branch).
+    for graph_field in ("behavior_graph", "target_pursuit_module", "target_memory"):
+        parent1_trait = getattr(parent1, graph_field)
+        parent2_trait = getattr(parent2, graph_field)
+        graph1 = parent1_trait.value if parent1_trait is not None else None
+        graph2 = parent2_trait.value if parent2_trait is not None else None
+        if graph1 is None and graph2 is None:
+            inherited[graph_field] = None
+            continue
+        graph_weight = 1.0 if rng.random() < parent1_probability else 0.0
+        inherited[graph_field] = inherit_behavior_graph(
+            parent1_trait,
+            parent2_trait,
+            weight1=graph_weight,
+            mutation_rate=mutation_rate,
+            mutation_strength=mutation_strength,
+            rng=rng,
+        )
 
     # Inherit per-kind policy traits (new multi-policy system)
     for kind in ("movement_policy", "poker_policy", "soccer_policy"):

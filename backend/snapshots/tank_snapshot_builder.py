@@ -8,6 +8,7 @@ from typing import Any
 
 from backend.state_payloads import EntitySnapshot
 from core.config.plants import PLANT_NECTAR_ENERGY
+from core.tank_objects import TankObject
 
 logger = logging.getLogger(__name__)
 
@@ -136,11 +137,15 @@ class TankSnapshotBuilder:
             self._enrich_nectar(snapshot, entity)
         elif entity_type == "food":
             self._enrich_food(snapshot, entity)
+        elif entity_type == "resource_patch":
+            self._enrich_resource_patch(snapshot, entity)
         elif entity_type == "crab":
             self._enrich_crab(snapshot, entity)
         elif entity_type == "castle":
             # Castle is simple, just needs type (already set)
             pass
+        elif isinstance(entity, TankObject):
+            self._enrich_tank_object(snapshot, entity)
         elif entity_type == "ball":
             self._enrich_ball(snapshot, entity)
         elif entity_type == "goalzone" or entity_type == "goal_zone":
@@ -148,6 +153,24 @@ class TankSnapshotBuilder:
 
         self._apply_render_hint_overlay(snapshot)
         return snapshot
+
+    def _enrich_tank_object(self, snapshot: EntitySnapshot, obj: TankObject) -> None:
+        """Expose human/UI metadata without changing organism observations."""
+        snapshot.render_hint = {
+            "style": "tank_object",
+            "kind": obj.object_kind,
+            "object_id": obj.object_id,
+            "rotation": obj.rotation,
+            "capabilities": [
+                {
+                    "capability_id": config.get("capability_id"),
+                    "type": config.get("type"),
+                    "resource_type": config.get("resource_type"),
+                    "trigger": config.get("trigger", {}).get("type"),
+                }
+                for config in obj.capability_config
+            ],
+        }
 
     def _apply_render_hint_overlay(self, snapshot: EntitySnapshot) -> None:
         if self._view_mode != "topdown":
@@ -182,6 +205,16 @@ class TankSnapshotBuilder:
         snapshot.generation = fish.generation
         snapshot.age = fish.age
         snapshot.species = fish.species
+
+        snapshot.taxonomy = {
+            "taxon_id": getattr(fish, "taxon_id", ""),
+            "common_name": getattr(fish, "common_name", ""),
+            "scientific_name": getattr(fish, "scientific_name", ""),
+            "strain_id": getattr(fish, "strain_id", None),
+            "species_confidence": getattr(fish, "species_confidence", ""),
+            "origin_tank_id": getattr(fish, "origin_tank_id", None),
+            "type_specimen_id": getattr(fish, "type_specimen_id", None),
+        }
 
         # Render hints & Genome Data
         if hasattr(fish, "genome"):
@@ -281,6 +314,16 @@ class TankSnapshotBuilder:
         snapshot.energy = energy
         snapshot.food_type = getattr(food, "food_type", "regular")
 
+    def _enrich_resource_patch(self, snapshot: EntitySnapshot, patch: Any) -> None:
+        snapshot.food_type = getattr(patch, "food_type", "algae")
+        stock = float(getattr(patch, "energy", 0.0))
+        max_stock = float(getattr(patch, "max_energy", 0.0))
+        snapshot.render_hint = {
+            "style": "resource_patch",
+            "kind": snapshot.food_type,
+            "stock_ratio": stock / max_stock if max_stock else 0.0,
+        }
+
     def _enrich_crab(self, snapshot: EntitySnapshot, crab: Any) -> None:
         snapshot.energy = crab.energy
         can_hunt = getattr(crab, "can_hunt", True)
@@ -302,8 +345,15 @@ class TankSnapshotBuilder:
         }
 
     def _get_z_order(self, snapshot: EntitySnapshot) -> int:
-        if snapshot.type == "castle":
+        if snapshot.type in ("castle", "protein_grotto"):
             return 0
-        if snapshot.type in ("plant", "food", "plant_nectar"):
+        if snapshot.type in (
+            "algae_reef",
+            "decorative_rock",
+            "plant",
+            "food",
+            "resource_patch",
+            "plant_nectar",
+        ):
             return 1
         return 2

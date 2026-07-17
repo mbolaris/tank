@@ -51,7 +51,6 @@ Design Notes:
 """
 
 from dataclasses import dataclass
-from typing import Any
 
 # ============================================================================
 # Base ID Type
@@ -87,7 +86,7 @@ class EntityId:
         """Debug representation."""
         return f"{self.__class__.__name__}({self.value})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Compare to same type or raw int."""
         if isinstance(other, self.__class__):
             return self.value == other.value
@@ -99,7 +98,7 @@ class EntityId:
         """Hash based on value (same as raw int)."""
         return hash(self.value)
 
-    def __lt__(self, other: Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         """Less than comparison."""
         if isinstance(other, self.__class__):
             return self.value < other.value
@@ -107,7 +106,7 @@ class EntityId:
             return self.value < other
         return NotImplemented
 
-    def __le__(self, other: Any) -> bool:
+    def __le__(self, other: object) -> bool:
         """Less than or equal comparison."""
         if isinstance(other, self.__class__):
             return self.value <= other.value
@@ -115,7 +114,7 @@ class EntityId:
             return self.value <= other
         return NotImplemented
 
-    def __gt__(self, other: Any) -> bool:
+    def __gt__(self, other: object) -> bool:
         """Greater than comparison."""
         if isinstance(other, self.__class__):
             return self.value > other.value
@@ -123,7 +122,7 @@ class EntityId:
             return self.value > other
         return NotImplemented
 
-    def __ge__(self, other: Any) -> bool:
+    def __ge__(self, other: object) -> bool:
         """Greater than or equal comparison."""
         if isinstance(other, self.__class__):
             return self.value >= other.value

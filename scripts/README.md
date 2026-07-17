@@ -40,6 +40,9 @@ PYTHONPATH=. python scripts/<name>.py --help
 
 ## Diagnosis
 
+- `diagnose.py`: Setup-oriented checkout health check. Verifies Python imports,
+  a 100-frame headless sim, dev tools, and frontend dependencies, with one-line
+  remedies for failures.
 - `diagnose_food_seeking.py`: Checks whether fish are foraging or stuck
   clustering around the soccer ball (a common starvation cause — see CLAUDE.md).
 - `diagnose_poker_evolution.py`: Diagnoses stalls in the poker evolution loop.

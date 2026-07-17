@@ -6,20 +6,39 @@ for the simulation, extracting this logic from the main StatsCalculator.
 
 import logging
 import statistics
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
 
+from core.config.fish import (
+    BODY_ASPECT_MAX,
+    BODY_ASPECT_MIN,
+    EYE_SIZE_MAX,
+    EYE_SIZE_MIN,
+    FISH_ADULT_SIZE,
+    FISH_PATTERN_COUNT,
+    FISH_SIZE_MODIFIER_MAX,
+    FISH_SIZE_MODIFIER_MIN,
+    FISH_TEMPLATE_COUNT,
+    LIFESPAN_MODIFIER_MAX,
+    LIFESPAN_MODIFIER_MIN,
+)
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 from core.genetics.physical import PHYSICAL_TRAIT_SPECS
+from core.genetics.trait import TraitSpec
 from core.services.stats.utils import humanize_gene_label
-from core.statistics_utils import compute_meta_stats, create_histogram
+from core.statistics_utils import GeneDistribution, compute_meta_stats, create_histogram
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
+# Values that flow into the flat (dynamically-keyed) stats dict, e.g.
+# "adult_size_min", "adult_size_bins", ...
+StatValue = float | list[int] | list[float]
+GeneStatsValue = StatValue | dict[str, list[dict[str, object]]]
 
-def get_genetic_distribution_stats(fish_list: list["Fish"]) -> dict[str, Any]:
+
+def get_genetic_distribution_stats(fish_list: list["Fish"]) -> dict[str, GeneStatsValue]:
     """Get genetic trait distribution statistics with histograms.
 
     Args:
@@ -28,7 +47,7 @@ def get_genetic_distribution_stats(fish_list: list["Fish"]) -> dict[str, Any]:
     Returns:
         Dictionary with genetic stats (adult size, eye size, fin size, etc.)
     """
-    stats: dict[str, Any] = {}
+    stats: dict[str, GeneStatsValue] = {}
 
     # Calculate individual physical trait stats
     # We use specific helpers for the main dashboard widgets that expect specific formats
@@ -46,14 +65,14 @@ def get_genetic_distribution_stats(fish_list: list["Fish"]) -> dict[str, Any]:
     built_dists = _build_gene_distributions(fish_list)
 
     # Merge composable behavior traits into behavioral list
-    composable_dists = _get_composable_behavior_distributions(fish_list)
-    built_dists["behavioral"].extend(composable_dists)
+    built_dists["behavioral"].extend(_get_composable_behavior_distributions(fish_list))
 
     # Merge composable poker strategy traits into behavioral list
-    poker_dists = _get_poker_strategy_distributions(fish_list)
-    built_dists["behavioral"].extend(poker_dists)
+    built_dists["behavioral"].extend(_get_poker_strategy_distributions(fish_list))
 
-    stats["gene_distributions"] = built_dists
+    stats["gene_distributions"] = {
+        category: [dist.to_dict() for dist in dists] for category, dists in built_dists.items()
+    }
 
     return stats
 
@@ -85,7 +104,7 @@ def _get_trait_values(
 
 def _compute_numeric_stats(
     values: list[float], min_val: float, max_val: float, key_prefix: str
-) -> dict[str, Any]:
+) -> dict[str, StatValue]:
     """Compute standard stats and histogram for a list of values."""
     if not values:
         return {
@@ -109,9 +128,7 @@ def _compute_numeric_stats(
     }
 
 
-def _get_adult_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
-
+def _get_adult_size_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     # Calculate actual size (base * modifier)
     values = []
     for f in fish_list:
@@ -125,95 +142,77 @@ def _get_adult_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
     return _compute_numeric_stats(values, min_size, max_size, "adult_size")
 
 
-def _get_eye_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import EYE_SIZE_MAX, EYE_SIZE_MIN
-
+def _get_eye_size_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "eye_size", "physical")
     return _compute_numeric_stats(values, EYE_SIZE_MIN, EYE_SIZE_MAX, "eye_size")
 
 
-def _get_fin_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
+def _get_fin_size_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     # Hardcoded bounds from trait specs if not in config
     values = _get_trait_values(fish_list, "fin_size", "physical")
     return _compute_numeric_stats(values, 0.5, 2.0, "fin_size")
 
 
-def _get_tail_size_stats(fish_list: list["Fish"]) -> dict[str, Any]:
+def _get_tail_size_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "tail_size", "physical")
     return _compute_numeric_stats(values, 0.5, 2.0, "tail_size")
 
 
-def _get_body_aspect_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import BODY_ASPECT_MAX, BODY_ASPECT_MIN
-
+def _get_body_aspect_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "body_aspect", "physical")
     return _compute_numeric_stats(values, BODY_ASPECT_MIN, BODY_ASPECT_MAX, "body_aspect")
 
 
-def _get_template_id_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_TEMPLATE_COUNT
-
+def _get_template_id_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "template_id", "physical")
     # For discrete values, use min/max of possible range for histogram
     return _compute_numeric_stats(values, 0, FISH_TEMPLATE_COUNT - 1, "template_id")
 
 
-def _get_pattern_type_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import FISH_PATTERN_COUNT
-
+def _get_pattern_type_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "pattern_type", "physical")
     return _compute_numeric_stats(values, 0, FISH_PATTERN_COUNT - 1, "pattern_type")
 
 
-def _get_pattern_intensity_stats(fish_list: list["Fish"]) -> dict[str, Any]:
+def _get_pattern_intensity_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "pattern_intensity", "physical")
     return _compute_numeric_stats(values, 0.0, 1.0, "pattern_intensity")
 
 
-def _get_lifespan_modifier_stats(fish_list: list["Fish"]) -> dict[str, Any]:
-    from core.config.fish import LIFESPAN_MODIFIER_MAX, LIFESPAN_MODIFIER_MIN
-
+def _get_lifespan_modifier_stats(fish_list: list["Fish"]) -> dict[str, StatValue]:
     values = _get_trait_values(fish_list, "lifespan_modifier", "physical")
     return _compute_numeric_stats(
         values, LIFESPAN_MODIFIER_MIN, LIFESPAN_MODIFIER_MAX, "lifespan_modifier"
     )
 
 
-def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
+def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, list[GeneDistribution]]:
     """Build dynamic gene distributions for frontend."""
 
-    def meta_for_traits(traits: list[Any]) -> dict[str, float]:
-        return compute_meta_stats(traits).to_dict()
-
     def build_from_specs(
-        *, category: str, traits_attr: str, specs: list[Any]
-    ) -> list[dict[str, Any]]:
+        *, category: str, traits_attr: str, specs: list[TraitSpec]
+    ) -> list[GeneDistribution]:
         out = []
 
         # If no fish, emit empty structures
         if not fish_list:
             for spec in specs:
                 out.append(
-                    {
-                        "key": spec.name,
-                        "label": humanize_gene_label(spec.name),
-                        "category": category,
-                        "discrete": bool(getattr(spec, "discrete", False)),
-                        "allowed_min": float(spec.min_val),
-                        "allowed_max": float(spec.max_val),
-                        "min": 0.0,
-                        "max": 0.0,
-                        "median": 0.0,
-                        "bins": [],
-                        "bin_edges": [],
-                        "meta": meta_for_traits([]),
-                    }
+                    GeneDistribution(
+                        key=spec.name,
+                        label=humanize_gene_label(spec.name),
+                        category=category,
+                        discrete=spec.discrete,
+                        allowed_min=float(spec.min_val),
+                        allowed_max=float(spec.max_val),
+                        meta=compute_meta_stats([]),
+                    )
                 )
             return out
 
         for spec in specs:
             # Collect traits
-            traits = []
+            traits: list[object] = []
             for f in fish_list:
                 if not hasattr(f, "genome"):
                     continue
@@ -237,24 +236,21 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
                 min_val = min(values)
                 max_val = max(values)
 
-            # Evolvability meta-stats
-            meta = meta_for_traits(traits)
-
             out.append(
-                {
-                    "key": spec.name,
-                    "label": humanize_gene_label(spec.name),
-                    "category": category,
-                    "discrete": bool(getattr(spec, "discrete", False)),
-                    "allowed_min": float(spec.min_val),
-                    "allowed_max": float(spec.max_val),
-                    "min": min_val,
-                    "max": max_val,
-                    "median": median_val,
-                    "bins": bins,
-                    "bin_edges": edges,
-                    "meta": meta,
-                }
+                GeneDistribution(
+                    key=spec.name,
+                    label=humanize_gene_label(spec.name),
+                    category=category,
+                    discrete=spec.discrete,
+                    allowed_min=float(spec.min_val),
+                    allowed_max=float(spec.max_val),
+                    min=min_val,
+                    max=max_val,
+                    median=median_val,
+                    bins=bins,
+                    bin_edges=edges,
+                    meta=compute_meta_stats(traits),
+                )
             )
         return out
 
@@ -267,12 +263,10 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
 
     # Derived Adult Size Distribution
     try:
-        from core.config.fish import FISH_ADULT_SIZE, FISH_SIZE_MODIFIER_MAX, FISH_SIZE_MODIFIER_MIN
-
         allowed_min = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MIN)
         allowed_max = float(FISH_ADULT_SIZE * FISH_SIZE_MODIFIER_MAX)
 
-        size_traits = []
+        size_traits: list[object] = []
         adult_sizes = []
         for f in fish_list:
             if (
@@ -294,20 +288,20 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
 
         physical.insert(
             0,
-            {
-                "key": "adult_size",
-                "label": humanize_gene_label("adult_size"),
-                "category": "physical",
-                "discrete": False,
-                "allowed_min": allowed_min,
-                "allowed_max": allowed_max,
-                "min": min_val,
-                "max": max_val,
-                "median": median_val,
-                "bins": bins,
-                "bin_edges": edges,
-                "meta": meta_for_traits(size_traits),
-            },
+            GeneDistribution(
+                key="adult_size",
+                label=humanize_gene_label("adult_size"),
+                category="physical",
+                discrete=False,
+                allowed_min=allowed_min,
+                allowed_max=allowed_max,
+                min=min_val,
+                max=max_val,
+                median=median_val,
+                bins=bins,
+                bin_edges=edges,
+                meta=compute_meta_stats(size_traits),
+            ),
         )
     except Exception:
         logger.debug("Failed to compute size distribution stats", exc_info=True)
@@ -318,7 +312,7 @@ def _build_gene_distributions(fish_list: list["Fish"]) -> dict[str, Any]:
     }
 
 
-def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[dict[str, Any]]:
+def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[GeneDistribution]:
     """Get distributions for composable behavior system."""
     if not fish_list:
         return []
@@ -329,14 +323,11 @@ def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[dict
     except ImportError:
         return []
 
-    def meta_for_traits(traits: list[Any]) -> dict[str, float]:
-        return compute_meta_stats(traits).to_dict()
-
     distributions = []
 
     # 1. Threat Response
     threat_vals = []
-    threat_traits = []
+    threat_traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):
@@ -355,25 +346,25 @@ def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[dict
         bins, edges = create_histogram(threat_vals, min_val, max_val, num_bins=max_val + 1)
 
         distributions.append(
-            {
-                "key": "threat_response",
-                "label": "Threat Response",
-                "category": "behavioral",
-                "discrete": True,
-                "allowed_min": min_val,
-                "allowed_max": max_val,
-                "min": min(threat_vals),
-                "max": max(threat_vals),
-                "median": statistics.median(threat_vals),
-                "bins": bins,
-                "bin_edges": edges,
-                "meta": meta_for_traits(threat_traits),
-            }
+            GeneDistribution(
+                key="threat_response",
+                label="Threat Response",
+                category="behavioral",
+                discrete=True,
+                allowed_min=min_val,
+                allowed_max=max_val,
+                min=min(threat_vals),
+                max=max(threat_vals),
+                median=statistics.median(threat_vals),
+                bins=bins,
+                bin_edges=edges,
+                meta=compute_meta_stats(threat_traits),
+            )
         )
 
     # 2. Food Approach
     food_vals = []
-    food_traits = []
+    food_traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):
@@ -392,26 +383,26 @@ def _get_composable_behavior_distributions(fish_list: list["Fish"]) -> list[dict
         bins, edges = create_histogram(food_vals, min_val, max_val, num_bins=max_val + 1)
 
         distributions.append(
-            {
-                "key": "food_approach",
-                "label": "Food Approach",
-                "category": "behavioral",
-                "discrete": True,
-                "allowed_min": min_val,
-                "allowed_max": max_val,
-                "min": min(food_vals),
-                "max": max(food_vals),
-                "median": statistics.median(food_vals),
-                "bins": bins,
-                "bin_edges": edges,
-                "meta": meta_for_traits(food_traits),
-            }
+            GeneDistribution(
+                key="food_approach",
+                label="Food Approach",
+                category="behavioral",
+                discrete=True,
+                allowed_min=min_val,
+                allowed_max=max_val,
+                min=min(food_vals),
+                max=max(food_vals),
+                median=statistics.median(food_vals),
+                bins=bins,
+                bin_edges=edges,
+                meta=compute_meta_stats(food_traits),
+            )
         )
 
     return distributions
 
 
-def _get_poker_strategy_distributions(fish_list: list["Fish"]) -> list[dict[str, Any]]:
+def _get_poker_strategy_distributions(fish_list: list["Fish"]) -> list[GeneDistribution]:
     """Get distributions for poker strategy traits."""
     if not fish_list:
         return []
@@ -421,13 +412,10 @@ def _get_poker_strategy_distributions(fish_list: list["Fish"]) -> list[dict[str,
     except ImportError:
         return []
 
-    def meta_for_traits(traits: list[Any]) -> dict[str, float]:
-        return compute_meta_stats(traits).to_dict()
-
     betting_vals: list[int] = []
     hand_vals: list[int] = []
     bluff_vals: list[int] = []
-    traits: list[Any] = []
+    traits: list[object] = []
 
     for f in fish_list:
         if not hasattr(f, "genome"):
@@ -449,25 +437,23 @@ def _get_poker_strategy_distributions(fish_list: list["Fish"]) -> list[dict[str,
     if not traits:
         return []
 
-    def build_dist(key: str, label: str, values: list[int]) -> dict[str, Any]:
-        if not values:
-            return {}
+    def build_dist(key: str, label: str, values: list[int]) -> GeneDistribution:
         min_val, max_val = 0, 3
         bins, edges = create_histogram(values, min_val, max_val, num_bins=4)
-        return {
-            "key": key,
-            "label": label,
-            "category": "behavioral",
-            "discrete": True,
-            "allowed_min": min_val,
-            "allowed_max": max_val,
-            "min": min(values),
-            "max": max(values),
-            "median": statistics.median(values),
-            "bins": bins,
-            "bin_edges": edges,
-            "meta": meta_for_traits(traits),
-        }
+        return GeneDistribution(
+            key=key,
+            label=label,
+            category="behavioral",
+            discrete=True,
+            allowed_min=min_val,
+            allowed_max=max_val,
+            min=min(values),
+            max=max(values),
+            median=statistics.median(values),
+            bins=bins,
+            bin_edges=edges,
+            meta=compute_meta_stats(traits),
+        )
 
     dists = []
     if hand_vals:

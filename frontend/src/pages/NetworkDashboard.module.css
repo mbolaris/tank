@@ -1,0 +1,109 @@
+.page {
+    box-sizing: border-box;
+}
+
+.content,
+.serverDetails,
+.tankCardHeader > div:first-child {
+    min-width: 0;
+}
+
+.snapshotLoading {
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(59, 130, 246, 0.1);
+    color: #93c5fd;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tankStatsRow {
+    display: flex;
+    justify-content: space-between;
+}
+
+@media (max-width: 600px) {
+    .page {
+        padding: 16px !important;
+    }
+
+    .dashboardHeader {
+        align-items: flex-start !important;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px !important;
+    }
+
+    .headerActions {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px !important;
+    }
+
+    .headerActions button {
+        min-height: 44px;
+        padding: 10px 12px !important;
+    }
+
+    .serverHeader {
+        padding: 16px !important;
+    }
+
+    .serverHeaderRow,
+    .serverTitleRow,
+    .serverMeta {
+        flex-wrap: wrap;
+    }
+
+    .serverHeaderRow {
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    .serverTitleRow,
+    .serverMeta {
+        gap: 6px 10px !important;
+        line-height: 1.4;
+    }
+
+    .serverPlatformMeta {
+        gap: 6px !important;
+    }
+
+    .serverPlatformMeta span {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .serverWorldCount {
+        text-align: left !important;
+    }
+
+    .tankGrid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .tankCardHeader {
+        align-items: flex-start !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tankStatus {
+        width: 100%;
+    }
+
+    .tankActions {
+        flex-wrap: wrap;
+    }
+
+    .tankStatsRow {
+        gap: 8px;
+    }
+
+    .tankActions button,
+    .tankActions a {
+        min-height: 36px;
+    }
+}

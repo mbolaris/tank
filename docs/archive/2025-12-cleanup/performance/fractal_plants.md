@@ -1,3 +1,5 @@
+> Archived 2025-12.
+
 # Fractal plant performance review
 
 This note summarizes the most expensive parts of the fractal plant pipeline across the simulation engine and renderer, plus a small targeted optimization.

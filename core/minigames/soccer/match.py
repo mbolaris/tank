@@ -65,6 +65,7 @@ class SoccerMatch:
         code_source: GenomeCodePool | None = None,
         view_mode: str = "side",
         seed: int | None = None,
+        target_pursuit_module_enabled: bool | None = None,
     ):
         """Initialize a new soccer match.
 
@@ -75,6 +76,7 @@ class SoccerMatch:
             code_source: Optional code pool for policy lookup
             view_mode: Rendering style ("side" for fish, "top" for microbes)
             seed: Random seed for deterministic matches
+            target_pursuit_module_enabled: Whether to enable target pursuit module interception
         """
         self.match_id = match_id
         self.duration_frames = duration_frames
@@ -84,6 +86,9 @@ class SoccerMatch:
         self.message = "Match starting..."
         self.view_mode = view_mode
         self._last_goal_event: dict[str, Any] | None = None
+        self.target_pursuit_module_enabled = target_pursuit_module_enabled or False
+        # Every goal event of the match (for per-player scoring stats)
+        self.goal_log: list[dict[str, Any]] = []
 
         # Convert entities to participants (entity-agnostic adapter)
         self.participants, self._entity_by_participant_id = create_participants(entities)
@@ -189,6 +194,7 @@ class SoccerMatch:
                     event = dict(event)
                     event["frame"] = self.current_frame
                     self._last_goal_event = event
+                    self.goal_log.append(event)
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
 
@@ -231,6 +237,7 @@ class SoccerMatch:
         """
         from core.minigames.soccer.policy_adapter import (
             action_to_command,
+            attach_target_pursuit_vector,
             build_observation,
             run_policy,
         )
@@ -242,6 +249,19 @@ class SoccerMatch:
             obs = build_observation(self._engine, player_id, self._params)
             if not obs:
                 continue
+
+            # Inject target pursuit module if enabled
+            if self.target_pursuit_module_enabled:
+                genome = getattr(participant, "genome_ref", None) or getattr(
+                    participant, "genome", None
+                )
+                module = None
+                if genome is not None:
+                    module_trait = getattr(genome.behavioral, "target_pursuit_module", None)
+                    module = module_trait.value if module_trait is not None else None
+                attach_target_pursuit_vector(obs, module)
+            else:
+                obs["soccer_target_pursuit_enabled"] = False
 
             # Fork RNG for this player's policy execution (deterministic per player)
             player_rng = fork_rng(self._rng)

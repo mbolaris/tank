@@ -6,12 +6,12 @@ monitors their execution, and opens the app in the default browser.
 """
 
 import os
-import sys
-import socket
-import time
 import signal
+import socket
 import subprocess
+import sys
 import threading
+import time
 import webbrowser
 
 # Reconfigure stdout/stderr to UTF-8 to prevent encoding crashes on Windows with emojis
@@ -48,15 +48,23 @@ def print_banner():
         print(f"{CYAN}╔{'═' * (width - 2)}╗{RESET}")
         print(f"{CYAN}║{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}║{RESET}")
         print(f"{CYAN}╠{'═' * (width - 2)}╣{RESET}")
-        print(f"{CYAN}║{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}║{RESET}")
-        print(f"{CYAN}║{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}║{RESET}")
+        print(
+            f"{CYAN}║{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}║{RESET}"
+        )
+        print(
+            f"{CYAN}║{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}║{RESET}"
+        )
         print(f"{CYAN}╚{'═' * (width - 2)}╝{RESET}")
     except UnicodeEncodeError:
         print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
         print(f"{CYAN}|{BOLD}{' TANK WORLD DEVELOPMENT RUNNER ':^58}{RESET}{CYAN}|{RESET}")
         print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
-        print(f"{CYAN}|{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}|{RESET}")
-        print(f"{CYAN}|{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}|{RESET}")
+        print(
+            f"{CYAN}|{GRAY}{'Starting FastAPI backend & Vite React frontend...':^58}{RESET}{CYAN}|{RESET}"
+        )
+        print(
+            f"{CYAN}|{GRAY}{'Press Ctrl+C to terminate both servers cleanly.':^58}{RESET}{CYAN}|{RESET}"
+        )
         print(f"{CYAN}+{'=' * (width - 2)}+{RESET}")
     print()
 
@@ -104,14 +112,10 @@ def run_preflight_checks(python_exe):
     frontend_dir = os.path.join(os.getcwd(), "frontend")
     node_modules_dir = os.path.join(frontend_dir, "node_modules")
     if not os.path.exists(node_modules_dir):
-        print(
-            f"{YELLOW}⚠️  node_modules not found in frontend/. Running 'npm install'...{RESET}"
-        )
+        print(f"{YELLOW}⚠️  node_modules not found in frontend/. Running 'npm install'...{RESET}")
         try:
             use_shell = sys.platform == "win32"
-            subprocess.run(
-                ["npm", "install"], cwd=frontend_dir, shell=use_shell, check=True
-            )
+            subprocess.run(["npm", "install"], cwd=frontend_dir, shell=use_shell, check=True)
             print(f"{GREEN}✓ npm install completed successfully.{RESET}")
         except (subprocess.CalledProcessError, FileNotFoundError):
             print(
@@ -227,12 +231,16 @@ def main():
             # If either process died, abort
             backend_exit = backend_proc.poll()
             if backend_exit is not None:
-                print(f"\n{RED}❌ Backend server exited unexpectedly with code {backend_exit}{RESET}")
+                print(
+                    f"\n{RED}❌ Backend server exited unexpectedly with code {backend_exit}{RESET}"
+                )
                 break
 
             frontend_exit = frontend_proc.poll()
             if frontend_exit is not None:
-                print(f"\n{RED}❌ Frontend server exited unexpectedly with code {frontend_exit}{RESET}")
+                print(
+                    f"\n{RED}❌ Frontend server exited unexpectedly with code {frontend_exit}{RESET}"
+                )
                 break
 
             time.sleep(1)

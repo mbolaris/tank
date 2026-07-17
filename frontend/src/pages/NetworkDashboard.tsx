@@ -5,7 +5,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { config, type WorldStatus, type ServerWithWorlds } from '../config';
 import { TankThumbnail } from '../components/TankThumbnail';
 import { TransferHistory } from '../components/TransferHistory';
@@ -16,6 +15,8 @@ import type {
     SimulationUpdate,
 } from '../types/simulation';
 import { PokerScoreDisplay } from '../components/PokerScoreDisplay';
+import { NetworkTankActions } from '../components/NetworkTankActions';
+import styles from './NetworkDashboard.module.css';
 
 /** Player data from poker performance snapshots */
 type SnapshotPlayer = PokerPerformanceSnapshot['players'][number];
@@ -131,18 +132,18 @@ export function NetworkDashboard() {
     };
 
     return (
-        <div style={{
+        <div className={styles.page} style={{
             minHeight: '100vh',
             backgroundColor: '#0a0f1a',
             color: '#e2e8f0',
             padding: '24px',
         }}>
-            <div style={{
+            <div className={styles.content} style={{
                 maxWidth: '1400px',
                 margin: '0 auto',
             }}>
                 {/* Header */}
-                <div style={{
+                <div className={styles.dashboardHeader} style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -167,7 +168,7 @@ export function NetworkDashboard() {
                             {totalWorlds} world{totalWorlds !== 1 ? 's' : ''}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div className={styles.headerActions} style={{ display: 'flex', gap: '12px' }}>
                         <button
                             onClick={() => setShowHistory(true)}
                             style={{
@@ -213,10 +214,11 @@ export function NetworkDashboard() {
                         <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Create New Tank</h3>
                         <form onSubmit={handleCreateTank}>
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
+                                <label htmlFor="tank-name" style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
                                     Tank Name
                                 </label>
                                 <input
+                                    id="tank-name"
                                     type="text"
                                     value={newTankName}
                                     onChange={(e) => setNewTankName(e.target.value)}
@@ -235,10 +237,11 @@ export function NetworkDashboard() {
                                 />
                             </div>
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
+                                <label htmlFor="tank-description" style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
                                     Description (optional)
                                 </label>
                                 <input
+                                    id="tank-description"
                                     type="text"
                                     value={newTankDescription}
                                     onChange={(e) => setNewTankDescription(e.target.value)}
@@ -256,10 +259,11 @@ export function NetworkDashboard() {
                                 />
                             </div>
                             <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
+                                <label htmlFor="tank-server" style={{ display: 'block', marginBottom: '6px', color: '#94a3b8', fontSize: '14px' }}>
                                     Server
                                 </label>
                                 <select
+                                    id="tank-server"
                                     value={selectedServerId}
                                     onChange={(e) => setSelectedServerId(e.target.value)}
                                     style={{
@@ -410,21 +414,21 @@ function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardPro
     ].filter(Boolean) as string[];
 
     return (
-        <div style={{
+        <div className={styles.serverCard} style={{
             backgroundColor: '#1e293b',
             borderRadius: '12px',
             border: '2px solid #334155',
             overflow: 'hidden',
         }}>
             {/* Server Header */}
-            <div style={{
+            <div className={styles.serverHeader} style={{
                 padding: '20px 24px',
                 borderBottom: '1px solid #334155',
                 backgroundColor: '#0f172a',
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <div className={styles.serverHeaderRow} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className={styles.serverDetails}>
+                        <div className={styles.serverTitleRow} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                             <h2 style={{
                                 margin: 0,
                                 fontSize: '20px',
@@ -460,7 +464,7 @@ function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardPro
                                 v{server.version}
                             </span>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', gap: '16px' }}>
+                        <div className={styles.serverMeta} style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', gap: '16px' }}>
                             <span>{server.host}:{server.port}</span>
                             <span>&bull;</span>
                             <span>Uptime: {formatUptime(server.uptime_seconds)}</span>
@@ -478,7 +482,7 @@ function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardPro
                             )}
                         </div>
                         {platformMeta.length > 0 && (
-                            <div style={{
+                            <div className={styles.serverPlatformMeta} style={{
                                 marginTop: '8px',
                                 display: 'flex',
                                 flexWrap: 'wrap',
@@ -499,7 +503,7 @@ function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardPro
                             </div>
                         )}
                     </div>
-                    <div style={{
+                    <div className={styles.serverWorldCount} style={{
                         textAlign: 'right',
                     }}>
                         <div style={{ fontSize: '28px', fontWeight: 700, color: '#3b82f6' }}>
@@ -524,9 +528,9 @@ function ServerCard({ serverWithWorlds, onDeleteTank, onRefresh }: ServerCardPro
                         No worlds running on this server
                     </div>
                 ) : (
-                    <div style={{
+                    <div className={styles.tankGrid} style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 350px), 1fr))',
                         gap: '16px',
                     }}>
                         {[...worlds].sort((a, b) => (b.frame_count ?? 0) - (a.frame_count ?? 0)).map((tankStatus) => (
@@ -689,6 +693,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
 
     // Derived stats from fullState - stats are nested inside snapshot
     const stats = fullState?.snapshot?.stats ?? fullState?.stats;
+    const detailsReady = fullState !== null;
     const fps = stats?.fps ?? 0;
     const fast_forward = stats?.fast_forward ?? false;
     const frame = fullState?.snapshot?.frame ?? fullState?.frame ?? frame_count;
@@ -778,7 +783,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
             overflow: 'hidden',
         }}>
             {/* Card Header */}
-            <div style={{
+            <div className={styles.tankCardHeader} style={{
                 padding: '14px 16px',
                 borderBottom: '1px solid #1e293b',
                 display: 'flex',
@@ -802,7 +807,7 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                         {descriptionText}
                     </p>
                 </div>
-                <div style={{
+                <div className={styles.tankStatus} style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -824,14 +829,16 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
             </div>
 
             {/* Card Body */}
-            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }} aria-busy={!detailsReady}>
                 <TankThumbnail
                     tankId={world_id}
                     status={running ? (paused ? 'paused' : 'running') : 'stopped'}
                 />
 
                 {/* Core Stats - Single Row */}
-                <div style={{
+                {!detailsReady && <div className={styles.snapshotLoading} role="status">Loading live snapshot…</div>}
+
+                <div className={styles.tankStatsRow} style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     background: '#1e293b',
@@ -840,19 +847,19 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Fish</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats?.fish_count ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{detailsReady ? (stats?.fish_count ?? '—') : '—'}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Gen</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{stats?.max_generation ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{detailsReady ? (stats?.max_generation ?? '—') : '—'}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>Frame</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{frame?.toLocaleString() ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{detailsReady ? (frame?.toLocaleString() ?? '—') : '—'}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>FPS</div>
-                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{typeof fps === 'number' ? fps.toFixed(0) : '—'}</div>
+                        <div style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: 700 }}>{detailsReady && typeof fps === 'number' ? fps.toFixed(0) : '—'}</div>
                     </div>
                 </div>
 
@@ -866,11 +873,11 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>🐟 Energy</div>
-                        <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>{stats?.fish_energy?.toFixed(0) ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#3b82f6', fontWeight: 700 }}>{detailsReady ? (stats?.fish_energy?.toFixed(0) ?? '—') : '—'}</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '9px', color: '#94a3b8' }}>🌱 Energy</div>
-                        <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>{stats?.plant_energy?.toFixed(0) ?? 0}</div>
+                        <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 700 }}>{detailsReady ? (stats?.plant_energy?.toFixed(0) ?? '—') : '—'}</div>
                     </div>
                     {stats?.poker_stats && stats.poker_stats.total_games > 0 && (
                         <div style={{ textAlign: 'center' }}>
@@ -971,74 +978,17 @@ function TankCard({ tankStatus, onDelete, onRefresh }: TankCardProps) {
                     );
                 })()}
 
-                {/* Actions */}
-                <div style={{
-                    display: 'flex',
-                    gap: '6px',
-                }}>
-                    <button
-                        onClick={() => sendTankCommand(paused ? 'resume' : 'pause')}
+                <div className={styles.tankActions}>
+                    <NetworkTankActions
+                        worldId={world_id}
+                        name={name}
+                        paused={paused}
+                        fastForward={fast_forward}
                         disabled={actionLoading || !running}
-                        style={{
-                            padding: '6px 10px',
-                            backgroundColor: paused ? '#3b82f6' : '#f59e0b',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
-                            fontWeight: 600,
-                            fontSize: '11px',
-                        }}
-                    >
-                        {paused ? '▶' : '⏸'}
-                    </button>
-                    <button
-                        onClick={toggleFastForward}
-                        disabled={actionLoading || !running}
-                        style={{
-                            padding: '6px 10px',
-                            backgroundColor: fast_forward ? '#a855f7' : '#475569',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: (!running || actionLoading) ? 'not-allowed' : 'pointer',
-                            fontWeight: 600,
-                            fontSize: '11px',
-                        }}
-                        title={fast_forward ? 'Normal Speed' : 'Fast Forward'}
-                    >
-                        {fast_forward ? '⏩' : '⏩'}
-                    </button>
-                    <Link
-                        to={`/tank/${world_id}`}
-                        style={{
-                            flex: 1,
-                            padding: '6px',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            textDecoration: 'none',
-                            borderRadius: '4px',
-                            textAlign: 'center',
-                            fontWeight: 600,
-                            fontSize: '11px',
-                        }}
-                    >
-                        View
-                    </Link>
-                    <button
-                        onClick={onDelete}
-                        style={{
-                            padding: '6px 10px',
-                            backgroundColor: 'transparent',
-                            color: '#ef4444',
-                            border: '1px solid #ef4444',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                        }}
-                    >
-                        ✕
-                    </button>
+                        onPause={() => sendTankCommand(paused ? 'resume' : 'pause')}
+                        onFastForward={toggleFastForward}
+                        onDelete={onDelete}
+                    />
                 </div>
             </div>
         </div>

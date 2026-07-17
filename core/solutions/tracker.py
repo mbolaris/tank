@@ -205,7 +205,7 @@ class SolutionTracker:
         tournament_scores.sort(key=lambda x: x[1], reverse=True)
         return tournament_scores[:top_n]
 
-    def _estimate_elo(self, stats) -> float:
+    def _estimate_elo(self, stats: Any) -> float:
         """Estimate Elo rating from poker stats.
 
         This is a rough estimate based on win rate and ROI.

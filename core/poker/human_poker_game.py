@@ -558,13 +558,12 @@ class HumanPokerGame:
             bet_amount = 0.0
         elif action == "call":
             if call_amount == 0:
-                return {
-                    "success": False,
-                    "error": "Nothing to call - use check instead",
-                    "state": self.get_state(),
-                }
-            action_enum = BettingAction.CALL
-            bet_amount = 0.0
+                # Silently treat call as check to be robust against client-server race conditions/delays
+                action_enum = BettingAction.CHECK
+                bet_amount = 0.0
+            else:
+                action_enum = BettingAction.CALL
+                bet_amount = 0.0
         elif action in ["raise", "bet"]:
             if amount <= 0:
                 return {

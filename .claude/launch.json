@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tank-backend",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["main.py"],
+      "port": 8000
+    },
+    {
+      "name": "tank-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

@@ -11,8 +11,12 @@ forcing fish to evolve strategies to beat them. Successful plants
 import random
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from core.util.rng import require_rng_param
+
+if TYPE_CHECKING:
+    from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 
 
 class PlantStrategyType(Enum):
@@ -395,7 +399,9 @@ def get_all_strategy_types() -> list[PlantStrategyType]:
     return list(PlantStrategyType)
 
 
-def get_poker_strategy_for_type(strategy_type: PlantStrategyType, rng: random.Random | None = None):
+def get_poker_strategy_for_type(
+    strategy_type: PlantStrategyType, rng: random.Random | None = None
+) -> "PokerStrategyAlgorithm":
     """Get the corresponding poker strategy implementation for a plant strategy type.
 
     Returns:

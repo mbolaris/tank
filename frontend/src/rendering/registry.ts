@@ -24,8 +24,6 @@ type RendererFactory = () => Renderer;
 
 class RendererRegistry {
     private factories: Map<string, RendererFactory> = new Map();
-    // Cache instantiated renderers: key = "worldType:viewMode"
-    private instances: Map<string, Renderer> = new Map();
 
     register(worldType: WorldType, viewMode: ViewMode, factory: RendererFactory) {
         const key = this.getKey(worldType, viewMode);
@@ -34,23 +32,16 @@ class RendererRegistry {
 
     getRenderer(worldType: WorldType, viewMode: ViewMode): Renderer {
         const key = this.getKey(worldType, viewMode);
-
-        if (!this.instances.has(key)) {
-            const factory = this.factories.get(key);
-            if (factory) {
-                this.instances.set(key, factory());
-            } else {
-                return new FallbackRenderer();
-            }
+        const factory = this.factories.get(key);
+        if (factory) {
+            return factory();
         }
-
-        return this.instances.get(key)!;
+        return new FallbackRenderer();
     }
 
     // Helper to clear instances if we need to full reset (e.g. hmr)
     reset() {
-        this.instances.forEach(r => r.dispose());
-        this.instances.clear();
+        // No cached instances to clear anymore as renderers are instantiated per canvas
     }
 
     // Check if a renderer is registered for this world/view combination

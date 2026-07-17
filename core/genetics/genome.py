@@ -8,19 +8,37 @@ import logging
 import random as pyrandom
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import core.genetics.expression as expression
 from core.exceptions import GeneticsError
-from core.genetics.behavioral import BehavioralTraits
-from core.genetics.genome_codec import genome_debug_snapshot, genome_from_dict, genome_to_dict
-from core.genetics.physical import PhysicalTraits
-from core.genetics.reproduction import ReproductionParams
-from core.genetics.validation import validate_traits_from_specs
+from core.genetics.behavioral import (
+    BEHAVIORAL_TRAIT_SPECS,
+    BehavioralTraits,
+    validate_policy_fields,
+)
+from core.genetics.code_policy_traits import SOCCER_POLICY
+from core.genetics.genome_codec import (
+    genome_debug_snapshot,
+    genome_from_dict,
+    genome_schema_version_for,
+    genome_to_dict,
+)
+from core.genetics.physical import PHYSICAL_TRAIT_SPECS, PhysicalTraits
+from core.genetics.reproduction import ReproductionMutationContext, ReproductionParams
+from core.genetics.trait import GeneticTrait
+from core.genetics.validation import (
+    validate_graph_trait,
+    validate_target_memory_trait,
+    validate_traits_from_specs,
+)
 from core.util.rng import require_rng_param
 
+if TYPE_CHECKING:
+    from core.code_pool.genome_code_pool import GenomeCodePool
+
 logger = logging.getLogger(__name__)
-GENOME_SCHEMA_VERSION = 2  # Bumped from 1: added code_policy_{kind,component_id,params}
+GENOME_SCHEMA_VERSION = 5  # Bumped from 4: added optional opt-in target_memory.
 
 
 class GeneticCrossoverMode(Enum):
@@ -50,6 +68,8 @@ class Genome:
     # OPTIMIZATION: Cache for computed properties to avoid repeated calculations
     _speed_modifier_cache: float | None = field(default=None, repr=False, compare=False)
     _metabolism_rate_cache: float | None = field(default=None, repr=False, compare=False)
+    # Precomputed trait values for genetic_distance (see core/genetics/diversity.py)
+    _distance_profile_cache: Any = field(default=None, repr=False, compare=False)
 
     @property
     def speed_modifier(self) -> float:
@@ -80,6 +100,7 @@ class Genome:
         """Invalidate cached computed properties when traits change."""
         object.__setattr__(self, "_speed_modifier_cache", None)
         object.__setattr__(self, "_metabolism_rate_cache", None)
+        object.__setattr__(self, "_distance_profile_cache", None)
 
     def to_dict(
         self,
@@ -89,8 +110,7 @@ class Genome:
         This is intended as a stable boundary format for persistence and transfer.
         """
         return genome_to_dict(
-            self,
-            schema_version=GENOME_SCHEMA_VERSION,
+            self, schema_version=genome_schema_version_for(self, GENOME_SCHEMA_VERSION)
         )
 
     @classmethod
@@ -120,9 +140,6 @@ class Genome:
 
     def validate(self) -> dict[str, Any]:
         """Validate trait ranges/types; returns a dict with any issues found."""
-        from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
-        from core.genetics.physical import PHYSICAL_TRAIT_SPECS
-
         issues = []
         issues.extend(
             validate_traits_from_specs(PHYSICAL_TRAIT_SPECS, self.physical, path="genome.physical")
@@ -133,9 +150,11 @@ class Genome:
             )
         )
 
-        # Validate per-kind policy params fields
-        from core.genetics.behavioral import validate_policy_fields
+        for label in ("behavior_graph", "target_pursuit_module"):
+            issues.extend(validate_graph_trait(label, getattr(self.behavioral, label)))
+        issues.extend(validate_target_memory_trait("target_memory", self.behavioral.target_memory))
 
+        # Validate per-kind policy params fields
         for kind, id_attr, params_attr in [
             ("movement_policy", "movement_policy_id", "movement_policy_params"),
             ("poker_policy", "poker_policy_id", "poker_policy_params"),
@@ -165,6 +184,63 @@ class Genome:
         issues = "\n".join(result["issues"])
         raise GeneticsError(f"Invalid genome:\n{issues}")
 
+    def normalize(
+        self,
+        *,
+        rng: pyrandom.Random,
+        code_pool: "GenomeCodePool | None" = None,
+        soccer_enabled: bool = False,
+    ) -> None:
+        """Back-fill required fields a genome may be missing (idempotent).
+
+        A fully-populated genome (the common case) is a no-op. This exists for
+        genomes that reach a live fish without having gone through
+        :meth:`random` with every flag set - older saves/migrations, or a
+        caller that hand-builds a ``Genome`` - so the invariant "a genome is
+        complete" lives on the genome itself rather than being re-implemented
+        by every consumer that constructs or loads one.
+
+        Consumes RNG only for the fields it actually has to fill, in this
+        fixed order (poker strategy, then soccer policy): callers that care
+        about exact RNG draw sequences (this project's determinism contract)
+        must not reorder or split these checks.
+        """
+        if self.behavioral.poker_strategy is None or self.behavioral.poker_strategy.value is None:
+            from core.poker.strategy.implementations import get_random_poker_strategy
+
+            strategy = get_random_poker_strategy(rng=rng)
+            if self.behavioral.poker_strategy is None:
+                self.behavioral.poker_strategy = GeneticTrait(strategy)
+            else:
+                self.behavioral.poker_strategy.value = strategy
+
+        if soccer_enabled:
+            soccer_trait = self.behavioral.soccer_policy_id
+            if soccer_trait is None or soccer_trait.value is None:
+                if code_pool is not None:
+                    default_id = code_pool.get_default(SOCCER_POLICY)
+                    if default_id:
+                        self.behavioral.soccer_policy_id = GeneticTrait(default_id)
+                    else:
+                        available = code_pool.get_components_by_kind(SOCCER_POLICY)
+                        if available:
+                            chosen = rng.choice(available)
+                            self.behavioral.soccer_policy_id = GeneticTrait(chosen)
+
+            # Seed the evolvable param keys whenever a policy is set but its
+            # params are empty. Mutation and crossover only operate on keys
+            # that already exist, so an empty dict would freeze soccer
+            # behavior forever; a small jitter gives the founding population
+            # variance for selection to act on.
+            soccer_trait = self.behavioral.soccer_policy_id
+            if soccer_trait is not None and soccer_trait.value is not None:
+                params_trait = self.behavioral.soccer_policy_params
+                if params_trait is None or not params_trait.value:
+                    from core.code_pool.pool import default_soccer_policy_params
+
+                    seeded = default_soccer_policy_params(soccer_trait.value, rng=rng, jitter=0.5)
+                    self.behavioral.soccer_policy_params = GeneticTrait(seeded)
+
     # =========================================================================
     # Factory Methods
     # =========================================================================
@@ -189,6 +265,8 @@ class Genome:
         params: ReproductionParams,
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Create offspring genome using a parameter object for mutation inputs."""
         return cls.from_parents_weighted(
@@ -199,6 +277,8 @@ class Genome:
             mutation_strength=params.mutation_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
 
     @classmethod
@@ -211,6 +291,8 @@ class Genome:
         mutation_strength: float = 0.15,  # Increased from 0.1
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Create offspring genome with weighted contributions from parents.
 
@@ -220,10 +302,11 @@ class Genome:
         """
         rng = require_rng_param(rng, "__init__")
         parent1_weight = max(0.0, min(1.0, parent1_weight))
+        context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
         adaptive_rate, adaptive_strength = ReproductionParams(
             mutation_rate=mutation_rate,
             mutation_strength=mutation_strength,
-        ).adaptive_mutation()
+        ).adaptive_mutation(context)
 
         # Inherit traits using declarative specs
         physical = PhysicalTraits.from_parents(
@@ -243,6 +326,8 @@ class Genome:
             mutation_strength=adaptive_strength,
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=context,
         )
 
         return cls._assemble_offspring(
@@ -258,6 +343,8 @@ class Genome:
         parent: "Genome",
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
     ) -> "Genome":
         """Clone a genome with mutation (asexual reproduction)."""
         return cls.from_parents_weighted_params(
@@ -267,6 +354,8 @@ class Genome:
             params=ReproductionParams(),
             rng=rng,
             available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=mutation_context,
         )
 
     @classmethod
@@ -279,6 +368,9 @@ class Genome:
         crossover_mode: GeneticCrossoverMode = GeneticCrossoverMode.RECOMBINATION,
         rng: pyrandom.Random | None = None,
         available_policies: list[str] | None = None,
+        diversity_score: float | None = None,
+        mutation_context: ReproductionMutationContext | None = None,
+        parent1_dominant: bool | None = None,
     ) -> "Genome":
         """Create offspring genome by mixing parent genes with mutations."""
         rng = require_rng_param(rng, "__init__")
@@ -295,6 +387,8 @@ class Genome:
                 params=params,
                 rng=rng,
                 available_policies=available_policies,
+                diversity_score=diversity_score,
+                mutation_context=mutation_context,
             )
 
         if crossover_mode is GeneticCrossoverMode.DOMINANT_RECESSIVE:
@@ -302,7 +396,8 @@ class Genome:
                 "crossover_mode=%s currently behaves like recombination", crossover_mode.value
             )
 
-        adaptive_rate, adaptive_strength = params.adaptive_mutation()
+        context = mutation_context or ReproductionMutationContext.from_score(diversity_score)
+        adaptive_rate, adaptive_strength = params.adaptive_mutation(context)
 
         physical = PhysicalTraits.from_parents_recombination(
             parent1.physical,
@@ -311,6 +406,7 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            parent1_dominant=parent1_dominant,
         )
 
         behavioral = BehavioralTraits.from_parents_recombination(
@@ -320,6 +416,10 @@ class Genome:
             mutation_rate=adaptive_rate,
             mutation_strength=adaptive_strength,
             rng=rng,
+            available_policies=available_policies,
+            diversity_score=diversity_score,
+            mutation_context=context,
+            parent1_dominant=parent1_dominant,
         )
 
         return cls._assemble_offspring(

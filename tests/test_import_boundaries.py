@@ -18,9 +18,14 @@ def get_repo_root() -> Path:
     return Path(__file__).parent.parent
 
 
+_EXTRACTED_IMPORTS_CACHE: dict[Path, set[str]] = {}
+
+
 def find_python_files(directory: Path) -> list[Path]:
     """Find all Python files in a directory recursively."""
-    return list(directory.rglob("*.py"))
+    from tests.ast_utils import walk_python_files
+
+    return walk_python_files(directory)
 
 
 def extract_imports(file_path: Path) -> set[str]:
@@ -28,15 +33,14 @@ def extract_imports(file_path: Path) -> set[str]:
 
     Returns set of module names (e.g., 'backend.world_registry', 'core.worlds.interfaces').
     """
-    try:
-        with open(file_path, encoding="utf-8") as f:
-            source = f.read()
-    except (OSError, UnicodeDecodeError):
-        return set()
+    if file_path in _EXTRACTED_IMPORTS_CACHE:
+        return _EXTRACTED_IMPORTS_CACHE[file_path]
 
-    try:
-        tree = ast.parse(source, filename=str(file_path))
-    except SyntaxError:
+    from tests.ast_utils import get_ast
+
+    tree = get_ast(file_path)
+    if tree is None:
+        _EXTRACTED_IMPORTS_CACHE[file_path] = set()
         return set()
 
     imports = set()
@@ -52,6 +56,7 @@ def extract_imports(file_path: Path) -> set[str]:
                 for alias in node.names:
                     imports.add(f"{node.module}.{alias.name}")
 
+    _EXTRACTED_IMPORTS_CACHE[file_path] = imports
     return imports
 
 

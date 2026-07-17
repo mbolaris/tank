@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from core.behavior.pursuit_nodes import default_pursuit_module_graph
 from core.code_pool import GenomeCodePool
 from core.code_pool.pool import (
     BUILTIN_CHASE_BALL_SOCCER_ID,
@@ -19,11 +20,12 @@ from core.code_pool.pool import (
 from core.genetics.trait import GeneticTrait
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine, RCSSVector
 from core.minigames.soccer.match import SoccerMatch
-from core.minigames.soccer.params import RCSSParams
+from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
 from core.minigames.soccer.policy_adapter import (
     MAX_KICK_POWER,
     _normalize_policy_output,
     action_to_command,
+    attach_target_pursuit_vector,
     build_observation,
     default_policy_action,
     run_policy,
@@ -299,6 +301,7 @@ def test_observation_schema(engine):
     obs = build_observation(engine, pid)
 
     assert "self_x" in obs
+    assert "self_speed" in obs
     assert "ball_rel_x" in obs
     assert "is_kickable" in obs
 
@@ -306,6 +309,20 @@ def test_observation_schema(engine):
     assert math.isclose(obs["ball_rel_x"], 10.0)
     assert math.isclose(obs["ball_rel_y"], 0.0)
     assert obs["is_kickable"] == 0.0  # Too far
+    assert math.isclose(obs["self_speed"], SOCCER_CANONICAL_PARAMS.player_speed_max)
+
+
+def test_target_pursuit_adapter_passes_only_a_numeric_vector(engine):
+    engine.add_player("pursuit_p", "left", RCSSVector(0, 0))
+    engine.set_ball_position(10, 0)
+    obs = build_observation(engine, "pursuit_p")
+
+    attach_target_pursuit_vector(obs, default_pursuit_module_graph())
+
+    assert obs["soccer_target_pursuit_enabled"] is True
+    assert isinstance(obs["soccer_target_pursuit_vector"], tuple)
+    assert len(obs["soccer_target_pursuit_vector"]) == 2
+    assert "target_pursuit_module" not in obs
 
 
 # =============================================================================

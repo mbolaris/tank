@@ -32,6 +32,10 @@ class TestSimulationRunnerCommands:
             mock_world.rng.choices.return_value = ["algae"]  # Valid food type
             mock_world.environment = MagicMock()
             mock_world.environment.rng = mock_world.rng
+            # A MagicMock simulation_config would read as soccer_enabled=True and
+            # feed mock RNG values into genome param seeding; None means "no
+            # config available", which Fish.__init__ handles explicitly.
+            mock_world.environment.simulation_config = None
             mock_world.ecosystem = MagicMock()
             mock_world.entities_list = []
             mock_world.paused = False

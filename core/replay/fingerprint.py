@@ -24,6 +24,16 @@ class SnapshotFingerprinter:
             "wall_time",
             "created_at",
             "updated_at",
+            # Presentation-only taxonomy. It describes simulation output but
+            # never participates in its rules, so it must not invalidate
+            # historical replays or benchmark fingerprints.
+            "taxon_id",
+            "common_name",
+            "scientific_name",
+            "strain_id",
+            "species_confidence",
+            "origin_tank_id",
+            "type_specimen_id",
         }
     )
 
