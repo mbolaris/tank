@@ -48,6 +48,19 @@ researcher trying to observe, understand, and safely operate a live world.
   `LivingWorldToasts.tsx` — new posts float over the canvas as small
   dismissible toasts, reusing `CommentaryFeed`'s existing fetch/poll via a
   shared `useCommentary` hook. No new backend work needed.
+- [x] **Give Algae Reef / Protein Grotto an actual feeding capability.**
+  Correcting an earlier entry in this backlog: this was already done before
+  this backlog existed (commit `0f93a707`), not a gap. `core/entity_factory.py`
+  attaches a real `FeedingCapability` (stock, depletion, cooldown, regrowth) to
+  every reef/grotto in the default layout, and
+  `backend/runner/commands/build.py` attaches the same config to any
+  reef/grotto placed via Build Mode. `core/tank_interactions.py`'s
+  `TankInteractionSystem` evaluates proximity/dwell triggers each frame and
+  spawns real `Food` entities. Retired the older, separate
+  `ResourcePatch`/`local_resource_patches_enabled` experiment (2 hardcoded
+  patches, off by default, no dependents) since it was redundant with the
+  working mechanic above — see `docs/SUBSYSTEM_CLASSIFICATION.md`'s retirement
+  policy for optional/experimental subsystems.
 
 ## High-value next steps
 
@@ -72,14 +85,11 @@ researcher trying to observe, understand, and safely operate a live world.
   reef/grotto/castle sprites. Render an actual object (arch/ring/hoop) and
   only show the raw collision zone in Build Mode or when the ball is near —
   same mechanics, a world object instead of a hitbox.
-- [ ] **Give Algae Reef / Protein Grotto an actual feeding capability, then
-  react to it visually.** `core/tank_objects.py`'s own catalog descriptions
-  call them "ready for a feeding capability" — today they are purely
-  decorative placements with no stock, depletion, or usage tracking at all.
-  This is a bigger, two-sided item (a real backend feeding mechanic before
-  any lush/depleted/glow visual can mean anything), but it is the
-  prerequisite for the single most-requested "glance at the tank and
-  understand the ecosystem" improvement.
+- [ ] **React to reef/grotto feeding visually.** The feeding capability itself
+  is real (see Completed, above) but invisible — the canvas doesn't yet show
+  stock level, depletion, or a dispense moment. A lush/depleted/glow treatment
+  driven by `render_hint.capabilities`/the capability's stock ratio would make
+  the ecosystem's food economy legible at a glance.
 
 ## P2 — later
 
@@ -96,15 +106,11 @@ researcher trying to observe, understand, and safely operate a live world.
   Anchor reef/grotto to left/right habitat zones (matching
   `core/tank_objects.py`'s `DEFAULT_TANK_LAYOUT`) and keep the center corridor
   clear for soccer and general swim traffic.
-- [ ] **Reorganize the control bar by purpose.** ~10 controls (Add Food, Spawn
-  Fish, Pause, Fast, Reset, Hide HUD, Patches, Soccer toggle, World select,
-  Plant Energy) currently sit at equal visual weight. Group by Simulation /
-  World actions / Modes / Advanced, and de-emphasize Reset specifically since
-  it's destructive and shouldn't read the same as Pause.
-- [ ] **Correction, not a task:** Patches (`set_local_resource_patches`) is
-  still the only working food source — do not remove it in the name of
-  "feeding objects have replaced it." Reef/grotto are decorative-only until
-  the feeding-capability item above ships.
+- [ ] **Reorganize the control bar by purpose.** ~9 controls (Add Food, Spawn
+  Fish, Pause, Fast, Reset, Hide HUD, Soccer toggle, World select, Plant
+  Energy) currently sit at equal visual weight. Group by Simulation / World
+  actions / Modes / Advanced, and de-emphasize Reset specifically since it's
+  destructive and shouldn't read the same as Pause.
 
 ## Someday / stretch goal
 

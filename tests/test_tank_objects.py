@@ -95,4 +95,3 @@ def test_default_tank_seeds_composed_objects_without_legacy_patches():
     assert (
         sum(snapshot.type == "decorative_rock" for snapshot in runner.get_entities_snapshot()) == 3
     )
-    assert "resource_patch" not in {snapshot.type for snapshot in runner.get_entities_snapshot()}

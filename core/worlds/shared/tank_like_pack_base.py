@@ -185,15 +185,6 @@ class TankLikePackBase(ABC):
             display_config=self.config.display,
         )
         engine.tank_interaction_system = TankInteractionSystem(engine)
-        engine.food_spawning_system.config.local_resource_patches_enabled = (
-            self.config.food.local_resource_patches_enabled
-        )
-        engine.food_spawning_system.config.resource_patch_stock = (
-            self.config.food.resource_patch_stock
-        )
-        engine.food_spawning_system.config.resource_patch_regrowth_rate = (
-            self.config.food.resource_patch_regrowth_rate
-        )
 
         # 4. Register systems in execution order
         lifecycle_system = engine.lifecycle_system

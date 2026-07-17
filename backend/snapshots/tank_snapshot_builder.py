@@ -137,8 +137,6 @@ class TankSnapshotBuilder:
             self._enrich_nectar(snapshot, entity)
         elif entity_type == "food":
             self._enrich_food(snapshot, entity)
-        elif entity_type == "resource_patch":
-            self._enrich_resource_patch(snapshot, entity)
         elif entity_type == "crab":
             self._enrich_crab(snapshot, entity)
         elif entity_type == "castle":
@@ -314,16 +312,6 @@ class TankSnapshotBuilder:
         snapshot.energy = energy
         snapshot.food_type = getattr(food, "food_type", "regular")
 
-    def _enrich_resource_patch(self, snapshot: EntitySnapshot, patch: Any) -> None:
-        snapshot.food_type = getattr(patch, "food_type", "algae")
-        stock = float(getattr(patch, "energy", 0.0))
-        max_stock = float(getattr(patch, "max_energy", 0.0))
-        snapshot.render_hint = {
-            "style": "resource_patch",
-            "kind": snapshot.food_type,
-            "stock_ratio": stock / max_stock if max_stock else 0.0,
-        }
-
     def _enrich_crab(self, snapshot: EntitySnapshot, crab: Any) -> None:
         snapshot.energy = crab.energy
         can_hunt = getattr(crab, "can_hunt", True)
@@ -352,7 +340,6 @@ class TankSnapshotBuilder:
             "decorative_rock",
             "plant",
             "food",
-            "resource_patch",
             "plant_nectar",
         ):
             return 1

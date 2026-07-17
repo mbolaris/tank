@@ -190,7 +190,6 @@ export function TankView({ worldId }: TankViewProps) {
                             data: { enabled: newValue },
                         });
                     }}
-                    showResourcePatches={liveEntities.some((entity) => entity.type === 'resource_patch')}
                 />
 
                 <WorldModeSelector worldType={worldType} onChange={setWorldType} />
