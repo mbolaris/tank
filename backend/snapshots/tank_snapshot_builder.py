@@ -169,6 +169,8 @@ class TankSnapshotBuilder:
                 for config in obj.capability_config
             ],
         }
+        if obj.feeder_activity is not None:
+            snapshot.render_hint["feeder_activity"] = dict(obj.feeder_activity)
 
     def _apply_render_hint_overlay(self, snapshot: EntitySnapshot) -> None:
         if self._view_mode != "topdown":

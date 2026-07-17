@@ -33,6 +33,10 @@ export function BuildMode({
     const [notice, setNotice] = useState('Choose an object, then click inside the aquarium.');
     const placeableTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
     const selected = entities.find((entity) => entity.id === selectedObjectId);
+    const feederActivity = selected?.render_hint?.feeder_activity;
+    const stockPercent = feederActivity
+        ? Math.round((feederActivity.stock / Math.max(1, feederActivity.capacity)) * 100)
+        : null;
 
     const handleCancel = () => {
         onSelectKind(null);
@@ -73,7 +77,14 @@ export function BuildMode({
             </div>
             {selected && placeableTypes.has(selected.type) && (
                 <div className={styles.inspector}>
-                    <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{selected.id}</span>
+                    <div className={styles.objectDetails}>
+                        <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{selected.id}</span>
+                        {feederActivity && (
+                            <span className={styles.activity}>
+                                {feederActivity.resource_type} stock {stockPercent}% · {feederActivity.recent_activations} recent visits
+                            </span>
+                        )}
+                    </div>
                     <button onClick={() => onDelete(selected.id)}>Delete</button>
                     <button onClick={() => onCommand({ command: 'move_tank_object', data: { object_id: selected.id, x: selected.x, y: selected.y } })}>Keep here</button>
                 </div>

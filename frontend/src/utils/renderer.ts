@@ -19,7 +19,7 @@ import {
     renderPlantNectar as renderPlantNectarUtil,
     type PlantGenomeData,
 } from './plant';
-import { drawSoccerBall } from './drawSoccerBall';
+import { renderBall, renderGoalZone } from './renderSoccerObjects';
 import { BackgroundRenderer } from './renderer_background';
 import {
     drawBirthEffect,
@@ -181,10 +181,10 @@ export class Renderer {
                 this.renderPlantNectar(entity, elapsedTime);
                 break;
             case 'ball':
-                this.renderBall(entity);
+                renderBall(this.ctx, entity);
                 break;
             case 'goal_zone':
-                this.renderGoalZone(entity);
+                renderGoalZone(this.ctx, entity);
                 break;
         }
     }
@@ -207,61 +207,6 @@ export class Renderer {
         this.ctx.setLineDash([6, 5]);
         this.ctx.strokeRect(ghost.x, ghost.y, ghost.width, ghost.height);
         this.ctx.restore();
-    }
-
-    private renderBall(entity: EntityData) {
-        const { ctx } = this;
-        // In side view, entity.x/y are top-left coordinates.
-        // entity.width is diameter.
-        // We need to calculate radius and center.
-        const radius = entity.radius || (entity.width ? entity.width / 2 : 10);
-        const cx = entity.x + radius;
-        const cy = entity.y + radius;
-
-        // Use velocity for simple rotation
-        let rotation = 0;
-        if (entity.vel_x || entity.vel_y) {
-            rotation = (entity.x / radius);
-        }
-
-        drawSoccerBall(ctx, cx, cy, radius, rotation);
-    }
-
-    private renderGoalZone(entity: EntityData) {
-        const { ctx } = this;
-        const radius = entity.radius || 30;
-        const team = entity.team;
-        const isLeft = team === 'left';
-        const coral = isLeft ? '#75c7a7' : '#76b8df';
-        const accent = isLeft ? '#d1f7b4' : '#c8ebff';
-
-        ctx.save();
-        ctx.translate(entity.x, entity.y); // Center (assuming backend sends center coords)
-
-        // A physical coral arch replaces the old debug-style dashed radius.
-        ctx.strokeStyle = coral;
-        ctx.lineWidth = Math.max(4, radius * 0.16);
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.arc(0, radius * 0.18, radius * 0.68, Math.PI * 1.12, Math.PI * 1.88);
-        ctx.stroke();
-        ctx.fillStyle = accent;
-        ctx.shadowColor = coral;
-        ctx.shadowBlur = 10;
-        for (let i = 0; i < 3; i++) {
-            const angle = Math.PI * (1.18 + i * 0.32);
-            ctx.beginPath();
-            ctx.arc(Math.cos(angle) * radius * 0.66, radius * 0.18 + Math.sin(angle) * radius * 0.66, Math.max(2, radius * 0.09), 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(228, 245, 241, 0.9)';
-        ctx.font = '700 9px "Segoe UI", sans-serif';
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("GATE", 0, radius * 0.28);
-
-        ctx.restore();
     }
 
     private getStableFacingLeft(entityId: number, velX?: number): boolean {
@@ -627,6 +572,11 @@ export class Renderer {
         const { x, y, width, height } = object;
         const kind = object.type;
         const pulse = Math.sin(elapsedTime / 350) * 0.5 + 0.5;
+        const feederActivity = object.render_hint?.feeder_activity;
+        const stockRatio = feederActivity
+            ? Math.max(0, Math.min(1, feederActivity.stock / Math.max(1, feederActivity.capacity)))
+            : 1;
+        const activityBoost = feederActivity && feederActivity.recent_activations > 0 ? 0.18 : 0;
         const centerX = x + width / 2;
         const centerY = y + height / 2;
 
@@ -661,7 +611,7 @@ export class Renderer {
                 ctx.quadraticCurveTo(stemX + 9, height * 0.54, stemX + 4, height * 0.40);
                 ctx.stroke();
             }
-            ctx.globalAlpha = 0.25 + pulse * 0.18;
+            ctx.globalAlpha = 0.08 + stockRatio * 0.2 + pulse * (0.12 + activityBoost);
             ctx.fillStyle = '#9dffd0';
             ctx.beginPath();
             ctx.ellipse(width / 2, height * 0.48, width * 0.38, height * 0.34, 0, 0, Math.PI * 2);
@@ -676,7 +626,7 @@ export class Renderer {
             // A rising shimmer makes the reef's feeding loop legible at a glance.
             ctx.globalAlpha = 0.45 + pulse * 0.35;
             ctx.fillStyle = '#d9ffad';
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < Math.max(1, Math.round(4 * stockRatio)); i++) {
                 const phase = (elapsedTime / 900 + i * 0.23) % 1;
                 ctx.beginPath();
                 ctx.arc(
@@ -706,7 +656,7 @@ export class Renderer {
             ctx.beginPath();
             ctx.ellipse(width / 2, height * 0.62, width * 0.28, height * 0.22, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.globalAlpha = 0.35 + pulse * 0.25;
+            ctx.globalAlpha = 0.12 + stockRatio * 0.28 + pulse * (0.14 + activityBoost);
             ctx.fillStyle = '#e2a6ff';
             ctx.shadowColor = '#d77cff';
             ctx.shadowBlur = 12;
@@ -715,7 +665,7 @@ export class Renderer {
             ctx.fill();
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#cbdcff';
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < Math.max(1, Math.round(3 * stockRatio)); i++) {
                 ctx.beginPath();
                 ctx.arc(width * (0.28 + i * 0.19), height * (0.78 - ((elapsedTime / 700 + i) % 1) * 0.22), 2, 0, Math.PI * 2);
                 ctx.fill();

@@ -9,6 +9,7 @@ import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
 import { FOLLOW_ZOOM, getFollowViewport } from './followViewport';
+import { findEntityAtPoint } from './canvasEntityHitTest';
 import {
     fitWorldToContainer,
     getRenderDpr,
@@ -172,25 +173,9 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         if (!onEntityClick) return;
         const { worldX, worldY } = point;
 
-        // Find clicked entity (check in reverse order to prioritize entities rendered on top)
         const entities = state.snapshot?.entities ?? state.entities ?? [];
-        for (let i = entities.length - 1; i >= 0; i--) {
-            const entity = entities[i];
-
-            // Skip food items (only allow transferring fish and plants)
-            if (entity.type === 'food' || entity.type === 'plant_nectar') continue;
-
-            // Check if click is within entity bounds
-            const left = entity.x - entity.width / 2;
-            const right = entity.x + entity.width / 2;
-            const top = entity.y - entity.height / 2;
-            const bottom = entity.y + entity.height / 2;
-
-            if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
-                onEntityClick(entity.id, entity.type);
-                return;
-            }
-        }
+        const entity = findEntityAtPoint(entities, worldX, worldY, (candidate) => candidate.type !== 'food' && candidate.type !== 'plant_nectar');
+        if (entity) onEntityClick(entity.id, entity.type);
     };
 
     const handleCanvasDoubleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -198,18 +183,8 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         const point = getWorldPoint(event);
         if (!point) return;
         const entities = state.snapshot?.entities ?? state.entities ?? [];
-        for (let i = entities.length - 1; i >= 0; i -= 1) {
-            const entity = entities[i];
-            if (entity.type !== 'fish') continue;
-            const left = entity.x - entity.width / 2;
-            const right = entity.x + entity.width / 2;
-            const top = entity.y - entity.height / 2;
-            const bottom = entity.y + entity.height / 2;
-            if (point.worldX >= left && point.worldX <= right && point.worldY >= top && point.worldY <= bottom) {
-                onEntityDoubleClick(entity.id, entity.type);
-                return;
-            }
-        }
+        const fish = findEntityAtPoint(entities, point.worldX, point.worldY, (candidate) => candidate.type === 'fish');
+        if (fish) onEntityDoubleClick(fish.id, fish.type);
     };
 
     const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {

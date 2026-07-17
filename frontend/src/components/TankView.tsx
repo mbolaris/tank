@@ -22,6 +22,7 @@ import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
 import { CanvasOverlays } from './CanvasOverlays';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
+import { FollowStoryCard } from './FollowStoryCard';
 import { PokerScoreDisplay } from './PokerScoreDisplay';
 import { WorldModeSelector } from './WorldModeSelector';
 import { useViewMode } from '../hooks/useViewMode';
@@ -159,7 +160,6 @@ export function TankView({ worldId }: TankViewProps) {
         if (entityType === 'fish') selection.selectAndFollowEntity(entityId, entityType);
     };
     const followedFish = selection.followEnabled && selectedEntity?.type === 'fish' ? selectedEntity : null;
-    const followedFishName = followedFish?.common_name || followedFish?.taxonomy?.common_name || 'Tank fish';
 
     useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
@@ -440,15 +440,7 @@ export function TankView({ worldId }: TankViewProps) {
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
-                    {followedFish && (
-                        <div className={styles.followCard} role="status">
-                            <div className={styles.followEyebrow}>Following</div>
-                            <strong>{String(followedFishName)} <span>#{followedFish.id}</span></strong>
-                            <div className={styles.followMeta}>Generation {followedFish.generation ?? 0} · {followedFish.energy === undefined ? 'Exploring' : `${Math.round(followedFish.energy)} energy`}</div>
-                            <div className={styles.followHint}>Double-click any fish to follow its story.</div>
-                            <button onClick={selection.toggleFollow}>Stop following</button>
-                        </div>
-                    )}
+                    {followedFish && <FollowStoryCard fish={followedFish} onStop={selection.toggleFollow} />}
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}

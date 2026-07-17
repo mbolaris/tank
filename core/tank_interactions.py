@@ -185,6 +185,25 @@ class TankInteractionSystem(BaseSystem):
         super().__init__(engine, "TankInteractions")
         self.runtime = _InteractionRuntime()
         self._pending_requests: list[ResourceDispenseRequest] = []
+        self._activation_frames: dict[int, list[int]] = {}
+
+    def _update_object_activity(
+        self, frame: int, obj: TankObject, capability: FeedingCapability, state: _CapabilityRuntime
+    ) -> None:
+        """Publish a compact, ephemeral activity summary for snapshots/UI."""
+        recent_frames = [
+            activation_frame
+            for activation_frame in self._activation_frames.get(obj.object_id, [])
+            if activation_frame > frame - 600
+        ]
+        self._activation_frames[obj.object_id] = recent_frames
+        obj.feeder_activity = {
+            "stock": round(state.stock, 2),
+            "capacity": capability.capacity,
+            "resource_type": capability.resource_type,
+            "recent_activations": len(recent_frames),
+            "last_activation_frame": recent_frames[-1] if recent_frames else None,
+        }
 
     def _do_update(self, frame: int) -> SystemResult:
         objects = sorted(
@@ -205,6 +224,11 @@ class TankInteractionSystem(BaseSystem):
         self.runtime.capabilities = {
             key: value for key, value in self.runtime.capabilities.items() if key[0] in object_ids
         }
+        self._activation_frames = {
+            object_id: frames
+            for object_id, frames in self._activation_frames.items()
+            if object_id in object_ids
+        }
         activations = 0
         for obj in objects:
             for capability_config in obj.capability_config:
@@ -218,6 +242,7 @@ class TankInteractionSystem(BaseSystem):
                 state.stock = min(capability.capacity, state.stock + capability.recharge_rate)
                 state.cooldown_remaining = max(0, state.cooldown_remaining - 1)
                 if state.cooldown_remaining > 0 or state.stock < capability.dispense_amount:
+                    self._update_object_activity(frame, obj, capability, state)
                     continue
 
                 for actor in actors:
@@ -258,11 +283,13 @@ class TankInteractionSystem(BaseSystem):
                     )
                     state.stock -= capability.dispense_amount
                     state.cooldown_remaining = capability.cooldown_frames
+                    self._activation_frames.setdefault(obj.object_id, []).append(frame)
                     self._emit_triggered(frame, obj, capability, actor_id)
                     activations += 1
                     if isinstance(capability.trigger, DwellTrigger):
                         self.runtime.dwell_frames[interaction_key] = 0
                     break
+                self._update_object_activity(frame, obj, capability, state)
         return SystemResult(
             entities_affected=activations,
             details={"activations": activations, "pending_requests": len(self._pending_requests)},
