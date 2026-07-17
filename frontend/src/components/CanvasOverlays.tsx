@@ -13,6 +13,7 @@ interface CanvasOverlaysProps {
     onOpenBoard: () => void;
     metricsHistory: MetricsHistory | null;
     onOpenTrends: () => void;
+    livePopulation: number | null;
 }
 
 /**
@@ -29,6 +30,7 @@ export function CanvasOverlays({
     onOpenBoard,
     metricsHistory,
     onOpenTrends,
+    livePopulation,
 }: CanvasOverlaysProps) {
     return (
         <>
@@ -54,7 +56,7 @@ export function CanvasOverlays({
             </div>
             <LivingWorldToasts worldId={worldId} onOpenBoard={onOpenBoard} />
             {watchMode && (
-                <EvolutionHealthReadout compact history={metricsHistory} onOpenTrends={onOpenTrends} />
+                <EvolutionHealthReadout compact history={metricsHistory} onOpenTrends={onOpenTrends} livePopulation={livePopulation} />
             )}
         </>
     );
