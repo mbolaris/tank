@@ -155,6 +155,11 @@ export function TankView({ worldId }: TankViewProps) {
         }
         selection.selectEntity(entityId, entityType);
     };
+    const handleFishFollow = (entityId: number, entityType: string) => {
+        if (entityType === 'fish') selection.selectAndFollowEntity(entityId, entityType);
+    };
+    const followedFish = selection.followEnabled && selectedEntity?.type === 'fish' ? selectedEntity : null;
+    const followedFishName = followedFish?.common_name || followedFish?.taxonomy?.common_name || 'Tank fish';
 
     useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
@@ -400,6 +405,7 @@ export function TankView({ worldId }: TankViewProps) {
                         width={1088} height={612} responsive
                         layoutSignal={watchMode}
                         onEntityClick={handleBuildEntityClick}
+                        onEntityDoubleClick={handleFishFollow}
                         buildMode={buildMode}
                         buildPlacementActive={buildKind !== null}
                         onBuildPlace={handleBuildPlace}
@@ -434,6 +440,15 @@ export function TankView({ worldId }: TankViewProps) {
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
+                    {followedFish && (
+                        <div className={styles.followCard} role="status">
+                            <div className={styles.followEyebrow}>Following</div>
+                            <strong>{String(followedFishName)} <span>#{followedFish.id}</span></strong>
+                            <div className={styles.followMeta}>Generation {followedFish.generation ?? 0} · {followedFish.energy === undefined ? 'Exploring' : `${Math.round(followedFish.energy)} energy`}</div>
+                            <div className={styles.followHint}>Double-click any fish to follow its story.</div>
+                            <button onClick={selection.toggleFollow}>Stop following</button>
+                        </div>
+                    )}
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}
