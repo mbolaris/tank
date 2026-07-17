@@ -3,12 +3,13 @@ import type { MetricsHistory } from '../types/simulation';
 import { CONNECTION_STATUS_DISPLAY } from '../utils/connectionStatusDisplay';
 import { EvolutionHealthReadout } from './EvolutionHealthReadout';
 import { LivingWorldToasts } from './LivingWorldToasts';
-import { WatchModeToggle } from './WatchModeToggle';
+import { ModeSwitch, type UiMode } from './ModeSwitch';
 
 interface CanvasOverlaysProps {
     connectionStatus: ConnectionStatus;
     watchMode: boolean;
-    onToggleWatchMode: () => void;
+    uiMode: UiMode | null;
+    onSelectMode: (mode: UiMode) => void;
     worldId: string | undefined;
     onOpenBoard: () => void;
     metricsHistory: MetricsHistory | null;
@@ -16,15 +17,16 @@ interface CanvasOverlaysProps {
 }
 
 /**
- * Everything that floats over the canvas: connection status, the Watch Mode
- * toggle, ambient Living World toasts, and (in Watch Mode) the compact
- * evolution-health badge. Kept out of TankView so canvas-overlay features
- * don't keep growing an already-large component.
+ * Everything that floats over the canvas: connection status, the unified
+ * Watch/Build/Analyze mode switch, ambient Living World toasts, and (in
+ * Watch Mode) the compact evolution-health badge. Kept out of TankView so
+ * canvas-overlay features don't keep growing an already-large component.
  */
 export function CanvasOverlays({
     connectionStatus,
     watchMode,
-    onToggleWatchMode,
+    uiMode,
+    onSelectMode,
     worldId,
     onOpenBoard,
     metricsHistory,
@@ -49,7 +51,7 @@ export function CanvasOverlays({
                     </div>
                 </div>
                 <div className="hud-group">
-                    <WatchModeToggle active={watchMode} onToggle={onToggleWatchMode} />
+                    <ModeSwitch mode={uiMode} onSelect={onSelectMode} />
                 </div>
             </div>
             <LivingWorldToasts worldId={worldId} onOpenBoard={onOpenBoard} />

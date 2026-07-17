@@ -12,9 +12,7 @@ const OBJECT_CARDS: Array<{ kind: ObjectKind; icon: string; name: string; detail
 ];
 
 interface BuildModeProps {
-    active: boolean;
     entities: EntityData[];
-    onToggle: () => void;
     onCommand: (command: Command) => void;
     onDelete: (objectId: number) => void;
     selectedObjectId: number | null;
@@ -22,10 +20,10 @@ interface BuildModeProps {
     onSelectKind: (kind: ObjectKind | null) => void;
 }
 
+/** Renders the object-placement tray. Mount only while Build is the active
+ * mode (see ModeSwitch) — this component has no toggle of its own. */
 export function BuildMode({
-    active,
     entities,
-    onToggle,
     onCommand,
     onDelete,
     selectedObjectId,
@@ -42,49 +40,42 @@ export function BuildMode({
     };
 
     return (
-        <div className={styles.wrapper}>
-            <button className={active ? styles.toggleActive : styles.toggle} onClick={onToggle}>
-                {active ? '✓ Build Mode' : '＋ Build'}
-            </button>
-            {active && (
-                <div className={styles.tray}>
-                    <div className={styles.trayHeader}>
-                        <div>
-                            <span className={styles.eyebrow}>DECORATE YOUR WORLD</span>
-                            <div className={styles.instruction}>{notice}</div>
+        <div className={styles.tray}>
+            <div className={styles.trayHeader}>
+                <div>
+                    <span className={styles.eyebrow}>DECORATE YOUR WORLD</span>
+                    <div className={styles.instruction}>{notice}</div>
+                </div>
+                <button className={styles.cancel} onClick={handleCancel}>Esc</button>
+            </div>
+            <div className={styles.groups}>
+                {['Nature', 'Structures', 'Feeders'].map((group) => (
+                    <div className={styles.group} key={group}>
+                        <span className={styles.groupLabel}>{group}</span>
+                        <div className={styles.cards}>
+                            {OBJECT_CARDS.filter((card) => card.group === group).map((card) => (
+                                <button
+                                    className={selectedKind === card.kind ? styles.cardSelected : styles.card}
+                                    key={card.kind}
+                                    onClick={() => {
+                                        onSelectKind(card.kind);
+                                        setNotice(`${card.name} selected — click the aquarium to place it.`);
+                                    }}
+                                >
+                                    <span className={styles.icon}>{card.icon}</span>
+                                    <span className={styles.cardName}>{card.name}</span>
+                                    <span className={styles.cardDetail}>{card.detail}</span>
+                                </button>
+                            ))}
                         </div>
-                        <button className={styles.cancel} onClick={handleCancel}>Esc</button>
                     </div>
-                    <div className={styles.groups}>
-                        {['Nature', 'Structures', 'Feeders'].map((group) => (
-                            <div className={styles.group} key={group}>
-                                <span className={styles.groupLabel}>{group}</span>
-                                <div className={styles.cards}>
-                                    {OBJECT_CARDS.filter((card) => card.group === group).map((card) => (
-                                        <button
-                                            className={selectedKind === card.kind ? styles.cardSelected : styles.card}
-                                            key={card.kind}
-                                            onClick={() => {
-                                                onSelectKind(card.kind);
-                                                setNotice(`${card.name} selected — click the aquarium to place it.`);
-                                            }}
-                                        >
-                                            <span className={styles.icon}>{card.icon}</span>
-                                            <span className={styles.cardName}>{card.name}</span>
-                                            <span className={styles.cardDetail}>{card.detail}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    {selected && placeableTypes.has(selected.type) && (
-                        <div className={styles.inspector}>
-                            <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{selected.id}</span>
-                            <button onClick={() => onDelete(selected.id)}>Delete</button>
-                            <button onClick={() => onCommand({ command: 'move_tank_object', data: { object_id: selected.id, x: selected.x, y: selected.y } })}>Keep here</button>
-                        </div>
-                    )}
+                ))}
+            </div>
+            {selected && placeableTypes.has(selected.type) && (
+                <div className={styles.inspector}>
+                    <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{selected.id}</span>
+                    <button onClick={() => onDelete(selected.id)}>Delete</button>
+                    <button onClick={() => onCommand({ command: 'move_tank_object', data: { object_id: selected.id, x: selected.x, y: selected.y } })}>Keep here</button>
                 </div>
             )}
         </div>

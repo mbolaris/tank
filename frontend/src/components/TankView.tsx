@@ -14,6 +14,7 @@ import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { useWatchMode } from '../hooks/useWatchMode';
+import { useUiMode } from '../hooks/useUiMode';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
@@ -58,18 +59,25 @@ const TankTrendsTab = lazy(() =>
     import('./tank_tabs/TankTrendsTab').then((module) => ({ default: module.TankTrendsTab }))
 );
 
+const BUILD_OBJECT_SIZES: Record<string, [number, number]> = {
+    algae_reef: [150, 100],
+    protein_grotto: [145, 110],
+    decorative_rock: [86, 54],
+    castle: [120, 120],
+};
+const BUILD_OBJECT_TYPES = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
+
 export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
-    const { watchMode, exitWatchMode, toggleWatchMode } = useWatchMode();
-    const [buildMode, setBuildMode] = useState(false);
-    const [buildKind, setBuildKind] = useState<'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'castle' | null>(null);
-    const [buildSelectedObjectId, setBuildSelectedObjectId] = useState<number | null>(null);
+    const { watchMode, enterWatchMode, exitWatchMode } = useWatchMode();
     const [buildGhost, setBuildGhost] = useState<{ kind: string; x: number; y: number; width: number; height: number } | null>(null);
     const [showSoccer, setShowSoccer] = useState<boolean | null>(null);  // null = not yet synced from server
     const userToggledSoccer = useRef(false);  // Track if user manually toggled
     const { visible, toggle, showOnly, isVisible } = useVisiblePanels(['trends']);
+    const { uiMode, selectMode, buildMode, buildKind, setBuildKind, buildSelectedObjectId, setBuildSelectedObjectId } =
+        useUiMode({ watchMode, enterWatchMode, exitWatchMode, visibleCount: visible.length, showOnly, sendCommand });
 
     // Sync showSoccer state from server on initial load and ongoing updates
     useEffect(() => {
@@ -126,27 +134,13 @@ export function TankView({ worldId }: TankViewProps) {
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
             : null;
 
-    const buildObjectTypes = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
-    const toggleBuildMode = () => {
-        const next = !buildMode;
-        setBuildMode(next);
-        setBuildKind(null);
-        setBuildSelectedObjectId(null);
-        sendCommand({ command: next ? 'pause' : 'resume' });
-    };
     const openPanel = useCallback((id: 'trends' | 'insights') => {
         exitWatchMode();
         showOnly(id);
     }, [exitWatchMode, showOnly]);
     const handleBuildPlace = (x: number, y: number) => {
         if (!buildKind) return;
-        const sizes: Record<string, [number, number]> = {
-            algae_reef: [150, 100],
-            protein_grotto: [145, 110],
-            decorative_rock: [86, 54],
-            castle: [120, 120],
-        };
-        const [width, height] = sizes[buildKind];
+        const [width, height] = BUILD_OBJECT_SIZES[buildKind];
         sendCommand({
             command: 'place_tank_object',
             data: { object_kind: buildKind, x: x - width / 2, y: y - height / 2, width, height },
@@ -155,7 +149,7 @@ export function TankView({ worldId }: TankViewProps) {
         setBuildGhost(null);
     };
     const handleBuildEntityClick = (entityId: number, entityType: string) => {
-        if (buildMode && buildObjectTypes.has(entityType)) {
+        if (buildMode && BUILD_OBJECT_TYPES.has(entityType)) {
             setBuildSelectedObjectId(entityId);
             return;
         }
@@ -415,13 +409,7 @@ export function TankView({ worldId }: TankViewProps) {
                                 setBuildGhost(null);
                                 return;
                             }
-                            const sizes: Record<string, [number, number]> = {
-                                algae_reef: [150, 100],
-                                protein_grotto: [145, 110],
-                                decorative_rock: [86, 54],
-                                castle: [120, 120],
-                            };
-                            const [width, height] = sizes[buildKind];
+                            const [width, height] = BUILD_OBJECT_SIZES[buildKind];
                             setBuildGhost({ kind: buildKind, x: x - width / 2, y: y - height / 2, width, height });
                         }}
                         onBuildDragStart={setBuildSelectedObjectId}
@@ -449,7 +437,8 @@ export function TankView({ worldId }: TankViewProps) {
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}
-                        onToggleWatchMode={toggleWatchMode}
+                        uiMode={uiMode}
+                        onSelectMode={selectMode}
                         worldId={effectiveWorldId}
                         onOpenBoard={() => openPanel('insights')}
                         metricsHistory={state?.metrics_history ?? null}
@@ -462,20 +451,21 @@ export function TankView({ worldId }: TankViewProps) {
             </div>
 
             {!watchMode && <>
-            <BuildMode
-                active={buildMode}
-                entities={liveEntities}
-                onToggle={toggleBuildMode}
-                onCommand={sendCommand}
-                onDelete={(objectId) => {
-                    sendCommand({ command: 'delete_tank_object', data: { object_id: objectId } });
-                    setBuildSelectedObjectId(null);
-                }}
-                selectedObjectId={buildSelectedObjectId}
-                selectedKind={buildKind}
-                onSelectKind={setBuildKind}
-            />
+            {buildMode && (
+                <BuildMode
+                    entities={liveEntities}
+                    onCommand={sendCommand}
+                    onDelete={(objectId) => {
+                        sendCommand({ command: 'delete_tank_object', data: { object_id: objectId } });
+                        setBuildSelectedObjectId(null);
+                    }}
+                    selectedObjectId={buildSelectedObjectId}
+                    selectedKind={buildKind}
+                    onSelectKind={setBuildKind}
+                />
+            )}
 
+            {uiMode === 'analyze' && <>
             <PanelToggleBar visible={visible} onSelect={showOnly} />
             {visible.length > 0 && (
                 <div className={styles.panelGrid}>
@@ -550,6 +540,7 @@ export function TankView({ worldId }: TankViewProps) {
                     )}
                 </div>
             )}
+            </>}
             </>}
 
             {/* Entity Inspector Drawer */}
