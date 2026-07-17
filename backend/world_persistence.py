@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from backend.lineage_restore import advance_fish_id_counter, restore_lineage_state
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 from core.exceptions import PersistenceError
 
@@ -269,7 +270,7 @@ def restore_world_from_snapshot(
         from core.entities import Food
         from core.entities.plant import PlantNectar
         from core.tank_objects import OBJECT_DEFINITIONS, TankObject
-        from core.transfer.entity_transfer import deserialize_entity
+        from core.transfer.entity_transfer import deserialize_entity_for_persistence
 
         # Validate snapshot version (strict: no legacy compatibility)
         try:
@@ -315,6 +316,9 @@ def restore_world_from_snapshot(
         engine._entity_manager.clear()
         logger.debug("Cleared entities via EntityManager")
 
+        if getattr(engine, "ecosystem", None) is not None:
+            engine.ecosystem.lineage.clear()
+
         if engine.environment:
             engine.environment.spatial_grid.clear()
 
@@ -343,7 +347,7 @@ def restore_world_from_snapshot(
 
             if entity_type in ("fish", "plant", "crab"):
                 # Use deserialization logic from entity_transfer
-                entity = deserialize_entity(entity_data, target_world)
+                entity = deserialize_entity_for_persistence(entity_data, target_world)
                 if entity:
                     engine.add_entity(entity)
                     restored_count += 1
@@ -441,6 +445,9 @@ def restore_world_from_snapshot(
         # Restore paused state
         if "paused" in snapshot and hasattr(target_world, "paused"):
             target_world.paused = snapshot["paused"]
+
+        restore_lineage_state(snapshot, engine)
+        advance_fish_id_counter(engine)
 
         world_id_label = snapshot.get("world_id") or "unknown"
         logger.info(

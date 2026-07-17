@@ -603,6 +603,11 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
             "config": {},  # Config serialization should be handled by SimulationConfig
             "seed": self._seed,
             "entities": self._build_entities_list(),
+            "lineage_log": (
+                [dict(record) for record in self._engine.ecosystem.lineage_log]
+                if self._engine.ecosystem is not None
+                else []
+            ),
         }
 
     def restore_state_from_save(self, state: dict[str, object]) -> None:

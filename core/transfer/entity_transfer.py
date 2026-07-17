@@ -500,13 +500,31 @@ def deserialize_entity(
     return DEFAULT_REGISTRY.deserialize_entity(data, target_world)
 
 
+def deserialize_entity_for_persistence(
+    data: SerializedEntity, target_world: MultiAgentWorldBackend
+) -> Fish | Plant | Crab | None:
+    """Deserialize entity data for same-world snapshot restoration.
+
+    Unlike migration transfer, persistence must preserve stable entity identity so
+    restored descendants keep valid lineage and telemetry references.
+    """
+    if data.get("type") == "fish":
+        return _deserialize_fish(data, target_world, preserve_identity=True)
+    return deserialize_entity(data, target_world)
+
+
 def try_deserialize_entity(
     data: SerializedEntity, target_world: MultiAgentWorldBackend
 ) -> TransferOutcome[Fish | Plant | Crab]:
     return DEFAULT_REGISTRY.try_deserialize_entity(data, target_world)
 
 
-def _deserialize_fish(data: SerializedEntity, target_world: MultiAgentWorldBackend) -> Fish | None:
+def _deserialize_fish(
+    data: SerializedEntity,
+    target_world: MultiAgentWorldBackend,
+    *,
+    preserve_identity: bool = False,
+) -> Fish | None:
     """Deserialize and create a Fish entity."""
     try:
         if not _require_keys(
@@ -527,6 +545,12 @@ def _deserialize_fish(data: SerializedEntity, target_world: MultiAgentWorldBacke
 
         # Create movement strategy (AlgorithmicMovement uses genome from fish directly)
         movement = AlgorithmicMovement()
+        fish_id = int(data["id"]) if preserve_identity and data.get("id") is not None else None
+        parent_id = (
+            int(data["parent_id"])
+            if preserve_identity and data.get("parent_id") is not None
+            else None
+        )
 
         # Create fish
         fish = Fish(
@@ -538,10 +562,10 @@ def _deserialize_fish(data: SerializedEntity, target_world: MultiAgentWorldBacke
             speed=data["speed"],
             genome=genome,
             generation=data["generation"],
-            fish_id=None,  # Will get new ID in target tank
+            fish_id=fish_id,
             ecosystem=target_world.engine.ecosystem,
             initial_energy=data["energy"],
-            parent_id=None,  # Clear parent_id: source tank parent doesn't exist here
+            parent_id=parent_id,
             skip_birth_recording=True,  # Prevent phantom "soup_spawn" stats
         )
         if "max_age" in data:

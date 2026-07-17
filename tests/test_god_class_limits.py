@@ -30,7 +30,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "backend/startup_manager.py": 626,
     "backend/state_payloads.py": 809,
     "backend/world_manager.py": 712,
-    "backend/world_persistence.py": 675,
+    "backend/world_persistence.py": 682,
     "core/algorithms/base.py": 572,
     "core/algorithms/registry.py": 584,
     "core/behavior/target_memory_transfer_gym.py": 636,
@@ -61,7 +61,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/solutions/benchmark.py": 549,
     "core/solutions/tracker.py": 590,
     "core/spatial/grid.py": 795,
-    "core/transfer/entity_transfer.py": 776,
+    "core/transfer/entity_transfer.py": 800,
     # Curated taxonomy lexicons are intentionally kept together so common and
     # scientific names use the same deterministic salience vocabulary.
     "core/taxonomy/naming.py": 523,

@@ -119,3 +119,117 @@ def test_persistence_round_trip():
     assert (
         abs(restored_test_fish.energy - test_fish_energy) < 0.01
     ), f"Fish energy mismatch: {restored_test_fish.energy}"
+
+
+def test_persistence_preserves_fish_identity_and_lineage():
+    config = {
+        "headless": True,
+        "screen_width": 1000,
+        "screen_height": 1000,
+        "max_population": 100,
+        "auto_food_enabled": False,
+    }
+    adapter = WorldRegistry.create_world("tank", seed=42, config=config)
+    adapter.reset(seed=42, config=config)
+    assert adapter.environment is not None
+    environment = cast(World, adapter.environment)
+
+    adapter.engine._entity_manager.clear()
+    adapter.engine.ecosystem.lineage.clear()
+    adapter.engine.ecosystem.next_fish_id = 12
+
+    parent = Fish(
+        environment=environment,
+        movement_strategy=AlgorithmicMovement(),
+        species="parent-species",
+        x=100,
+        y=100,
+        speed=5.0,
+        fish_id=10,
+        ecosystem=adapter.engine.ecosystem,
+    )
+    child = Fish(
+        environment=environment,
+        movement_strategy=AlgorithmicMovement(),
+        species="child-species",
+        x=120,
+        y=120,
+        speed=5.0,
+        fish_id=11,
+        ecosystem=adapter.engine.ecosystem,
+        parent_id=10,
+        generation=1,
+    )
+    adapter.add_entity(parent)
+    adapter.add_entity(child)
+    parent.register_birth()
+    child.register_birth()
+
+    snapshot = adapter.capture_state_for_save()
+    assert "lineage_log" in snapshot
+    assert any(
+        record["id"] == "11" and record["parent_id"] == "10" for record in snapshot["lineage_log"]
+    )
+
+    dest_adapter = WorldRegistry.create_world("tank", seed=43, config=config)
+    dest_adapter.reset(seed=43, config=config)
+
+    assert restore_world_from_snapshot(snapshot, dest_adapter) is True
+
+    restored_fish = {
+        entity.fish_id: entity for entity in dest_adapter.entities_list if isinstance(entity, Fish)
+    }
+    assert {10, 11}.issubset(restored_fish)
+    assert restored_fish[11].parent_id == 10
+    assert dest_adapter.engine.ecosystem.next_fish_id >= 12
+
+    lineage_data = dest_adapter.engine.ecosystem.get_lineage_data({10, 11})
+    child_record = next(record for record in lineage_data if record["id"] == "11")
+    assert child_record["parent_id"] == "10"
+    assert "_original_parent_id" not in child_record
+
+
+def test_legacy_snapshot_lineage_restore_adds_missing_parent_placeholder():
+    config = {
+        "headless": True,
+        "screen_width": 1000,
+        "screen_height": 1000,
+        "max_population": 100,
+        "auto_food_enabled": False,
+    }
+    adapter = WorldRegistry.create_world("tank", seed=42, config=config)
+    adapter.reset(seed=42, config=config)
+    assert adapter.environment is not None
+    environment = cast(World, adapter.environment)
+
+    adapter.engine._entity_manager.clear()
+    adapter.engine.ecosystem.lineage.clear()
+
+    child = Fish(
+        environment=environment,
+        movement_strategy=AlgorithmicMovement(),
+        species="legacy-child-species",
+        x=120,
+        y=120,
+        speed=5.0,
+        fish_id=11,
+        ecosystem=adapter.engine.ecosystem,
+        parent_id=10,
+        generation=3,
+    )
+    adapter.add_entity(child)
+
+    snapshot = adapter.capture_state_for_save()
+    snapshot.pop("lineage_log", None)
+
+    dest_adapter = WorldRegistry.create_world("tank", seed=43, config=config)
+    dest_adapter.reset(seed=43, config=config)
+
+    assert restore_world_from_snapshot(snapshot, dest_adapter) is True
+
+    lineage_data = dest_adapter.engine.ecosystem.get_lineage_data({11})
+    parent_record = next(record for record in lineage_data if record["id"] == "10")
+    child_record = next(record for record in lineage_data if record["id"] == "11")
+    assert parent_record["is_placeholder"] is True
+    assert child_record["parent_id"] == "10"
+    assert "_original_parent_id" not in child_record
