@@ -1,0 +1,104 @@
+/* Ambient, dismissible notices for new Board posts — floats over the canvas
+   so evolutionary moments are visible without opening the Board panel. */
+.stack {
+    position: absolute;
+    top: 60px;
+    left: 16px;
+    width: min(300px, calc(100% - 32px));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 6;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 3px solid transparent;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    pointer-events: auto;
+    animation: toast-in 0.25s ease-out;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast {
+        animation: none;
+    }
+}
+
+.body {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 4px 8px 10px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+
+.icon {
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.text {
+    color: var(--color-text-main);
+    font-size: 12px;
+    line-height: 1.4;
+    /* Keep toasts compact: clamp long posts to two lines. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.close {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-main);
+}
+
+.close:focus-visible,
+.body:focus-visible {
+    outline: 2px solid #67e8f9;
+    outline-offset: 2px;
+}

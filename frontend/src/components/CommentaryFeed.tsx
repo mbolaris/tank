@@ -10,15 +10,14 @@
  * emoji reaction bar (via CommentaryCard). See docs/DISCUSSION_BOARD.md.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { buildDiscussionPrompt, type BoardPromptRole } from '../boardPrompts';
 import { config } from '../config';
-import type { CommentaryItem, CommentaryResponse, CommentaryTopic } from '../types/simulation';
+import { useCommentary } from '../hooks/useCommentary';
+import type { CommentaryTopic } from '../types/simulation';
 import { CommentaryCard } from './CommentaryCard';
 import styles from './CommentaryFeed.module.css';
 
-const POLL_INTERVAL_MS = 4000;
-const FETCH_LIMIT = 100;
 const LS_TOPIC_KEY = 'tank.boardTopicFilter';
 const LS_REACTOR_KEY = 'tank.reactorName';
 const DEFAULT_REACTOR = 'viewer';
@@ -57,46 +56,12 @@ interface CommentaryFeedProps {
 }
 
 export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
-    const [comments, setComments] = useState<CommentaryItem[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [loaded, setLoaded] = useState(false);
+    const { comments, setComments, error, loaded } = useCommentary(worldId);
     const [activeTopic, setActiveTopic] = useState<CommentaryTopic | 'all'>(getStoredTopic);
     const [copiedRole, setCopiedRole] = useState<BoardPromptRole | null>(null);
-    const mountedRef = useRef(true);
     const viewerName = getViewerName();
 
     const effectiveId = worldId || 'default';
-
-    const fetchComments = useCallback(async () => {
-        try {
-            const url = `${config.commentaryUrl(effectiveId)}?limit=${FETCH_LIMIT}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            const data: CommentaryResponse = await response.json();
-            if (!mountedRef.current) return;
-            // Newest first for a commentary feed.
-            const sorted = [...(data.comments ?? [])].sort((a, b) => b.id - a.id);
-            setComments(sorted);
-            setError(null);
-            setLoaded(true);
-        } catch (e) {
-            if (!mountedRef.current) return;
-            setError(e instanceof Error ? e.message : 'Failed to load commentary');
-            setLoaded(true);
-        }
-    }, [effectiveId]);
-
-    useEffect(() => {
-        mountedRef.current = true;
-        fetchComments();
-        const interval = setInterval(fetchComments, POLL_INTERVAL_MS);
-        return () => {
-            mountedRef.current = false;
-            clearInterval(interval);
-        };
-    }, [fetchComments]);
 
     // --- Topic filter ---
     const handleTopicChange = useCallback((topic: CommentaryTopic | 'all') => {
@@ -144,7 +109,7 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
         } catch {
             // Reconciled on next poll
         }
-    }, [effectiveId, viewerName]);
+    }, [effectiveId, viewerName, setComments]);
 
     const handleUnreact = useCallback(async (commentId: number, emoji: string) => {
         // Optimistic update
@@ -170,7 +135,7 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
         } catch {
             // Reconciled on next poll
         }
-    }, [effectiveId, viewerName]);
+    }, [effectiveId, viewerName, setComments]);
 
     // --- Discussion prompts (copy to clipboard) ---
     const handleCopyPrompt = useCallback(async (role: BoardPromptRole) => {
