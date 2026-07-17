@@ -61,9 +61,6 @@ class SpawnRateConfig:
     high_pop_threshold_1: int = AUTO_FOOD_HIGH_POP_THRESHOLD_1
     high_pop_threshold_2: int = AUTO_FOOD_HIGH_POP_THRESHOLD_2
     live_food_chance: float = LIVE_FOOD_SPAWN_CHANCE
-    local_resource_patches_enabled: bool = False
-    resource_patch_stock: float = 240.0
-    resource_patch_regrowth_rate: float = 0.25
 
 
 @runs_in_phase(UpdatePhase.SPAWN)
@@ -111,7 +108,6 @@ class FoodSpawningSystem(BaseSystem):
         self._total_spawned: int = 0
         self._frames_since_spawn: int = 0
         self._last_spawn_rate: int = self.config.base_rate
-        self._resource_patches: list[Any] = []
 
     def _do_update(self, frame: int) -> SystemResult:
         """Spawn food based on ecosystem health.
@@ -128,9 +124,6 @@ class FoodSpawningSystem(BaseSystem):
         if self._engine.environment is None:
             return SystemResult.empty()
 
-        patch_count = self._ensure_resource_patches()
-        regrown = self._regrow_resource_patches()
-
         self._frames_since_spawn += 1
 
         # Calculate dynamic spawn rate based on ecosystem state
@@ -139,65 +132,20 @@ class FoodSpawningSystem(BaseSystem):
 
         # Check if it's time to spawn
         if self._frames_since_spawn < spawn_rate:
-            return SystemResult(
-                entities_spawned=patch_count,
-                entities_affected=regrown,
-                details={"resource_patches": len(self._resource_patches)},
-            )
+            return SystemResult.empty()
 
         # Reset counter and spawn food
         self._frames_since_spawn = 0
         spawned_count = self._spawn_food()
 
         return SystemResult(
-            entities_spawned=spawned_count + patch_count,
-            entities_affected=regrown,
+            entities_spawned=spawned_count,
             details={
                 "spawn_rate": spawn_rate,
                 "live_food": spawned_count > 0
                 and self._rng.random() < self.config.live_food_chance,
             },
         )
-
-    def _ensure_resource_patches(self) -> int:
-        """Create the two experimental patches once, when explicitly enabled."""
-        if not self.config.local_resource_patches_enabled or self._resource_patches:
-            return 0
-
-        from core.entities import ResourcePatch
-
-        environment = self._engine.environment
-        if environment is None:
-            return 0
-
-        y = self._screen_height * 0.55
-        specs = (
-            (1, 200.0, "algae"),
-            (2, 888.0, "protein"),
-        )
-        spawned = 0
-        for patch_id, x, food_type in specs:
-            patch = ResourcePatch(
-                environment,
-                x - 48.0,
-                y - 32.0,
-                patch_id=patch_id,
-                food_type=food_type,
-                stock=self.config.resource_patch_stock,
-                regrowth_rate=self.config.resource_patch_regrowth_rate,
-            )
-            if self._engine.request_spawn(patch, reason="local_resource_patch"):
-                self._resource_patches.append(patch)
-                spawned += 1
-        return spawned
-
-    def _regrow_resource_patches(self) -> int:
-        """Regrow live patches and return the number whose stock changed."""
-        changed = 0
-        for patch in self._resource_patches:
-            if patch.regrow() > 0:
-                changed += 1
-        return changed
 
     def _calculate_spawn_rate(self) -> int:
         """Calculate the current spawn rate based on ecosystem state.
@@ -297,7 +245,5 @@ class FoodSpawningSystem(BaseSystem):
                 "base_rate": self.config.base_rate,
                 "live_food_chance": self.config.live_food_chance,
                 "auto_food_enabled": self._auto_food_enabled,
-                "local_resource_patches_enabled": self.config.local_resource_patches_enabled,
-                "resource_patches": [p.get_patch_state() for p in self._resource_patches],
             },
         }

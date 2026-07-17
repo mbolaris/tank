@@ -14,21 +14,15 @@ interface ControlPanelProps {
     onToggleEffects?: () => void;
     showSoccer?: boolean;
     onToggleSoccer?: () => void;
-    showResourcePatches?: boolean;
 }
 
 export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showEffects, onToggleEffects, ...props }: ControlPanelProps & { showSoccer?: boolean, onToggleSoccer?: () => void }) {
     const [isPaused, setIsPaused] = useState(false);
     const [isFastForward, setIsFastForward] = useState(false);
-    const [resourcePatchesEnabled, setResourcePatchesEnabled] = useState(false);
 
     useEffect(() => {
         setIsFastForward(Boolean(fastForwardEnabled));
     }, [fastForwardEnabled]);
-
-    useEffect(() => {
-        setResourcePatchesEnabled(Boolean(props.showResourcePatches));
-    }, [props.showResourcePatches]);
 
     const handleAddFood = () => onCommand({ command: 'add_food' });
     const handleSpawnFish = () => onCommand({ command: 'spawn_fish' });
@@ -93,16 +87,6 @@ export function ControlPanel({ onCommand, isConnected, fastForwardEnabled, showE
                 {onToggleEffects && (
                     <Button onClick={onToggleEffects} variant={showEffects ? 'primary' : 'secondary'}>
                         {showEffects ? <><EyeOffIcon size={14} /> Hide HUD</> : <><EyeIcon size={14} /> Show HUD</>}
-                    </Button>
-                )}
-
-                {(
-                    <Button onClick={() => {
-                        const enabled = !resourcePatchesEnabled;
-                        setResourcePatchesEnabled(enabled);
-                        onCommand({ command: 'set_local_resource_patches', data: { enabled } });
-                    }} variant={resourcePatchesEnabled ? 'primary' : 'secondary'} title="Toggle experimental local resource patches">
-                        <span style={{ fontSize: '14px' }}>🪸</span> Patches
                     </Button>
                 )}
 

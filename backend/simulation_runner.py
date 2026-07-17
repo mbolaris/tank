@@ -670,7 +670,6 @@ class SimulationRunner(CommandHandlerMixin):
                 "resume": self._cmd_resume,
                 "reset": self._cmd_reset,
                 "fast_forward": self._cmd_fast_forward,
-                "set_local_resource_patches": self._cmd_set_local_resource_patches,
                 "place_tank_object": self._cmd_place_tank_object,
                 "move_tank_object": self._cmd_move_tank_object,
                 "delete_tank_object": self._cmd_delete_tank_object,

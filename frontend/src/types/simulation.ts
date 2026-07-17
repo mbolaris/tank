@@ -70,7 +70,7 @@ export interface PlantGenomeData {
 
 export interface EntityData {
     id: number;
-    type: 'fish' | 'food' | 'resource_patch' | 'plant' | 'crab' | 'castle' | 'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
+    type: 'fish' | 'food' | 'plant' | 'crab' | 'castle' | 'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'plant_nectar' | 'player' | 'ball' | 'goal_zone';
     x: number;
     y: number;
     width: number;
@@ -601,7 +601,6 @@ export interface Command {
     | 'standard_poker_series'
     | 'poker_autopilot_action'
     | 'fast_forward'
-    | 'set_local_resource_patches'
     | 'set_plant_energy_input'
     | 'set_soccer_league_enabled'
     | 'set_soccer_league_config'
