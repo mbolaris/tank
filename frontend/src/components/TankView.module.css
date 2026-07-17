@@ -28,7 +28,11 @@
 }
 
 /* Watch Mode: let the tank claim the viewport instead of the content column. */
-.sceneWorkspaceWatch { max-width: none; height: calc(100vh - 150px); }
+.sceneWorkspaceWatch {
+    max-width: none;
+    width: 100%;
+    height: calc(100dvh - var(--app-header-height, 58px) - 24px);
+}
 
 /* Compound selector outranks the global .canvas-wrapper max-width regardless of bundling order. */
 .canvasWrapperWatch:global(.canvas-wrapper) { max-width: none; height: 100%; }

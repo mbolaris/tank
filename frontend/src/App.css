@@ -18,6 +18,31 @@
     box-sizing: border-box;
 }
 
+/* Watch Mode is an application-level presentation mode, so it may use the
+   viewport instead of inheriting the normal content column's max-width. */
+.main:has(.sceneWorkspaceWatch) {
+    max-width: none;
+    padding: 12px 16px 16px;
+}
+
+/* Entering/exiting Watch Mode swaps an auto-height content column for an
+   explicit-height fullscreen one -- two CSS states plain property
+   transitions can't interpolate between. TankView.tsx wraps the toggle in
+   document.startViewTransition() instead, which cross-fades a snapshot of
+   the old layout into the new one; this just tunes that cross-fade's pace
+   (browsers without support just apply the change instantly). */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 1ms;
+    }
+}
+
 /* Glass Panel Utility */
 .glass-panel {
     background: var(--color-bg-surface);

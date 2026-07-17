@@ -9,6 +9,13 @@ import { rendererRegistry } from '../rendering/registry';
 import { initRenderers } from '../renderers/init';
 import { ImageLoader } from '../utils/ImageLoader';
 import { FOLLOW_ZOOM, getFollowViewport } from './followViewport';
+import {
+    fitWorldToContainer,
+    getRenderDpr,
+    screenPointToWorld,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
+} from './canvasGeometry';
 
 interface CanvasProps {
     state: SimulationUpdate | null;
@@ -55,8 +62,6 @@ interface CanvasProps {
 }
 
 // Tank world dimensions (from core/constants.py)
-const WORLD_WIDTH = 1088;
-const WORLD_HEIGHT = 612;
 export function Canvas({ state, width = 800, height = 600, responsive = false, layoutSignal, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -74,11 +79,17 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         bufferHeight: height,
         cssWidth: width,
         cssHeight: height,
+        dpr: 1,
     });
+    const renderSizeRef = useRef(renderSize);
+
+    useEffect(() => {
+        renderSizeRef.current = renderSize;
+    }, [renderSize]);
 
     useEffect(() => {
         if (!responsive) {
-            setRenderSize({ bufferWidth: width, bufferHeight: height, cssWidth: width, cssHeight: height });
+            setRenderSize({ bufferWidth: width, bufferHeight: height, cssWidth: width, cssHeight: height, dpr: 1 });
             return;
         }
         const container = containerRef.current;
@@ -87,15 +98,14 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         const recompute = () => {
             const rect = container.getBoundingClientRect();
             if (rect.width <= 0 || rect.height <= 0) return;
-            const scale = Math.min(rect.width / WORLD_WIDTH, rect.height / WORLD_HEIGHT);
-            const cssWidth = WORLD_WIDTH * scale;
-            const cssHeight = WORLD_HEIGHT * scale;
-            const dpr = window.devicePixelRatio || 1;
+            const { cssWidth, cssHeight } = fitWorldToContainer(rect.width, rect.height);
+            const dpr = getRenderDpr(cssWidth, cssHeight, window.devicePixelRatio);
             setRenderSize({
                 bufferWidth: Math.round(cssWidth * dpr),
                 bufferHeight: Math.round(cssHeight * dpr),
                 cssWidth,
                 cssHeight,
+                dpr,
             });
         };
 
@@ -122,31 +132,31 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
         const canvas = canvasRef.current;
         if (!canvas || !state) return null;
 
-        // Get click coordinates relative to canvas
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        let clickX = (event.clientX - rect.left) * scaleX;
-        let clickY = (event.clientY - rect.top) * scaleY;
-
         const followed = followEntityId !== null && followEntityId !== undefined
             ? (state.snapshot?.entities ?? state.entities ?? []).find((entity) => entity.id === followEntityId)
             : undefined;
-        if (followed) {
-            const viewport = getFollowViewport(followed, canvas.width, canvas.height);
-            clickX = viewport.sourceX + clickX / FOLLOW_ZOOM;
-            clickY = viewport.sourceY + clickY / FOLLOW_ZOOM;
+
+        if (!followed) {
+            return screenPointToWorld(event.clientX, event.clientY, rect, canvas.width, canvas.height);
         }
 
-        // Account for world-to-canvas scaling. Derived from the canvas's
-        // actual backing-store size (not the width/height props), so this
-        // stays correct whether or not `responsive` has resized the buffer.
-        const worldScaleX = WORLD_WIDTH / canvas.width;
-        const worldScaleY = WORLD_HEIGHT / canvas.height;
-        const worldX = clickX * worldScaleX;
-        const worldY = clickY * worldScaleY;
-
-        return { worldX, worldY };
+        // While following, the click lands in the zoomed/panned viewport
+        // getFollowViewport draws, not the raw canvas. Convert to
+        // buffer-pixel space, apply that viewport's offset and zoom there
+        // (mirroring the render loop's drawImage call below), then convert
+        // the adjusted point to world units.
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const bufferX = (event.clientX - rect.left) * scaleX;
+        const bufferY = (event.clientY - rect.top) * scaleY;
+        const viewport = getFollowViewport(followed, canvas.width, canvas.height);
+        const adjustedBufferX = viewport.sourceX + bufferX / FOLLOW_ZOOM;
+        const adjustedBufferY = viewport.sourceY + bufferY / FOLLOW_ZOOM;
+        return {
+            worldX: adjustedBufferX * (WORLD_WIDTH / canvas.width),
+            worldY: adjustedBufferY * (WORLD_HEIGHT / canvas.height),
+        };
     };
 
     const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -362,7 +372,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
                     }, {
                         canvas: renderCanvas,
                         ctx: renderCtx,
-                        dpr: window.devicePixelRatio || 1,
+                        dpr: renderSizeRef.current.dpr,
                         nowMs
                     });
 
