@@ -4,6 +4,7 @@
 
 import type { DeltaStateSnapshot, FullStateSnapshot } from './payload';
 import type { EntityDetails } from './entityDetails';
+import type { FeederActivity } from './feeder';
 
 export interface FishGenomeData {
     speed: number;
@@ -152,7 +153,7 @@ export interface EntityData {
     radius?: number;
 
     // Rendering hints (used by alternative modes like Petri)
-    render_hint?: Record<string, unknown>;
+    render_hint?: Record<string, unknown> & { feeder_activity?: FeederActivity };
 }
 
 export interface PokerRewardReproduction {

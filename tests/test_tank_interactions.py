@@ -102,6 +102,13 @@ def test_dwell_dispenses_once_then_respects_cooldown_and_spawn_phase(simulation_
 
     assert system.update(1).details["activations"] == 0
     assert system.update(2).details["activations"] == 1
+    assert obj.feeder_activity == {
+        "stock": 0.0,
+        "capacity": 20,
+        "resource_type": "protein",
+        "recent_activations": 1,
+        "last_activation_frame": 2,
+    }
     assert system.update(3).details["activations"] == 0
     assert system.materialize_pending(2) == 1
     food, reason = engine.spawned[0]
