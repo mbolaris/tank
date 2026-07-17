@@ -6,6 +6,12 @@ interface EvolutionHealthReadoutProps {
     onOpenTrends: () => void;
     /** Renders a small floating pill instead of the full side panel (Watch Mode). */
     compact?: boolean;
+    /** Current live fish count, from the per-tick stats payload. Preferred over
+     * the last history sample's `population` field, which only updates every
+     * `sample_interval_frames` (500) and otherwise visibly disagrees with the
+     * stats bar's live count between samples. Falls back to the last sample
+     * when omitted (e.g. in isolation/tests). */
+    livePopulation?: number | null;
 }
 
 function driftPercent(history: MetricsHistory): number | null {
@@ -16,7 +22,7 @@ function driftPercent(history: MetricsHistory): number | null {
     return ((last - first) / Math.abs(first)) * 100;
 }
 
-export function EvolutionHealthReadout({ history, onOpenTrends, compact = false }: EvolutionHealthReadoutProps) {
+export function EvolutionHealthReadout({ history, onOpenTrends, compact = false, livePopulation = null }: EvolutionHealthReadoutProps) {
     const samples = history?.samples ?? [];
     const first = samples[0];
     const last = samples[samples.length - 1];
@@ -42,7 +48,8 @@ export function EvolutionHealthReadout({ history, onOpenTrends, compact = false 
     const frames = Math.max(1, last.frame - first.frame);
     const generationRate = ((last.max_generation - first.max_generation) / frames) * 10000;
     const pursuitDrift = driftPercent(history);
-    const populationTone = last.population >= 20 ? styles.good : styles.warning;
+    const population = livePopulation ?? last.population;
+    const populationTone = population >= 20 ? styles.good : styles.warning;
     const diversityTone = (last.diversity_score ?? 0) >= 0.15 ? styles.good : styles.warning;
     const selectionTone = pursuitDrift !== null && Math.abs(pursuitDrift) >= 5 ? styles.good : styles.neutral;
 
@@ -51,10 +58,10 @@ export function EvolutionHealthReadout({ history, onOpenTrends, compact = false 
             <button className={styles.badge} onClick={onOpenTrends} title="Open Trends">
                 <span
                     className={styles.badgeDot}
-                    style={{ background: last.population >= 20 ? '#4ade80' : '#fbbf24' }}
+                    style={{ background: population >= 20 ? '#4ade80' : '#fbbf24' }}
                 />
                 <span className={styles.badgeText}>
-                    <strong>{last.population}</strong> fish · {generationRate.toFixed(1)} gen/10k
+                    <strong>{population}</strong> fish · {generationRate.toFixed(1)} gen/10k
                 </span>
             </button>
         );
@@ -75,7 +82,7 @@ export function EvolutionHealthReadout({ history, onOpenTrends, compact = false 
                 </div>
                 <div className={populationTone}>
                     <span>Population</span>
-                    <strong>{last.population} fish</strong>
+                    <strong>{population} fish</strong>
                 </div>
                 <div className={generationRate >= 5 ? styles.good : styles.warning}>
                     <span>Turnover</span>

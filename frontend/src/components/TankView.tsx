@@ -454,10 +454,11 @@ export function TankView({ worldId }: TankViewProps) {
                         onOpenBoard={() => openPanel('insights')}
                         metricsHistory={state?.metrics_history ?? null}
                         onOpenTrends={() => openPanel('trends')}
+                        livePopulation={state?.stats?.fish_count ?? null}
                     />
                 </div>
                 {!watchMode && (
-                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} />
+                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} livePopulation={state?.stats?.fish_count ?? null} />
                 )}
             </div>
 
