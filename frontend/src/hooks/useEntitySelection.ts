@@ -28,6 +28,7 @@ export interface EntitySelectionState {
 
 export type EntitySelectionAction =
     | { type: 'select'; entityId: number; entityType: string }
+    | { type: 'select_and_follow'; entityId: number; entityType: string }
     | { type: 'close_inspector' }
     | { type: 'open_transfer' }
     | { type: 'close_transfer' }
@@ -61,6 +62,16 @@ export function entitySelectionReducer(
                 inspectorOpen: true,
                 transferOpen: false,
                 followEnabled: state.followEnabled,
+                selectedEntityMissing: false,
+            };
+        case 'select_and_follow':
+            return {
+                ...state,
+                selectedEntityId: action.entityId,
+                selectedEntityType: action.entityType,
+                inspectorOpen: true,
+                transferOpen: false,
+                followEnabled: true,
                 selectedEntityMissing: false,
             };
         case 'close_inspector':
@@ -122,6 +133,10 @@ export function useEntitySelection() {
         (entityId: number, entityType: string) => dispatch({ type: 'select', entityId, entityType }),
         []
     );
+    const selectAndFollowEntity = useCallback(
+        (entityId: number, entityType: string) => dispatch({ type: 'select_and_follow', entityId, entityType }),
+        []
+    );
     const closeInspector = useCallback(() => dispatch({ type: 'close_inspector' }), []);
     const openTransfer = useCallback(() => dispatch({ type: 'open_transfer' }), []);
     const closeTransfer = useCallback(() => dispatch({ type: 'close_transfer' }), []);
@@ -140,6 +155,7 @@ export function useEntitySelection() {
     return {
         ...state,
         selectEntity,
+        selectAndFollowEntity,
         closeInspector,
         openTransfer,
         closeTransfer,

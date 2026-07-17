@@ -40,6 +40,8 @@ interface CanvasProps {
      */
     layoutSignal?: unknown;
     onEntityClick?: (entityId: number, entityType: string) => void;
+    /** A deliberate shortcut for watch mode: select and follow a fish. */
+    onEntityDoubleClick?: (entityId: number, entityType: string) => void;
     selectedEntityId?: number | null;
     /** Selected fish's pursuit-module vectors, drawn for it only. */
     pursuitOverlay?: PursuitOverlayData | null;
@@ -62,7 +64,7 @@ interface CanvasProps {
 }
 
 // Tank world dimensions (from core/constants.py)
-export function Canvas({ state, width = 800, height = 600, responsive = false, layoutSignal, onEntityClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
+export function Canvas({ state, width = 800, height = 600, responsive = false, layoutSignal, onEntityClick, onEntityDoubleClick, selectedEntityId, pursuitOverlay, targetMemoryOverlay, followEntityId, showEffects = true, showSoccer = true, style, viewMode = "side", worldType: worldTypeProp, buildMode = false, buildPlacementActive = false, onBuildPlace, onBuildPointerMove, onBuildDragStart, onBuildDragEnd, buildGhost = null }: CanvasProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<Renderer | null>(null);
@@ -186,6 +188,25 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
 
             if (worldX >= left && worldX <= right && worldY >= top && worldY <= bottom) {
                 onEntityClick(entity.id, entity.type);
+                return;
+            }
+        }
+    };
+
+    const handleCanvasDoubleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!state || error || buildMode || !onEntityDoubleClick) return;
+        const point = getWorldPoint(event);
+        if (!point) return;
+        const entities = state.snapshot?.entities ?? state.entities ?? [];
+        for (let i = entities.length - 1; i >= 0; i -= 1) {
+            const entity = entities[i];
+            if (entity.type !== 'fish') continue;
+            const left = entity.x - entity.width / 2;
+            const right = entity.x + entity.width / 2;
+            const top = entity.y - entity.height / 2;
+            const bottom = entity.y + entity.height / 2;
+            if (point.worldX >= left && point.worldX <= right && point.worldY >= top && point.worldY <= bottom) {
+                onEntityDoubleClick(entity.id, entity.type);
                 return;
             }
         }
@@ -469,6 +490,7 @@ export function Canvas({ state, width = 800, height = 600, responsive = false, l
             height={renderSize.bufferHeight}
             className="tank-canvas"
             onClick={handleCanvasClick}
+            onDoubleClick={handleCanvasDoubleClick}
             onMouseDown={handleCanvasMouseDown}
             onMouseUp={handleCanvasMouseUp}
             onMouseMove={handleCanvasPointerMove}

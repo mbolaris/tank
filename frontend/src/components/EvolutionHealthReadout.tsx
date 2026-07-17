@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { MetricsHistory } from '../types/simulation';
 import styles from './EvolutionHealthReadout.module.css';
 
@@ -23,6 +24,7 @@ function driftPercent(history: MetricsHistory): number | null {
 }
 
 export function EvolutionHealthReadout({ history, onOpenTrends, compact = false, livePopulation = null }: EvolutionHealthReadoutProps) {
+    const [expanded, setExpanded] = useState(false);
     const samples = history?.samples ?? [];
     const first = samples[0];
     const last = samples[samples.length - 1];
@@ -68,8 +70,15 @@ export function EvolutionHealthReadout({ history, onOpenTrends, compact = false,
     }
 
     return (
-        <aside className={styles.readout} aria-label="Evolution health">
-            <div className={styles.header}>Evolution health</div>
+        <aside className={`${styles.readout} ${expanded ? styles.expanded : styles.collapsed}`} aria-label="Evolution health">
+            <div className={styles.summaryRow}>
+                <button className={styles.summaryToggle} onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
+                    <span className={styles.header}>🧬 Evolution</span>
+                    <span className={styles.summary}>Selection {pursuitDrift === null ? 'pending' : `${pursuitDrift >= 0 ? '+' : ''}${pursuitDrift.toFixed(0)}%`} · Diversity {((last.diversity_score ?? 0) * 100).toFixed(0)}%</span>
+                </button>
+                <button className={styles.chevron} onClick={() => setExpanded((value) => !value)} aria-label={expanded ? 'Collapse evolution health' : 'Expand evolution health'}>{expanded ? '⌃' : '⌄'}</button>
+            </div>
+            {expanded && <>
             <div className={styles.window}>Since frame {first.frame.toLocaleString()} · {frames.toLocaleString()} frames</div>
             <div className={styles.metrics}>
                 <div className={selectionTone}>
@@ -90,6 +99,7 @@ export function EvolutionHealthReadout({ history, onOpenTrends, compact = false,
                 </div>
             </div>
             <button className={styles.trendsButton} onClick={onOpenTrends}>Open Trends</button>
+            </>}
         </aside>
     );
 }

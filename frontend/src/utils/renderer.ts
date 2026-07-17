@@ -232,29 +232,34 @@ export class Renderer {
         const radius = entity.radius || 30;
         const team = entity.team;
         const isLeft = team === 'left';
-        const color = isLeft ? 'rgba(91, 161, 144, 0.12)' : 'rgba(82, 137, 174, 0.12)';
-        const borderColor = isLeft ? 'rgba(112, 207, 174, 0.5)' : 'rgba(121, 190, 229, 0.5)';
+        const coral = isLeft ? '#75c7a7' : '#76b8df';
+        const accent = isLeft ? '#d1f7b4' : '#c8ebff';
 
         ctx.save();
         ctx.translate(entity.x, entity.y); // Center (assuming backend sends center coords)
 
-        // Goal area
-        ctx.fillStyle = color;
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = 1.25;
-        ctx.setLineDash([4, 7]);
-
+        // A physical coral arch replaces the old debug-style dashed radius.
+        ctx.strokeStyle = coral;
+        ctx.lineWidth = Math.max(4, radius * 0.16);
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, radius * 0.18, radius * 0.68, Math.PI * 1.12, Math.PI * 1.88);
         ctx.stroke();
-
-        // Label
-        ctx.fillStyle = 'rgba(228, 245, 241, 0.82)';
-        ctx.font = '600 12px "Segoe UI", sans-serif';
+        ctx.fillStyle = accent;
+        ctx.shadowColor = coral;
+        ctx.shadowBlur = 10;
+        for (let i = 0; i < 3; i++) {
+            const angle = Math.PI * (1.18 + i * 0.32);
+            ctx.beginPath();
+            ctx.arc(Math.cos(angle) * radius * 0.66, radius * 0.18 + Math.sin(angle) * radius * 0.66, Math.max(2, radius * 0.09), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(228, 245, 241, 0.9)';
+        ctx.font = '700 9px "Segoe UI", sans-serif';
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("GOAL", 0, 0);
+        ctx.fillText("GATE", 0, radius * 0.28);
 
         ctx.restore();
     }
@@ -668,6 +673,21 @@ export class Renderer {
                 ctx.arc(width * (0.22 + i * 0.14), height * (0.36 + (i % 2) * 0.18), 1.8, 0, Math.PI * 2);
                 ctx.fill();
             }
+            // A rising shimmer makes the reef's feeding loop legible at a glance.
+            ctx.globalAlpha = 0.45 + pulse * 0.35;
+            ctx.fillStyle = '#d9ffad';
+            for (let i = 0; i < 4; i++) {
+                const phase = (elapsedTime / 900 + i * 0.23) % 1;
+                ctx.beginPath();
+                ctx.arc(
+                    width * (0.30 + i * 0.13) + Math.sin(elapsedTime / 500 + i) * 2,
+                    height * (0.67 - phase * 0.42),
+                    1.5 + (1 - phase) * 1.2,
+                    0,
+                    Math.PI * 2,
+                );
+                ctx.fill();
+            }
         } else if (kind === 'protein_grotto') {
             const rock = ctx.createLinearGradient(0, height * 0.24, 0, height * 0.9);
             rock.addColorStop(0, '#535877');
@@ -698,6 +718,21 @@ export class Renderer {
             for (let i = 0; i < 3; i++) {
                 ctx.beginPath();
                 ctx.arc(width * (0.28 + i * 0.19), height * (0.78 - ((elapsedTime / 700 + i) % 1) * 0.22), 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Soft protein motes emerge from the grotto opening as its stock pulses.
+            ctx.globalAlpha = 0.55 + pulse * 0.3;
+            ctx.fillStyle = '#f1c8ff';
+            for (let i = 0; i < 3; i++) {
+                const phase = (elapsedTime / 800 + i * 0.31) % 1;
+                ctx.beginPath();
+                ctx.arc(
+                    width * (0.40 + i * 0.10) + Math.sin(elapsedTime / 420 + i) * 2,
+                    height * (0.62 - phase * 0.34),
+                    1.7 + (1 - phase) * 1.4,
+                    0,
+                    Math.PI * 2,
+                );
                 ctx.fill();
             }
         } else {
