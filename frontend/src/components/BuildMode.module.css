@@ -1,7 +1,4 @@
-.wrapper { width: 100%; max-width: 1088px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.toggle, .toggleActive { border: 1px solid rgba(113, 226, 188, .45); border-radius: 999px; padding: 9px 18px; color: #d9fff2; background: rgba(23, 82, 72, .72); cursor: pointer; font-weight: 700; letter-spacing: .04em; }
-.toggleActive { background: linear-gradient(135deg, #197766, #245c89); box-shadow: 0 0 20px rgba(91, 235, 195, .2); }
-.tray { width: 100%; box-sizing: border-box; padding: 14px 18px 16px; border: 1px solid rgba(130, 226, 201, .24); border-radius: 18px; background: linear-gradient(180deg, rgba(9, 40, 47, .96), rgba(7, 24, 38, .96)); box-shadow: 0 18px 35px rgba(0, 0, 0, .25); }
+.tray { width: 100%; max-width: 1088px; margin: 0 auto; box-sizing: border-box; padding: 14px 18px 16px; border: 1px solid rgba(130, 226, 201, .24); border-radius: 18px; background: linear-gradient(180deg, rgba(9, 40, 47, .96), rgba(7, 24, 38, .96)); box-shadow: 0 18px 35px rgba(0, 0, 0, .25); }
 .trayHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .eyebrow, .groupLabel { display: block; color: #82d6be; font-size: 10px; letter-spacing: .14em; font-weight: 800; text-transform: uppercase; }
 .instruction { color: #c7e7df; font-size: 13px; margin-top: 3px; }

@@ -61,6 +61,14 @@ researcher trying to observe, understand, and safely operate a live world.
   patches, off by default, no dependents) since it was redundant with the
   working mechanic above — see `docs/SUBSYSTEM_CLASSIFICATION.md`'s retirement
   policy for optional/experimental subsystems.
+- [x] **Give Watch / Build / Analyze real mode-switching UI.** `ModeSwitch.tsx`
+  is a single floating segmented control (🎬 Watch / 🔨 Build / 📊 Analyze) in
+  the canvas HUD, replacing the separate Watch Mode toggle and "+Build" pill.
+  `useUiMode` derives one active mode and makes the three mutually exclusive:
+  selecting one now backs out of whichever of the other two was active
+  (previously Build and Analyze could be open at the same time). Analyze still
+  has no dedicated boolean — it's "on" whenever a panel is visible — so
+  selecting it restores the last-open panel rather than forcing a fixed one.
 
 ## High-value next steps
 
@@ -70,12 +78,6 @@ researcher trying to observe, understand, and safely operate a live world.
   desktop viewport. Now that the canvas is responsive (see above), raising
   these caps is a pure CSS change with no coordinate-math risk; the narrower
   research panels don't need to widen with it.
-- [ ] **Give Watch / Build / Analyze real mode-switching UI.** Today they're
-  three unrelated controls at different corners of the screen (a canvas-HUD
-  toggle, a small "+Build" pill, a 7-button Analysis tab bar). A single
-  floating mode switch (Watch / Build / Analyze) would make the three-mode
-  model explicit instead of implicit, and is a prerequisite for treating them
-  as mutually exclusive UI compositions rather than independent toggles.
 - [ ] **Add a free pan/zoom canvas camera.** The existing follow camera
   (`followViewport.ts`) only re-centers on a selected entity; there's still no
   way to freely explore the tank independent of any selection. More valuable
