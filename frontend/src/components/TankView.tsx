@@ -13,6 +13,7 @@ import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/t
 import { useEntitySelection } from '../hooks/useEntitySelection';
 import { useEntityPresenceReconciliation } from '../hooks/useEntityPresenceReconciliation';
 import { useVisiblePanels } from '../hooks/useVisiblePanels';
+import { useWatchMode } from '../hooks/useWatchMode';
 import { Canvas } from './Canvas';
 import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
@@ -61,7 +62,7 @@ export function TankView({ worldId }: TankViewProps) {
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
-    const [watchMode, setWatchMode] = useState(false);
+    const { watchMode, exitWatchMode, toggleWatchMode } = useWatchMode();
     const [buildMode, setBuildMode] = useState(false);
     const [buildKind, setBuildKind] = useState<'algae_reef' | 'protein_grotto' | 'decorative_rock' | 'castle' | null>(null);
     const [buildSelectedObjectId, setBuildSelectedObjectId] = useState<number | null>(null);
@@ -133,14 +134,10 @@ export function TankView({ worldId }: TankViewProps) {
         setBuildSelectedObjectId(null);
         sendCommand({ command: next ? 'pause' : 'resume' });
     };
-    const openTrends = useCallback(() => {
-        setWatchMode(false);
-        showOnly('trends');
-    }, [showOnly]);
-    const openBoard = useCallback(() => {
-        setWatchMode(false);
-        showOnly('insights');
-    }, [showOnly]);
+    const openPanel = useCallback((id: 'trends' | 'insights') => {
+        exitWatchMode();
+        showOnly(id);
+    }, [exitWatchMode, showOnly]);
     const handleBuildPlace = (x: number, y: number) => {
         if (!buildKind) return;
         const sizes: Record<string, [number, number]> = {
@@ -403,7 +400,7 @@ export function TankView({ worldId }: TankViewProps) {
             </>}
 
             {/* Always-visible Canvas */}
-            <div className={`${styles.sceneWorkspace} ${watchMode ? styles.sceneWorkspaceWatch : ''}`}>
+            <div className={`${styles.sceneWorkspace} ${watchMode ? `${styles.sceneWorkspaceWatch} sceneWorkspaceWatch` : ''}`}>
                 <div className={`canvas-wrapper${watchMode ? ` ${styles.canvasWrapperWatch}` : ''}`}>
                     <Canvas
                         state={state}
@@ -453,15 +450,15 @@ export function TankView({ worldId }: TankViewProps) {
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}
-                        onToggleWatchMode={() => setWatchMode((w) => !w)}
+                        onToggleWatchMode={toggleWatchMode}
                         worldId={effectiveWorldId}
-                        onOpenBoard={openBoard}
+                        onOpenBoard={() => openPanel('insights')}
                         metricsHistory={state?.metrics_history ?? null}
-                        onOpenTrends={openTrends}
+                        onOpenTrends={() => openPanel('trends')}
                     />
                 </div>
                 {!watchMode && (
-                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={openTrends} />
+                    <EvolutionHealthReadout history={state?.metrics_history ?? null} onOpenTrends={() => openPanel('trends')} />
                 )}
             </div>
 
