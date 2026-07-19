@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
+from core.genetics.reproduction import ReproductionMutationContext
 from core.reproduction.asexual_factory import (
     create_asexual_offspring,
     maybe_create_banked_offspring,
@@ -15,7 +17,6 @@ from core.reproduction.sexual_factory import create_post_poker_offspring, run_pr
 
 if TYPE_CHECKING:
     from core.entities import Fish
-    from core.genetics.reproduction import ReproductionMutationContext
     from core.poker.integration.poker_interaction import PokerInteraction
     from core.simulation import SimulationEngine
 
@@ -289,8 +290,9 @@ class ReproductionService:
                 required_credits
             ):
                 continue
-            mutation_context = self._mutation_context_for_parents(fish)
-            baby = self.maybe_create_banked_offspring(fish, mutation_context=mutation_context)
+            baby = maybe_create_banked_offspring(
+                fish, mutation_context_factory=partial(self._mutation_context_for_parents, fish)
+            )
             if baby is None:
                 continue
 
@@ -324,6 +326,13 @@ class ReproductionService:
                 continue
             life_stage = fish.life_stage
             if life_stage is None:
+                continue
+            if not fish._reproduction_component.can_asexually_reproduce(
+                life_stage,
+                fish.energy,
+                fish.max_energy,
+                ReproductionMutationContext.most_lenient(),
+            ):
                 continue
             mutation_context = self._mutation_context_for_parents(fish)
             if not fish._reproduction_component.can_asexually_reproduce(

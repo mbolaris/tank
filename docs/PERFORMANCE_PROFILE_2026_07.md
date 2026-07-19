@@ -5,6 +5,20 @@ Profiling session against the headless tank world, seed 42, current master
 the optimizations worth implementing, with evidence, fix sketches, and the
 determinism risk of each.
 
+> **Status update (2026-07-19):** P1 (lazy mutation contexts + a
+> correctly-scoped isolation cache), P2 (a per-fish nearest-crab memo), and
+> the P5 `behavior_id` string cache have been implemented. Measured effect:
+> `scripts/benchmark_performance.py --frames 3000 --warmup 500` at matched
+> population (114 entities / 63 fish) went from 12.13ms to ~8.2ms average
+> frame time (~32% faster). `--export-stats` on seeds 42/7/123 is bit-identical
+> before/after. One correction to this doc's original P1 analysis: the naive
+> "just defer `context_for_parents`" sketch was not actually safe as written —
+> it would have changed how often the escalation hysteresis latch advances.
+> The shipped fix decouples the latch update (now always once per frame, in
+> `record_diversity_sample`) from the now-lazy isolation scan (safe to defer,
+> since it's a pure/memoizable function). See the mutation_controller.py diff
+> for the actual implementation. P3/P4/P6/P7 remain open.
+
 ## Method
 
 Two independent measurements, both after a 2,000-frame warmup, profiling

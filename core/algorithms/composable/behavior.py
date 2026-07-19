@@ -48,6 +48,17 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     _zigzag_phase: float = field(default=0.0, repr=False)
     _patrol_angle: float = field(default=0.0, repr=False)
 
+    # Memoized behavior_id: the four sub-behavior fields it's derived from are
+    # only ever reassigned inside mutate() (never assigned elsewhere), which
+    # invalidates this cache itself - see mutate()'s last line.
+    _behavior_id_cache: str | None = field(default=None, repr=False, compare=False)
+
+    # Memoized nearest-Crab-within-200 lookup for one fish's decision pass
+    # (see _nearest_crab_within_200 in BehaviorActionsMixin). None never
+    # matches a real fish.age, so it reads as "not yet computed this frame".
+    _nearest_crab_200_age: int | None = field(default=None, repr=False, compare=False)
+    _nearest_crab_200: Any = field(default=None, repr=False, compare=False)
+
     @staticmethod
     def _format_behavior_id(
         threat_response: ThreatResponse,
@@ -73,12 +84,14 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
     @property
     def behavior_id(self) -> str:
         """Get a unique string identifier for this behavior configuration."""
-        return self._format_behavior_id(
-            self.threat_response,
-            self.food_approach,
-            self.social_mode,
-            self.poker_engagement,
-        )
+        if self._behavior_id_cache is None:
+            self._behavior_id_cache = self._format_behavior_id(
+                self.threat_response,
+                self.food_approach,
+                self.social_mode,
+                self.poker_engagement,
+            )
+        return self._behavior_id_cache
 
     @classmethod
     def all_behavior_ids(cls) -> list[str]:
@@ -250,6 +263,9 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
                 self.parameters[key] = known_bounds[0]
             elif value > known_bounds[1]:
                 self.parameters[key] = known_bounds[1]
+
+        # The four sub-behavior fields above may have just changed.
+        self._behavior_id_cache = None
 
     # -------------------------------------------------------------------------
     # Serialization
