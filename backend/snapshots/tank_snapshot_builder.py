@@ -139,10 +139,10 @@ class TankSnapshotBuilder:
             self._enrich_food(snapshot, entity)
         elif entity_type == "crab":
             self._enrich_crab(snapshot, entity)
-        elif entity_type == "castle":
-            # Castle is simple, just needs type (already set)
-            pass
         elif isinstance(entity, TankObject):
+            # Covers "castle" too: Castle() just constructs a TankObject with
+            # object_kind="castle" (core/tank_objects.py), not a distinct
+            # entity class.
             self._enrich_tank_object(snapshot, entity)
         elif entity_type == "ball":
             self._enrich_ball(snapshot, entity)

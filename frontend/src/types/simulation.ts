@@ -153,7 +153,13 @@ export interface EntityData {
     radius?: number;
 
     // Rendering hints (used by alternative modes like Petri)
-    render_hint?: Record<string, unknown> & { feeder_activity?: FeederActivityMap };
+    render_hint?: Record<string, unknown> & {
+        feeder_activity?: FeederActivityMap;
+        // Raw TankObject.object_id — distinct from EntityData.id, which carries
+        // the wire-facing +5,000,000 offset (core/worlds/shared/identity.py).
+        // Tank object commands (move/delete) need this raw id, not entity.id.
+        object_id?: number;
+    };
 }
 
 export interface PokerRewardReproduction {
