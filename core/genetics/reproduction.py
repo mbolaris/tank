@@ -37,6 +37,16 @@ class ReproductionMutationContext:
     def from_score(cls, diversity_score: float | None) -> ReproductionMutationContext:
         return cls(diversity_score=diversity_score)
 
+    @classmethod
+    def most_lenient(cls) -> ReproductionMutationContext:
+        """The most permissive context for any energy-threshold gate.
+
+        Niche protection only ever lowers ``protected_reproduction_ratio``'s
+        output, so a fish that fails a gate under this context would fail
+        under any real context too - a cheap pre-screen before building one.
+        """
+        return cls(preserve_parent_lineage=True)
+
     @property
     def diversity_declining(self) -> bool:
         return self.diversity_slope is not None and self.diversity_slope < 0.0

@@ -33,6 +33,7 @@ class BehaviorActionsMixin:
     - _circle_angle: float
     - _zigzag_phase: float
     - _patrol_angle: float
+    - _nearest_crab_200_age: int | None, _nearest_crab_200: Any (perception memo)
     - BehaviorHelpersMixin methods (_find_nearest, _safe_normalize, etc.)
     """
 
@@ -45,6 +46,8 @@ class BehaviorActionsMixin:
     _circle_angle: float
     _zigzag_phase: float
     _patrol_angle: float
+    _nearest_crab_200_age: int | None
+    _nearest_crab_200: Any
 
     # Required helpers (provided by BehaviorHelpersMixin)
     def _find_nearest(
@@ -58,8 +61,29 @@ class BehaviorActionsMixin:
     def _find_nearest_food(self, fish: "Fish") -> Any | None:
         raise NotImplementedError
 
+    def _nearest_crab_within_200(self, fish: "Fish") -> Any | None:
+        """Memoized nearest-Crab-within-200 lookup for one fish's decision pass.
+
+        has_threat_priority (called from both the ball_pursuit and code_policy
+        movement considerations) and _execute_threat_response (called from the
+        composable-behavior consideration) all run this identical query for
+        the same fish on the same frame; caching here collapses up to three
+        identical spatial-grid queries into one. Keyed on fish.age, which
+        increments exactly once per fish per frame before movement/behavior
+        runs (see Fish.update), so a stale value can never leak into the next
+        frame. Non-Fish callers (e.g. the foraging gym's lightweight fish
+        stand-in, which has no notion of frame age) simply get no caching,
+        matching their prior behavior.
+        """
+        if not isinstance(fish, FishClass):
+            return self._find_nearest(fish, Crab, max_distance=200.0)
+        if fish.age != self._nearest_crab_200_age:
+            self._nearest_crab_200 = self._find_nearest(fish, Crab, max_distance=200.0)
+            self._nearest_crab_200_age = fish.age
+        return self._nearest_crab_200
+
     def has_threat_priority(self, fish: "Fish") -> bool:
-        predator = self._find_nearest(fish, Crab, max_distance=200.0)
+        predator = self._nearest_crab_within_200(fish)
         if predator is None:
             return False
         distance = (predator.pos - fish.pos).length()
@@ -92,8 +116,7 @@ class BehaviorActionsMixin:
         Returns:
             (vx, vy, is_active) - velocity and whether threat response triggered
         """
-        # helpers.find_nearest assumed present
-        predator = self._find_nearest(fish, Crab, max_distance=200.0)
+        predator = self._nearest_crab_within_200(fish)
         if not predator:
             return 0.0, 0.0, False
 

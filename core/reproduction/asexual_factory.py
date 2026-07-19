@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, cast
 
 from core.config.fish import ENERGY_MAX_DEFAULT, FISH_BABY_SIZE, FISH_BASE_SPEED
@@ -30,8 +31,18 @@ def _diversity_score_for(fish: Fish) -> float | None:
 def maybe_create_banked_offspring(
     fish: Fish,
     mutation_context: ReproductionMutationContext | None = None,
+    mutation_context_factory: Callable[[], ReproductionMutationContext] | None = None,
 ) -> Fish | None:
-    """Attempt a bank-funded asexual reproduction for a single fish."""
+    """Attempt a bank-funded asexual reproduction for a single fish.
+
+    ``mutation_context_factory``, if given, is only invoked once every cheap
+    gate below has passed and a baby is about to be created - it builds the
+    same context a caller would otherwise pass eagerly via ``mutation_context``,
+    just deferred past the (much more common) rejections. This skips the
+    population-wide genetic-isolation scan inside the context for every fish
+    that was never going to reproduce this frame. ``mutation_context`` still
+    takes precedence when supplied, for existing eager callers.
+    """
     from core.reproduction.niche_cost import MIN_NICHE_COST_MULTIPLIER, get_niche_cost_multiplier
 
     if fish._reproduction_component.reproduction_cooldown > 0 or fish.life_stage != LifeStage.ADULT:
@@ -48,6 +59,8 @@ def maybe_create_banked_offspring(
     baby_energy_needed *= get_niche_cost_multiplier(fish)
 
     if bank >= baby_energy_needed:
+        if mutation_context is None and mutation_context_factory is not None:
+            mutation_context = mutation_context_factory()
         return create_asexual_offspring(fish, mutation_context=mutation_context)
 
     return None

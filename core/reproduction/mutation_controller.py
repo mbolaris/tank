@@ -36,11 +36,13 @@ class DiversityMutationController:
         self._diversity_samples: list[tuple[int, float]] = []
         self._escalation_active = False
         # Per-population memoization for lineage-preservation checks. Both the
-        # behavior counts and per-parent isolation results depend only on fish
-        # list membership and genomes, which are fixed while the (cached) fish
-        # list object is unchanged: spawns/removals go through the engine's
-        # mutation queue and rebuild the list, and genomes never mutate in
-        # place after creation. Reset every frame as a safety net.
+        # behavior counts and per-parent isolation results are pure functions
+        # of fish list membership and genomes: genomes never mutate in place
+        # after creation, and the (cached) fish list object changes identity
+        # whenever membership changes (spawns/removals rebuild it - see
+        # CacheManager). So the cache is safe to reuse across frames and
+        # across handler calls within the same frame; _behavior_counts_for's
+        # identity check is the only invalidation this needs.
         self._cached_fish_list: list[Fish] | None = None
         self._cached_behavior_counts: dict[str, int] = {}
         # Keyed by id(parent); the stored parent reference keeps the object
@@ -48,30 +50,33 @@ class DiversityMutationController:
         self._cached_isolation: dict[int, tuple[Fish, bool]] = {}
 
     def record_diversity_sample(self, frame: int) -> None:
-        self._reset_population_cache()
+        """Advance the diversity trend window and the escalation latch.
+
+        Runs once per frame, unconditionally - this is deliberately the only
+        place the escalation hysteresis latch (see ``_update_escalation_state``)
+        transitions. ``context_for_parents`` only *reads* the latch, so it can
+        be called lazily (e.g. only for fish that reach an actual reproduction
+        attempt) without changing how often the latch itself advances.
+        """
         score = self._diversity_score_provider()
-        if score is None:
-            return
-        if (
+        if score is not None and not (
             self._diversity_samples
             and frame - self._diversity_samples[-1][0] < self.SAMPLE_INTERVAL_FRAMES
         ):
-            return
+            self._diversity_samples.append((frame, score))
+            min_frame = frame - self.STALL_WINDOW_FRAMES
+            while self._diversity_samples and self._diversity_samples[0][0] < min_frame:
+                self._diversity_samples.pop(0)
 
-        self._diversity_samples.append((frame, score))
-        min_frame = frame - self.STALL_WINDOW_FRAMES
-        while self._diversity_samples and self._diversity_samples[0][0] < min_frame:
-            self._diversity_samples.pop(0)
+        # Slope must be read after the append above so the latch reacts to
+        # this frame's sample the same way a same-frame context_for_parents
+        # call always has.
+        self._update_escalation_state(score, self._diversity_slope())
 
-    def context_for_parents(
-        self,
-        *parents: Fish,
-        ecosystem_config: EcosystemConfig | None = None,
-    ) -> ReproductionMutationContext:
-        diversity_score = self._diversity_score_provider()
-        diversity_slope = self._diversity_slope()
+    def _update_escalation_state(
+        self, diversity_score: float | None, diversity_slope: float | None
+    ) -> None:
         diversity_declining = diversity_slope is not None and diversity_slope < 0.0
-
         if diversity_score is None or (
             self._escalation_active and diversity_score >= DIVERSITY_RECOVERY_FLOOR
         ):
@@ -82,6 +87,20 @@ class DiversityMutationController:
             and diversity_declining
         ):
             self._escalation_active = True
+
+    def context_for_parents(
+        self,
+        *parents: Fish,
+        ecosystem_config: EcosystemConfig | None = None,
+    ) -> ReproductionMutationContext:
+        """Build a mutation context for one reproduction attempt.
+
+        Reads the escalation latch that ``record_diversity_sample`` already
+        advanced for this frame; safe to call lazily, only for fish that reach
+        an actual reproduction attempt, without perturbing trajectories.
+        """
+        diversity_score = self._diversity_score_provider()
+        diversity_slope = self._diversity_slope()
 
         panic_enabled = getattr(ecosystem_config, "panic_button_enabled", False)
         panic_k = getattr(ecosystem_config, "panic_button_k", 1.0)
@@ -106,11 +125,6 @@ class DiversityMutationController:
         if frame_span <= 0:
             return None
         return (last_score - first_score) / frame_span
-
-    def _reset_population_cache(self) -> None:
-        self._cached_fish_list = None
-        self._cached_behavior_counts = {}
-        self._cached_isolation = {}
 
     def _behavior_counts_for(self, fish_list: list[Fish]) -> dict[str, int]:
         if fish_list is not self._cached_fish_list:
