@@ -32,6 +32,10 @@ class StatePublisher:
         # Delta sync state
         self._last_full_frame: int | None = None
         self._last_entities: dict[int, EntitySnapshot] = {}
+        # Cache of last frame's to_delta_dict() output, keyed by entity id, so
+        # _build_delta_state doesn't have to re-derive it from the stored
+        # EntitySnapshot every frame - see _build_delta_state's comment.
+        self._last_delta_dicts: dict[int, dict[str, Any]] = {}
         self._delta_metrics = {
             "frames": 0,
             "entities_total": 0,
@@ -48,6 +52,7 @@ class StatePublisher:
         self._frames_since_update = 0
         self._last_full_frame = None
         self._last_entities.clear()
+        self._last_delta_dicts.clear()
         for key in self._delta_metrics:
             self._delta_metrics[key] = 0
 
@@ -272,14 +277,27 @@ class StatePublisher:
         # Compare the fields that are actually present in a delta payload.
         # Comparing complete snapshots would make unrelated backend changes
         # (for example energy updates) defeat wire-level sparsity.
+        #
+        # previous_delta normally comes from _last_delta_dicts (this frame's
+        # dicts, cached below, become next frame's "previous" for free) so
+        # to_delta_dict() runs once per entity per frame instead of twice. The
+        # to_delta_dict() fallback only fires the first delta frame after a
+        # full-state frame (which doesn't populate this cache) or when a
+        # caller has set _last_entities without going through get_state().
+        new_delta_dicts: dict[int, dict[str, Any]] = {}
         updates = []
         for eid, entity in current_entities_map.items():
+            current_delta = entity.to_delta_dict()
+            new_delta_dicts[eid] = current_delta
             previous = self._last_entities.get(eid)
             if previous is None:
                 continue
-            current_delta = entity.to_delta_dict()
-            if current_delta != previous.to_delta_dict():
+            previous_delta = self._last_delta_dicts.get(eid)
+            if previous_delta is None:
+                previous_delta = previous.to_delta_dict()
+            if current_delta != previous_delta:
                 updates.append(current_delta)
+        self._last_delta_dicts = new_delta_dicts
 
         self._delta_metrics["frames"] += 1
         self._delta_metrics["entities_total"] = len(current_entities_map)
