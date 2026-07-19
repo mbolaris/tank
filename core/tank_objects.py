@@ -57,16 +57,18 @@ def _template_layout(
 
 
 DEFAULT_TANK_LAYOUT: tuple[TankObjectLayout, ...] = (
-    # Left ecological zone: lush, but clear of the goal mouth.
-    _template_layout("algae_reef", 0.11, 0.70, 148.0, 106.0),
-    # Small foreground details give the seabed texture without closing the
-    # central swimming corridor (roughly x=0.30..0.56 of the tank).
-    _template_layout("decorative_rock", 0.29, 0.86, 82.0, 48.0),
+    # Left ecological zone: lush, but clear of the left goal mouth.
+    _template_layout("algae_reef", 0.13, 0.74, 148.0, 106.0),
+    # Small foreground details give the seabed texture along the bottom sand line
+    # without closing the central swimming corridor.
+    _template_layout("decorative_rock", 0.36, 0.88, 82.0, 48.0),
     _template_layout("decorative_rock", 0.48, 0.88, 62.0, 40.0),
     # Lower right-centre landmark: 27% smaller than the former default castle.
-    _template_layout("castle", 0.57, 0.73, 120.0, 120.0),
-    _template_layout("decorative_rock", 0.70, 0.87, 70.0, 44.0),
-    # Right ecological zone, fully clear of the goal and tank edge.
+    # y raised from 0.73 to 0.79 to clear the soccer ball/goal band (goals sit
+    # at mid-height, y≈0.50); the old gap read as the castle crowding the ball.
+    _template_layout("castle", 0.57, 0.79, 120.0, 120.0),
+    _template_layout("decorative_rock", 0.72, 0.88, 70.0, 44.0),
+    # Right ecological zone, fully clear of the right goal and tank edge.
     _template_layout("protein_grotto", 0.76, 0.74, 138.0, 104.0),
 )
 
