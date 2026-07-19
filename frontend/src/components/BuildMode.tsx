@@ -36,6 +36,10 @@ export function BuildMode({
     const feederActivityMap = selected?.render_hint?.feeder_activity;
     const feederActivity = feederActivityMap ? Object.values(feederActivityMap)[0] : undefined;
     const stockPercent = feederActivity?.stock_percent ?? null;
+    // Tank object commands (move/delete) key off the raw backend object_id,
+    // not entity.id — that carries a wire-only +5,000,000 offset (see
+    // core/worlds/shared/identity.py) that backend command handlers don't expect.
+    const rawObjectId = selected?.render_hint?.object_id;
 
     const handleCancel = () => {
         onSelectKind(null);
@@ -74,18 +78,18 @@ export function BuildMode({
                     </div>
                 ))}
             </div>
-            {selected && placeableTypes.has(selected.type) && (
+            {selected && placeableTypes.has(selected.type) && rawObjectId !== undefined && (
                 <div className={styles.inspector}>
                     <div className={styles.objectDetails}>
-                        <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{selected.id}</span>
+                        <span><strong>{selected.type.replaceAll('_', ' ')}</strong> · placed object #{rawObjectId}</span>
                         {feederActivity && (
                             <span className={styles.activity}>
                                 {feederActivity.resource_type} stock {stockPercent}% · {feederActivity.recent_activations} recent dispenses
                             </span>
                         )}
                     </div>
-                    <button onClick={() => onDelete(selected.id)}>Delete</button>
-                    <button onClick={() => onCommand({ command: 'move_tank_object', data: { object_id: selected.id, x: selected.x, y: selected.y } })}>Keep here</button>
+                    <button onClick={() => onDelete(rawObjectId)}>Delete</button>
+                    <button onClick={() => onCommand({ command: 'move_tank_object', data: { object_id: rawObjectId, x: selected.x, y: selected.y } })}>Keep here</button>
                 </div>
             )}
         </div>
