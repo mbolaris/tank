@@ -116,7 +116,7 @@ describe('entitySelectionReducer', () => {
         expect(state.followEnabled).toBe(true);
     });
 
-    it('double-click follow opens the selected fish and starts the camera', () => {
+    it('double-click follow selects the fish and starts the camera without opening the inspector', () => {
         const state = entitySelectionReducer(initialEntitySelectionState, {
             type: 'select_and_follow',
             entityId: 77,
@@ -124,6 +124,18 @@ describe('entitySelectionReducer', () => {
         });
 
         expect(state.selectedEntityId).toBe(77);
+        expect(state.inspectorOpen).toBe(false);
+        expect(state.followEnabled).toBe(true);
+    });
+
+    it('a subsequent select on the followed fish opens the inspector without dropping follow', () => {
+        let state = entitySelectionReducer(initialEntitySelectionState, {
+            type: 'select_and_follow',
+            entityId: 77,
+            entityType: 'fish',
+        });
+        state = select(state, 77, 'fish');
+
         expect(state.inspectorOpen).toBe(true);
         expect(state.followEnabled).toBe(true);
     });

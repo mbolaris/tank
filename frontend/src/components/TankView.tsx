@@ -440,7 +440,7 @@ export function TankView({ worldId }: TankViewProps) {
                         viewMode={effectiveViewMode as 'side' | 'topdown'}
                         worldType={effectiveWorldType}
                     />
-                    {followedFish && <FollowStoryCard fish={followedFish} onStop={selection.toggleFollow} />}
+                    {followedFish && <FollowStoryCard fish={followedFish} onStop={selection.toggleFollow} onInspect={() => selection.selectEntity(followedFish.id, followedFish.type)} />}
                     <CanvasOverlays
                         connectionStatus={connectionStatus}
                         watchMode={watchMode}

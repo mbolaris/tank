@@ -141,10 +141,10 @@ class TankObject(Entity):
         self.object_kind = object_kind
         self.rotation = float(rotation)
         self.capability_config = tuple(dict(item) for item in capability_config)
-        # Ephemeral UI telemetry written by TankInteractionSystem. It is
-        # deliberately excluded from persisted object state: it describes this
-        # run's activity, not the placed object's configuration.
-        self.feeder_activity: dict[str, Any] | None = None
+        # Ephemeral UI telemetry written by TankInteractionSystem, keyed by
+        # capability_id. Deliberately excluded from persisted object state: it
+        # describes this run's activity, not the placed object's configuration.
+        self.feeder_activity: dict[str, dict[str, Any]] | None = None
         self.blocks_root_spots = object_kind == "castle"
         self.set_size(
             definition.default_width if width is None else width,

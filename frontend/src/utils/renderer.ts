@@ -155,7 +155,7 @@ export class Renderer {
         this.background.draw(this.ctx, width, height, timeOfDay, showDecorative);
     }
 
-    renderEntity(entity: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
+    renderEntity(entity: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true, currentFrame: number = 0) {
         switch (entity.type) {
             case 'fish':
                 this.renderFish(entity, elapsedTime, allEntities, showEffects);
@@ -166,7 +166,7 @@ export class Renderer {
             case 'algae_reef':
             case 'protein_grotto':
             case 'decorative_rock':
-                this.renderTankObject(entity, elapsedTime);
+                this.renderTankObject(entity, elapsedTime, currentFrame);
                 break;
             case 'plant':
                 this.renderPlant(entity, elapsedTime, allEntities, showEffects);
@@ -567,16 +567,19 @@ export class Renderer {
         ctx.restore();
     }
 
-    private renderTankObject(object: EntityData, elapsedTime: number) {
+    private renderTankObject(object: EntityData, elapsedTime: number, currentFrame: number = 0) {
         const { ctx } = this;
         const { x, y, width, height } = object;
         const kind = object.type;
         const pulse = Math.sin(elapsedTime / 350) * 0.5 + 0.5;
-        const feederActivity = object.render_hint?.feeder_activity;
-        const stockRatio = feederActivity
-            ? Math.max(0, Math.min(1, feederActivity.stock / Math.max(1, feederActivity.capacity)))
-            : 1;
-        const activityBoost = feederActivity && feederActivity.recent_activations > 0 ? 0.18 : 0;
+        const feederActivityMap = object.render_hint?.feeder_activity;
+        const feederActivity = feederActivityMap ? Object.values(feederActivityMap)[0] : undefined;
+        const stockRatio = feederActivity ? Math.max(0, Math.min(1, feederActivity.stock_percent / 100)) : 1;
+        const activationAge =
+            feederActivity?.last_activation_frame != null
+                ? currentFrame - feederActivity.last_activation_frame
+                : Infinity;
+        const activationPulse = activationAge >= 0 && activationAge < 30 ? 0.18 * (1 - activationAge / 30) : 0;
         const centerX = x + width / 2;
         const centerY = y + height / 2;
 
@@ -611,7 +614,7 @@ export class Renderer {
                 ctx.quadraticCurveTo(stemX + 9, height * 0.54, stemX + 4, height * 0.40);
                 ctx.stroke();
             }
-            ctx.globalAlpha = 0.08 + stockRatio * 0.2 + pulse * (0.12 + activityBoost);
+            ctx.globalAlpha = 0.08 + stockRatio * 0.2 + pulse * 0.12 + activationPulse;
             ctx.fillStyle = '#9dffd0';
             ctx.beginPath();
             ctx.ellipse(width / 2, height * 0.48, width * 0.38, height * 0.34, 0, 0, Math.PI * 2);
@@ -656,7 +659,7 @@ export class Renderer {
             ctx.beginPath();
             ctx.ellipse(width / 2, height * 0.62, width * 0.28, height * 0.22, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.globalAlpha = 0.12 + stockRatio * 0.28 + pulse * (0.14 + activityBoost);
+            ctx.globalAlpha = 0.12 + stockRatio * 0.28 + pulse * 0.14 + activationPulse;
             ctx.fillStyle = '#e2a6ff';
             ctx.shadowColor = '#d77cff';
             ctx.shadowBlur = 12;

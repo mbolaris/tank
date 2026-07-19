@@ -65,11 +65,15 @@ export function entitySelectionReducer(
                 selectedEntityMissing: false,
             };
         case 'select_and_follow':
+            // Follow is the lightweight watch path: it selects and starts the
+            // camera but deliberately leaves the full inspector closed so the
+            // compact FollowStoryCard is the only surface shown. Opening the
+            // drawer is an explicit secondary action (its "Inspect" button).
             return {
                 ...state,
                 selectedEntityId: action.entityId,
                 selectedEntityType: action.entityType,
-                inspectorOpen: true,
+                inspectorOpen: false,
                 transferOpen: false,
                 followEnabled: true,
                 selectedEntityMissing: false,
