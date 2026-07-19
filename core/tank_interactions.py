@@ -185,21 +185,26 @@ class TankInteractionSystem(BaseSystem):
         super().__init__(engine, "TankInteractions")
         self.runtime = _InteractionRuntime()
         self._pending_requests: list[ResourceDispenseRequest] = []
-        self._activation_frames: dict[int, list[int]] = {}
+        self._activation_frames: dict[tuple[int, str], list[int]] = {}
 
     def _update_object_activity(
         self, frame: int, obj: TankObject, capability: FeedingCapability, state: _CapabilityRuntime
     ) -> None:
-        """Publish a compact, ephemeral activity summary for snapshots/UI."""
+        """Publish a compact, ephemeral, per-capability activity summary for snapshots/UI."""
+        key = (obj.object_id, capability.capability_id)
         recent_frames = [
             activation_frame
-            for activation_frame in self._activation_frames.get(obj.object_id, [])
+            for activation_frame in self._activation_frames.get(key, [])
             if activation_frame > frame - 600
         ]
-        self._activation_frames[obj.object_id] = recent_frames
-        obj.feeder_activity = {
-            "stock": round(state.stock, 2),
-            "capacity": capability.capacity,
+        self._activation_frames[key] = recent_frames
+        stock_percent = (
+            round(100 * state.stock / capability.capacity) if capability.capacity > 0 else 0
+        )
+        if obj.feeder_activity is None:
+            obj.feeder_activity = {}
+        obj.feeder_activity[capability.capability_id] = {
+            "stock_percent": stock_percent,
             "resource_type": capability.resource_type,
             "recent_activations": len(recent_frames),
             "last_activation_frame": recent_frames[-1] if recent_frames else None,
@@ -225,9 +230,7 @@ class TankInteractionSystem(BaseSystem):
             key: value for key, value in self.runtime.capabilities.items() if key[0] in object_ids
         }
         self._activation_frames = {
-            object_id: frames
-            for object_id, frames in self._activation_frames.items()
-            if object_id in object_ids
+            key: frames for key, frames in self._activation_frames.items() if key[0] in object_ids
         }
         activations = 0
         for obj in objects:
@@ -283,7 +286,9 @@ class TankInteractionSystem(BaseSystem):
                     )
                     state.stock -= capability.dispense_amount
                     state.cooldown_remaining = capability.cooldown_frames
-                    self._activation_frames.setdefault(obj.object_id, []).append(frame)
+                    self._activation_frames.setdefault(
+                        (obj.object_id, capability.capability_id), []
+                    ).append(frame)
                     self._emit_triggered(frame, obj, capability, actor_id)
                     activations += 1
                     if isinstance(capability.trigger, DwellTrigger):

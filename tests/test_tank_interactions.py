@@ -103,11 +103,12 @@ def test_dwell_dispenses_once_then_respects_cooldown_and_spawn_phase(simulation_
     assert system.update(1).details["activations"] == 0
     assert system.update(2).details["activations"] == 1
     assert obj.feeder_activity == {
-        "stock": 0.0,
-        "capacity": 20,
-        "resource_type": "protein",
-        "recent_activations": 1,
-        "last_activation_frame": 2,
+        "feeding-primary": {
+            "stock_percent": 0,
+            "resource_type": "protein",
+            "recent_activations": 1,
+            "last_activation_frame": 2,
+        }
     }
     assert system.update(3).details["activations"] == 0
     assert system.materialize_pending(2) == 1
@@ -115,6 +116,59 @@ def test_dwell_dispenses_once_then_respects_cooldown_and_spawn_phase(simulation_
     assert food.food_type == "protein"
     assert food.energy == 12
     assert reason == "tank_object_dispense"
+
+
+def test_two_feeding_capabilities_on_one_object_track_activity_independently(simulation_env):
+    environment, _ = simulation_env
+    obj = TankObject(
+        environment,
+        100,
+        100,
+        object_kind="protein_grotto",
+        width=40,
+        height=40,
+        capability_config=(
+            FeedingCapability(
+                capability_id="feeding-algae",
+                resource_type="algae",
+                capacity=20,
+                stock=20,
+                recharge_rate=0,
+                dispense_amount=12,
+                cooldown_frames=3,
+                trigger=ProximityTrigger(radius=40),
+            ).to_config(),
+            FeedingCapability(
+                capability_id="feeding-protein",
+                resource_type="protein",
+                capacity=40,
+                stock=40,
+                recharge_rate=0,
+                dispense_amount=12,
+                cooldown_frames=3,
+                trigger=ProximityTrigger(radius=40),
+            ).to_config(),
+        ),
+    )
+    actor = _fish(environment, 42, 110, 110)
+    engine = _engine(environment, [obj, actor])
+    system = TankInteractionSystem(engine)
+
+    assert system.update(1).details["activations"] == 2
+    assert obj.feeder_activity == {
+        "feeding-algae": {
+            "stock_percent": 40,
+            "resource_type": "algae",
+            "recent_activations": 1,
+            "last_activation_frame": 1,
+        },
+        "feeding-protein": {
+            "stock_percent": 70,
+            "resource_type": "protein",
+            "recent_activations": 1,
+            "last_activation_frame": 1,
+        },
+    }
 
 
 def test_insufficient_stock_does_not_activate(simulation_env):

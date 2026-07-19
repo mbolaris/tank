@@ -127,7 +127,7 @@ export class TankSideRenderer implements Renderer {
                 .map((entity, index) => ({ entity, index }))
                 .sort((a, b) => layer(a.entity) - layer(b.entity) || a.index - b.index)
                 .forEach(({ entity }) => {
-                r.renderEntity(entity, elapsedTime, renderedEntities, showEffects);
+                r.renderEntity(entity, elapsedTime, renderedEntities, showEffects, snapshot.frame);
                 this.drawSoccerEffect(ctx, entity);
             });
             if (plantLayer) {
