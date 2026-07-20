@@ -23,6 +23,12 @@ ROOT_SPOT_COUNT = PLANT_ROOT_SPOT_COUNT if "PLANT_ROOT_SPOT_COUNT" in globals() 
 ROOT_SPOT_Y_BASE = SCREEN_HEIGHT - 40  # Position near tank bottom
 ROOT_SPOT_Y_VARIANCE = 8  # Slight y variation for natural look
 ROOT_SPOT_MIN_SPACING = 8  # Minimum pixels between spots
+# Keep the root band clear of the tank's left/right edge columns, where the
+# soccer goal circles live at mid-height (x ~10-90 and ~968-1048 in the
+# default 1088px tank). Plants rooting under the gates read as scenery
+# attached to the goals; this mirrors DEFAULT_TANK_LAYOUT's standalone-goals
+# rule in core/tank_objects.py. Scaled down for small custom tanks.
+ROOT_SPOT_EDGE_MARGIN = 160
 
 
 @dataclass
@@ -158,8 +164,9 @@ class RootSpotManager:
         Args:
             count: Number of spots to create
         """
-        # Calculate spacing to distribute spots evenly
-        margin = 20  # Margin from tank edges
+        # Calculate spacing to distribute spots evenly across the root band,
+        # which stays clear of the goal columns (see ROOT_SPOT_EDGE_MARGIN).
+        margin = min(ROOT_SPOT_EDGE_MARGIN, self.screen_width * 0.15)
         available_width = self.screen_width - (2 * margin)
         spacing = available_width / (count - 1) if count > 1 else 0
 
