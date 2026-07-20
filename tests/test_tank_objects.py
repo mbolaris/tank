@@ -60,7 +60,7 @@ def test_default_layout_is_separate_from_object_definitions():
     assert "default_x" not in OBJECT_DEFINITIONS["castle"].__dict__
 
 
-def test_default_layout_objects_stay_inside_tank_and_leave_central_corridor_open():
+def test_default_layout_objects_stay_inside_tank_and_leave_goals_standalone():
     from core.tank_objects import DEFAULT_TANK_HEIGHT, DEFAULT_TANK_LAYOUT, DEFAULT_TANK_WIDTH
 
     for layout in DEFAULT_TANK_LAYOUT:
@@ -73,11 +73,17 @@ def test_default_layout_objects_stay_inside_tank_and_leave_central_corridor_open
     grotto = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "protein_grotto")
     assert castle.x > DEFAULT_TANK_WIDTH * 0.55
     assert grotto.x + (grotto.width or 0) < 1000
-    assert grotto.x > DEFAULT_TANK_WIDTH * 0.7
+    assert grotto.x > DEFAULT_TANK_WIDTH * 0.6
 
-    # Major landmarks leave the middle open for ordinary movement and soccer.
-    major = [layout for layout in DEFAULT_TANK_LAYOUT if layout.kind != "decorative_rock"]
-    assert all(layout.x + (layout.width or 0) <= 300 or layout.x >= 600 for layout in major)
+    # The soccer goals stand alone: no scenery in the goal columns at the
+    # tank's left/right edges (goal circles span x ~10-90 and ~968-1048), and
+    # everything sits on the lower floor, below the mid-water goal/ball band.
+    for layout in DEFAULT_TANK_LAYOUT:
+        assert layout.x >= 160, f"{layout.kind} intrudes on the left goal column"
+        assert (
+            layout.x + (layout.width or 0) <= 928
+        ), f"{layout.kind} intrudes on the right goal column"
+        assert layout.y >= DEFAULT_TANK_HEIGHT * 0.70, f"{layout.kind} floats into the ball band"
 
 
 def test_default_tank_seeds_composed_objects_without_legacy_patches():
@@ -93,5 +99,5 @@ def test_default_tank_seeds_composed_objects_without_legacy_patches():
 
     assert kinds == {"castle", "algae_reef", "protein_grotto", "decorative_rock"}
     assert (
-        sum(snapshot.type == "decorative_rock" for snapshot in runner.get_entities_snapshot()) == 3
+        sum(snapshot.type == "decorative_rock" for snapshot in runner.get_entities_snapshot()) == 2
     )

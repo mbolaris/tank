@@ -56,9 +56,14 @@ def _template_layout(
     return TankObjectLayout(kind, x * DEFAULT_TANK_WIDTH, y * DEFAULT_TANK_HEIGHT, width, height)
 
 
+# The soccer goals stand alone in the tank's left/right edge columns (goal
+# circles span x ~10-90 and ~968-1048 at mid-height). Every placed object
+# stays inside x ~[160, 928] so neither gate has scenery reading as part of
+# it, and everything sits on the lower floor (y >= 0.70) below the mid-water
+# band where the ball and goals live.
 DEFAULT_TANK_LAYOUT: tuple[TankObjectLayout, ...] = (
-    # Left ecological zone: lush, but clear of the left goal mouth.
-    _template_layout("algae_reef", 0.13, 0.74, 148.0, 106.0),
+    # Left ecological zone: lush, pulled well off the left goal column.
+    _template_layout("algae_reef", 0.20, 0.74, 148.0, 106.0),
     # Small foreground details give the seabed texture along the bottom sand line
     # without closing the central swimming corridor.
     _template_layout("decorative_rock", 0.36, 0.88, 82.0, 48.0),
@@ -67,9 +72,10 @@ DEFAULT_TANK_LAYOUT: tuple[TankObjectLayout, ...] = (
     # y raised from 0.73 to 0.79 to clear the soccer ball/goal band (goals sit
     # at mid-height, y≈0.50); the old gap read as the castle crowding the ball.
     _template_layout("castle", 0.57, 0.79, 120.0, 120.0),
-    _template_layout("decorative_rock", 0.72, 0.88, 70.0, 44.0),
-    # Right ecological zone, fully clear of the right goal and tank edge.
-    _template_layout("protein_grotto", 0.76, 0.74, 138.0, 104.0),
+    # Right ecological zone, pulled well off the right goal column. The third
+    # decorative rock that used to sit between the grotto and the right gate
+    # was removed outright - it read as furniture belonging to the goal.
+    _template_layout("protein_grotto", 0.69, 0.74, 138.0, 104.0),
 )
 
 
