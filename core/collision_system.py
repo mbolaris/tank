@@ -38,7 +38,7 @@ within handlers (see core/protocols.py for examples).
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from core.config.plants import PLANT_SPROUTING_CHANCE
 from core.config.server import PLANTS_ENABLED
@@ -269,34 +269,24 @@ class CollisionSystem(BaseSystem):
         environment = self._engine.environment
         check_collision = self.check_collision
 
-        # PERF: Simple sort key for determinism
-        # Replaced id() with stable properties (fish_id or position) to ensure
-        # cross-process reproducibility (essential for benchmarks).
-        Fish_type = Fish
+        # PERF: Type-ranked sort key for deterministic, cross-process-stable
+        # ordering. Fish are filtered out before this runs (the loop never acts
+        # on them), so exact Food ranks first, then Crab, then any Food/Crab
+        # subclasses (e.g. LiveFood) - matching the historical processing order
+        # the benchmarks depend on.
         Food_type = Food
         Crab_type = Crab
 
         def collision_sort_key(entity: "Entity") -> tuple:
-            # Fast type ranking using identity comparison
             e_type = type(entity)
-            if e_type is Fish_type:
-                type_rank = 0
-                # Fish have stable IDs
-                secondary = cast(Any, entity).fish_id
-            elif e_type is Food_type:
+            if e_type is Food_type:
                 type_rank = 1
-                # Food doesn't have ID, use X pos
-                secondary = entity.pos.x
             elif e_type is Crab_type:
                 type_rank = 2
-                # Crabs use X pos
-                secondary = entity.pos.x
             else:
                 type_rank = 3
-                secondary = entity.pos.x
-
-            # Use Y pos as final tie breaker
-            return (type_rank, secondary, entity.pos.y)
+            # Positions are stable across processes; X then Y break ties.
+            return (type_rank, entity.pos.x, entity.pos.y)
 
         # Single pass over all fish
         for fish in fish_list:
@@ -331,14 +321,17 @@ class CollisionSystem(BaseSystem):
                 # Fallback to checking all entities if no environment
                 nearby_entities = [e for e in all_entities if e is not fish]
 
-            if len(nearby_entities) > 1:
-                nearby_entities = sorted(nearby_entities, key=collision_sort_key)
+            # Fish-fish proximity is handled by PokerProximitySystem, so this
+            # loop only acts on Crab/Food. Drop the fish (usually most of the
+            # neighborhood) before sorting and iterating; removing entities the
+            # loop never acts on preserves the collision_sort_key order of the
+            # rest, keeping trajectories identical.
+            candidates = [e for e in nearby_entities if isinstance(e, (Crab, Food))]
+            if len(candidates) > 1:
+                candidates.sort(key=collision_sort_key)
 
-            for other in nearby_entities:
-                if other is fish:
-                    continue
-
-                # Skip if other entity was removed
+            for other in candidates:
+                # Skip if the entity was already removed this frame
                 if other not in all_entities_set:
                     continue
 
