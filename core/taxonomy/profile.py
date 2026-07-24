@@ -50,78 +50,118 @@ class TaxonomyProfile:
             return 1.0
 
         if self.is_microbe:
-            # Microbe groups & weights (Core: 60%, Ecology: 25%, Accessory/HGT: 15%)
-            groups = {
-                "core_structure_metabolism": [
-                    "cell_size",
-                    "shape_aspect",
-                    "elongation_fins",
-                    "metabolism_lifespan",
-                ],
-                "ecology_behavior": ["motility_aggression", "social_swarming", "food_approach"],
-                "accessory_hgt": ["pigment_hue", "texture_pattern", "template_capsule"],
-            }
-            group_weights = {
-                "core_structure_metabolism": 0.60,
-                "ecology_behavior": 0.25,
-                "accessory_hgt": 0.15,
-            }
-            circular_traits = {"pigment_hue"}
+            trait_weights = _MICROBE_TRAIT_WEIGHTS
+            total_weight = _MICROBE_TOTAL_WEIGHT
         else:
-            # Fish groups & weights (Body: 35%, Appearance: 15%, Temperament: 15%, Foraging: 20%, Behavior: 15%)
-            groups = {
-                "body_structure": [
-                    "size_modifier",
-                    "body_aspect",
-                    "fin_size",
-                    "tail_size",
-                    "eye_size",
-                    "lifespan_modifier",
-                ],
-                "appearance": ["color_hue", "pattern_type", "pattern_intensity", "template_id"],
-                "temperament": ["aggression", "social_tendency"],
-                "foraging": [
-                    "pursuit_aggression",
-                    "prediction_skill",
-                    "hunting_stamina",
-                    "food_approach",
-                ],
-                "behavioral_architecture": [
-                    "threat_response",
-                    "social_mode",
-                    "movement_policy_family",
-                ],
-            }
-            group_weights = {
-                "body_structure": 0.35,
-                "appearance": 0.15,
-                "temperament": 0.15,
-                "foraging": 0.20,
-                "behavioral_architecture": 0.15,
-            }
-            circular_traits = {"color_hue"}
+            trait_weights = _FISH_TRAIT_WEIGHTS
+            total_weight = _FISH_TOTAL_WEIGHT
 
+        # `trait_weights` is a precomputed flat table in the same iteration
+        # order the grouped definition below would produce, so the accumulation
+        # here is bit-for-bit identical to the original grouped loop.
+        st = self.traits
+        ot = other.traits
         distance_sq = 0.0
-        total_weight = 0.0
-
-        for group_name, traits in groups.items():
-            gweight = group_weights[group_name]
-            if not traits:
-                continue
-            trait_weight = gweight / len(traits)
-            for trait in traits:
-                v1 = self.traits.get(trait, 0.5)
-                v2 = other.traits.get(trait, 0.5)
-                if trait in circular_traits:
-                    d = _circular_distance(v1, v2)
-                else:
-                    d = v1 - v2
-                distance_sq += trait_weight * (d * d)
-                total_weight += trait_weight
+        for trait, trait_weight, is_circular in trait_weights:
+            v1 = st.get(trait, 0.5)
+            v2 = ot.get(trait, 0.5)
+            if is_circular:
+                d = _circular_distance(v1, v2)
+            else:
+                d = v1 - v2
+            distance_sq += trait_weight * (d * d)
 
         if total_weight <= 0.0:
             return 0.0
         return math.sqrt(distance_sq / total_weight)
+
+
+# Group definitions and weights. These are constant for the lifetime of the
+# process, so they are flattened once (below) into per-trait weight tables that
+# `TaxonomyProfile.distance` iterates directly, instead of rebuilding the dicts,
+# lists, and sets on every one of the hundreds of thousands of calls per sim.
+
+# Microbe groups & weights (Core: 60%, Ecology: 25%, Accessory/HGT: 15%)
+_MICROBE_GROUPS = {
+    "core_structure_metabolism": [
+        "cell_size",
+        "shape_aspect",
+        "elongation_fins",
+        "metabolism_lifespan",
+    ],
+    "ecology_behavior": ["motility_aggression", "social_swarming", "food_approach"],
+    "accessory_hgt": ["pigment_hue", "texture_pattern", "template_capsule"],
+}
+_MICROBE_GROUP_WEIGHTS = {
+    "core_structure_metabolism": 0.60,
+    "ecology_behavior": 0.25,
+    "accessory_hgt": 0.15,
+}
+_MICROBE_CIRCULAR_TRAITS = {"pigment_hue"}
+
+# Fish groups & weights (Body: 35%, Appearance: 15%, Temperament: 15%, Foraging: 20%, Behavior: 15%)
+_FISH_GROUPS = {
+    "body_structure": [
+        "size_modifier",
+        "body_aspect",
+        "fin_size",
+        "tail_size",
+        "eye_size",
+        "lifespan_modifier",
+    ],
+    "appearance": ["color_hue", "pattern_type", "pattern_intensity", "template_id"],
+    "temperament": ["aggression", "social_tendency"],
+    "foraging": [
+        "pursuit_aggression",
+        "prediction_skill",
+        "hunting_stamina",
+        "food_approach",
+    ],
+    "behavioral_architecture": [
+        "threat_response",
+        "social_mode",
+        "movement_policy_family",
+    ],
+}
+_FISH_GROUP_WEIGHTS = {
+    "body_structure": 0.35,
+    "appearance": 0.15,
+    "temperament": 0.15,
+    "foraging": 0.20,
+    "behavioral_architecture": 0.15,
+}
+_FISH_CIRCULAR_TRAITS = {"color_hue"}
+
+
+def _flatten_trait_weights(
+    groups: Mapping[str, list[str]],
+    group_weights: Mapping[str, float],
+    circular_traits: set[str],
+) -> tuple[tuple[tuple[str, float, bool], ...], float]:
+    """Flatten grouped trait weights into a per-trait table plus total weight.
+
+    The table preserves the exact (group, trait) iteration order and repeated
+    ``gweight / len(traits)`` values of the original grouped loop, so summing it
+    reproduces the same floating-point accumulation bit-for-bit.
+    """
+    table: list[tuple[str, float, bool]] = []
+    total_weight = 0.0
+    for group_name, traits in groups.items():
+        if not traits:
+            continue
+        trait_weight = group_weights[group_name] / len(traits)
+        for trait in traits:
+            table.append((trait, trait_weight, trait in circular_traits))
+            total_weight += trait_weight
+    return tuple(table), total_weight
+
+
+_MICROBE_TRAIT_WEIGHTS, _MICROBE_TOTAL_WEIGHT = _flatten_trait_weights(
+    _MICROBE_GROUPS, _MICROBE_GROUP_WEIGHTS, _MICROBE_CIRCULAR_TRAITS
+)
+_FISH_TRAIT_WEIGHTS, _FISH_TOTAL_WEIGHT = _flatten_trait_weights(
+    _FISH_GROUPS, _FISH_GROUP_WEIGHTS, _FISH_CIRCULAR_TRAITS
+)
 
 
 def _circular_distance(a: float, b: float) -> float:
