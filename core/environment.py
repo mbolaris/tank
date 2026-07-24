@@ -13,6 +13,7 @@ from typing import Any, cast
 
 from core.entities import Agent, Entity
 from core.interfaces import MigrationHandler
+from core.simulation.profiler import is_profiling
 from core.spatial.bounds import WorldBounds
 from core.spatial.grid import SpatialGrid
 from core.util.rng import require_rng_param
@@ -248,8 +249,6 @@ class Environment:
     def rebuild_spatial_grid(self):
         """Rebuild the spatial grid from scratch. Call when agents are added/removed."""
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             if self.agents is None:
@@ -355,8 +354,6 @@ class Environment:
                 "nearby_agents_by_type requires 'agent_type' (positional) or 'agent_class' (keyword)"
             )
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             res = self.spatial_grid.query_type(agent, float(radius), resolved_type)
@@ -368,8 +365,6 @@ class Environment:
         """Get nearby evolving agents (entities that can reproduce)."""
         # Currently just fish
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             res = self.spatial_grid.query_fish(agent, float(radius))
@@ -381,8 +376,6 @@ class Environment:
         """Get nearby consumable resources."""
         # Currently just food
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             res = self.spatial_grid.query_food(agent, float(radius))
@@ -397,8 +390,6 @@ class Environment:
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
         """
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             res = self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
@@ -411,8 +402,6 @@ class Environment:
         Optimized method to get nearby fish and Plant entities for poker.
         """
         engine = getattr(self, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
             res = self.spatial_grid.query_poker_entities(agent, float(radius))

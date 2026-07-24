@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Protocol
 from core.code_pool import BUILTIN_FLEE_FROM_THREAT_ID
 from core.movement.ball_pursuit import BallPursuitConsideration
 from core.movement.intents import MovementArbitration, MovementIntent, Velocity
+from core.simulation.profiler import is_profiling
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -165,8 +166,6 @@ class MovementArbiter:
     def arbitrate(self, strategy: AlgorithmicMovement, fish: Fish) -> MovementArbitration:
         """Select an intent without evaluating lower-priority drives unnecessarily."""
         engine = getattr(fish.environment, "engine", None)
-        from core.simulation.profiler import is_profiling
-
         if is_profiling(engine) and engine is not None:
             import time
 
