@@ -14,6 +14,15 @@ use and a better example of software design.
 high-impact, low-effort items. When you complete one, move it to the
 "Shipped" section at the bottom with the PR link.
 
+**Last audited against the tree: 2026-07-25.** That audit found eight proposals
+still written as open work whose implementations were already merged (1.4, 1.6,
+4.5, 7.2, 10.5, 11.5, 11.7, 12.1), four more that had shipped in part (5.3,
+11.6, 12.4, 12.6), and every re-measurable number in Themes 2, 6, and 7 out of
+date — one of them by 3x. If you pick
+something from here, **verify the premise first** (does the file still have that
+many lines? does that tool already exist?) and fix the entry in the same PR if
+it has drifted. See the closing rule at the bottom of this file.
+
 **Best current starter pick:**
 
 - **6.2** — retire `Any` in one small core module, after re-running the grep
@@ -120,33 +129,8 @@ and eliminate the environment input. Then re-land the food-targeting
 improvement (the revert preserved it in git history at `e1fed26`; it beat both
 tank champions on every local environment).
 
-### 1.4 Multi-seed validation for the AI agent — `M` · ★★
-**Problem.** `scripts/ai_code_evolution_agent.py` validates a proposed change on
-a single short run, where natural variance dwarfs the improvement signal.
-
-**Shipped building block.** `tools/run_bench_matrix.py` and
-`tools/validate_improvement.py` already understand multi-seed benchmark results
-and majority-of-seeds comparison.
-
-**Remaining plan.** Wire `scripts/ai_code_evolution_agent.py` to validate across
-≥3 seeds instead of the current hard-coded seed `42`, report mean ± stddev, log
-the seed list to the attempt ledger, and require the change to beat the champion
-in a majority of seeds. Run `pytest -x` and `mypy` on the edited files *before*
-committing so the agent never pushes a syntax/import break.
-
-### 1.6 One health command that works from a clean checkout — `M` · ★★
-**Problem (external review, 2026-07).** The review's #1 next move: "make one
-clean health command work everywhere" — `tools/smoke_gate.py` should install/
-resolve the tools it needs and pass from a fresh checkout, instead of assuming
-black/ruff/mypy/node are already present. The reviewer's gate run failed only
-because tools weren't installed, not because code was wrong.
-
-**Plan.** Make `tools/smoke_gate.py` (or a thin wrapper it calls) detect missing
-dev tools and either install them or print the exact one-liner to do so, so a
-green run is achievable from `git clone` + one command. Complements shipped
-`scripts/diagnose.py` — diagnose reports, this one repairs. **Layer 2.**
-
-
+*(1.4 multi-seed agent validation and 1.6 smoke-gate dependency diagnostics both
+shipped — see the Shipped section. 1.0 is the only open Theme 1 item.)*
 
 ## Theme 2 — Tame the god files
 
@@ -156,24 +140,33 @@ follow the same pattern: extracted collaborators + thin delegating facades,
 verified by the full fast gate and exact champion reproduction.
 
 ### 2.6 Round 2: the next worst offenders — `M` each · ★★
-**External review #2 (2026-07)** flagged a new crop; line counts below were
-re-measured against the tree 2026-07-06 after several follow-up cleanups. Long
-files are "where AI-agent codebases start to rot": agents over-edit, duplicate
-logic, and miss invariants. One file per PR, same discipline as round 1.
-Ordered by leverage (how often agents touch it), not raw size:
+Long files are "where AI-agent codebases start to rot": agents over-edit,
+duplicate logic, and miss invariants. One file per PR, same discipline as
+round 1.
 
-| File / item | Lines | Notes |
+**Read the pins, not this table.** `tests/test_god_class_limits.py` holds
+`LEGACY_MAX_LINES`, a machine-enforced ceiling per grandfathered file that CI
+keeps honest — it cannot go stale the way a hand-written table can. The
+external review's 2026-07-06 numbers here had drifted badly by 2026-07-25 (it
+listed `tools/evolution_report.py` at 904 lines; it is 274 and no longer a god
+file at all), so the table below is now just *commentary* on entries that live
+in `LEGACY_MAX_LINES`. Sorted by size as pinned on 2026-07-25:
+
+| File / item | Pin | Notes |
 | --- | ---: | --- |
-| `core/entities/fish.py` | 625 | `Fish.__init__` still dominates the file; extract construction/wiring helpers. Champions must reproduce exactly. |
-| `core/mixed_poker/interaction.py::play_poker` | ~336-line method | Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
-| `backend/routers/worlds.py::setup_worlds_router` | ~300-line function | Split endpoint groups into module-level handlers or sub-routers. Layer 2. |
-| `core/algorithms/base.py` | 705 | Agents read this constantly when writing behaviors — clarity here compounds. |
-| `backend/state_payloads.py` | 741 | Coordinate with 7.1 (contract test / generated types) — don't split before deciding that. |
-| `core/spatial/grid.py` | 652 | Hot path — split only if a clean seam exists; never at a performance cost. |
-| `tools/evolution_report.py` | 904 | Lowest risk (tooling, no sim impact). Good warm-up split. Layer 2. |
-| `core/poker/human_poker_game.py` | 741 | Low traffic; do last. |
+| `core/poker/human_poker_game.py` | 863 | Now the largest Python file in the repo. Low traffic, so still low priority — but it is no longer "do last" by size. |
+| `core/entities/fish.py` | 810 | `Fish.__init__` still dominates; extract construction/wiring helpers. Champions must reproduce exactly. |
+| `backend/state_payloads.py` | 809 | **7.1** shipped as a contract test, so the "don't split before deciding" blocker is resolved — the split is now unblocked. Layer 2. |
+| `core/transfer/entity_transfer.py` | 800 | Not on the original list; grew into it since. |
+| `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
+| `core/mixed_poker/interaction.py::play_poker` | 361-line method (file 728) | Grew from the ~336 the review measured. Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
 
-Frontend renderers (`renderer.ts` 1,431, etc.) are already covered by **7.3**.
+**No longer qualify** (removed from this list, do not "fix" them):
+`core/algorithms/base.py` is 572 and already split;
+`backend/routers/worlds.py` is 356 total, so `setup_worlds_router` cannot be
+the ~300-line function the review described; `tools/evolution_report.py` is 274.
+
+Frontend files are covered by **7.3**.
 
 ## Theme 3 — Consolidate the algorithm library
 
@@ -194,10 +187,9 @@ surface) belong to normal maintenance, not a theme.
 
 This is where "fun to use" and "excellent example of software design" are won.
 
-### 4.5 Debug-frame / debug-entity tracing — `M` · ★★
-Add `--debug-frame N` and `--debug-entity ID` flags to the headless runner that
-dump every energy delta and event for the targeted frame/entity. Cuts
-regression hunts from hours to minutes.
+*No open proposals: 4.1–4.5 have all shipped (see the Shipped section). This
+theme is a good place to add new ideas — it is the one most directly about
+making the project pleasant to use.*
 
 ---
 
@@ -213,12 +205,20 @@ first scroll.
 
 ### 5.3 Generated docs stay generated — `S` · ★
 Anything that mirrors code should be generated by a script run in CI, so docs
-can't drift from reality. The algorithm catalog half is shipped:
-`tools/generate_algorithm_catalog.py` regenerates `docs/ALGORITHM_CATALOG.md`,
-and the smoke gate checks freshness. Remaining candidates: generate the live
-benchmark list/runtime-budget table from benchmark modules, and keep docs that
-quote registry counts from hand-maintaining those numbers. The old 48-vs-58
-algorithm-count bug is exactly the failure this prevents.
+can't drift from reality. Two halves have shipped:
+`tools/generate_algorithm_catalog.py` → `docs/ALGORITHM_CATALOG.md`, and the
+benchmark catalog → `docs/BENCHMARK_CATALOG.md`; the smoke gate fails on stale
+output for both.
+
+**Remaining candidate — and the 2026-07-25 audit is the evidence for it.**
+Every hand-maintained number in this very file had drifted, one by 3x, and
+eight proposals described work that was already merged. The generated-doc
+pattern is the fix: a checker that flags prose claims which contradict the
+tree. Concretely, the cheapest useful version is a smoke-gate test that parses
+the file-size table in **2.6** and the `Any` counts in **6.2** and fails when
+they disagree with a fresh measurement — the same contract
+`test_docs_agent_onboarding.py` already enforces for benchmark paths. The old
+48-vs-58 algorithm-count bug and this audit are the same failure mode.
 
 ---
 
@@ -226,12 +226,13 @@ algorithm-count bug is exactly the failure this prevents.
 
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
-does. Current state (measured 2026-07): ~64% of Python functions fully typed;
-after several cleanup passes, a quick re-count shows **209 simple `Any`
-annotation hits** (`: Any`, `-> Any`, `[Any]`) and **688 plain `Any`
-occurrences** across `core/`. Mypy config is deliberately relaxed
-(`disallow_untyped_defs = false`, `check_untyped_defs = true`). These tasks
-tighten the *core path* first, where a mistake is most expensive.
+does. Re-measured 2026-07-25: **227 simple `Any` annotation hits** (`: Any`,
+`-> Any`, `[Any]`) and **772 plain `Any` occurrences** across `core/`. Both
+went *up* since the last count (209 / 688) — `core/` grew faster than the
+cleanup passes retired `Any`, so treat 6.2 as a treadmill, not a burn-down. The
+global mypy config stays deliberately relaxed (`disallow_untyped_defs = false`,
+`check_untyped_defs = true`); strictness is applied per package via overrides
+(**6.1**), which is the part that has actually ratcheted.
 
 ### 6.1 Tighten mypy on one core package at a time — `M` · ★★
 **Do not flip strict mode globally** — it will produce hundreds of errors and no
@@ -245,9 +246,9 @@ Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
 mypy section is where the per-module override block goes.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
-Grep `core/` for `: Any`, `-> Any`, and `[Any]` (209 hits re-measured
-2026-07-07; note this pattern misses generic-parameterized forms like
-`dict[str, Any]`; a plain `\bAny\b` count is 688) and replace the easy ones
+Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
+2026-07-25; note this pattern misses generic-parameterized forms like
+`dict[str, Any]`; a plain `\bAny\b` count is 772) and replace the easy ones
 with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
 green. Small, safe, and it compounds. **Layer 2.**
 
@@ -263,7 +264,8 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/minigames/soccer/seeds.py`, `core/policies/movement_policy_runner.py`,
 `core/ecosystem_telemetry.py`, `core/interfaces.py` (all but the legacy
 `record_poker_outcome result: Any` param), `core/entities/plant.py`,
-`core/plant/poker_component.py`, and `core/plants/plant_strategy_types.py`.
+`core/plant/poker_component.py`, `core/plants/plant_strategy_types.py`, and
+`core/algorithms/composable/food_selection.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
 nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a
@@ -277,10 +279,12 @@ mechanical annotations, and keep `mypy core/` green.
 
 ## Theme 7 — Frontend contracts & performance (external review, 2026-07)
 
-The reviewer rated the frontend the weakest surface relative to its size:
-22,381 source lines re-measured 2026-07-06, thin tests (13 test files vs. 91
-source files), and several 1,000+ line renderers/components. These are the
-tractable pieces.
+The reviewer rated the frontend the weakest surface relative to its size. Both
+halves of that judgement have moved since — re-measured 2026-07-25: **32,247
+source lines** (was 22,381) across **131 source files** (was 91), with **28
+test files** (was 13). So test coverage roughly doubled *and* the surface grew
+by 44%; the ratio is about where it was. The 1,000+ line renderers are still
+the concrete tractable piece.
 
 ### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★ — SHIPPED
 Option (b) landed as `tests/test_frontend_payload_contract.py`: it parses the
@@ -291,29 +295,25 @@ twelve backend DTOs — has a frontend declaration. Verified against the tree
 closing rule warns about. Option (a), generating the TS types from the Python
 models, remains available if hand-written types become a maintenance burden.
 
-### 7.2 Measure whether delta updates are truly sparse — `M` · ★★
-**Problem.** `EntitySnapshot.to_delta_dict()` in `backend/state_payloads.py`
-(line ~223) emits only fast-changing fields, and the wire payload already has
-`updates`, `added`, and `removed`. `useWebSocket.applyDelta()` patches entities
-by id, and `tests/test_delta_identity_is_stable.py` guards stable IDs. The
-remaining suspicion is narrower: `backend/runner/state_publisher.py` currently
-builds `updates = [e.to_delta_dict() for e in entities]`, which may still send
-every existing entity every delta frame.
-
-**Plan.** First *measure*: log delta-frame payload size and the count of
-entities sent vs. actually changed at a few population levels. Only if it is
-sending unchanged entities, track the last sent per-entity delta state and emit
-only changed updates plus the existing `added`/`removed` lists. Land the
-measurement as its own small PR first — don't optimize on a hunch. **Layer 2**
-(if the wire-format shape changes, bump the schema version and keep the
-mismatch detector happy).
+*(7.2 shipped — deltas now emit only changed entities, with wire telemetry to
+prove it. See the Shipped section.)*
 
 ### 7.3 Split the 1,000+ line renderers — `M` · ★
-`frontend/src/utils/renderer.ts` (1,431),
-`frontend/src/renderers/petri/PetriTopDownRenderer.ts` (1,226),
-`frontend/src/components/EvolutionBenchmarkDisplay.tsx` (1,203), and
-`frontend/src/renderers/tank/TankTopDownRenderer.ts` (1,122) are the top
-offenders. Same discipline as Theme 2's Python god-file splits: extract
+Re-measured 2026-07-25. Two of the four original targets are done and two grew:
+
+| File | Then | Now |
+| --- | ---: | ---: |
+| `frontend/src/renderers/petri/PetriTopDownRenderer.ts` | 1,226 | **1,392** |
+| `frontend/src/renderers/tank/TankTopDownRenderer.ts` | 1,122 | **1,267** |
+| `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | **1,203** (new offender) |
+| `frontend/src/utils/plants/renderers.ts` | — | **1,042** (new offender) |
+| `frontend/src/pages/NetworkDashboard.tsx` | — | **1,046** (new offender) |
+| `frontend/src/utils/renderer.ts` | 1,431 | 812 — *split, done* |
+| `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 — *split, done* |
+
+The two petri/tank renderers regrew past where they started, which is the
+argument for doing them properly rather than trimming. Same discipline as
+Theme 2's Python god-file splits: extract
 *obvious* collaborators (e.g. per-entity draw helpers, a legend/HUD module)
 behind a thin facade, verified by `npm run build` + existing tests. Split only
 where the responsibility boundary is clear — no abstraction for elegance.
@@ -351,29 +351,35 @@ proposals remain; see the Shipped section for the wheel packaging smoke test.
 ## Theme 10 — Research instrumentation: make the paper defensible (external review #2, 2026-07)
 
 The review's core message: the "AI agents as evolutionary operators" story is
-not defensible until the data pipeline is as real as the system design. The
-attempt ledger and multi-seed matrix tooling have landed, so accepted and
-rejected attempts can now be recorded. Remaining gaps: agents can still edit
-every ruler they are scored against, patches are not yet classified into a
-mutation taxonomy, and there is no non-AI control arm.
+not defensible until the data pipeline is as real as the system design.
+
+**Every gap the review named now has tooling** (re-verified 2026-07-25): the
+attempt ledger and multi-seed matrix (10.1/10.2), held-out evaluators plus the
+locked-path check (10.3), the patch taxonomy classifier (10.4), and the non-AI
+random-search control arm (10.5) have all shipped. What is still missing is
+the *output*: nobody has run the arms against each other and published the
+comparison. That is 10.6, and it is now the only open item in this theme.
 
 None of these change simulation behavior — all **Layer 2** — but they touch
 scoring/CI infrastructure, so keep each one a separate PR (Rule: Layer 2
 changes stay separate from Layer 1 improvements).
 
 
-### 10.5 A non-AI baseline search method — `L` · ★★
-The paper's claim "AI agents are effective evolutionary operators" needs a
-control arm. Implement a dumb-but-honest baseline that proposes parameter
-perturbations within `ALGORITHM_PARAMETER_BOUNDS` (random search or a simple
-evolutionary strategy over `core/config/` + composable parameters). Build on
-`tools/param_mutator.py`, which already creates deterministic mutation plans
-for composable and per-algorithm parameter bounds. Run the baseline through the
-*same* validation pipeline, log it to the *same* attempt ledger with an explicit
-non-AI `agent_id`, and compare against agent attempts under the same benchmark
-and seed budget. The comparison "agent attempts vs. random-search attempts,
-same budget" is the paper's headline figure. Depends on shipped **10.1** and
-**10.2**.
+### 10.6 Actually run the control-arm comparison — `M` · ★★★
+**10.5 built the machinery; nobody has run it.** `tools/non_ai_baseline.py`
+proposes deterministic parameter mutations, evaluates them across a seed
+matrix through the normal benchmark contract, and logs them to
+`research/attempts.jsonl` under the `non-ai-random-search` agent id. The
+headline figure the paper needs — "agent attempts vs. random-search attempts,
+same benchmark, same seed budget" — is a *result*, not a tool, and it does not
+exist yet.
+
+**Plan.** Fix a budget (say N proposals on `ecosystem_health_10k`, seeds
+42/7/123), run the baseline arm to completion, and summarise both arms out of
+the shared ledger with `tools/summarize_attempts.py`. Report acceptance rate
+and score delta per arm. This is the one Theme 10 item whose output is
+evidence rather than infrastructure — which is exactly what review #2 said was
+missing. **Layer 2** (no simulation change; it only reads the pipeline).
 
 ---
 
@@ -456,7 +462,8 @@ the proposed evolved-team fixture — it beats the all-chase substrate by 9.5
 goals a match, so it is a real unbeaten ceiling, and an evolved-team snapshot
 can be appended later as L4 without touching L0-L3.
 
-### 11.5 Longitudinal skill ledger + nightly CI append — `M` · ★★★
+### 11.5 Longitudinal skill ledger + nightly CI append — `M` · ★★★ — SHIPPED
+`core/research/skill_ledger.py` + `tools/run_bench.py --record-skill`.
 `research/skill_history.jsonl`: one row per
 `(timestamp, git_sha, config_hash, domain, rung, metric, seeds, skill_index)`
 appended by the nightly benchmark job and by `tools/run_bench.py
@@ -465,8 +472,10 @@ so it never needs re-baselining. This is the dataset every trend
 visualization reads. Policy: rulers are immutable — changing one mints a new
 rung ID; old rows stay valid.
 
-### 11.6 Skill dashboards: static report + UI panel — `M` · ★★
-Three views over `skill_history.jsonl`:
+### 11.6 Skill dashboards: static report + UI panel — `M` · ★★ — PARTLY SHIPPED
+`tools/skill_report.py` ships the static text/JSON/HTML report. **The web-UI
+"Skill Trends" panel is the open half.** Three views over
+`skill_history.jsonl`:
 (a) **skill trajectory** per domain — x = date/commit, y = normalized skill,
 horizontal bands per ladder rung, config-hash changes as vertical markers;
 (b) **ladder matrix** — domains × rungs heatmap (loses / competitive /
@@ -475,7 +484,10 @@ ago. Deliver as `tools/skill_report.py` (self-contained HTML for PRs and
 nightly artifacts) first, then a "Skill Trends" panel in the web UI next to
 `EvolutionBenchmarkDisplay`. Depends on 11.5.
 
-### 11.7 Freeze the rulers in CI — `S` · ★★
+### 11.7 Freeze the rulers in CI — `S` · ★★ — SHIPPED
+`tools/check_locked_paths.py` now covers the poker ladder, foraging gym, and
+soccer ladder; read the bootstrap note in the Shipped section before adding a
+new ruler. Original scope:
 Add the reference-opponent implementations
 (`core/poker/strategy/implementations/baseline.py`, `standard.py`,
 `expert.py`, and future soccer reference teams / foraging oracles) to the
@@ -546,28 +558,38 @@ A** (12.5–12.6) — as *earned* by a falsifiable evolvability result on
 criterion. A universal policy net is **Option C** and is rejected: it destroys
 the interpretability that is the project's best advertisement.
 
-**Best starter pick: 12.1** — a byte-identical refactor that makes the shared
-primitives real without touching the genome. The ADR (`docs/adr/`) recording
-the encoding decision is written when **12.3/12.4** commit, not before.
+**Status as of the 2026-07-25 audit.** 12.1, 12.2, and 12.3 have shipped, and
+12.4 has landed behind a default-off flag — further than this section's prose
+suggested. **12.5 is the next real step, and it is the go/no-go gate for the
+whole theme.** The ADR (`docs/adr/`) recording the encoding decision is still
+unwritten; it belongs with 12.5's result, not before it.
 
-### 12.1 Extract steering/sensor primitives into a shared library — `M` · ★★★
-**Layer 1 (byte-identical refactor).** Create `core/behavior/primitives/`
-(`steering.py`: seek/flee/arrive/wander/intercept/boids/turn-then-dash) and move
-the math out of `actions.py`, `food_selection.py`, and `_steer_action` into
-shared pure functions that the existing call sites invoke for *identical*
-output. Acceptance: all four champions reproduce bit-exactly. Highest
-value-per-risk — it makes the "reusable primitive" story real with zero
-behavior change. Keep every new file under the god-class ceiling from the start.
+### 12.1 Extract steering/sensor primitives into a shared library — `M` · ★★★ — SHIPPED
+`core/behavior/primitives/steering.py` exists and is invoked by
+`core/algorithms/composable/actions.py`,
+`core/algorithms/composable/food_selection.py`, `core/algorithms/base.py`,
+`core/code_pool/pool.py` (soccer's `_steer_action`),
+`core/behavior/standard_nodes.py`, and the frozen soccer reference teams —
+i.e. all three domains plus the graph node set share one implementation, which
+was the point.
 
-### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★
-**Layer 1 (the risky step — isolate it).** Build a graph over the 12.1
-primitives that reproduces `ComposableBehavior.execute()` for foraging
-(priority arbiter: threat > food > social > explore). Validate on the **Theme
-11.3 foraging gym** (absolute skill, not ecosystem noise). Aim for
-bit-identical; if impossible, re-baseline the foraging champions **once**,
-atomically, with a documented `retired_reason`, and lean on the Theme 11 frozen
-rulers, which survive re-baselines by design. Keep `ComposableBehavior` as the
-reference oracle throughout — do not delete it here.
+### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★ — LANDED, UNPROVEN
+**Layer 1.** The graph controller exists: `default_foraging_graph()` in
+`core/behavior/tank_adapter.py`, installed for founders by
+`core/behavior/feature_flags.py` only when `tank.graph_behavior_enabled` is
+set, dispatched from `core/movement_strategy.py`, covered by
+`tests/core/test_graph_foraging_controller.py`. Two sibling flags,
+`target_pursuit_module_enabled` and `target_memory_enabled`, gate the shared
+pursuit module and target memory independently so the components can be
+ablated separately. All three default to `False`, so the baseline is
+byte-identical and no champion moved.
+
+**What is not done:** the flag is off, so nothing selects the graph in
+production, and there is no recorded **11.3 foraging-gym** score for the graph
+arm vs. the `ComposableBehavior` arm. That comparison is the acceptance
+criterion this task was written around — run it and record the result before
+treating 12.4 as finished. `ComposableBehavior` stays the reference oracle
+either way; do not delete it here.
 
 ### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
 **Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
@@ -581,9 +603,17 @@ the graph encoding raise directional trait drift on
 encoding, with a pre-registered kill criterion? The graveyard is full of
 plausible ideas that landed flat — prove this one before Theme 12.6.
 
-### 12.6 Cross-domain binding: soccer + poker share the middle — `L` · ★★
-**Layer 1.** Add a soccer actuator adapter and bind the *same* interception
-subgraph to the ball (first genuine cross-domain reuse) → measure on the Theme
+### 12.6 Cross-domain binding: soccer + poker share the middle — `L` · ★★ — SOCCER HALF LANDED
+**Layer 1.** The soccer half exists: `core/behavior/soccer_adapter.py` plus
+`core/minigames/soccer/policy_adapter.py` bind the shared pursuit module, and
+`core/movement/ball_pursuit.py` drives ball pursuit through the same target
+memory used for food — the first genuine cross-domain reuse. Transfer is being
+measured by `core/pursuit/transfer_gym.py` and the
+`core/behavior/target_memory_transfer_*` study modules. **The poker half is
+untouched**, and neither half has a recorded **11.4 soccer ladder** delta.
+
+Original scope: add a soccer actuator adapter and bind the *same* interception
+subgraph to the ball → measure on the Theme
 11.4 soccer ladder. Add a poker decision-selector + memory node and bind
 hand/pot sensors → measure on `benchmarks/poker/ladder_20k.py`. Make a single
 `aggression`/`commit` modulator node feed `InterceptMoving.speed`,
@@ -895,3 +925,22 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 *Keep this list honest. If a proposal is no longer worth doing, delete it with a
 one-line note rather than letting it rot.*
+
+**How this file rots, and the two rules that stop it.** The 2026-07-25 audit
+found eight proposals still written as open work whose implementations were
+already merged, plus stale numbers throughout. The cause was mechanical: PRs
+appended to **Shipped** without deleting the matching body entry, so the file
+grew two contradictory accounts of the same task and the body — the half agents
+actually read to pick work — silently became fiction.
+
+1. **Shipping a proposal means deleting or marking its body entry in the same
+   PR**, not only adding a Shipped bullet. If the entry carries design notes
+   worth keeping (Theme 11's rulers are the good example), mark it `— SHIPPED`
+   in the heading and keep the prose; otherwise delete it and leave a one-line
+   pointer.
+2. **Never cite a number you did not just measure.** Every count here is a
+   claim about the tree, and the tree moves. Quote the command, or point at a
+   machine-enforced source of truth — `LEGACY_MAX_LINES` in
+   `tests/test_god_class_limits.py` for file sizes, `pyproject.toml`'s mypy
+   overrides for typing coverage, `docs/BENCHMARK_CATALOG.md` for benchmarks.
+   **5.3** proposes automating exactly this check.
