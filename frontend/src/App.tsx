@@ -2,7 +2,7 @@
  * Main App component with routing
  */
 
-import { Routes, Route, Link, useParams, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useParams, useLocation, useNavigate } from 'react-router';
 import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { config, type WorldStatus } from './config';
