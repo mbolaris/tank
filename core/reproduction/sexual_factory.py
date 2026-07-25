@@ -11,6 +11,7 @@ from core.util.stable_hash import stable_algorithm_id
 
 if TYPE_CHECKING:
     from core.entities import Fish
+    from core.genetics import Genome
     from core.genetics.reproduction import ReproductionMutationContext
     from core.simulation import SimulationEngine
 
@@ -327,7 +328,7 @@ def _find_proximity_mate(
     return candidates[0][3]
 
 
-def _mutate_code_policies(parent: Fish, offspring_genome, engine: SimulationEngine) -> None:
+def _mutate_code_policies(parent: Fish, offspring_genome: Genome, engine: SimulationEngine) -> None:
     pool = getattr(parent.environment, "genome_code_pool", None)
     if pool is None:
         return

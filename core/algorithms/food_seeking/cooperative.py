@@ -39,7 +39,7 @@ class CooperativeForager(BehaviorAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> "CooperativeForager":
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

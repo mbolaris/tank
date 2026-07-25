@@ -233,16 +233,30 @@ occurrences** across `core/`. Mypy config is deliberately relaxed
 (`disallow_untyped_defs = false`, `check_untyped_defs = true`). These tasks
 tighten the *core path* first, where a mistake is most expensive.
 
-### 6.1 Tighten mypy on one core package at a time — `M` · ★★
+### 6.1 Tighten mypy one core package at a time — `M` · ★★
 **Do not flip strict mode globally** — it will produce hundreds of errors and no
-mergeable PR. Instead, pick **one** package and add a per-module mypy override
-that turns on `disallow_untyped_defs = true` for just that path, then fix the
-fallout. Shipped so far: `core/simulation/`, `core/worlds/`, `core/genetics/`,
-and `core/transfer/`. The next candidate is `backend/state_payloads.py`; **7.1**
-shipped as a contract *test* rather than generated types, so the hand-written
-annotations there are now the thing to tighten. One package per PR,
-Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
-mypy section is where the per-module override block goes.
+mergeable PR. Instead, pick a package, add a per-module override that turns on
+`disallow_untyped_defs = true` for just that path, then fix the fallout. The
+override blocks live under the `# Overrides` comment in `pyproject.toml`'s mypy
+section. Layer 2; `pre_pr_gate` green is the acceptance bar.
+
+**Already strict** (re-verified 2026-07-25): `core.simulation`, `core.worlds`,
+`core.genetics`, `core.transfer`, `core.entities`, `core.spatial`,
+`core.solutions`, `core.util`, `backend.state_payloads`, plus
+`core.algorithms`, `core.behavior`, `core.config`, `core.energy`,
+`core.movement`, `core.parameters`, `core.reproduction`, `core.research`, and
+`core.skill`.
+
+**Remaining candidates**, roughly by leverage: `core.poker` (52 files — do it in
+sub-package slices, not one PR), `core.minigames` (24), `core.services` (8),
+`core.mixed_poker` (7), `core.plant` (6), `core.code_pool` (6),
+`core.systems` (6), then the small leaves (`core.actions`, `core.agents`,
+`core.brains`, `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
+`core.foraging`, `core.modes`, `core.plants`, `core.policies`, `core.pursuit`,
+`core.replay`, `core.taxonomy`, `core.telemetry`). Probe the fallout before
+sizing a PR: add the override, run `mypy core/ backend/`, and count. Several of
+the small leaves are already annotation-clean and cost nothing but the config
+block.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (209 hits re-measured
@@ -606,6 +620,15 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **6.1 Strict typing for nine more core packages.** `disallow_untyped_defs` /
+  `disallow_incomplete_defs` now cover `core.algorithms`, `core.behavior`,
+  `core.config`, `core.energy`, `core.movement`, `core.parameters`,
+  `core.reproduction`, `core.research`, and `core.skill` — including the two
+  packages agents edit most often when proposing Layer 1 improvements. Total
+  fallout was seven unannotated functions; `core/behavior/target_memory.py`
+  gained a structural `TargetMemoryHolder` Protocol so the module keeps its
+  deliberate freedom from entity imports. Annotation-only: no runtime behavior,
+  no RNG draw, no champion re-baseline.
 - **11.4 Soccer reference-team ladder.** Added
   [`benchmarks/soccer/ladder_5k.py`](../benchmarks/soccer/ladder_5k.py) and the
   frozen rulers in

@@ -22,6 +22,7 @@ import random
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
+from typing import Protocol
 
 Vector2f = tuple[float, float]
 
@@ -361,8 +362,18 @@ def decide_target(
     return next_state, decision
 
 
+class TargetMemoryHolder(Protocol):
+    """Carrier of per-domain target memory - ``Fish`` in production.
+
+    Declared structurally so this module stays free of entity imports; the
+    ``hasattr`` guard below still covers carriers built without the attribute.
+    """
+
+    target_memory_state: dict[str, TargetMemoryState]
+
+
 def invalidate_target_memory(
-    fish,
+    fish: TargetMemoryHolder,
     domain: str,
     target_id: TargetId,
 ) -> None:
