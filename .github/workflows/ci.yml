@@ -159,6 +159,7 @@ jobs:
       run: |
         python tools/check_locked_paths.py --locked \
           benchmarks/poker/ladder_20k.py benchmarks/tank/foraging_gym.py \
+          benchmarks/soccer/ladder_5k.py \
           --base origin/${{ github.base_ref }}
 
 

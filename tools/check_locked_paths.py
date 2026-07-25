@@ -93,6 +93,7 @@ DEFAULT_LOCKED_PATHS = [
     "core/poker/strategy/implementations/standard.py",
     "core/poker/strategy/implementations/expert.py",
     "core/foraging/gym.py",
+    "core/minigames/soccer/reference_teams.py",
 ]
 
 

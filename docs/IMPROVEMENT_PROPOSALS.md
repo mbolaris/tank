@@ -238,9 +238,9 @@ tighten the *core path* first, where a mistake is most expensive.
 mergeable PR. Instead, pick **one** package and add a per-module mypy override
 that turns on `disallow_untyped_defs = true` for just that path, then fix the
 fallout. Shipped so far: `core/simulation/`, `core/worlds/`, `core/genetics/`,
-and `core/transfer/`. The next candidate is `backend/state_payloads.py`, but
-coordinate it with **7.1** first because the honest types may be generated
-payload contracts rather than hand-written annotations. One package per PR,
+and `core/transfer/`. The next candidate is `backend/state_payloads.py`; **7.1**
+shipped as a contract *test* rather than generated types, so the hand-written
+annotations there are now the thing to tighten. One package per PR,
 Layer 2, `pre_pr_gate` green. The `# No overrides` line in `pyproject.toml`'s
 mypy section is where the per-module override block goes.
 
@@ -282,19 +282,14 @@ The reviewer rated the frontend the weakest surface relative to its size:
 source files), and several 1,000+ line renderers/components. These are the
 tractable pieces.
 
-### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★
-**Problem.** `backend/state_payloads.py` (Python) and
-`frontend/src/types/simulation.ts` (TypeScript, 824 lines) describe the same
-wire format and can silently drift. The frontend detects *schema version*
-mismatch at runtime, and `tests/test_websocket_payload_v1.py` guards the basic
-full/delta V1 keys, but nothing checks the field-level Python DTO shape against
-the TypeScript interfaces.
-
-**Plan (two options, pick the smaller that fits).** Either (a) generate the TS
-types from the Python dataclasses/pydantic models as a build step so they cannot
-drift, or (b) add a contract test that serializes a representative payload from
-`state_payloads.py` and asserts every key is present in the TS type (a JSON
-fixture checked by both sides). Option (b) is the smaller first step. **Layer 2.**
+### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★ — SHIPPED
+Option (b) landed as `tests/test_frontend_payload_contract.py`: it parses the
+exported interfaces in `frontend/src/types/simulation.ts` and `payload.ts` and
+asserts that every key of a live full/delta payload — and every field of the
+twelve backend DTOs — has a frontend declaration. Verified against the tree
+2026-07-25; this entry had gone stale, which is exactly the rot the file's
+closing rule warns about. Option (a), generating the TS types from the Python
+models, remains available if hand-written types become a maintenance burden.
 
 ### 7.2 Measure whether delta updates are truly sparse — `M` · ★★
 **Problem.** `EntitySnapshot.to_delta_dict()` in `backend/state_payloads.py`
@@ -445,13 +440,21 @@ The existing ecosystem benchmarks keep measuring the ecosystem; this measures
 the skill. Start from `scripts/diagnose_food_seeking.py` for the isolation
 setup.
 
-### 11.4 Soccer reference-team ladder — `M` · ★★
-After 11.1, self-play soccer scores are sensitive but still relative. Add
-frozen reference teams: L0 stationary, L1 random walkers, L2 scripted
-chase-and-shoot, L3 a committed snapshot of the best evolved team (fixture,
-e.g. `fixtures/soccer/champion_team_2026_07.json`). Metric: goal difference
-per 5k frames vs each rung, side-swapped and multi-seed. Skill = highest rung
-beaten + margin.
+### 11.4 Soccer reference-team ladder — `M` · ★★ — SHIPPED
+`benchmarks/soccer/ladder_5k.py` plays the neutral-default soccer substrate
+against four frozen teams in `core/minigames/soccer/reference_teams.py`: L0
+`stationary_v1`, L1 `random_walk_v1`, L2 `chase_shoot_v1`, L3 `formation_v1`.
+Metric is goal difference per 5k-frame match, side-swapped on the same engine
+seed and averaged over 3 seeds. Seed-42 baseline: **+58.0 / +48.2 / 0.0 /
+-9.5**, skill index 50 (2 of 4 rungs beaten).
+
+Two design notes worth keeping: L2 is a frozen snapshot of the neutral
+substrate chaser, so its measured 0.00 both proves the side-swap cancels the
+kickoff/formation advantage exactly and makes "goal diff vs L2" read as
+"improvement since the freeze". L3 is a scripted role formation rather than
+the proposed evolved-team fixture — it beats the all-chase substrate by 9.5
+goals a match, so it is a real unbeaten ceiling, and an evolved-team snapshot
+can be appended later as L4 without touching L0-L3.
 
 ### 11.5 Longitudinal skill ledger + nightly CI append — `M` · ★★★
 `research/skill_history.jsonl`: one row per
@@ -603,6 +606,17 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **11.4 Soccer reference-team ladder.** Added
+  [`benchmarks/soccer/ladder_5k.py`](../benchmarks/soccer/ladder_5k.py) and the
+  frozen rulers in
+  [`core/minigames/soccer/reference_teams.py`](../core/minigames/soccer/reference_teams.py)
+  (stationary / random-walk / chase-and-shoot / role formation). The rulers are
+  self-contained by construction — they never read `soccer_policy_params`, never
+  call the shared steering primitives, and register under their own
+  `soccer_reference_policy` kind so mutation can never draw a genome onto the
+  opponent it is scored against. Wired into the locked-path check, nightly
+  determinism + skill-ledger recording, and the champion registry
+  (`champions/soccer/ladder_5k.json`, seed 42, score 24.17).
 - **11.5 Longitudinal skill ledger.** Added
   `core/research/skill_ledger.py` and `tools/run_bench.py --record-skill`.
   Frozen-ruler benchmarks now emit append-only per-rung rows containing the
