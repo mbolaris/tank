@@ -1,0 +1,350 @@
+{
+  "benchmark_id": "soccer/ladder_5k",
+  "version": 1,
+  "champion": {
+    "score": 24.166666666666664,
+    "seed": 42,
+    "timestamp": 1784952613.906524,
+    "metadata": {
+      "hero": "soccer_policy_neutral_default",
+      "ladder_rungs": [
+        "stationary_v1",
+        "random_walk_v1",
+        "chase_shoot_v1",
+        "formation_v1"
+      ],
+      "rungs_beaten": 2,
+      "total_rungs": 4,
+      "frames": 5000,
+      "team_size": 3,
+      "n_seeds": 3,
+      "seeds": [
+        42,
+        43,
+        44
+      ],
+      "matches_per_rung": 6,
+      "score_mode": "mean goal difference per match across ladder rungs (side-swapped)",
+      "competitive_goal_diff_mean": -4.75,
+      "competitive_rungs_note": "Mean over the non-trivial rungs (L2+). The headline score includes L0/L1, whose large margins any working substrate earns; judge real progress on the ladder index and this value.",
+      "vs_top_rung_goal_diff": -9.5,
+      "per_rung_results": [
+        {
+          "rung": "L0",
+          "rung_id": "stationary_v1",
+          "description": "Never moves; the do-nothing floor.",
+          "goal_diff_mean": 58.0,
+          "goal_diff_ci_95": [
+            58.0,
+            58.0
+          ],
+          "hero_goals_mean": 58.0,
+          "reference_goals_mean": 0.0,
+          "matches_played": 6,
+          "significant": true,
+          "beaten": true,
+          "matches": [
+            {
+              "seed": 42,
+              "hero_side": "left",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            },
+            {
+              "seed": 42,
+              "hero_side": "right",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            },
+            {
+              "seed": 43,
+              "hero_side": "left",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            },
+            {
+              "seed": 43,
+              "hero_side": "right",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            },
+            {
+              "seed": 44,
+              "hero_side": "left",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            },
+            {
+              "seed": 44,
+              "hero_side": "right",
+              "hero_goals": 58,
+              "reference_goals": 0,
+              "goal_diff": 58
+            }
+          ]
+        },
+        {
+          "rung": "L1",
+          "rung_id": "random_walk_v1",
+          "description": "Turns and dashes at random, ignoring the ball.",
+          "goal_diff_mean": 48.166666666666664,
+          "goal_diff_ci_95": [
+            45.99488603522363,
+            50.3384472981097
+          ],
+          "hero_goals_mean": 48.166666666666664,
+          "reference_goals_mean": 0.0,
+          "matches_played": 6,
+          "significant": true,
+          "beaten": true,
+          "matches": [
+            {
+              "seed": 42,
+              "hero_side": "left",
+              "hero_goals": 51,
+              "reference_goals": 0,
+              "goal_diff": 51
+            },
+            {
+              "seed": 42,
+              "hero_side": "right",
+              "hero_goals": 44,
+              "reference_goals": 0,
+              "goal_diff": 44
+            },
+            {
+              "seed": 43,
+              "hero_side": "left",
+              "hero_goals": 48,
+              "reference_goals": 0,
+              "goal_diff": 48
+            },
+            {
+              "seed": 43,
+              "hero_side": "right",
+              "hero_goals": 50,
+              "reference_goals": 0,
+              "goal_diff": 50
+            },
+            {
+              "seed": 44,
+              "hero_side": "left",
+              "hero_goals": 46,
+              "reference_goals": 0,
+              "goal_diff": 46
+            },
+            {
+              "seed": 44,
+              "hero_side": "right",
+              "hero_goals": 50,
+              "reference_goals": 0,
+              "goal_diff": 50
+            }
+          ]
+        },
+        {
+          "rung": "L2",
+          "rung_id": "chase_shoot_v1",
+          "description": "All players chase the ball and shoot or dribble goalward.",
+          "goal_diff_mean": 0.0,
+          "goal_diff_ci_95": [
+            -3.50615458871967,
+            3.50615458871967
+          ],
+          "hero_goals_mean": 9.0,
+          "reference_goals_mean": 9.0,
+          "matches_played": 6,
+          "significant": false,
+          "beaten": false,
+          "matches": [
+            {
+              "seed": 42,
+              "hero_side": "left",
+              "hero_goals": 7,
+              "reference_goals": 11,
+              "goal_diff": -4
+            },
+            {
+              "seed": 42,
+              "hero_side": "right",
+              "hero_goals": 11,
+              "reference_goals": 7,
+              "goal_diff": 4
+            },
+            {
+              "seed": 43,
+              "hero_side": "left",
+              "hero_goals": 7,
+              "reference_goals": 11,
+              "goal_diff": -4
+            },
+            {
+              "seed": 43,
+              "hero_side": "right",
+              "hero_goals": 11,
+              "reference_goals": 7,
+              "goal_diff": 4
+            },
+            {
+              "seed": 44,
+              "hero_side": "left",
+              "hero_goals": 7,
+              "reference_goals": 11,
+              "goal_diff": -4
+            },
+            {
+              "seed": 44,
+              "hero_side": "right",
+              "hero_goals": 11,
+              "reference_goals": 7,
+              "goal_diff": 4
+            }
+          ]
+        },
+        {
+          "rung": "L3",
+          "rung_id": "formation_v1",
+          "description": "Defender, chaser, and striker playing role geometry.",
+          "goal_diff_mean": -9.5,
+          "goal_diff_ci_95": [
+            -10.814807970769877,
+            -8.185192029230123
+          ],
+          "hero_goals_mean": 8.5,
+          "reference_goals_mean": 18.0,
+          "matches_played": 6,
+          "significant": true,
+          "beaten": false,
+          "matches": [
+            {
+              "seed": 42,
+              "hero_side": "left",
+              "hero_goals": 10,
+              "reference_goals": 18,
+              "goal_diff": -8
+            },
+            {
+              "seed": 42,
+              "hero_side": "right",
+              "hero_goals": 7,
+              "reference_goals": 18,
+              "goal_diff": -11
+            },
+            {
+              "seed": 43,
+              "hero_side": "left",
+              "hero_goals": 10,
+              "reference_goals": 18,
+              "goal_diff": -8
+            },
+            {
+              "seed": 43,
+              "hero_side": "right",
+              "hero_goals": 7,
+              "reference_goals": 18,
+              "goal_diff": -11
+            },
+            {
+              "seed": 44,
+              "hero_side": "left",
+              "hero_goals": 10,
+              "reference_goals": 18,
+              "goal_diff": -8
+            },
+            {
+              "seed": 44,
+              "hero_side": "right",
+              "hero_goals": 7,
+              "reference_goals": 18,
+              "goal_diff": -11
+            }
+          ]
+        }
+      ],
+      "skill": {
+        "domain": "soccer",
+        "benchmark_id": "soccer/ladder_5k",
+        "metric_name": "goal_diff_per_match",
+        "skill_index": 50.0,
+        "rungs_beaten": 2,
+        "total_rungs": 4,
+        "rungs": [
+          {
+            "rung": "L0",
+            "rung_id": "stationary_v1",
+            "metric": 58.0,
+            "beaten": true,
+            "ci_95": [
+              58.0,
+              58.0
+            ],
+            "detail": {
+              "matches_played": 6,
+              "hero_goals_mean": 58.0,
+              "reference_goals_mean": 0.0
+            }
+          },
+          {
+            "rung": "L1",
+            "rung_id": "random_walk_v1",
+            "metric": 48.166666666666664,
+            "beaten": true,
+            "ci_95": [
+              45.99488603522363,
+              50.3384472981097
+            ],
+            "detail": {
+              "matches_played": 6,
+              "hero_goals_mean": 48.166666666666664,
+              "reference_goals_mean": 0.0
+            }
+          },
+          {
+            "rung": "L2",
+            "rung_id": "chase_shoot_v1",
+            "metric": 0.0,
+            "beaten": false,
+            "ci_95": [
+              -3.50615458871967,
+              3.50615458871967
+            ],
+            "detail": {
+              "matches_played": 6,
+              "hero_goals_mean": 9.0,
+              "reference_goals_mean": 9.0
+            }
+          },
+          {
+            "rung": "L3",
+            "rung_id": "formation_v1",
+            "metric": -9.5,
+            "beaten": false,
+            "ci_95": [
+              -10.814807970769877,
+              -8.185192029230123
+            ],
+            "detail": {
+              "matches_played": 6,
+              "hero_goals_mean": 8.5,
+              "reference_goals_mean": 18.0
+            }
+          }
+        ],
+        "notes": "Ladder-position index: 100 = beats every current rung (ceiling saturated, add a taller rung). L3 formation_v1 is the strongest scripted ruler, not an upper bound on soccer play; rung order is design intent, and measured strength may be non-monotonic."
+      }
+    },
+    "score_breakdown": {
+      "stationary_v1": 58.0,
+      "random_walk_v1": 48.166666666666664,
+      "chase_shoot_v1": 0.0,
+      "formation_v1": -9.5
+    },
+    "config_hash": "d174646e1e21587b"
+  },
+  "history": []
+}

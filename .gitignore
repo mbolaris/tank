@@ -118,6 +118,8 @@ solutions/*.json
 solutions/*report*.txt
 !solutions/README.md
 verify_*.json
+# verify_all_champions.py also drops fingerprint streams beside the results.
+verify_*.jsonl
 
 # Generated tournament/experiment results
 results/

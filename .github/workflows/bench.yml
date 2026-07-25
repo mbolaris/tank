@@ -63,6 +63,11 @@ jobs:
         run: |
           python tools/run_bench.py benchmarks/tank/foraging_gym.py --seed 42 \
             --record-skill --skill-ledger research/skill_history.jsonl
+      - name: Run Soccer Ladder Benchmark (determinism check)
+        timeout-minutes: 10
+        run: |
+          python tools/run_bench.py benchmarks/soccer/ladder_5k.py --seed 42 --verify-determinism \
+            --record-skill --skill-ledger research/skill_history.jsonl
       - name: Build longitudinal skill report
         run: python tools/skill_report.py --format html --out skill_report.html
       - name: Upload skill history artifact

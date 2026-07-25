@@ -6,6 +6,7 @@
 | Benchmark ID | Module | Runtime budget | Description |
 | --- | --- | ---: | --- |
 | `poker/ladder_20k` | `benchmarks/poker/ladder_20k.py` | ~60s | Poker Ladder Benchmark (20k nominal hands). |
+| `soccer/ladder_5k` | `benchmarks/soccer/ladder_5k.py` | ~45s | Soccer Ladder Benchmark (5k frames per match). |
 | `soccer/training_3k` | `benchmarks/soccer/training_3k.py` | ~5s | Soccer Training Benchmark (3k frames). |
 | `soccer/training_5k` | `benchmarks/soccer/training_5k.py` | ~5s | Soccer Training Benchmark (5k frames). |
 | `tank/ecosystem_health_10k` | `benchmarks/tank/ecosystem_health_10k.py` | ~75s | Tank Ecosystem Health Benchmark (10k frames). |
