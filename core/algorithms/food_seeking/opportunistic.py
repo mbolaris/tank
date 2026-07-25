@@ -36,7 +36,7 @@ class OpportunisticFeeder(BehaviorAlgorithm):
         self.exploration_angle = _rng.uniform(0, 2 * math.pi)
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> "OpportunisticFeeder":
         return cls(rng=rng)
 
     def execute(self, fish: "Fish") -> tuple[float, float]:

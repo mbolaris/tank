@@ -131,7 +131,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
         """Get a human-readable short description of this behavior."""
         return f"{self.food_approach.name.replace('_', ' ').title()}"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default parameters if not provided."""
         if not self.parameters:
             self.parameters = {

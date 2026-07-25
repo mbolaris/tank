@@ -298,7 +298,7 @@ class SimulationConfig:
             ),
         )
 
-    def with_overrides(self, **kwargs) -> SimulationConfig:
+    def with_overrides(self, **kwargs: Any) -> SimulationConfig:
         """Return a copy of the config with updated fields."""
         return replace(self, **kwargs)
 
