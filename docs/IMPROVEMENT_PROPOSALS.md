@@ -624,9 +624,22 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 - **11.6 Static skill report.** Added `tools/skill_report.py`, which renders
   the current skill index, first-to-latest change, config transitions, and
   latest rung standings as text, JSON, or dependency-free HTML.
-- **11.7 Frozen-ruler CI protection.** The poker ladder and foraging gym are
-  now included in the CI locked-path invocation; nightly benchmark CI records
-  both histories and uploads the ledger plus HTML report as an artifact.
+- **11.7 Frozen-ruler CI protection.** The poker ladder, foraging gym, and
+  soccer ladder are now included in the CI locked-path invocation; nightly
+  benchmark CI records the histories and uploads the ledger plus HTML report
+  as an artifact.
+
+  **Bootstrap note for whoever adds the next ruler.** The PR that *introduces*
+  a ruler necessarily trips `check-locked-paths`: it adds the ruler file and
+  edits `tools/check_locked_paths.py`, which is itself permanently locked. So
+  is the benchmark, once you add it to the workflow's `--locked` list. There is
+  no diff ordering that avoids this — deferring the registration to a follow-up
+  PR just moves the failure, because editing the locked list always trips it.
+  Apply the `override-locked-paths` label to that one PR; the job's `if:`
+  condition then skips it. Note that labeling does **not** re-trigger CI
+  (`on: pull_request` defaults to opened/synchronize/reopened) and re-running
+  the failed job replays the original event payload without the label — you
+  need a fresh push after labeling.
 - **4.5 Headless debug-frame/entity tracing.** Added opt-in
   `main.py --debug-frame N` and `--debug-entity ID` tracing. The observable
   path records energy deltas, lifecycle mutations, current-frame events, and
