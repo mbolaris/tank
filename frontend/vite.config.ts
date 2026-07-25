@@ -16,7 +16,7 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](recharts|victory-vendor)[\\/]/.test(id)) {
             return 'charts-vendor'
           }
-          if (/[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/.test(id)) {
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/.test(id)) {
             return 'react-vendor'
           }
 

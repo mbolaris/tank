@@ -40,8 +40,8 @@ export function PokerScoreDisplay({ score, elo, history, isLoading, compact = fa
     if (value === null) return null;
 
     // Color based on performance
-    let color = '#3b82f6'; // Default Blue
-    let rating = 'Unknown';
+    let color: string;
+    let rating: string;
 
     if (displayElo) {
         color = elo >= 1600 ? '#22c55e' :

@@ -47,7 +47,7 @@ const PokerEvents: React.FC<PokerEventsProps> = ({ events, currentFrame }) => {
 
                             // Parse the message to extract key info if possible, or use raw message
                             // Format: "Fish #X beats Fish #Y with [Hand]! (+Z energy)"
-                            let content = null;
+                            let content: React.ReactNode;
 
                             if (isTie) {
                                 content = (

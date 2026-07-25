@@ -729,7 +729,7 @@ export class TankTopDownRenderer implements Renderer {
     }
 
     private drawCircleFallback(ctx: CanvasRenderingContext2D, entity: TankEntity) {
-        let color = "#fff";
+        let color: string;
         switch (entity.kind) {
             case 'plant':
             case 'plant_nectar':
