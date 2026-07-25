@@ -57,13 +57,23 @@ class TankLikeEntityIdentityProvider:
     - Plant: plant_id + PLANT_ID_OFFSET
     - Food: stable counter + FOOD_ID_OFFSET
     - PlantNectar: stable counter + NECTAR_ID_OFFSET
-    - Other: stable counter + 5_000_000
+    - Other, with an intrinsic id (tank objects): entity id + 5_000_000
+    - Other, without an intrinsic id (ball, goal zones, crab): counter + 6_000_000
+
+    The last two ranges are deliberately distinct. Both allocators start their
+    numbering near zero, so sharing one base made a tank object collide with a
+    soccer object (``algae_reef`` object_id 1 and the ball both landed on
+    5_000_001). Duplicate wire ids survive the full-state list but collapse in
+    the delta map, and the client applies delta positions by id alone - so the
+    reef rendered wherever the ball was.
 
     Also provides reverse-lookup for mode-agnostic delta application.
     """
 
-    # Fallback offset for unknown entity types
+    # Fallback offset for entities that carry their own intrinsic id
     OTHER_OFFSET = 5_000_000
+    # Separate range for entities identified only by allocation order
+    ANON_OFFSET = 6_000_000
 
     def __init__(self) -> None:
         # Stable ID generation for entities without intrinsic IDs
@@ -131,7 +141,7 @@ class TankLikeEntityIdentityProvider:
                 self._entity_stable_ids[python_id] = self._next_food_id + offset
                 self._next_food_id += 1
             else:
-                self._entity_stable_ids[python_id] = self._next_other_id + self.OTHER_OFFSET
+                self._entity_stable_ids[python_id] = self._next_other_id + self.ANON_OFFSET
                 self._next_other_id += 1
 
         stable_id_str = str(self._entity_stable_ids[python_id])

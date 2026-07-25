@@ -46,6 +46,24 @@ def test_delta_contains_only_entities_with_changed_delta_fields():
     }
 
 
+def test_duplicate_wire_ids_are_reported_once_per_id(caplog):
+    """A colliding id silently drops an entity from the delta - say so loudly."""
+    publisher = _publisher()
+    reef = EntitySnapshot(5_000_001, "algae_reef", 217.6, 452.9, 148.0, 106.0)
+    ball = EntitySnapshot(5_000_001, "ball", 347.6, 303.0, 20.0, 20.0)
+    publisher._last_entities = {5_000_001: reef}
+
+    for frame in (2, 3):
+        with caplog.at_level("ERROR", logger="backend.runner.state_publisher"):
+            publisher._build_delta_state(
+                _runner(), frame=frame, elapsed_time=66, stats={}, entities=[reef, ball]
+            )
+
+    duplicate_logs = [rec for rec in caplog.records if "Duplicate entity wire id" in rec.message]
+    assert len(duplicate_logs) == 1
+    assert "algae_reef, ball" in duplicate_logs[0].getMessage()
+
+
 def test_added_entities_use_full_payload_without_duplicate_delta_update():
     publisher = _publisher()
     existing = EntitySnapshot(1, "fish", 10.0, 20.0, 4.0, 4.0)

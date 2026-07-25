@@ -37,6 +37,17 @@ class MockEntityNoId:
         return None
 
 
+class MockEntityNoIdOrType:
+    """Mock entity with snapshot_type but no get_entity_id at all (like Ball)."""
+
+    def __init__(self, snapshot_type: str):
+        self._snapshot_type = snapshot_type
+
+    @property
+    def snapshot_type(self) -> str:
+        return self._snapshot_type
+
+
 class MockEntityNoProtocol:
     """Mock entity with neither get_entity_id nor snapshot_type."""
 
@@ -120,6 +131,38 @@ def test_identity_provider_reverse_lookup():
     # Reverse lookup should return the same entity
     found = provider.get_entity_by_id(entity_id)
     assert found is agent
+
+
+def test_tank_objects_and_soccer_objects_never_share_an_id():
+    """Regression: intrinsic-id and counter-based entities used one 5M range.
+
+    ``algae_reef`` (object_id 1) and the ball both resolved to 5_000_001, so the
+    reef rendered wherever the ball was.  The two allocators must not overlap.
+    """
+    provider = TankLikeEntityIdentityProvider()
+
+    # Tank objects carry an intrinsic object_id starting at 1.
+    tank_object_ids = {
+        provider.get_identity(MockGenericAgent(agent_id=i, snapshot_type=kind))[1]
+        for i, kind in enumerate(("algae_reef", "decorative_rock", "castle"), start=1)
+    }
+    # Ball / goal zones have no intrinsic id and are numbered by arrival order.
+    soccer_ids = {
+        provider.get_identity(MockEntityNoIdOrType(kind))[1]
+        for kind in ("ball", "goal_zone", "goal_zone")
+    }
+
+    assert len(tank_object_ids) == 3
+    assert not tank_object_ids & soccer_ids
+
+
+def test_anonymous_entities_use_their_own_offset():
+    """Counter-based 'other' entities live above ANON_OFFSET, not OTHER_OFFSET."""
+    provider = TankLikeEntityIdentityProvider()
+
+    _, entity_id = provider.get_identity(MockEntityNoIdOrType("ball"))
+
+    assert int(entity_id) >= TankLikeEntityIdentityProvider.ANON_OFFSET
 
 
 def test_identity_provider_no_fish_import():
