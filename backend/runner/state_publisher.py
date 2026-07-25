@@ -36,6 +36,9 @@ class StatePublisher:
         # _build_delta_state doesn't have to re-derive it from the stored
         # EntitySnapshot every frame - see _build_delta_state's comment.
         self._last_delta_dicts: dict[int, dict[str, Any]] = {}
+        # Wire ids already reported as colliding, so the warning fires once per
+        # id rather than on every delta frame.
+        self._reported_duplicate_ids: set[int] = set()
         self._delta_metrics = {
             "frames": 0,
             "entities_total": 0,
@@ -53,6 +56,7 @@ class StatePublisher:
         self._last_full_frame = None
         self._last_entities.clear()
         self._last_delta_dicts.clear()
+        self._reported_duplicate_ids.clear()
         for key in self._delta_metrics:
             self._delta_metrics[key] = 0
 
@@ -259,12 +263,34 @@ class StatePublisher:
             metrics_history=metrics_history_payload,
         )
 
+    def _report_duplicate_entity_ids(self, entities: list[EntitySnapshot]) -> None:
+        """Log wire ids claimed by more than one entity, once per id."""
+        by_id: dict[int, list[str]] = {}
+        for entity in entities:
+            by_id.setdefault(entity.id, []).append(entity.type)
+        for entity_id, types in by_id.items():
+            if len(types) < 2 or entity_id in self._reported_duplicate_ids:
+                continue
+            self._reported_duplicate_ids.add(entity_id)
+            logger.error(
+                "Duplicate entity wire id %s shared by %s - deltas will be wrong "
+                "for all but one of them",
+                entity_id,
+                ", ".join(sorted(types)),
+            )
+
     def _build_delta_state(
         self, runner: Any, frame: int, elapsed_time: Any, stats: Any, entities: list[EntitySnapshot]
     ) -> DeltaStatePayload:
         """Construct a DeltaStatePayload."""
 
         current_entities_map = {e.id: e for e in entities}
+        if len(current_entities_map) != len(entities):
+            # Two entities claiming one wire id is always an identity-provider
+            # bug. The map silently keeps whichever came last, so the loser
+            # stops receiving deltas while the client - which applies updates
+            # by id alone - drags it onto the winner's position.
+            self._report_duplicate_entity_ids(entities)
 
         added = [
             entity.to_full_dict()
