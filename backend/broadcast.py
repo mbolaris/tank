@@ -90,7 +90,7 @@ async def broadcast_updates_for_world(
 
     frame_count = 0
     last_sent_frame = -1
-    last_sent_at = 0.0
+    next_send_at = 0.0
     last_debug_log = time.perf_counter()
     slow_send_windows: dict[object, tuple[int, float]] = {}
     send_time_total_ms = 0.0
@@ -107,6 +107,10 @@ async def broadcast_updates_for_world(
     slow_send_strikes = max(1, _get_env_int("BROADCAST_SLOW_SEND_STRIKES", 10))
     slow_send_window = max(1.0, _get_env_float("BROADCAST_SLOW_SEND_WINDOW_SECONDS", 30.0))
     debug_enabled = _env_flag("BROADCAST_DEBUG")
+    # Poll interval used only when the simulation has not produced a new frame
+    # yet. Deliberately much finer than a frame: sleeping a whole 1/FRAME_RATE
+    # quantum here is what used to round every miss up to a full extra frame.
+    frame_wait_poll = min(broadcast_interval, 1.0 / FRAME_RATE) / 4.0
 
     try:
         while True:
@@ -122,10 +126,12 @@ async def broadcast_updates_for_world(
                         slow_send_windows.pop(client, None)
 
                 now = time.perf_counter()
-                time_since_last = now - last_sent_at
-                if time_since_last < broadcast_interval:
+                if now < next_send_at:
                     dropped_frames += 1
-                    await asyncio.sleep(min(broadcast_interval - time_since_last, 1 / FRAME_RATE))
+                    # Sleep exactly to the deadline. Capping this at 1/FRAME_RATE
+                    # (as this used to) just forced a second wakeup to cover the
+                    # rest of the interval, and cost a frame of latency each time.
+                    await asyncio.sleep(next_send_at - now)
                     continue
 
                 if frame_count % 60 == 0:
@@ -152,7 +158,7 @@ async def broadcast_updates_for_world(
 
                 if state.frame == last_sent_frame:
                     dropped_frames += 1
-                    await asyncio.sleep(1 / FRAME_RATE)
+                    await asyncio.sleep(frame_wait_poll)
                     continue
 
                 last_sent_frame = state.frame
@@ -195,10 +201,17 @@ async def broadcast_updates_for_world(
                     *(_send_with_timeout(client) for client in clients_snapshot),
                     return_exceptions=False,
                 )
-                send_ms = (time.perf_counter() - send_start) * 1000
-                last_sent_at = time.perf_counter()
-
                 now = time.perf_counter()
+                send_ms = (now - send_start) * 1000
+
+                # Fixed-cadence deadline with drift correction. Advancing by a
+                # whole interval keeps the average rate at broadcast_hz; if we
+                # fell more than an interval behind, resync to now instead of
+                # bursting to catch up (same guard the sim loop uses).
+                next_send_at += broadcast_interval
+                if next_send_at < now:
+                    next_send_at = now + broadcast_interval
+
                 for client, result in zip(clients_snapshot, send_results, strict=False):
                     if result is None:
                         if client in slow_send_windows:
@@ -286,13 +299,9 @@ async def broadcast_updates_for_world(
                 await asyncio.sleep(1 / FRAME_RATE)
                 continue
 
-            try:
-                await asyncio.sleep(1 / FRAME_RATE)
-            except asyncio.CancelledError:
-                logger.info(
-                    "broadcast_updates[%s]: Task cancelled during sleep", resolved_world_id[:8]
-                )
-                raise
+            # No unconditional trailing sleep: the deadline wait at the top of
+            # the loop is the single pacing point. Every other path out of the
+            # loop body already awaits, so this cannot spin.
 
     except asyncio.CancelledError:
         logger.info("broadcast_updates[%s]: Task cancelled (outer handler)", resolved_world_id[:8])

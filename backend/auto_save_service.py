@@ -181,10 +181,16 @@ class AutoSaveService:
                         "description": instance.description,
                         "world_type": instance.world_type,
                     }
-                    result = save_world_state(world_id, instance.runner, metadata=metadata)
+                    # Capturing and writing the snapshot is blocking work
+                    # (whole-world traversal plus a multi-hundred-KB JSON write).
+                    # Run it off the event loop: doing it inline stalls every
+                    # WebSocket broadcast for the full duration of the save.
+                    result = await asyncio.to_thread(
+                        save_world_state, world_id, instance.runner, metadata
+                    )
                     if result:
                         # Cleanup old snapshots to prevent disk bloat
-                        cleanup_old_snapshots(world_id, max_snapshots=10)
+                        await asyncio.to_thread(cleanup_old_snapshots, world_id, max_snapshots=10)
                     else:
                         logger.warning(f"Auto-save failed for world {world_id[:8]}")
 
@@ -223,7 +229,8 @@ class AutoSaveService:
                 "description": instance.description,
                 "world_type": instance.world_type,
             }
-            result = save_world_state(world_id, instance.runner, metadata=metadata)
+            # Off the event loop for the same reason as the auto-save loop.
+            result = await asyncio.to_thread(save_world_state, world_id, instance.runner, metadata)
             if result:
                 logger.info(f"Manual save completed for world {world_id[:8]}")
             return result
