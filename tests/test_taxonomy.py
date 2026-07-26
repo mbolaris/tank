@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import random
 from dataclasses import dataclass
 from typing import Any
@@ -13,7 +14,8 @@ from core.taxonomy.profile import (
     MicrobeTaxonomyProfileBuilder,
     TaxonomyProfile,
 )
-from core.taxonomy.registry import SpeciesRegistry
+from core.taxonomy.pruning import compute_retained_ids, find_prunable_ids, prune_dead_lineages
+from core.taxonomy.registry import SpeciesRecord, SpeciesRegistry
 from core.taxonomy.system import TaxonomySystem
 
 
@@ -306,3 +308,152 @@ def test_restored_entity_rehydrates_taxonomy_without_a_new_birth():
     assert record.living_member_ids == {12}
     assert record.total_births == 0
     assert system._entity_to_taxon_id[12] == "taxon_imported"
+
+
+# ---------------------------------------------------------------------------
+# Registry pruning and evaluation throttling
+# ---------------------------------------------------------------------------
+
+
+def _profile(value: float = 0.5) -> TaxonomyProfile:
+    return TaxonomyProfile({"size_modifier": value}, is_microbe=False)
+
+
+def _add(
+    registry: SpeciesRegistry,
+    taxon_id: str,
+    *,
+    status: str = "provisional",
+    parent: str | None = None,
+    members: set[int] | None = None,
+    last_seen: int = 0,
+) -> SpeciesRecord:
+    profile = _profile()
+    record = SpeciesRecord(
+        taxon_id=taxon_id,
+        type_profile=profile,
+        current_medoid_profile=profile,
+        parent_taxon_id=parent,
+        status=status,
+        living_member_ids=set(members or set()),
+        last_seen_frame=last_seen,
+    )
+    registry.species[taxon_id] = record
+    return record
+
+
+def test_prune_drops_only_dead_unreachable_provisional_lineages():
+    registry = SpeciesRegistry()
+    _add(registry, "live", members={1}, last_seen=0)
+    _add(registry, "dead_far", last_seen=0)
+    _add(registry, "established", status="established", last_seen=0)
+    _add(registry, "extinct", status="extinct", last_seen=0)
+
+    removed = prune_dead_lineages(registry, frame=100_000, ttl_frames=1_000)
+
+    assert removed == 1
+    assert set(registry.species) == {"live", "established", "extinct"}
+
+
+def test_prune_retains_records_reachable_as_classification_candidates():
+    """get_related_species offers parent, siblings and children to a birth."""
+    registry = SpeciesRegistry()
+    _add(registry, "parent", last_seen=0)
+    _add(registry, "live", parent="parent", members={1}, last_seen=0)
+    _add(registry, "sibling", parent="parent", last_seen=0)
+    _add(registry, "child", parent="live", last_seen=0)
+    _add(registry, "unrelated", last_seen=0)
+
+    retained = compute_retained_ids(registry)
+    assert {"parent", "live", "sibling", "child"} <= retained
+    assert "unrelated" not in retained
+
+    prune_dead_lineages(registry, frame=100_000, ttl_frames=1_000)
+    assert set(registry.species) == {"parent", "live", "sibling", "child"}
+
+
+def test_prune_keeps_the_ancestry_chain_intact():
+    registry = SpeciesRegistry()
+    _add(registry, "great_grandparent", last_seen=0)
+    _add(registry, "grandparent", parent="great_grandparent", last_seen=0)
+    _add(registry, "parent", parent="grandparent", last_seen=0)
+    _add(registry, "live", parent="parent", members={1}, last_seen=0)
+
+    prune_dead_lineages(registry, frame=100_000, ttl_frames=1_000)
+
+    # Every ancestor survives, so the phylogeny chain can still be walked and
+    # the split-threshold check still finds its parent record.
+    assert set(registry.species) == {
+        "great_grandparent",
+        "grandparent",
+        "parent",
+        "live",
+    }
+
+
+def test_prune_respects_the_ttl():
+    registry = SpeciesRegistry()
+    _add(registry, "recently_dead", last_seen=9_500)
+
+    assert find_prunable_ids(registry, frame=10_000, ttl_frames=1_000) == []
+    assert prune_dead_lineages(registry, frame=10_000, ttl_frames=1_000) == 0
+    assert "recently_dead" in registry.species
+
+    assert prune_dead_lineages(registry, frame=20_000, ttl_frames=1_000) == 1
+
+
+def test_prune_does_not_reissue_ids():
+    registry = SpeciesRegistry()
+    _add(registry, "prov_1", last_seen=0)
+    registry.next_prov_id = 2
+
+    prune_dead_lineages(registry, frame=100_000, ttl_frames=1_000)
+
+    assert "prov_1" not in registry.species
+    assert registry.next_prov_id == 2
+
+
+def test_evaluation_is_throttled_but_still_establishes_species():
+    calls: list[int] = []
+    system = TaxonomySystem(eval_interval_frames=10, prune_interval_frames=0)
+    real_evaluate = system.registry.evaluate_provisional_species
+
+    def counting_evaluate(frame: int):
+        calls.append(frame)
+        return real_evaluate(frame)
+
+    system.registry.evaluate_provisional_species = counting_evaluate  # type: ignore[method-assign]
+
+    environment = MockEnvironment()
+    environment.agents = []
+    for frame in range(100):
+        system.update(environment, frame=frame)
+
+    # First frame runs, then once per interval - not 100 times.
+    assert calls[0] == 0
+    assert len(calls) == 10
+    assert all(b - a == 10 for a, b in itertools.pairwise(calls))
+
+
+def test_eval_interval_of_one_restores_every_frame_behavior():
+    calls: list[int] = []
+    system = TaxonomySystem(eval_interval_frames=1, prune_interval_frames=0)
+    system.registry.evaluate_provisional_species = lambda frame: calls.append(frame) or []  # type: ignore[method-assign,return-value]
+
+    environment = MockEnvironment()
+    environment.agents = []
+    for frame in range(20):
+        system.update(environment, frame=frame)
+
+    assert calls == list(range(20))
+
+
+def test_prune_interval_zero_disables_pruning():
+    system = TaxonomySystem(eval_interval_frames=1, prune_interval_frames=0)
+    _add(system.registry, "dead", last_seen=0)
+
+    environment = MockEnvironment()
+    environment.agents = []
+    system.update(environment, frame=1_000_000)
+
+    assert "dead" in system.registry.species
