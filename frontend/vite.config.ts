@@ -1,9 +1,14 @@
-import { defineConfig } from 'vite'
+import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  test: {
+    // Playwright owns browser specs; Vitest's default **/*.{test,spec}.*
+    // discovery would otherwise import them as unit suites.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
+  },
   build: {
     rollupOptions: {
       output: {
