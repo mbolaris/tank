@@ -4,6 +4,7 @@ import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from types import TracebackType
 from typing import Any, TextIO
 
 
@@ -76,7 +77,12 @@ class JsonlReplayWriter:
     def __enter__(self) -> JsonlReplayWriter:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def _write_line(self, obj: dict[str, Any]) -> None:
