@@ -4,19 +4,50 @@ import logging
 from typing import Any
 
 from core.taxonomy.profile import FishTaxonomyProfileBuilder, MicrobeTaxonomyProfileBuilder
+from core.taxonomy.pruning import DEFAULT_PRUNE_TTL_FRAMES, prune_dead_lineages
 from core.taxonomy.registry import SpeciesRecord, SpeciesRegistry
 
 logger = logging.getLogger(__name__)
+
+# Taxonomy is presentation-only, so these cadences trade label latency for CPU
+# and never affect simulation outcomes. They live here rather than in
+# core/config/ on purpose: core.config constants feed the benchmark
+# ``config_hash``, and bumping that would invalidate every champion record.
+DEFAULT_EVAL_INTERVAL_FRAMES = 30  # ~1s at 30 fps
+DEFAULT_PRUNE_INTERVAL_FRAMES = 9_000  # ~5 min at 30 fps
 
 
 class TaxonomySystem:
     """Orchestrates taxonomy profiling, species classification, and naming."""
 
-    def __init__(self, registry_file: str | None = None):
-        """Initialize the taxonomy system."""
+    def __init__(
+        self,
+        registry_file: str | None = None,
+        *,
+        eval_interval_frames: int = DEFAULT_EVAL_INTERVAL_FRAMES,
+        prune_interval_frames: int = DEFAULT_PRUNE_INTERVAL_FRAMES,
+        prune_ttl_frames: int = DEFAULT_PRUNE_TTL_FRAMES,
+    ):
+        """Initialize the taxonomy system.
+
+        Args:
+            registry_file: Optional path to persist the species registry to.
+            eval_interval_frames: Frames between provisional-species scans.
+                ``1`` restores the original every-frame behavior.
+            prune_interval_frames: Frames between prune passes; ``0`` disables
+                pruning and lets the registry grow without bound.
+            prune_ttl_frames: How long a lineage must be memberless before it
+                becomes eligible for pruning.
+        """
         self.registry = SpeciesRegistry(registry_file=registry_file)
         self.fish_builder = FishTaxonomyProfileBuilder()
         self.microbe_builder = MicrobeTaxonomyProfileBuilder()
+
+        self.eval_interval_frames = eval_interval_frames
+        self.prune_interval_frames = prune_interval_frames
+        self.prune_ttl_frames = prune_ttl_frames
+        self._last_evaluation_frame: int | None = None
+        self._last_prune_frame: int | None = None
 
         # Entity ID to Taxon ID lookup cache
         self._entity_to_taxon_id: dict[int, str] = {}
@@ -118,6 +149,30 @@ class TaxonomySystem:
         if entity_id in self._entity_to_taxon_id:
             del self._entity_to_taxon_id[entity_id]
 
+    def _is_evaluation_due(self, frame: int) -> bool:
+        """Whether the provisional-species scan should run on this frame.
+
+        The scan is O(registry size) and only ever promotes a lineage that has
+        already met multi-generation criteria, so running it every frame bought
+        nothing but CPU. Sampling it costs at most ``eval_interval_frames`` of
+        delay before a species is formally established.
+        """
+        if self.eval_interval_frames <= 1:
+            return True
+        if self._last_evaluation_frame is None:
+            return True
+        return (frame - self._last_evaluation_frame) >= self.eval_interval_frames
+
+    def _prune_registry_if_due(self, frame: int) -> None:
+        """Drop dead, unreachable provisional lineages on a slow cadence."""
+        if self.prune_interval_frames <= 0:
+            return
+        if self._last_prune_frame is not None:
+            if (frame - self._last_prune_frame) < self.prune_interval_frames:
+                return
+        self._last_prune_frame = frame
+        prune_dead_lineages(self.registry, frame, self.prune_ttl_frames)
+
     def update(self, environment: Any, frame: int) -> None:
         """Perform periodic updates (e.g. check provisional lineages)."""
         self.frame_count = frame
@@ -134,6 +189,12 @@ class TaxonomySystem:
             if entity_id is not None and entity_id not in self._entity_to_taxon_id:
                 self.register_existing(entity)
 
+        self._prune_registry_if_due(frame)
+
+        if not self._is_evaluation_due(frame):
+            return
+
+        self._last_evaluation_frame = frame
         newly_established = self.registry.evaluate_provisional_species(frame)
 
         if newly_established and environment:
