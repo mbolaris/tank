@@ -16,8 +16,9 @@ high-impact, low-effort items. When you complete one, move it to the
 
 **Last audited against the tree: 2026-07-26** (external review #3 pass — every
 number that review cited was re-measured; the stale entries it exposed are
-corrected in **2.6** and **7.3**, and its findings became **5.4**, **7.4**,
-**7.5**, **9.3**, plus additions to **1.0** and **10.6**).
+corrected in **2.6** and **7.3**, and its findings became **7.4**, **7.5**,
+**9.3**, plus additions to **1.0** and **10.6**. The stale-PR follow-up was
+closed on GitHub the same day; see **5.4**.)
 
 **Prior audit, 2026-07-25.** That audit found eight proposals
 still written as open work whose implementations were already merged (1.4, 1.6,
@@ -30,8 +31,6 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **5.4** — close the one stale open PR (#587); its functionality already
-  shipped as 4.1/4.2. `S`, needs only repo-write access.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
 
@@ -271,11 +270,14 @@ making the project pleasant to use.*
 
 ## Theme 5 — Documentation that sells the project
 
-### 5.1 Visual assets in the README — `S` · ★★★
-The project is *visual* and the README has no visuals. Add a screenshot/GIF of
-a running tank, plus the evolution-loop and three-layer diagrams (Mermaid is
-already rendered inline — see the README). A reader should *see* the tank in the
-first scroll.
+### 5.1 Visual assets in the README — `S` · ★★★ — SHIPPED (2026-07-26)
+The README now opens with an original wide ecosystem illustration at
+[`docs/assets/tank-world-hero.png`](assets/tank-world-hero.png), making the
+project legible before readers reach the explanatory text. The existing Mermaid
+diagrams already cover the evolution loop and three-layer model. The image is
+deliberately labelled as an illustration, not represented as a product
+screenshot; add a live UI capture only when it can be refreshed alongside
+meaningful UI changes.
 
 
 
@@ -296,15 +298,12 @@ they disagree with a fresh measurement — the same contract
 `test_docs_agent_onboarding.py` already enforces for benchmark paths. The old
 48-vs-58 algorithm-count bug and this audit are the same failure mode.
 
-### 5.4 Close the stale open PR — `S` · ★
-The only remaining half of 5.4 (see Shipped for the claims-drift fix). Review
-#3 noted "a stale open PR still describes startup and diagnostic
-functionality that appears to have already landed." Confirmed — that is
+### 5.4 Close the stale open PR — `S` · ★ — SHIPPED (2026-07-26)
 [PR #587](https://github.com/mbolaris/tank/pull/587) (`start.py` +
-`diagnose.py`, last touched 2026-06-09), and both halves are recorded in the
-Shipped section as **4.1** and **4.2**. It is the only open PR on the repo.
-Close it with a pointer to the shipped work. (Requires repo-write access a
-sandboxed agent may not have — a maintainer can close it directly if so.)
+`diagnose.py`) was closed without merging at 2026-07-26T17:11:08Z. Its already
+shipped functionality remains recorded as **4.1** and **4.2** below. The open
+PR query is now empty, so this item is historical context rather than an
+actionable starter task.
 
 ---
 
@@ -881,7 +880,7 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
-- **5.4 Fixed the false algorithm-count claims and added a drift checker.**
+- **Documentation claim-drift correction and checker.**
   `ALL_ALGORITHMS` is 3 (`OpportunisticFeeder`, `FoodQualityOptimizer`,
   `CooperativeForager`) after ADR-016, but `README.md` (lines 47, 57, 94, 393)
   and `CLAUDE.md` still advertised "50+ behavior algorithms" / "58 algorithms"
@@ -894,9 +893,7 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
   `tests/test_docs_agent_onboarding.py` (part of the smoke gate): it re-derives
   the count from `core.algorithms.registry.ALL_ALGORITHMS` at test time and
   fails on any numeric or "dozens of" algorithm-count claim in the public agent
-  docs that disagrees with it, so this drift mode can't return silently. The
-  PR-closing half of the original task remains open (see 5.4's remaining
-  entry above — it needs repo-write access this change didn't have).
+  docs that disagrees with it, so this drift mode can't return silently.
 - **6.1 Strict typing for nine more core packages.** `disallow_untyped_defs` /
   `disallow_incomplete_defs` now cover `core.algorithms`, `core.behavior`,
   `core.config`, `core.energy`, `core.movement`, `core.parameters`,
@@ -1213,8 +1210,9 @@ actually read to pick work — silently became fiction.
    machine-enforced source of truth — `LEGACY_MAX_LINES` in
    `tests/test_god_class_limits.py` for file sizes, `pyproject.toml`'s mypy
    overrides for typing coverage, `docs/BENCHMARK_CATALOG.md` for benchmarks.
-   **5.3** proposes automating exactly this check, and **5.4** is the concrete
-   first fix.
+   The shipped documentation claim-drift checker is the concrete first fix;
+   **5.3** remains the candidate for broadening that protection to this file's
+   other hand-maintained measurements.
 3. **A "no longer qualifies" dismissal expires too.** The 2026-07-26 pass found
    that the previous audit had correctly retired `backend/routers/worlds.py`
    from Theme 2.6 — and the file then grew 76 lines and its factory function is
