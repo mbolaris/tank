@@ -219,24 +219,20 @@ in `LEGACY_MAX_LINES`. Sorted by size as pinned on 2026-07-25:
 | `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
 | `core/mixed_poker/interaction.py::play_poker` | 361-line method (file 728) | Grew from the ~336 the review measured. Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
 
-**The router factories are back, and this is a cautionary tale.** The
-2026-07-25 audit retired `backend/routers/worlds.py` from this list on the
-grounds that the file was 356 lines total, so the ~300-line factory function
-review #2 described could not exist. Review #3 flagged "router factory
-functions exceeding 350 lines" anyway, so it was re-measured on 2026-07-26:
-
-| Item | Measured 2026-07-26 |
-| --- | ---: |
-| `backend/routers/worlds.py::setup_worlds_router` | ~379 lines (file 432) |
-| `backend/routers/solutions.py::create_solutions_router` | ~366 lines (file 418) |
-
-Both are single functions holding the great majority of their file. The
-dismissal was correct on the day it was written and wrong three weeks later —
-the file grew 76 lines in the interim. **A "no longer qualifies" note is a
-measurement with an expiry date, not a permanent verdict**; that is the same
-rot mode as rule 2 at the bottom of this file, just inverted. Treat these as
-live `S`/`M` targets: an endpoint-per-module split behind the same factory
-signature, Layer 2, verified by the backend router tests.
+**The router factories are back, and this was a cautionary tale — now
+shipped (2026-07-26).** The 2026-07-25 audit retired `backend/routers/worlds.py`
+from this list on the grounds that the file was 356 lines total, so the
+~300-line factory function review #2 described could not exist. Review #3
+flagged "router factory functions exceeding 350 lines" anyway, and a
+2026-07-26 re-measurement found both factories had regrown past the
+dismissal: `setup_worlds_router` to ~379 lines (file 432) and
+`create_solutions_router` to ~366 lines (file 418), confirming **a "no longer
+qualifies" note is a measurement with an expiry date, not a permanent
+verdict** (same rot mode as rule 2 at the bottom of this file, just
+inverted). Both were split the same day into `backend/routers/worlds/` and
+`backend/routers/solutions/` packages (models + one module per endpoint
+group + a thin assembling `__init__.py`, largest file 152 lines); see the
+Shipped section for the reachability bug the split uncovered.
 
 **Still does not qualify:** `core/algorithms/base.py` is 572 and already split;
 `tools/evolution_report.py` is 274.
@@ -880,6 +876,35 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **2.6 (round 2): split the `worlds`/`solutions` router factories, and fix a
+  route-shadowing bug found along the way.** `backend/routers/worlds.py`
+  (`setup_worlds_router`, ~379-line factory) and `backend/routers/solutions.py`
+  (`create_solutions_router`, ~366-line factory) are now packages —
+  `backend/routers/worlds/` and `backend/routers/solutions/` — with one
+  module per endpoint group (`collection`/`instance`/`runtime`/`telemetry`/
+  `mode`, and `catalog`/`detail`/`reports`/`capture`/`lifecycle` respectively),
+  a `models.py` for the request/response schemas, and a thin `__init__.py`
+  that only assembles the sub-routers in the order route-matching requires
+  (largest file: 152 lines). Public import paths (`setup_worlds_router`,
+  `create_solutions_router`) are unchanged.
+  **Bug found and fixed in the process:** in the original `solutions.py`,
+  `GET /{solution_id}` was registered *before* `GET /leaderboard`, `GET
+  /compare`, and `GET /report`. Starlette matches routes in registration
+  order, and `/{solution_id}` is a same-segment-count catch-all, so all three
+  were silently shadowed and always returned `404 Solution not found: <name>`
+  — confirmed with a `TestClient` probe against the pre-split router before
+  touching any code. These three endpoints are documented as working in
+  `solutions/README.md` but had never been reachable. Fixed by registering
+  the literal-path `reports` module before the catch-all `detail` module;
+  added `tests/test_solutions_api.py` to lock in the fix (previously nothing
+  exercised these routes at the HTTP layer). Also updated the two other
+  places that referenced the old file paths directly:
+  `tools/check_wheel.py`'s wheel-contents check and the `INFRA_FILES` list in
+  `tests/test_no_concrete_entity_imports_in_infra.py` (now lists every new
+  module instead of the two old ones, so the entity-decoupling guard covers
+  the same surface it did before, not less). Verified via `agent_gate.py`,
+  `pre_pr_gate.py`, and `tools/check_wheel.py` all green; no simulation code
+  touched (Layer 2).
 - **Documentation claim-drift correction and checker.**
   `ALL_ALGORITHMS` is 3 (`OpportunisticFeeder`, `FoodQualityOptimizer`,
   `CooperativeForager`) after ADR-016, but `README.md` (lines 47, 57, 94, 393)

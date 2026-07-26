@@ -58,7 +58,7 @@ def main():
             "core/genetics/genome.py",
             "core/entities/fish.py",
             "core/simulation/engine.py",
-            "backend/routers/worlds.py",
+            "backend/routers/worlds/__init__.py",
         ]
 
         missing_paths = []
