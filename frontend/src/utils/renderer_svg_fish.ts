@@ -7,7 +7,7 @@
  * and pruned centrally), so these functions take a `getPath` lookup.
  */
 
-import { getFishPath, getEyePosition, getPatternOpacity, type FishParams } from './fishTemplates';
+import { getFishPath, getEyePosition, getPatternOpacity, getFishFrontPath, getFishFrontEyePositions, type FishParams } from './fishTemplates';
 import { hslToRgbString } from './renderer_sprites';
 
 export type PathLookup = (pathString: string) => Path2D;
@@ -180,6 +180,71 @@ export function drawSVGFishBody(
     ctx.beginPath();
     ctx.arc(eyePos.x, eyePos.y, eyeRadius * 0.5, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.restore();
+}
+
+/**
+ * Draw the front-facing (head-on) fish view used during direction transitions.
+ * Shows both eyes and a centered body shape instead of the side-profile.
+ */
+export function drawSVGFishFront(
+    ctx: CanvasRenderingContext2D,
+    getPath: PathLookup,
+    fishParams: FishParams,
+    x: number,
+    y: number,
+    scaledSize: number
+) {
+    ctx.save();
+
+    // Centre the front-view shape in the same bounding box as the side view
+    ctx.translate(x, y);
+
+    // Get base color from hue
+    const baseColor = hslToRgbString(fishParams.color_hue, 0.7, 0.6);
+    const patternColor = hslToRgbString(fishParams.color_hue, 0.8, 0.3);
+
+    // Draw front-facing body
+    const fishPathStr = getFishFrontPath(fishParams, scaledSize);
+    const path = getPath(fishPathStr);
+
+    ctx.fillStyle = baseColor;
+    ctx.fill(path);
+    ctx.strokeStyle = hslToRgbString(fishParams.color_hue, 0.8, 0.4);
+    ctx.lineWidth = 1.5;
+    ctx.stroke(path);
+
+    // Draw pattern clipped to body — simple vertical stripe for front view
+    const patternOpacity = getPatternOpacity(fishParams.pattern_intensity, 0.8);
+    if (patternOpacity > 0) {
+        ctx.save();
+        ctx.globalAlpha = patternOpacity;
+        ctx.strokeStyle = patternColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(scaledSize * 0.5, scaledSize * 0.2);
+        ctx.lineTo(scaledSize * 0.5, scaledSize * 0.8);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Draw two eyes
+    const eyePositions = getFishFrontEyePositions(fishParams, scaledSize);
+    const eyeRadius = 3 * fishParams.eye_size;
+
+    for (const pos of [eyePositions.left, eyePositions.right]) {
+        // Eye white
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, eyeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        // Pupil
+        ctx.fillStyle = 'black';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, eyeRadius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
     ctx.restore();
 }
