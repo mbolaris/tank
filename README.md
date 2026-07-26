@@ -8,6 +8,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+![Illustration of a Tank World ecosystem: genetically varied fish, plants, food, and evolutionary telemetry paths.](docs/assets/tank-world-hero.png)
+
 Tank World is an open-source research framework where AI agents autonomously conduct artificial life experiments and commit their improvements back to the codebase. A simulation runs, an AI analyzes the telemetry, improves the underlying algorithms, and opens a pull request. CI re-runs the benchmarks to validate the claim. If it passes, the change merges and becomes the new baseline for the next cycle.
 
 The result: a continuously improving evolutionary system where **PRs are mutations, CI is natural selection, and Git history is the phylogenetic tree**. This is not a metaphor — it is the literal mechanism by which the project develops.
