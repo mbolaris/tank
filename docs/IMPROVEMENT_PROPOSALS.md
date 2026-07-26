@@ -227,7 +227,7 @@ they disagree with a fresh measurement — the same contract
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-25: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **772 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **760 plain `Any` occurrences** across `core/`. Both
 went *up* since the last count (209 / 688) — `core/` grew faster than the
 cleanup passes retired `Any`, so treat 6.2 as a treadmill, not a burn-down. The
 global mypy config stays deliberately relaxed (`disallow_untyped_defs = false`,
@@ -262,7 +262,7 @@ block.
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
 2026-07-25; note this pattern misses generic-parameterized forms like
-`dict[str, Any]`; a plain `\bAny\b` count is 772) and replace the easy ones
+`dict[str, Any]`; a plain `\bAny\b` count is 760) and replace the easy ones
 with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
 green. Small, safe, and it compounds. **Layer 2.**
 
@@ -279,7 +279,8 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/ecosystem_telemetry.py`, `core/interfaces.py` (all but the legacy
 `record_poker_outcome result: Any` param), `core/entities/plant.py`,
 `core/plant/poker_component.py`, `core/plants/plant_strategy_types.py`, and
-`core/algorithms/composable/food_selection.py`.
+`core/algorithms/composable/food_selection.py`, `core/brains/contracts.py`,
+`core/cache_manager.py`, and `core/behavior/pursuit_nodes.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
 nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a

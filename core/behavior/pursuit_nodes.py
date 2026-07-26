@@ -6,7 +6,6 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any
 
 from core.behavior.graph import BehaviorGraph
 from core.behavior.nodes import (
@@ -164,7 +163,7 @@ __all__ = [
 ]
 
 
-def pursuit_module_parameters(module: Any) -> dict[str, float]:
+def pursuit_module_parameters(module: BehaviorGraph) -> dict[str, float]:
     """Read the module's own evolvable parameters by node id (see
     core.behavior.pursuit_nodes.default_pursuit_module_graph)."""
     by_id = {node.node_id: node for node in module.nodes}

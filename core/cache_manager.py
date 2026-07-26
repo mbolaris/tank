@@ -16,7 +16,7 @@ Design Principles:
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, TypedDict
 
 if TYPE_CHECKING:
     from core import entities
@@ -24,6 +24,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+class CachedListStats(TypedDict):
+    """Counters emitted by a single cached list."""
+
+    invalidations: int
+    recomputes: int
+
+
+class CacheManagerStats(TypedDict):
+    """Diagnostics returned by :class:`CacheManager`."""
+
+    total_invalidations: int
+    fish_cache: CachedListStats
+    food_cache: CachedListStats
 
 
 class CachedList(Generic[T]):
@@ -85,7 +100,7 @@ class CachedList(Generic[T]):
         """Check if the cache is currently valid."""
         return self._is_valid
 
-    def get_stats(self) -> dict[str, int]:
+    def get_stats(self) -> CachedListStats:
         """Get cache statistics.
 
         Returns:
@@ -192,7 +207,7 @@ class CacheManager:
             rebuilt = True
         return rebuilt
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> CacheManagerStats:
         """Get cache statistics for debugging.
 
         Returns:

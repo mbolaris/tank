@@ -22,7 +22,22 @@ Design Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+
+# External brain payloads cross a deliberately generic boundary, but they are
+# still structured data rather than arbitrary Python objects.  Keeping that
+# boundary explicit lets static checking catch accidental object leakage while
+# allowing world-specific observations and actions to remain extensible.
+BrainPayloadValue = (
+    str
+    | int
+    | float
+    | bool
+    | None
+    | tuple["BrainPayloadValue", ...]
+    | list["BrainPayloadValue"]
+    | dict[str, "BrainPayloadValue"]
+)
+BrainPayload = dict[str, BrainPayloadValue]
 
 
 @dataclass(frozen=True)
@@ -52,11 +67,11 @@ class BrainObservation:
     energy: float
     max_energy: float
     age: int
-    nearby_food: list[dict[str, Any]] = field(default_factory=list)
-    nearby_fish: list[dict[str, Any]] = field(default_factory=list)
-    nearby_threats: list[dict[str, Any]] = field(default_factory=list)
+    nearby_food: list[BrainPayload] = field(default_factory=list)
+    nearby_fish: list[BrainPayload] = field(default_factory=list)
+    nearby_threats: list[BrainPayload] = field(default_factory=list)
     frame: int = 0
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: BrainPayload = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -74,7 +89,7 @@ class BrainAction:
 
     entity_id: str
     target_velocity: tuple[float, float] = (0.0, 0.0)
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: BrainPayload = field(default_factory=dict)
 
 
 @dataclass
@@ -90,9 +105,9 @@ class WorldTickResult:
         info: Additional backend-specific metadata
     """
 
-    events: list[dict[str, Any]] = field(default_factory=list)
-    metrics: dict[str, Any] = field(default_factory=dict)
-    info: dict[str, Any] = field(default_factory=dict)
+    events: list[BrainPayload] = field(default_factory=list)
+    metrics: BrainPayload = field(default_factory=dict)
+    info: BrainPayload = field(default_factory=dict)
 
 
 # Type aliases for clarity
