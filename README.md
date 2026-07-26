@@ -44,7 +44,7 @@ flowchart TB
         A[AI agents benchmark, compare vs BKS,<br/>and open PRs that CI validates]
     end
     subgraph L0["Layer 0 · In-World Evolution"]
-        F[Fish evolve via natural selection<br/>across dozens of behavior algorithms]
+        F[Fish evolve via natural selection<br/>across the composable behavior framework]
     end
     M -->|better ways to discover improvements| A
     A -->|better algorithms and parameters| F
@@ -54,7 +54,7 @@ flowchart TB
 
 ### Layer 0: In-World Evolution
 
-Fish compete for survival using dozens of parametrizable behavior algorithms encoded in their genomes (see `core/algorithms/registry.py::ALL_ALGORITHMS` for the current list). Natural selection tunes parameters and shifts algorithm prevalence over generations. Better strategies mean more reproduction and longer survival.
+Fish compete for survival using the composable behavior framework: four orthogonal, genetically-tuned dimensions (threat response, food approach, social mode, poker engagement) encoded in their genomes, plus three specialized survivor foragers (see [docs/ALGORITHM_CATALOG.md](docs/ALGORITHM_CATALOG.md), generated from `core/algorithms/registry.py::ALL_ALGORITHMS`). Natural selection tunes the parameters of each dimension over generations. Better strategies mean more reproduction and longer survival.
 
 **Output**: Champion genomes, performance telemetry, population dynamics data.
 
@@ -91,7 +91,7 @@ flowchart LR
 
 A fish tank ecosystem with real evolutionary dynamics:
 
-- **50+ behavior algorithms** across food seeking, predator avoidance, schooling, energy management, territory, and poker strategies
+- **A composable behavior framework** — four orthogonal genetic dimensions (threat response, food approach, social mode, poker engagement) plus three specialized foraging algorithms (see [docs/ALGORITHM_CATALOG.md](docs/ALGORITHM_CATALOG.md))
 - **Predator-prey dynamics** with crabs hunting fish
 - **Fractal L-system plants** with genetic evolution and nectar production
 - **Fish poker** where fish play Texas Hold'em against each other and plants for energy stakes, on a full poker engine
@@ -390,7 +390,7 @@ Reproduction is funded by *overflow* energy: fish bank energy earned above their
 
 | Phase | Goal | Status |
 |-------|------|--------|
-| 0 | Foundation (58 algorithms, headless mode, web UI, basic AI evolution) | Complete |
+| 0 | Foundation (composable behavior framework, headless mode, web UI, basic AI evolution) | Complete |
 | 1 | Evolution Loop MVP (BKS registry, evolutionary PRs, CI validation) | In Progress |
 | 2 | Closed-loop automation (continuous AI improvement cycles) | Planned |
 | 3 | Meta-evolution (AI improves its own instructions and benchmarks) | In Progress |

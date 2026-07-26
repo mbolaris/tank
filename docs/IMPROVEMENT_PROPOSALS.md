@@ -30,9 +30,8 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **5.4** — fix the README's "50+ behavior algorithms" claim, which names five
-  algorithm categories ADR-016 deleted. `S`, Layer 2, and the drift is already
-  measured for you below.
+- **5.4** — close the one stale open PR (#587); its functionality already
+  shipped as 4.1/4.2. `S`, needs only repo-write access.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
 
@@ -297,53 +296,15 @@ they disagree with a fresh measurement — the same contract
 `test_docs_agent_onboarding.py` already enforces for benchmark paths. The old
 48-vs-58 algorithm-count bug and this audit are the same failure mode.
 
-### 5.4 Generate project claims from the code — `S` (first fix) / `M` (checker) · ★★★
-Review #3's "generate project claims from the code" item, and the cheapest
-★★★ in this file. It flagged that the README's "50+ behavior algorithms"
-language "appears inconsistent with the newer composable-behavior
-architecture." Re-measured 2026-07-26 — **it is worse than inconsistent, it is
-false, and it advertises deleted code:**
-
-```bash
-python -c "from core.algorithms.registry import ALL_ALGORITHMS; print(len(ALL_ALGORITHMS))"
-```
-
-- `ALL_ALGORITHMS` is **3** (`OpportunisticFeeder`, `FoodQualityOptimizer`,
-  `CooperativeForager`).
-- `README.md:94` claims "**50+ behavior algorithms** across food seeking,
-  predator avoidance, schooling, energy management, territory, and poker
-  strategies." **Five of those six categories were deleted by ADR-016** —
-  `predator_avoidance.py`, `schooling.py`, `energy_management.py`,
-  `territory.py`, `poker.py`, 44 algorithms, ~3,100 lines. The README is
-  selling files that are not in the tree.
-- `README.md:393` still says "Foundation (58 algorithms, …)".
-- `README.md:57` and the Mermaid node at `README.md:47` say "dozens of
-  parametrizable behavior algorithms" — also wrong, though they at least point
-  at `ALL_ALGORITHMS` as the source of truth.
-
-This is the most damaging class of drift in the repo, because it is the *first*
-thing a new reader or agent sees, and an agent that believes it will go looking
-for a `territory.py` that ADR-016 deliberately removed.
-
-**Plan.**
-1. *(S, do this first, standalone PR.)* Fix the four README sites to describe
-   the composable framework plus three survivor foragers, pointing at
-   `docs/ALGORITHM_CATALOG.md` (already generated) as the count of record.
-   Check `docs/ROADMAP.md` and `docs/VISION.md` for the same claim while you
-   are there.
-2. *(M.)* Then the checker, per **5.3**: a smoke-gate test that fails when a
-   prose claim contradicts a fresh measurement. Start with the claims that have
-   a machine-readable source of truth — algorithm count (`ALL_ALGORITHMS`),
-   benchmark catalog (`docs/BENCHMARK_CATALOG.md`), file sizes
-   (`LEGACY_MAX_LINES`), typing coverage (`pyproject.toml` overrides).
-
-**Also stale, same failure mode, cheap to close:** review #3 noted "a stale open
-PR still describes startup and diagnostic functionality that appears to have
-already landed." Confirmed — that is
+### 5.4 Close the stale open PR — `S` · ★
+The only remaining half of 5.4 (see Shipped for the claims-drift fix). Review
+#3 noted "a stale open PR still describes startup and diagnostic
+functionality that appears to have already landed." Confirmed — that is
 [PR #587](https://github.com/mbolaris/tank/pull/587) (`start.py` +
 `diagnose.py`, last touched 2026-06-09), and both halves are recorded in the
 Shipped section as **4.1** and **4.2**. It is the only open PR on the repo.
-Close it with a pointer to the shipped work.
+Close it with a pointer to the shipped work. (Requires repo-write access a
+sandboxed agent may not have — a maintainer can close it directly if so.)
 
 ---
 
@@ -920,6 +881,22 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **5.4 Fixed the false algorithm-count claims and added a drift checker.**
+  `ALL_ALGORITHMS` is 3 (`OpportunisticFeeder`, `FoodQualityOptimizer`,
+  `CooperativeForager`) after ADR-016, but `README.md` (lines 47, 57, 94, 393)
+  and `CLAUDE.md` still advertised "50+ behavior algorithms" / "58 algorithms"
+  / "dozens of parametrizable behavior algorithms" — five of the six
+  categories the README named (`predator_avoidance.py`, `schooling.py`,
+  `energy_management.py`, `territory.py`, `poker.py`) no longer exist. Reworded
+  all five sites to describe the composable behavior framework plus the three
+  survivor foragers, pointing at `docs/ALGORITHM_CATALOG.md` as the count of
+  record. Added `test_public_docs_do_not_overstate_algorithm_count` to
+  `tests/test_docs_agent_onboarding.py` (part of the smoke gate): it re-derives
+  the count from `core.algorithms.registry.ALL_ALGORITHMS` at test time and
+  fails on any numeric or "dozens of" algorithm-count claim in the public agent
+  docs that disagrees with it, so this drift mode can't return silently. The
+  PR-closing half of the original task remains open (see 5.4's remaining
+  entry above — it needs repo-write access this change didn't have).
 - **6.1 Strict typing for nine more core packages.** `disallow_untyped_defs` /
   `disallow_incomplete_defs` now cover `core.algorithms`, `core.behavior`,
   `core.config`, `core.energy`, `core.movement`, `core.parameters`,

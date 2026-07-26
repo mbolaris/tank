@@ -284,3 +284,49 @@ def test_benchmark_catalog_is_up_to_date():
         "docs/BENCHMARK_CATALOG.md is out of date. "
         "Run 'python tools/generate_benchmark_catalog.py' to update it."
     )
+
+
+def test_public_docs_do_not_overstate_algorithm_count():
+    """Prose algorithm-count claims must match ALL_ALGORITHMS, not a pre-ADR-016 number.
+
+    docs/IMPROVEMENT_PROPOSALS.md 5.4 found the README advertising "50+ behavior
+    algorithms" and "58 algorithms" after ADR-016 deleted 44 of them, leaving
+    the 3-forager composable framework. This pins the claim to the live
+    registry so the drift can't silently return.
+    """
+    from core.algorithms.registry import ALL_ALGORITHMS
+
+    actual_count = len(ALL_ALGORITHMS)
+
+    # Numeric claims like "50+ behavior algorithms" or "58 algorithms".
+    numeric_claim_pattern = re.compile(
+        r"\b(\d+)\+?\s+(?:parametrizable\s+)?(?:behavior\s+)?algorithms\b", re.IGNORECASE
+    )
+    # Vague-but-stale claims: "dozens of ... algorithms" implies >= 24, which is
+    # no longer true for a 3-item registry.
+    dozens_claim_pattern = re.compile(
+        r"\bdozens of\s+(?:parametrizable\s+)?(?:behavior\s+)?algorithms\b", re.IGNORECASE
+    )
+
+    for doc_path in PUBLIC_AGENT_DOCS:
+        if doc_path.name in ("ALGORITHM_CATALOG.md", "BENCHMARK_CATALOG.md"):
+            continue  # generated docs are covered by their own freshness tests
+        assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
+        content = doc_path.read_text(encoding="utf-8")
+
+        for match in numeric_claim_pattern.finditer(content):
+            claimed = int(match.group(1))
+            assert claimed == actual_count, (
+                f"{doc_path.relative_to(ROOT)} claims '{match.group(0)}', but "
+                f"ALL_ALGORITHMS currently has {actual_count} entries. Update the "
+                "prose (point at docs/ALGORITHM_CATALOG.md as the source of truth) "
+                "or, if this is a historical/roadmap reference, reword it so it "
+                "isn't read as a live count."
+            )
+
+        dozens_match = dozens_claim_pattern.search(content)
+        assert dozens_match is None, (
+            f"{doc_path.relative_to(ROOT)} claims '{dozens_match.group(0) if dozens_match else ''}', "
+            f"but ALL_ALGORITHMS currently has only {actual_count} entries. "
+            "Describe the composable behavior framework instead of a stale 'dozens' count."
+        )
