@@ -214,7 +214,6 @@ in `LEGACY_MAX_LINES`. Sorted by size as pinned on 2026-07-25:
 | --- | ---: | --- |
 | `core/poker/human_poker_game.py` | 863 | Now the largest Python file in the repo. Low traffic, so still low priority — but it is no longer "do last" by size. |
 | `core/entities/fish.py` | 810 | `Fish.__init__` still dominates; extract construction/wiring helpers. Champions must reproduce exactly. |
-| `backend/state_payloads.py` | 812 | **7.1** shipped as a contract test, so the "don't split before deciding" blocker is resolved — the split is now unblocked. Layer 2. |
 | `core/transfer/entity_transfer.py` | 800 | Not on the original list; grew into it since. |
 | `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
 | `core/mixed_poker/interaction.py::play_poker` | 361-line method (file 728) | Grew from the ~336 the review measured. Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
@@ -235,7 +234,8 @@ group + a thin assembling `__init__.py`, largest file 152 lines); see the
 Shipped section for the reachability bug the split uncovered.
 
 **Still does not qualify:** `core/algorithms/base.py` is 572 and already split;
-`tools/evolution_report.py` is 274.
+`tools/evolution_report.py` is 274; `backend/state_payloads.py` was split into
+`backend/state_payloads/` (largest module 310 lines) — see the Shipped section.
 
 Frontend files are covered by **7.3** and **7.5**.
 
@@ -363,10 +363,11 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/algorithms/composable/food_selection.py`, `core/brains/contracts.py`,
 `core/cache_manager.py`, and `core/behavior/pursuit_nodes.py`.
 
-**Avoid as a small 6.2 pick:** `backend/state_payloads.py`. Checked 2026-07;
-nearly every remaining `Any` is either `to_dict() -> dict[str, Any]` or a
-heterogeneous wire-payload field. That file belongs under **7.1** unless the
-contract strategy changes.
+**Avoid as a small 6.2 pick:** `backend/state_payloads/` (split from the single
+file into a package — see the Shipped section). Checked 2026-07; nearly every
+remaining `Any` is either `to_dict() -> dict[str, Any]` or a heterogeneous
+wire-payload field. That surface belongs under **7.1** unless the contract
+strategy changes.
 
 **Next step:** re-run `rg -n "\bAny\b" core/`, pick one small core module with
 mechanical annotations, and keep `mypy core/` green.
@@ -882,6 +883,27 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **2.6 (round 2): split `backend/state_payloads.py` into a package.** The
+  812-line module (previously blocked pending **7.1**, which now shipped a
+  contract test guarding the wire schema) is now `backend/state_payloads/`:
+  `_common.py` (the shared `to_dict`/`serialize` helpers — `orjson` fallback
+  to `json`), `entities.py` (`EntitySnapshot`), `metrics.py` (the four
+  `Metrics*Payload` trend classes), `poker.py` (`PokerStatsPayload`,
+  `PokerEventPayload`, `PokerLeaderboardEntryPayload`,
+  `AutoEvaluateStatsPayload`), `soccer.py` (`SoccerEventPayload`), `stats.py`
+  (`StatsPayload`, the largest module at 310 lines), and `frames.py`
+  (`FullStatePayload`, `DeltaStatePayload`, `STATE_SCHEMA_VERSION`). A thin
+  `__init__.py` re-exports the full public surface, so every one of the 18
+  existing `from backend.state_payloads import X` call sites across
+  `backend/` and `tests/` needed no changes. Also dropped `_compact_dict`, a
+  private helper with zero callers anywhere in the tree. Updated the
+  `pyproject.toml` mypy override from `backend.state_payloads` to
+  `backend.state_payloads.*` so strict typing still covers every submodule,
+  and removed the file's `LEGACY_MAX_LINES` pin (no module in the new package
+  exceeds 500 lines). Verified with `pytest backend/ tests/test_frontend_payload_contract.py
+  tests/test_god_class_limits.py`, `mypy backend/state_payloads`, and
+  `agent_gate.py`; no runtime behavior changed (pure dataclass reorganization,
+  no simulation code touched — Layer 2).
 - **2.6 (round 2): split the `worlds`/`solutions` router factories, and fix a
   route-shadowing bug found along the way.** `backend/routers/worlds.py`
   (`setup_worlds_router`, ~379-line factory) and `backend/routers/solutions.py`

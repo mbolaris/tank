@@ -78,7 +78,7 @@ def test_no_tank_id_in_world_agnostic_code():
         "backend/world_persistence.py",  # read-fallback only
         "backend/README.md",  # documentation might reference back-compat
         "tests/",
-        "backend/state_payloads.py",
+        "backend/state_payloads/",
         "core/worlds/interfaces.py",
         "frontend/src/config.ts",
         "frontend/src/components/MinigameLeaders.tsx",
