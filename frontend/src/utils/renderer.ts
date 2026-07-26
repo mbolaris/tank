@@ -31,6 +31,7 @@ import {
 } from './renderer_effects';
 import { SpriteTinter, drawImage, getAnimationFrame } from './renderer_sprites';
 import { drawSVGFishBody, drawSVGFishFront } from './renderer_svg_fish';
+import { EntityFacingTracker } from './renderer_facing';
 
 // Food type image mappings (matching core/constants.py)
 const FOOD_TYPE_IMAGES: Record<string, string[]> = {
@@ -46,23 +47,12 @@ const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
 const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
-// Minimum horizontal velocity magnitude before we flip the fish sprite.
-// This prevents tiny back-and-forth movement from rapidly changing direction.
-const MIN_FLIP_SPEED = 0.5;
-
-// Number of consecutive frames a direction change must persist before we
-// commit the flip.  During this window the fish shows its front view,
-// giving a natural "turning" transition.  At ~30 FPS this is ~500 ms.
-const FLIP_THROTTLE_FRAMES = 15;
 
 export class Renderer {
     public ctx: CanvasRenderingContext2D;
     private background = new BackgroundRenderer();
     private tinter = new SpriteTinter();
-    private entityFacingLeft: Map<number, boolean> = new Map();
-    // Tracks how many frames a pending direction change has been accumulating
-    // per entity.  Once >= FLIP_THROTTLE_FRAMES the flip is committed.
-    private entityPendingFlip: Map<number, { pendingLeft: boolean; frames: number }> = new Map();
+    private entityFacing = new EntityFacingTracker();
     // Track when poker effects started for each entity (for one-time animation)
     private pokerEffectStartTime: Map<number, number> = new Map();
 
@@ -88,8 +78,7 @@ export class Renderer {
         this.background.reset();
 
         // Clear maps that may grow over time
-        this.entityFacingLeft.clear();
-        this.entityPendingFlip.clear();
+        this.entityFacing.clear();
         this.pokerEffectStartTime.clear();
         this.pathCache.clear();
 
@@ -121,16 +110,7 @@ export class Renderer {
      */
     pruneEntityFacingCache(activeEntityIds: Iterable<number>, pokerActiveIds?: Set<number>) {
         const activeIds = new Set(activeEntityIds);
-        for (const cachedId of this.entityFacingLeft.keys()) {
-            if (!activeIds.has(cachedId)) {
-                this.entityFacingLeft.delete(cachedId);
-            }
-        }
-        for (const cachedId of this.entityPendingFlip.keys()) {
-            if (!activeIds.has(cachedId)) {
-                this.entityPendingFlip.delete(cachedId);
-            }
-        }
+        this.entityFacing.prune(activeIds);
         // Also prune poker effect start times
         // We delete if:
         // 1. Entity no longer exists (removed from tank)
@@ -223,48 +203,6 @@ export class Renderer {
         this.ctx.restore();
     }
 
-    /**
-     * Determine the stable facing direction for an entity, throttling rapid
-     * left/right flips.  Returns both the committed facing direction and a
-     * flag indicating that the fish is mid-turn (front view should be shown).
-     */
-    private getStableFacingLeft(entityId: number, velX?: number): { facingLeft: boolean; isTurning: boolean } {
-        const committedFacing = this.entityFacingLeft.get(entityId) ?? false;
-
-        if (velX === undefined || Math.abs(velX) < MIN_FLIP_SPEED) {
-            // Speed too low — clear any pending flip, hold current facing
-            this.entityPendingFlip.delete(entityId);
-            return { facingLeft: committedFacing, isTurning: false };
-        }
-
-        const wantsLeft = velX < 0;
-
-        if (wantsLeft === committedFacing) {
-            // Same direction — cancel any pending flip
-            this.entityPendingFlip.delete(entityId);
-            return { facingLeft: committedFacing, isTurning: false };
-        }
-
-        // Direction has changed — increment the pending counter
-        const pending = this.entityPendingFlip.get(entityId);
-        if (!pending || pending.pendingLeft !== wantsLeft) {
-            // Fresh direction change — start counting
-            this.entityPendingFlip.set(entityId, { pendingLeft: wantsLeft, frames: 1 });
-            return { facingLeft: committedFacing, isTurning: true };
-        }
-
-        pending.frames += 1;
-
-        if (pending.frames >= FLIP_THROTTLE_FRAMES) {
-            // Throttle window expired — commit the new direction
-            this.entityPendingFlip.delete(entityId);
-            this.entityFacingLeft.set(entityId, wantsLeft);
-            return { facingLeft: wantsLeft, isTurning: false };
-        }
-
-        // Still within throttle window — show front view
-        return { facingLeft: committedFacing, isTurning: true };
-    }
 
     private renderFish(fish: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
@@ -286,7 +224,7 @@ export class Renderer {
         const sizeModifier = genome_data?.size || 1.0;
         const scaledWidth = width * sizeModifier;
         const scaledHeight = height * sizeModifier;
-        const { facingLeft: flipHorizontal } = this.getStableFacingLeft(fish.id, vel_x);
+        const { facingLeft: flipHorizontal } = this.entityFacing.getStableFacingLeft(fish.id, vel_x);
 
         drawShadow(ctx, x + scaledWidth / 2, y + scaledHeight, scaledWidth * 0.8, scaledHeight * 0.3);
 
@@ -358,7 +296,7 @@ export class Renderer {
         const scaledSize = baseSize * sizeModifier;
 
         // Flip based on velocity direction with stability for low speeds
-        const { facingLeft: flipHorizontal, isTurning } = this.getStableFacingLeft(fish.id, vel_x);
+        const { facingLeft: flipHorizontal, isTurning } = this.entityFacing.getStableFacingLeft(fish.id, vel_x);
 
         // Shadow removed - now on plants instead
 
