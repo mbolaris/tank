@@ -444,12 +444,18 @@ behind a thin facade, verified by `npm run build` + existing tests. Split only
 where the responsibility boundary is clear — no abstraction for elegance.
 **Layer 2.**
 
-### 7.4 One real end-to-end browser path — `M` · ★★★
-Step 2 of review #3's path to 95, and the highest-value frontend item in this
-file. Confirmed 2026-07-26: **there is no Playwright config, no `e2e/`
-directory, and no browser-driven test anywhere in the repo.** Everything the
-user actually does — connecting, watching, clicking, building, reconnecting —
-is verified by hand or not at all.
+### 7.4 One real end-to-end browser path — `M` · ★★★ — PARTLY SHIPPED (2026-07-26)
+Step 2 of review #3's path to 95. The first real Chromium path now lives in
+`frontend/e2e/tank-flow.spec.ts`, driven by `frontend/playwright.config.ts` and
+run with `npm run test:e2e`. It starts the real backend and Vite app, waits for
+the live WebSocket connection, enters Build, selects a placement option, and
+returns to Watch. That replaces the prior zero browser-driven tests without
+putting a browser dependency in the Python smoke gate.
+
+**Remaining:** extend this foundation through a canvas placement verified from
+the live world state, then deliberately drop and restore the WebSocket and
+verify the persisted state. Those are the product seams that still have no
+automated coverage.
 
 **Scope (deliberately one path, not a suite).** The review's proposed
 scenario is a good one because it crosses every seam at once: launch a world →
