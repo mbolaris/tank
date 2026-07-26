@@ -327,18 +327,20 @@ section. Layer 2; `pre_pr_gate` green is the acceptance bar.
 `core.solutions`, `core.util`, `backend.state_payloads`, plus
 `core.algorithms`, `core.behavior`, `core.config`, `core.energy`,
 `core.movement`, `core.parameters`, `core.reproduction`, `core.research`,
-`core.skill`, and — shipped together as the predicted-clean small-leaves
-batch — `core.actions`, `core.agents`, `core.brains`, `core.contracts`,
-`core.events`, `core.evolution`, `core.fish`, `core.foraging`, `core.modes`,
-`core.plants`, `core.policies`, `core.pursuit`, `core.replay`,
-`core.taxonomy`, and `core.telemetry` (fallout was exactly two annotations;
-see the Shipped section).
+`core.skill`; the small-leaves batch — `core.actions`, `core.agents`,
+`core.brains`, `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
+`core.foraging`, `core.modes`, `core.plants`, `core.policies`, `core.pursuit`,
+`core.replay`, `core.taxonomy`, `core.telemetry` (fallout was exactly two
+annotations); and the next tier by leverage — `core.services`,
+`core.mixed_poker`, `core.plant`, `core.code_pool`, `core.systems` (fallout
+was three annotations, all in `core.plant`/`core.systems`; `core.services`,
+`core.mixed_poker`, and `core.code_pool` were already fully clean). See the
+Shipped section for both batches.
 
-**Remaining candidates**, roughly by leverage: `core.poker` (52 files — do it in
-sub-package slices, not one PR), `core.minigames` (24), `core.services` (8),
-`core.mixed_poker` (7), `core.plant` (6), `core.code_pool` (6),
-`core.systems` (6). Probe the fallout before sizing a PR: add the override,
-run `mypy core/ backend/`, and count.
+**Remaining candidates**, roughly by leverage: `core.poker` (52 files — do it
+in sub-package slices, not one PR) and `core.minigames` (24). Probe the
+fallout before sizing a PR: add the override, run `mypy core/ backend/`, and
+count.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
@@ -883,6 +885,24 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **6.1 Strict typing for `core.services`/`core.mixed_poker`/`core.plant`/
+  `core.code_pool`/`core.systems`.** The next tier of 6.1's "remaining
+  candidates by leverage" list after the small-leaves batch. Probing fallout
+  (`mypy core/ backend/` with all five overrides added) found
+  `core.services`, `core.mixed_poker`, and `core.code_pool` already fully
+  annotation-clean; `core.plant` and `core.systems` needed three annotations
+  total. `core/plant/nectar_component.py`'s `_NectarCreationData.__init__`
+  now takes `environment: World` and `parent_genome: PlantGenome` (both
+  already imported under the file's existing `TYPE_CHECKING` block).
+  `core/plant/migration_component.py`'s `execute_migration` now takes
+  `plant: Plant` (a new `TYPE_CHECKING`-only import — safe since
+  `core.entities.plant` already imports `core.plant`, so a runtime import
+  the other way would cycle). `core/systems/soccer_system.py`'s
+  `_handle_goal_scored` now takes `goal_event: GoalEvent` (added to the
+  file's existing `TYPE_CHECKING` import from `core.entities.goal_zone`).
+  Grouped into one PR since each override plus its fallout was too small to
+  justify five separate reviews. Annotation-only: no runtime behavior, no
+  RNG draw, no champion re-baseline.
 - **6.1 Strict typing for fifteen small core leaf packages.** Added mypy
   overrides for `core.actions`, `core.agents`, `core.brains`,
   `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
