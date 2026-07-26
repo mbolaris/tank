@@ -37,11 +37,12 @@ class FishTraits:
     template_id: int = 0
 
 
-def extract_traits_from_genome(genome) -> FishTraits:
+def extract_traits_from_genome(genome: object | None) -> FishTraits:
     """Extract visual traits from a fish genome.
 
     Args:
-        genome: Fish genome object with physical traits
+        genome: Fish genome object with physical traits (duck-typed defensively;
+            any object exposing a ``physical`` attribute with trait fields works)
 
     Returns:
         FishTraits containing extracted trait values

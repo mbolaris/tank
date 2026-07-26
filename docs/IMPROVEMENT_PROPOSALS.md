@@ -322,23 +322,23 @@ mergeable PR. Instead, pick a package, add a per-module override that turns on
 override blocks live under the `# Overrides` comment in `pyproject.toml`'s mypy
 section. Layer 2; `pre_pr_gate` green is the acceptance bar.
 
-**Already strict** (re-verified 2026-07-25): `core.simulation`, `core.worlds`,
+**Already strict** (re-verified 2026-07-26): `core.simulation`, `core.worlds`,
 `core.genetics`, `core.transfer`, `core.entities`, `core.spatial`,
 `core.solutions`, `core.util`, `backend.state_payloads`, plus
 `core.algorithms`, `core.behavior`, `core.config`, `core.energy`,
-`core.movement`, `core.parameters`, `core.reproduction`, `core.research`, and
-`core.skill`.
+`core.movement`, `core.parameters`, `core.reproduction`, `core.research`,
+`core.skill`, and — shipped together as the predicted-clean small-leaves
+batch — `core.actions`, `core.agents`, `core.brains`, `core.contracts`,
+`core.events`, `core.evolution`, `core.fish`, `core.foraging`, `core.modes`,
+`core.plants`, `core.policies`, `core.pursuit`, `core.replay`,
+`core.taxonomy`, and `core.telemetry` (fallout was exactly two annotations;
+see the Shipped section).
 
 **Remaining candidates**, roughly by leverage: `core.poker` (52 files — do it in
 sub-package slices, not one PR), `core.minigames` (24), `core.services` (8),
 `core.mixed_poker` (7), `core.plant` (6), `core.code_pool` (6),
-`core.systems` (6), then the small leaves (`core.actions`, `core.agents`,
-`core.brains`, `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
-`core.foraging`, `core.modes`, `core.plants`, `core.policies`, `core.pursuit`,
-`core.replay`, `core.taxonomy`, `core.telemetry`). Probe the fallout before
-sizing a PR: add the override, run `mypy core/ backend/`, and count. Several of
-the small leaves are already annotation-clean and cost nothing but the config
-block.
+`core.systems` (6). Probe the fallout before sizing a PR: add the override,
+run `mypy core/ backend/`, and count.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
@@ -883,6 +883,23 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **6.1 Strict typing for fifteen small core leaf packages.** Added mypy
+  overrides for `core.actions`, `core.agents`, `core.brains`,
+  `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
+  `core.foraging`, `core.modes`, `core.plants`, `core.policies`,
+  `core.pursuit`, `core.replay`, `core.taxonomy`, and `core.telemetry` — the
+  full "small leaves" list 6.1 named as annotation-clean candidates. Probing
+  fallout (`mypy core/ backend/` with all fifteen overrides added) confirmed
+  it: exactly two functions needed annotations. `extract_traits_from_genome`
+  in `core/fish/visual_geometry.py` now takes `genome: object | None` (the
+  function is deliberately duck-typed via `getattr` and never checks
+  `isinstance`, so `object | None` states its actual contract rather than
+  overclaiming a `Genome` type). `JsonlReplayWriter.__exit__` in
+  `core/replay/jsonl.py` gained the standard
+  `type[BaseException] | None, BaseException | None, TracebackType | None`
+  signature. Grouped into one PR since each override plus its fallout was too
+  small to justify fifteen separate reviews. Annotation-only: no runtime
+  behavior, no RNG draw, no champion re-baseline.
 - **2.6 (round 2): split `backend/state_payloads.py` into a package.** The
   812-line module (previously blocked pending **7.1**, which now shipped a
   contract test guarding the wire schema) is now `backend/state_payloads/`:
