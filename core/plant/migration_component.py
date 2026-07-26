@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Optional
 from core.state_machine import EntityState
 
 if TYPE_CHECKING:
+    from core.entities.plant import Plant
     from core.root_spots import RootSpot
     from core.world import World
 
@@ -143,7 +144,7 @@ class PlantMigrationComponent:
         # This is handled by the Plant class which calls this component
         return False  # Return False here; actual migration handled by Plant
 
-    def execute_migration(self, plant, direction: str) -> bool:
+    def execute_migration(self, plant: "Plant", direction: str) -> bool:
         """Execute migration for the given plant entity.
 
         This method is called by the Plant class with a reference to itself.

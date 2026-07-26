@@ -14,7 +14,7 @@ from core.systems.base import BaseSystem, SystemResult
 
 if TYPE_CHECKING:
     from core.entities.ball import Ball
-    from core.entities.goal_zone import GoalZoneManager
+    from core.entities.goal_zone import GoalEvent, GoalZoneManager
     from core.simulation.engine import SimulationEngine
 
 logger = logging.getLogger(__name__)
@@ -190,7 +190,7 @@ class SoccerSystem(BaseSystem):
                 "timer": 10,
             }
 
-    def _handle_goal_scored(self, goal_event) -> None:
+    def _handle_goal_scored(self, goal_event: GoalEvent) -> None:
         """Handle a goal being scored and award energy.
 
         Args:

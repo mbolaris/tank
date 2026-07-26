@@ -232,12 +232,12 @@ class _NectarCreationData:
 
     def __init__(
         self,
-        environment,
+        environment: "World",
         x: float,
         y: float,
         relative_y_offset_pct: float,
         floral_visuals: dict,
-        parent_genome,
+        parent_genome: "PlantGenome",
     ):
         self.environment = environment
         self.x = x
