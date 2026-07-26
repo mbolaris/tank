@@ -4,7 +4,7 @@ This file is automatically loaded by Claude Code at the start of every session. 
 
 ## What Is This Project?
 
-Tank World is a **self-evolving artificial life research framework**. Fish agents compete for survival in a simulated ecosystem using dozens of parametrizable behavior algorithms. AI agents (like you) analyze simulation data, improve the algorithms, and commit changes back to the repository. Git is the heredity mechanism: PRs are mutations, CI is selection, merged changes are offspring.
+Tank World is a **self-evolving artificial life research framework**. Fish agents compete for survival in a simulated ecosystem using a composable behavior framework (see `core/algorithms/registry.py::ALL_ALGORITHMS` and [docs/ALGORITHM_CATALOG.md](docs/ALGORITHM_CATALOG.md)). AI agents (like you) analyze simulation data, improve the algorithms, and commit changes back to the repository. Git is the heredity mechanism: PRs are mutations, CI is selection, merged changes are offspring.
 
 The project operates at three layers:
 - **Layer 0**: In-world evolution (fish evolve through natural selection inside simulations)
