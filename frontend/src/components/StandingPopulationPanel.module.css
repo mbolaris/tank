@@ -1,0 +1,120 @@
+.panel {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    color: var(--color-text-main, #f8fafc);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.title {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-main, #f8fafc);
+}
+
+.subtitle {
+    font-size: 11px;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.statCard {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.statLabel {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #94a3b8);
+    margin-bottom: 4px;
+}
+
+.statValue {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-main, #f8fafc);
+}
+
+.statSub {
+    font-size: 10px;
+    color: var(--color-text-muted, #94a3b8);
+    margin-top: 2px;
+}
+
+.distributionsSection {
+    margin-top: 12px;
+}
+
+.sectionHeading {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #94a3b8);
+    margin-bottom: 8px;
+}
+
+.barGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.barItem {
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.barHeader {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.barTitle {
+    color: var(--color-text-main, #e2e8f0);
+    font-weight: 500;
+}
+
+.barValue {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.barTrack {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}

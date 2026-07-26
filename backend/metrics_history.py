@@ -170,7 +170,7 @@ class MetricsHistory:
 
     def to_payload(self) -> dict[str, Any]:
         """Convert metrics history to a serializable dictionary."""
-        return {
+        payload: dict[str, Any] = {
             "schema_version": self.schema_version,
             "world_id": self.world_id,
             "sample_interval_frames": self.sample_interval_frames,
@@ -182,6 +182,18 @@ class MetricsHistory:
             "_soccer_matches_skipped": self.soccer_matches_skipped,
             "_processed_soccer_match_ids": list(self.processed_soccer_match_ids),
         }
+        if self.samples:
+            try:
+                from core.services.stats.selection_quality import (
+                    compute_selection_quality,
+                    compute_trait_drift,
+                )
+
+                raw_drift = compute_trait_drift(self.samples)
+                payload["selection_quality"] = compute_selection_quality(self.samples, raw_drift)
+            except Exception as exc:
+                logger.debug(f"Could not compute selection_quality for payload: {exc}")
+        return payload
 
     def load(self, payload: dict[str, Any] | None) -> None:
         """Load history from a payload, tolerating old/invalid formats."""

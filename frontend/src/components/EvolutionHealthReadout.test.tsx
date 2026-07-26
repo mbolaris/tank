@@ -78,4 +78,60 @@ describe('EvolutionHealthReadout', () => {
         expect(html).toContain('gen/10k');
         expect(html).not.toContain('aria-label="Evolution health"');
     });
+
+    it('renders directional selection for a monotonic multi-trait stable fixture', () => {
+        const monotonicHistory: MetricsHistory = {
+            schema_version: 2,
+            world_id: 'world-1',
+            sample_interval_frames: 500,
+            max_samples: 50,
+            samples: [
+                sample({ frame: 0, max_generation: 1, population: 30, traits: { prediction_skill: 0.20, pursuit_aggression: 0.50 } }),
+                sample({ frame: 2500, max_generation: 3, population: 32, traits: { prediction_skill: 0.25, pursuit_aggression: 0.51 } }),
+                sample({ frame: 5000, max_generation: 6, population: 31, traits: { prediction_skill: 0.35, pursuit_aggression: 0.52 } }),
+            ],
+        };
+        const html = renderToString(<EvolutionHealthReadout history={monotonicHistory} onOpenTrends={noop} />);
+
+        expect(html).toContain('Selection');
+        expect(html).toContain('+75% prediction');
+    });
+
+    it('renders Uncertain for low-population / unstable random walk fixture', () => {
+        const unstableHistory: MetricsHistory = {
+            schema_version: 2,
+            world_id: 'world-1',
+            sample_interval_frames: 500,
+            max_samples: 50,
+            samples: [
+                sample({ frame: 0, max_generation: 1, population: 5, traits: { pursuit_aggression: 0.1 } }),
+                sample({ frame: 2500, max_generation: 2, population: 8, traits: { pursuit_aggression: 0.9 } }),
+                sample({ frame: 5000, max_generation: 3, population: 6, traits: { pursuit_aggression: 0.2 } }),
+            ],
+        };
+        const html = renderToString(<EvolutionHealthReadout history={unstableHistory} onOpenTrends={noop} />);
+
+        expect(html).toContain('Selection');
+        expect(html).toContain('Uncertain');
+    });
+
+    it('renders No drift for a stable-population oscillating random-walk fixture', () => {
+        const randomWalkHistory: MetricsHistory = {
+            schema_version: 2,
+            world_id: 'world-1',
+            sample_interval_frames: 500,
+            max_samples: 50,
+            samples: [
+                sample({ frame: 0, max_generation: 1, population: 30, traits: { pursuit_aggression: 0.50 } }),
+                sample({ frame: 1000, max_generation: 2, population: 29, traits: { pursuit_aggression: 0.40 } }),
+                sample({ frame: 2000, max_generation: 3, population: 31, traits: { pursuit_aggression: 0.56 } }),
+                sample({ frame: 3000, max_generation: 4, population: 30, traits: { pursuit_aggression: 0.42 } }),
+                sample({ frame: 4000, max_generation: 5, population: 28, traits: { pursuit_aggression: 0.54 } }),
+            ],
+        };
+        const html = renderToString(<EvolutionHealthReadout history={randomWalkHistory} onOpenTrends={noop} />);
+
+        expect(html).toContain('Selection');
+        expect(html).toContain('No drift');
+    });
 });

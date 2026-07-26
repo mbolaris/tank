@@ -243,6 +243,7 @@ class StatePublisher:
                 sample_interval_frames=runner.metrics_history.sample_interval_frames,
                 max_samples=runner.metrics_history.max_samples,
                 samples=samples,
+                selection_quality=runner.metrics_history.to_payload().get("selection_quality"),
             )
 
         return FullStatePayload(
