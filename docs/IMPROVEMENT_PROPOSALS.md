@@ -14,7 +14,12 @@ use and a better example of software design.
 high-impact, low-effort items. When you complete one, move it to the
 "Shipped" section at the bottom with the PR link.
 
-**Last audited against the tree: 2026-07-25.** That audit found eight proposals
+**Last audited against the tree: 2026-07-26** (external review #3 pass — every
+number that review cited was re-measured; the stale entries it exposed are
+corrected in **2.6** and **7.3**, and its findings became **5.4**, **7.4**,
+**7.5**, **9.3**, plus additions to **1.0** and **10.6**).
+
+**Prior audit, 2026-07-25.** That audit found eight proposals
 still written as open work whose implementations were already merged (1.4, 1.6,
 4.5, 7.2, 10.5, 11.5, 11.7, 12.1), four more that had shipped in part (5.3,
 11.6, 12.4, 12.6), and every re-measurable number in Themes 2, 6, and 7 out of
@@ -23,8 +28,11 @@ something from here, **verify the premise first** (does the file still have that
 many lines? does that tool already exist?) and fix the entry in the same PR if
 it has drifted. See the closing rule at the bottom of this file.
 
-**Best current starter pick:**
+**Best current starter picks:**
 
+- **5.4** — fix the README's "50+ behavior algorithms" claim, which names five
+  algorithm categories ADR-016 deleted. `S`, Layer 2, and the drift is already
+  measured for you below.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
 
@@ -51,6 +59,35 @@ and are usually proven by the normal docs/tooling gates. Follow the recipe in
 > Subscores: architecture 84, test discipline 88, determinism 86,
 > maintainability 74, research readiness 72, **packaging 45**. File-size claims
 > were re-verified against the tree 2026-07-06 when these tasks were written.
+
+> **Themes 5.4, 7.4, 7.5, 9.3, and the reframing of 1.0 and 10.6 come from a
+> third external review (2026-07-26, overall 91/100)** — up from the two 82s
+> above. Its verdict: Tank World "has crossed from 'ambitious personal
+> codebase' into a credible research platform," and the missing nine points are
+> "about deterministic scientific reproducibility, concentrated complexity, and
+> frontend/product maturity — not sloppy fundamentals." Subscores: architecture
+> 18/20, correctness & determinism 16/20, **testing & CI 19/20** ("exceptional
+> for a project of this size"), maintainability 15/20, research rigor 13/15,
+> **product/docs/security/release 10/15**. It executed 70/70 smoke tests and
+> 596/596 selected architecture/determinism/genetics/energy tests green, and
+> ~1,300 of the non-slow suite before its own sandbox timed out; it could not
+> run ruff/black/frontend tests (mirror 503s) and correctly declined to hold
+> that against the repo.
+>
+> Its explicit strategic advice, which is worth more than any single task here:
+> **stop proving seriousness by adding subsystems.** "You have enough
+> machinery. The next leap comes from making the existing system reproducible
+> across environments, easier to modify, empirically convincing, and enjoyable
+> to use." Weight new proposals accordingly — a new theme now needs to justify
+> itself against that sentence.
+>
+> Its named path to 95, mapped to tasks in this file: cross-machine
+> deterministic replay as a release gate (**1.0**), one real Playwright path
+> (**7.4**), finish renderer extraction (**7.3**, **7.5**), a formal evidence
+> campaign (**10.6**), generate project claims from code (**5.4**), and an
+> authentication boundary (**9.3**). Every number it cited was re-measured
+> against the tree on 2026-07-26 before being written in below; two came back
+> different (see 2.6 and 7.3).
 
 ---
 
@@ -129,6 +166,29 @@ and eliminate the environment input. Then re-land the food-targeting
 improvement (the revert preserved it in git history at `e1fed26`; it beat both
 tank champions on every local environment).
 
+**Review #3 (2026-07-26) made this the single highest-priority item in the
+repo** and sharpened the acceptance bar in two ways worth adopting:
+
+1. **Make cross-machine deterministic replay a release gate**, not an
+   investigation. The target property it states: given a seed, configuration,
+   code SHA, and environment definition, the same result reproduces across
+   supported machines — "until then, Tank World cannot honestly claim top-tier
+   reproducibility."
+2. **The gate must report the earliest divergent frame, phase, entity, RNG
+   stream, and state field — not merely a final fingerprint mismatch.** The
+   instrumentation above already covers frame, snapshot hash, and entity-type
+   component hashes; *phase*, *RNG stream identity*, and *which state field*
+   are the gaps. A gate that only says "the digests differ" hands the next
+   agent the same multi-day bisect this entry has already cost once.
+
+Its reasoning for the priority is the ALife-specific one, and it is correct:
+for an ordinary game, run-to-run float divergence is tolerable; for an
+evolutionary framework where small trajectory differences compound across
+generations, it is a fundamental scientific concern. Note the interaction with
+Theme 11 — ladder metrics are longitudinally comparable *by construction*, so
+they partially insulate the skill story from this problem, but champion
+trajectories are not insulated at all.
+
 *(1.4 multi-seed agent validation and 1.6 smoke-gate dependency diagnostics both
 shipped — see the Shipped section. 1.0 is the only open Theme 1 item.)*
 
@@ -156,17 +216,34 @@ in `LEGACY_MAX_LINES`. Sorted by size as pinned on 2026-07-25:
 | --- | ---: | --- |
 | `core/poker/human_poker_game.py` | 863 | Now the largest Python file in the repo. Low traffic, so still low priority — but it is no longer "do last" by size. |
 | `core/entities/fish.py` | 810 | `Fish.__init__` still dominates; extract construction/wiring helpers. Champions must reproduce exactly. |
-| `backend/state_payloads.py` | 809 | **7.1** shipped as a contract test, so the "don't split before deciding" blocker is resolved — the split is now unblocked. Layer 2. |
+| `backend/state_payloads.py` | 812 | **7.1** shipped as a contract test, so the "don't split before deciding" blocker is resolved — the split is now unblocked. Layer 2. |
 | `core/transfer/entity_transfer.py` | 800 | Not on the original list; grew into it since. |
 | `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
 | `core/mixed_poker/interaction.py::play_poker` | 361-line method (file 728) | Grew from the ~336 the review measured. Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
 
-**No longer qualify** (removed from this list, do not "fix" them):
-`core/algorithms/base.py` is 572 and already split;
-`backend/routers/worlds.py` is 356 total, so `setup_worlds_router` cannot be
-the ~300-line function the review described; `tools/evolution_report.py` is 274.
+**The router factories are back, and this is a cautionary tale.** The
+2026-07-25 audit retired `backend/routers/worlds.py` from this list on the
+grounds that the file was 356 lines total, so the ~300-line factory function
+review #2 described could not exist. Review #3 flagged "router factory
+functions exceeding 350 lines" anyway, so it was re-measured on 2026-07-26:
 
-Frontend files are covered by **7.3**.
+| Item | Measured 2026-07-26 |
+| --- | ---: |
+| `backend/routers/worlds.py::setup_worlds_router` | ~379 lines (file 432) |
+| `backend/routers/solutions.py::create_solutions_router` | ~366 lines (file 418) |
+
+Both are single functions holding the great majority of their file. The
+dismissal was correct on the day it was written and wrong three weeks later —
+the file grew 76 lines in the interim. **A "no longer qualifies" note is a
+measurement with an expiry date, not a permanent verdict**; that is the same
+rot mode as rule 2 at the bottom of this file, just inverted. Treat these as
+live `S`/`M` targets: an endpoint-per-module split behind the same factory
+signature, Layer 2, verified by the backend router tests.
+
+**Still does not qualify:** `core/algorithms/base.py` is 572 and already split;
+`tools/evolution_report.py` is 274.
+
+Frontend files are covered by **7.3** and **7.5**.
 
 ## Theme 3 — Consolidate the algorithm library
 
@@ -219,6 +296,54 @@ the file-size table in **2.6** and the `Any` counts in **6.2** and fails when
 they disagree with a fresh measurement — the same contract
 `test_docs_agent_onboarding.py` already enforces for benchmark paths. The old
 48-vs-58 algorithm-count bug and this audit are the same failure mode.
+
+### 5.4 Generate project claims from the code — `S` (first fix) / `M` (checker) · ★★★
+Review #3's "generate project claims from the code" item, and the cheapest
+★★★ in this file. It flagged that the README's "50+ behavior algorithms"
+language "appears inconsistent with the newer composable-behavior
+architecture." Re-measured 2026-07-26 — **it is worse than inconsistent, it is
+false, and it advertises deleted code:**
+
+```bash
+python -c "from core.algorithms.registry import ALL_ALGORITHMS; print(len(ALL_ALGORITHMS))"
+```
+
+- `ALL_ALGORITHMS` is **3** (`OpportunisticFeeder`, `FoodQualityOptimizer`,
+  `CooperativeForager`).
+- `README.md:94` claims "**50+ behavior algorithms** across food seeking,
+  predator avoidance, schooling, energy management, territory, and poker
+  strategies." **Five of those six categories were deleted by ADR-016** —
+  `predator_avoidance.py`, `schooling.py`, `energy_management.py`,
+  `territory.py`, `poker.py`, 44 algorithms, ~3,100 lines. The README is
+  selling files that are not in the tree.
+- `README.md:393` still says "Foundation (58 algorithms, …)".
+- `README.md:57` and the Mermaid node at `README.md:47` say "dozens of
+  parametrizable behavior algorithms" — also wrong, though they at least point
+  at `ALL_ALGORITHMS` as the source of truth.
+
+This is the most damaging class of drift in the repo, because it is the *first*
+thing a new reader or agent sees, and an agent that believes it will go looking
+for a `territory.py` that ADR-016 deliberately removed.
+
+**Plan.**
+1. *(S, do this first, standalone PR.)* Fix the four README sites to describe
+   the composable framework plus three survivor foragers, pointing at
+   `docs/ALGORITHM_CATALOG.md` (already generated) as the count of record.
+   Check `docs/ROADMAP.md` and `docs/VISION.md` for the same claim while you
+   are there.
+2. *(M.)* Then the checker, per **5.3**: a smoke-gate test that fails when a
+   prose claim contradicts a fresh measurement. Start with the claims that have
+   a machine-readable source of truth — algorithm count (`ALL_ALGORITHMS`),
+   benchmark catalog (`docs/BENCHMARK_CATALOG.md`), file sizes
+   (`LEGACY_MAX_LINES`), typing coverage (`pyproject.toml` overrides).
+
+**Also stale, same failure mode, cheap to close:** review #3 noted "a stale open
+PR still describes startup and diagnostic functionality that appears to have
+already landed." Confirmed — that is
+[PR #587](https://github.com/mbolaris/tank/pull/587) (`start.py` +
+`diagnose.py`, last touched 2026-06-09), and both halves are recorded in the
+Shipped section as **4.1** and **4.2**. It is the only open PR on the repo.
+Close it with a pointer to the shipped work.
 
 ---
 
@@ -295,11 +420,30 @@ mechanical annotations, and keep `mypy core/` green.
 ## Theme 7 — Frontend contracts & performance (external review, 2026-07)
 
 The reviewer rated the frontend the weakest surface relative to its size. Both
-halves of that judgement have moved since — re-measured 2026-07-25: **32,247
-source lines** (was 22,381) across **131 source files** (was 91), with **28
-test files** (was 13). So test coverage roughly doubled *and* the surface grew
-by 44%; the ratio is about where it was. The 1,000+ line renderers are still
-the concrete tractable piece.
+halves of that judgement have moved since — re-measured 2026-07-26: **32,668
+total lines** across **163 `.ts`/`.tsx` files** (29,924 lines excluding tests),
+with **28 test files**. So test coverage roughly doubled since the first review
+*and* the surface grew; the ratio is about where it was. The 1,000+ line
+renderers are still the concrete tractable piece.
+
+**Review #3 escalated this theme, and its argument is the one to act on.** It
+judged that "the frontend is clearly behind the backend" and — importantly —
+that *for a project whose long-term success depends on people enjoying and
+understanding the ecosystem, this is now a more serious limitation than backend
+architecture*. That is a genuine reprioritization: Themes 1, 2, and 6 are about
+a codebase agents can safely modify; Theme 7 is about whether anyone wants to
+look at what evolves. The backend has 19/20 testing; this surface is where the
+missing product points live.
+
+Its specific finding about test *quality* (not quantity) checks out — measured
+2026-07-26: **10 of the 28 frontend test files use `renderToString`, and zero
+use `@testing-library`.** So the suite asserts on server-rendered strings and
+exercises no real interaction, effects, focus behavior, WebSocket recovery,
+accessibility, or browser rendering. There is a second, practical reason to
+move off that style: React's SSR output interleaves `<!-- -->` marker comments
+between adjacent JSX expressions, so a naive `toContain()` spanning two
+expressions fails for reasons that have nothing to do with the component. The
+assertions are brittle *and* shallow.
 
 ### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★ — SHIPPED
 Option (b) landed as `tests/test_frontend_payload_contract.py`: it parses the
@@ -313,8 +457,13 @@ models, remains available if hand-written types become a maintenance burden.
 *(7.2 shipped — deltas now emit only changed entities, with wire telemetry to
 prove it. See the Shipped section.)*
 
-### 7.3 Split the 1,000+ line renderers — `M` · ★
-Re-measured 2026-07-25. Two of the four original targets are done and two grew:
+### 7.3 Split the 1,000+ line renderers — `M` · ★★
+Re-measured 2026-07-26 (`wc -l`). Two of the four original targets are done and
+two grew. Review #3 named this as step 3 of its path to 95 — "split drawing
+primitives, effects, scene objects, and input handling out of the 1,000-line
+renderers" — which is a more specific seam list than this entry previously
+carried, so it is now the recommended decomposition. Bumped to ★★ on that
+basis.
 
 | File | Then | Now |
 | --- | ---: | ---: |
@@ -322,9 +471,14 @@ Re-measured 2026-07-25. Two of the four original targets are done and two grew:
 | `frontend/src/renderers/tank/TankTopDownRenderer.ts` | 1,122 | **1,267** |
 | `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | **1,203** (new offender) |
 | `frontend/src/utils/plants/renderers.ts` | — | **1,042** (new offender) |
-| `frontend/src/pages/NetworkDashboard.tsx` | — | **1,046** (new offender) |
+| `frontend/src/pages/NetworkDashboard.tsx` | — | **996** (pinned at 1,046) |
 | `frontend/src/utils/renderer.ts` | 1,431 | 812 — *split, done* |
 | `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 — *split, done* |
+
+Note `NetworkDashboard.tsx` measures 996 against a `LEGACY_MAX_LINES` pin of
+1,046 — it has *shrunk* 50 lines since it was pinned. The ratchet permits that
+slack silently. If you touch this file, consider re-pinning it down to its
+actual size in the same PR so the ceiling keeps ratcheting.
 
 The two petri/tank renderers regrew past where they started, which is the
 argument for doing them properly rather than trimming. Same discipline as
@@ -333,6 +487,49 @@ Theme 2's Python god-file splits: extract
 behind a thin facade, verified by `npm run build` + existing tests. Split only
 where the responsibility boundary is clear — no abstraction for elegance.
 **Layer 2.**
+
+### 7.4 One real end-to-end browser path — `M` · ★★★
+Step 2 of review #3's path to 95, and the highest-value frontend item in this
+file. Confirmed 2026-07-26: **there is no Playwright config, no `e2e/`
+directory, and no browser-driven test anywhere in the repo.** Everything the
+user actually does — connecting, watching, clicking, building, reconnecting —
+is verified by hand or not at all.
+
+**Scope (deliberately one path, not a suite).** The review's proposed
+scenario is a good one because it crosses every seam at once: launch a world →
+interact with a fish → place an object → switch views → **drop and restore the
+WebSocket** → verify persisted state. The reconnect leg is the part worth the
+most: `useWebSocket`'s exponential backoff (`computeReconnectDelay`) shipped
+under **4.4** and was verified *manually by killing the backend*, which is
+exactly the kind of check that silently stops being true.
+
+**Notes for whoever picks this up.**
+- Add `@playwright/test` to the frontend only; keep it out of the Python gates.
+  Run it in `frontend-ci`, not `smoke-gate` — it is far too slow for a 30s gate.
+- Drive a **seeded headless-backed** world so assertions are deterministic;
+  reuse the seed discipline the Python side already has. A flaky e2e test will
+  get disabled within a month and is worse than none.
+- The launch/verify recipe (ports, pause-before-click, the snapshot API for
+  reading entity positions, screenshot coordinate scaling) is already worked
+  out for manual UI verification — reuse it rather than rediscovering it.
+- **Layer 2** — no simulation behavior changes.
+
+### 7.5 De-duplicate shared canvas logic — `M` · ★★
+Review #3: "shared canvas logic — color conversion, fish drawing, effects, and
+renderer primitives — is still duplicated across the tank, petri, and avatar
+renderers." The three consumers are
+`frontend/src/renderers/tank/`, `frontend/src/renderers/petri/`, and
+`frontend/src/renderers/avatar_renderer.ts`, with candidate shared modules
+already sitting adjacent in `frontend/src/utils/`
+(`renderer_sprites.ts`, `renderer_effects.ts`, `renderer_background.ts`,
+`renderer_svg_fish.ts`).
+
+This is the frontend mirror of Theme 12's insight on the Python side: the same
+primitive implemented three times cannot be improved once. It also makes **7.3**
+easier — much of what inflates the two big renderers *is* the duplicated
+drawing code, so extracting shared primitives and splitting the renderers are
+the same PR series approached from opposite ends. Do 7.5 first if you want the
+line counts to fall as a side effect. **Layer 2.**
 
 ---
 
@@ -358,8 +555,42 @@ goals, assists, wins, tank identity, and net energy.
 
 ## Theme 9 — Packaging & release hygiene (external review #2, 2026-07)
 
-The review's one confirmed hard defect was fixed in **9.1**. No active Theme 9
-proposals remain; see the Shipped section for the wheel packaging smoke test.
+Review #2's one confirmed hard defect was fixed in **9.1**; see the Shipped
+section for the wheel packaging smoke test. Review #3 (2026-07-26) reopened the
+theme with one item — **9.3**, the authentication boundary.
+
+### 9.3 An auth boundary before this is a public multi-user service — `M` · ★★
+Step 6 of review #3's path to 95, phrased as a **precondition, not a feature**:
+"add an authentication boundary before treating it as a public multi-user
+service." Measured 2026-07-26 — the backend's only origin control is
+`CORSMiddleware` in `backend/app_factory.py:299`, which is `allow_origins=["*"]`
+outside production mode. There is no `HTTPBearer`, no API-key dependency, no
+per-request identity anywhere in `backend/`.
+
+That is entirely fine today: the intended deployment is local (`start.py`,
+`localhost:8000` + `localhost:3000`). **The risk is drift, not the current
+state.** The project has been growing outward-facing surfaces — the Discussion
+Board with multi-agent posting and reactions, federation
+(`docs/FEDERATION.md`), the network dashboard, world persistence, transfers —
+and any one of them being exposed to a network turns "no auth" from a
+reasonable default into a real hole. Note the shape of what is already
+writable without identity: board posts, world commands, build-mode object
+placement, and saved world state.
+
+**Plan.** Do *not* build a user system. The proportionate move is:
+1. Decide and write down the deployment posture in `docs/ARCHITECTURE.md` —
+   "single-tenant, loopback-only, not hardened for hostile networks" is a
+   perfectly good documented answer, and stating it is most of the value.
+2. Make the unsafe default hard to reach by accident: bind loopback unless
+   explicitly told otherwise, and make non-loopback binding require an
+   explicit flag that also demands a shared secret.
+3. Only if a genuinely multi-user deployment is wanted, add a single shared
+   token dependency in front of the mutating routes and the WebSocket. Read
+   routes can stay open.
+
+**Confirm the posture with a maintainer before building anything** — this is a
+product decision about what Tank World is meant to be, and step 1 alone may be
+the correct and complete answer. **Layer 2.**
 
 ---
 
@@ -395,6 +626,44 @@ the shared ledger with `tools/summarize_attempts.py`. Report acceptance rate
 and score delta per arm. This is the one Theme 10 item whose output is
 evidence rather than infrastructure — which is exactly what review #2 said was
 missing. **Layer 2** (no simulation change; it only reads the pipeline).
+
+**Review #3 independently reached the same conclusion and quantified it.** Its
+finding: "the platform is stronger than the scientific evidence." It credits
+the infrastructure by name — frozen poker opponents, frozen soccer teams, the
+foraging gym, replay fingerprints, champion provenance, transfer studies, skill
+ledgers, validation tooling — and then observes that "the evidence base remains
+comparatively small," and that the target-memory transfer result is "promising,
+not yet a compelling general demonstration."
+
+The measurement that makes this undeniable, taken 2026-07-26:
+
+```bash
+wc -l research/attempts.jsonl   # 16
+```
+
+**Sixteen rows.** Theme 10 built an attempt ledger designed to hold hundreds of
+logged attempts including failures, and it currently holds sixteen. That single
+number is the gap between "credible research platform" (91) and a defensible
+paper.
+
+**What review #3 says a defensible claim requires**, which is a stricter and
+more useful acceptance bar than the N-proposal budget above — treat it as 10.6's
+real definition of done:
+
+- many attempted improvements, not a handful;
+- multiple seeds (already supported — `tools/run_bench_matrix.py`, default
+  42/7/123);
+- held-out evaluators (already shipped — **10.3**);
+- **negative results published, not discarded** — the ledger already records
+  rejected and errored attempts, so this costs nothing but the discipline of
+  running them;
+- compute accounting;
+- **preregistered success criteria** — decide the bar before running the arm,
+  not after seeing the numbers.
+
+Two of those six are pure discipline rather than engineering, which is the
+encouraging read: the remaining work here is mostly *running the machine that
+already exists* and refusing to file the failures in a drawer.
 
 ---
 
@@ -967,4 +1236,11 @@ actually read to pick work — silently became fiction.
    machine-enforced source of truth — `LEGACY_MAX_LINES` in
    `tests/test_god_class_limits.py` for file sizes, `pyproject.toml`'s mypy
    overrides for typing coverage, `docs/BENCHMARK_CATALOG.md` for benchmarks.
-   **5.3** proposes automating exactly this check.
+   **5.3** proposes automating exactly this check, and **5.4** is the concrete
+   first fix.
+3. **A "no longer qualifies" dismissal expires too.** The 2026-07-26 pass found
+   that the previous audit had correctly retired `backend/routers/worlds.py`
+   from Theme 2.6 — and the file then grew 76 lines and its factory function is
+   ~379 lines today (see 2.6). Removing an entry is itself a measurement with a
+   date on it. When you retire something, say what you measured and when, so
+   the next reader knows whether to re-check rather than trusting it forever.
