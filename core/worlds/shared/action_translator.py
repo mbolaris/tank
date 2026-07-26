@@ -11,7 +11,7 @@ from collections.abc import Mapping, Sequence
 from typing import SupportsFloat, SupportsIndex, cast
 
 from core.actions.action_registry import ActionSpace, RawAction
-from core.brains.contracts import BrainAction
+from core.brains.contracts import BrainAction, BrainPayload
 
 # Backward-compatibility alias
 Action = BrainAction
@@ -78,7 +78,8 @@ class TankLikeActionTranslator:
                 "target_velocity",
                 raw_action.get("velocity", (0.0, 0.0)),
             )
-            extra = cast(dict[str, object], raw_action.get("extra", {}))
+            extra_value = raw_action.get("extra", {})
+            extra: BrainPayload = extra_value if isinstance(extra_value, dict) else {}
 
             # Ensure velocity is a tuple of floats
             if (

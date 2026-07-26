@@ -30,14 +30,14 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from core.brains.contracts import BrainAction
+from core.brains.contracts import BrainAction, BrainPayloadValue
 
 # Backward-compatibility alias
 Action = BrainAction
 
 logger = logging.getLogger(__name__)
 
-RawAction = Action | Mapping[str, object] | Sequence[object]
+RawAction = Action | Mapping[str, BrainPayloadValue] | Sequence[BrainPayloadValue]
 """Raw action payload accepted from external brain/policy code."""
 
 ActionSpace = dict[str, object]
