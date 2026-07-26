@@ -30,7 +30,8 @@ import {
     drawShadow,
 } from './renderer_effects';
 import { SpriteTinter, drawImage, getAnimationFrame } from './renderer_sprites';
-import { drawSVGFishBody } from './renderer_svg_fish';
+import { drawSVGFishBody, drawSVGFishFront } from './renderer_svg_fish';
+import { EntityFacingTracker } from './renderer_facing';
 
 // Food type image mappings (matching core/constants.py)
 const FOOD_TYPE_IMAGES: Record<string, string[]> = {
@@ -46,15 +47,12 @@ const DEFAULT_FOOD_IMAGES = ['food_algae1.png', 'food_algae2.png'];
 
 const DEFAULT_FISH_IMAGES = ['george1.png', 'george2.png'];
 
-// Minimum horizontal velocity magnitude before we flip the fish sprite.
-// This prevents tiny back-and-forth movement from rapidly changing direction.
-const MIN_FLIP_SPEED = 0.5;
 
 export class Renderer {
     public ctx: CanvasRenderingContext2D;
     private background = new BackgroundRenderer();
     private tinter = new SpriteTinter();
-    private entityFacingLeft: Map<number, boolean> = new Map();
+    private entityFacing = new EntityFacingTracker();
     // Track when poker effects started for each entity (for one-time animation)
     private pokerEffectStartTime: Map<number, number> = new Map();
 
@@ -80,7 +78,7 @@ export class Renderer {
         this.background.reset();
 
         // Clear maps that may grow over time
-        this.entityFacingLeft.clear();
+        this.entityFacing.clear();
         this.pokerEffectStartTime.clear();
         this.pathCache.clear();
 
@@ -112,11 +110,7 @@ export class Renderer {
      */
     pruneEntityFacingCache(activeEntityIds: Iterable<number>, pokerActiveIds?: Set<number>) {
         const activeIds = new Set(activeEntityIds);
-        for (const cachedId of this.entityFacingLeft.keys()) {
-            if (!activeIds.has(cachedId)) {
-                this.entityFacingLeft.delete(cachedId);
-            }
-        }
+        this.entityFacing.prune(activeIds);
         // Also prune poker effect start times
         // We delete if:
         // 1. Entity no longer exists (removed from tank)
@@ -209,17 +203,6 @@ export class Renderer {
         this.ctx.restore();
     }
 
-    private getStableFacingLeft(entityId: number, velX?: number): boolean {
-        const previousFacing = this.entityFacingLeft.get(entityId) ?? false;
-
-        if (velX === undefined || Math.abs(velX) < MIN_FLIP_SPEED) {
-            return previousFacing;
-        }
-
-        const facingLeft = velX < 0;
-        this.entityFacingLeft.set(entityId, facingLeft);
-        return facingLeft;
-    }
 
     private renderFish(fish: EntityData, elapsedTime: number, allEntities?: EntityData[], showEffects: boolean = true) {
         const { ctx } = this;
@@ -241,7 +224,7 @@ export class Renderer {
         const sizeModifier = genome_data?.size || 1.0;
         const scaledWidth = width * sizeModifier;
         const scaledHeight = height * sizeModifier;
-        const flipHorizontal = this.getStableFacingLeft(fish.id, vel_x);
+        const { facingLeft: flipHorizontal } = this.entityFacing.getStableFacingLeft(fish.id, vel_x);
 
         drawShadow(ctx, x + scaledWidth / 2, y + scaledHeight, scaledWidth * 0.8, scaledHeight * 0.3);
 
@@ -313,7 +296,7 @@ export class Renderer {
         const scaledSize = baseSize * sizeModifier;
 
         // Flip based on velocity direction with stability for low speeds
-        const flipHorizontal = this.getStableFacingLeft(fish.id, vel_x);
+        const { facingLeft: flipHorizontal, isTurning } = this.entityFacing.getStableFacingLeft(fish.id, vel_x);
 
         // Shadow removed - now on plants instead
 
@@ -326,15 +309,27 @@ export class Renderer {
             drawGlow(ctx, x + scaledSize / 2, y + scaledSize / 2, scaledSize * 0.7, energy, maxEnergy);
         }
 
-        drawSVGFishBody(
-            ctx,
-            (pathString) => this.getPath(pathString),
-            fishParams,
-            x,
-            y,
-            scaledSize,
-            flipHorizontal
-        );
+        if (isTurning) {
+            // Fish is mid-turn — show front view instead of flipping
+            drawSVGFishFront(
+                ctx,
+                (pathString) => this.getPath(pathString),
+                fishParams,
+                x,
+                y,
+                scaledSize
+            );
+        } else {
+            drawSVGFishBody(
+                ctx,
+                (pathString) => this.getPath(pathString),
+                fishParams,
+                x,
+                y,
+                scaledSize,
+                flipHorizontal
+            );
+        }
 
         // Draw enhanced energy bar
         if (showEffects && fish.energy !== undefined && fish.energy < maxEnergy * 0.28) {
