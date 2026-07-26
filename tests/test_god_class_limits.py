@@ -28,7 +28,6 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "backend/runner/hooks/entity_details_mixin.py": 577,
     "backend/simulation_runner.py": 732,
     "backend/startup_manager.py": 626,
-    "backend/state_payloads.py": 812,
     "backend/world_manager.py": 712,
     "backend/world_persistence.py": 682,
     "core/algorithms/base.py": 572,

@@ -226,7 +226,7 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [[tool.mypy.overrides]]
-module = "backend.state_payloads"
+module = "backend.state_payloads.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
