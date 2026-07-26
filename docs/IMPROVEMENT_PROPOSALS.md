@@ -30,10 +30,12 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **5.4** — close the one stale open PR (#587); its functionality already
-  shipped as 4.1/4.2. `S`, needs only repo-write access.
 - **6.2** — retire `Any` in one small core module, after re-running the grep
   and skipping files already checked in the notes below.
+- **2.6** — the router factories (`backend/routers/worlds.py`,
+  `backend/routers/solutions.py`) are live `S`/`M` targets again; see the
+  cautionary tale in that section about re-checking "no longer qualifies"
+  dismissals.
 
 For smaller / less expensive agents: pick one `S` task tagged **Layer 2**. Those
 changes do not alter simulation results, cannot regress a champion trajectory,
@@ -296,15 +298,9 @@ they disagree with a fresh measurement — the same contract
 `test_docs_agent_onboarding.py` already enforces for benchmark paths. The old
 48-vs-58 algorithm-count bug and this audit are the same failure mode.
 
-### 5.4 Close the stale open PR — `S` · ★
-The only remaining half of 5.4 (see Shipped for the claims-drift fix). Review
-#3 noted "a stale open PR still describes startup and diagnostic
-functionality that appears to have already landed." Confirmed — that is
-[PR #587](https://github.com/mbolaris/tank/pull/587) (`start.py` +
-`diagnose.py`, last touched 2026-06-09), and both halves are recorded in the
-Shipped section as **4.1** and **4.2**. It is the only open PR on the repo.
-Close it with a pointer to the shipped work. (Requires repo-write access a
-sandboxed agent may not have — a maintainer can close it directly if so.)
+*(5.4 is complete — see Shipped. Both halves landed: the claims-drift fix
+plus checker, and closing the stale PR #587 with a pointer to the shipped 4.1/
+4.2 work.)*
 
 ---
 
@@ -894,9 +890,10 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
   `tests/test_docs_agent_onboarding.py` (part of the smoke gate): it re-derives
   the count from `core.algorithms.registry.ALL_ALGORITHMS` at test time and
   fails on any numeric or "dozens of" algorithm-count claim in the public agent
-  docs that disagrees with it, so this drift mode can't return silently. The
-  PR-closing half of the original task remains open (see 5.4's remaining
-  entry above — it needs repo-write access this change didn't have).
+  docs that disagrees with it, so this drift mode can't return silently. Also
+  closed the other stale-doc item review #3 named in the same breath: PR #587
+  (`start.py` + `diagnose.py`), whose functionality already shipped as **4.1**
+  and **4.2** — closed with a pointer to both.
 - **6.1 Strict typing for nine more core packages.** `disallow_untyped_defs` /
   `disallow_incomplete_defs` now cover `core.algorithms`, `core.behavior`,
   `core.config`, `core.energy`, `core.movement`, `core.parameters`,
