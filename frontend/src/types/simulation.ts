@@ -831,6 +831,7 @@ export interface MetricsSoccerSample {
 
 export interface MetricsSample {
     frame: number;
+    boot_id?: number;
     max_generation: number;
     population: number;
     births_total: number;
@@ -845,12 +846,23 @@ export interface MetricsSample {
     death_causes?: Record<string, number>;
 }
 
+export interface SelectionQualityPayload {
+    confidence: 'high' | 'high_confidence_selection' | 'high_confidence_no_selection' | 'bottleneck_confounded' | 'epoch_confounded' | 'insufficient_stable_samples' | string;
+    stable_sample_count: number;
+    boot_ids_in_window?: number[];
+    epoch_mixed?: boolean;
+    conditioned_selection_detected?: boolean;
+    conditioned_drift?: Record<string, { start: number; end: number; delta: number; pct: number; selection: boolean }>;
+    range_normalized_drift?: Record<string, number>;
+}
+
 export interface MetricsHistory {
     schema_version: number;
     world_id: string;
     sample_interval_frames: number;
     max_samples: number;
     samples: MetricsSample[];
+    selection_quality?: SelectionQualityPayload | null;
 }
 
 /**

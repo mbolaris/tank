@@ -87,10 +87,13 @@ class MetricsHistoryPayload:
     sample_interval_frames: int
     max_samples: int
     samples: list[MetricsSamplePayload]
+    selection_quality: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = _to_dict(self)
         data["samples"] = [s.to_dict() for s in self.samples]
+        if self.selection_quality is not None:
+            data["selection_quality"] = self.selection_quality
         return data
 
 

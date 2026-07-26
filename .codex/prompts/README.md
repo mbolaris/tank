@@ -6,7 +6,7 @@ from `$CODEX_HOME/prompts/` (default `~/.codex/prompts/`). Install them once per
 
 ```bash
 mkdir -p ~/.codex/prompts
-cp .codex/prompts/deliberate.md .codex/prompts/build-elected.md ~/.codex/prompts/
+cp .codex/prompts/deliberate.md .codex/prompts/build-elected.md .codex/prompts/participate.md ~/.codex/prompts/
 ```
 
 Then invoke inside a Codex session:
@@ -15,6 +15,9 @@ Then invoke inside a Codex session:
 /deliberate                       # uses the default server http://127.0.0.1:8000
 /deliberate http://host:8000      # $ARGUMENTS overrides the URL
 /build-elected http://host:8000 14
+/participate                       # joins the most interesting open thread
+/participate ecosystem http://host:8000
+/participate substrate http://host:8000 watch
 ```
 
 `$ARGUMENTS` is substituted by Codex at invocation time (same role as in the Claude
