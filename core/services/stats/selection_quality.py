@@ -6,7 +6,7 @@ Used by backend metrics history and evolution analyzer tools.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import cast
 
 
 TRAIT_DRIFT_SELECTION_PCT = 5.0  # |rel change| >= this => directional selection
@@ -49,18 +49,29 @@ def _is_directional_trend(series: list[float], min_consistency: float = 0.45) ->
     return (net_delta / path_length) >= min_consistency
 
 
-def compute_trait_drift(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def compute_trait_drift(samples: list[dict[str, object]]) -> dict[str, dict[str, object]]:
     """Per-trait first->last drift across samples that carry trait means."""
-    with_traits = [s for s in samples if isinstance(s.get("traits"), dict) and s["traits"]]
-    drift: dict[str, dict[str, Any]] = {}
+    with_traits: list[dict[str, object]] = []
+    for s in samples:
+        traits = s.get("traits")
+        if isinstance(traits, dict) and traits:
+            with_traits.append(s)
+
+    drift: dict[str, dict[str, object]] = {}
     if len(with_traits) < 2:
         return drift
-    first, last = with_traits[0], with_traits[-1]
-    keys = [k for k in first["traits"] if k in last["traits"]]
+
+    first_traits = cast(dict[str, float], with_traits[0]["traits"])
+    last_traits = cast(dict[str, float], with_traits[-1]["traits"])
+    keys = [k for k in first_traits if k in last_traits]
     for key in keys:
-        series = [float(s["traits"][key]) for s in with_traits if key in s["traits"]]
-        start = float(first["traits"][key])
-        end = float(last["traits"][key])
+        series: list[float] = []
+        for s in with_traits:
+            st = cast(dict[str, float], s["traits"])
+            if key in st:
+                series.append(float(st[key]))
+        start = float(first_traits[key])
+        end = float(last_traits[key])
         delta = end - start
         rel = (delta / start * 100.0) if start else 0.0
         is_directional = _is_directional_trend(series) if len(series) >= 3 else True
@@ -83,15 +94,15 @@ def _local_cv(pops: list[float], center: int, window: int) -> float:
 
 
 def filter_stable_samples(
-    samples: list[dict[str, Any]],
+    samples: list[dict[str, object]],
     pop_floor: float = POP_STABLE_MIN,
     local_window: int = _STABLE_POP_LOCAL_WINDOW,
     local_cv_ceiling: float = POP_CV_UNSTABLE,
-) -> list[dict[str, Any]]:
-    pops = [float(s.get("population", 0)) for s in samples]
-    result: list[dict[str, Any]] = []
+) -> list[dict[str, object]]:
+    pops = [float(cast(float, s.get("population", 0))) for s in samples]
+    result: list[dict[str, object]] = []
     for i, s in enumerate(samples):
-        pop = float(s.get("population", 0))
+        pop = float(cast(float, s.get("population", 0)))
         if pop < pop_floor:
             continue
         if _local_cv(pops, i, local_window) >= local_cv_ceiling:
@@ -100,7 +111,7 @@ def filter_stable_samples(
     return result
 
 
-def _boot_ids(samples: list[dict[str, Any]]) -> set[int]:
+def _boot_ids(samples: list[dict[str, object]]) -> set[int]:
     ids: set[int] = set()
     for s in samples:
         bid = s.get("boot_id")
@@ -109,21 +120,22 @@ def _boot_ids(samples: list[dict[str, Any]]) -> set[int]:
     return ids
 
 
-def _range_normalized_drift(raw_drift: dict[str, dict[str, Any]]) -> dict[str, float]:
+def _range_normalized_drift(raw_drift: dict[str, dict[str, object]]) -> dict[str, float]:
     result: dict[str, float] = {}
     for key, d in raw_drift.items():
         lo, hi = TRAIT_BOUNDS.get(key, (None, None))
         if lo is None or hi is None or hi == lo:
             continue
-        norm = abs(d["delta"]) / (hi - lo)
+        delta = float(cast(float, d["delta"]))
+        norm = abs(delta) / (hi - lo)
         result[key] = round(min(norm, 1.0), 5)
     return result
 
 
 def compute_selection_quality(
-    all_samples: list[dict[str, Any]],
-    raw_drift: dict[str, dict[str, Any]] | None = None,
-) -> dict[str, Any]:
+    all_samples: list[dict[str, object]],
+    raw_drift: dict[str, dict[str, object]] | None = None,
+) -> dict[str, object]:
     if raw_drift is None:
         raw_drift = compute_trait_drift(all_samples)
 
@@ -147,8 +159,8 @@ def compute_selection_quality(
         }
 
     cond_drift = compute_trait_drift(stable)
-    cond_sel = any(d["selection"] for d in cond_drift.values())
-    raw_sel = any(d["selection"] for d in raw_drift.values())
+    cond_sel = any(bool(d["selection"]) for d in cond_drift.values())
+    raw_sel = any(bool(d["selection"]) for d in raw_drift.values())
 
     if epoch_mixed:
         confidence = "epoch_confounded"
