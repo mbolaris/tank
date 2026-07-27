@@ -77,7 +77,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
     # Learning rate for regret accumulation (can evolve)
     learning_rate: float = 1.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default parameters if not provided."""
         if not self.parameters:
             self.parameters = PokerStrategyValidator.default_parameters()

@@ -28,7 +28,7 @@ class AdaptiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -93,7 +93,7 @@ class PositionalExploiter(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -160,7 +160,7 @@ class TrapSetterStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -228,7 +228,7 @@ class MathematicalStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(

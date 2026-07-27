@@ -15,6 +15,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from enum import Enum
+from collections.abc import Iterator
 from typing import Any
 
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
@@ -225,7 +226,7 @@ class RCSSLiteEngine:
         """
         return self._players.copy()
 
-    def iter_players(self):
+    def iter_players(self) -> Iterator[RCSSPlayerState]:
         """Iterate over all player states.
 
         Yields:

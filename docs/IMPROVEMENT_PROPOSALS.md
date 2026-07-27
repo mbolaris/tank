@@ -331,16 +331,25 @@ section. Layer 2; `pre_pr_gate` green is the acceptance bar.
 `core.brains`, `core.contracts`, `core.events`, `core.evolution`, `core.fish`,
 `core.foraging`, `core.modes`, `core.plants`, `core.policies`, `core.pursuit`,
 `core.replay`, `core.taxonomy`, `core.telemetry` (fallout was exactly two
-annotations); and the next tier by leverage — `core.services`,
+annotations); the next tier by leverage — `core.services`,
 `core.mixed_poker`, `core.plant`, `core.code_pool`, `core.systems` (fallout
 was three annotations, all in `core.plant`/`core.systems`; `core.services`,
-`core.mixed_poker`, and `core.code_pool` were already fully clean). See the
-Shipped section for both batches.
+`core.mixed_poker`, and `core.code_pool` were already fully clean); and,
+closing out the last two named candidates, `core.poker` (52 files) and
+`core.minigames` (24 files) — fallout was 38 annotations across 13 files,
+all missing return types (`-> None` in every case but two), plus two latent
+bugs the annotations surfaced: `core/poker/evaluation/auto_evaluate_poker.py`
+assigned a raw `int` from `MultiplayerGameState.current_round` into a
+`BettingRound`-typed attribute (now wrapped `BettingRound(...)`), and a
+nested helper in `core/minigames/soccer/league_runtime.py` was passed
+`LeagueTeam` values but had no annotation to catch it (fixed, not
+`TeamAvailability` as the dict's declared-`Any` values briefly looked like).
+See the Shipped section.
 
-**Remaining candidates**, roughly by leverage: `core.poker` (52 files — do it
-in sub-package slices, not one PR) and `core.minigames` (24). Probe the
-fallout before sizing a PR: add the override, run `mypy core/ backend/`, and
-count.
+**No remaining candidates.** Every package under `core/` now carries the
+`disallow_untyped_defs = true` override; 6.1 is complete as a backlog item.
+Future work here is maintenance — new packages should pick up the override
+when they're created, not accumulate untyped defs first.
 
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
@@ -912,6 +921,46 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **6.1 Strict typing for `core.poker` and `core.minigames` — the last two
+  named candidates, closing out the task.** Probing fallout (`mypy core/
+  backend/` with both overrides added) found 38 missing-annotation errors
+  across 13 files, all mechanical — every `random_instance`/`__post_init__`/
+  helper needed only a return type (`-> None` in all but a few cases) or a
+  parameter type already implied by its caller
+  (`_make_pokerhand_from_ints`'s `hand_type`/`rank_value`/`card_ints` in
+  `core/poker/evaluation/hand_evaluator.py`; `game_state:
+  MultiplayerGameState` in `core/poker/evaluation/auto_evaluate_poker.py`;
+  `fish`/`opponent`/`parent` typed as the project's existing `"Fish"`
+  forward-ref pattern, matching `core/mixed_poker/utils.py`, in
+  `core/poker/integration/poker_interaction.py`).
+
+  Annotating two functions surfaced real (if harmless) latent type
+  mismatches that `disallow_untyped_defs = false` had been hiding by
+  skipping body checking entirely: `_apply_hand_result` assigned
+  `MultiplayerGameState.current_round` (declared `int` on that dataclass)
+  straight into `self.current_round` (inferred `BettingRound` from its two
+  other assignment sites) — fixed by wrapping `BettingRound(...)`, a no-op
+  on the actual value since `BettingRound` is an `IntEnum`. Separately, a
+  nested helper in `core/minigames/soccer/league_runtime.py` receives
+  `LeagueTeam` values through a `dict[str, Any]`, and my first annotation
+  attempt (`TeamAvailability`, a same-module dataclass with a superficially
+  similar name) failed with `attr-defined` on `.source`/`.team_id`/
+  `.roster` — corrected to `LeagueTeam`, which the day trip through the
+  wrong type happened to have. No other core package remains uncovered:
+  every `core/` subpackage with actual source (35 with `__init__.py`, plus
+  the namespace packages `core.movement`, `core.transfer`,
+  `core.telemetry`) now carries the `disallow_untyped_defs = true`
+  override; `core/parameters`, `core/experiments`, and `core/skills`
+  contain only stale `__pycache__` directories and no source, so they were
+  not candidates. Verified via `mypy core/ backend/` (456 files, clean),
+  `ruff`/`black` clean, `agent_gate.py` green (667 tests), and the full
+  poker/soccer/league suite (354 tests) green. Confirmed the champion
+  reproduction failures already present in `test_benchmark_integrity.py`
+  (`training_3k/5k`, `ecosystem_health_10k`, `survival_5k`) reproduce
+  identically on unmodified `master` — pre-existing local-Windows
+  nondeterminism tracked by **1.0**, not a regression from this change.
+  Annotation-only (plus the two behavior-preserving fixes above): no RNG
+  draw, no champion re-baseline.
 - **7.5 + 7.3 De-duplicated the canvas renderers onto `renderers/shared/`.**
   The tank top-down, petri and avatar renderers carried three near-verbatim
   copies of the gene-driven microbe avatar (~175 lines each), two of the trait

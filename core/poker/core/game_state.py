@@ -65,11 +65,11 @@ class PokerGameState:
         self.min_raise = big_blind
         self.last_raise_amount = big_blind  # BB counts as the first "raise" pre-flop
 
-    def add_to_pot(self, amount: float):
+    def add_to_pot(self, amount: float) -> None:
         """Add money to the pot."""
         self.pot += amount
 
-    def player_bet(self, player: int, amount: float):
+    def player_bet(self, player: int, amount: float) -> None:
         """Record a player's bet."""
         if player == 1:
             self.player1_current_bet += amount
@@ -79,7 +79,7 @@ class PokerGameState:
             self.player2_total_bet += amount
         self.add_to_pot(amount)
 
-    def deal_cards(self):
+    def deal_cards(self) -> None:
         """Deal hole cards alternating between players (P1, P2, P1, P2)."""
         self.player1_hole_cards = []
         self.player2_hole_cards = []
@@ -91,22 +91,22 @@ class PokerGameState:
         self.player1_hole_cards.append(self.deck.deal_one())
         self.player2_hole_cards.append(self.deck.deal_one())
 
-    def deal_flop(self):
+    def deal_flop(self) -> None:
         """Deal the flop (3 community cards)."""
         self.deck.deal(1)  # Burn card
         self.community_cards.extend(self.deck.deal(3))
 
-    def deal_turn(self):
+    def deal_turn(self) -> None:
         """Deal the turn (4th community card)."""
         self.deck.deal(1)  # Burn card
         self.community_cards.append(self.deck.deal_one())
 
-    def deal_river(self):
+    def deal_river(self) -> None:
         """Deal the river (5th community card)."""
         self.deck.deal(1)  # Burn card
         self.community_cards.append(self.deck.deal_one())
 
-    def advance_round(self):
+    def advance_round(self) -> None:
         """Move to the next betting round and deal appropriate community cards."""
 
         if self.current_round < BettingRound.SHOWDOWN:

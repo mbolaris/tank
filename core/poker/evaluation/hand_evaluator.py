@@ -215,7 +215,12 @@ def _evaluate_five_cards_cached(five_cards_key: tuple[int, int, int, int, int]) 
 
 
 def _make_pokerhand_from_ints(
-    hand_type, rank_value, description, card_ints, primary_ranks, kickers
+    hand_type: str,
+    rank_value: HandRank,
+    description: str,
+    card_ints: list[tuple[int, int]],
+    primary_ranks: list[int],
+    kickers: list[int],
 ) -> PokerHand:
     """Build PokerHand from integer card representations.
 

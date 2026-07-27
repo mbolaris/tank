@@ -33,7 +33,7 @@ class TightAggressiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -92,7 +92,7 @@ class LooseAggressiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -161,7 +161,7 @@ class TightPassiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -220,7 +220,7 @@ class BalancedStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -305,7 +305,7 @@ class ManiacStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(
@@ -364,7 +364,7 @@ class LoosePassiveStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None):
+    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
         return cls(rng=rng)
 
     def decide_action(

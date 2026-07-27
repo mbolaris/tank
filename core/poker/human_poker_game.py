@@ -150,7 +150,7 @@ class HumanPokerGame:
         # Deal cards and post blinds
         self._start_hand()
 
-    def _start_hand(self):
+    def _start_hand(self) -> None:
         """Start a new hand: deal cards and post blinds."""
         len(self.players)
 
@@ -226,7 +226,7 @@ class HumanPokerGame:
         """Count how many players have energy > 0."""
         return sum(1 for p in self.players if p.energy > 0)
 
-    def _check_session_over(self):
+    def _check_session_over(self) -> None:
         """Check if the session should end (only 1 player with energy)."""
         players_with_energy = self._count_players_with_energy()
         if players_with_energy <= 1:
@@ -285,7 +285,7 @@ class HumanPokerGame:
         self._hand_state.pot = self.pot
         self._hand_state.current_round = self.current_round
 
-    def _player_bet(self, player_index: int, amount: float):
+    def _player_bet(self, player_index: int, amount: float) -> None:
         """Record a player's bet.
 
         Args:
@@ -315,7 +315,7 @@ class HumanPokerGame:
         max_bet = max(active_bets)
         return max_bet - player.current_bet
 
-    def _advance_round(self):
+    def _advance_round(self) -> None:
         """Move to the next betting round and deal community cards."""
         if self._hand_state is None:
             return
@@ -356,7 +356,7 @@ class HumanPokerGame:
             self._showdown()
             return
 
-    def _showdown(self):
+    def _showdown(self) -> None:
         """Determine winner at showdown."""
         if self._hand_state is None:
             return
@@ -460,7 +460,7 @@ class HumanPokerGame:
 
         return True
 
-    def _next_player(self):
+    def _next_player(self) -> None:
         """Move to the next active player."""
         original_index = self.current_player_index
 
@@ -690,7 +690,7 @@ class HumanPokerGame:
             "state": self.get_state(),
         }
 
-    def _process_ai_turns(self):
+    def _process_ai_turns(self) -> None:
         """Process AI player actions until it's the human's turn or game is over."""
         # Guard against infinite loops - max iterations based on reasonable game actions
         # In worst case: 4 players * 4 rounds * 10 actions per round = 160 actions
@@ -710,7 +710,7 @@ class HumanPokerGame:
                 break
             self._process_ai_action_internal()
 
-    def _process_ai_action_internal(self):
+    def _process_ai_action_internal(self) -> None:
         """Process an AI player's action internally without recursion."""
         player = self.players[self.current_player_index]
 

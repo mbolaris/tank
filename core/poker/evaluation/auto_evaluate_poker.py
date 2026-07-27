@@ -30,7 +30,12 @@ from core.energy.energy_utils import apply_energy_delta
 # Import directly from source modules to avoid lazy import issues
 from core.poker.betting.actions import BettingRound
 from core.poker.core.cards import Card, Deck
-from core.poker.simulation.hand_engine import Deal, determine_payouts, simulate_hand_from_deal
+from core.poker.simulation.hand_engine import (
+    Deal,
+    MultiplayerGameState,
+    determine_payouts,
+    simulate_hand_from_deal,
+)
 from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
 logger = logging.getLogger(__name__)
@@ -277,11 +282,13 @@ class AutoEvaluatePokerGame:
         river = deck.deal_one()
         return list(flop) + [turn, river]
 
-    def _apply_hand_result(self, game_state, payouts: dict[int, float]) -> None:
+    def _apply_hand_result(
+        self, game_state: MultiplayerGameState, payouts: dict[int, float]
+    ) -> None:
         """Update player stats and energies from a simulated hand."""
         self.community_cards = list(game_state.community_cards)
         self.pot = game_state.pot
-        self.current_round = game_state.current_round
+        self.current_round = BettingRound(game_state.current_round)
 
         for player_id, player in enumerate(self.players):
             state_player = game_state.players[player_id]
@@ -338,7 +345,7 @@ class AutoEvaluatePokerGame:
             else:
                 self.last_hand_message = f"{winner.name} wins!"
 
-    def play_hand(self):
+    def play_hand(self) -> None:
         """Play one complete hand of poker."""
         deal = self._build_deal()
         player_energies = [player.energy for player in self.players]
@@ -362,7 +369,7 @@ class AutoEvaluatePokerGame:
         # Capture performance snapshot after each hand
         self._record_hand_performance()
 
-    def _record_hand_performance(self):
+    def _record_hand_performance(self) -> None:
         """Record net energy performance for all players after a hand."""
         snapshot: dict[str, Any] = {
             "hand": self.hands_played,

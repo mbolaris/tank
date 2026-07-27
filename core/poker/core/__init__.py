@@ -9,6 +9,8 @@ Note: To avoid circular imports, re-exports are done via lazy imports in
 the module-level __getattr__ function.
 """
 
+from typing import Any
+
 from core.poker.core.cards import Card, Deck, Rank, Suit, get_card
 from core.poker.core.game_state import PokerGameState
 from core.poker.core.hand import HandRank, PokerHand
@@ -58,7 +60,7 @@ _lazy_imports = {
 }
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy import handler to avoid circular imports."""
     if name in _lazy_imports:
         module_path, attr_name = _lazy_imports[name]

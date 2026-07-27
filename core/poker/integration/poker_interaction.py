@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Sequence
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from core.config.fish import (
     POST_POKER_REPRODUCTION_ENERGY_THRESHOLD,
@@ -35,6 +35,9 @@ from core.mixed_poker import MultiplayerGameState as GameState
 from core.mixed_poker import MultiplayerPlayerContext as PlayerContext
 from core.mixed_poker import Player
 from core.util.rng import require_rng_param
+
+if TYPE_CHECKING:
+    from core.entities import Fish
 
 # Constants for poker games
 MIN_ENERGY_TO_PLAY = 10.0
@@ -146,7 +149,7 @@ def should_trigger_reproduction(player: Player, opponent: Player) -> bool:
     return True
 
 
-def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
+def is_post_poker_reproduction_eligible(fish: Fish, opponent: Fish) -> bool:
     """Check whether a fish can BE THE PARENT in post-poker reproduction.
 
     The parent (winner) must:
@@ -177,7 +180,7 @@ def is_post_poker_reproduction_eligible(fish, opponent) -> bool:
     return True
 
 
-def is_valid_reproduction_mate(fish, parent) -> bool:
+def is_valid_reproduction_mate(fish: Fish, parent: Fish) -> bool:
     """Check whether a fish can be a MATE (DNA donor) in reproduction.
 
     The mate only needs to:
@@ -201,8 +204,8 @@ def is_valid_reproduction_mate(fish, parent) -> bool:
 
 
 def should_offer_post_poker_reproduction(
-    fish,
-    opponent,
+    fish: Fish,
+    opponent: Fish,
     is_winner: bool,
     energy_gained: float = 0.0,
     rng: random.Random | None = None,
