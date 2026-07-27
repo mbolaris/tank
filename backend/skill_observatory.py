@@ -72,6 +72,28 @@ class WorldSkillSnapshot:
     genome_code_pool: Any
 
 
+def _safe_deepcopy_snapshot_object(obj: Any) -> Any:
+    """Deepcopy snapshot objects safely, falling back to dict roundtrip or dict copy on failure."""
+    if obj is None:
+        return None
+    try:
+        import copy
+
+        return copy.deepcopy(obj)
+    except Exception:
+        if hasattr(obj, "to_dict"):
+            try:
+                import random
+                from core.genetics.genome import Genome
+
+                return Genome.from_dict(obj.to_dict(), rng=random.Random(42))
+            except Exception:
+                pass
+        if isinstance(obj, dict):
+            return {k: _safe_deepcopy_snapshot_object(v) for k, v in obj.items()}
+        return obj
+
+
 def build_observatory_snapshot(
     world_manager: Any, resolved_world_id: str
 ) -> WorldSkillSnapshot | dict[str, Any]:
@@ -86,8 +108,6 @@ def build_observatory_snapshot(
     into a worker (and re-resolving these live) risks mixing state from different
     points in time across a multi-seed evaluation.
     """
-    import copy
-
     if world_manager is None:
         return {"status": "no_data", "message": "World manager not available"}
 
@@ -138,16 +158,16 @@ def build_observatory_snapshot(
                 common_name=getattr(fish, "common_name", "") or "",
                 generation=int(getattr(fish, "generation", 0)),
                 parent_id=getattr(fish, "parent_id", None),
-                genome=copy.deepcopy(fish.genome),
-                parent_pursuit_params=copy.deepcopy(getattr(fish, "parent_pursuit_params", None)),
+                genome=_safe_deepcopy_snapshot_object(fish.genome),
+                parent_pursuit_params=_safe_deepcopy_snapshot_object(
+                    getattr(fish, "parent_pursuit_params", None)
+                ),
             )
             for fish in living_fish
         )
 
         simulation_config = getattr(runner.world, "simulation_config", None)
-        simulation_config_copied = (
-            copy.deepcopy(simulation_config) if simulation_config is not None else None
-        )
+        simulation_config_copied = _safe_deepcopy_snapshot_object(simulation_config)
         genome_code_pool = getattr(runner.world, "genome_code_pool", None)
         frame = int(getattr(runner.world, "frame_count", getattr(runner, "frame_count", 0)))
 
