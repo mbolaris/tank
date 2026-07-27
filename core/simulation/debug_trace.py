@@ -12,15 +12,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from core.worlds.interfaces import StepResult
 
 
-def _jsonable(value: Any) -> Any:
+def _jsonable(value: object) -> object:
     """Convert step-result values into stable JSON-compatible structures."""
     if is_dataclass(value):
-        return _jsonable(asdict(cast(Any, value)))
+        return _jsonable(asdict(value))  # type: ignore[arg-type]
     if isinstance(value, Mapping):
         return {str(key): _jsonable(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
@@ -32,7 +32,7 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
-def _contains_entity(value: Any, entity_id: str) -> bool:
+def _contains_entity(value: object, entity_id: str) -> bool:
     """Return whether a nested event/output refers to *entity_id*.
 
     Entity IDs appear under several names in the existing event contracts
@@ -41,7 +41,7 @@ def _contains_entity(value: Any, entity_id: str) -> bool:
     lifecycle records without changing those contracts.
     """
     if is_dataclass(value):
-        return _contains_entity(asdict(cast(Any, value)), entity_id)
+        return _contains_entity(asdict(value), entity_id)  # type: ignore[arg-type]
     if hasattr(value, "to_dict") and callable(value.to_dict):
         return _contains_entity(value.to_dict(), entity_id)
     if isinstance(value, Mapping):
@@ -73,7 +73,7 @@ def _contains_entity(value: Any, entity_id: str) -> bool:
     return False
 
 
-def _event_happened_on_frame(event: Any, frame: int) -> bool:
+def _event_happened_on_frame(event: object, frame: int) -> bool:
     """Exclude old entries returned by the backend's bounded event history."""
     if not isinstance(event, Mapping):
         return True
@@ -98,7 +98,7 @@ class DebugTraceCollector:
             raise ValueError("debug_frame must be >= 1")
         self.debug_frame = debug_frame
         self.debug_entity = str(debug_entity) if debug_entity is not None else None
-        self._document: dict[str, Any] = {
+        self._document: dict[str, object] = {
             "schema_version": 1,
             "seed": seed,
             "max_frames": max_frames,
@@ -108,9 +108,9 @@ class DebugTraceCollector:
         }
 
     @property
-    def frames(self) -> list[dict[str, Any]]:
+    def frames(self) -> list[dict[str, object]]:
         """Return the collected frame records."""
-        return cast(list[dict[str, Any]], self._document["frames"])
+        return cast(list[dict[str, object]], self._document["frames"])
 
     def record(self, result: StepResult) -> None:
         """Record a step when it matches the configured frame/entity filters."""
@@ -118,11 +118,13 @@ class DebugTraceCollector:
         if self.debug_frame is not None and frame != self.debug_frame:
             return
 
-        events = [event for event in result.events if _event_happened_on_frame(event, frame)]
-        outputs: dict[str, list[Any]] = {
-            "energy_deltas": result.energy_deltas,
-            "spawns": result.spawns,
-            "removals": result.removals,
+        events: list[object] = [
+            event for event in result.events if _event_happened_on_frame(event, frame)
+        ]
+        outputs: dict[str, list[object]] = {
+            "energy_deltas": list(result.energy_deltas),
+            "spawns": list(result.spawns),
+            "removals": list(result.removals),
             "events": events,
         }
         if self.debug_entity is not None:
@@ -131,7 +133,7 @@ class DebugTraceCollector:
                 for name, values in outputs.items()
             }
 
-        record: dict[str, Any] = {
+        record: dict[str, object] = {
             "frame": frame,
             **{name: _jsonable(values) for name, values in outputs.items()},
         }
@@ -145,15 +147,17 @@ class DebugTraceCollector:
             ]
         self.frames.append(record)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Return the complete trace document with a compact summary."""
         document = dict(self._document)
         document["summary"] = {
             "frames_recorded": len(self.frames),
-            "energy_deltas": sum(len(frame["energy_deltas"]) for frame in self.frames),
-            "spawns": sum(len(frame["spawns"]) for frame in self.frames),
-            "removals": sum(len(frame["removals"]) for frame in self.frames),
-            "events": sum(len(frame["events"]) for frame in self.frames),
+            "energy_deltas": sum(
+                len(cast(list[object], frame["energy_deltas"])) for frame in self.frames
+            ),
+            "spawns": sum(len(cast(list[object], frame["spawns"])) for frame in self.frames),
+            "removals": sum(len(cast(list[object], frame["removals"])) for frame in self.frames),
+            "events": sum(len(cast(list[object], frame["events"])) for frame in self.frames),
         }
         return document
 
