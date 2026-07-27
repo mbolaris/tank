@@ -960,6 +960,18 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
   identically on unmodified `master` — pre-existing local-Windows
   nondeterminism tracked by **1.0**, not a regression from this change.
   Annotation-only (plus the two behavior-preserving fixes above): no RNG
+
+  **Corrected in CI review:** the initial fallout fix annotated
+  `standard.py` and `expert.py` in `core/poker/strategy/implementations/`,
+  both frozen benchmark rulers under `tools/check_locked_paths.py`
+  `DEFAULT_LOCKED_PATHS` (11.7) — CI's locked-paths job correctly rejected
+  the PR even though the edit was typing-only. Reverted both files and
+  instead added explicit per-module mypy overrides
+  (`disallow_untyped_defs = false`) for all three locked poker strategy
+  files plus `core/minigames/soccer/reference_teams.py` (also locked, now
+  under this PR's `core.minigames.*` override), so a future 6.1/6.2 pass
+  can't hit the same wall: typing fallout in `core.poker.*` or
+  `core.minigames.*` can no longer force an edit to a locked ruler.
   draw, no champion re-baseline.
 - **7.5 + 7.3 De-duplicated the canvas renderers onto `renderers/shared/`.**
   The tank top-down, petri and avatar renderers carried three near-verbatim
