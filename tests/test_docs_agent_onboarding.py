@@ -14,6 +14,7 @@ PUBLIC_AGENT_DOCS = [
     ROOT / "SETUP.md",
     ROOT / "docs" / "ALGORITHM_CATALOG.md",
     ROOT / "docs" / "BENCHMARK_CATALOG.md",
+    ROOT / "docs" / "IMPROVEMENT_PROPOSALS.md",
 ]
 ARCHIVED_ADR_DIR = ROOT / "docs" / "adr"
 
@@ -309,8 +310,12 @@ def test_public_docs_do_not_overstate_algorithm_count():
     )
 
     for doc_path in PUBLIC_AGENT_DOCS:
-        if doc_path.name in ("ALGORITHM_CATALOG.md", "BENCHMARK_CATALOG.md"):
-            continue  # generated docs are covered by their own freshness tests
+        if doc_path.name in (
+            "ALGORITHM_CATALOG.md",
+            "BENCHMARK_CATALOG.md",
+            "IMPROVEMENT_PROPOSALS.md",
+        ):
+            continue  # generated/proposal docs are covered by their own dedicated freshness tests
         assert doc_path.exists(), f"{doc_path.relative_to(ROOT)} does not exist"
         content = doc_path.read_text(encoding="utf-8")
 
@@ -330,3 +335,56 @@ def test_public_docs_do_not_overstate_algorithm_count():
             f"but ALL_ALGORITHMS currently has only {actual_count} entries. "
             "Describe the composable behavior framework instead of a stale 'dozens' count."
         )
+
+
+def test_improvement_proposals_table_pins_match_legacy_max_lines():
+    """Verify that file-size pins cited in Theme 2.6 of IMPROVEMENT_PROPOSALS.md match LEGACY_MAX_LINES."""
+    from tests.test_god_class_limits import LEGACY_MAX_LINES
+
+    proposals_path = ROOT / "docs" / "IMPROVEMENT_PROPOSALS.md"
+    assert proposals_path.exists(), "docs/IMPROVEMENT_PROPOSALS.md does not exist"
+    content = proposals_path.read_text(encoding="utf-8")
+
+    # Match lines like | `core/poker/human_poker_game.py` | 863 |
+    pin_pattern = re.compile(r"\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|")
+    matches = pin_pattern.findall(content)
+
+    assert (
+        matches
+    ), "Could not find any file pin entries in docs/IMPROVEMENT_PROPOSALS.md Theme 2.6 table"
+
+    for rel_path, pinned_str in matches:
+        pinned = int(pinned_str)
+        assert (
+            rel_path in LEGACY_MAX_LINES
+        ), f"docs/IMPROVEMENT_PROPOSALS.md table lists '{rel_path}', which is not in LEGACY_MAX_LINES"
+        actual_pin = LEGACY_MAX_LINES[rel_path]
+        assert pinned == actual_pin, (
+            f"docs/IMPROVEMENT_PROPOSALS.md table pins '{rel_path}' at {pinned}, "
+            f"but LEGACY_MAX_LINES pins it at {actual_pin}. Update IMPROVEMENT_PROPOSALS.md."
+        )
+
+
+def test_improvement_proposals_any_count_matches_tree():
+    """Verify that plain 'Any' occurrence claims in IMPROVEMENT_PROPOSALS.md match a fresh scan of core/."""
+    proposals_path = ROOT / "docs" / "IMPROVEMENT_PROPOSALS.md"
+    assert proposals_path.exists(), "docs/IMPROVEMENT_PROPOSALS.md does not exist"
+    content = proposals_path.read_text(encoding="utf-8")
+
+    match = re.search(r"(\d+)\s+plain\s+`Any` occurrences", content)
+    assert match, "Could not find 'plain `Any` occurrences' claim in docs/IMPROVEMENT_PROPOSALS.md"
+
+    claimed_count = int(match.group(1))
+
+    core_dir = ROOT / "core"
+    assert core_dir.exists(), "core/ directory does not exist"
+
+    actual_count = sum(
+        len(re.findall(r"\bAny\b", py_file.read_text(encoding="utf-8")))
+        for py_file in core_dir.rglob("*.py")
+    )
+
+    assert claimed_count == actual_count, (
+        f"docs/IMPROVEMENT_PROPOSALS.md claims {claimed_count} plain `Any` occurrences across core/, "
+        f"but fresh scan found {actual_count}. Update docs/IMPROVEMENT_PROPOSALS.md to match the tree."
+    )
