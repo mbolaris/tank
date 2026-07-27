@@ -435,10 +435,10 @@ models, remains available if hand-written types become a maintenance burden.
 *(7.2 shipped — deltas now emit only changed entities, with wire telemetry to
 prove it. See the Shipped section.)*
 
-### 7.3 Split the 1,000+ line renderers — `M` · ★★ — CANVAS RENDERERS DONE (2026-07-26)
-Re-measured 2026-07-26 (`wc -l`) after the shared-primitive extraction in
-**7.5**, which was done first exactly as this entry recommended and took the
-line counts down as a side effect.
+### 7.3 Split the 1,000+ line renderers — `M` · ★★ — ONLY NetworkDashboard.tsx LEFT (2026-07-27)
+Re-measured 2026-07-27 (`wc -l`) after splitting the two files this entry had
+flagged as "open" (neither is canvas work, so neither used `renderers/shared/`
+from **7.5** — each got its own facade):
 
 | File | Original review | Before this PR | Now |
 | --- | ---: | ---: | ---: |
@@ -447,19 +447,42 @@ line counts down as a side effect.
 | `frontend/src/renderers/avatar_renderer.ts` | — | 555 | **300** — *done, off the ratchet* |
 | `frontend/src/utils/renderer.ts` | 1,431 | 812 | 807 — *split, done* |
 | `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 | 304 — *split, done* |
-| `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | 1,203 | **1,203** — open |
-| `frontend/src/utils/plants/renderers.ts` | — | 1,042 | **1,042** — open |
+| `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | 1,203 | **700** — *split, off the ratchet at 1,203, re-pinned at 700* |
+| `frontend/src/utils/plants/renderers.ts` | — | 1,042 | **10** — *done, off the ratchet entirely* |
 | `frontend/src/pages/NetworkDashboard.tsx` | — | 996 | **996** (pinned at 1,046) — open |
 
-**What is left is no longer canvas work.** `TankTrendsTab.tsx` is a React
-dashboard tab and `plants/renderers.ts` is the L-system plant drawing library —
-neither shares code with the three renderers above, so neither benefits from
-`renderers/shared/`. Treat them as two separate, smaller tasks.
+`TankTrendsTab.tsx` split into `trendUtils.ts` (pure aggregation:
+`buildTrendPoints`, `calculateTrend`, trait/threshold constants — 217 lines)
+and `TrendUiPrimitives.tsx` (the presentational primitives: `StatTile`,
+`Sparkline`, `ChartCard`, `LegendKey`, `ReadoutCard`, `TrendBadge`,
+`CustomTooltip` — 342 lines), leaving the component itself as a 700-line facade
+over both. Still legacy-pinned (700 > the 500-line new-file limit) because the
+render body genuinely has nine distinct chart cards plus a KPI/readout strip —
+further extraction would fragment one cohesive view rather than separate
+concerns, so 700 is where this entry stops rather than gold-plating.
 
-Note `NetworkDashboard.tsx` measures 996 against a `LEGACY_MAX_LINES` pin of
-1,046 — it has *shrunk* 50 lines since it was pinned. The ratchet permits that
-slack silently. If you touch this file, consider re-pinning it down to its
-actual size in the same PR so the ceiling keeps ratcheting.
+`plants/renderers.ts` split cleanly because its six plant-model renderers
+(`_renderMandelbrotPlant`, `_renderClaudePlant`, `_renderAntigravityPlant`,
+`renderGptCodexPlant` + its `drawCodexSegment` helper, `_renderGptPlant`,
+`renderSonnetPlant`) shared no logic with each other beyond the common
+`helpers`/`textures`/`lsystem` imports — each is now its own module under
+`utils/plants/renderers/` (142–211 lines), with `renderers.ts` reduced to a
+10-line re-export barrel so `plant.ts`'s existing imports needed no changes.
+`sonnetCache`/`gptCodexCache` moved to live beside the renderer that owns
+them (`sonnet.ts`/`gptCodex.ts`) rather than in the barrel.
+
+Verified with `npm run build` (tsc -b + vite build, clean), `npx vitest run`
+(30 files / 160 tests, all passing — unchanged from before the split, so no
+behavior moved), and `npm run lint` (clean, confirming no dead imports from the
+extraction). Pure code motion: no JSX, styling, or computation changed, only
+which file it lives in. **Layer 2**: frontend only, no simulation behavior, no
+champion touched.
+
+**What's left:** `NetworkDashboard.tsx` measures 996 against a
+`LEGACY_MAX_LINES` pin of 1,046 — it has *shrunk* 50 lines since it was
+pinned. The ratchet permits that slack silently. If you touch this file,
+consider re-pinning it down to its actual size in the same PR so the ceiling
+keeps ratcheting.
 
 Same discipline as Theme 2's Python god-file splits: extract *obvious*
 collaborators behind a thin facade, verified by `npm run build` + existing
@@ -921,6 +944,26 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **7.3 Split `TankTrendsTab.tsx` and `plants/renderers.ts` — the last two
+  non-canvas god files from this entry.** `TankTrendsTab.tsx` (1,203 lines)
+  split into `trendUtils.ts` (pure aggregation — `buildTrendPoints`,
+  `calculateTrend`, trait/threshold constants) and `TrendUiPrimitives.tsx`
+  (presentational primitives — `StatTile`, `Sparkline`, `ChartCard`,
+  `LegendKey`, `ReadoutCard`, `TrendBadge`, `CustomTooltip`), leaving a
+  700-line component facade (re-pinned in `LEGACY_MAX_LINES`; still over the
+  500-line new-file limit because nine distinct chart cards plus a
+  KPI/readout strip is genuine render complexity, not god-class bloat).
+  `plants/renderers.ts` (1,042 lines) split into six one-per-plant-model
+  files under `utils/plants/renderers/` (142–211 lines each — mandelbrot,
+  claude, antigravity, gpt, gptCodex, sonnet), since the six render
+  functions shared no logic beyond the common `helpers`/`textures`/`lsystem`
+  imports; `renderers.ts` is now a 10-line re-export barrel, dropped from
+  `LEGACY_MAX_LINES` entirely, and `plant.ts`'s existing imports needed no
+  changes. Verified with `npm run build` (clean), `npx vitest run` (30 files
+  / 160 tests, unchanged pass count), and `npm run lint` (clean) — pure code
+  motion, no JSX/styling/computation changed. `NetworkDashboard.tsx` is the
+  one file this entry's table still lists as open. **Layer 2**: frontend
+  only, no simulation behavior, no champion touched.
 - **6.1 Strict typing for `core.poker` and `core.minigames` — the last two
   named candidates, closing out the task.** Probing fallout (`mypy core/
   backend/` with both overrides added) found 38 missing-annotation errors
