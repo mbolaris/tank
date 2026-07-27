@@ -380,10 +380,36 @@ module = "core.minigames.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
+# Frozen benchmark ruler (tools/check_locked_paths.py DEFAULT_LOCKED_PATHS).
+# See the same note above core.poker.strategy.implementations.baseline below.
+[[tool.mypy.overrides]]
+module = "core.minigames.soccer.reference_teams"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
 [[tool.mypy.overrides]]
 module = "core.poker.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+
+# Frozen benchmark rulers (tools/check_locked_paths.py DEFAULT_LOCKED_PATHS).
+# Excluded from the core.poker.* strictness above so typing fallout never
+# forces an edit to a locked reference-opponent file (see Theme 11.7 in
+# docs/IMPROVEMENT_PROPOSALS.md: rulers must never change).
+[[tool.mypy.overrides]]
+module = "core.poker.strategy.implementations.baseline"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "core.poker.strategy.implementations.standard"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "core.poker.strategy.implementations.expert"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 
 [tool.coverage.run]

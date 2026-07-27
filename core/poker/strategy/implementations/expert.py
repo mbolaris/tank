@@ -29,7 +29,7 @@ class GTOExpertStrategy(PokerStrategyAlgorithm):
         )
 
     @classmethod
-    def random_instance(cls, rng: random.Random | None = None) -> PokerStrategyAlgorithm:
+    def random_instance(cls, rng: random.Random | None = None):
         return cls(rng=rng)
 
     def decide_action(
