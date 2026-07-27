@@ -16,6 +16,7 @@ from core.minigames.soccer.league.scheduler import LeagueScheduler
 from core.minigames.soccer.league.types import (
     LeagueLeaderboardEntry,
     LeagueMatch,
+    LeagueTeam,
     TeamAvailability,
     TeamSource,
 )
@@ -222,7 +223,9 @@ class SoccerLeagueRuntime:
 
         team_size = self._provider._get_team_size()
 
-        def collect_team_participants(team, prefix, target_list):
+        def collect_team_participants(
+            team: LeagueTeam, prefix: str, target_list: list[Any]
+        ) -> None:
             if team.source == TeamSource.BOT:
                 for i in range(1, team_size + 1):
                     target_list.append(BotEntity(f"{prefix}_bot_{i}", team.team_id))

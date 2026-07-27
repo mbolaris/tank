@@ -375,6 +375,16 @@ module = "core.systems.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
+[[tool.mypy.overrides]]
+module = "core.minigames.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[[tool.mypy.overrides]]
+module = "core.poker.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
 
 [tool.coverage.run]
 source = ["core"]

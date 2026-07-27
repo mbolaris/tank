@@ -43,7 +43,7 @@ class BaselineOpponent:
     difficulty: BaselineDifficulty
     weight: float = 1.0  # Weight in aggregate scoring
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate baseline opponent definition."""
         if self.weight <= 0:
             raise ValueError(f"Weight must be positive, got {self.weight}")
