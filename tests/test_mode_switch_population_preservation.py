@@ -181,6 +181,38 @@ class TestModeSwitchPhysics:
                 dist <= dish.r + entity_r
             ), f"Entity {type(entity).__name__} at ({cx}, {cy}) is outside dish boundary (dist={dist}, r={dish.r})"
 
+    def test_tank_objects_restored_to_layout_position_after_switch_back(self):
+        """Petri clamps every tank object into the dish; switching back to tank
+        must restore all of them (not just the castle) to their default layout
+        position, since clamping moves algae_reef/protein_grotto/decorative_rock
+        off their tank-mode spot."""
+        from core.tank_objects import DEFAULT_TANK_LAYOUT
+
+        runner = SimulationRunner(world_type="tank", seed=42)
+
+        for _ in range(10):
+            runner.world.step()
+
+        runner.switch_world_type("petri")
+        runner.switch_world_type("tank")
+
+        layouts_by_kind: dict[str, list] = {}
+        for layout in DEFAULT_TANK_LAYOUT:
+            layouts_by_kind.setdefault(layout.kind, []).append(layout)
+
+        objects_by_kind: dict[str, list] = {}
+        for entity in runner.world.entities_list:
+            kind = getattr(entity, "object_kind", None)
+            if kind in layouts_by_kind:
+                objects_by_kind.setdefault(kind, []).append(entity)
+
+        for kind, layouts in layouts_by_kind.items():
+            objects = sorted(objects_by_kind.get(kind, []), key=lambda e: e.object_id)
+            assert len(objects) == len(layouts), f"Expected {len(layouts)} '{kind}' object(s)"
+            for entity, layout in zip(objects, layouts, strict=True):
+                assert entity.pos.x == layout.x, f"{kind} x not restored after mode round-trip"
+                assert entity.pos.y == layout.y, f"{kind} y not restored after mode round-trip"
+
 
 class TestModeSwitchRendering:
     """Tests verifying rendering switches correctly between modes."""

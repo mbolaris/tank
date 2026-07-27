@@ -124,27 +124,45 @@ class TankWorldHooks(PokerMixin, SoccerMixin, BenchmarkMixin, EntityDetailsMixin
         if new_type == "tank":
             self._restore_tank_manager(runner)
             self._restore_soccer_positions(runner)
-            self._restore_castle_position(runner)
+            self._restore_tank_object_positions(runner)
 
-    def _restore_castle_position(self, runner: Any) -> None:
-        """Restore castle to its default tank position."""
+    def _restore_tank_object_positions(self, runner: Any) -> None:
+        """Restore every placed tank object (castle, algae reef, protein grotto,
+        decorative rocks, ...) to its default tank layout position.
+
+        Petri mode clamps every entity inside the circular dish, which can drag
+        these static objects away from their tank layout. Only ``on_world_type_switch``
+        into tank mode can undo that, so every kind in ``DEFAULT_TANK_LAYOUT`` is
+        restored here, not just the castle.
+        """
+        from collections import defaultdict
+
         from core.tank_objects import DEFAULT_TANK_LAYOUT
 
-        castle_layout = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle")
+        layouts_by_kind: dict[str, list[Any]] = defaultdict(list)
+        for layout in DEFAULT_TANK_LAYOUT:
+            layouts_by_kind[layout.kind].append(layout)
+
+        entities_by_kind: dict[str, list[Any]] = defaultdict(list)
         for entity in runner.engine.entities_list:
-            # Use snapshot_type for generic entity classification
-            if getattr(entity, "snapshot_type", None) == "castle":
-                entity.pos.x = castle_layout.x
-                entity.pos.y = castle_layout.y
+            kind = getattr(entity, "object_kind", None)
+            if kind in layouts_by_kind:
+                entities_by_kind[kind].append(entity)
+
+        restored = 0
+        for kind, layouts in layouts_by_kind.items():
+            # Multiple objects can share a kind (e.g. two decorative rocks); match
+            # them to their layout slot in creation order via the stable object_id.
+            entities = sorted(entities_by_kind.get(kind, ()), key=lambda e: e.object_id)
+            for entity, layout in zip(entities, layouts, strict=False):
+                entity.pos.x = layout.x
+                entity.pos.y = layout.y
                 if hasattr(entity, "rect"):
                     entity.rect.x = entity.pos.x
                     entity.rect.y = entity.pos.y
-                logger.info(
-                    "Restored castle to default tank position (%s, %s)",
-                    castle_layout.x,
-                    castle_layout.y,
-                )
-                break  # Only one castle expected
+                restored += 1
+
+        logger.info("Restored %d tank object(s) to default layout positions", restored)
 
     def _restore_soccer_positions(self, runner: Any) -> None:
         """Restore soccer goals and ball to their standard tank positions."""
