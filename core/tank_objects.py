@@ -57,13 +57,15 @@ def _template_layout(
 
 
 # The soccer goals stand alone in the tank's left/right edge columns (goal
-# circles span x ~10-90 and ~968-1048 at mid-height). Every placed object
-# stays inside x ~[160, 928] so neither gate has scenery reading as part of
-# it, and everything sits on the lower floor (y >= 0.70) below the mid-water
-# band where the ball and goals live.
+# circles span x ~10-90 and ~968-1048, but only at mid-height, y ~266-346).
+# The castle and decorative rocks stay inside x ~[160, 928] so neither gate
+# has scenery reading as part of it. Algae reef and protein grotto instead
+# sit deep in the bottom corners - sharing the goal columns' x-range is fine
+# there because they sit far below the goal/ball band (y >= 0.80), well
+# clear of the goal circles vertically.
 DEFAULT_TANK_LAYOUT: tuple[TankObjectLayout, ...] = (
-    # Left ecological zone: lush, pulled well off the left goal column.
-    _template_layout("algae_reef", 0.20, 0.74, 148.0, 106.0),
+    # Bottom-left corner: pushed to the wall, low enough to clear the goal band.
+    _template_layout("algae_reef", 0.04, 0.81, 148.0, 106.0),
     # Small foreground details give the seabed texture along the bottom sand line
     # without closing the central swimming corridor.
     _template_layout("decorative_rock", 0.36, 0.88, 82.0, 48.0),
@@ -72,10 +74,8 @@ DEFAULT_TANK_LAYOUT: tuple[TankObjectLayout, ...] = (
     # y raised from 0.73 to 0.79 to clear the soccer ball/goal band (goals sit
     # at mid-height, y≈0.50); the old gap read as the castle crowding the ball.
     _template_layout("castle", 0.57, 0.79, 120.0, 120.0),
-    # Right ecological zone, pulled well off the right goal column. The third
-    # decorative rock that used to sit between the grotto and the right gate
-    # was removed outright - it read as furniture belonging to the goal.
-    _template_layout("protein_grotto", 0.69, 0.74, 138.0, 104.0),
+    # Bottom-right corner, mirroring the algae reef.
+    _template_layout("protein_grotto", 0.83, 0.81, 138.0, 104.0),
 )
 
 

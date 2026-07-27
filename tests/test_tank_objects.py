@@ -68,22 +68,35 @@ def test_default_layout_objects_stay_inside_tank_and_leave_goals_standalone():
         assert layout.y >= 0
         assert layout.x + (layout.width or 0) <= DEFAULT_TANK_WIDTH
         assert layout.y + (layout.height or 0) <= DEFAULT_TANK_HEIGHT
+        assert layout.y >= DEFAULT_TANK_HEIGHT * 0.70, f"{layout.kind} floats into the ball band"
 
     castle = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle")
+    reef = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "algae_reef")
     grotto = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "protein_grotto")
     assert castle.x > DEFAULT_TANK_WIDTH * 0.55
-    assert grotto.x + (grotto.width or 0) < 1000
-    assert grotto.x > DEFAULT_TANK_WIDTH * 0.6
 
-    # The soccer goals stand alone: no scenery in the goal columns at the
-    # tank's left/right edges (goal circles span x ~10-90 and ~968-1048), and
-    # everything sits on the lower floor, below the mid-water goal/ball band.
+    # Algae reef / protein grotto live in the tank's bottom corners: pushed to
+    # (or past) the goal columns' x-range, but that's fine because the goal
+    # circles only occupy the mid-water band (y ~266-346) and these corner
+    # objects sit well below it - no visual overlap despite sharing x-range.
+    goal_band_bottom = DEFAULT_TANK_HEIGHT / 2 + 40  # goal circle center + radius
+    assert reef.x < DEFAULT_TANK_WIDTH * 0.15, "algae reef should hug the left corner"
+    assert reef.y > goal_band_bottom + 100
+    assert (
+        grotto.x + (grotto.width or 0) > DEFAULT_TANK_WIDTH * 0.85
+    ), "protein grotto should hug the right corner"
+    assert grotto.y > goal_band_bottom + 100
+
+    # The castle and decorative rocks aren't corner pieces, so they stay clear
+    # of the goal columns entirely (goal circles span x ~10-90 and ~968-1048)
+    # regardless of height, so no gate reads as part of them.
     for layout in DEFAULT_TANK_LAYOUT:
+        if layout.kind in ("algae_reef", "protein_grotto"):
+            continue
         assert layout.x >= 160, f"{layout.kind} intrudes on the left goal column"
         assert (
             layout.x + (layout.width or 0) <= 928
         ), f"{layout.kind} intrudes on the right goal column"
-        assert layout.y >= DEFAULT_TANK_HEIGHT * 0.70, f"{layout.kind} floats into the ball band"
 
 
 def test_default_tank_seeds_composed_objects_without_legacy_patches():
