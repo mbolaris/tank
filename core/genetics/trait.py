@@ -6,10 +6,12 @@ This module provides:
 - Helper functions for inheriting traits between parents
 """
 
+from __future__ import annotations
+
 import random as pyrandom
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -59,7 +61,7 @@ def random_genetic_trait(
     rng: pyrandom.Random,
     *,
     hgt_max: float = 0.2,
-) -> "GeneticTrait":
+) -> GeneticTrait:
     """Create a GeneticTrait with randomized meta-genetic values.
 
     Use this factory when creating traits for the founding population
@@ -160,7 +162,7 @@ class TraitSpec:
         hgt_probability) to ensure the founding population has genetic diversity
         that can drift over evolution.
         """
-        raw_value: Any
+        raw_value: float | int
         if self.default_factory:
             raw_value = self.default_factory(rng)
         elif self.discrete:
@@ -348,9 +350,9 @@ def inherit_traits_from_specs_recombination(
     return inherited
 
 
-def trait_values_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, Any]:
+def trait_values_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, object]:
     """Serialize a trait container to a primitives dict using TraitSpec definitions."""
-    out: dict[str, Any] = {}
+    out: dict[str, object] = {}
     for spec in specs:
         trait = getattr(traits, spec.name)
         out[spec.name] = trait.value
@@ -369,7 +371,7 @@ def trait_meta_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, dict
 
 
 def apply_trait_values_from_dict(
-    specs: list[TraitSpec], traits: object, data: dict[str, Any]
+    specs: list[TraitSpec], traits: object, data: dict[str, object]
 ) -> None:
     """Apply primitive values from *data* onto *traits* using TraitSpec definitions."""
     for spec in specs:
@@ -380,14 +382,14 @@ def apply_trait_values_from_dict(
         # Coerce and clamp incoming values to the declared spec bounds.
         if spec.discrete:
             try:
-                int_value = int(raw)
+                int_value = int(cast(Any, raw))
             except (TypeError, ValueError):
                 continue
             int_value = max(int(spec.min_val), min(int(spec.max_val), int(int_value)))
             trait.value = int(int_value)
         else:
             try:
-                float_value = float(raw)
+                float_value = float(cast(Any, raw))
             except (TypeError, ValueError):
                 continue
             float_value = max(spec.min_val, min(spec.max_val, float(float_value)))
