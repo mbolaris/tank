@@ -492,3 +492,50 @@ async def test_evaluate_observatory_snapshot_when_parent_not_living(tmp_path) ->
     assert best["parent_legacy_prediction_skill"] is None
     assert best["parent_pursuit_prediction_strength"] == pytest.approx(0.42)
     assert best["species_founder_legacy_prediction_skill"] == pytest.approx(0.35)
+
+
+def test_build_observatory_snapshot_handles_unpicklable_mappingproxy_genome():
+    import random
+    import types
+    from unittest.mock import MagicMock
+
+    from backend.skill_observatory import build_observatory_snapshot
+    from core.entities.fish import Fish
+    from core.genetics.genome import Genome
+
+    fish = MagicMock(spec=Fish)
+    fish.fish_id = 1
+    fish.taxon_id = "taxon_a"
+    fish.common_name = "Alpha"
+    fish.generation = 1
+    fish.parent_id = None
+    fish.parent_pursuit_params = None
+
+    g = Genome.random(rng=random.Random(42))
+    # Attach an unpicklable mappingproxy object to trigger copy.deepcopy failure
+    g.unpicklable_proxy = types.MappingProxyType({"a": 1})
+    fish.genome = g
+
+    rec = MagicMock()
+    rec.living_member_ids = {1}
+    rec.common_name = "Alpha"
+    rec.type_profile.traits = {"prediction_skill": 0.5}
+
+    world = MagicMock()
+    world.entities_list = [fish]
+    world.ecosystem.taxonomy.registry.species = {"taxon_a": rec}
+    world.simulation_config = None
+    world.genome_code_pool = None
+    world.frame_count = 100
+
+    instance = MagicMock()
+    instance.runner.world = world
+
+    world_manager = MagicMock()
+    world_manager.list_worlds.return_value = [instance]
+    world_manager.get_world.return_value = instance
+
+    snapshot = build_observatory_snapshot(world_manager, "world_1")
+    assert snapshot.world_id == "world_1"
+    assert len(snapshot.living_fish) == 1
+    assert snapshot.living_fish[0].fish_id == 1
