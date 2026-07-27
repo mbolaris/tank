@@ -379,11 +379,12 @@ mechanical annotations, and keep `mypy core/` green.
 ## Theme 7 — Frontend contracts & performance (external review, 2026-07)
 
 The reviewer rated the frontend the weakest surface relative to its size. Both
-halves of that judgement have moved since — re-measured 2026-07-26: **32,668
-total lines** across **163 `.ts`/`.tsx` files** (29,924 lines excluding tests),
-with **28 test files**. So test coverage roughly doubled since the first review
-*and* the surface grew; the ratio is about where it was. The 1,000+ line
-renderers are still the concrete tractable piece.
+halves of that judgement have moved since — re-measured 2026-07-26 after the
+renderer de-duplication landed: **32,789 total lines** across **173
+`.ts`/`.tsx` files**, with **30 test files**. So test coverage roughly doubled
+since the first review *and* the surface grew; the ratio is about where it was.
+The two 1,000+ line *renderers* are now done (see **7.3**/**7.5**); the two
+remaining 1,000+ line files are a dashboard tab and the plant drawing library.
 
 **Review #3 escalated this theme, and its argument is the one to act on.** It
 judged that "the frontend is clearly behind the backend" and — importantly —
@@ -395,7 +396,7 @@ look at what evolves. The backend has 19/20 testing; this surface is where the
 missing product points live.
 
 Its specific finding about test *quality* (not quantity) checks out — measured
-2026-07-26: **10 of the 28 frontend test files use `renderToString`, and zero
+2026-07-26: **10 of the 30 frontend test files use `renderToString`, and zero
 use `@testing-library`.** So the suite asserts on server-rendered strings and
 exercises no real interaction, effects, focus behavior, WebSocket recovery,
 accessibility, or browser rendering. There is a second, practical reason to
@@ -403,6 +404,15 @@ move off that style: React's SSR output interleaves `<!-- -->` marker comments
 between adjacent JSX expressions, so a naive `toContain()` spanning two
 expressions fails for reasons that have nothing to do with the component. The
 assertions are brittle *and* shallow.
+
+**A third style now exists and is worth copying.** The canvas renderers had the
+same problem in a worse form — nothing to assert on at all, so their tests
+re-derived arithmetic copied out of the renderer, which passes even when the
+renderer is deleted. `renderers/testing/canvasTrace.ts` records every canvas
+call, state assignment and gradient colour stop a renderer emits, so
+`renderers/topDownRenderTrace.test.ts` can pin the *output* of a whole frame.
+That is what made the 7.3/7.5 extraction provable rather than eyeballed, and it
+is reusable for any future renderer work.
 
 ### 7.1 Contract test between backend payloads and frontend types — `M` · ★★★ — SHIPPED
 Option (b) landed as `tests/test_frontend_payload_contract.py`: it parses the
@@ -416,36 +426,36 @@ models, remains available if hand-written types become a maintenance burden.
 *(7.2 shipped — deltas now emit only changed entities, with wire telemetry to
 prove it. See the Shipped section.)*
 
-### 7.3 Split the 1,000+ line renderers — `M` · ★★
-Re-measured 2026-07-26 (`wc -l`). Two of the four original targets are done and
-two grew. Review #3 named this as step 3 of its path to 95 — "split drawing
-primitives, effects, scene objects, and input handling out of the 1,000-line
-renderers" — which is a more specific seam list than this entry previously
-carried, so it is now the recommended decomposition. Bumped to ★★ on that
-basis.
+### 7.3 Split the 1,000+ line renderers — `M` · ★★ — CANVAS RENDERERS DONE (2026-07-26)
+Re-measured 2026-07-26 (`wc -l`) after the shared-primitive extraction in
+**7.5**, which was done first exactly as this entry recommended and took the
+line counts down as a side effect.
 
-| File | Then | Now |
-| --- | ---: | ---: |
-| `frontend/src/renderers/petri/PetriTopDownRenderer.ts` | 1,226 | **1,392** |
-| `frontend/src/renderers/tank/TankTopDownRenderer.ts` | 1,122 | **1,267** |
-| `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | **1,203** (new offender) |
-| `frontend/src/utils/plants/renderers.ts` | — | **1,042** (new offender) |
-| `frontend/src/pages/NetworkDashboard.tsx` | — | **996** (pinned at 1,046) |
-| `frontend/src/utils/renderer.ts` | 1,431 | 812 — *split, done* |
-| `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 — *split, done* |
+| File | Original review | Before this PR | Now |
+| --- | ---: | ---: | ---: |
+| `frontend/src/renderers/petri/PetriTopDownRenderer.ts` | 1,226 | 1,392 | **569** — *done* |
+| `frontend/src/renderers/tank/TankTopDownRenderer.ts` | 1,122 | 1,267 | **405** — *done, off the ratchet* |
+| `frontend/src/renderers/avatar_renderer.ts` | — | 555 | **300** — *done, off the ratchet* |
+| `frontend/src/utils/renderer.ts` | 1,431 | 812 | 807 — *split, done* |
+| `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 | 304 — *split, done* |
+| `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | 1,203 | **1,203** — open |
+| `frontend/src/utils/plants/renderers.ts` | — | 1,042 | **1,042** — open |
+| `frontend/src/pages/NetworkDashboard.tsx` | — | 996 | **996** (pinned at 1,046) — open |
+
+**What is left is no longer canvas work.** `TankTrendsTab.tsx` is a React
+dashboard tab and `plants/renderers.ts` is the L-system plant drawing library —
+neither shares code with the three renderers above, so neither benefits from
+`renderers/shared/`. Treat them as two separate, smaller tasks.
 
 Note `NetworkDashboard.tsx` measures 996 against a `LEGACY_MAX_LINES` pin of
 1,046 — it has *shrunk* 50 lines since it was pinned. The ratchet permits that
 slack silently. If you touch this file, consider re-pinning it down to its
 actual size in the same PR so the ceiling keeps ratcheting.
 
-The two petri/tank renderers regrew past where they started, which is the
-argument for doing them properly rather than trimming. Same discipline as
-Theme 2's Python god-file splits: extract
-*obvious* collaborators (e.g. per-entity draw helpers, a legend/HUD module)
-behind a thin facade, verified by `npm run build` + existing tests. Split only
-where the responsibility boundary is clear — no abstraction for elegance.
-**Layer 2.**
+Same discipline as Theme 2's Python god-file splits: extract *obvious*
+collaborators behind a thin facade, verified by `npm run build` + existing
+tests. Split only where the responsibility boundary is clear — no abstraction
+for elegance. **Layer 2.**
 
 ### 7.4 One real end-to-end browser path — `M` · ★★★ — PARTLY SHIPPED (2026-07-26)
 Step 2 of review #3's path to 95. The first real Chromium path now lives in
@@ -479,22 +489,39 @@ exactly the kind of check that silently stops being true.
   out for manual UI verification — reuse it rather than rediscovering it.
 - **Layer 2** — no simulation behavior changes.
 
-### 7.5 De-duplicate shared canvas logic — `M` · ★★
+### 7.5 De-duplicate shared canvas logic — `M` · ★★ — SHIPPED (2026-07-26)
 Review #3: "shared canvas logic — color conversion, fish drawing, effects, and
 renderer primitives — is still duplicated across the tank, petri, and avatar
-renderers." The three consumers are
-`frontend/src/renderers/tank/`, `frontend/src/renderers/petri/`, and
-`frontend/src/renderers/avatar_renderer.ts`, with candidate shared modules
-already sitting adjacent in `frontend/src/utils/`
-(`renderer_sprites.ts`, `renderer_effects.ts`, `renderer_background.ts`,
-`renderer_svg_fish.ts`).
+renderers."
 
-This is the frontend mirror of Theme 12's insight on the Python side: the same
-primitive implemented three times cannot be improved once. It also makes **7.3**
-easier — much of what inflates the two big renderers *is* the duplicated
-drawing code, so extracting shared primitives and splitting the renderers are
-the same PR series approached from opposite ends. Do 7.5 first if you want the
-line counts to fall as a side effect. **Layer 2.**
+`frontend/src/renderers/shared/` is now the single implementation, consumed by
+all three: `canvasPrimitives.ts` (seeded RNG, hue mapping, blob/capsule paths,
+`roundRect` fallback), `microbeAvatar.ts` (the gene-driven organism plus the
+trait cues), `microbeScenery.ts` (predator, substrate), `topDownHud.ts` (energy
+bars, death badges, birth bursts, poker arrows, selection ring) and
+`foodAvatar.ts` (the food sprite table that has to track
+`core/constants.py`). `avatar_renderer.ts` also stopped carrying its own copy
+of `hslToRgb`, which already existed in `utils/renderer_sprites.ts`.
+
+Three findings worth keeping:
+
+- **The duplication was worse than "primitives".** `drawMicrobe` existed three
+  times at ~175 lines each and the trait cues twice at ~80; the header comment
+  on one copy literally read "(Copied from microbe_renderer.ts)".
+- **The copies had silently drifted**, which is the cost this task existed to
+  stop. The tank predator grew capsid facet lines and tail rings; the petri one
+  grew a core dot and a pulsing tail. Rather than pick a winner behind the
+  reader's back, the shared function takes a named style record
+  (`TANK_PREDATOR_STYLE` / `PETRI_PREDATOR_STYLE`) that documents the
+  difference and can be collapsed deliberately. Same for the food sprite's
+  size/glow constants.
+- **`utils/renderer_effects.ts` is *not* a fourth copy** and was left alone: it
+  is the side view's deliberately chunkier visual language (6px bars, floating
+  hearts), not accidental duplication.
+
+Verified by `renderers/topDownRenderTrace.test.ts`, which pins the full canvas
+op trace of a fixture world; see the Shipped section for the three reviewed
+deltas. **Layer 2.**
 
 ---
 
@@ -885,6 +912,37 @@ shared module on multiple ladders (foraging gym / soccer / poker) to produce a
 
 ## Shipped
 
+- **7.5 + 7.3 De-duplicated the canvas renderers onto `renderers/shared/`.**
+  The tank top-down, petri and avatar renderers carried three near-verbatim
+  copies of the gene-driven microbe avatar (~175 lines each), two of the trait
+  cues, the predator, the substrate, the whole top-down HUD, the food sprite
+  table and the seeded-RNG/path primitives. All of it now lives once in
+  `frontend/src/renderers/shared/` (five modules, largest 350 lines).
+  **`TankTopDownRenderer.ts` 1,267 → 405, `PetriTopDownRenderer.ts` 1,392 →
+  569, `avatar_renderer.ts` 555 → 300**; the first and third dropped out of
+  `LEGACY_MAX_LINES` entirely and the second was re-pinned.
+
+  *Proving it changed nothing.* `renderers/testing/canvasTrace.ts` is a
+  recording `CanvasRenderingContext2D` that logs every call, state assignment
+  and gradient colour stop; `renderers/topDownRenderTrace.test.ts` renders a
+  fixture world covering every entity kind and effect branch and snapshots the
+  result. The baseline was captured from the pre-refactor renderers, so the
+  ~3,400-line trace diff *is* the review. It came out at exactly three deltas,
+  all no-ops for drawing, all listed in the test's header comment: 16 dropped
+  state assignments left over from a commented-out debug label, four redundant
+  `setLineDash([])` calls in the petri path, and two `restore()` calls that
+  moved — the last of which is a **bug fix**: the heading whisker for crabs,
+  balls and castles was emitted *outside* the entity's transform, pinning every
+  whisker to the world origin instead of its entity. No coordinate, colour or
+  gradient stop moved.
+
+  `renderers/shared/shared.test.ts` adds 19 unit tests, including the
+  structural invariants the modules rely on but nothing enforced: an organism's
+  appearance is a pure function of its genome, an unknown generation renders
+  identically to generation zero, and the optional layers (trait cues,
+  substrate crystals) are strictly *additive* — enabling one cannot disturb the
+  drawing underneath, which is what keeps the seeded RNG sequence stable.
+  **Layer 2**: frontend only, no simulation behavior, no champion touched.
 - **6.1 Strict typing for `core.services`/`core.mixed_poker`/`core.plant`/
   `core.code_pool`/`core.systems`.** The next tier of 6.1's "remaining
   candidates by leverage" list after the small-leaves batch. Probing fallout
