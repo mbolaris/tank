@@ -12,8 +12,8 @@ event management from the engine, we:
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any, cast
 
 from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
 
@@ -38,8 +38,8 @@ class SoccerEventManager:
         max_events: int = 100,
         frame_provider: Callable[[], int] | None = None,
     ) -> None:
-        self._events: deque[dict[str, Any]] = deque(maxlen=max_events)
-        self._league_live_state: dict[str, Any] | None = None
+        self._events: deque[dict[str, object]] = deque(maxlen=max_events)
+        self._league_live_state: dict[str, object] | None = None
         self._frame_provider = frame_provider or (lambda: 0)
         self._fish_stats = SoccerFishStatsTracker()
 
@@ -47,26 +47,26 @@ class SoccerEventManager:
         """Record an outcome, sourcing the current frame from the provider."""
         self.add_outcome(self._frame_provider(), outcome)
 
-    def recent(self, max_age_frames: int = 1800) -> list[dict[str, Any]]:
+    def recent(self, max_age_frames: int = 1800) -> list[dict[str, object]]:
         """Recent events within max_age_frames of the current frame."""
         return self.get_recent(self._frame_provider(), max_age_frames)
 
-    def add_event(self, event: dict[str, Any]) -> None:
+    def add_event(self, event: dict[str, object]) -> None:
         """Record a soccer match outcome event."""
         self._events.append(event)
 
-    def fish_leaders(self, top_n: int = 10) -> list[dict[str, Any]]:
+    def fish_leaders(self, top_n: int = 10) -> list[dict[str, object]]:
         """Top-N per-fish soccer standings aggregated across matches."""
-        return self._fish_stats.leaders(top_n)
+        return cast(list[dict[str, object]], self._fish_stats.leaders(top_n))
 
     def add_outcome(self, frame: int, outcome: SoccerMinigameOutcome) -> None:
         """Build and record an event dict from a soccer minigame outcome."""
         self._fish_stats.record(outcome)
 
-        def stringify_keys(values: dict[Any, Any]) -> dict[str, Any]:
+        def stringify_keys(values: Mapping[Any, Any]) -> dict[str, object]:
             return {str(key): value for key, value in values.items()}
 
-        event = {
+        event: dict[str, object] = {
             "frame": frame,
             "match_id": outcome.match_id,
             "match_counter": outcome.match_counter,
@@ -91,15 +91,17 @@ class SoccerEventManager:
         }
         self.add_event(event)
 
-    def get_recent(self, current_frame: int, max_age_frames: int = 1800) -> list[dict[str, Any]]:
+    def get_recent(self, current_frame: int, max_age_frames: int = 1800) -> list[dict[str, object]]:
         """Get events within max_age_frames of current_frame."""
-        return [e for e in self._events if current_frame - e["frame"] < max_age_frames]
+        return [
+            e for e in self._events if current_frame - int(cast(int, e["frame"])) < max_age_frames
+        ]
 
     @property
-    def league_live_state(self) -> dict[str, Any] | None:
+    def league_live_state(self) -> dict[str, object] | None:
         """The latest live league match state for rendering."""
         return self._league_live_state
 
     @league_live_state.setter
-    def league_live_state(self, state: dict[str, Any] | None) -> None:
+    def league_live_state(self, state: dict[str, object] | None) -> None:
         self._league_live_state = state
