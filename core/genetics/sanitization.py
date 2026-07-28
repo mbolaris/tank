@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from core.genetics.trait import TraitSpec
@@ -35,7 +36,7 @@ def sanitize_float(
     if value is None or isinstance(value, bool):
         return default
     try:
-        f = float(cast(Any, value))
+        f = float(cast(float, value))
     except (TypeError, ValueError, OverflowError):
         return default
     if math.isnan(f) or math.isinf(f):
@@ -48,7 +49,7 @@ def sanitize_int(value: object, default: int = 0, min_val: int = -1000, max_val:
     if value is None or isinstance(value, bool):
         return default
     try:
-        i = int(cast(Any, value))
+        i = int(cast(int, value))
     except (TypeError, ValueError, OverflowError):
         return default
     return max(min_val, min(max_val, i))
@@ -69,11 +70,11 @@ def sanitize_dict(
     max_keys: int = MAX_DICT_KEYS,
     max_depth: int = MAX_DICT_DEPTH,
     _current_depth: int = 0,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Sanitize a dictionary value, preventing deeply nested bombs."""
     if not isinstance(value, dict) or _current_depth >= max_depth:
         return {}
-    result: dict[str, Any] = {}
+    result: dict[str, object] = {}
     for i, (k, v) in enumerate(value.items()):
         if i >= max_keys:
             break
@@ -85,7 +86,7 @@ def sanitize_dict(
         if isinstance(v, dict):
             result[safe_key] = sanitize_dict(v, max_keys, max_depth, _current_depth + 1)
         elif isinstance(v, (list, tuple)):
-            result[safe_key] = v[:max_keys]
+            result[safe_key] = list(v[:max_keys])
         else:
             result[safe_key] = v
     return result
@@ -129,7 +130,7 @@ def sanitize_mate_preferences(prefs: object) -> dict[str, float]:
     return result
 
 
-def sanitize_genome_dict(data: object) -> dict[str, Any]:
+def sanitize_genome_dict(data: object) -> dict[str, object]:
     """Sanitize an entire genome dictionary from an untrusted source.
 
     Main entry point for external genome data. Replaces invalid values with safe
@@ -151,60 +152,57 @@ def sanitize_genome_dict(data: object) -> dict[str, Any]:
     return result
 
 
-def _sanitize_trait_from_spec(data: dict[str, Any], spec: TraitSpec) -> int | float:
+def _sanitize_trait_from_spec(data: Mapping[str, object], spec: TraitSpec) -> int | float:
     """Sanitize a single trait value using its TraitSpec."""
     mid = (spec.min_val + spec.max_val) / 2
+    raw_val = data.get(spec.name)
     if spec.discrete:
         return sanitize_int(
-            data[spec.name], default=int(mid), min_val=int(spec.min_val), max_val=int(spec.max_val)
+            raw_val, default=int(mid), min_val=int(spec.min_val), max_val=int(spec.max_val)
         )
-    return sanitize_float(data[spec.name], default=mid, min_val=spec.min_val, max_val=spec.max_val)
+    return sanitize_float(raw_val, default=mid, min_val=spec.min_val, max_val=spec.max_val)
 
 
-def _sanitize_physical_traits(data: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_physical_traits(data: Mapping[str, object]) -> dict[str, object]:
     """Sanitize physical trait values against their specs."""
     from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
-    result: dict[str, Any] = {}
+    result: dict[str, object] = {}
     for spec in PHYSICAL_TRAIT_SPECS:
         if spec.name in data:
             result[spec.name] = _sanitize_trait_from_spec(data, spec)
     return result
 
 
-def _sanitize_behavioral_traits(data: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_behavioral_traits(data: Mapping[str, object]) -> dict[str, object]:
     """Sanitize behavioral trait values."""
     from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS
 
-    result: dict[str, Any] = {}
+    result: dict[str, object] = {}
     for spec in BEHAVIORAL_TRAIT_SPECS:
         if spec.name in data:
             result[spec.name] = _sanitize_trait_from_spec(data, spec)
     if "behavior" in data:
+        beh_val = data.get("behavior")
         result["behavior"] = (
-            _sanitize_composable_behavior(data["behavior"])
-            if isinstance(data["behavior"], dict)
-            else None
+            _sanitize_composable_behavior(beh_val) if isinstance(beh_val, dict) else None
         )
     if "poker_strategy" in data:
-        result["poker_strategy"] = (
-            sanitize_dict(data["poker_strategy"])
-            if isinstance(data["poker_strategy"], dict)
-            else None
-        )
+        poker_val = data.get("poker_strategy")
+        result["poker_strategy"] = sanitize_dict(poker_val) if isinstance(poker_val, dict) else None
     if "mate_preferences" in data:
         result["mate_preferences"] = sanitize_mate_preferences(data.get("mate_preferences"))
     for kind in ("movement_policy", "poker_policy", "soccer_policy"):
         id_key = f"{kind}_id"
         params_key = f"{kind}_params"
         if id_key in data:
-            result[id_key] = sanitize_string(data[id_key], default="") or None
+            result[id_key] = sanitize_string(data.get(id_key), default="") or None
         if params_key in data:
-            result[params_key] = sanitize_float_params(data[params_key])
+            result[params_key] = sanitize_float_params(data.get(params_key))
     return result
 
 
-def _sanitize_composable_behavior(data: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_composable_behavior(data: Mapping[str, object]) -> dict[str, object]:
     """Sanitize a composable behavior dictionary."""
     from core.algorithms.composable.definitions import (
         SUB_BEHAVIOR_PARAMS,
@@ -214,7 +212,7 @@ def _sanitize_composable_behavior(data: dict[str, Any]) -> dict[str, Any]:
         ThreatResponse,
     )
 
-    result: dict[str, Any] = {"type": "ComposableBehavior"}
+    result: dict[str, object] = {"type": "ComposableBehavior"}
     result["threat_response"] = sanitize_int(
         data.get("threat_response", 0), default=0, min_val=0, max_val=len(ThreatResponse) - 1
     )
@@ -243,7 +241,7 @@ def _sanitize_composable_behavior(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _sanitize_trait_meta(data: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_trait_meta(data: Mapping[str, object]) -> dict[str, object]:
     """Sanitize trait metadata (mutation_rate, mutation_strength, hgt_probability)."""
     from core.genetics.trait import (
         META_MUTATION_RATE_MAX,
@@ -252,7 +250,7 @@ def _sanitize_trait_meta(data: dict[str, Any]) -> dict[str, Any]:
         META_MUTATION_STRENGTH_MIN,
     )
 
-    result: dict[str, Any] = {}
+    result: dict[str, object] = {}
     for trait_name, meta in data.items():
         if not isinstance(trait_name, str) or not isinstance(meta, dict):
             continue
@@ -280,7 +278,7 @@ def _sanitize_trait_meta(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def validate_external_genome(data: object) -> dict[str, Any]:
+def validate_external_genome(data: object) -> dict[str, object]:
     """Validate and report on an external genome contribution.
 
     Unlike sanitize_genome_dict which silently fixes problems, this reports
@@ -320,7 +318,7 @@ def validate_external_genome(data: object) -> dict[str, Any]:
 
 
 def _validate_trait_values(
-    data: dict[str, Any], section: str, issues: list[str], warnings: list[str]
+    data: Mapping[str, object], section: str, issues: list[str], warnings: list[str]
 ) -> None:
     """Check trait values for common problems."""
     for key, value in data.items():
