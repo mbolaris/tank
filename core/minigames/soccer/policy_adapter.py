@@ -14,7 +14,8 @@ is only used as a fallback for legacy CodePool usage.
 import logging
 import math
 import random as pyrandom
-from typing import TYPE_CHECKING, Any, Optional
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Optional, cast
 
 from core.minigames.soccer.engine import RCSSCommand, RCSSLiteEngine
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
@@ -32,7 +33,7 @@ MAX_KICK_POWER = 100.0
 
 def build_observation(
     engine: RCSSLiteEngine, player_id: str, config: RCSSParams = SOCCER_CANONICAL_PARAMS
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Build a standardized observation dictionary for a player.
 
     Args:
@@ -51,7 +52,7 @@ def build_observation(
         return {}
 
     # 1. Self State
-    obs = {
+    obs: dict[str, object] = {
         "self_x": player.position.x,
         "self_y": player.position.y,
         "self_vel_x": player.velocity.x,
@@ -142,7 +143,7 @@ def build_observation(
     return obs
 
 
-def attach_target_pursuit_vector(observation: dict[str, Any], module: Any | None) -> None:
+def attach_target_pursuit_vector(observation: dict[str, object], module: object | None) -> None:
     """Attach a module-produced ball-pursuit vector without exposing the graph.
 
     Soccer policies may be user-supplied code, so their observation must remain
@@ -159,19 +160,19 @@ def attach_target_pursuit_vector(observation: dict[str, Any], module: Any | None
     vector = evaluate_soccer_pursuit(
         module,
         target_vector=(
-            float(observation.get("ball_rel_x", 0.0)),
-            float(observation.get("ball_rel_y", 0.0)),
+            float(cast(float, observation.get("ball_rel_x", 0.0))),
+            float(cast(float, observation.get("ball_rel_y", 0.0))),
         ),
         target_velocity=(
-            float(observation.get("ball_vel_x", 0.0)),
-            float(observation.get("ball_vel_y", 0.0)),
+            float(cast(float, observation.get("ball_vel_x", 0.0))),
+            float(cast(float, observation.get("ball_vel_y", 0.0))),
         ),
         self_velocity=(
-            float(observation.get("self_vel_x", 0.0)),
-            float(observation.get("self_vel_y", 0.0)),
+            float(cast(float, observation.get("self_vel_x", 0.0))),
+            float(cast(float, observation.get("self_vel_y", 0.0))),
         ),
-        self_speed=float(observation.get("self_speed", 0.0)),
-        energy_ratio=float(observation.get("energy_ratio", 1.0)),
+        self_speed=float(cast(float, observation.get("self_speed", 0.0))),
+        energy_ratio=float(cast(float, observation.get("energy_ratio", 1.0))),
     )
     if vector is not None:
         observation["soccer_target_pursuit_enabled"] = True
@@ -181,10 +182,10 @@ def attach_target_pursuit_vector(observation: dict[str, Any], module: Any | None
 def run_policy(
     code_source: Optional["GenomeCodePool"],
     genome: Optional["Genome"],
-    observation: dict[str, Any],
+    observation: Mapping[str, object],
     rng: pyrandom.Random | None = None,
     dt: float = 0.1,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Execute a genome's soccer policy using GenomeCodePool.execute_policy().
 
     This is the primary entry point for policy execution in soccer matches.
@@ -227,7 +228,7 @@ def run_policy(
         if hasattr(code_source, "execute_policy"):
             result = code_source.execute_policy(
                 component_id=policy_id,
-                observation=observation,
+                observation=dict(observation),
                 rng=rng,
                 dt=dt,
                 params=policy_params,
@@ -282,7 +283,7 @@ def _get_policy_params(genome: "Genome") -> dict[str, float] | None:
     return None
 
 
-def _normalize_policy_output(output: Any) -> dict[str, Any]:
+def _normalize_policy_output(output: object) -> dict[str, object]:
     """Convert policy output to RCSS command format.
 
     Policies may return either:
@@ -310,27 +311,30 @@ def _normalize_policy_output(output: Any) -> dict[str, Any]:
     return _convert_normalized_to_rcss(output)
 
 
-def _validate_command_format(output: dict[str, Any]) -> dict[str, Any]:
+def _validate_command_format(output: Mapping[str, object]) -> dict[str, object]:
     """Validate RCSS command format output."""
-    result = {}
+    result: dict[str, object] = {}
 
     if "kick" in output:
         kick = output["kick"]
         if isinstance(kick, (list, tuple)) and len(kick) >= 2:
-            result["kick"] = [_clamp(kick[0], 0, MAX_KICK_POWER), _clamp(kick[1], -180, 180)]
+            result["kick"] = [
+                _clamp(float(kick[0]), 0, MAX_KICK_POWER),
+                _clamp(float(kick[1]), -180, 180),
+            ]
     elif "turn" in output:
         turn = output["turn"]
         if isinstance(turn, (list, tuple)) and len(turn) >= 1:
-            result["turn"] = [_clamp(turn[0], -180, 180)]
+            result["turn"] = [_clamp(float(turn[0]), -180, 180)]
     elif "dash" in output:
         dash = output["dash"]
         if isinstance(dash, (list, tuple)) and len(dash) >= 1:
-            result["dash"] = [_clamp(dash[0], -MAX_DASH_POWER, MAX_DASH_POWER)]
+            result["dash"] = [_clamp(float(dash[0]), -MAX_DASH_POWER, MAX_DASH_POWER)]
 
     return result
 
 
-def _convert_normalized_to_rcss(output: dict[str, Any]) -> dict[str, Any]:
+def _convert_normalized_to_rcss(output: Mapping[str, object]) -> dict[str, object]:
     """Convert normalized policy output to RCSS command format.
 
     Normalized format:
@@ -340,26 +344,26 @@ def _convert_normalized_to_rcss(output: dict[str, Any]) -> dict[str, Any]:
     - kick_angle: radians -> degrees [-180, 180]
     """
     # Priority: kick > turn > dash
-    kick_power = float(output.get("kick_power", 0.0))
+    kick_power = float(cast(float, output.get("kick_power", 0.0)))
     if kick_power > 0.1:
         # Convert kick
         power = _clamp(kick_power * MAX_KICK_POWER, 0, MAX_KICK_POWER)
         # Normalize before converting to degrees: an unnormalized relative
         # angle (e.g. 5 rad instead of -1.28 rad) would hit the +/-180 clamp
         # and send the kick in the wrong direction.
-        angle_rad = _normalize_angle(float(output.get("kick_angle", 0.0)))
+        angle_rad = _normalize_angle(float(cast(float, output.get("kick_angle", 0.0))))
         angle_deg = math.degrees(angle_rad)
         angle_deg = _clamp(angle_deg, -180, 180)
         return {"kick": [power, angle_deg]}
 
-    turn = float(output.get("turn", 0.0))
+    turn = float(cast(float, output.get("turn", 0.0)))
     if abs(turn) > 0.1:
         # Convert turn: [-1, 1] -> [-180, 180] degrees
         moment = turn * 180.0
         moment = _clamp(moment, -180, 180)
         return {"turn": [moment]}
 
-    dash = float(output.get("dash", 0.0))
+    dash = float(cast(float, output.get("dash", 0.0)))
     if dash > 0.1:
         # Convert dash: [0, 1] -> [0, 100] power
         power = _clamp(dash * MAX_DASH_POWER, 0, MAX_DASH_POWER)
@@ -369,36 +373,39 @@ def _convert_normalized_to_rcss(output: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def default_policy_action(obs: dict[str, Any]) -> dict[str, Any]:
+def default_policy_action(obs: Mapping[str, object]) -> dict[str, object]:
     """Fallback chase-ball logic."""
     if not obs:
         return {}
 
     # Existing logic port
     # if kickable -> kick to goal
-    if obs["is_kickable"] > 0.5:
+    is_kickable = float(cast(float, obs.get("is_kickable", 0.0)))
+    goal_angle = float(cast(float, obs.get("goal_angle", 0.0)))
+    ball_angle = float(cast(float, obs.get("ball_angle", 0.0)))
+    ball_dist = float(cast(float, obs.get("ball_dist", 0.0)))
+
+    if is_kickable > 0.5:
         # Kick towards goal
         # obs["goal_angle"] is normalized relative angle to goal (radians)
         # convert to degrees for RCSS command
-        kick_angle_deg = math.degrees(obs["goal_angle"])
-        return {"kick": [80, kick_angle_deg]}
+        kick_angle_deg = math.degrees(goal_angle)
+        return {"kick": [80.0, kick_angle_deg]}
 
     # if facing ball -> dash
     # if not facing ball -> turn
-    ball_angle = obs["ball_angle"]  # radians
     if abs(ball_angle) > 0.2:
         turn_deg = math.degrees(ball_angle) * 0.5
         # Clamp turn (though adapter will clamp too)
         return {"turn": [turn_deg]}
     else:
         # Dash
-        dist = obs["ball_dist"]
-        power = min(100, dist * 5)
+        power = min(100.0, ball_dist * 5.0)
         return {"dash": [power]}
 
 
 def action_to_command(
-    action: dict[str, Any], config: RCSSParams = SOCCER_CANONICAL_PARAMS
+    action: Mapping[str, object], config: RCSSParams = SOCCER_CANONICAL_PARAMS
 ) -> RCSSCommand | None:
     """Translate abstract action dict to RCSSCommand with strict clamping."""
     if not action:
@@ -409,27 +416,27 @@ def action_to_command(
     if "kick" in action:
         # params: power, rel_dir
         args = action["kick"]
-        if len(args) >= 2:
-            power = _clamp(args[0], 0, MAX_KICK_POWER)
-            angle = _clamp(args[1], -180, 180)  # Assume degrees input
+        if isinstance(args, (list, tuple)) and len(args) >= 2:
+            power = _clamp(float(args[0]), 0, MAX_KICK_POWER)
+            angle = _clamp(float(args[1]), -180, 180)  # Assume degrees input
             return RCSSCommand.kick(power, angle)
 
     if "turn" in action:
         args = action["turn"]
-        if len(args) >= 1:
-            moment = _clamp(args[0], config.min_moment, config.max_moment)
+        if isinstance(args, (list, tuple)) and len(args) >= 1:
+            moment = _clamp(float(args[0]), config.min_moment, config.max_moment)
             return RCSSCommand.turn(moment)
 
     if "turn_neck" in action:
         args = action["turn_neck"]
-        if len(args) >= 1:
-            moment = _clamp(args[0], config.min_moment, config.max_moment)
+        if isinstance(args, (list, tuple)) and len(args) >= 1:
+            moment = _clamp(float(args[0]), config.min_moment, config.max_moment)
             return RCSSCommand.turn_neck(moment)
 
     if "dash" in action:
         args = action["dash"]
-        if len(args) >= 1:
-            power = _clamp(args[0], -MAX_DASH_POWER, MAX_DASH_POWER)  # allow backward dash?
+        if isinstance(args, (list, tuple)) and len(args) >= 1:
+            power = _clamp(float(args[0]), -MAX_DASH_POWER, MAX_DASH_POWER)  # allow backward dash?
             # Standard RCSS dash is usually just power.
             return RCSSCommand.dash(power)
 
