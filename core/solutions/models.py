@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
@@ -46,9 +47,9 @@ class SolutionMetadata:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SolutionMetadata:
+    def from_dict(cls, data: Mapping[str, Any]) -> SolutionMetadata:
         """Create from dictionary."""
-        return cls(**data)
+        return cls(**dict(data))
 
 
 @dataclass
@@ -87,19 +88,29 @@ class BenchmarkResult:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> BenchmarkResult:
+    def from_dict(cls, data: Mapping[str, Any]) -> BenchmarkResult:
         """Create from dictionary."""
-        ci = data.get("confidence_intervals", {})
-        if isinstance(ci, dict):
-            ci = {k: tuple(v) if isinstance(v, list) else v for k, v in ci.items()}
+        ci_raw = data.get("confidence_intervals", {})
+        ci: dict[str, tuple[float, float]] = {}
+        if isinstance(ci_raw, dict):
+            for k, v in ci_raw.items():
+                if isinstance(v, (list, tuple)) and len(v) == 2:
+                    ci[str(k)] = (float(v[0]), float(v[1]))
+
+        per_opp_raw = data.get("per_opponent", {})
+        per_opp: dict[str, float] = {}
+        if isinstance(per_opp_raw, dict):
+            for k, v in per_opp_raw.items():
+                per_opp[str(k)] = float(v)
+
         return cls(
-            per_opponent=data.get("per_opponent", {}),
-            weighted_bb_per_100=data.get("weighted_bb_per_100", 0.0),
-            total_hands_played=data.get("total_hands_played", 0),
-            elo_rating=data.get("elo_rating", 1200.0),
+            per_opponent=per_opp,
+            weighted_bb_per_100=float(data.get("weighted_bb_per_100", 0.0)),
+            total_hands_played=int(data.get("total_hands_played", 0)),
+            elo_rating=float(data.get("elo_rating", 1200.0)),
             confidence_intervals=ci,
-            skill_tier=data.get("skill_tier", "beginner"),
-            evaluated_at=data.get("evaluated_at", ""),
+            skill_tier=str(data.get("skill_tier", "beginner")),
+            evaluated_at=str(data.get("evaluated_at", "")),
         )
 
 
@@ -160,18 +171,27 @@ class SolutionRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SolutionRecord:
+    def from_dict(cls, data: Mapping[str, Any]) -> SolutionRecord:
         """Create from dictionary."""
-        metadata = SolutionMetadata.from_dict(data["metadata"])
-        benchmark_data = data.get("benchmark_result")
-        benchmark = BenchmarkResult.from_dict(benchmark_data) if benchmark_data else None
+        metadata_raw = data.get("metadata")
+        metadata_dict = metadata_raw if isinstance(metadata_raw, dict) else {}
+        metadata = SolutionMetadata.from_dict(metadata_dict)
+
+        benchmark_raw = data.get("benchmark_result")
+        benchmark_dict = benchmark_raw if isinstance(benchmark_raw, dict) else None
+        benchmark = BenchmarkResult.from_dict(benchmark_dict) if benchmark_dict else None
+
+        algo_raw = data.get("behavior_algorithm", {})
+        poker_raw = data.get("poker_strategy", {})
+        comp_raw = data.get("composable_behavior")
+        stats_raw = data.get("capture_stats", {})
 
         return cls(
             metadata=metadata,
-            behavior_algorithm=data.get("behavior_algorithm", {}),
-            poker_strategy=data.get("poker_strategy", {}),
-            composable_behavior=data.get("composable_behavior"),
-            capture_stats=data.get("capture_stats", {}),
+            behavior_algorithm=dict(algo_raw) if isinstance(algo_raw, dict) else {},
+            poker_strategy=dict(poker_raw) if isinstance(poker_raw, dict) else {},
+            composable_behavior=dict(comp_raw) if isinstance(comp_raw, dict) else None,
+            capture_stats=dict(stats_raw) if isinstance(stats_raw, dict) else {},
             benchmark_result=benchmark,
         )
 
@@ -210,7 +230,7 @@ class SolutionRecord:
         ]
 
         if self.behavior_algorithm:
-            algo_class = self.behavior_algorithm.get("class", "Unknown")
+            algo_class = str(self.behavior_algorithm.get("class", "Unknown"))
             lines.append(f"  Algorithm: {algo_class}")
 
         if self.benchmark_result:
@@ -251,16 +271,38 @@ class SolutionComparison:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SolutionComparison:
+    def from_dict(cls, data: Mapping[str, Any]) -> SolutionComparison:
         """Create from dictionary."""
+        sol_ids_raw = data.get("solution_ids", [])
+        sol_ids = [str(x) for x in sol_ids_raw] if isinstance(sol_ids_raw, list) else []
+
+        rankings_raw = data.get("rankings", {})
+        rankings = (
+            {str(k): int(v) for k, v in rankings_raw.items()}
+            if isinstance(rankings_raw, dict)
+            else {}
+        )
+
+        h2h_raw = data.get("head_to_head", {})
+        h2h: dict[str, dict[str, float]] = {}
+        if isinstance(h2h_raw, dict):
+            for k1, v1 in h2h_raw.items():
+                if isinstance(v1, dict):
+                    h2h[str(k1)] = {str(k2): float(v2) for k2, v2 in v1.items()}
+
+        sig_raw = data.get("significant_differences", [])
+        sig_diffs: list[tuple[str, str, float]] = []
+        if isinstance(sig_raw, list):
+            for item in sig_raw:
+                if isinstance(item, (list, tuple)) and len(item) == 3:
+                    sig_diffs.append((str(item[0]), str(item[1]), float(item[2])))
+
         return cls(
-            solution_ids=data.get("solution_ids", []),
-            rankings=data.get("rankings", {}),
-            head_to_head=data.get("head_to_head", {}),
-            significant_differences=[
-                tuple(diff) for diff in data.get("significant_differences", [])
-            ],
-            compared_at=data.get("compared_at", ""),
+            solution_ids=sol_ids,
+            rankings=rankings,
+            head_to_head=h2h,
+            significant_differences=sig_diffs,
+            compared_at=str(data.get("compared_at", "")),
         )
 
     def get_summary(self) -> str:

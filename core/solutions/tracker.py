@@ -12,7 +12,7 @@ import logging
 import os
 import subprocess
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from core.solutions.models import SolutionMetadata, SolutionRecord
 
@@ -20,6 +20,15 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class PokerStatsLike(Protocol):
+    """Protocol for objects with poker performance metrics."""
+
+    def get_win_rate(self) -> float: ...
+    def get_roi(self) -> float: ...
+    def get_showdown_win_rate(self) -> float: ...
 
 
 class SolutionTracker:
@@ -205,7 +214,7 @@ class SolutionTracker:
         tournament_scores.sort(key=lambda x: x[1], reverse=True)
         return tournament_scores[:top_n]
 
-    def _estimate_elo(self, stats: Any) -> float:
+    def _estimate_elo(self, stats: PokerStatsLike) -> float:
         """Estimate Elo rating from poker stats.
 
         This is a rough estimate based on win rate and ROI.
@@ -215,15 +224,15 @@ class SolutionTracker:
 
         # Adjust based on win rate (50% = baseline)
         win_rate = stats.get_win_rate()
-        elo_adjustment = (win_rate - 0.5) * 400  # +/- 200 for 25% deviation
+        elo_adjustment = (win_rate - 0.5) * 400.0  # +/- 200 for 25% deviation
 
         # Adjust based on ROI
         roi = stats.get_roi()
-        roi_adjustment = min(100, max(-100, roi * 10))  # Cap at +/- 100
+        roi_adjustment = min(100.0, max(-100.0, roi * 10.0))  # Cap at +/- 100
 
         # Bonus for showdown skill
         showdown_wr = stats.get_showdown_win_rate()
-        showdown_bonus = (showdown_wr - 0.5) * 100
+        showdown_bonus = (showdown_wr - 0.5) * 100.0
 
         return float(base_elo + elo_adjustment + roi_adjustment + showdown_bonus)
 
@@ -270,8 +279,8 @@ class SolutionTracker:
         now = datetime.utcnow()
         submitted_at = now.isoformat()
 
-        behavior_data: dict[str, Any] = {}
-        composable_data: dict[str, Any] | None = None
+        behavior_data: dict[str, object] = {}
+        composable_data: dict[str, object] | None = None
 
         if hasattr(fish, "genome") and fish.genome is not None:
             behavioral = fish.genome.behavioral
@@ -282,7 +291,7 @@ class SolutionTracker:
                 if hasattr(composable, "to_dict"):
                     composable_data = composable.to_dict()
 
-        poker_strategy: dict[str, Any] = {}
+        poker_strategy: dict[str, object] = {}
         strategy = getattr(fish, "get_poker_strategy", None)
         if callable(strategy):
             try:
@@ -294,7 +303,7 @@ class SolutionTracker:
             except Exception:
                 poker_strategy = {}
 
-        capture_stats: dict[str, Any] = {}
+        capture_stats: dict[str, object] = {}
         if hasattr(fish, "poker_stats") and fish.poker_stats is not None:
             capture_stats = fish.poker_stats.get_stats_dict()
 
@@ -394,14 +403,12 @@ class SolutionTracker:
         try:
             # Save solution first
             filepath = self.save_solution(solution)
-
             # Stage the file
             subprocess.run(
                 ["git", "add", filepath],
                 check=True,
                 capture_output=True,
             )
-
             # Create commit message
             if commit_message is None:
                 commit_message = (
@@ -414,14 +421,12 @@ class SolutionTracker:
                         f"Elo: {solution.benchmark_result.elo_rating:.0f}\n"
                         f"Skill Tier: {solution.benchmark_result.skill_tier}\n"
                     )
-
             # Commit
             subprocess.run(
                 ["git", "commit", "-m", commit_message],
                 check=True,
                 capture_output=True,
             )
-
             if push:
                 # Get current branch
                 result = subprocess.run(
@@ -431,7 +436,6 @@ class SolutionTracker:
                     text=True,
                 )
                 branch = result.stdout.strip()
-
                 # Push
                 subprocess.run(
                     ["git", "push", "-u", "origin", branch],
@@ -492,9 +496,9 @@ class SolutionTracker:
         if self._best_by_elo and self._best_by_elo.capture_stats:
             best_stats = self._best_by_elo.capture_stats
             # Estimate Elo from stored stats
-            best_wr = best_stats.get("win_rate", 0.5)
-            best_roi = best_stats.get("roi", 0)
-            best_elo = 1200 + (best_wr - 0.5) * 400 + best_roi * 10
+            best_wr = float(best_stats.get("win_rate", 0.5))
+            best_roi = float(best_stats.get("roi", 0.0))
+            best_elo = 1200.0 + (best_wr - 0.5) * 400.0 + best_roi * 10.0
 
         if current_elo > best_elo:
             solution = self.capture_solution(fish, author=author)
@@ -522,33 +526,27 @@ class SolutionTracker:
     def _get_git_commit(self) -> str | None:
         """Get the current git commit SHA."""
         try:
-            result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=True,
+            res = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
             )
-            return result.stdout.strip()
+            return res.stdout.strip()
         except Exception:
             return None
 
     def _get_git_branch(self) -> str | None:
         """Get the current git branch name."""
         try:
-            result = subprocess.run(
-                ["git", "branch", "--show-current"],
-                capture_output=True,
-                text=True,
-                check=True,
+            res = subprocess.run(
+                ["git", "branch", "--show-current"], capture_output=True, text=True, check=True
             )
-            return result.stdout.strip()
+            return res.stdout.strip()
         except Exception:
             return None
 
     def generate_leaderboard(
         self,
         solutions: list[SolutionRecord] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """Generate a leaderboard from solutions.
 
         Args:
@@ -560,9 +558,9 @@ class SolutionTracker:
         if solutions is None:
             solutions = self.load_all_solutions()
 
-        leaderboard: list[dict[str, Any]] = []
+        leaderboard: list[dict[str, object]] = []
         for solution in solutions:
-            entry: dict[str, Any] = {
+            entry: dict[str, object] = {
                 "rank": 0,  # Will be set below
                 "solution_id": solution.metadata.solution_id,
                 "name": solution.metadata.name,
@@ -581,7 +579,7 @@ class SolutionTracker:
             leaderboard.append(entry)
 
         # Sort by Elo descending
-        leaderboard.sort(key=lambda x: float(x["elo_rating"]), reverse=True)
+        leaderboard.sort(key=lambda x: float(x["elo_rating"]), reverse=True)  # type: ignore[arg-type]
 
         # Set ranks
         for i, entry in enumerate(leaderboard):
