@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from core.ecosystem_stats import AlgorithmStats, EcosystemEvent, GenerationStats
 
@@ -19,6 +19,21 @@ if TYPE_CHECKING:
     from core.genetics import Genome
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class EvolutionAnalyticsTrackerProtocol(Protocol):
+    """Protocol for evolution analytics tracking objects."""
+
+    def record_offspring_birth(self, energy_cost: float) -> None: ...
+    def record_death_energy_loss(self, remaining_energy: float) -> None: ...
+    def record_frame_snapshot(
+        self,
+        frame: int,
+        fish_list: list[Fish],
+        births_this_frame: int,
+        deaths_this_frame: int,
+    ) -> None: ...
 
 
 class PopulationTracker:
@@ -125,8 +140,8 @@ class PopulationTracker:
         parent_ids: list[int] | None = None,
         algorithm_id: int | None = None,
         color: str | None = None,
-        lineage_log: list[dict[str, Any]] | None = None,
-        evolution_analytics: Any | None = None,
+        lineage_log: list[dict[str, object]] | None = None,
+        evolution_analytics: EvolutionAnalyticsTrackerProtocol | None = None,
     ) -> None:
         """Record a fish birth.
 
@@ -164,7 +179,7 @@ class PopulationTracker:
             algorithm_name = self.algorithm_stats[algorithm_id].algorithm_name
 
         if lineage_log is not None:
-            lineage_record = {
+            lineage_record: dict[str, object] = {
                 "id": str(fish_id),
                 "parent_id": str(parent_id) if parent_id is not None else "root",
                 "generation": generation,
@@ -201,7 +216,7 @@ class PopulationTracker:
         genome: Genome | None = None,
         algorithm_id: int | None = None,
         remaining_energy: float = 0.0,
-        evolution_analytics: Any | None = None,
+        evolution_analytics: EvolutionAnalyticsTrackerProtocol | None = None,
         record_energy_burn: Callable[[str, float], None] | None = None,
     ) -> None:
         """Record a fish death.
@@ -267,7 +282,7 @@ class PopulationTracker:
     def update_population_stats(
         self,
         fish_list: list[Fish],
-        evolution_analytics: Any | None = None,
+        evolution_analytics: EvolutionAnalyticsTrackerProtocol | None = None,
     ) -> None:
         """Update population statistics from current fish list.
 
