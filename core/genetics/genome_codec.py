@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import random as pyrandom
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from core.genetics.behavioral import BEHAVIORAL_TRAIT_SPECS, normalize_mate_preferences
@@ -60,7 +60,7 @@ def genome_to_dict(
     genome: Any,
     *,
     schema_version: int,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Serialize a genome into JSON-compatible primitives."""
     behavior = genome.behavioral.behavior.value if genome.behavioral.behavior else None
     behavior_dict = behavior.to_dict() if behavior is not None else None
@@ -79,7 +79,7 @@ def genome_to_dict(
     target_memory = genome.behavioral.target_memory
     target_memory_dict = target_memory.value.to_dict() if _has_graph_value(target_memory) else None
 
-    values: dict[str, Any] = {}
+    values: dict[str, object] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
@@ -102,17 +102,17 @@ def genome_to_dict(
                 trait_meta[name] = meta
 
     # Helper to safely get policy value
-    def _get_policy_value(trait: Any) -> Any:
+    def _get_policy_value(trait: object) -> object:
         if trait is None:
             return None
-        val = trait.value if hasattr(trait, "value") else trait
+        val = getattr(trait, "value", trait)
         return val if val else None
 
-    def _get_policy_params(trait: Any) -> dict[str, Any] | None:
+    def _get_policy_params(trait: object) -> dict[str, object] | None:
         if trait is None:
             return None
-        val = trait.value if hasattr(trait, "value") else trait
-        return dict(val) if val else None
+        val = getattr(trait, "value", trait)
+        return dict(val) if isinstance(val, (dict, Mapping)) else None
 
     # Serialize new per-kind policy fields
     movement_policy_id = _get_policy_value(genome.behavioral.movement_policy_id)
@@ -136,7 +136,7 @@ def genome_to_dict(
             if meta:
                 trait_meta[name] = meta
 
-    result = {
+    result: dict[str, object] = {
         "schema_version": schema_version,
         **values,
         # Behavior (new system - replaces behavior_algorithm + poker_algorithm)
@@ -169,7 +169,7 @@ def genome_to_dict(
 
 
 def genome_from_dict(
-    data: dict[str, Any],
+    data: dict[str, object],
     *,
     schema_version_expected: int,
     genome_factory: Callable[[], Any],
@@ -245,7 +245,7 @@ def genome_from_dict(
     # Poker strategy (in-game betting decisions)
     try:
         strat_data = data.get("poker_strategy")
-        if strat_data:
+        if strat_data and isinstance(strat_data, dict):
             from core.genetics.trait import GeneticTrait
             from core.poker.strategy.implementations import PokerStrategyAlgorithm
 
@@ -319,7 +319,7 @@ def genome_from_dict(
         from core.genetics.trait import GeneticTrait
 
         # Helper to deserialize and validate policy params
-        def _deserialize_params(params_data: Any) -> dict[str, float] | None:
+        def _deserialize_params(params_data: object) -> dict[str, float] | None:
             if params_data is None or not isinstance(params_data, dict):
                 return None
             validated = {}
@@ -386,17 +386,17 @@ def genome_from_dict(
     return genome
 
 
-def genome_debug_snapshot(genome: Any) -> dict[str, Any]:
+def genome_debug_snapshot(genome: Any) -> dict[str, object]:
     """Return a compact, stable dict for logging/debugging."""
     trait_meta: dict[str, dict[str, float]] = {}
     trait_meta.update(trait_meta_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     trait_meta.update(trait_meta_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
-    values: dict[str, Any] = {}
+    values: dict[str, object] = {}
     values.update(trait_values_to_dict(PHYSICAL_TRAIT_SPECS, genome.physical))
     values.update(trait_values_to_dict(BEHAVIORAL_TRAIT_SPECS, genome.behavioral))
 
-    def _algo_name(algo: Any) -> str | None:
+    def _algo_name(algo: object) -> str | None:
         if algo is None:
             return None
         return type(algo).__name__
