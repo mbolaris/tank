@@ -14,11 +14,13 @@ use and a better example of software design.
 high-impact, low-effort items. When you complete one, move it to the
 "Shipped" section at the bottom with the PR link.
 
-**Last audited against the tree: 2026-07-26** (external review #3 pass — every
-number that review cited was re-measured; the stale entries it exposed are
-corrected in **2.6** and **7.3**, and its findings became **7.4**, **7.5**,
-**9.3**, plus additions to **1.0** and **10.6**. The stale-PR follow-up was
-closed on GitHub the same day; see **5.4**.)
+**Last audited against the tree: 2026-07-28** (external review #4 pass — every
+number that review cited was re-measured before being written in; all of them
+checked out. Its findings became **7.6** and the sharpened acceptance bars in
+**7.4** and **8.1**; its verdicts updated **1.0**, **6.2**, **7.3**, and
+**9.3**. Prior pass 2026-07-26, review #3 — its stale entries were corrected
+in **2.6** and **7.3**, and its findings became **7.4**, **7.5**, **9.3**,
+plus additions to **1.0** and **10.6**.)
 
 **Prior audit, 2026-07-25.** That audit found eight proposals
 still written as open work whose implementations were already merged (1.4, 1.6,
@@ -31,8 +33,17 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **6.2** — retire `Any` in one small core module, after re-running the grep
-  and skipping files already checked in the notes below.
+- **7.6** — pin Node 22.22+ in `frontend-ci` and add `engines.node`; a
+  one-file `S` fix for CI running an explicitly unsupported runtime.
+- **7.4** — extend the Playwright path (place an object, drop/restore the
+  WebSocket, verify persistence) and wire `npm run test:e2e` into CI.
+- **7.3** — split `NetworkDashboard.tsx`, the last ~1,000-line frontend file.
+
+**Explicitly deprioritized:** review #4's closing advice — "do not spend the
+next several PRs only retiring more `Any` annotations. That cleanup is healthy
+… but it has reached diminishing returns compared with determinism,
+browser-level verification, and making the game clearer and more fun." **6.2**
+stays open as background maintenance, not a starter pick.
 
 For smaller / less expensive agents: pick one `S` task tagged **Layer 2**. Those
 changes do not alter simulation results, cannot regress a champion trajectory,
@@ -86,6 +97,32 @@ and are usually proven by the normal docs/tooling gates. Follow the recipe in
 > authentication boundary (**9.3**). Every number it cited was re-measured
 > against the tree on 2026-07-26 before being written in below; two came back
 > different (see 2.6 and 7.3).
+
+> **A fourth external review (2026-07-28) scored the snapshot 93/100** — up
+> from 91, and it named the renderer extraction (**7.3**/**7.5**) as the work
+> that earned both points: maintainability moved 15/20 → **17/20** ("the plant
+> and trends split used sensible responsibility boundaries rather than creating
+> dozens of arbitrary fragments"; the canvas-operation trace is "much better
+> than merely moving duplicated methods into differently named files"). Every
+> other subscore held: architecture 18/20, correctness/reproducibility 16/20
+> ("better diagnostics, but cross-machine determinism is still unresolved"),
+> testing & CI 19/20 ("Playwright added, but not yet a meaningful CI gate"),
+> research rigor 13/15 ("evidence campaign still limited"), product/docs/
+> security 10/15. It independently executed the gates: 73/73 curated smoke,
+> 596/596 architecture/determinism, 365 worlds, 936 evolution, 222
+> backend/tools, 20 core-infrastructure tests, plus compileall and a clean
+> wheel build; it could not run ruff/black/mypy/frontend tests (mirror
+> failures again) and again declined to hold that against the repo.
+>
+> Its path to 95, in its own priority order, mapped to tasks here: finish the
+> Playwright path and put it in CI (**7.4**), fix the frontend CI Node runtime
+> mismatch it found (**7.6**, new), remove reproduction bookkeeping from the
+> player leaderboards and settle one soccer ranking formula (**8.1**), solve
+> cross-machine divergence (**1.0**), and split `NetworkDashboard.tsx`
+> (**7.3**). Its one *negative* instruction is recorded in the starter-picks
+> section above: `Any` retirement (**6.2**) has hit diminishing returns.
+> Verdict: "93 is deserved. A credible 95 is close, but the unfinished items
+> are substantive — not cosmetic."
 
 ---
 
@@ -186,6 +223,17 @@ generations, it is a fundamental scientific concern. Note the interaction with
 Theme 11 — ladder metrics are longitudinally comparable *by construction*, so
 they partially insulate the skill story from this problem, but champion
 trajectories are not insulated at all.
+
+**Review #4 (2026-07-28) held correctness at 16/20 specifically over this
+item** and drew the line between diagnostics and a solution: "the new
+fingerprint streams and environment manifests make the problem easier to
+investigate. They do not solve it." It restated the same five-part
+identification requirement (earliest divergent frame, phase, entity, RNG
+stream, state field) and kept this "the largest technical issue because
+evolutionary trajectories amplify tiny differences." Nothing about the plan
+changes — the instrumentation credit is banked; the remaining work is running
+the comparison and closing the gaps (*phase*, *RNG stream*, *state field*)
+the instrumentation does not yet identify.
 
 *(1.4 multi-seed agent validation and 1.6 smoke-gate dependency diagnostics both
 shipped — see the Shipped section. 1.0 is the only open Theme 1 item.)*
@@ -343,7 +391,14 @@ See the Shipped section.
 Future work here is maintenance — new packages should pick up the override
 when they're created, not accumulate untyped defs first.
 
-### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
+### 6.2 Retire `Any` in the hottest core modules — `S` · ★ — DEPRIORITIZED (2026-07-28)
+**Review #4 explicitly demoted this task**: "do not spend the next several PRs
+only retiring more `Any` annotations … it has reached diminishing returns
+compared with determinism, browser-level verification, and making the game
+clearer and more fun." The impact rating above dropped ★★ → ★ to match. Pick
+this only when it rides along with real work in the same module, or when no
+higher-priority task fits the session budget. The task itself is unchanged:
+
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
 2026-07-25; note this pattern misses generic-parameterized forms like
 `dict[str, Any]`; a plain `\bAny\b` count is 774) and replace the easy ones
@@ -387,8 +442,9 @@ halves of that judgement have moved since — re-measured 2026-07-26 after the
 renderer de-duplication landed: **32,789 total lines** across **173
 `.ts`/`.tsx` files**, with **30 test files**. So test coverage roughly doubled
 since the first review *and* the surface grew; the ratio is about where it was.
-The two 1,000+ line *renderers* are now done (see **7.3**/**7.5**); the two
-remaining 1,000+ line files are a dashboard tab and the plant drawing library.
+The renderers, the trends tab, and the plant drawing library are all split
+(see **7.3**/**7.5**); the one remaining near-1,000-line file is
+`NetworkDashboard.tsx` (996 lines, re-measured 2026-07-28).
 
 **Review #3 escalated this theme, and its argument is the one to act on.** It
 judged that "the frontend is clearly behind the backend" and — importantly —
@@ -475,9 +531,17 @@ champion touched.
 
 **What's left:** `NetworkDashboard.tsx` measures 996 against a
 `LEGACY_MAX_LINES` pin of 1,046 — it has *shrunk* 50 lines since it was
-pinned. The ratchet permits that slack silently. If you touch this file,
-consider re-pinning it down to its actual size in the same PR so the ceiling
-keeps ratcheting.
+pinned (re-verified 2026-07-28). The ratchet permits that slack silently. If
+you touch this file, re-pin it down to its actual size in the same PR so the
+ceiling keeps ratcheting.
+
+**Review #4 (2026-07-28) promoted this remainder to its path-to-95 list**,
+naming `NetworkDashboard.tsx` "the final nearly 1,000-line frontend
+component" — and credited the completed splits in this entry as the work that
+moved maintainability 15/20 → 17/20. The praise is worth keeping because it
+names the standard for the last split: "sensible responsibility boundaries
+rather than … dozens of arbitrary fragments," with output protected by a
+trace or existing tests rather than eyeballed.
 
 Same discipline as Theme 2's Python god-file splits: extract *obvious*
 collaborators behind a thin facade, verified by `npm run build` + existing
@@ -492,10 +556,29 @@ the live WebSocket connection, enters Build, selects a placement option, and
 returns to Watch. That replaces the prior zero browser-driven tests without
 putting a browser dependency in the Python smoke gate.
 
-**Remaining:** extend this foundation through a canvas placement verified from
-the live world state, then deliberately drop and restore the WebSocket and
-verify the persisted state. Those are the product seams that still have no
-automated coverage.
+**Remaining — review #4 (2026-07-28) audited the spec and itemized exactly
+what it does not yet do.** Its verdict: "legitimate — but incomplete … a
+useful foundation," and it withheld a testing point over it. The checklist,
+verified against `frontend/e2e/tank-flow.spec.ts` on 2026-07-28 (all six
+still true):
+
+1. It does not actually **place** the object (it selects Algae Reef and
+   returns to Watch without clicking the canvas).
+2. It does not **interact with a fish**.
+3. It does not **switch worlds or views**.
+4. It does not **break and restore the WebSocket** — still the highest-value
+   leg, see below.
+5. It does not **verify persistence**.
+6. **`.github/workflows/ci.yml` does not run `npm run test:e2e`** (verified
+   2026-07-28: no workflow references it), so the test exists but gates
+   nothing. Review #4's first path-to-95 step is "finish Playwright *and put
+   it in CI*."
+
+Treat items 1, 4, 5, and 6 as this task's definition of done — placement
+verified from live world state, a deliberate WebSocket drop/restore, persisted
+state checked after reconnect, and the suite wired into `frontend-ci`. Items
+2 and 3 are worth having but are not what the review is withholding the point
+over.
 
 **Scope (deliberately one path, not a suite).** The review's proposed
 scenario is a good one because it crosses every seam at once: launch a world →
@@ -550,18 +633,78 @@ Verified by `renderers/topDownRenderTrace.test.ts`, which pins the full canvas
 op trace of a fixture world; see the Shipped section for the three reviewed
 deltas. **Layer 2.**
 
+### 7.6 Frontend CI runs an unsupported Node runtime — `S` · ★★
+**Found by review #4 (2026-07-28), verified against the tree the same day.**
+The lockfile's `react-router` 8.3.0 entry declares `engines: { node:
+">=22.22.0" }`, but both frontend workflow jobs pin `node-version: '20'`
+(`.github/workflows/ci.yml:173` and `:210`), and `frontend/package.json` has
+no `engines` field at all. npm treats an engines mismatch as a warning rather
+than a failure by default, so CI is green while exercising an explicitly
+unsupported runtime — the review's phrasing. The failure mode this invites is
+nasty: a dependency starts using a Node 22 API, local dev (on newer Node)
+stays green, and CI either breaks confusingly or — worse — keeps passing
+builds that break for users on the documented runtime.
+
+**Plan (one small PR):**
+1. Bump both `node-version` pins in `ci.yml` to `'22.22'` or later (a plain
+   `'22'` resolves to the latest 22.x, which is ≥22.22 — acceptable, but the
+   explicit pin documents *why*).
+2. Add `"engines": { "node": ">=22.22.0" }` to `frontend/package.json` so the
+   requirement is declared at the project level, not just inherited invisibly
+   from a transitive lockfile entry.
+3. Note the required Node version wherever local setup is documented
+   (README/onboarding), so local and CI run the same major version — the
+   review asked for exactly this alignment.
+
+Review #4 suggested folding this into "the same frontend-infrastructure pass"
+as **7.4**'s CI wiring; that pairing is sensible if one PR stays reviewable.
+**Layer 2** — no simulation behavior, no champion touched.
+
 ---
 
 ## Theme 8 — Product-facing meaning (external review, 2026-07)
 
-### 8.1 Decide soccer reward semantics; bury repro-credit bookkeeping — `M` · ★★
+### 8.1 Decide soccer reward semantics; bury repro-credit bookkeeping — `M` · ★★★
 **Problem.** The encapsulation half of this review item is shipped: soccer
 reward code now uses the public `reproduction_component` accessor. The
 remaining smell is semantic: "repro credit" is internal simulation bookkeeping
 leaking toward player-facing achievement. The player-facing model should be
 goals, assists, wins, tank identity, and net energy.
 
+**Review #4 (2026-07-28) escalated this from a smell to a contradiction** —
+"the soccer UI still contradicts your product direction" — and put it on the
+path to 95 (impact raised ★★ → ★★★ accordingly). Its two findings, both
+verified against the tree 2026-07-28:
+
+1. **Reproduction bookkeeping is still on the player leaderboards.**
+   `frontend/src/components/MinigameLeaders.tsx` appends `— N offspring` to
+   both the poker rows (line 106) and the soccer rows (line 139), despite the
+   stated direction that reproduction bookkeeping should not clutter the
+   leaderboard. The file's own doc comment already states the right model:
+   "winning shows up here as wins, goals, and net energy earned."
+2. **The soccer ranking formula buries wins.** `SoccerFishStatsTracker
+   ._sort_key` (`core/minigames/soccer/fish_stats.py:114`) ranks by
+   goals → assists → net energy → wins → matches. The review's judgement:
+   "goals and assists should matter heavily, but wins should not be almost
+   irrelevant" — as a near-final tiebreaker, a fish that wins constantly but
+   rarely scores can sit below a scorer on losing teams indefinitely.
+
+   For context when deciding: the reward economy already weights these
+   (`core/config/soccer.py:47-50` — 25 energy per goal, 15 per assist, 5 per
+   team win, capped at 70 per match), which the review called "substantial";
+   the open question is only what the *displayed standings* sort by. One
+   clean, explicitly chosen formula, written down next to `_sort_key`, is the
+   deliverable — not necessarily a different one.
+
 **Remaining plan.**
+- *Leaderboard cleanup (S):* drop the `offspring` suffix from both panels in
+  `MinigameLeaders.tsx` (and stop shipping `offspring_count` in the
+  leaderboard payloads if nothing else consumes it). This half needs no
+  maintainer decision — the product direction is already stated.
+- *Ranking formula (S):* decide one soccer sort order deliberately (e.g.
+  promote wins above net energy, or fold goals/assists/wins into a single
+  points figure) and record the rationale in a comment on `_sort_key`. This
+  is a visible product decision — **confirm with a maintainer**.
 - *Semantics (M):* if repro-credit isn't a concept the project wants to keep,
   remove the `repro_reward_mode="credits"` path decisively rather than hiding it
   from the UI. Reconcile the public docs/API at the same time: backend command
@@ -610,6 +753,14 @@ placement, and saved world state.
 **Confirm the posture with a maintainer before building anything** — this is a
 product decision about what Tank World is meant to be, and step 1 alone may be
 the correct and complete answer. **Layer 2.**
+
+**Review #4 (2026-07-28) re-affirmed both halves of this framing:** "no
+authentication or authorization boundary … acceptable for a personal/local
+simulation, but not for exposing world mutation, commentary, intervention,
+and WebSocket controls as a public multi-user service. The backlog accurately
+records that limitation." It did not put auth on its path to 95 — so this
+stays a documented posture decision, not urgent engineering, unless the
+deployment story changes.
 
 ---
 
@@ -683,6 +834,17 @@ real definition of done:
 Two of those six are pure discipline rather than engineering, which is the
 encouraging read: the remaining work here is mostly *running the machine that
 already exists* and refusing to file the failures in a drawer.
+
+**Review #4 (2026-07-28) held research rigor at 13/15 with the same one-line
+diagnosis: "strong infrastructure; evidence campaign still limited."** Two
+reviews in a row have now said the identical thing; nothing about this task
+has changed except that the gap is a review cycle older. (Housekeeping note,
+measured 2026-07-28: `research/attempts.jsonl` is gitignored
+(`research/attempts*.jsonl` in `.gitignore`), so the ledger is per-checkout —
+review #3's sixteen-row measurement was of its own snapshot. When 10.6's
+campaign actually runs, decide where its ledger output *lives* — a committed
+results file, a CI artifact, or a published summary — or the evidence will
+evaporate with the workspace that produced it.)
 
 ---
 
