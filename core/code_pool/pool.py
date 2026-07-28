@@ -3,9 +3,8 @@ from __future__ import annotations
 import math
 import random
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from core.behavior.primitives.steering import (
     flee_components,
@@ -32,7 +31,7 @@ class CompiledComponent:
     version: int
     kind: str
     entrypoint: str
-    func: Callable[..., Any]
+    func: Callable[..., object]
 
 
 class CodePool:
@@ -40,7 +39,7 @@ class CodePool:
         self._components: dict[str, CodeComponent] = dict(components or {})
         self._compiled: dict[tuple[str, int], CompiledComponent] = {}
 
-    def register(self, component_id: str, func: Callable[..., Any]) -> None:
+    def register(self, component_id: str, func: Callable[..., object]) -> None:
         """Register a pre-compiled callable directly (for builtins).
 
         This bypasses validation and compilation since the function is already
@@ -62,7 +61,7 @@ class CodePool:
         name: str,
         source: str,
         entrypoint: str = "policy",
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> str:
         # Validate source before storing - fail fast on unsafe code
         from .safety import SafetyConfig, validate_source_safety
@@ -103,7 +102,7 @@ class CodePool:
         tree = parse_and_validate(component.source)
         code = compile(tree, f"code_pool:{component.component_id}", "exec")
         exec_globals = build_restricted_globals()
-        exec_locals: dict[str, Any] = {}
+        exec_locals: dict[str, object] = {}
         try:
             exec(code, exec_globals, exec_locals)
         except Exception as exc:
@@ -131,7 +130,7 @@ class CodePool:
         self._compiled[cache_key] = compiled
         return compiled
 
-    def get_callable(self, component_id: str) -> Callable[..., Any] | None:
+    def get_callable(self, component_id: str) -> Callable[..., object] | None:
         """Get the callable for a component by ID.
 
         This handles both registered builtins (which are cached directly)
@@ -154,16 +153,19 @@ class CodePool:
 
         return None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         components = [component.to_dict() for component in self._components.values()]
-        components.sort(key=lambda item: item["component_id"])
+        components.sort(key=lambda item: str(item["component_id"]))
         return {"components": components}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> CodePool:
-        components_data = data.get("components", [])
+    def from_dict(cls, data: Mapping[str, object]) -> CodePool:
+        components_data_raw = data.get("components", [])
+        components_data = components_data_raw if isinstance(components_data_raw, list) else []
         components = {
-            entry["component_id"]: CodeComponent.from_dict(entry) for entry in components_data
+            str(entry["component_id"]): CodeComponent.from_dict(entry)
+            for entry in components_data
+            if isinstance(entry, dict) and "component_id" in entry
         }
         return cls(components=components)
 
@@ -174,7 +176,7 @@ class CodePool:
 
 
 def seek_nearest_food_policy(
-    observation: dict[str, Any], rng: random.Random | None
+    observation: Mapping[str, object], rng: random.Random | None
 ) -> tuple[float, float]:
     """Simple built-in movement policy that heads toward the nearest food vector.
 
@@ -199,7 +201,7 @@ def seek_nearest_food_policy(
 
 
 def flee_from_threat_policy(
-    observation: dict[str, Any], rng: random.Random | None
+    observation: Mapping[str, object], rng: random.Random | None
 ) -> tuple[float, float]:
     """Built-in movement policy that flees from the nearest threat.
 
@@ -302,7 +304,7 @@ def _steer_action(
     return {"turn": turn, "dash": dash, "kick_power": 0.0, "kick_angle": 0.0}
 
 
-def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, float]:
+def _soccer_policy_core(observation: Mapping[str, object], role: str) -> dict[str, float]:
     """Shared param-driven core for the builtin soccer policies.
 
     Roles differ only in off-ball positioning:
@@ -317,26 +319,29 @@ def _soccer_policy_core(observation: dict[str, Any], role: str) -> dict[str, flo
     params_raw = observation.get("params")
     params: dict[str, float] = params_raw if isinstance(params_raw, dict) else {}
 
-    self_pos = observation.get("position", {})
+    self_pos_raw = observation.get("position", {})
+    self_pos = self_pos_raw if isinstance(self_pos_raw, dict) else {}
     sx = float(self_pos.get("x", 0.0))
     sy = float(self_pos.get("y", 0.0))
 
-    ball_rel = observation.get("ball_relative_pos", {})
+    ball_rel_raw = observation.get("ball_relative_pos", {})
+    ball_rel = ball_rel_raw if isinstance(ball_rel_raw, dict) else {}
     brx = float(ball_rel.get("x", 0.0))
     bry = float(ball_rel.get("y", 0.0))
     ball_dist = math.sqrt(brx * brx + bry * bry)
 
-    ball_vx = float(observation.get("ball_vel_x", 0.0))
-    ball_vy = float(observation.get("ball_vel_y", 0.0))
+    ball_vx = float(observation.get("ball_vel_x", 0.0))  # type: ignore[arg-type]
+    ball_vy = float(observation.get("ball_vel_y", 0.0))  # type: ignore[arg-type]
 
-    goal_rel = observation.get("goal_direction", {})
+    goal_rel_raw = observation.get("goal_direction", {})
+    goal_rel = goal_rel_raw if isinstance(goal_rel_raw, dict) else {}
     grx = float(goal_rel.get("x", 0.0))
     gry = float(goal_rel.get("y", 0.0))
     goal_dist = math.sqrt(grx * grx + gry * gry)
 
-    facing_angle = float(observation.get("facing_angle", 0.0))
-    stamina_ratio = float(observation.get("stamina_ratio", 1.0))
-    field_length = float(observation.get("field_length", 100.0))
+    facing_angle = float(observation.get("facing_angle", 0.0))  # type: ignore[arg-type]
+    stamina_ratio = float(observation.get("stamina_ratio", 1.0))  # type: ignore[arg-type]
+    field_length = float(observation.get("field_length", 100.0))  # type: ignore[arg-type]
 
     # Evolvable knobs (base values are the hand-tuned baseline; a raw genome
     # value of 0.0 reproduces it exactly).
@@ -439,7 +444,7 @@ def default_soccer_policy_params(
 
 
 def chase_ball_soccer_policy(
-    observation: dict[str, Any], rng: random.Random | None
+    observation: Mapping[str, object], rng: random.Random | None
 ) -> dict[str, float]:
     """Built-in soccer policy that intercepts the ball and works it toward goal."""
     _ = rng
@@ -450,7 +455,7 @@ def chase_ball_soccer_policy(
 
 
 def defensive_soccer_policy(
-    observation: dict[str, Any], rng: random.Random | None
+    observation: Mapping[str, object], rng: random.Random | None
 ) -> dict[str, float]:
     """Built-in soccer policy that screens its own goal and clears the ball."""
     _ = rng
@@ -461,7 +466,7 @@ def defensive_soccer_policy(
 
 
 def striker_soccer_policy(
-    observation: dict[str, Any], rng: random.Random | None
+    observation: Mapping[str, object], rng: random.Random | None
 ) -> dict[str, float]:
     """Built-in soccer policy that lurks upfield and presses in the offensive zone."""
     _ = rng

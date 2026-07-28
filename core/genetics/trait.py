@@ -1,15 +1,9 @@
-"""Genetic trait definitions and inheritance helpers.
-
-This module provides:
-- GeneticTrait: A wrapper that adds meta-genetic properties to trait values
-- TraitSpec: Declarative specification for trait bounds and behavior
-- Helper functions for inheriting traits between parents
-"""
+from __future__ import annotations
 
 import random as pyrandom
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from core.evolution.inheritance import inherit_discrete_trait as _inherit_discrete_trait
 from core.evolution.inheritance import inherit_trait as _inherit_trait
@@ -40,26 +34,26 @@ META_MUTATION_STRENGTH_MIN: float = 0.4  # Allow slightly lower strength
 META_MUTATION_STRENGTH_MAX: float = 3.0  # Allow much stronger mutations (up from 2.0)
 
 
-def _coerce_float(value: Any, default: float) -> float:
+def _coerce_float(value: object, default: float) -> float:
     try:
-        return float(value)
+        return float(cast(float, value))
     except (TypeError, ValueError):
         return default
 
 
-def _coerce_int(value: Any, default: int) -> int:
+def _coerce_int(value: object, default: int) -> int:
     try:
-        return int(value)
+        return int(cast(int, value))
     except (TypeError, ValueError):
         return default
 
 
 def random_genetic_trait(
-    value: Any,
+    value: T,
     rng: pyrandom.Random,
     *,
     hgt_max: float = 0.2,
-) -> "GeneticTrait":
+) -> GeneticTrait[T]:
     """Create a GeneticTrait with randomized meta-genetic values.
 
     Use this factory when creating traits for the founding population
@@ -160,7 +154,7 @@ class TraitSpec:
         hgt_probability) to ensure the founding population has genetic diversity
         that can drift over evolution.
         """
-        raw_value: Any
+        raw_value: float | int
         if self.default_factory:
             raw_value = self.default_factory(rng)
         elif self.discrete:
@@ -348,9 +342,9 @@ def inherit_traits_from_specs_recombination(
     return inherited
 
 
-def trait_values_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, Any]:
+def trait_values_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, object]:
     """Serialize a trait container to a primitives dict using TraitSpec definitions."""
-    out: dict[str, Any] = {}
+    out: dict[str, object] = {}
     for spec in specs:
         trait = getattr(traits, spec.name)
         out[spec.name] = trait.value
@@ -369,7 +363,7 @@ def trait_meta_to_dict(specs: list[TraitSpec], traits: object) -> dict[str, dict
 
 
 def apply_trait_values_from_dict(
-    specs: list[TraitSpec], traits: object, data: dict[str, Any]
+    specs: list[TraitSpec], traits: object, data: dict[str, object]
 ) -> None:
     """Apply primitive values from *data* onto *traits* using TraitSpec definitions."""
     for spec in specs:
@@ -380,14 +374,14 @@ def apply_trait_values_from_dict(
         # Coerce and clamp incoming values to the declared spec bounds.
         if spec.discrete:
             try:
-                int_value = int(raw)
+                int_value = int(cast(int, raw))
             except (TypeError, ValueError):
                 continue
             int_value = max(int(spec.min_val), min(int(spec.max_val), int(int_value)))
             trait.value = int(int_value)
         else:
             try:
-                float_value = float(raw)
+                float_value = float(cast(float, raw))
             except (TypeError, ValueError):
                 continue
             float_value = max(spec.min_val, min(spec.max_val, float(float_value)))
@@ -395,7 +389,7 @@ def apply_trait_values_from_dict(
 
 
 def apply_trait_meta_from_dict(
-    specs: list[TraitSpec], traits: object, meta_by_trait: dict[str, dict[str, Any]]
+    specs: list[TraitSpec], traits: object, meta_by_trait: Mapping[str, Mapping[str, object]]
 ) -> None:
     """Apply GeneticTrait metadata from a dict produced by `trait_meta_to_dict`."""
     for spec in specs:
@@ -424,11 +418,11 @@ def trait_meta_for_trait(
     return meta
 
 
-def apply_trait_meta_to_trait(trait: GeneticTrait[Any], meta: dict[str, Any]) -> None:
+def apply_trait_meta_to_trait(trait: GeneticTrait[Any], meta: Mapping[str, object]) -> None:
     """Apply GeneticTrait metadata onto a single trait instance."""
     if "mutation_rate" in meta:
-        trait.mutation_rate = max(0.0, float(meta["mutation_rate"]))
+        trait.mutation_rate = max(0.0, float(cast(float, meta["mutation_rate"])))
     if "mutation_strength" in meta:
-        trait.mutation_strength = max(0.0, float(meta["mutation_strength"]))
+        trait.mutation_strength = max(0.0, float(cast(float, meta["mutation_strength"])))
     if "hgt_probability" in meta:
-        trait.hgt_probability = max(0.0, min(1.0, float(meta["hgt_probability"])))
+        trait.hgt_probability = max(0.0, min(1.0, float(cast(float, meta["hgt_probability"]))))

@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 T = TypeVar("T", bound=Enum)
 
 
-def coerce_enum(enum_cls: type[T], value: Any, default: int = 0) -> T:
+def coerce_enum(enum_cls: type[T], value: object, default: int = 0) -> T:
     """Coerce a value to an enum instance.
 
     Handles multiple input types:
@@ -26,7 +26,7 @@ def coerce_enum(enum_cls: type[T], value: Any, default: int = 0) -> T:
         return enum_cls(value)
     except (TypeError, ValueError):
         try:
-            index = int(value)
+            index = int(cast(Any, value))
         except (TypeError, ValueError):
             index = default
         size = len(enum_cls)

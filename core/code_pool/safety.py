@@ -13,9 +13,8 @@ import ast
 import math
 import random as pyrandom
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
 
 from .models import ValidationError
 
@@ -52,7 +51,7 @@ class SafetyConfig:
         default_factory=lambda: {"kick_angle": (-math.pi, math.pi)}
     )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Serialize to dictionary."""
         return {
             "max_source_length": self.max_source_length,
@@ -68,24 +67,37 @@ class SafetyConfig:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> SafetyConfig:
+    def from_dict(cls, data: Mapping[str, object]) -> SafetyConfig:
         """Deserialize from dictionary."""
-        clamp_range = data.get("clamp_value_range", [-1.0, 1.0])
+        raw_clamp_range = data.get("clamp_value_range")
+        clamp_range = (
+            list(raw_clamp_range) if isinstance(raw_clamp_range, (list, tuple)) else [-1.0, 1.0]
+        )
         default_overrides = {"kick_angle": (-math.pi, math.pi)}
         raw_overrides = data.get("clamp_key_overrides")
         overrides = (
-            {key: tuple(bounds[:2]) for key, bounds in raw_overrides.items()}
-            if raw_overrides is not None
+            {
+                str(key): (float(bounds[0]), float(bounds[1]))
+                for key, bounds in raw_overrides.items()
+                if isinstance(bounds, (list, tuple)) and len(bounds) >= 2
+            }
+            if isinstance(raw_overrides, dict)
             else default_overrides
         )
+        max_src = data.get("max_source_length", 10_000)
+        max_ast = data.get("max_ast_nodes", 500)
+        max_depth = data.get("max_function_depth", 5)
+        max_rec = data.get("max_recursion_depth", 50)
+        max_out = data.get("max_output_size", 1000)
+        clamp_mov = data.get("clamp_movement_output", True)
         return cls(
-            max_source_length=data.get("max_source_length", 10_000),
-            max_ast_nodes=data.get("max_ast_nodes", 500),
-            max_function_depth=data.get("max_function_depth", 5),
-            max_recursion_depth=data.get("max_recursion_depth", 50),
-            max_output_size=data.get("max_output_size", 1000),
-            clamp_movement_output=data.get("clamp_movement_output", True),
-            clamp_value_range=tuple(clamp_range[:2]),
+            max_source_length=int(max_src) if isinstance(max_src, (int, float)) else 10_000,
+            max_ast_nodes=int(max_ast) if isinstance(max_ast, (int, float)) else 500,
+            max_function_depth=int(max_depth) if isinstance(max_depth, (int, float)) else 5,
+            max_recursion_depth=int(max_rec) if isinstance(max_rec, (int, float)) else 50,
+            max_output_size=int(max_out) if isinstance(max_out, (int, float)) else 1000,
+            clamp_movement_output=bool(clamp_mov),
+            clamp_value_range=(float(clamp_range[0]), float(clamp_range[1])),
             clamp_key_overrides=overrides,
         )
 
@@ -224,7 +236,7 @@ def validate_source_safety(source: str, config: SafetyConfig) -> None:
 class ExecutionResult:
     """Result of safe policy execution."""
 
-    output: Any
+    output: object
     success: bool
     error_message: str | None = None
     was_clamped: bool = False
@@ -245,8 +257,8 @@ class SafeExecutor:
 
     def execute(
         self,
-        func: Callable[..., Any],
-        observation: dict[str, Any],
+        func: Callable[..., object],
+        observation: Mapping[str, object],
         rng: pyrandom.Random,
     ) -> ExecutionResult:
         """Execute a policy function with safety guards.
@@ -295,7 +307,7 @@ class SafeExecutor:
             was_clamped=was_clamped,
         )
 
-    def _check_output_size(self, output: Any) -> None:
+    def _check_output_size(self, output: object) -> None:
         """Check that output doesn't exceed size limits."""
         size = self._estimate_size(output, depth=0)
         if size > self.config.max_output_size:
@@ -303,7 +315,7 @@ class SafeExecutor:
                 f"Output size {size} exceeds maximum {self.config.max_output_size}"
             )
 
-    def _estimate_size(self, obj: Any, depth: int) -> int:
+    def _estimate_size(self, obj: object, depth: int) -> int:
         """Estimate the size of an object for safety checking."""
         if depth > 10:
             return 1  # Prevent deep recursion in size check
@@ -324,7 +336,7 @@ class SafeExecutor:
         # Unknown type - count as 1
         return 1
 
-    def _clamp_output(self, output: Any) -> tuple[Any, bool]:
+    def _clamp_output(self, output: object) -> tuple[object, bool]:
         """Clamp output values to valid range.
 
         Returns:
@@ -334,7 +346,7 @@ class SafeExecutor:
         was_clamped = False
 
         if isinstance(output, (tuple, list)):
-            clamped_values: list[Any] = []
+            clamped_values: list[object] = []
             for val in output:
                 if isinstance(val, (int, float)):
                     if not math.isfinite(val):
@@ -350,9 +362,10 @@ class SafeExecutor:
             return type(output)(clamped_values), was_clamped
 
         if isinstance(output, dict):
-            clamped_map: dict[Any, Any] = {}
+            clamped_map: dict[object, object] = {}
             for key, val in output.items():
-                key_min, key_max = self.config.clamp_key_overrides.get(key, (min_val, max_val))
+                key_str = str(key)
+                key_min, key_max = self.config.clamp_key_overrides.get(key_str, (min_val, max_val))
                 if isinstance(val, (int, float)):
                     if not math.isfinite(val):
                         clamped_map[key] = 0.0
@@ -404,8 +417,8 @@ def fork_rng(rng: pyrandom.Random) -> pyrandom.Random:
 
 
 def validate_rng_determinism(
-    func: Callable[..., Any],
-    observation: dict[str, Any],
+    func: Callable[..., object],
+    observation: Mapping[str, object],
     seed: int,
     num_trials: int = 3,
 ) -> bool:

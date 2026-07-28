@@ -12,7 +12,7 @@ import argparse
 import json
 import sys
 import time
-from typing import Any
+from typing import Any, cast
 from urllib.request import urlopen
 
 # Import all constants and core functions from the helper modules
@@ -208,8 +208,8 @@ def watch(base_url: str, world_id: str | None, interval: float, journal: str | N
                 drift = _trait_drift(samples)
                 top = ""
                 if drift:
-                    key = max(drift, key=lambda k: abs(drift[k]["pct"]))
-                    top = f" topdrift={key}{drift[key]['pct']:+.1f}%"
+                    key = max(drift, key=lambda k: abs(cast(float, drift[k]["pct"])))
+                    top = f" topdrift={key}{cast(float, drift[key]['pct']):+.1f}%"
                 print(
                     f"[watch] frame={latest.get('frame')} gen={latest.get('max_generation')} "
                     f"pop={latest.get('population')} div={latest.get('diversity_score')}{top}",

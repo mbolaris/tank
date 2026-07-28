@@ -2,7 +2,8 @@ from __future__ import annotations
 
 """Predator entity logic for crabs."""
 
-from typing import TYPE_CHECKING, Any
+import math
+from typing import TYPE_CHECKING
 
 from core.config.entities import (
     CRAB_ATTACK_COOLDOWN,
@@ -99,8 +100,6 @@ class Crab(Agent):
         - Tank mode: patrol back and forth across the tank bottom
         - Petri mode: orbit along the circular dish perimeter
         """
-        import math
-
         # Update cooldown
         if self.hunt_cooldown > 0:
             self.hunt_cooldown -= 1
@@ -115,7 +114,7 @@ class Crab(Agent):
         if world_type == "petri" and dish is not None:
             # Petri mode: orbit the dish perimeter
             petri_speed = self._base_speed * PETRI_CRAB_SPEED_MULTIPLIER
-            self._update_petri_orbit(time_modifier, dish, math, petri_speed)
+            self._update_petri_orbit(time_modifier, dish, petri_speed)
         else:
             # Tank mode: patrol bottom
             self._update_tank_patrol()
@@ -164,7 +163,7 @@ class Crab(Agent):
                 self.rect.y = self.pos.y
 
     def _update_petri_orbit(
-        self, time_modifier: float, dish: PetriDish, math: Any, orbit_speed: float
+        self, time_modifier: float, dish: PetriDish, orbit_speed: float
     ) -> None:
         """Petri mode: orbit along the dish perimeter."""
         # Calculate agent radius (approximate as half of width)
