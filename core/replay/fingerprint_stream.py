@@ -7,21 +7,24 @@ import sys
 from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, TextIO
+from typing import TextIO
 
 from core.replay.fingerprint import SnapshotFingerprinter
 
 FINGERPRINT_STREAM_VERSION = 1
 
 
-def _snapshot_for_fingerprint(world: Any) -> dict[str, Any]:
+def _snapshot_for_fingerprint(world: object) -> dict[str, object]:
     debug_snapshot = getattr(world, "get_debug_snapshot", None)
     if callable(debug_snapshot):
         return dict(debug_snapshot())
-    return dict(world.get_current_snapshot())
+    get_snapshot = getattr(world, "get_current_snapshot", None)
+    if callable(get_snapshot):
+        return dict(get_snapshot())
+    return {}
 
 
-def _environment_manifest() -> dict[str, Any]:
+def _environment_manifest() -> dict[str, object]:
     environment_keys = (
         "GLIBC_TUNABLES",
         "GITHUB_RUN_ATTEMPT",
@@ -44,8 +47,8 @@ def _environment_manifest() -> dict[str, Any]:
     }
 
 
-def _entity_groups(snapshot: Mapping[str, Any]) -> dict[str, list[Any]]:
-    groups: dict[str, list[Any]] = defaultdict(list)
+def _entity_groups(snapshot: Mapping[str, object]) -> dict[str, list[object]]:
+    groups: dict[str, list[object]] = defaultdict(list)
     entities = snapshot.get("entities", [])
     if not isinstance(entities, list):
         return {}
@@ -94,7 +97,7 @@ class FingerprintStreamRecorder:
             }
         )
 
-    def record(self, world: Any, frame: int) -> None:
+    def record(self, world: object, frame: int) -> None:
         if frame != 0 and frame % self.interval != 0:
             return
 
@@ -110,7 +113,7 @@ class FingerprintStreamRecorder:
             }
         )
 
-    def finish(self, result: Mapping[str, Any]) -> None:
+    def finish(self, result: Mapping[str, object]) -> None:
         self._write(
             {
                 "type": "result",
@@ -126,28 +129,30 @@ class FingerprintStreamRecorder:
 
     def _fingerprint_parts(
         self,
-        snapshot: dict[str, Any],
-        entity_groups: dict[str, list[Any]],
+        snapshot: Mapping[str, object],
+        entity_groups: dict[str, list[object]],
         fingerprinter: SnapshotFingerprinter,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         without_entities = {key: value for key, value in snapshot.items() if key != "entities"}
+        raw_entities = snapshot.get("entities", [])
+        entities_list = list(raw_entities) if isinstance(raw_entities, (list, tuple)) else []
         return {
             "snapshot": fingerprinter.fingerprint(snapshot),
             "world": fingerprinter.fingerprint(without_entities),
-            "entities": fingerprinter.fingerprint({"entities": snapshot.get("entities", [])}),
+            "entities": fingerprinter.fingerprint({"entities": entities_list}),
             "entity_types": {
                 name: fingerprinter.fingerprint({"entities": entities})
                 for name, entities in entity_groups.items()
             },
         }
 
-    def _write(self, record: dict[str, Any]) -> None:
+    def _write(self, record: Mapping[str, object]) -> None:
         self._fh.write(json.dumps(record, separators=(",", ":"), ensure_ascii=True))
         self._fh.write("\n")
         self._fh.flush()
 
 
-def compare_fingerprint_streams(left_path: str | Path, right_path: str | Path) -> dict[str, Any]:
+def compare_fingerprint_streams(left_path: str | Path, right_path: str | Path) -> dict[str, object]:
     """Return the first exact and rounded divergences between two streams."""
 
     left = _read_checkpoints(left_path)
@@ -159,8 +164,8 @@ def compare_fingerprint_streams(left_path: str | Path, right_path: str | Path) -
     }
 
 
-def _read_checkpoints(path: str | Path) -> dict[int, dict[str, Any]]:
-    checkpoints: dict[int, dict[str, Any]] = {}
+def _read_checkpoints(path: str | Path) -> dict[int, dict[str, object]]:
+    checkpoints: dict[int, dict[str, object]] = {}
     with Path(path).open(encoding="utf-8") as fh:
         for line in fh:
             record = json.loads(line)
@@ -170,11 +175,11 @@ def _read_checkpoints(path: str | Path) -> dict[int, dict[str, Any]]:
 
 
 def _first_divergence(
-    left: dict[int, dict[str, Any]],
-    right: dict[int, dict[str, Any]],
+    left: Mapping[int, dict[str, object]],
+    right: Mapping[int, dict[str, object]],
     frames: list[int],
     precision: str,
-) -> dict[str, Any] | None:
+) -> dict[str, object] | None:
     if not frames:
         return {"frame": None, "reason": "no_checkpoints"}
 
@@ -184,15 +189,22 @@ def _first_divergence(
         if left_record is None or right_record is None:
             return {"frame": frame, "reason": "missing_checkpoint"}
 
-        left_parts = left_record[precision]
-        right_parts = right_record[precision]
-        if left_parts["snapshot"] == right_parts["snapshot"]:
+        raw_left_parts = left_record.get(precision)
+        raw_right_parts = right_record.get(precision)
+        left_parts = raw_left_parts if isinstance(raw_left_parts, dict) else {}
+        right_parts = raw_right_parts if isinstance(raw_right_parts, dict) else {}
+        if left_parts.get("snapshot") == right_parts.get("snapshot"):
             continue
+
+        raw_left_types = left_parts.get("entity_types")
+        raw_right_types = right_parts.get("entity_types")
+        left_types = raw_left_types if isinstance(raw_left_types, dict) else {}
+        right_types = raw_right_types if isinstance(raw_right_types, dict) else {}
 
         differing_entity_types = sorted(
             name
-            for name in set(left_parts["entity_types"]) | set(right_parts["entity_types"])
-            if left_parts["entity_types"].get(name) != right_parts["entity_types"].get(name)
+            for name in set(left_types) | set(right_types)
+            if left_types.get(name) != right_types.get(name)
         )
         differing_parts = [
             name for name in ("world", "entities") if left_parts.get(name) != right_parts.get(name)
