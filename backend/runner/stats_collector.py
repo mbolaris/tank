@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from backend.runner.state_builders import (
     build_base_stats,
@@ -84,7 +84,9 @@ def collect_stats(
         compute_distributions = True
 
     if compute_distributions:
-        runner._cached_gene_distributions = stats.get("gene_distributions", {})
+        runner._cached_gene_distributions = cast(
+            dict[str, Any], stats.get("gene_distributions", {})
+        )
         runner._last_distribution_time = now
     elif runner._cached_gene_distributions:
         stats["gene_distributions"] = runner._cached_gene_distributions
@@ -134,7 +136,7 @@ def collect_stats(
         **physical_stats,
         poker_stats=poker_stats,
         meta_stats=meta_stats,
-        diversity_score=stats.get("diversity_stats", {}).get("diversity_score", 0.0),
+        diversity_score=cast(dict[str, object], stats.get("diversity_stats", {})).get("diversity_score", 0.0),  # type: ignore[arg-type]
     )
 
     if hasattr(runner, "metrics_history") and runner.metrics_history is not None:

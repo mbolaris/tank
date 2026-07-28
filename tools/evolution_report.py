@@ -140,11 +140,12 @@ def run_probe(frames: int, seed: int, interval: int) -> tuple[list[dict], dict, 
     from core.services.stats.trait_trends import compute_trait_means
     from core.worlds import WorldRegistry
 
-    config = {
+    config: dict[str, object] = {
         "headless": True,
         "screen_width": 2000,
         "screen_height": 2000,
         "max_population": 60,
+        "max_fish": 40,
         "soccer_enabled": False,
         "plants_enabled": False,
         "poker_activity_enabled": False,
@@ -159,7 +160,7 @@ def run_probe(frames: int, seed: int, interval: int) -> tuple[list[dict], dict, 
         if (i + 1) % interval == 0:
             stats = world.get_stats(include_distributions=False)
             living = [e for e in world.entities_list if isinstance(e, Fish) and not e.is_dead()]
-            div = stats.get("diversity_stats", {})
+            div = cast(dict[str, object], stats.get("diversity_stats", {}))
             samples.append(
                 {
                     "frame": i + 1,

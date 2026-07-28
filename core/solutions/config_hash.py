@@ -21,7 +21,6 @@ import hashlib
 import importlib
 import json
 from types import ModuleType
-from typing import Any
 
 # core.config modules whose constants affect simulation outcomes.
 # display and server are intentionally excluded: they only affect rendering
@@ -38,9 +37,9 @@ SIM_CONFIG_MODULES: tuple[str, ...] = (
 )
 
 
-def _snapshot_module(module: ModuleType) -> dict[str, Any]:
+def _snapshot_module(module: ModuleType) -> dict[str, object]:
     """Collect the UPPER_CASE constants of a config module into a plain dict."""
-    snapshot: dict[str, Any] = {}
+    snapshot: dict[str, object] = {}
     for name in dir(module):
         if name.startswith("_") or not name.isupper():
             continue
@@ -57,7 +56,7 @@ def _snapshot_module(module: ModuleType) -> dict[str, Any]:
     return snapshot
 
 
-def core_config_snapshot() -> dict[str, dict[str, Any]]:
+def core_config_snapshot() -> dict[str, dict[str, object]]:
     """Snapshot every simulation-relevant core.config module."""
     return {
         name: _snapshot_module(importlib.import_module(f"core.config.{name}"))
@@ -68,7 +67,7 @@ def core_config_snapshot() -> dict[str, dict[str, Any]]:
 def compute_config_hash(
     benchmark_id: str,
     seed: int,
-    benchmark_config: dict[str, Any] | None = None,
+    benchmark_config: dict[str, object] | None = None,
 ) -> str:
     """Compute the stable config hash for a benchmark run.
 

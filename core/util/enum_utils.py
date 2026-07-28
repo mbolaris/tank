@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, TypeVar, cast
+from typing import TypeVar, cast
 
 T = TypeVar("T", bound=Enum)
 
@@ -26,7 +26,7 @@ def coerce_enum(enum_cls: type[T], value: object, default: int = 0) -> T:
         return enum_cls(value)
     except (TypeError, ValueError):
         try:
-            index = int(cast(Any, value))
+            index = int(cast(int | float | str, value))
         except (TypeError, ValueError):
             index = default
         size = len(enum_cls)

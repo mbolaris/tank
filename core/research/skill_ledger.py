@@ -6,7 +6,6 @@ import json
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
 
 from core.skill import SkillLadderSummary
 
@@ -30,13 +29,13 @@ def skill_history_records(
     timestamp: float | None = None,
     git_sha: str | None = None,
     command: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[dict[str, object]]:
     """Build one stable record per rung from a benchmark skill summary."""
     recorded_at = time.time() if timestamp is None else timestamp
     commit = _git_sha() if git_sha is None else git_sha
-    records: list[dict[str, Any]] = []
+    records: list[dict[str, object]] = []
     for rung in summary.rungs:
-        record: dict[str, Any] = {
+        record: dict[str, object] = {
             "timestamp": recorded_at,
             "git_sha": commit,
             "config_hash": config_hash,
@@ -87,12 +86,12 @@ def append_skill_history(
     return len(records)
 
 
-def load_skill_history(path: str | Path) -> list[dict[str, Any]]:
+def load_skill_history(path: str | Path) -> list[dict[str, object]]:
     """Read valid skill-history rows, ignoring missing or malformed lines."""
     history_path = Path(path)
     if not history_path.exists():
         return []
-    records: list[dict[str, Any]] = []
+    records: list[dict[str, object]] = []
     with history_path.open(encoding="utf-8") as handle:
         for line in handle:
             try:

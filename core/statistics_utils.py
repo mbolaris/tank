@@ -15,7 +15,6 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -109,7 +108,7 @@ class GeneDistribution:
     bin_edges: list[float] = field(default_factory=list)
     meta: MetaStats = field(default_factory=MetaStats)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Convert to dictionary for JSON serialization."""
         return {
             "key": self.key,
@@ -246,7 +245,7 @@ def descriptive_stats(values: list[float]) -> DescriptiveStats:
     )
 
 
-def compute_meta_stats(traits: list[Any]) -> MetaStats:
+def compute_meta_stats(traits: list[object]) -> MetaStats:
     """Calculate meta-genetic statistics from a list of traits.
 
     Each trait is expected to have mutation_rate, mutation_strength,

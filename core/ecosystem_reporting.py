@@ -9,7 +9,7 @@ honored.
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from core.config.ecosystem import ENERGY_STATS_WINDOW_FRAMES
 
@@ -38,7 +38,9 @@ def build_summary_stats(eco: "EcosystemManager", entities: list | None = None) -
     recent_energy_total = sum(recent_energy.values())
     recent_energy_burn_total = sum(recent_energy_burn.values())
     recent_energy_net = recent_energy_total - recent_energy_burn_total
-    energy_accounting_discrepancy = recent_energy_net - energy_delta.get("energy_delta", 0.0)
+    energy_accounting_discrepancy = recent_energy_net - float(
+        energy_delta.get("energy_delta", 0.0)  # type: ignore[arg-type]
+    )
 
     plant_energy_summary = eco.get_plant_energy_source_summary()
     recent_plant_energy = eco.get_recent_plant_energy_breakdown(
@@ -176,12 +178,14 @@ def log_poker_evolution_status(eco: "EcosystemManager", fish_list: list["Fish"])
         logger.info("Poker Evolution: No fish with poker strategies")
         return
 
-    sorted_strats = sorted(dist["strategy_counts"].items(), key=lambda x: x[1], reverse=True)
+    counts = cast(dict[str, int], dist.get("strategy_counts", {}))
+    sorted_strats = sorted(counts.items(), key=lambda x: x[1], reverse=True)
 
     strat_str = ", ".join(f"{s}:{c}" for s, c in sorted_strats[:5])
     dominant = dist["dominant_strategy"]
     diversity = dist["diversity"]
-    dom_win_rate = dist["strategy_avg_win_rates"].get(dominant, 0)
+    win_rates = cast(dict[str, float], dist.get("strategy_avg_win_rates", {}))
+    dom_win_rate = win_rates.get(str(dominant), 0.0)
 
     logger.info(
         f"Poker Evolution [Gen {eco.current_generation}]: "

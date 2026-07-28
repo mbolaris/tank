@@ -401,7 +401,7 @@ class SimulationEngine:
         entity: entities.Entity,
         *,
         reason: str = "",
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> bool:
         """Queue a spawn request to be applied by the engine."""
         return self.mutations.request_spawn(entity, reason=reason, metadata=metadata)
@@ -411,7 +411,7 @@ class SimulationEngine:
         entity: entities.Entity,
         *,
         reason: str = "",
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> bool:
         """Queue a removal request to be applied by the engine."""
         return self.mutations.request_remove(entity, reason=reason, metadata=metadata)
@@ -510,7 +510,7 @@ class SimulationEngine:
     # Identity Provider Helpers
     # =========================================================================
 
-    def _get_entity_identity(self, entity: Any) -> tuple[str, str]:
+    def _get_entity_identity(self, entity: object) -> tuple[str, str]:
         """Return (entity_type, stable_id) using the identity provider when available."""
         if self._identity_provider is None:
             return entity.__class__.__name__.lower(), str(id(entity))
@@ -519,7 +519,7 @@ class SimulationEngine:
             return provider.type_name(entity), provider.stable_id(entity)
         return provider.get_identity(entity)
 
-    def _create_energy_recorder(self) -> Callable[[Any, float, str, dict[str, Any]], None]:
+    def _create_energy_recorder(self) -> Callable[[object, float, str, dict[str, object]], None]:
         """Create a recorder callback for energy delta tracking.
 
         Returns a function that can be passed to environment.set_energy_delta_recorder().

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
 
 
-def is_profiling(engine: Any) -> bool:
+def is_profiling(engine: object) -> bool:
     """Check if profiling is enabled on the engine, screening out mock objects."""
     if engine is None:
         return False
