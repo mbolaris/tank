@@ -18,20 +18,20 @@ Design Philosophy:
         val = get_trait_value(physical.fin_size, default=1.0)
 """
 
-from typing import Any, TypeVar, overload
+from typing import TypeVar, overload
 
 T = TypeVar("T")
 
 
 @overload
-def get_trait_value(trait: Any, default: T) -> T: ...
+def get_trait_value(trait: object, default: T) -> T: ...
 
 
 @overload
-def get_trait_value(trait: Any) -> Any | None: ...
+def get_trait_value(trait: object, default: None = None) -> object | None: ...
 
 
-def get_trait_value(trait: Any, default: Any = None) -> Any:
+def get_trait_value(trait: object, default: object = None) -> object:
     """Safely extract the value from a GeneticTrait, with optional default.
 
     This handles the common pattern of accessing trait.value while guarding
@@ -65,7 +65,7 @@ def get_trait_value(trait: Any, default: Any = None) -> Any:
     return value
 
 
-def has_trait_value(trait: Any) -> bool:
+def has_trait_value(trait: object) -> bool:
     """Check if a trait has a valid (non-None) value.
 
     Args:
