@@ -4,7 +4,6 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,7 @@ class SnapshotFingerprinter:
         }
     )
 
-    def fingerprint(self, snapshot: Mapping[str, Any]) -> str:
+    def fingerprint(self, snapshot: Mapping[str, object]) -> str:
         canonical = canonicalize_for_fingerprint(
             snapshot,
             non_deterministic_keys=self.non_deterministic_keys,
@@ -54,17 +53,17 @@ class SnapshotFingerprinter:
         return hashlib.blake2b(payload, digest_size=self.digest_size).hexdigest()
 
 
-def fingerprint_snapshot(snapshot: dict[str, Any]) -> str:
+def fingerprint_snapshot(snapshot: Mapping[str, object]) -> str:
     """Convenience wrapper using default fingerprinter."""
 
     return SnapshotFingerprinter().fingerprint(snapshot)
 
 
 def canonicalize_for_fingerprint(
-    value: Any,
+    value: object,
     non_deterministic_keys: Iterable[str] | None = None,
     float_precision: int | None = 6,
-) -> Any:
+) -> object:
     """Return a canonical, JSON-compatible structure for stable hashing.
 
     - Drops known non-deterministic keys anywhere in the structure.
@@ -74,14 +73,14 @@ def canonicalize_for_fingerprint(
 
     drop_keys = set(non_deterministic_keys or [])
 
-    def _canon(v: Any) -> Any:
+    def _canon(v: object) -> object:
         if isinstance(v, float):
             if float_precision is None:
                 return v
             return round(v, int(float_precision))
 
         if isinstance(v, Mapping):
-            items: dict[str, Any] = {}
+            items: dict[str, object] = {}
             for k, vv in v.items():
                 if k in drop_keys:
                     continue
@@ -99,7 +98,7 @@ def canonicalize_for_fingerprint(
     return _canon(value)
 
 
-def _canonical_json_for_sort(mapping: Mapping[str, Any]) -> str:
+def _canonical_json_for_sort(mapping: Mapping[str, object] | object) -> str:
     # mapping is expected to be canonical already (keys sorted recursively).
     return json.dumps(
         mapping,
