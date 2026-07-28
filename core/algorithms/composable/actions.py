@@ -180,29 +180,6 @@ class BehaviorActionsMixin:
 
         nearest_food = select_food_target(fish)
         if not nearest_food:
-            # No visible food — proactive exploration via remembered locations.
-            # exploration_tendency gates how likely a fish is to navigate toward
-            # a remembered food location *before* reaching critical energy.
-            # This is the cognitive upgrade that makes spatial strategies viable.
-            exploration_trait = getattr(fish.genome.behavioral, "exploration_tendency", None)
-            exploration = exploration_trait.value if exploration_trait is not None else 0.0
-            if exploration > 0.05 and hasattr(fish, "get_remembered_food_locations"):
-                remembered = fish.get_remembered_food_locations()
-                if remembered:
-                    # Scale exploration probability with trait and hunger:
-                    # hungry fish explore more, sated fish less.
-                    energy_ratio = fish.get_energy_ratio()
-                    # Hunger factor: 1.0 at critical, 0.3 at safe, 0.1 at full
-                    hunger_factor = max(0.1, 1.0 - energy_ratio)
-                    explore_prob = exploration * hunger_factor
-                    rng = fish.environment.rng
-                    if rng.random() < explore_prob:
-                        # Navigate toward the strongest remembered food location
-                        closest = min(remembered, key=lambda pos: (pos - fish.pos).length())
-                        direction = self._safe_normalize(closest - fish.pos)
-                        # Move at moderate speed — exploring, not sprinting
-                        explore_speed = 0.5 + exploration * 0.3
-                        return direction.x * explore_speed, direction.y * explore_speed
             return 0.0, 0.0
 
         distance = (nearest_food.pos - fish.pos).length()
