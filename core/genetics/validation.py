@@ -7,9 +7,12 @@ They help catch subtle bugs (out-of-range traits, wrong types) close to the sour
 from __future__ import annotations
 
 import math
-from typing import Any
+
+from typing import TypeVar
 
 from core.genetics.trait import GeneticTrait, TraitSpec
+
+T = TypeVar("T")
 
 
 def validate_traits_from_specs(specs: list[TraitSpec], traits: object, *, path: str) -> list[str]:
@@ -77,7 +80,7 @@ def validate_traits_from_specs(specs: list[TraitSpec], traits: object, *, path: 
     return issues
 
 
-def validate_graph_trait(label: str, trait: Any) -> list[str]:
+def validate_graph_trait(label: str, trait: GeneticTrait[T] | None) -> list[str]:
     """Validate an optional BehaviorGraph-valued trait.
 
     Shared by ``behavior_graph`` and ``target_pursuit_module`` - both are an
@@ -89,12 +92,13 @@ def validate_graph_trait(label: str, trait: Any) -> list[str]:
         return []
     from core.behavior.graph import BehaviorGraph
 
-    if not isinstance(trait.value, BehaviorGraph):
+    val = trait.value
+    if not isinstance(val, BehaviorGraph):
         return [f"genome.behavioral.{label}: expected BehaviorGraph"]
-    return [f"genome.behavioral.{label}: {issue}" for issue in trait.value.validate()]
+    return [f"genome.behavioral.{label}: {issue}" for issue in val.validate()]
 
 
-def validate_target_memory_trait(label: str, trait: Any) -> list[str]:
+def validate_target_memory_trait(label: str, trait: GeneticTrait[T] | None) -> list[str]:
     """Validate an optional TargetMemoryParams-valued trait.
 
     Import is local to avoid a core.genetics -> core.behavior dependency at
@@ -104,9 +108,10 @@ def validate_target_memory_trait(label: str, trait: Any) -> list[str]:
         return []
     from core.behavior.target_memory import _PARAM_BOUNDS, TargetMemoryParams
 
-    if not isinstance(trait.value, TargetMemoryParams):
+    val = trait.value
+    if not isinstance(val, TargetMemoryParams):
         return [f"genome.behavioral.{label}: expected TargetMemoryParams"]
-    values = trait.value.to_dict()
+    values = val.to_dict()
     return [
         f"genome.behavioral.{label}.{key}: {values[key]} out of bounds [{lo}, {hi}]"
         for key, (lo, hi) in _PARAM_BOUNDS.items()
