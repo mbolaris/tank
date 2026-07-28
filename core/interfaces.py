@@ -46,7 +46,7 @@ Use isinstance() checks with @runtime_checkable protocols:
         entity.modify_energy(-10.0)
 """
 
-from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 # Explicit public API for this module
 __all__ = [
@@ -430,7 +430,7 @@ class SimulationStats(Protocol):
         winner_hand: Optional["PokerHand"],
         loser_hand: Optional["PokerHand"],
         house_cut: float,
-        result: Any,
+        result: object,
         player1_algo_id: int | None,
         player2_algo_id: int | None,
     ) -> None:

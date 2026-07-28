@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Any
 
 from .models import ValidationError
 
@@ -32,11 +31,11 @@ DISALLOWED_CALL_NAMES = {
 DEFAULT_ALLOWED_MODULES: set[str] = {"math"}
 
 # Pre-loaded safe module objects
-SAFE_MODULE_OBJECTS: dict[str, Any] = {
+SAFE_MODULE_OBJECTS: dict[str, object] = {
     "math": math,
 }
 
-ALLOWED_BUILTINS: dict[str, Any] = {
+ALLOWED_BUILTINS: dict[str, object] = {
     "abs": abs,
     "bool": bool,
     "dict": dict,
@@ -284,7 +283,7 @@ def _count_ast_complexity(tree: ast.AST) -> tuple[int, int]:
     return node_count, max_depth
 
 
-def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_restricted_globals(extra_globals: dict[str, object] | None = None) -> dict[str, object]:
     """Create restricted globals for exec of sandboxed code.
 
     Includes a safe __import__ that only allows importing whitelisted modules.
@@ -292,11 +291,11 @@ def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dic
 
     def safe_import(
         name: str,
-        globals: dict[str, Any] | None = None,
-        locals: dict[str, Any] | None = None,
+        globals: dict[str, object] | None = None,
+        locals: dict[str, object] | None = None,
         fromlist: tuple[str, ...] = (),
         level: int = 0,
-    ) -> Any:
+    ) -> object:
         """Safe import function that only allows whitelisted modules."""
         # Reject relative imports
         if level != 0:
@@ -319,7 +318,7 @@ def build_restricted_globals(extra_globals: dict[str, Any] | None = None) -> dic
     builtins_with_import = dict(ALLOWED_BUILTINS)
     builtins_with_import["__import__"] = safe_import
 
-    globals_dict: dict[str, Any] = {"__builtins__": builtins_with_import}
+    globals_dict: dict[str, object] = {"__builtins__": builtins_with_import}
     globals_dict.update(SAFE_MODULE_OBJECTS)
     if extra_globals:
         globals_dict.update(extra_globals)

@@ -33,12 +33,12 @@ from __future__ import annotations
 
 import random as pyrandom
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from core.entities import Fish
 
-Observation = dict[str, Any]
+Observation = dict[str, object]
 
 
 # =============================================================================
@@ -54,7 +54,7 @@ class Policy(Protocol):
     they just need to be callable with the right signature.
     """
 
-    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> Any:
+    def __call__(self, observation: dict[str, object], rng: pyrandom.Random) -> object:
         """Execute the policy.
 
         Args:
@@ -76,7 +76,7 @@ class MovementPolicy(Protocol):
     """
 
     def __call__(
-        self, observation: dict[str, Any], rng: pyrandom.Random
+        self, observation: dict[str, object], rng: pyrandom.Random
     ) -> tuple[float, float] | MovementAction | dict[str, float]:
         """Decide on desired movement.
 
@@ -103,7 +103,7 @@ class SoccerPolicy(Protocol):
     actions (movement, turning, kicking).
     """
 
-    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> dict[str, Any]:
+    def __call__(self, observation: dict[str, object], rng: pyrandom.Random) -> dict[str, object]:
         """Decide on soccer action.
 
         Args:
@@ -129,7 +129,7 @@ class PokerPolicy(Protocol):
     betting decisions.
     """
 
-    def __call__(self, observation: dict[str, Any], rng: pyrandom.Random) -> dict[str, Any]:
+    def __call__(self, observation: dict[str, object], rng: pyrandom.Random) -> dict[str, object]:
         """Decide on poker action.
 
         Args:

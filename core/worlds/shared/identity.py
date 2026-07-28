@@ -10,8 +10,6 @@ namespace to avoid coupling Petri to Tank or any other specific world type.
 
 from __future__ import annotations
 
-from typing import Any
-
 # Entity type to ID offset mapping
 # Keeps offsets centralized and avoids circular imports
 _TYPE_OFFSETS: dict[str, int] = {
@@ -83,17 +81,17 @@ class TankLikeEntityIdentityProvider:
         self._next_other_id: int = 0
 
         # Reverse mapping for entity lookup by stable ID
-        self._stable_id_to_entity: dict[str, Any] = {}
+        self._stable_id_to_entity: dict[str, object] = {}
 
-    def stable_id(self, entity: Any) -> str:
+    def stable_id(self, entity: object) -> str:
         """Return the stable ID for an entity."""
         return self.get_identity(entity)[1]
 
-    def type_name(self, entity: Any) -> str:
+    def type_name(self, entity: object) -> str:
         """Return the stable type name for an entity."""
         return self.get_identity(entity)[0]
 
-    def get_identity(self, entity: Any) -> tuple[str, str]:
+    def get_identity(self, entity: object) -> tuple[str, str]:
         """Return (entity_type, entity_id) for any simulation entity.
 
         Uses protocol-based resolution:
@@ -148,7 +146,7 @@ class TankLikeEntityIdentityProvider:
         self._stable_id_to_entity[stable_id_str] = entity
         return entity_type, stable_id_str
 
-    def get_entity_by_id(self, entity_id: str) -> Any | None:
+    def get_entity_by_id(self, entity_id: str) -> object | None:
         """Lookup an entity by its stable ID.
 
         Args:
@@ -159,7 +157,7 @@ class TankLikeEntityIdentityProvider:
         """
         return self._stable_id_to_entity.get(entity_id)
 
-    def sync_entities(self, entities: list[Any]) -> None:
+    def sync_entities(self, entities: list[object]) -> None:
         """Synchronize the reverse-lookup mapping with the entity list.
 
         This rebuilds the stable_id_to_entity mapping by calling get_identity

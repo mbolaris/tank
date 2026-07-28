@@ -120,7 +120,7 @@ class EcosystemManager:
         if event_bus is not None:
             self._subscribe_to_events(event_bus)
 
-        self.environment: Any | None = None
+        self.environment: object | None = None
         from core.taxonomy.system import TaxonomySystem
 
         # Taxonomy is observational state owned by this ecosystem.  Loading a
@@ -205,7 +205,7 @@ class EcosystemManager:
         return self.population.total_extinctions
 
     @property
-    def lineage_log(self) -> list[dict[str, Any]]:
+    def lineage_log(self) -> list[dict[str, object]]:
         return self.lineage.lineage_log
 
     @property
@@ -421,7 +421,7 @@ class EcosystemManager:
         """Get total population across all generations."""
         return self.population.get_total_population()
 
-    def get_lineage_data(self, alive_fish_ids: set[int] | None = None) -> list[dict[str, Any]]:
+    def get_lineage_data(self, alive_fish_ids: set[int] | None = None) -> list[dict[str, object]]:
         """Get complete lineage data for phylogenetic tree visualization."""
         return self.lineage.get_lineage_data(alive_fish_ids)
 
@@ -438,19 +438,19 @@ class EcosystemManager:
         fish_list: list["Fish"] | None = None,
         limit: int = 10,
         sort_by: str = "net_energy",
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """Get poker leaderboard."""
         return self.poker_manager.get_poker_leaderboard(fish_list, sort_by=sort_by, limit=limit)
 
-    def get_reproduction_summary(self) -> dict[str, Any]:
+    def get_reproduction_summary(self) -> dict[str, object]:
         """Get reproduction statistics summary."""
         return self.reproduction_manager.get_summary()
 
-    def get_diversity_summary(self) -> dict[str, Any]:
+    def get_diversity_summary(self) -> dict[str, object]:
         """Get summary genetic diversity statistics."""
         return self.diversity.get_summary()
 
-    def get_evolution_analytics_summary(self) -> dict[str, Any]:
+    def get_evolution_analytics_summary(self) -> dict[str, object]:
         """Get comprehensive evolution analytics report."""
         return self.evolution_analytics.get_full_report()
 
@@ -615,7 +615,9 @@ class EcosystemManager:
         """Record a snapshot of total fish energy."""
         self.energy_tracker.record_energy_snapshot(total_fish_energy, fish_count)
 
-    def get_energy_delta(self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES) -> dict[str, Any]:
+    def get_energy_delta(
+        self, window_frames: int = ENERGY_STATS_WINDOW_FRAMES
+    ) -> dict[str, object]:
         """Calculate the true change in fish population energy over a time window."""
         return self.energy_tracker.get_energy_delta(window_frames=window_frames)
 
@@ -629,7 +631,7 @@ class EcosystemManager:
 
         return algorithm_reporter.get_algorithm_performance_report(self, min_sample_size)
 
-    def get_poker_strategy_distribution(self, fish_list: list["Fish"]) -> dict[str, Any]:
+    def get_poker_strategy_distribution(self, fish_list: list["Fish"]) -> dict[str, object]:
         """Get distribution of poker strategies in the population."""
         return ecosystem_reporting.get_poker_strategy_distribution(fish_list)
 

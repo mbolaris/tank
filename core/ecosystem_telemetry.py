@@ -109,7 +109,7 @@ class EcosystemTelemetryRouter:
                     # Try to get detailed info from metadata if available
                     food_type = "food"
                     if delta.metadata and "food_type" in delta.metadata:
-                        food_type = delta.metadata["food_type"]
+                        food_type = str(delta.metadata["food_type"])
                     self._manager.record_energy_gain(food_type, amount)
                 elif source == "poker_win":
                     self._manager.record_energy_gain(SOURCE_POKER_FISH, amount)

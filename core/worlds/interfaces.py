@@ -36,17 +36,17 @@ class StepResult:
         render_hint: Frontend-agnostic rendering metadata (optional)
     """
 
-    obs_by_agent: dict[str, Any] = field(default_factory=dict)
-    snapshot: dict[str, Any] = field(default_factory=dict)
-    events: list[dict[str, Any]] = field(default_factory=list)
-    metrics: dict[str, Any] = field(default_factory=dict)
+    obs_by_agent: dict[str, object] = field(default_factory=dict)
+    snapshot: dict[str, object] = field(default_factory=dict)
+    events: list[dict[str, object]] = field(default_factory=list)
+    metrics: dict[str, object] = field(default_factory=dict)
     done: bool = False
-    info: dict[str, Any] = field(default_factory=dict)
+    info: dict[str, object] = field(default_factory=dict)
     # Extended fields for world loop contract (all optional)
     spawns: list["SpawnRequest"] = field(default_factory=list)
     removals: list["RemovalRequest"] = field(default_factory=list)
     energy_deltas: list["EnergyDeltaRecord"] = field(default_factory=list)
-    render_hint: dict[str, Any] | None = None
+    render_hint: dict[str, object] | None = None
 
 
 class MultiAgentWorldBackend(ABC):
@@ -61,12 +61,12 @@ class MultiAgentWorldBackend(ABC):
     The interface is intentionally minimal to support diverse world types.
     """
 
-    runner: Any = None
+    runner: object = None
     tank_name: str | None = None
     tank_id: str | None = None
 
     @abstractmethod
-    def reset(self, seed: int | None = None, config: dict[str, Any] | None = None) -> StepResult:
+    def reset(self, seed: int | None = None, config: dict[str, object] | None = None) -> StepResult:
         """Reset the world to initial state.
 
         Args:
@@ -79,7 +79,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def step(self, actions_by_agent: dict[str, Any] | None = None) -> StepResult:
+    def step(self, actions_by_agent: dict[str, object] | None = None) -> StepResult:
         """Advance the world by one time step.
 
         Args:
@@ -92,7 +92,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_current_snapshot(self) -> dict[str, Any]:
+    def get_current_snapshot(self) -> dict[str, object]:
         """Get current world state snapshot without stepping.
 
         Returns:
@@ -101,7 +101,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_current_metrics(self, include_distributions: bool = True) -> dict[str, object]:
         """Get current world metrics/statistics without stepping.
 
         Args:
@@ -164,7 +164,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def capture_state_for_save(self) -> dict[str, Any]:
+    def capture_state_for_save(self) -> dict[str, object]:
         """Capture complete world state for persistence.
 
         Returns:
@@ -174,7 +174,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @abstractmethod
-    def restore_state_from_save(self, state: dict[str, Any]) -> None:
+    def restore_state_from_save(self, state: dict[str, object]) -> None:
         """Restore world state from a saved snapshot.
 
         Args:
@@ -183,7 +183,7 @@ class MultiAgentWorldBackend(ABC):
         pass
 
     @property
-    def rng(self) -> Any:
+    def rng(self) -> object:
         """Access the world's random number generator."""
         return None
 
@@ -209,7 +209,7 @@ class MultiAgentWorldBackend(ABC):
         """Initialize the world state (legacy hook)."""
         pass
 
-    def get_stats(self, include_distributions: bool = True) -> dict[str, Any]:
+    def get_stats(self, include_distributions: bool = True) -> dict[str, object]:
         """Return current metrics/statistics."""
         return self.get_current_metrics()
 

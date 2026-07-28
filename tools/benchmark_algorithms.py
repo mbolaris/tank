@@ -41,7 +41,7 @@ import statistics
 import sys
 import time
 from multiprocessing import Pool
-from typing import Any
+from typing import Any, cast
 
 # Frames per run. ~2000 frames is enough for starvation/reproduction dynamics
 # to differentiate algorithms while keeping 45 runs under ~15 minutes.
@@ -161,9 +161,9 @@ def run_single(algorithm_id: str, seed: int, frames: int) -> dict[str, Any]:
             energy_samples += 1
 
     stats = world.get_stats(include_distributions=False)
-    death_causes = stats.get("death_causes", {}) or {}
-    total_deaths = int(stats.get("total_deaths", 0))
-    starvation_deaths = int(death_causes.get("starvation", 0))
+    death_causes = cast(dict[str, object], stats.get("death_causes", {}) or {})
+    total_deaths = int(cast(int | str, stats.get("total_deaths", 0)))
+    starvation_deaths = int(cast(int | str, death_causes.get("starvation", 0)))
 
     avg_fish_count = fish_count_sum / frames
     avg_fish_energy = fish_energy_sum / energy_samples if energy_samples else 0.0
@@ -180,7 +180,7 @@ def run_single(algorithm_id: str, seed: int, frames: int) -> dict[str, Any]:
         "min_fish_count": min_fish_count,
         "final_fish_count": len([e for e in world.entities_list if isinstance(e, Fish)]),
         "avg_fish_energy": round(avg_fish_energy, 2),
-        "total_births": int(stats.get("total_births", 0)),
+        "total_births": int(cast(int | str, stats.get("total_births", 0))),
         "total_deaths": total_deaths,
         "starvation_deaths": starvation_deaths,
         "starvation_fraction": round(starvation_deaths / total_deaths, 3) if total_deaths else 0.0,

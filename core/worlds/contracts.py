@@ -16,7 +16,7 @@ See docs/WORLDS.md for contract documentation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from core.worlds.interfaces import StepResult
@@ -62,10 +62,10 @@ class RenderHint:
 
     style: Literal["side", "topdown"] = "side"
     entity_style: str | None = None
-    camera: dict[str, Any] = field(default_factory=dict)
-    extra: dict[str, Any] = field(default_factory=dict)
+    camera: dict[str, object] = field(default_factory=dict)
+    extra: dict[str, object] = field(default_factory=dict)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         """Convert to dictionary for JSON serialization."""
         return {
             "style": self.style,
@@ -113,7 +113,7 @@ class WorldLoop(Protocol):
     def reset(
         self,
         seed: int | None = None,
-        config: dict[str, Any] | None = None,
+        config: dict[str, object] | None = None,
     ) -> StepResult:
         """Reset the world to initial state.
 
@@ -128,7 +128,7 @@ class WorldLoop(Protocol):
 
     def step(
         self,
-        actions: dict[str, Any] | None = None,
+        actions: dict[str, object] | None = None,
     ) -> StepResult:
         """Advance the world by one time step.
 
@@ -158,7 +158,7 @@ class SpawnRequest:
     entity_type: str
     entity_id: str | None = None
     reason: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -171,7 +171,7 @@ class RemovalRequest:
     entity_type: str
     entity_id: str
     reason: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -186,4 +186,4 @@ class EnergyDeltaRecord:
     entity_type: str | None = None
     delta: float = 0.0
     source: str = ""
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)

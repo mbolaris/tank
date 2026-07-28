@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
-from typing import Any, TextIO
+from typing import TextIO
 
 
 class ReplayFormatError(ValueError):
@@ -20,8 +20,8 @@ class ReplayHeader:
     version: int
     seed: int
     initial_mode: str
-    config: dict[str, Any]
-    fingerprint: dict[str, Any]
+    config: dict[str, object]
+    fingerprint: dict[str, object]
 
 
 class JsonlReplayWriter:
@@ -39,8 +39,8 @@ class JsonlReplayWriter:
         *,
         seed: int,
         initial_mode: str,
-        config: dict[str, Any] | None = None,
-        fingerprint: dict[str, Any] | None = None,
+        config: dict[str, object] | None = None,
+        fingerprint: dict[str, object] | None = None,
         version: int = REPLAY_FORMAT_VERSION,
     ) -> None:
         if self._wrote_header:
@@ -62,7 +62,7 @@ class JsonlReplayWriter:
         self._write_line(header)
         self._wrote_header = True
 
-    def write_event(self, event: dict[str, Any]) -> None:
+    def write_event(self, event: dict[str, object]) -> None:
         if not self._wrote_header:
             raise ReplayFormatError("Replay header must be written before events")
         if not isinstance(event, dict):
@@ -85,7 +85,7 @@ class JsonlReplayWriter:
     ) -> None:
         self.close()
 
-    def _write_line(self, obj: dict[str, Any]) -> None:
+    def _write_line(self, obj: dict[str, object]) -> None:
         self._fh.write(json.dumps(obj, separators=(",", ":"), ensure_ascii=True))
         self._fh.write("\n")
 
@@ -114,7 +114,7 @@ class JsonlReplayReader:
             fingerprint=dict(obj.get("fingerprint") or {}),
         )
 
-    def iter_events(self) -> Iterator[dict[str, Any]]:
+    def iter_events(self) -> Iterator[dict[str, object]]:
         with self._path.open("r", encoding="utf-8") as fh:
             first = fh.readline()
             if not first:

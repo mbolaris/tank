@@ -39,7 +39,7 @@ ALL_POLICY_KINDS: frozenset[str] = REQUIRED_POLICY_KINDS | OPTIONAL_POLICY_KINDS
 class PolicyExecutionResult:
     """Result of executing a policy with safety checks."""
 
-    output: Any
+    output: object
     success: bool
     error_message: str | None = None
     was_clamped: bool = False
@@ -174,7 +174,7 @@ class GenomeCodePool:
         name: str,
         source: str,
         entrypoint: str = "policy",
-        metadata: dict[str, Any] | None = None,
+        metadata: dict[str, object] | None = None,
     ) -> str:
         """Add a new component to the pool.
 
@@ -204,7 +204,7 @@ class GenomeCodePool:
         self,
         component_id: str,
         kind: str,
-        func: Callable[..., Any],
+        func: Callable[..., object],
     ) -> None:
         """Register a pre-compiled builtin policy.
 
@@ -275,7 +275,7 @@ class GenomeCodePool:
     def execute_policy(
         self,
         component_id: str,
-        observation: dict[str, Any],
+        observation: dict[str, object],
         rng: pyrandom.Random,
         dt: float = 1.0,
         params: dict[str, float] | None = None,
@@ -331,7 +331,7 @@ class GenomeCodePool:
     def execute_movement_policy(
         self,
         policy_set: GenomePolicySet,
-        observation: dict[str, Any],
+        observation: dict[str, object],
         rng: pyrandom.Random,
         dt: float = 1.0,
     ) -> tuple[float, float]:
@@ -360,7 +360,7 @@ class GenomeCodePool:
 
         return self._parse_and_clamp_movement(result.output)
 
-    def _parse_and_clamp_movement(self, output: Any) -> tuple[float, float]:
+    def _parse_and_clamp_movement(self, output: object) -> tuple[float, float]:
         """Parse policy output and clamp to valid movement range."""
         # Parse various output formats
         if isinstance(output, (tuple, list)) and len(output) >= 2:

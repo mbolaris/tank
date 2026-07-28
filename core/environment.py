@@ -20,7 +20,7 @@ from core.util.rng import require_rng_param
 
 # Type alias for energy delta recorder callback
 # Signature: (entity, delta, source, metadata) -> None
-EnergyDeltaRecorder = Callable[["Entity", float, str, dict[str, Any]], None]
+EnergyDeltaRecorder = Callable[["Entity", float, str, dict[str, object]], None]
 
 
 class Environment:
@@ -40,7 +40,7 @@ class Environment:
         height: int = 600,
         time_system: Any | None = None,
         rng: random.Random | None = None,
-        event_bus: Any | None = None,
+        event_bus: object | None = None,
         simulation_config: Any | None = None,
     ):
         """
@@ -75,7 +75,7 @@ class Environment:
         self.time_system = time_system
         self.event_bus = event_bus  # Domain event dispatch
         self.simulation_config = simulation_config  # Runtime config access
-        self.engine: Any = None
+        self.engine: object = None
         self._rng = require_rng_param(rng, "__init__")
 
         # Default to GenomeCodePool with all builtins for better safety + determinism
@@ -84,8 +84,8 @@ class Environment:
         self.genome_code_pool = create_default_genome_code_pool()
 
         # Migration support (injected by backend)
-        self.connection_manager: Any = None  # Set by backend if migrations enabled
-        self.world_manager: Any = None  # Set by backend if migrations enabled
+        self.connection_manager: object = None  # Set by backend if migrations enabled
+        self.world_manager: object = None  # Set by backend if migrations enabled
         self.world_id: str | None = None  # Set by backend if migrations enabled
         self.world_name: str | None = None  # Set by backend for lineage tracking
         self.migration_handler: MigrationHandler | None = (
@@ -183,7 +183,7 @@ class Environment:
         entity: Entity,
         delta: float,
         source: str,
-        meta: dict[str, Any] | None = None,
+        meta: dict[str, object] | None = None,
     ) -> None:
         """Record an energy change if recorder is active.
 
@@ -203,7 +203,7 @@ class Environment:
             recorder(entity, delta, source, meta or {})
 
     def request_spawn(
-        self, entity: Entity, *, reason: str = "", metadata: dict[str, Any] | None = None
+        self, entity: Entity, *, reason: str = "", metadata: dict[str, object] | None = None
     ) -> bool:
         """Request an entity spawn via the engine's mutation queue.
 
@@ -216,7 +216,7 @@ class Environment:
         return bool(self._spawn_requester(entity, reason=reason, metadata=metadata))
 
     def request_remove(
-        self, entity: Entity, *, reason: str = "", metadata: dict[str, Any] | None = None
+        self, entity: Entity, *, reason: str = "", metadata: dict[str, object] | None = None
     ) -> bool:
         """Request an entity removal via the engine's mutation queue.
 

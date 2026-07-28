@@ -114,7 +114,7 @@ class DebugTraceCollector:
 
     def record(self, result: StepResult) -> None:
         """Record a step when it matches the configured frame/entity filters."""
-        frame = int(result.info.get("frame", result.snapshot.get("frame", 0)))
+        frame = int(cast(int | str, result.info.get("frame", result.snapshot.get("frame", 0))))
         if self.debug_frame is not None and frame != self.debug_frame:
             return
 

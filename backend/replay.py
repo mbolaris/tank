@@ -129,11 +129,13 @@ def replay_file(path: str | Path) -> None:
     config = dict(header.config or {})
 
     fp_cfg = dict(header.fingerprint or {})
-    digest_size = int(fp_cfg.get("digest_size", 16))
+    digest_size = int(cast(int | str, fp_cfg.get("digest_size", 16)))
     algorithm = str(fp_cfg.get("algorithm", "blake2b"))
     float_precision = fp_cfg.get("float_precision", 6)
     try:
-        float_precision = int(float_precision) if float_precision is not None else None
+        float_precision = (
+            int(cast(int | str, float_precision)) if float_precision is not None else None
+        )
     except Exception:
         float_precision = 6
     fingerprinter = SnapshotFingerprinter(
@@ -155,7 +157,7 @@ def replay_file(path: str | Path) -> None:
             snapshot = _get_snapshot_for_fingerprint(runner.world)
         elif op == "step":
             first_event_seen = True
-            n = int(event.get("n", 1))
+            n = int(cast(int | str, event.get("n", 1)))
             if n < 1:
                 raise ReplayFormatError("step op requires n >= 1")
             for _ in range(n):
@@ -172,11 +174,13 @@ def replay_file(path: str | Path) -> None:
             continue
 
         actual_fp = fingerprinter.fingerprint(snapshot)
-        actual_frame = int(snapshot.get("frame", getattr(runner.world, "frame_count", 0)))
+        actual_frame = int(
+            cast(int | str, snapshot.get("frame", getattr(runner.world, "frame_count", 0)))
+        )
 
-        if expected_frame is not None and int(expected_frame) != actual_frame:
+        if expected_frame is not None and int(cast(int | str, expected_frame)) != actual_frame:
             raise ReplayMismatchError(
-                f"Frame mismatch for op={op}: expected={int(expected_frame)} actual={actual_frame}"
+                f"Frame mismatch for op={op}: expected={int(cast(int | str, expected_frame))} actual={actual_frame}"
             )
 
         if expected_fp != actual_fp:

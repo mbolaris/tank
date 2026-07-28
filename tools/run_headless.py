@@ -61,7 +61,7 @@ def run_headless_world(
     if callable(world_update):
         advance_frame = world_update
     elif getattr(world, "supports_fast_step", False):
-        fast_step_action = {FAST_STEP_ACTION: True}
+        fast_step_action: dict[str, object] = {FAST_STEP_ACTION: True}
 
         def advance_frame() -> None:
             world.step(fast_step_action)

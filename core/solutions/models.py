@@ -118,11 +118,7 @@ class BenchmarkResult:
 class SolutionRecord:
     """Complete record of a skill game solution.
 
-    This captures everything needed to recreate and evaluate a strategy:
-    - The behavioral algorithm and its parameters
-    - Poker strategy configuration
-    - Performance metrics at time of capture
-    - Benchmark results from standardized evaluation
+    Contains all information needed to recreate and evaluate a solution.
     """
 
     # Metadata
