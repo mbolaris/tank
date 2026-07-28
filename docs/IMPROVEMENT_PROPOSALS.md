@@ -348,7 +348,7 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **734 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **715 plain `Any` occurrences** across `core/`. Both
 went *up* since earlier counts — `core/` grew faster than the
 cleanup passes retired `Any`, so treat 6.2 as a treadmill, not a burn-down. The
 global mypy config stays deliberately relaxed (`disallow_untyped_defs = false`,
@@ -394,7 +394,7 @@ when they're created, not accumulate untyped defs first.
 ### 6.2 Retire `Any` in the hottest core modules — `S` · ★★
 Grep `core/` for `: Any`, `-> Any`, and `[Any]` (227 hits re-measured
 2026-07-25; note this pattern misses generic-parameterized forms like
-`dict[str, Any]`; a plain `\bAny\b` count is 734) and replace the easy ones
+`dict[str, Any]`; a plain `\bAny\b` count is 715) and replace the easy ones
 with real types. Each PR: pick one module, remove its `Any`s, keep `mypy core/`
 green. Small, safe, and it compounds. **Layer 2.**
 
@@ -415,8 +415,8 @@ green. Small, safe, and it compounds. **Layer 2.**
 `core/cache_manager.py`, `core/behavior/pursuit_nodes.py`,
 `core/simulation/debug_trace.py`, `core/services/stats/selection_quality.py`,
 `core/genetics/trait.py`, `core/simulation/event_managers.py`,
-`core/entities/predators.py`, `core/code_pool/safety.py`, and
-`core/replay/fingerprint_stream.py`.
+`core/entities/predators.py`, `core/code_pool/safety.py`,
+`core/replay/fingerprint_stream.py`, and `core/minigames/soccer/selection.py`.
 
 **Avoid as a small 6.2 pick:** `backend/state_payloads/` (split from the single
 file into a package — see the Shipped section). Checked 2026-07; nearly every

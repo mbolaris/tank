@@ -5,7 +5,6 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from enum import Enum
-from typing import Any
 
 
 class SelectionStrategy(Enum):
@@ -17,7 +16,7 @@ class SelectionStrategy(Enum):
     RANDOM_ELIGIBLE = "random_eligible"  # Uniform random from eligible pool
 
 
-def get_entity_id(entity: Any) -> int:
+def get_entity_id(entity: object) -> int:
     """Extract stable ID from an entity."""
     fish_id = getattr(entity, "fish_id", None)
     if fish_id is not None:
@@ -25,23 +24,23 @@ def get_entity_id(entity: Any) -> int:
     return id(entity)
 
 
-def get_entity_energy(entity: Any) -> float:
+def get_entity_energy(entity: object) -> float:
     """Extract energy from an entity."""
     return float(getattr(entity, "energy", 0.0))
 
 
-def _sort_key(entity: Any) -> tuple[float, str]:
+def _sort_key(entity: object) -> tuple[float, str]:
     """Sort key for deterministic ordering: (-energy, id_str)."""
     return (-get_entity_energy(entity), str(get_entity_id(entity)))
 
 
 def _weighted_sample(
-    pool: list[Any],
+    pool: list[object],
     n: int,
     rng: random.Random,
     *,
     allow_repeat: bool = False,
-) -> list[Any]:
+) -> list[object]:
     """Deterministic weighted sampling without replacement."""
     if n <= 0 or not pool:
         return []
@@ -51,7 +50,7 @@ def _weighted_sample(
         return list(rng.choices(pool, weights=weights, k=n))
 
     pool = list(pool)
-    selected: list[Any] = []
+    selected: list[object] = []
 
     for _ in range(min(n, len(pool))):
         weights = [get_entity_energy(e) + 1.0 for e in pool]
@@ -74,15 +73,15 @@ def _weighted_sample(
 
 
 def _select_top_energy(
-    candidates: list[Any],
+    candidates: list[object],
     num_players: int,
     *,
     allow_repeat: bool = False,
-) -> list[Any]:
+) -> list[object]:
     """Original selection: highest energy first (deterministic)."""
     sorted_candidates = sorted(candidates, key=_sort_key)
     if allow_repeat and sorted_candidates:
-        selected: list[Any] = []
+        selected: list[object] = []
         while len(selected) < num_players:
             for candidate in sorted_candidates:
                 selected.append(candidate)
@@ -93,23 +92,23 @@ def _select_top_energy(
 
 
 def _select_weighted_energy(
-    candidates: list[Any],
+    candidates: list[object],
     num_players: int,
     rng: random.Random,
     *,
     allow_repeat: bool = False,
-) -> list[Any]:
+) -> list[object]:
     """Roulette-wheel selection weighted by energy."""
     return _weighted_sample(candidates, num_players, rng, allow_repeat=allow_repeat)
 
 
 def _select_stratified(
-    candidates: list[Any],
+    candidates: list[object],
     num_players: int,
     rng: random.Random,
     *,
     allow_repeat: bool = False,
-) -> list[Any]:
+) -> list[object]:
     """Stratified selection: 50% top, 30% mid, 20% low energy tiers."""
     if not candidates:
         return []
@@ -126,7 +125,7 @@ def _select_stratified(
     mid_slots = max(1, int(num_players * 0.3))
     low_slots = max(0, num_players - top_slots - mid_slots)
 
-    selected: list[Any] = []
+    selected: list[object] = []
     selected.extend(_weighted_sample(top_tier, top_slots, rng, allow_repeat=allow_repeat))
     selected.extend(_weighted_sample(mid_tier, mid_slots, rng, allow_repeat=allow_repeat))
     selected.extend(_weighted_sample(low_tier, low_slots, rng, allow_repeat=allow_repeat))
@@ -141,12 +140,12 @@ def _select_stratified(
 
 
 def _select_random_eligible(
-    candidates: list[Any],
+    candidates: list[object],
     num_players: int,
     rng: random.Random,
     *,
     allow_repeat: bool = False,
-) -> list[Any]:
+) -> list[object]:
     """Uniform random selection from eligible pool."""
     if not candidates or num_players <= 0:
         return []
@@ -156,7 +155,7 @@ def _select_random_eligible(
 
 
 def select_soccer_participants(
-    candidates: Sequence[Any],
+    candidates: Sequence[object],
     num_players: int,
     *,
     strategy: SelectionStrategy = SelectionStrategy.STRATIFIED,
@@ -164,7 +163,7 @@ def select_soccer_participants(
     seed: int | None = None,
     allow_repeat_within_match: bool = False,
     entry_fee_energy: float = 0.0,
-) -> list[Any]:
+) -> list[object]:
     """Select participants for a soccer match."""
     if num_players <= 0 or not candidates:
         return []
