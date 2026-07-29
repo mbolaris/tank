@@ -114,7 +114,15 @@ def validate_system_phase_declarations(engine: SimulationEngine) -> None:
         UpdatePhase.TIME_UPDATE: [engine.time_system],
         UpdatePhase.SPAWN: [engine.food_spawning_system],
         UpdatePhase.COLLISION: [engine.collision_system],
-        UpdatePhase.INTERACTION: [engine.poker_proximity_system, engine.poker_system],
+        # Must list every system SystemCoordinator.run_interaction() calls,
+        # including tank_interaction_system - it is only set for tank worlds, so
+        # omitting it made every tank run log a warning that TankInteractions
+        # was unscheduled while the coordinator was in fact executing it.
+        UpdatePhase.INTERACTION: [
+            engine.poker_proximity_system,
+            engine.poker_system,
+            engine.tank_interaction_system,
+        ],
         UpdatePhase.REPRODUCTION: [engine.reproduction_system],
     }
 
