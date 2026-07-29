@@ -67,7 +67,7 @@ describe('PokerLeaders', () => {
         expect(html).toContain('Tank Blue');
         expect(html).toContain('9 wins');
         expect(html).toContain('+99⚡');
-        expect(html).toContain('2 offspring');
+        expect(html).not.toContain('offspring');
         expect(html).not.toContain('repro credit');
         expect(html).not.toContain('LOSS');
     });
@@ -90,7 +90,7 @@ describe('SoccerLeaders', () => {
         expect(html).toContain('5 goals');
         expect(html).toContain('3 wins');
         expect(html).toContain('+42 net energy');
-        expect(html).toContain('3 offspring');
+        expect(html).not.toContain('offspring');
         expect(html).not.toContain('repro credit');
     });
 
