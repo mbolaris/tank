@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from core.poker.betting.actions import BettingAction
+from core.deterministic_random import normal
 
 
 @dataclass
@@ -46,7 +47,7 @@ class PokerStrategyAlgorithm:
         rng = rng if rng is not None else self.rng
         for param_key in self.parameters:
             if rng.random() < mutation_rate:
-                mutation = rng.gauss(0, mutation_strength)
+                mutation = normal(rng, 0, mutation_strength)
                 self.parameters[param_key] += mutation
                 # Clamp to valid ranges
                 if "threshold" in param_key or "frequency" in param_key:

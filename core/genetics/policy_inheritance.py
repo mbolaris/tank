@@ -12,6 +12,7 @@ compatibility.
 import random as pyrandom
 
 from core.genetics.trait import GeneticTrait
+from core.deterministic_random import normal
 
 # =============================================================================
 # Code Policy Inheritance Constants
@@ -49,7 +50,7 @@ def mutate_code_policy_params(
     for key in sorted(mutated):
         if rng.random() < eff_mutation_rate:
             old_val = mutated[key]
-            delta = rng.gauss(0, eff_strength)
+            delta = normal(rng, 0, eff_strength)
             new_val = old_val + delta
             # Clamp to valid range
             new_val = max(CODE_POLICY_PARAM_MIN, min(CODE_POLICY_PARAM_MAX, new_val))

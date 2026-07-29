@@ -16,6 +16,7 @@ from core.behavior.primitives.steering import (
 
 from .models import CodeComponent, CompilationError, ComponentNotFoundError
 from .sandbox import build_restricted_globals, parse_and_validate
+from core.deterministic_random import normal
 
 # Builtin component IDs for default policies
 BUILTIN_SEEK_NEAREST_FOOD_ID = "builtin_seek_nearest_food"
@@ -438,7 +439,7 @@ def default_soccer_policy_params(
     for key in SOCCER_POLICY_PARAM_KEYS:
         value = 0.0
         if rng is not None and jitter > 0.0:
-            value = max(-10.0, min(10.0, rng.gauss(0.0, jitter)))
+            value = max(-10.0, min(10.0, normal(rng, 0.0, jitter)))
         values[key] = value
     return values
 

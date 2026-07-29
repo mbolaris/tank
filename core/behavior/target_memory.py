@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Protocol
+from core.deterministic_random import normal
 
 Vector2f = tuple[float, float]
 
@@ -116,7 +117,7 @@ class TargetMemoryParams:
             value = self_values[key] * weight1 + other_values[key] * (1.0 - weight1)
             if rng.random() < mutation_rate:
                 span = hi - lo
-                value += rng.gauss(0.0, mutation_strength * span)
+                value += normal(rng, 0.0, mutation_strength * span)
             blended[key] = max(lo, min(hi, value))
         return TargetMemoryParams(**blended)
 

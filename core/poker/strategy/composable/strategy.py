@@ -35,6 +35,7 @@ from core.poker.strategy.composable.validator import PokerStrategyValidator
 from core.poker.strategy.implementations.base import PokerStrategyAlgorithm
 from core.util import coerce_enum
 from core.util.rng import require_rng_param
+from core.deterministic_random import normal
 
 _random_params = PokerStrategyValidator.random_parameters
 _blend_regret_tables = CFRInheritance.blend_tables
@@ -457,7 +458,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
             if rng.random() < mutation_rate:
                 bounds = PokerStrategyValidator.parameter_bounds(key)
                 span = bounds[1] - bounds[0]
-                delta = rng.gauss(0, mutation_strength * span)
+                delta = normal(rng, 0, mutation_strength * span)
                 self.parameters[key] = PokerStrategyValidator.clamp(key, value + delta)
 
         # Bounds enforcement: clamp every declared parameter, not just the
@@ -474,7 +475,7 @@ class ComposablePokerStrategy(PokerStrategyAlgorithm):
         # gated on mutation_rate so a mutation_rate=0.0 clone stays untouched.
         if rng.random() < mutation_rate:
             lr_span = LEARNING_RATE_BOUNDS[1] - LEARNING_RATE_BOUNDS[0]
-            self.learning_rate += rng.gauss(0, mutation_strength * lr_span)
+            self.learning_rate += normal(rng, 0, mutation_strength * lr_span)
         self.learning_rate = _clamp_learning_rate(self.learning_rate)
 
     # -------------------------------------------------------------------------

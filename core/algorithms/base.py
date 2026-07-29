@@ -32,6 +32,7 @@ from core.config.food import BASE_FOOD_DETECTION_RANGE, PREDATOR_DEFAULT_FAR_DIS
 from core.entities import Crab, Food
 from core.math_utils import Vector2
 from core.util.rng import require_rng_param
+from core.deterministic_random import normal
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -526,11 +527,11 @@ class BehaviorAlgorithm(BehaviorHelpersMixin, BehaviorStrategyBase):
                 span = upper - lower
                 if span <= 0:
                     span = max(abs(current_value), 1.0)
-                mutated = current_value + _rng.gauss(0, effective_strength) * span
+                mutated = current_value + normal(_rng, 0, effective_strength) * span
                 mutated = max(lower, min(upper, mutated))
             else:
                 scale = max(abs(current_value), 1.0)
-                mutated = current_value + _rng.gauss(0, effective_strength) * scale
+                mutated = current_value + normal(_rng, 0, effective_strength) * scale
                 mutated = max(0.0, mutated)
 
             self.parameters[key] = mutated

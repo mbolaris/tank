@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from core.genetics.trait import GeneticTrait
+from core.deterministic_random import normal
 
 if TYPE_CHECKING:
     from core.code_pool import GenomeCodePool, GenomePolicySet
@@ -364,7 +365,7 @@ def _mutate_params(
     # of dict insertion order (hash-seed independence). See ADR-012.
     for key, value in sorted(params.items()):
         if rng.random() < config.param_mutation_rate:
-            delta = rng.gauss(0, config.param_mutation_strength)
+            delta = normal(rng, 0, config.param_mutation_strength)
             new_value = value + delta
             new_value = max(config.param_min, min(config.param_max, new_value))
             result[key] = new_value

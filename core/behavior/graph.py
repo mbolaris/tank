@@ -30,6 +30,7 @@ from core.behavior.nodes import (
     Scalar,
     ValueType,
 )
+from core.deterministic_random import normal
 
 
 def _is_vector(value: object) -> bool:
@@ -405,7 +406,7 @@ class BehaviorGraph:
                 value = spec.clamp(parameters.get(name, spec.default))
                 if rng.random() < mutation_rate:
                     span = float(spec.maximum) - float(spec.minimum)
-                    value = spec.clamp(float(value) + rng.gauss(0.0, mutation_strength * span))
+                    value = spec.clamp(float(value) + normal(rng, 0.0, mutation_strength * span))
                 parameters[name] = value
             evolved_nodes.append(GraphNode(node.node_id, node.node_type, parameters))
         return BehaviorGraph(tuple(evolved_nodes), self.connections, self.output_node_id)
