@@ -32,7 +32,14 @@ from core.worlds.interfaces import FAST_STEP_ACTION
 BENCHMARK_ID = "tank/ecosystem_health_10k"
 FRAMES = 10000
 SAMPLE_INTERVAL = 100  # Sample every 100 frames for population stability tracking
-EXPECTED_RUNTIME_SECONDS = 75
+# Sized from observed CI (Linux) runtime, which is the canonical environment
+# for this benchmark and ~2x slower than a typical dev box. run_bench.py derives
+# its subprocess timeout as 3x this value, so an understated budget shows up as
+# a determinism-check timeout rather than a slow run. The old 75s dated from
+# when a broken energy economy left the tank sparse and starving; a healthy
+# ecosystem keeps ~2.6x more entities alive per frame and costs proportionally
+# more to simulate.
+EXPECTED_RUNTIME_SECONDS = 210
 
 WORLD_CONFIG: dict[str, Any] = {
     "headless": True,
