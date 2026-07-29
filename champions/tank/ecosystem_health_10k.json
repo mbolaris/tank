@@ -1,37 +1,71 @@
 {
   "benchmark_id": "tank/ecosystem_health_10k",
-  "version": 9,
+  "version": 10,
   "champion": {
-    "score": 12.006686634858294,
+    "score": 10.714319165624723,
     "seed": 42,
-    "timestamp": 1785302196.175527,
+    "timestamp": 1785348399.0630162,
     "metadata": {
       "frames": 10000,
       "max_generation": 9,
       "generation_rate": 9.0,
-      "starvation_rate": 0.7746,
-      "starvation_deaths": 275,
-      "total_deaths": 355,
-      "unique_algorithms": 25,
-      "diversity_score": 0.2632,
-      "diversity_bonus": 2.6563,
-      "stability_bonus": 0.8197,
-      "starvation_penalty": 0.3873,
-      "mean_population": 56.16,
+      "starvation_rate": 0.8703,
+      "starvation_deaths": 396,
+      "total_deaths": 455,
+      "unique_algorithms": 21,
+      "diversity_score": 0.2685,
+      "diversity_bonus": 2.5862,
+      "stability_bonus": 0.815,
+      "starvation_penalty": 0.4352,
+      "mean_population": 56.02,
       "final_population": 60,
-      "final_total_entities": 370,
+      "final_total_entities": 150,
       "population_scope": "fish",
       "final_total_entities_role": "diagnostic_only"
     },
     "score_breakdown": {
       "generation_rate": 9.0,
-      "diversity_bonus": 2.6563,
-      "stability_bonus": 0.8197,
-      "starvation_penalty": 0.3873
+      "diversity_bonus": 2.5862,
+      "stability_bonus": 0.815,
+      "starvation_penalty": 0.4352
     },
     "config_hash": "f9c69dd018fb5d8b"
   },
   "history": [
+    {
+      "score": 12.006686634858294,
+      "seed": 42,
+      "timestamp": 1785302196.175527,
+      "metadata": {
+        "frames": 10000,
+        "max_generation": 9,
+        "generation_rate": 9.0,
+        "starvation_rate": 0.7746,
+        "starvation_deaths": 275,
+        "total_deaths": 355,
+        "unique_algorithms": 25,
+        "diversity_score": 0.2632,
+        "diversity_bonus": 2.6563,
+        "stability_bonus": 0.8197,
+        "starvation_penalty": 0.3873,
+        "mean_population": 56.16,
+        "final_population": 60,
+        "final_total_entities": 370,
+        "population_scope": "fish",
+        "final_total_entities_role": "diagnostic_only"
+      },
+      "score_breakdown": {
+        "generation_rate": 9.0,
+        "diversity_bonus": 2.6563,
+        "stability_bonus": 0.8197,
+        "starvation_penalty": 0.3873
+      },
+      "config_hash": "f9c69dd018fb5d8b",
+      "benchmark_id": "tank/ecosystem_health_10k",
+      "retired_at": 1785348667.7612267,
+      "retired_reason": "Re-baselined: the mutation sampler moved from random.gauss (Box-Muller over the platform-dependent math.cos) to the Marsaglia polar method, so genetics reproduce across machines. The polar method consumes a variable number of RNG draws where gauss consumes exactly two, which reshuffles every downstream random decision and moves scores; this is an expected consequence of the fix, not a performance change. Values taken from CI's own run (bench.yml run 30477908610, commit on fix/platform-independent-mutation-sampler) rather than a local re-run, per the cross-platform divergence this very change addresses. config_hash unchanged - code behaviour only. poker/ladder_20k and soccer/ladder_5k still reproduce exactly and are untouched.",
+      "version": 9
+    },
     {
       "score": 9.967411959401476,
       "seed": 42,
