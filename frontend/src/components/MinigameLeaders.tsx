@@ -103,13 +103,12 @@ export function PokerLeaders({ leaders }: { leaders: PokerLeaderboardEntry[] }) 
                 : entry.tank_id && entry.tank_id !== 'unknown'
                     ? `Tank ${entry.tank_id}`
                     : 'Origin not recorded';
-            const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
             return (
                 <LeaderRow
                     key={entry.fish_id}
                     rank={index + 1}
                     fishId={entry.fish_id}
-                    stats={` · ${tankName} — ${entry.wins} wins · ${entry.total_games} hands · best: ${entry.best_hand || '—'}${offspring}`}
+                    stats={` · ${tankName} — ${entry.wins} wins · ${entry.total_games} hands · best: ${entry.best_hand || '—'}`}
                     energy={entry.net_energy}
                 />
             );
@@ -136,8 +135,7 @@ export function SoccerLeaders({ leaders }: { leaders: SoccerFishLeaderEntry[] })
                 : entry.tank_id && entry.tank_id !== 'unknown'
                     ? `Tank ${entry.tank_id}`
                     : 'Origin not recorded';
-            const offspring = entry.offspring_count !== undefined ? ` — ${entry.offspring_count} offspring` : '';
-            const stats = ` — ${entry.goals} goals — ${entry.assists} assists — ${energyText} — ${entry.wins} wins${offspring}`;
+            const stats = ` — ${entry.goals} goals — ${entry.assists} assists — ${energyText} — ${entry.wins} wins`;
             return (
                 <div key={entry.fish_id} style={rowStyle}>
                     <span style={{ color: rankColor(index + 1), fontWeight: 700, minWidth: '18px' }}>{index + 1}.</span>

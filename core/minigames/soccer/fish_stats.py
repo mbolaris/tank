@@ -32,16 +32,39 @@ class SoccerFishStats:
     tank_id: str = "unknown"
     offspring_count: int = 0
 
+    # Ranking weights. The hierarchy is deliberate:
+    #
+    #   goal (3.0)  >  assist (2.0)  >  win (1.5)  >  draw (0.5)
+    #
+    # Scoring outranks setting up, which outranks being on the winning side,
+    # because the first two are things this fish did and the third is
+    # substantially the team's doing - but a win is still worth half a goal,
+    # not nothing. The previous weight of 0.001 made it pure decoration:
+    # a fish would have needed a thousand wins to outrank one goal.
+    #
+    # net_energy is scaled down hard. It is a *consequence* of playing well
+    # rather than a measure of it, it is already displayed on its own in the
+    # leaderboard row, and on its raw scale it would otherwise swamp
+    # everything else.
+    #
+    # Matches played is deliberately absent. Participation is chosen by the
+    # league's selection strategy, not by the fish, so ranking on it measures
+    # the scheduler. Ties break on fish_id for determinism.
+    GOAL_WEIGHT = 3.0
+    ASSIST_WEIGHT = 2.0
+    WIN_WEIGHT = 1.5
+    DRAW_WEIGHT = 0.5
+    NET_ENERGY_WEIGHT = 0.01
+
     @property
     def contribution_score(self) -> float:
         """Calculate a deterministic soccer contribution score."""
-        # goals * 3 + assists * 2 + net_energy * 0.01 + wins * 0.001 - matches * 0.0001
         return (
-            self.goals * 3.0
-            + self.assists * 2.0
-            + self.net_energy * 0.01
-            + self.wins * 0.001
-            - self.matches * 0.0001
+            self.goals * self.GOAL_WEIGHT
+            + self.assists * self.ASSIST_WEIGHT
+            + self.wins * self.WIN_WEIGHT
+            + self.draws * self.DRAW_WEIGHT
+            + self.net_energy * self.NET_ENERGY_WEIGHT
         )
 
 
@@ -110,8 +133,18 @@ class SoccerFishStatsTracker:
 
     @staticmethod
     def _sort_key(row: SoccerFishStats) -> tuple[float, ...]:
-        # Preferred ranking priority: goals, assists, net energy, wins, matches, fish_id (ascending)
-        return (-row.goals, -row.assists, -row.net_energy, -row.wins, -row.matches, row.fish_id)
+        """Rank by contribution score, ties broken by fish_id for determinism.
+
+        This used to be a lexicographic tuple
+        ``(-goals, -assists, -net_energy, -wins, -matches, fish_id)``, which
+        made every field after the first continuous one dead weight: two fish
+        practically never tie on ``net_energy``, so ``wins`` decided nothing.
+        Worse, it disagreed with ``contribution_score`` - published in the same
+        payload, and the number the UI shows - about the direction of
+        ``matches``: the tuple ranked more matches higher, the score ranked
+        them lower. Ordering now comes from that one published score.
+        """
+        return (-row.contribution_score, row.fish_id)
 
     def leaders(self, top_n: int = 5) -> list[dict[str, Any]]:
         """Top-N standings as JSON-ready dicts, best first."""

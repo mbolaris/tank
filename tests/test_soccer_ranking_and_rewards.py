@@ -1,10 +1,12 @@
 """Unit tests for soccer individual ranking, rewards, and caps."""
 
+import pytest
+
 from typing import Any
 from unittest.mock import Mock
 
 from core.agents.components.reproduction_component import ReproductionComponent
-from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
+from core.minigames.soccer.fish_stats import SoccerFishStats, SoccerFishStatsTracker
 from core.minigames.soccer.rewards import (
     apply_soccer_repro_rewards,
     calculate_soccer_individual_rewards,
@@ -36,18 +38,14 @@ def _outcome(**overrides: Any) -> SoccerMinigameOutcome:
 
 
 def test_goals_rank_above_passive_wins():
+    """A goal outranks simply being on the winning side, match for match.
+
+    Both fish play exactly one match here. Comparing a fish with two wins
+    against a fish with one goal would be an aggregate question, not this one -
+    contribution_score is additive, so enough wins are meant to add up.
+    """
     tracker = SoccerFishStatsTracker()
-    # Fish 1 has a win but 0 goals, 0 assists, +5 energy.
-    tracker.record(
-        _outcome(
-            winner_team="left",
-            entry_fees={1: 5.0, 2: 5.0},
-            energy_deltas={1: 5.0, 2: -5.0},
-            teams={"left": [1], "right": [2]},
-            goals_by_fish={1: 0},
-        )
-    )
-    # Fish 2 has a loss but 1 goal, -5 energy.
+    # Fish 1 wins without scoring; Fish 2 scores but loses.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -60,23 +58,14 @@ def test_goals_rank_above_passive_wins():
 
     leaders = tracker.leaders(10)
     assert len(leaders) == 2
-    # Fish 2 (1 goal, 0 wins) outranks Fish 1 (0 goals, 1 win).
     assert leaders[0]["fish_id"] == 2
     assert leaders[1]["fish_id"] == 1
 
 
 def test_assists_improve_rank_below_goals_but_above_passive_wins():
+    """Per match played: goal > assist > win. Each fish plays exactly once."""
     tracker = SoccerFishStatsTracker()
-    # Fish 1: 0 goals, 0 assists, 1 win, +5 energy.
-    tracker.record(
-        _outcome(
-            winner_team="left",
-            entry_fees={1: 5.0, 2: 5.0},
-            energy_deltas={1: 5.0, 2: -5.0},
-            teams={"left": [1], "right": [2]},
-        )
-    )
-    # Fish 2: 0 goals, 1 assist, 0 wins, -5 energy.
+    # Match 1: Fish 1 wins passively, Fish 2 assists but loses.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -86,7 +75,7 @@ def test_assists_improve_rank_below_goals_but_above_passive_wins():
             assists_by_fish={2: 1},
         )
     )
-    # Fish 3: 1 goal, 0 assists, 0 wins, -5 energy.
+    # Match 2: Fish 3 wins passively, Fish 4 scores but loses.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -98,12 +87,9 @@ def test_assists_improve_rank_below_goals_but_above_passive_wins():
     )
 
     leaders = tracker.leaders(10)
-    # Expected order:
-    # 1st: Fish 4 (1 goal)
-    # 2nd: Fish 2 (1 assist)
-    # 3rd: Fish 1 or Fish 3 (Fish 1 has 1 win, Fish 3 has 1 win)
-    assert leaders[0]["fish_id"] == 4
-    assert leaders[1]["fish_id"] == 2
+    assert leaders[0]["fish_id"] == 4  # goal
+    assert leaders[1]["fish_id"] == 2  # assist
+    assert {leaders[2]["fish_id"], leaders[3]["fish_id"]} == {1, 3}  # passive wins
 
 
 def test_net_energy_helps_break_ties():
@@ -132,9 +118,17 @@ def test_net_energy_helps_break_ties():
     assert leaders[1]["fish_id"] == 2
 
 
-def test_wins_are_only_a_tie_breaker():
+def test_wins_count_toward_rank_rather_than_only_breaking_ties():
+    """Wins must be a real term, not decoration.
+
+    Ranking used to be a lexicographic tuple in which ``wins`` sat behind
+    ``net_energy``. Two fish practically never tie on a float, so wins decided
+    nothing: a fish could win every match it played and still rank below one
+    that lost every match with a marginally better energy balance. This pins
+    the fix - identical goals and energy, so only the win separates them.
+    """
     tracker = SoccerFishStatsTracker()
-    # Fish 1: 1 goal, +10 energy, 1 win
+    # Fish 1: 1 goal, wins.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -144,7 +138,7 @@ def test_wins_are_only_a_tie_breaker():
             teams={"left": [1]},
         )
     )
-    # Fish 2: 1 goal, +10 energy, 0 wins (loss)
+    # Fish 2: 1 goal, same energy, loses.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -158,6 +152,10 @@ def test_wins_are_only_a_tie_breaker():
     leaders = tracker.leaders(10)
     assert leaders[0]["fish_id"] == 1
     assert leaders[1]["fish_id"] == 2
+    gap = leaders[0]["contribution_score"] - leaders[1]["contribution_score"]
+    assert gap == pytest.approx(
+        SoccerFishStats.WIN_WEIGHT
+    ), "the win should move the score by its full weight, not a rounding error"
 
 
 def test_matches_played_tie_breaker():
