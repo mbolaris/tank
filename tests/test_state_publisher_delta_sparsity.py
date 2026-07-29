@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 from backend.runner.state_publisher import StatePublisher
-from backend.state_payloads import EntitySnapshot
+from backend.state_payloads import DeltaStatePayload, EntitySnapshot, FullStatePayload
 
 
 def _publisher() -> StatePublisher:
@@ -80,3 +80,65 @@ def test_added_entities_use_full_payload_without_duplicate_delta_update():
     assert [entity["id"] for entity in state.added] == [2]
     assert state.updates == []
     assert publisher.delta_metrics()["entities_added"] == 1
+
+
+def test_force_full_never_returns_a_cached_delta():
+    """A newly connected client must not be served a cached delta frame.
+
+    ``websocket.py`` asks for ``force_full=True, allow_delta=False`` when a
+    client connects, but the cache fast-path used to run before that flag was
+    consulted. When the connect happened to land on a frame whose cached
+    payload was a delta, the client received position updates for entities it
+    had never been told about - no types, sizes or render hints - so the tank
+    rendered but nothing could be hit-tested or selected. Reloading the page
+    reproduced it intermittently, and
+    ``GET /api/worlds/{id}/snapshot`` was broken the same way despite passing
+    ``force_full=True``.
+    """
+    publisher = _publisher()
+    runner = _runner()
+    runner.running = True
+    runner.world.frame_count = 7
+
+    entities = [EntitySnapshot(1, "fish", 10.0, 20.0, 4.0, 4.0)]
+    runner._collect_entities.return_value = entities
+    runner.world.get_stats.return_value = {}
+
+    # Prime the cache with a delta for the current frame, as the broadcast
+    # loop does between full syncs.
+    cached_delta = publisher._build_delta_state(
+        runner, frame=7, elapsed_time=231, stats={}, entities=entities
+    )
+    publisher._cached_state = cached_delta
+    publisher._cached_state_frame = 7
+
+    served = publisher.get_state(runner, force_full=True, allow_delta=False)
+
+    assert not isinstance(served, DeltaStatePayload), (
+        "a client asking for full state was handed a cached delta; it has no "
+        "prior entities to apply those updates to"
+    )
+    assert isinstance(served, FullStatePayload)
+
+
+def test_cached_full_state_is_still_reused_for_the_same_frame():
+    """The fix must not defeat caching for ordinary same-frame requests."""
+    publisher = _publisher()
+    runner = _runner()
+    runner.running = True
+    runner.world.frame_count = 11
+
+    cached_full = FullStatePayload(
+        frame=11,
+        elapsed_time=363,
+        entities=[EntitySnapshot(1, "fish", 10.0, 20.0, 4.0, 4.0)],
+        stats={},
+        poker_events=[],
+        soccer_events=[],
+        poker_leaderboard=[],
+    )
+    publisher._cached_state = cached_full
+    publisher._cached_state_frame = 11
+
+    assert publisher.get_state(runner, force_full=True, allow_delta=False) is cached_full
+    assert publisher.get_state(runner) is cached_full

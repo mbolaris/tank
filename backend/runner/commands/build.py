@@ -88,8 +88,30 @@ class BuildCommands:
             capability_config=capability_config,
         )
         if engine.request_spawn(obj, reason="build_place_tank_object"):
+            self._flush_if_paused(engine)
             return {"success": True, "object": obj.to_object_state()}
         return self._create_error_response("Object placement was rejected")
+
+    def _flush_if_paused(self, engine: Any) -> None:
+        """Materialise a queued spawn when the world is not stepping.
+
+        ``request_spawn`` only enqueues; the engine drains that queue during a
+        frame. Build mode pauses the simulation (the client sends ``pause`` on
+        entering it), so on a paused world the queue is never drained, the
+        object silently never appears, and the command still answers
+        ``success: true`` because the enqueue itself succeeded.
+        """
+        if not getattr(self.world, "is_paused", False):
+            return
+        apply_mutations = getattr(engine, "_apply_entity_mutations", None)
+        if callable(apply_mutations):
+            apply_mutations("build_command", record_outputs=True)
+        # A paused world never advances frame_count, and the state cache is
+        # keyed on it, so every subsequent broadcast and snapshot would keep
+        # replaying the pre-placement entity list.
+        publisher = getattr(self, "state_publisher", None)
+        if publisher is not None:
+            publisher.invalidate_cache()
 
     def _cmd_move_tank_object(self, data: dict[str, Any]) -> dict[str, Any] | None:
         object_id = int(data.get("object_id", -1))
