@@ -24,6 +24,7 @@ from typing import Any
 from .models import ComponentNotFoundError
 from .pool import CodePool
 from .safety import SafeExecutor, SafetyConfig, SafetyViolationError
+from core.deterministic_random import normal
 
 # Policy kinds that are considered "required" - genomes should have valid defaults
 REQUIRED_POLICY_KINDS: frozenset[str] = frozenset({"movement_policy"})
@@ -543,7 +544,7 @@ class GenomeCodePool:
         result = {}
         for key, value in params.items():
             if rng.random() < 0.15:  # 15% chance per parameter
-                delta = rng.gauss(0, strength)
+                delta = normal(rng, 0, strength)
                 new_value = value + delta
                 # Clamp to [-10, 10]
                 new_value = max(-10.0, min(10.0, new_value))

@@ -15,6 +15,7 @@ from .definitions import (
     ThreatResponse,
     _random_params,
 )
+from core.deterministic_random import normal
 
 if TYPE_CHECKING:
     from core.entities import Fish
@@ -246,7 +247,7 @@ class ComposableBehavior(BehaviorHelpersMixin, BehaviorActionsMixin):
             if rng.random() < mutation_rate:
                 bounds = SUB_BEHAVIOR_PARAMS.get(key, (0.0, 1.0))
                 span = bounds[1] - bounds[0]
-                delta = rng.gauss(0, mutation_strength * span)
+                delta = normal(rng, 0, mutation_strength * span)
                 new_value = max(bounds[0], min(bounds[1], value + delta))
                 self.parameters[key] = new_value
 

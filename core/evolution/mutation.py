@@ -17,6 +17,7 @@ import random
 from dataclasses import dataclass
 
 from core.util.rng import require_rng_param
+from core.deterministic_random import normal
 
 
 @dataclass
@@ -94,7 +95,7 @@ def mutate_continuous_trait(
     rng = require_rng_param(rng, "__init__")
     if rng.random() < mutation_rate:
         # Apply Gaussian mutation
-        value += rng.gauss(0, mutation_strength)
+        value += normal(rng, 0, mutation_strength)
 
     # Clamp to valid range
     return max(min_val, min(max_val, value))

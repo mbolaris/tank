@@ -19,6 +19,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS, RCSSParams
+from core.deterministic_random import normal
 
 
 class CommandType(Enum):
@@ -470,7 +471,7 @@ class RCSSLiteEngine:
 
         # Add noise if enabled
         if self.params.noise_enabled:
-            noise = self._rng.gauss(0, self.params.kick_rand)
+            noise = normal(self._rng, 0, self.params.kick_rand)
             dir_rad += noise
 
         # Calculate ball acceleration from kick

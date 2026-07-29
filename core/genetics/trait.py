@@ -10,6 +10,7 @@ from core.evolution.inheritance import inherit_trait as _inherit_trait
 from core.evolution.mutation import mutate_continuous_trait as _mutate_continuous
 from core.evolution.mutation import mutate_discrete_trait as _mutate_discrete
 from core.util.rng import require_rng_param
+from core.deterministic_random import normal
 
 if TYPE_CHECKING:
     pass
@@ -110,19 +111,21 @@ class GeneticTrait(Generic[T]):
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_rate = max(
                 META_MUTATION_RATE_MIN,
-                min(META_MUTATION_RATE_MAX, self.mutation_rate + rng.gauss(0, META_MUTATION_SIGMA)),
+                min(
+                    META_MUTATION_RATE_MAX, self.mutation_rate + normal(rng, 0, META_MUTATION_SIGMA)
+                ),
             )
         if rng.random() < META_MUTATION_CHANCE:
             self.mutation_strength = max(
                 META_MUTATION_STRENGTH_MIN,
                 min(
                     META_MUTATION_STRENGTH_MAX,
-                    self.mutation_strength + rng.gauss(0, META_MUTATION_SIGMA),
+                    self.mutation_strength + normal(rng, 0, META_MUTATION_SIGMA),
                 ),
             )
         if rng.random() < META_HGT_MUTATION_CHANCE:
             self.hgt_probability = max(
-                0.0, min(1.0, self.hgt_probability + rng.gauss(0, META_MUTATION_SIGMA))
+                0.0, min(1.0, self.hgt_probability + normal(rng, 0, META_MUTATION_SIGMA))
             )
 
 
