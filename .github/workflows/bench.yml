@@ -7,6 +7,10 @@ on:
         description: "Run the tank champion re-baseline job (survival_5k 3-seed matrix + ecosystem_health_10k) and upload raw results as an artifact"
         type: boolean
         default: false
+      float_fingerprint:
+        description: "Print a bit-exact fingerprint of float primitives, for diffing against a dev machine"
+        type: boolean
+        default: false
   schedule:
     - cron: '0 9 * * *'
 
@@ -116,3 +120,19 @@ jobs:
             survival_5k_matrix.json
             ecosystem_health_10k_result.json
           if-no-files-found: warn
+
+  float-fingerprint:
+    # Manual-only diagnostic for the cross-machine benchmark divergence: prints
+    # a bit-exact hash per float primitive so CI's Linux/CPython 3.10 can be
+    # diffed against a dev machine. See tools/float_fingerprint.py.
+    if: github.event_name == 'workflow_dispatch' && inputs.float_fingerprint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Fingerprint float primitives
+        run: python3 tools/float_fingerprint.py
