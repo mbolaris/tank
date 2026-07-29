@@ -27,6 +27,16 @@ def validate_reproduction(
         print("  recorded. Config changed - re-baseline the champion.")
         return False
 
+    # Matrix-format champions (e.g. tank/survival_5k) store the mean across
+    # several seeds as the top-level score, but this tool is only ever handed
+    # a single-seed run. Compare against that seed's own recorded score
+    # instead of the mean, or every matrix champion fails reproduction by
+    # construction regardless of correctness.
+    per_seed = champion_record.get("per_seed")
+    new_seed = new_result.get("seed")
+    if per_seed and new_seed is not None and str(new_seed) in per_seed:
+        champion_record = per_seed[str(new_seed)]
+
     new_score = new_result["score"]
     old_score = champion_record["score"]
 
