@@ -1,37 +1,71 @@
 {
   "benchmark_id": "tank/ecosystem_health_10k",
-  "version": 8,
+  "version": 9,
   "champion": {
-    "score": 9.967411959401476,
+    "score": 12.006686634858294,
     "seed": 42,
-    "timestamp": 1783852532.8491662,
+    "timestamp": 1785302196.175527,
     "metadata": {
       "frames": 10000,
-      "max_generation": 8,
-      "generation_rate": 8.0,
-      "starvation_rate": 0.8,
-      "starvation_deaths": 292,
-      "total_deaths": 365,
-      "unique_algorithms": 20,
-      "diversity_score": 0.2366,
-      "diversity_bonus": 2.5332,
+      "max_generation": 9,
+      "generation_rate": 9.0,
+      "starvation_rate": 0.7746,
+      "starvation_deaths": 275,
+      "total_deaths": 355,
+      "unique_algorithms": 25,
+      "diversity_score": 0.2632,
+      "diversity_bonus": 2.6563,
       "stability_bonus": 0.8197,
-      "starvation_penalty": 0.4,
+      "starvation_penalty": 0.3873,
       "mean_population": 56.16,
       "final_population": 60,
-      "final_total_entities": 202,
+      "final_total_entities": 370,
       "population_scope": "fish",
       "final_total_entities_role": "diagnostic_only"
     },
     "score_breakdown": {
-      "generation_rate": 8.0,
-      "diversity_bonus": 2.5332,
+      "generation_rate": 9.0,
+      "diversity_bonus": 2.6563,
       "stability_bonus": 0.8197,
-      "starvation_penalty": 0.4
+      "starvation_penalty": 0.3873
     },
     "config_hash": "f9c69dd018fb5d8b"
   },
   "history": [
+    {
+      "score": 9.967411959401476,
+      "seed": 42,
+      "timestamp": 1783852532.8491662,
+      "metadata": {
+        "frames": 10000,
+        "max_generation": 8,
+        "generation_rate": 8.0,
+        "starvation_rate": 0.8,
+        "starvation_deaths": 292,
+        "total_deaths": 365,
+        "unique_algorithms": 20,
+        "diversity_score": 0.2366,
+        "diversity_bonus": 2.5332,
+        "stability_bonus": 0.8197,
+        "starvation_penalty": 0.4,
+        "mean_population": 56.16,
+        "final_population": 60,
+        "final_total_entities": 202,
+        "population_scope": "fish",
+        "final_total_entities_role": "diagnostic_only"
+      },
+      "score_breakdown": {
+        "generation_rate": 8.0,
+        "diversity_bonus": 2.5332,
+        "stability_bonus": 0.8197,
+        "starvation_penalty": 0.4
+      },
+      "config_hash": "f9c69dd018fb5d8b",
+      "benchmark_id": "tank/ecosystem_health_10k",
+      "retired_at": 1785302442.890416,
+      "retired_reason": "Re-baselined: CI's own canonical run (bench.yml run 30424225849, rebaseline-tank-champions job, commit 4a3b9ad8 - post-revert of memory-driven exploration in 376298a3) no longer reproduces the prior champion. Per confirmed cross-platform score divergence for tank benchmarks (Windows sandbox vs CI Linux), value taken directly from the CI artifact rather than a local re-run. config_hash unchanged (code-behavior change only, not a config change).",
+      "version": 8
+    },
     {
       "score": 9.081249753268745,
       "seed": 42,
