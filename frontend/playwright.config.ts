@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isWindows = process.platform === 'win32';
-const python = isWindows ? '..\\.venv\\Scripts\\python.exe' : '../.venv/bin/python';
+// CI installs the backend into the runner's own interpreter rather than a
+// venv, so it overrides this rather than carrying a fake .venv around.
+const python =
+    process.env.TANK_E2E_PYTHON ??
+    (isWindows ? '..\\.venv\\Scripts\\python.exe' : '../.venv/bin/python');
 
 /**
  * The first browser-level contract for the product surface. It intentionally

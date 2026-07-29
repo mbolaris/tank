@@ -71,14 +71,30 @@ class StatePublisher:
 
         current_frame = runner.world.frame_count
 
-        # 1. Fast path: Return cached frame if we have it
-        if self._cached_state is not None and current_frame == self._cached_state_frame:
-            return self._cached_state
+        # 1. Fast path: Return cached frame if we have it.
+        #
+        # A caller that asked for full state must never be handed a cached
+        # *delta*. Newly connected clients take this path (websocket.py sends
+        # force_full=True, allow_delta=False on connect), and a delta is
+        # meaningless to a client with no prior state: it carries only changed
+        # positions, with no entity types, sizes or render hints. Serving one
+        # left the tank rendered but inert - nothing could be hit-tested or
+        # selected - and only when the connect happened to land on a frame
+        # whose cached payload was a delta, which made it look intermittent.
+        # GET /api/worlds/{id}/snapshot was silently broken the same way.
+        cached = self._cached_state
+        wants_full = force_full or not allow_delta
+        if (
+            cached is not None
+            and current_frame == self._cached_state_frame
+            and not (wants_full and isinstance(cached, DeltaStatePayload))
+        ):
+            return cached
 
         # 2. Throttling: Skip updates if not enough time passed (unless forced or stopped)
         self._frames_since_update += 1
         should_rebuild = (
-            force_full
+            wants_full
             or not runner.running
             or self._frames_since_update >= self.websocket_update_interval
         )
