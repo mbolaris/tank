@@ -82,10 +82,14 @@ class StatePublisher:
         # selected - and only when the connect happened to land on a frame
         # whose cached payload was a delta, which made it look intermittent.
         # GET /api/worlds/{id}/snapshot was silently broken the same way.
-        cache_hit = self._cached_state is not None and current_frame == self._cached_state_frame
+        cached = self._cached_state
         wants_full = force_full or not allow_delta
-        if cache_hit and not (wants_full and isinstance(self._cached_state, DeltaStatePayload)):
-            return self._cached_state
+        if (
+            cached is not None
+            and current_frame == self._cached_state_frame
+            and not (wants_full and isinstance(cached, DeltaStatePayload))
+        ):
+            return cached
 
         # 2. Throttling: Skip updates if not enough time passed (unless forced or stopped)
         self._frames_since_update += 1
