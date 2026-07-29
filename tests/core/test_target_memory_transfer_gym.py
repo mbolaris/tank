@@ -222,12 +222,18 @@ def test_comparison_groups_include_the_disjoint_control(evaluation_42, evaluatio
     """default_params doubles as the disjoint-arm's zero-shot baseline (a
     target_memory that food selection never touched, per the substrate
     board's design) - the group must exist for every seed regardless of
-    whether an adaptation reference was established."""
+    whether an adaptation reference was established.
+
+    ``founders`` is the shared pre-evolution starting point that study_v4
+    added as the baseline for source learning, target learnability, and
+    zero-shot transfer (see ``target_memory_transfer_study.py``); it is
+    required here too."""
     for evaluation in (evaluation_42, evaluation_7):
         assert set(evaluation.group_summaries) == {
             "naive_greedy",
             "default_params",
             "neutral_evolution",
+            "founders",
             "food_trained",
             "ball_trained",
         }
