@@ -2,6 +2,11 @@ name: Evolution Benchmarks
 
 on:
   workflow_dispatch:
+    inputs:
+      rebaseline_tank:
+        description: "Run the tank champion re-baseline job (survival_5k 3-seed matrix + ecosystem_health_10k) and upload raw results as an artifact"
+        type: boolean
+        default: false
   schedule:
     - cron: '0 9 * * *'
 
@@ -77,3 +82,37 @@ jobs:
           path: |
             research/skill_history.jsonl
             skill_report.html
+
+  rebaseline-tank-champions:
+    # Manual-only: this workflow's own bench-gate history shows tank benchmarks
+    # are not bit-identical Windows-vs-Linux, so re-baselining champions/tank/*.json
+    # must use CI's own canonical scores rather than a local run. Dispatch with
+    # rebaseline_tank=true, then pull the "tank-champion-rebaseline" artifact.
+    if: github.event_name == 'workflow_dispatch' && inputs.rebaseline_tank
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -e .
+      - name: Run survival_5k seed matrix
+        run: |
+          python tools/run_bench_matrix.py benchmarks/tank/survival_5k.py \
+            --seeds 42,7,123 --out survival_5k_matrix.json
+      - name: Run ecosystem_health_10k
+        run: |
+          python tools/run_bench.py benchmarks/tank/ecosystem_health_10k.py \
+            --seed 42 --out ecosystem_health_10k_result.json
+      - name: Upload rebaseline results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tank-champion-rebaseline
+          path: |
+            survival_5k_matrix.json
+            ecosystem_health_10k_result.json
+          if-no-files-found: warn
