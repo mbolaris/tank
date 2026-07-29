@@ -15,9 +15,45 @@ only 51.92 -> 51.39 while the ecosystem underneath was failing. Population is a
 *controlled* variable here; energy and death counts are the free ones.
 
 The nightly ``verify-champions`` job did detect it, but that job had already been
-red since 2026-06-22 for unrelated reasons, so a new failure was invisible. This
-test puts the same signal into the ordinary pytest gates, where a green suite is
-the norm and a new failure stands out.
+red since 2026-06-22 for unrelated reasons, so a new failure was invisible.
+
+What this test actually proves (and what it does not)
+-----------------------------------------------------
+This test is ``slow``-marked, so it runs in ``nightly-full``, not in the
+ordinary PR gates. An earlier version of this docstring claimed the latter;
+that was wrong.
+
+More importantly, its discriminating power is far narrower than the headline
+numbers suggest. Extending the same comparison from 3 seeds to 12 (current tree
+vs the pre-revert tree, same platform, identical benchmark and config):
+
+===========  =====================  ==============  ====================
+tree         mean score             valid seeds     mean avg_energy
+===========  =====================  ==============  ====================
+healthy      550.3 +/- 276          10 of 12        10218
+regressed    516.1 +/- 261          10 of 12        9401
+===========  =====================  ==============  ====================
+
+That score difference is t = 0.31 - not significant - and the healthy tree wins
+on only 5 of the 12 seeds. The spectacular 786.6 -> 0.0 collapse on seed 42 is
+the 0.95 starvation validity gate tripping on a knife-edge metric: both trees
+sit near 0.89 starvation with ~0.05 spread, so *both* cross the gate on about 2
+seeds in 12. Seeds 42 and 123 happen to tip on the regressed tree; seeds 2 and
+777 tip on the healthy one.
+
+So this test catches *this* regression on *these three* seeds. It would have
+missed an equivalent regression that did not tip seeds 42 or 123, and it will
+fail on a legitimate future change that nudges them over the gate. Treat a
+failure here as "look at the energy economy", not as proof of a regression, and
+confirm any finding across many more seeds before acting on it. Detecting the
+mean score difference above at conventional significance needs on the order of
+260 seeds; the ~8% avg_energy difference needs roughly 15-20.
+
+The cheap, deterministic half of this guard lives in
+``tests/test_foraging_energy_invariants.py``, which pins the *mechanism* the
+revert established (no energy spent travelling to stale remembered food unless
+already critical) with no simulation and no seed noise, and does run in the
+ordinary PR gates.
 
 Thresholds
 ----------
