@@ -1,8 +1,16 @@
 # Cross-platform benchmark divergence: root cause
 
-**Status:** root cause identified, not yet fixed. Champions must still be
-re-baselined from CI artifacts (see `tools/float_fingerprint.py` and the
-`rebaseline-tank-champions` job in `bench.yml`).
+**Status:** root cause identified. The `gauss`/genetics half is fixed (#914,
+2026-07-29) — `core/deterministic_random.normal` replaces `random.gauss` at
+all 17 call sites in `core/` with a Marsaglia polar-method sampler that uses
+only `random()`, `log()`, and `sqrt()`, all verified bit-identical across
+platforms. The four affected champions were re-baselined from CI's own run in
+the same PR. The `math.cos` half in movement, steering, and
+physics (35 call sites) is **not yet fixed** — see "What remains" below.
+Champions must still be re-baselined from CI artifacts (see
+`tools/float_fingerprint.py` and the `rebaseline-tank-champions` job in
+`bench.yml`), since local runs still diverge for anything that exercises
+those call sites.
 
 ## The symptom
 
@@ -60,13 +68,14 @@ they are the genetics:
 
 So the divergence is not a rounding error that slowly accumulates in the
 physics. **Every genetic mutation draws a number that differs between Windows
-and Linux**, from the first mutation onward. `math.cos` additionally has 34
-call sites in movement and steering. (`math.tan` has none, so that row is
-harmless today.)
+and Linux**, from the first mutation onward. `math.cos` additionally has 35
+call sites in movement, steering, and physics (measured 2026-07-30). `math.tan`
+currently has none, so that row is harmless today — it stays in the
+fingerprint table because a future call site would silently reopen it.
 
-## The fix, and why it is not applied here
+## The fix, applied to the mutation sampler (#914)
 
-The mutation half is cleanly fixable. The Marsaglia polar method samples a
+The mutation half was cleanly fixable. The Marsaglia polar method samples a
 normal deviate using only `random()`, `log()` and `sqrt()` - all three verified
 bit-identical above:
 
@@ -80,14 +89,34 @@ while True:
 return mu + sigma * u * math.sqrt(-2.0 * math.log(s) / s)
 ```
 
-Swapping the mutation sampler to this would make genetics platform-independent
-without touching movement.
+`core/deterministic_random.normal` now implements this and replaces
+`random.gauss` at all 17 call sites in `core/` (the 16 genetics ones plus
+soccer's kick noise, which feeds a champion). `tests/test_deterministic_random.py`
+pins both halves: the sampler is monkeypatched against
+`math.cos`/`sin`/`tan`/`exp`/`pow` so it can never regain a transcendental
+call, and a tree scan fails if `core/` reintroduces `.gauss(`.
 
-**It is deliberately not done in this change, because it consumes a different
-number of RNG draws and therefore moves every benchmark score.** That requires
-re-baselining every champion in one deliberate commit, which is a decision to
-take explicitly rather than as a side effect of a diagnostic. The `math.cos`
-call sites in movement are the harder half and have no equally clean answer.
+This consumed a different number of RNG draws than `gauss` (a rejection loop
+with a ~21.5% reject rate, versus `gauss`'s fixed two draws), so every
+downstream random decision reshuffled and every benchmark score moved. The
+four affected champions were re-baselined from CI's own run
+(`tank/survival_5k`, `tank/ecosystem_health_10k`, `soccer/training_3k`,
+`soccer/training_5k`) in a follow-up commit in the same PR, not from a local
+re-run — consistent with the divergence this fix exists to remove.
+`config_hash` was unchanged for all four: this was code behavior, not
+configuration.
+
+## What remains
+
+The `math.cos` call sites in movement and steering are the harder half and
+have no equally clean answer — `cos` is load-bearing there (rotation, facing
+angles, wave motion), not swappable for an algebraic equivalent the way a
+normal sampler is. There are 35 of them across `core/` (movement, steering,
+soccer physics, foraging, pursuit, petri geometry, interactions). Not all of
+them necessarily cause observable benchmark divergence — the next step is
+determining *which* call sites actually move a benchmark trajectory before
+deciding whether/how to replace them, rather than blanket-replacing all 35
+indiscriminately.
 
 ## Reproducing
 

@@ -131,7 +131,7 @@ The `/observe-sim` and `/study-sim` agent skills drive these tools automatically
 ### Prerequisites
 
 - Python 3.10+
-- Node 20+ (matches the frontend CI environment)
+- Node 22.22.0+ (matches the frontend CI environment)
 
 ### Install
 
