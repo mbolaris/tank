@@ -6,7 +6,7 @@ all 17 call sites in `core/` with a Marsaglia polar-method sampler that uses
 only `random()`, `log()`, and `sqrt()`, all verified bit-identical across
 platforms. The four affected champions were re-baselined from CI's own run in
 the same PR. The `math.cos` half in movement, steering, and
-physics (35 call sites) is **not yet fixed** — see "What remains" below.
+physics (34 call sites) is **not yet fixed** — see "What remains" below.
 Champions must still be re-baselined from CI artifacts (see
 `tools/float_fingerprint.py` and the `rebaseline-tank-champions` job in
 `bench.yml`), since local runs still diverge for anything that exercises
@@ -68,10 +68,11 @@ they are the genetics:
 
 So the divergence is not a rounding error that slowly accumulates in the
 physics. **Every genetic mutation draws a number that differs between Windows
-and Linux**, from the first mutation onward. `math.cos` additionally has 35
-call sites in movement, steering, and physics (measured 2026-07-30). `math.tan`
-currently has none, so that row is harmless today — it stays in the
-fingerprint table because a future call site would silently reopen it.
+and Linux**, from the first mutation onward. `math.cos` additionally has 34
+call sites in movement, steering, and physics (`grep -rn 'math\.cos(' core/`,
+measured 2026-07-30). `math.tan` currently has none, so that row is harmless
+today — it stays in the fingerprint table because a future call site would
+silently reopen it.
 
 ## The fix, applied to the mutation sampler (#914)
 
@@ -111,12 +112,42 @@ configuration.
 The `math.cos` call sites in movement and steering are the harder half and
 have no equally clean answer — `cos` is load-bearing there (rotation, facing
 angles, wave motion), not swappable for an algebraic equivalent the way a
-normal sampler is. There are 35 of them across `core/` (movement, steering,
+normal sampler is. There are 34 of them across `core/` (movement, steering,
 soccer physics, foraging, pursuit, petri geometry, interactions). Not all of
-them necessarily cause observable benchmark divergence — the next step is
-determining *which* call sites actually move a benchmark trajectory before
-deciding whether/how to replace them, rather than blanket-replacing all 35
-indiscriminately.
+them necessarily cause observable benchmark divergence, so `tools/audit_cos_call_sites.py`
+(2026-07-31) answers the question directly instead of guessing: for each call
+site, does it ever execute during a real run of each benchmark (AST-located
+call sites, `math.cos` monkeypatched with a frame-inspecting wrapper), and if
+so, does perturbing its return value by 1e-9 relative (far larger than a
+real last-ulp difference of ~1e-16, so a call site insensitive at 1e-9 is
+certainly insensitive at 1e-16) change that benchmark's final score.
+
+**Results, run against 8 benchmarks (seed 42, one platform):**
+
+| Tier | Call sites | Where | Reachability |
+| --- | --- | --- | --- |
+| 1 — CI-gated, confirmed sensitive | 8 | `behavior/primitives/steering.py` (3: `wander_step`, `circling_target`, `blend_patrol_steering`), `movement_strategy.py` (1), `tank_interactions.py` (2, tank-object rotation), `minigames/soccer/engine.py` (2, kick physics) | Reached by `tank/survival_5k`, `tank/ecosystem_health_10k`, and/or `soccer/training_5k` \| `ladder_5k` — the benchmarks CI verify-determinism-gates or champion-tracks. Perturbing any of them changed every one of those four benchmarks' final score. |
+| 2 — reached, not CI-gated | 19 | `pursuit/transfer_gym.py` (15), `behavior/target_memory_transfer_scenarios.py` (3), `foraging/gym.py` (1 — plus that benchmark also reuses tier-1's `wander_step`) | Reached only by `tank/pursuit_transfer`, `tank/target_memory_transfer`, `tank/foraging_gym` — real research benchmarks, but none of the three is in `bench.yml`'s `--verify-determinism` set or has a `champions/` entry, so their `cos` usage doesn't currently block CI or a champion re-baseline. |
+| 3 — unreached by any benchmark | 7 | `algorithms/food_seeking/cooperative.py`, `algorithms/food_seeking/opportunistic.py`, `entities/predators.py` (2), `worlds/petri/dish.py` (2), `worlds/petri/geometry.py` (1) | `CooperativeForager`/`OpportunisticFeeder` are two of the three surviving food-seeking algorithms (`core/algorithms/registry.py::ALL_ALGORITHMS`) but are comparison candidates for `tools/benchmark_algorithms.py`, not the genome's default `ComposableBehavior` — no CI job runs that tool. `Predator._update_petri_orbit` and both petri files are petri-world-only, and no benchmark in `benchmarks/` exercises petri at all. |
+
+`poker/ladder_20k` never touches `math.cos` (zero hits) — confirms the
+existing "poker rulers unaffected" claim from #914 empirically rather than by
+inspection.
+
+**Conclusion:** cross-machine reproducibility of the two benchmarks CI
+actually gates and re-baselines (`tank/survival_5k`, `tank/ecosystem_health_10k`)
+depends on exactly 6 of the 34 sites (steering's 3 + `movement_strategy.py`'s
+1 + `tank_interactions.py`'s 2); soccer's `training_5k`/`ladder_5k` depend on
+2 more (`minigames/soccer/engine.py`). Fixing those 8 would close the
+remaining gap for every currently CI-gated benchmark without touching the
+other 26 sites, which either serve non-gated research benchmarks (tier 2 —
+worth revisiting if/when those benchmarks get champion-tracked, not before)
+or are provably unreached today (tier 3). None of the 8 has a clean
+algebraic substitute the way `gauss` did — an actual fix would mean a
+portable correctly-rounded `cos` (expensive) or accepting these as the
+permanent re-baseline-from-CI boundary and documenting it as such. That
+decision is unmade; this investigation's job was narrowing the scope, not
+picking the fix.
 
 ## Reproducing
 
