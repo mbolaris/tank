@@ -37,7 +37,6 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **7.3** — split `NetworkDashboard.tsx`, the last ~1,000-line frontend file.
 - **8.1** — the ranking/leaderboard half is shipped (#912); the remaining
   `repro_reward_mode="credits"` semantics decision needs a maintainer call.
 - **1.0** — cross-machine determinism: the genetics mutation path is fixed
@@ -46,6 +45,16 @@ it has drifted. See the closing rule at the bottom of this file.
   CI-gated benchmarks (see `docs/CROSS_PLATFORM_DIVERGENCE.md`), but 1.0's
   own CI-run-to-run instability (a separate, unresolved problem) is still the
   higher-priority open half.
+
+**Note the shape of that list.** With **7.3**, **7.4**, and **7.6** all
+shipped, what remains here is one item blocked on a maintainer product
+decision and one genuinely hard open research problem — there is no longer a
+queue of pick-up-and-go infrastructure work. That is the state review #5
+(2026-07-30) predicted and prescribed for: *"stop infrastructure work for a
+while and run the research campaign."* An agent arriving here looking for the
+next task should read that as the instruction it is, and go produce a
+documented sequence of attempted ecosystem improvements — **including the
+failures** — rather than searching this file for another refactor.
 
 (**7.4** and **7.6**, the Playwright CI gate and the Node runtime pin, shipped
 in #911 on 2026-07-29.)
@@ -487,9 +496,10 @@ halves of that judgement have moved since — re-measured 2026-07-26 after the
 renderer de-duplication landed: **32,789 total lines** across **173
 `.ts`/`.tsx` files**, with **30 test files**. So test coverage roughly doubled
 since the first review *and* the surface grew; the ratio is about where it was.
-The renderers, the trends tab, and the plant drawing library are all split
-(see **7.3**/**7.5**); the one remaining near-1,000-line file is
-`NetworkDashboard.tsx` (996 lines, re-measured 2026-07-28).
+The renderers, the trends tab, the plant drawing library, and (2026-07-31)
+`NetworkDashboard.tsx` are all split (see **7.3**/**7.5**); no frontend file
+is near 1,000 lines any more. The largest are now `types/simulation.ts` (901,
+a type declaration file) and `utils/renderer.ts` (807).
 
 **Review #3 escalated this theme, and its argument is the one to act on.** It
 judged that "the frontend is clearly behind the backend" and — importantly —
@@ -531,7 +541,7 @@ models, remains available if hand-written types become a maintenance burden.
 *(7.2 shipped — deltas now emit only changed entities, with wire telemetry to
 prove it. See the Shipped section.)*
 
-### 7.3 Split the 1,000+ line renderers — `M` · ★★ — ONLY NetworkDashboard.tsx LEFT (2026-07-27)
+### 7.3 Split the 1,000+ line renderers — `M` · ★★ — SHIPPED (2026-07-31)
 Re-measured 2026-07-27 (`wc -l`) after splitting the two files this entry had
 flagged as "open" (neither is canvas work, so neither used `renderers/shared/`
 from **7.5** — each got its own facade):
@@ -545,7 +555,7 @@ from **7.5** — each got its own facade):
 | `frontend/src/components/EvolutionBenchmarkDisplay.tsx` | 1,203 | 304 | 304 — *split, done* |
 | `frontend/src/components/tank_tabs/TankTrendsTab.tsx` | — | 1,203 | **700** — *split, off the ratchet at 1,203, re-pinned at 700* |
 | `frontend/src/utils/plants/renderers.ts` | — | 1,042 | **10** — *done, off the ratchet entirely* |
-| `frontend/src/pages/NetworkDashboard.tsx` | — | 996 | **996** (pinned at 1,046) — open |
+| `frontend/src/pages/NetworkDashboard.tsx` | — | 996 | **278** — *done, off the ratchet entirely* |
 
 `TankTrendsTab.tsx` split into `trendUtils.ts` (pure aggregation:
 `buildTrendPoints`, `calculateTrend`, trait/threshold constants — 217 lines)
@@ -574,11 +584,31 @@ extraction). Pure code motion: no JSX, styling, or computation changed, only
 which file it lives in. **Layer 2**: frontend only, no simulation behavior, no
 champion touched.
 
-**What's left:** `NetworkDashboard.tsx` measures 996 against a
-`LEGACY_MAX_LINES` pin of 1,046 — it has *shrunk* 50 lines since it was
-pinned (re-verified 2026-07-28). The ratchet permits that slack silently. If
-you touch this file, re-pin it down to its actual size in the same PR so the
-ceiling keeps ratcheting.
+**`NetworkDashboard.tsx`, the last one (2026-07-31).** 996 → **278**, and off
+`LEGACY_MAX_LINES` entirely. Split into `pages/network/`: `TankCard.tsx` (331 —
+one tank's card, owning its own snapshot polling and pause/fast-forward
+commands), `ServerCard.tsx` (166 — one server's header plus its tank grid),
+`CreateTankForm.tsx` (152), `MiniPerformanceChart.tsx` (124 — the pure poker
+SVG chart), and `types.ts` (15 — the two shared auto-eval player aliases). The
+page shell keeps server fetching, create/delete, and the loading/error/empty
+states.
+
+The seams were not invented for this split: the existing CSS module's class
+names already partitioned along exactly these lines (`server*` on one side,
+`tank*` on the other, page-shell classes on a third), which is what made four
+files the natural answer rather than an arbitrary count. Form field state
+deliberately stayed in the page rather than moving into `CreateTankForm` —
+the form is conditionally rendered, so owning it locally would silently
+discard a half-typed name on cancel-and-reopen. That behavior was verified in
+the running UI after the split (typed a name, cancelled, reopened, confirmed
+the value survived), along with the server card, tank card, and form all
+rendering against live data.
+
+Verified with `npm run build` (clean), `npx vitest run` (30 files / 160 tests,
+unchanged), `npm run lint` (clean), and `pytest tests/test_god_class_limits.py`
+(both tests, including the `test_legacy_list_is_current` harvest check that
+*requires* removing the pin once a file drops under 500). Pure code motion —
+no JSX, styling, or computation changed.
 
 **Review #4 (2026-07-28) promoted this remainder to its path-to-95 list**,
 naming `NetworkDashboard.tsx` "the final nearly 1,000-line frontend
