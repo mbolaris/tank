@@ -14,13 +14,17 @@ use and a better example of software design.
 high-impact, low-effort items. When you complete one, move it to the
 "Shipped" section at the bottom with the PR link.
 
-**Last audited against the tree: 2026-07-28** (external review #4 pass — every
-number that review cited was re-measured before being written in; all of them
-checked out. Its findings became **7.6** and the sharpened acceptance bars in
-**7.4** and **8.1**; its verdicts updated **1.0**, **6.2**, **7.3**, and
-**9.3**. Prior pass 2026-07-26, review #3 — its stale entries were corrected
-in **2.6** and **7.3**, and its findings became **7.4**, **7.5**, **9.3**,
-plus additions to **1.0** and **10.6**.)
+**Last audited against the tree: 2026-07-30** (external review #5 pass —
+scored the snapshot 95/100 and flagged that this document's own status
+entries had drifted; **7.4**, **7.6**, and the leaderboard/ranking half of
+**8.1** were marked open after they had already shipped in #911/#912, and are
+now corrected. Prior pass 2026-07-28, review #4 — every number that review
+cited was re-measured before being written in; all of them checked out. Its
+findings became **7.6** and the sharpened acceptance bars in **7.4** and
+**8.1**; its verdicts updated **1.0**, **6.2**, **7.3**, and **9.3**. Prior
+pass 2026-07-26, review #3 — its stale entries were corrected in **2.6** and
+**7.3**, and its findings became **7.4**, **7.5**, **9.3**, plus additions to
+**1.0** and **10.6**.)
 
 **Prior audit, 2026-07-25.** That audit found eight proposals
 still written as open work whose implementations were already merged (1.4, 1.6,
@@ -33,11 +37,15 @@ it has drifted. See the closing rule at the bottom of this file.
 
 **Best current starter picks:**
 
-- **7.6** — pin Node 22.22+ in `frontend-ci` and add `engines.node`; a
-  one-file `S` fix for CI running an explicitly unsupported runtime.
-- **7.4** — extend the Playwright path (place an object, drop/restore the
-  WebSocket, verify persistence) and wire `npm run test:e2e` into CI.
 - **7.3** — split `NetworkDashboard.tsx`, the last ~1,000-line frontend file.
+- **8.1** — the ranking/leaderboard half is shipped (#912); the remaining
+  `repro_reward_mode="credits"` semantics decision needs a maintainer call.
+- **1.0** — cross-machine determinism: the genetics mutation path is fixed
+  (polar-method `gauss`, #914), but 35 `math.cos` call sites remain in
+  `core/` movement, steering, and physics code of unverified impact.
+
+(**7.4** and **7.6**, the Playwright CI gate and the Node runtime pin, shipped
+in #911 on 2026-07-29.)
 
 **Explicitly deprioritized:** review #4's closing advice — "do not spend the
 next several PRs only retiring more `Any` annotations. That cleanup is healthy
@@ -123,6 +131,23 @@ and are usually proven by the normal docs/tooling gates. Follow the recipe in
 > section above: `Any` retirement (**6.2**) has hit diminishing returns.
 > Verdict: "93 is deserved. A credible 95 is close, but the unfinished items
 > are substantive — not cosmetic."
+
+> **A fifth external review (2026-07-30) scored the snapshot 95/100** — up
+> from 93. It confirmed **7.4** and **7.6** shipped (testing & CI moved
+> 19/20 → **20/20**) and the **8.1** leaderboard/ranking half shipped
+> (correctness/reproducibility 16/20 → **17/20**); architecture 18/20,
+> maintainability 17/20, and research rigor 13/15 held; product/docs/security
+> held at 10/15. Its stopping point: the polar-method `gauss` fix (**1.0**,
+> shipped as #914) removed the worst source of cross-machine divergence but
+> not the whole property — it counted 35 remaining `math.cos` call
+> sites in `core/` of unverified impact — and it found this document itself
+> had drifted (7.4/7.6 marked open after shipping, the Node version
+> mismatched between README/CI/package.json, this file's own status stale).
+> Its named path to 95→97: finish the cross-machine `math.cos` investigation
+> (**1.0**) rather than blanket-replacing every call site, split
+> `NetworkDashboard.tsx` (**7.3**), and — its strongest instruction —
+> **stop adding infrastructure and run a research campaign** with the
+> platform that already exists, documenting both wins and failures.
 
 ---
 
@@ -551,7 +576,7 @@ collaborators behind a thin facade, verified by `npm run build` + existing
 tests. Split only where the responsibility boundary is clear — no abstraction
 for elegance. **Layer 2.**
 
-### 7.4 One real end-to-end browser path — `M` · ★★★ — PARTLY SHIPPED (2026-07-26)
+### 7.4 One real end-to-end browser path — `M` · ★★★ — SHIPPED (2026-07-29, #911)
 Step 2 of review #3's path to 95. The first real Chromium path now lives in
 `frontend/e2e/tank-flow.spec.ts`, driven by `frontend/playwright.config.ts` and
 run with `npm run test:e2e`. It starts the real backend and Vite app, waits for
@@ -582,6 +607,17 @@ verified from live world state, a deliberate WebSocket drop/restore, persisted
 state checked after reconnect, and the suite wired into `frontend-ci`. Items
 2 and 3 are worth having but are not what the review is withholding the point
 over.
+
+**Done, #911 (2026-07-29).** `frontend/e2e/tank-flow.spec.ts` now clicks the
+canvas to actually place the Algae Reef, confirms it reached backend world
+state over a throwaway WebSocket, does a full page reload (new document, new
+WebSocket) to verify the object survived, and re-selects it through the UI —
+covering items 1, 4, and 5. `frontend-ci` runs `npm run test:e2e`
+(`.github/workflows/ci.yml:226`), closing item 6. Writing the test also
+surfaced two real bugs, fixed in the same PR: new clients could receive a
+cached delta instead of full state, and object placement while paused was
+silently dropped. Items 2 (interact with a fish) and 3 (switch worlds/views)
+remain open but are not blocking, per the note above.
 
 **Scope (deliberately one path, not a suite).** The review's proposed
 scenario is a good one because it crosses every seam at once: launch a world →
@@ -636,7 +672,7 @@ Verified by `renderers/topDownRenderTrace.test.ts`, which pins the full canvas
 op trace of a fixture world; see the Shipped section for the three reviewed
 deltas. **Layer 2.**
 
-### 7.6 Frontend CI runs an unsupported Node runtime — `S` · ★★
+### 7.6 Frontend CI runs an unsupported Node runtime — `S` · ★★ — SHIPPED (2026-07-30)
 **Found by review #4 (2026-07-28), verified against the tree the same day.**
 The lockfile's `react-router` 8.3.0 entry declares `engines: { node:
 ">=22.22.0" }`, but both frontend workflow jobs pin `node-version: '20'`
@@ -663,11 +699,16 @@ Review #4 suggested folding this into "the same frontend-infrastructure pass"
 as **7.4**'s CI wiring; that pairing is sensible if one PR stays reviewable.
 **Layer 2** — no simulation behavior, no champion touched.
 
+**Done.** #911 (2026-07-29) bumped both `node-version` pins in `ci.yml` to
+`'22.22.0'` (items 1). This doc-consistency pass (2026-07-30) added
+`"engines": { "node": ">=22.22.0" }` to `frontend/package.json` (item 2) and
+updated the Node requirement in the README quick-start (item 3).
+
 ---
 
 ## Theme 8 — Product-facing meaning (external review, 2026-07)
 
-### 8.1 Decide soccer reward semantics; bury repro-credit bookkeeping — `M` · ★★★
+### 8.1 Decide soccer reward semantics; bury repro-credit bookkeeping — `M` · ★★★ — PARTLY SHIPPED (2026-07-29, #912)
 **Problem.** The encapsulation half of this review item is shipped: soccer
 reward code now uses the public `reproduction_component` accessor. The
 remaining smell is semantic: "repro credit" is internal simulation bookkeeping
@@ -699,15 +740,15 @@ verified against the tree 2026-07-28:
    clean, explicitly chosen formula, written down next to `_sort_key`, is the
    deliverable — not necessarily a different one.
 
+**Done, #912 (2026-07-29).** Both `S` items are shipped: `MinigameLeaders.tsx`
+no longer appends an `offspring` suffix to either panel, and
+`SoccerFishStatsTracker._sort_key` (`core/minigames/soccer/fish_stats.py:135`)
+now ranks by the single published `contribution_score` (goal 3.0 > assist 2.0
+> win 1.5 > draw 0.5, energy heavily discounted), replacing the old
+lexicographic tuple where `wins` was an almost-never-reached tiebreaker. The
+rationale is recorded in a docstring on `_sort_key`.
+
 **Remaining plan.**
-- *Leaderboard cleanup (S):* drop the `offspring` suffix from both panels in
-  `MinigameLeaders.tsx` (and stop shipping `offspring_count` in the
-  leaderboard payloads if nothing else consumes it). This half needs no
-  maintainer decision — the product direction is already stated.
-- *Ranking formula (S):* decide one soccer sort order deliberately (e.g.
-  promote wins above net energy, or fold goals/assists/wins into a single
-  points figure) and record the rationale in a comment on `_sort_key`. This
-  is a visible product decision — **confirm with a maintainer**.
 - *Semantics (M):* if repro-credit isn't a concept the project wants to keep,
   remove the `repro_reward_mode="credits"` path decisively rather than hiding it
   from the UI. Reconcile the public docs/API at the same time: backend command

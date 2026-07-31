@@ -158,9 +158,14 @@ def test_wins_count_toward_rank_rather_than_only_breaking_ties():
     ), "the win should move the score by its full weight, not a rounding error"
 
 
-def test_matches_played_tie_breaker():
+def test_equal_contribution_score_ties_break_on_fish_id():
+    """Matches played is not a ranking input (see `_sort_key`'s docstring), so
+    two fish with identical goals/assists/wins/draws/net_energy land at an
+    exact `contribution_score` tie regardless of how many matches each played.
+    The tracker breaks that tie on `fish_id` for determinism.
+    """
     tracker = SoccerFishStatsTracker()
-    # Fish 1: 1 goal, +10 energy, 0 wins, 2 matches
+    # Fish 1: 1 goal, +10 energy, 0 wins, across 2 matches.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -179,7 +184,9 @@ def test_matches_played_tie_breaker():
             teams={"right": [1]},
         )
     )
-    # Fish 2: 1 goal, +10 energy, 0 wins, 1 match
+    # Fish 2: 1 goal, +10 energy, 0 wins, in a single match - same totals as
+    # fish 1, so contribution_score ties exactly despite the different match
+    # counts.
     tracker.record(
         _outcome(
             winner_team="left",
@@ -191,6 +198,7 @@ def test_matches_played_tie_breaker():
     )
 
     leaders = tracker.leaders(10)
+    assert leaders[0]["contribution_score"] == leaders[1]["contribution_score"]
     assert leaders[0]["fish_id"] == 1
     assert leaders[1]["fish_id"] == 2
 
