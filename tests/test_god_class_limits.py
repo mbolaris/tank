@@ -72,7 +72,6 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "frontend/src/components/TankView.tsx": 671,
     "frontend/src/components/tank_tabs/TankPokerTab.tsx": 532,
     "frontend/src/components/tank_tabs/TankTrendsTab.tsx": 700,
-    "frontend/src/pages/NetworkDashboard.tsx": 1046,
     "frontend/src/renderers/petri/PetriTopDownRenderer.ts": 569,
     "frontend/src/types/simulation.ts": 901,
     "frontend/src/utils/plants/nectar.ts": 616,
