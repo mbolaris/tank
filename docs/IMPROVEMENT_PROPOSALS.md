@@ -41,8 +41,11 @@ it has drifted. See the closing rule at the bottom of this file.
 - **8.1** — the ranking/leaderboard half is shipped (#912); the remaining
   `repro_reward_mode="credits"` semantics decision needs a maintainer call.
 - **1.0** — cross-machine determinism: the genetics mutation path is fixed
-  (polar-method `gauss`, #914), but 35 `math.cos` call sites remain in
-  `core/` movement, steering, and physics code of unverified impact.
+  (polar-method `gauss`, #914). A 2026-07-31 investigation narrowed the
+  remaining 34 `math.cos` call sites to 8 confirmed score-sensitive ones on
+  CI-gated benchmarks (see `docs/CROSS_PLATFORM_DIVERGENCE.md`), but 1.0's
+  own CI-run-to-run instability (a separate, unresolved problem) is still the
+  higher-priority open half.
 
 (**7.4** and **7.6**, the Playwright CI gate and the Node runtime pin, shipped
 in #911 on 2026-07-29.)
@@ -139,7 +142,7 @@ and are usually proven by the normal docs/tooling gates. Follow the recipe in
 > maintainability 17/20, and research rigor 13/15 held; product/docs/security
 > held at 10/15. Its stopping point: the polar-method `gauss` fix (**1.0**,
 > shipped as #914) removed the worst source of cross-machine divergence but
-> not the whole property — it counted 35 remaining `math.cos` call
+> not the whole property — it counted ~35 remaining `math.cos` call
 > sites in `core/` of unverified impact — and it found this document itself
 > had drifted (7.4/7.6 marked open after shipping, the Node version
 > mismatched between README/CI/package.json, this file's own status stale).
@@ -259,6 +262,20 @@ evolutionary trajectories amplify tiny differences." Nothing about the plan
 changes — the instrumentation credit is banked; the remaining work is running
 the comparison and closing the gaps (*phase*, *RNG stream*, *state field*)
 the instrumentation does not yet identify.
+
+**Related but distinct: Windows-vs-Linux divergence is understood, not this
+item's CI-run-to-run instability.** `docs/CROSS_PLATFORM_DIVERGENCE.md`
+(#913, 2026-07-29) found and #914 partly fixed a *different* determinism gap —
+`math.cos`/`math.tan` disagree in the last ulp between Windows and CI's Linux,
+which made every genetic mutation platform-dependent via `random.gauss`
+(fixed). A 2026-07-31 follow-up investigation (`tools/audit_cos_call_sites.py`)
+narrowed the remaining 34 `math.cos` call sites to exactly 8 that are reached
+by CI-gated benchmarks (`tank/survival_5k`/`ecosystem_health_10k`,
+`soccer/training_5k`/`ladder_5k`) and confirmed all 8 are score-sensitive; the
+other 26 are either unreached by any benchmark or only reached by non-gated
+research gyms. See that doc's "What remains" section for the full breakdown.
+None of that explains *this* item's CI-to-CI (same platform, same code)
+instability, which is a separate open investigation.
 
 *(1.4 multi-seed agent validation and 1.6 smoke-gate dependency diagnostics both
 shipped — see the Shipped section. 1.0 is the only open Theme 1 item.)*
