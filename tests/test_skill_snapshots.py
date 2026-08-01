@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from core.skill.ladder import RungResult, SkillLadderSummary
 from core.skill.snapshots import SkillSnapshot, SkillSnapshotStore
 
@@ -102,6 +104,34 @@ def test_tank_best_tracking() -> None:
         )
     )
     assert store.tank_best == 50.0
+
+
+def test_snapshot_capacity_is_per_domain() -> None:
+    """Poker history must not evict the soccer history from S1."""
+    store = SkillSnapshotStore(MAX_SNAPSHOTS=2)
+
+    for domain in ("soccer", "poker"):
+        for i in range(3):
+            summary = replace(_make_dummy_summary(float(i)), domain=domain)
+            store.add_snapshot(
+                SkillSnapshot(
+                    domain=domain,
+                    generation=i,
+                    frame=i,
+                    subject_fish_ids=[i + 1],
+                    subject_lineage_ids=[str(i)],
+                    summary=summary,
+                    previous_score=None,
+                    personal_best=float(i),
+                    tank_best=float(i),
+                    sample_size=1,
+                )
+            )
+
+    assert len(store.get_snapshots(domain="soccer")) == 2
+    assert len(store.get_snapshots(domain="poker")) == 2
+    assert store.get_tank_best("soccer") == 2.0
+    assert store.get_tank_best("poker") == 2.0
 
 
 def test_personal_best_tracking() -> None:

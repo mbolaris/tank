@@ -74,7 +74,6 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/plant/energy_component.py": 5,
     "core/plant/migration_component.py": 6,
     "core/plant_manager.py": 8,
-    "core/poker/evaluation/periodic_benchmark.py": 3,
     "core/poker/integration/poker_interaction.py": 9,
     "core/poker/integration/poker_rewards.py": 5,
     "core/poker/integration/poker_system.py": 13,

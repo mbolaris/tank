@@ -1,6 +1,6 @@
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { SoccerSkillProgress } from './SoccerSkillProgress';
+import { PokerSkillProgress, SoccerSkillProgress } from './SoccerSkillProgress';
 import { getRungHumanName } from '../utils/rungMapping';
 
 
@@ -24,5 +24,14 @@ describe('SoccerSkillProgress', () => {
 
         expect(html).toContain('Soccer Progress');
         expect(html).toContain('Awaiting first ladder evaluation');
+    });
+});
+
+describe('PokerSkillProgress', () => {
+    it('renders the poker ladder empty state independently', () => {
+        const html = renderToString(<PokerSkillProgress worldId="default" />);
+
+        expect(html).toContain('Poker Progress');
+        expect(html).toContain('Awaiting first poker ladder evaluation');
     });
 });

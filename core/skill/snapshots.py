@@ -78,6 +78,7 @@ class SkillSnapshotStore:
 
     _snapshots: list[SkillSnapshot] = field(default_factory=list)
     _tank_best: float = 0.0
+    _tank_bests: dict[str, float] = field(default_factory=dict)
     _personal_bests: dict[str, float] = field(default_factory=dict)
 
     @property
@@ -92,19 +93,30 @@ class SkillSnapshotStore:
         # Update tank best
         if score > self._tank_best:
             self._tank_best = score
+        if score > self._tank_bests.get(snapshot.domain, 0.0):
+            self._tank_bests[snapshot.domain] = score
 
         # Update team personal best
         team_key = ",".join(str(i) for i in sorted(snapshot.subject_fish_ids))
         if team_key:
-            current_pb = self._personal_bests.get(team_key, 0.0)
+            domain_key = f"{snapshot.domain}:{team_key}"
+            current_pb = self._personal_bests.get(
+                domain_key, self._personal_bests.get(team_key, 0.0)
+            )
             if score > current_pb:
-                self._personal_bests[team_key] = score
+                self._personal_bests[domain_key] = score
 
         self._snapshots.append(snapshot)
 
-        # Enforce max capacity
-        if len(self._snapshots) > self.MAX_SNAPSHOTS:
-            self._snapshots = self._snapshots[-self.MAX_SNAPSHOTS :]
+        # Enforce the cap independently for each domain. Older S1 stores used
+        # one global list; retaining the same list keeps their JSON readable,
+        # while pruning by domain prevents poker from evicting soccer history.
+        for domain in {s.domain for s in self._snapshots}:
+            domain_snapshots = [s for s in self._snapshots if s.domain == domain]
+            if len(domain_snapshots) <= self.MAX_SNAPSHOTS:
+                continue
+            keep = {id(s) for s in domain_snapshots[-self.MAX_SNAPSHOTS :]}
+            self._snapshots = [s for s in self._snapshots if s.domain != domain or id(s) in keep]
 
     def get_snapshots(
         self, limit: int | None = None, domain: str | None = None
@@ -122,16 +134,48 @@ class SkillSnapshotStore:
         matches = self.get_snapshots(domain=domain)
         return matches[-1] if matches else None
 
-    def get_personal_best_for_team(self, subject_fish_ids: list[int]) -> float:
-        """Return personal best score recorded for a subject fish set."""
+    def get_personal_best_for_team(
+        self, subject_fish_ids: list[int], domain: str | None = None
+    ) -> float:
+        """Return personal best score recorded for a subject fish set.
+
+        The optional domain keeps poker and soccer scores independent. The
+        legacy no-domain lookup remains compatible with S1 callers and old
+        persisted ``personal_bests`` keys.
+        """
+        return self.get_personal_best(subject_fish_ids, domain=domain)
+
+    def get_personal_best(self, subject_fish_ids: list[int], domain: str | None = None) -> float:
+        """Return a personal best, optionally restricted to one domain."""
         team_key = ",".join(str(i) for i in sorted(subject_fish_ids))
-        return self._personal_bests.get(team_key, 0.0)
+        if not team_key:
+            return 0.0
+        if domain is not None:
+            return self._personal_bests.get(
+                f"{domain}:{team_key}", self._personal_bests.get(team_key, 0.0)
+            )
+
+        legacy = self._personal_bests.get(team_key)
+        if legacy is not None:
+            return legacy
+        prefix = ":" + team_key
+        return max(
+            (value for key, value in self._personal_bests.items() if key.endswith(prefix)),
+            default=0.0,
+        )
+
+    def get_tank_best(self, domain: str | None = None) -> float:
+        """Return the all-time tank best for one domain or for the whole tank."""
+        if domain is None:
+            return self._tank_best
+        return self._tank_bests.get(domain, 0.0)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize snapshot store for world persistence."""
         return {
             "max_snapshots": self.MAX_SNAPSHOTS,
             "tank_best": self._tank_best,
+            "tank_bests": dict(self._tank_bests),
             "personal_bests": dict(self._personal_bests),
             "snapshots": [s.to_dict() for s in self._snapshots],
         }
@@ -142,11 +186,27 @@ class SkillSnapshotStore:
             return
         self.MAX_SNAPSHOTS = int(data.get("max_snapshots", self.MAX_SNAPSHOTS))
         self._tank_best = float(data.get("tank_best", 0.0))
+        raw_tank_bests = data.get("tank_bests", {})
+        self._tank_bests = (
+            {str(k): float(v) for k, v in raw_tank_bests.items()}
+            if isinstance(raw_tank_bests, dict)
+            else {}
+        )
         self._personal_bests = {str(k): float(v) for k, v in data.get("personal_bests", {}).items()}
         raw_snapshots = data.get("snapshots", [])
         self._snapshots = [SkillSnapshot.from_dict(s) for s in raw_snapshots if isinstance(s, dict)]
-        if len(self._snapshots) > self.MAX_SNAPSHOTS:
-            self._snapshots = self._snapshots[-self.MAX_SNAPSHOTS :]
+        if not self._tank_bests:
+            for snapshot in self._snapshots:
+                self._tank_bests[snapshot.domain] = max(
+                    self._tank_bests.get(snapshot.domain, 0.0), snapshot.summary.skill_index
+                )
+        for domain in {s.domain for s in self._snapshots}:
+            domain_snapshots = [s for s in self._snapshots if s.domain == domain]
+            if len(domain_snapshots) > self.MAX_SNAPSHOTS:
+                keep = {id(s) for s in domain_snapshots[-self.MAX_SNAPSHOTS :]}
+                self._snapshots = [
+                    s for s in self._snapshots if s.domain != domain or id(s) in keep
+                ]
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SkillSnapshotStore:

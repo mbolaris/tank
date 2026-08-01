@@ -161,14 +161,21 @@ def setup_router(
             )
 
         snapshots = store.get_snapshots(limit=limit, domain=domain)
-        latest_diff = getattr(evaluator, "latest_baseline_score_diff", None) if evaluator else None
+        latest_diff = (
+            getattr(evaluator, "latest_baseline_score_diff", None)
+            if evaluator and (domain is None or domain == "soccer")
+            else None
+        )
+        tank_best = (
+            store.get_tank_best(domain) if hasattr(store, "get_tank_best") else store.tank_best
+        )
 
         return JSONResponse(
             {
                 "schema_version": SCHEMA_VERSION,
                 "world_id": resolved_world_id,
                 "count": len(snapshots),
-                "tank_best": store.tank_best,
+                "tank_best": tank_best,
                 "latest_baseline_score_diff": latest_diff,
                 "snapshots": [s.to_dict() for s in snapshots],
             }

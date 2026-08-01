@@ -448,7 +448,7 @@ export function TankPokerTab({
                 </div>
 
                 {/* Standings under the table: the tank's best poker players */}
-                <PokerLeaders leaders={pokerLeaderboard} />
+                <PokerLeaders leaders={pokerLeaderboard} worldId={worldId} />
             </div>
 
             {/* Evolution Benchmark */}
