@@ -19,9 +19,17 @@ export interface TreeNodeData {
         Gen: number;
         IsAlive: boolean;
         Tank?: string;
+        /** Present on collapsed-chain summary nodes */
+        IsCollapsedChain?: boolean;
+        /** Number of hidden generations in this collapsed chain */
+        ChainLength?: number;
+        /** Human-readable generation range, e.g. "Gen 3→12" */
+        GenRange?: string;
     };
     nodeColor: string;
     children: TreeNodeData[];
+    /** react-d3-tree internal state for pre-collapsing nodes */
+    __rd3t?: { collapsed: boolean };
 }
 
 const ROOT_NODE_ID = 'root';
@@ -32,36 +40,52 @@ export interface LineageTransformResult {
 }
 
 /**
- * Recursively remove dead fish that have no children (dead-end branches).
+ * Remove dead fish that have no children (dead-end branches).
  * This prunes the tree to only show lineages that have living descendants or contributed to them.
+ * Uses iterative post-order traversal to avoid stack overflow on deep trees.
  */
-const pruneDeadLeaves = (node: TreeNodeData, isRoot: boolean = false): TreeNodeData | null => {
-    // Recursively prune children first
-    if (node.children && node.children.length > 0) {
-        const prunedChildren = node.children
-            .map(child => pruneDeadLeaves(child, false))
-            .filter((child): child is TreeNodeData => child !== null);
+const pruneDeadLeaves = (root: TreeNodeData, isRoot: boolean = false): TreeNodeData | null => {
+    // Build post-order traversal list using a stack
+    const stack: { node: TreeNodeData; isRoot: boolean }[] = [{ node: root, isRoot }];
+    const postOrder: { node: TreeNodeData; isRoot: boolean }[] = [];
 
-        node.children = prunedChildren;
+    while (stack.length > 0) {
+        const entry = stack.pop()!;
+        postOrder.push(entry);
+        if (entry.node.children) {
+            for (const child of entry.node.children) {
+                stack.push({ node: child, isRoot: false });
+            }
+        }
     }
 
-    // Keep root node always
-    if (isRoot) {
-        return node;
+    // Track which nodes should be pruned (removed)
+    const pruned = new Set<TreeNodeData>();
+
+    // Process bottom-up
+    for (let i = postOrder.length - 1; i >= 0; i--) {
+        const { node, isRoot: nodeIsRoot } = postOrder[i];
+
+        // Filter children: remove any that were pruned
+        if (node.children && node.children.length > 0) {
+            node.children = node.children.filter(child => !pruned.has(child));
+        }
+
+        // Keep root node always
+        if (nodeIsRoot) continue;
+
+        // Keep alive fish
+        if (node.attributes.IsAlive) continue;
+
+        // Keep dead fish that have children (they contributed to the lineage)
+        if (node.children && node.children.length > 0) continue;
+
+        // Mark dead fish with no children for removal (dead-end branches)
+        pruned.add(node);
     }
 
-    // Keep alive fish
-    if (node.attributes.IsAlive) {
-        return node;
-    }
-
-    // Keep dead fish that have children (they contributed to the lineage)
-    if (node.children && node.children.length > 0) {
-        return node;
-    }
-
-    // Remove dead fish with no children (dead-end branches)
-    return null;
+    // If root itself was pruned (shouldn't happen since we always keep root)
+    return pruned.has(root) ? null : root;
 };
 
 export const transformLineageData = (flatData: FishRecord[]): LineageTransformResult => {
@@ -137,24 +161,55 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
         const tree = strategy([rootNode, ...uniqueData]);
 
         // React-D3-Tree expects a specific format (name, attributes, children)
-        // We write a recursive mapper to convert the D3 node to the React component format
-        const mapper = (node: HierarchyNode<FishRecord>): TreeNodeData => {
-            return {
-                name: `Gen ${node.data.generation}`,
-                attributes: {
-                    Algo: node.data.algorithm,
-                    ID: node.data.id,
-                    Gen: node.data.generation,
-                    IsAlive: node.data.is_alive ?? false,
-                    Tank: node.data.tank_name,
-                },
-                // Custom property to pass color to the renderer
-                nodeColor: node.data.color,
-                children: node.children ? node.children.map(mapper) : [],
+        // Iterative mapper to convert D3 hierarchy nodes to TreeNodeData format
+        // (avoids stack overflow on deep lineage trees)
+        const mapIterative = (root: HierarchyNode<FishRecord>): TreeNodeData => {
+            type StackEntry = {
+                d3Node: HierarchyNode<FishRecord>;
+                treeNode: TreeNodeData;
             };
+
+            const rootTreeNode: TreeNodeData = {
+                name: `Gen ${root.data.generation}`,
+                attributes: {
+                    Algo: root.data.algorithm,
+                    ID: root.data.id,
+                    Gen: root.data.generation,
+                    IsAlive: root.data.is_alive ?? false,
+                    Tank: root.data.tank_name,
+                },
+                nodeColor: root.data.color,
+                children: [],
+            };
+
+            const stack: StackEntry[] = [{ d3Node: root, treeNode: rootTreeNode }];
+
+            while (stack.length > 0) {
+                const { d3Node, treeNode } = stack.pop()!;
+                if (d3Node.children) {
+                    for (const child of d3Node.children) {
+                        const childTreeNode: TreeNodeData = {
+                            name: `Gen ${child.data.generation}`,
+                            attributes: {
+                                Algo: child.data.algorithm,
+                                ID: child.data.id,
+                                Gen: child.data.generation,
+                                IsAlive: child.data.is_alive ?? false,
+                                Tank: child.data.tank_name,
+                            },
+                            nodeColor: child.data.color,
+                            children: [],
+                        };
+                        treeNode.children.push(childTreeNode);
+                        stack.push({ d3Node: child, treeNode: childTreeNode });
+                    }
+                }
+            }
+
+            return rootTreeNode;
         };
 
-        const result = mapper(tree);
+        const result = mapIterative(tree);
 
         // Prune dead fish that have no children (dead-end branches)
         const prunedResult = pruneDeadLeaves(result, true);
@@ -162,7 +217,10 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
         // Compress straight dead lineages with same behavior
         const compressedResult = compressLineageTree(prunedResult);
 
-        return { tree: compressedResult, error: null };
+        // Auto-collapse long chains so the tree starts compact
+        const collapsedResult = collapseLongChains(compressedResult);
+
+        return { tree: collapsedResult, error: null };
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown lineage transform error';
         return { tree: null, error: `Failed to process lineage data: ${message}` };
@@ -171,30 +229,143 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
 
 /**
  * Recursively compress straight path segments with the same algorithm and dead intermediate nodes.
+ * Uses a stack-based iterative approach to avoid call-stack overflow on deep lineage chains.
  */
-export const compressLineageTree = (node: TreeNodeData | null): TreeNodeData | null => {
-    if (!node) return null;
+export const compressLineageTree = (root: TreeNodeData | null): TreeNodeData | null => {
+    if (!root) return null;
 
-    // Recursively compress children first
-    if (node.children && node.children.length > 0) {
-        node.children = node.children
-            .map(compressLineageTree)
-            .filter((child): child is TreeNodeData => child !== null);
-    }
+    // Process tree bottom-up using an iterative post-order traversal.
+    // This avoids the recursive call that caused "Maximum call stack size exceeded"
+    // on long chains of dead single-child nodes with the same algorithm.
+    const stack: TreeNodeData[] = [root];
+    const postOrder: TreeNodeData[] = [];
 
-    // Compression rule:
-    // If a node has exactly one child, and that child has the same algorithm as this node,
-    // and that child is NOT alive, we can pull the child's children up to bypass the child.
-    if (node.children && node.children.length === 1) {
-        const child = node.children[0];
-        if (child.attributes.Algo === node.attributes.Algo && !child.attributes.IsAlive) {
-            // Bypass child by inheriting its children
-            node.children = child.children;
-            // Recursively compress the node again as it now has new children
-            return compressLineageTree(node);
+    // Build post-order list (children processed before parents)
+    while (stack.length > 0) {
+        const node = stack.pop()!;
+        postOrder.push(node);
+        if (node.children) {
+            for (const child of node.children) {
+                stack.push(child);
+            }
         }
     }
 
-    return node;
+    // Process in reverse (bottom-up) so children are compressed before their parents
+    for (let i = postOrder.length - 1; i >= 0; i--) {
+        const node = postOrder[i];
+
+        // Filter out null children (from pruning)
+        if (node.children && node.children.length > 0) {
+            node.children = node.children.filter(
+                (child): child is TreeNodeData => child !== null
+            );
+        }
+
+        // Iteratively bypass single dead children with the same algorithm
+        while (
+            node.children &&
+            node.children.length === 1 &&
+            node.children[0].attributes.Algo === node.attributes.Algo &&
+            !node.children[0].attributes.IsAlive
+        ) {
+            // Bypass child by inheriting its children
+            node.children = node.children[0].children;
+        }
+    }
+
+    return root;
 };
 
+/**
+ * Auto-collapse long single-child chains into summary nodes.
+ *
+ * Any unbroken single-child chain longer than `maxChainLength` gets a summary
+ * node inserted after the first node. The summary is pre-collapsed via
+ * `__rd3t.collapsed`, so the user sees a compact "N generations" pill they
+ * can click to expand.
+ *
+ * Uses iterative DFS to avoid stack overflow on deep trees.
+ */
+export const collapseLongChains = (
+    root: TreeNodeData | null,
+    maxChainLength: number = 5,
+): TreeNodeData | null => {
+    if (!root) return null;
+
+    // Iterative DFS — process each node and look for chain starts
+    const stack: TreeNodeData[] = [root];
+
+    while (stack.length > 0) {
+        const node = stack.pop()!;
+
+        // Only interested in nodes that start a single-child chain
+        if (!node.children || node.children.length !== 1) {
+            // Not a chain — push multi-child branches for further processing
+            if (node.children) {
+                for (const child of node.children) {
+                    stack.push(child);
+                }
+            }
+            continue;
+        }
+
+        // Walk the single-child chain to measure its length
+        const chain: TreeNodeData[] = [node];
+        let cursor: TreeNodeData = node;
+        while (cursor.children?.length === 1) {
+            chain.push(cursor.children[0]);
+            cursor = cursor.children[0];
+        }
+
+        // Chain is short enough — no collapsing needed
+        if (chain.length <= maxChainLength) {
+            // Still need to process any branching at the tail
+            const tail = chain[chain.length - 1];
+            if (tail.children) {
+                for (const child of tail.children) {
+                    stack.push(child);
+                }
+            }
+            continue;
+        }
+
+        // --- Chain is too long: insert a collapsible summary node ---
+        const firstNode = chain[0];
+        const secondNode = chain[1];
+        const lastHiddenNode = chain[chain.length - 2];
+        const tailNode = chain[chain.length - 1]; // has 0 or 2+ children
+
+        const collapsedCount = chain.length - 1; // nodes hidden behind summary
+
+        const summaryNode: TreeNodeData = {
+            name: `${collapsedCount} gen`,
+            attributes: {
+                Algo: '⋯ chain',
+                ID: `chain_${secondNode.attributes.ID}_to_${lastHiddenNode.attributes.ID}`,
+                Gen: secondNode.attributes.Gen,
+                IsAlive: false,
+                IsCollapsedChain: true,
+                ChainLength: collapsedCount,
+                GenRange: `Gen ${secondNode.attributes.Gen} → ${tailNode.attributes.Gen}`,
+            },
+            nodeColor: '#475569',
+            // Full chain continuation lives inside the summary
+            children: [secondNode],
+            __rd3t: { collapsed: true },
+        };
+
+        // Splice the summary in: firstNode → summaryNode → (hidden chain)
+        firstNode.children = [summaryNode];
+
+        // Continue processing the tail's branches (they're hidden but should
+        // still be processed in case they themselves contain long chains)
+        if (tailNode.children) {
+            for (const child of tailNode.children) {
+                stack.push(child);
+            }
+        }
+    }
+
+    return root;
+};

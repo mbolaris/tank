@@ -72,7 +72,6 @@ LEGACY_MAX_LINES: dict[str, int] = {
     # Follow-up PR includes the soccer event ledger in tank save state.
     "core/worlds/tank/backend.py": 633,
     "frontend/src/components/AutoEvaluateDisplay.tsx": 656,
-    "frontend/src/components/EcosystemStats.tsx": 513,
     "frontend/src/components/EntityInspectorDrawer.tsx": 593,
     "frontend/src/components/TankNetworkMap.tsx": 725,
     "frontend/src/components/TankView.tsx": 671,

@@ -12,11 +12,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
 }
 
 .title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -27,6 +29,43 @@
 .subtitle {
     font-size: 11px;
     color: var(--color-text-muted, #94a3b8);
+    margin-top: 2px;
+}
+
+.controlsRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.viewToggle {
+    display: flex;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.toggleBtn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted, #94a3b8);
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggleBtn:hover {
+    color: #f8fafc;
+}
+
+.activeToggle {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    font-weight: 600;
 }
 
 .statsGrid {
@@ -63,17 +102,127 @@
     margin-top: 2px;
 }
 
-.distributionsSection {
-    margin-top: 12px;
+.filterBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
 }
 
-.sectionHeading {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.categoryPills {
+    display: flex;
+    gap: 6px;
+}
+
+.pillBtn {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--color-text-muted, #94a3b8);
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pillBtn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #f8fafc;
+}
+
+.activePill {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.searchInput {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #f8fafc;
+    width: 160px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+    border-color: #38bdf8;
+}
+
+.graphsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.graphCard {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.graphCard:hover {
+    transform: translateY(-2px);
+}
+
+.physicalCard:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 4px 20px rgba(56, 189, 248, 0.1);
+}
+
+.behavioralCard:hover {
+    border-color: rgba(192, 132, 252, 0.4);
+    box-shadow: 0 4px 20px rgba(192, 132, 252, 0.1);
+}
+
+.graphCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     margin-bottom: 8px;
+}
+
+.graphTitleGroup {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.graphTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.categoryBadge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.medianTag {
+    font-size: 11px;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.graphBody {
+    width: 100%;
+    display: flex;
+    justify-content: center;
 }
 
 .barGrid {
@@ -98,6 +247,13 @@
 .barTitle {
     color: var(--color-text-main, #e2e8f0);
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.miniTag {
+    font-size: 10px;
 }
 
 .barValue {
@@ -114,7 +270,7 @@
 
 .barFill {
     height: 100%;
-    background: linear-gradient(90deg, #38bdf8, #818cf8);
     border-radius: 3px;
     transition: width 0.3s ease;
 }
+
