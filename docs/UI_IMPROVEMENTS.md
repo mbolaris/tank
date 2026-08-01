@@ -221,6 +221,10 @@ frequency and opponent composition. Complete the existing
 `baseline_match_score_diff` contract with periodic exhibition matches against a frozen,
 versioned team or another equivalently stable reference.
 
+> **Plan of record:** [SKILL_PROGRESSION.md](SKILL_PROGRESSION.md) expands this brief
+> into the S1–S4 skill-progression track (S1 implements U12 using the frozen L0–L3
+> ladder in `core/minigames/soccer/reference_teams.py`).
+
 **Acceptance:** the baseline id/version and evaluation cadence are recorded; evaluation
 does not alter the evolving population, energy economy, or RNG stream; Trends clearly
 separates baseline skill from live internal match activity; deterministic tests and a
