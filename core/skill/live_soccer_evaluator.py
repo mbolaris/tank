@@ -60,7 +60,6 @@ def _clone_genome(g: Genome) -> Genome:
     return result
 
 
-
 class IncrementalSoccerLadderEvaluator:
     """Evaluates top live fish against frozen soccer rulers incrementally.
 
