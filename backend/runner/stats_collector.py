@@ -162,9 +162,19 @@ def collect_stats(
         if runner.metrics_history.is_sample_due(frame):
             trait_means = _collect_trait_means(runner)
 
+        # Collect baseline match score diff if available
+        stats_dict = stats_payload.to_dict()
+        if hasattr(runner, "engine"):
+            evaluator = getattr(runner.engine, "soccer_ladder_evaluator", None)
+            if (
+                evaluator is not None
+                and getattr(evaluator, "latest_baseline_score_diff", None) is not None
+            ):
+                stats_dict["baseline_match_score_diff"] = evaluator.latest_baseline_score_diff
+
         runner.metrics_history.maybe_sample(
             frame=frame,
-            stats=stats_payload,
+            stats=stats_dict,
             poker=poker_stats,
             soccer=soccer_events,
             auto_eval=auto_eval,

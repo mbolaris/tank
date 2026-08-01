@@ -222,6 +222,12 @@ def save_world_state(
                 # Persist agent commentary (the Insights feed) if available
                 if hasattr(runner, "commentary") and runner.commentary is not None:
                     snapshot["commentary"] = runner.commentary.to_payload()
+                # Persist skill snapshots if available
+                engine = _resolve_engine(world)
+                if engine is not None:
+                    store = getattr(engine, "skill_snapshot_store", None)
+                    if store is not None:
+                        snapshot["skill_snapshots"] = store.to_dict()
                 return save_snapshot_data(world_id, snapshot)
 
         logger.warning(f"World {world_id[:8]} does not support state capture")
@@ -311,6 +317,17 @@ def restore_world_from_snapshot(
             and "commentary" in snapshot
         ):
             runner.commentary.load(snapshot["commentary"])
+
+        # Restore skill snapshots if present
+        if "skill_snapshots" in snapshot:
+            store = getattr(engine, "skill_snapshot_store", None)
+            if store is not None:
+                store.load(snapshot["skill_snapshots"])
+            else:
+                from core.skill.snapshots import SkillSnapshotStore
+
+                store = SkillSnapshotStore.from_dict(snapshot["skill_snapshots"])
+                engine.skill_snapshot_store = store
 
         # Clear existing entities via EntityManager (authoritative path)
         engine._entity_manager.clear()

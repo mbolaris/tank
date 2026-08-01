@@ -1,0 +1,156 @@
+"""Bounded snapshot store for live simulation skill progression.
+
+This module provides data structures for capturing, storing, and persisting
+skill ladder snapshots evaluated on live evolving fish populations in tank worlds.
+"""
+
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass, field
+from typing import Any
+
+from core.skill.ladder import SkillLadderSummary
+
+
+@dataclass
+class SkillSnapshot:
+    """A snapshot of a live tank population's skill evaluation."""
+
+    domain: str
+    generation: int
+    frame: int
+    subject_fish_ids: list[int]
+    subject_lineage_ids: list[str]
+    summary: SkillLadderSummary
+    previous_score: float | None
+    personal_best: float
+    tank_best: float
+    sample_size: int
+    timestamp: float = field(default_factory=time.time)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert snapshot to JSON-serializable dictionary."""
+        return {
+            "domain": self.domain,
+            "generation": self.generation,
+            "frame": self.frame,
+            "subject_fish_ids": list(self.subject_fish_ids),
+            "subject_lineage_ids": list(self.subject_lineage_ids),
+            "summary": self.summary.to_dict(),
+            "previous_score": self.previous_score,
+            "personal_best": self.personal_best,
+            "tank_best": self.tank_best,
+            "sample_size": self.sample_size,
+            "timestamp": self.timestamp,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SkillSnapshot:
+        """Construct a SkillSnapshot from a dictionary representation."""
+        summary_data = data.get("summary", {})
+        summary = SkillLadderSummary.from_dict(summary_data)
+        prev_score = data.get("previous_score")
+        return cls(
+            domain=str(data.get("domain", summary.domain)),
+            generation=int(data.get("generation", 0)),
+            frame=int(data.get("frame", 0)),
+            subject_fish_ids=[int(x) for x in data.get("subject_fish_ids", [])],
+            subject_lineage_ids=[str(x) for x in data.get("subject_lineage_ids", [])],
+            summary=summary,
+            previous_score=float(prev_score) if prev_score is not None else None,
+            personal_best=float(data.get("personal_best", 0.0)),
+            tank_best=float(data.get("tank_best", 0.0)),
+            sample_size=int(data.get("sample_size", 0)),
+            timestamp=float(data.get("timestamp", 0.0)),
+        )
+
+
+@dataclass
+class SkillSnapshotStore:
+    """Bounded in-memory store for skill progression snapshots.
+
+    Defensive cap prevents unbounded growth in long-running simulations.
+    Tracks all-time tank_best and per-subject personal_best in O(1) time.
+    """
+
+    MAX_SNAPSHOTS: int = 50
+
+    _snapshots: list[SkillSnapshot] = field(default_factory=list)
+    _tank_best: float = 0.0
+    _personal_bests: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def tank_best(self) -> float:
+        """The highest skill_index recorded in this tank."""
+        return self._tank_best
+
+    def add_snapshot(self, snapshot: SkillSnapshot) -> None:
+        """Add a new snapshot, updating O(1) best tracking and maintaining capacity."""
+        score = snapshot.summary.skill_index
+
+        # Update tank best
+        if score > self._tank_best:
+            self._tank_best = score
+
+        # Update team personal best
+        team_key = ",".join(str(i) for i in sorted(snapshot.subject_fish_ids))
+        if team_key:
+            current_pb = self._personal_bests.get(team_key, 0.0)
+            if score > current_pb:
+                self._personal_bests[team_key] = score
+
+        self._snapshots.append(snapshot)
+
+        # Enforce max capacity
+        if len(self._snapshots) > self.MAX_SNAPSHOTS:
+            self._snapshots = self._snapshots[-self.MAX_SNAPSHOTS :]
+
+    def get_snapshots(
+        self, limit: int | None = None, domain: str | None = None
+    ) -> list[SkillSnapshot]:
+        """Get recent snapshots, optionally filtered by domain and limited."""
+        result = self._snapshots
+        if domain is not None:
+            result = [s for s in result if s.domain == domain]
+        if limit is not None:
+            result = result[-limit:]
+        return list(result)
+
+    def get_latest_snapshot(self, domain: str | None = None) -> SkillSnapshot | None:
+        """Get the most recent snapshot."""
+        matches = self.get_snapshots(domain=domain)
+        return matches[-1] if matches else None
+
+    def get_personal_best_for_team(self, subject_fish_ids: list[int]) -> float:
+        """Return personal best score recorded for a subject fish set."""
+        team_key = ",".join(str(i) for i in sorted(subject_fish_ids))
+        return self._personal_bests.get(team_key, 0.0)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize snapshot store for world persistence."""
+        return {
+            "max_snapshots": self.MAX_SNAPSHOTS,
+            "tank_best": self._tank_best,
+            "personal_bests": dict(self._personal_bests),
+            "snapshots": [s.to_dict() for s in self._snapshots],
+        }
+
+    def load(self, data: dict[str, Any]) -> None:
+        """Load state into snapshot store from a serialized dictionary."""
+        if not isinstance(data, dict):
+            return
+        self.MAX_SNAPSHOTS = int(data.get("max_snapshots", self.MAX_SNAPSHOTS))
+        self._tank_best = float(data.get("tank_best", 0.0))
+        self._personal_bests = {str(k): float(v) for k, v in data.get("personal_bests", {}).items()}
+        raw_snapshots = data.get("snapshots", [])
+        self._snapshots = [SkillSnapshot.from_dict(s) for s in raw_snapshots if isinstance(s, dict)]
+        if len(self._snapshots) > self.MAX_SNAPSHOTS:
+            self._snapshots = self._snapshots[-self.MAX_SNAPSHOTS :]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SkillSnapshotStore:
+        """Construct a SkillSnapshotStore from a serialized dictionary."""
+        store = cls()
+        store.load(data)
+        return store
