@@ -1,5 +1,4 @@
 import { EcosystemStats } from '../EcosystemStats';
-import { StandingPopulationPanel } from '../StandingPopulationPanel';
 import { AutoEvaluateDisplay } from '../AutoEvaluateDisplay';
 import type { StatsData, AutoEvaluateStats } from '../../types/simulation';
 import styles from './TankEcosystemTab.module.css';
@@ -12,9 +11,6 @@ interface TankEcosystemTabProps {
 export function TankEcosystemTab({ stats, autoEvaluation }: TankEcosystemTabProps) {
     return (
         <div className={styles.ecosystemTab}>
-            {/* Standing Population Panel */}
-            <StandingPopulationPanel stats={stats} />
-
             {/* Ecosystem Stats */}
             <EcosystemStats stats={stats} />
 
@@ -27,3 +23,4 @@ export function TankEcosystemTab({ stats, autoEvaluation }: TankEcosystemTabProp
         </div>
     );
 }
+

@@ -66,7 +66,6 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/taxonomy/naming.py": 523,
     "core/worlds/tank/backend.py": 629,
     "frontend/src/components/AutoEvaluateDisplay.tsx": 656,
-    "frontend/src/components/EcosystemStats.tsx": 513,
     "frontend/src/components/EntityInspectorDrawer.tsx": 593,
     "frontend/src/components/TankNetworkMap.tsx": 725,
     "frontend/src/components/TankView.tsx": 671,

@@ -544,7 +544,7 @@ export function TankView({ worldId }: TankViewProps) {
                     {isVisible('genetics') && (
                         <Panel title="Genetics" icon="🧬" onClose={() => toggle('genetics')}>
                             <Suspense fallback={<PanelLoading />}>
-                                <TankGeneticsTab worldId={effectiveWorldId} />
+                                <TankGeneticsTab worldId={effectiveWorldId} stats={state?.stats ?? null} />
                             </Suspense>
                         </Panel>
                     )}
