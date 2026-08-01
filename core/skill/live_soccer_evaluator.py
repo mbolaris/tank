@@ -7,14 +7,21 @@ Evaluations do NOT consume engine RNG or spend fish energy.
 
 from __future__ import annotations
 
-import copy
 import logging
+
+import random
 from dataclasses import dataclass
+
 from typing import TYPE_CHECKING, Any
 
 from core.code_pool import GenomeCodePool, create_default_genome_code_pool
 from core.genetics import Genome
+from core.genetics.genome import GENOME_SCHEMA_VERSION
+
+
+from core.genetics.genome_codec import genome_from_dict, genome_to_dict
 from core.genetics.trait import GeneticTrait
+
 from core.minigames.soccer.league_runtime import BotEntity
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.reference_teams import (
@@ -39,6 +46,19 @@ class MatchSpec:
     team: ReferenceTeam
     match_seed: int
     hero_on_left: bool
+
+
+def _clone_genome(g: Genome) -> Genome:
+    """Safely clone a genome via codec serialization without pickle/deepcopy side effects."""
+    data = genome_to_dict(g, schema_version=GENOME_SCHEMA_VERSION)
+    result: Genome = genome_from_dict(
+        data,
+        schema_version_expected=GENOME_SCHEMA_VERSION,
+        genome_factory=lambda: Genome.random(use_algorithm=False, rng=random.Random(42)),
+        rng=random.Random(42),
+    )
+    return result
+
 
 
 class IncrementalSoccerLadderEvaluator:
@@ -124,15 +144,17 @@ class IncrementalSoccerLadderEvaluator:
         for fish in fish_team:
             g = getattr(fish, "genome", None)
             if g is not None:
-                genomes.append(copy.deepcopy(g))
+                genomes.append(_clone_genome(g))
 
         # Pad team if fewer than team_size fish available
         while len(genomes) < self.team_size:
             if genomes:
-                genomes.append(copy.deepcopy(genomes[0]))
+                genomes.append(_clone_genome(genomes[0]))
+
             else:
                 default_id = self._ensure_code_pool().get_default("soccer_policy")
-                g = Genome.random(use_algorithm=False, rng=None)
+                g = Genome.random(use_algorithm=False, rng=random.Random(42 + len(genomes)))
+
                 g.behavioral.soccer_policy_id = GeneticTrait(default_id)
                 from core.code_pool import default_soccer_policy_params
 
@@ -231,7 +253,8 @@ class IncrementalSoccerLadderEvaluator:
         ref_genomes: list[Genome] = []
         for slot in range(self.team_size):
             p_id = spec.team.policy_id_for_slot(slot)
-            g = Genome.random(use_algorithm=False, rng=None)
+            g = Genome.random(use_algorithm=False, rng=random.Random(spec.match_seed + slot))
+
             g.behavioral.soccer_policy_id = GeneticTrait(p_id)
             g.behavioral.soccer_policy_params = GeneticTrait(None)
             ref_genomes.append(g)

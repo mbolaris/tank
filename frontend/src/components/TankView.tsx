@@ -498,7 +498,9 @@ export function TankView({ worldId }: TankViewProps) {
                                     liveState={state?.soccer_league_live ?? null}
                                     events={state?.soccer_events ?? []}
                                     currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                                    worldId={effectiveWorldId}
                                 />
+
                             </Suspense>
                         </Panel>
                     )}

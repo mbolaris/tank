@@ -84,7 +84,7 @@ describe('SoccerLeaders', () => {
             <SoccerLeaders leaders={[soccerEntry({ fish_id: 117, goals: 5, wins: 3, net_energy: 42, tank_name: 'Tank Blue' })]} />
         );
 
-        expect(html).toContain('Soccer Leaders');
+        expect(html).toContain('Season Leaders');
         expect(html).toContain('Fish #117');
         expect(html).toContain('Tank Blue');
         expect(html).toContain('5 goals');
@@ -115,8 +115,9 @@ describe('TankSoccerTab', () => {
             />
         );
 
-        expect(html).toContain('Soccer Leaders');
+        expect(html).toContain('Season Leaders');
         expect(html).toContain('Fish #9');
+
         expect(html).not.toContain('Reward Log');
         expect(html).not.toContain('repro credit');
         expect(html).not.toContain('Repro Delta');
