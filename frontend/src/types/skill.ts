@@ -106,3 +106,27 @@ export interface ObservatoryData {
     wandering_mean?: number;
     perfect_mean?: number;
 }
+
+export interface SkillSnapshot {
+    domain: string;
+    generation: number;
+    frame: number;
+    subject_fish_ids: number[];
+    subject_lineage_ids: string[];
+    summary: SkillLadder;
+    previous_score?: number | null;
+    personal_best: number;
+    tank_best: number;
+    sample_size: number;
+    timestamp: string;
+}
+
+export interface SkillSnapshotsResponse {
+    schema_version: number;
+    world_id: string;
+    count: number;
+    tank_best: number;
+    latest_baseline_score_diff?: number | null;
+    snapshots: SkillSnapshot[];
+}
+

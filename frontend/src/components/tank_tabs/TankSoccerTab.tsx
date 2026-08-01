@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SoccerLeagueLive } from '../SoccerLeagueLive';
 import { SoccerLeaders } from '../MinigameLeaders';
+import { SoccerSkillProgress } from '../SoccerSkillProgress';
 
 import type { SoccerLeagueLiveState, SoccerEventData } from '../../types/simulation';
 import styles from './TankSoccerTab.module.css';
@@ -9,12 +10,14 @@ interface TankSoccerTabProps {
     liveState: SoccerLeagueLiveState | null;
     events: SoccerEventData[];
     currentFrame: number;
+    worldId?: string;
 }
 
 export function TankSoccerTab({
     liveState,
     events,
     currentFrame,
+    worldId,
 }: TankSoccerTabProps) {
     const [showSkipped, setShowSkipped] = useState(false);
 
@@ -40,9 +43,12 @@ export function TankSoccerTab({
             {/* League Live Section */}
             <div className="glass-panel" style={{ padding: '16px' }}>
                 <SoccerLeagueLive liveState={liveState} />
+                {/* Live frozen skill progress panel */}
+                <SoccerSkillProgress worldId={worldId} />
                 {/* Standings under the field: the tank's best soccer players */}
                 <SoccerLeaders leaders={liveState?.fish_leaders ?? []} />
             </div>
+
 
             {/* League Events Section with Filter */}
             <div className="glass-panel" style={{ padding: '16px', marginTop: '20px' }}>

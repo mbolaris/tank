@@ -147,9 +147,10 @@ export function SoccerLeaders({ leaders }: { leaders: SoccerFishLeaderEntry[] })
 
     return (
         <LeadersPanel
-            title="Soccer Leaders"
+            title="Season Leaders"
             rows={rows}
             emptyMessage="No soccer matches yet. The tank's best players will appear here."
         />
     );
+
 }
