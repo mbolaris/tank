@@ -30,6 +30,7 @@ class BotEntity:
         self.fish_id = abs(hash(bot_id))
         self.team_id = team_id
         self.energy = 1000.0  # Infinite energy
+        self.genome: Any | None = None
 
     def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
         return 0.0  # Bots don't consume energy

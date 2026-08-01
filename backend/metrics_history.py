@@ -155,7 +155,9 @@ class MetricsHistory:
                         "goals_per_1k_frames": round(goals_per_1k_frames, 4),
                         "matches_completed": self.soccer_matches_completed,
                         "matches_skipped": self.soccer_matches_skipped,
-                        "baseline_match_score_diff": None,
+                        "baseline_match_score_diff": get_val(
+                            stats, "baseline_match_score_diff", None
+                        ),
                     },
                     "diversity_score": round(get_val(stats, "diversity_score", 0.0), 4),
                     "traits": dict(trait_means) if trait_means else {},

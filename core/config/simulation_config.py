@@ -42,7 +42,14 @@ from core.config.food import (
 )
 from core.config.plants import PLANT_MIN_ENERGY_GAIN
 from core.config.poker import MAX_POKER_EVENTS, POKER_EVENT_MAX_AGE_FRAMES
-from core.config.server import DEFAULT_API_PORT, PLANTS_ENABLED, POKER_ACTIVITY_ENABLED
+from core.config.server import (
+    DEFAULT_API_PORT,
+    PLANTS_ENABLED,
+    POKER_ACTIVITY_ENABLED,
+    SOCCER_LADDER_EVAL_ENABLED,
+    SOCCER_LADDER_EVAL_INTERVAL_FRAMES,
+)
+
 from core.config.soccer import (
     SOCCER_EVALUATOR_DURATION_FRAMES,
     SOCCER_EVALUATOR_ENABLED,
@@ -127,6 +134,8 @@ class ServerConfig:
     default_api_port: int = DEFAULT_API_PORT
     poker_activity_enabled: bool = POKER_ACTIVITY_ENABLED
     plants_enabled: bool = PLANTS_ENABLED
+    soccer_ladder_eval_enabled: bool = SOCCER_LADDER_EVAL_ENABLED
+    soccer_ladder_eval_interval_frames: int = SOCCER_LADDER_EVAL_INTERVAL_FRAMES
 
 
 @dataclass
@@ -356,7 +365,10 @@ class SimulationConfig:
         server_map = {
             "plants_enabled": "plants_enabled",
             "poker_activity_enabled": "poker_activity_enabled",
+            "soccer_ladder_eval_enabled": "soccer_ladder_eval_enabled",
+            "soccer_ladder_eval_interval_frames": "soccer_ladder_eval_interval_frames",
         }
+
         for flat_key, attr in server_map.items():
             if flat_key in config_dict:
                 setattr(cfg.server, attr, config_dict[flat_key])

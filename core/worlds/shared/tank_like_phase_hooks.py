@@ -37,6 +37,7 @@ class TankLikePhaseHooks(PhaseHooks):
 
     def __init__(self) -> None:
         self._soccer_league_runtime: SoccerLeagueRuntime | None = None
+        self._soccer_ladder_evaluator: Any | None = None
 
     def on_entity_spawned(
         self,
@@ -172,6 +173,10 @@ class TankLikePhaseHooks(PhaseHooks):
             fish_list = engine._entity_manager.get_fish()
             engine.benchmark_evaluator.maybe_run(engine.frame_count, fish_list)
 
+        ladder_evaluator = self._get_soccer_ladder_evaluator(engine)
+        if ladder_evaluator is not None:
+            ladder_evaluator.tick(engine)
+
         league_runtime = self._get_soccer_league_runtime(engine)
         if league_runtime is None:
             if hasattr(engine, "soccer_events"):
@@ -185,7 +190,37 @@ class TankLikePhaseHooks(PhaseHooks):
             for outcome in league_runtime.drain_events():
                 engine.soccer_events.record_outcome(outcome)
 
+    def _get_soccer_ladder_evaluator(self, engine: SimulationEngine) -> Any | None:
+        if self._soccer_ladder_evaluator is not None:
+            return self._soccer_ladder_evaluator
+
+        if (
+            hasattr(engine, "soccer_ladder_evaluator")
+            and engine.soccer_ladder_evaluator is not None
+        ):
+            self._soccer_ladder_evaluator = engine.soccer_ladder_evaluator
+            return self._soccer_ladder_evaluator
+
+        server_cfg = getattr(getattr(engine, "config", None), "server", None)
+        if server_cfg is None or not getattr(server_cfg, "soccer_ladder_eval_enabled", True):
+            return None
+
+        from core.skill.live_soccer_evaluator import IncrementalSoccerLadderEvaluator
+        from core.skill.snapshots import SkillSnapshotStore
+
+        store = getattr(engine, "skill_snapshot_store", None)
+        if store is None:
+            store = SkillSnapshotStore()
+            engine.skill_snapshot_store = store
+
+        interval = getattr(server_cfg, "soccer_ladder_eval_interval_frames", 20_000)
+        evaluator = IncrementalSoccerLadderEvaluator(store, eval_interval_frames=interval)
+        engine.soccer_ladder_evaluator = evaluator
+        self._soccer_ladder_evaluator = evaluator
+        return evaluator
+
     def _get_soccer_league_runtime(self, engine: SimulationEngine) -> SoccerLeagueRuntime | None:
+
         if self._soccer_league_runtime is not None:
             return self._soccer_league_runtime
 

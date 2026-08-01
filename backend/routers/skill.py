@@ -37,12 +37,12 @@ def setup_router(
     evaluation_service: SkillEvaluationService | None = None,
 ) -> APIRouter:
     """Create the skill-ladder standings router."""
-    router = APIRouter(prefix="/api/skill", tags=["skill"])
+    router = APIRouter(tags=["skill"])
     resolved_dir = champions_dir or _CHAMPIONS_DIR
     if evaluation_service is None:
         evaluation_service = SkillEvaluationService(world_manager)
 
-    @router.get("/ladders")
+    @router.get("/api/skill/ladders")
     async def get_skill_ladders() -> JSONResponse:
         """Return skill-ladder summaries for every domain that emits one."""
         try:
@@ -57,7 +57,7 @@ def setup_router(
             }
         )
 
-    @router.get("/foraging-gym")
+    @router.get("/api/skill/foraging-gym")
     def run_foraging_gym(seed: int = Query(default=42, ge=0, le=2_147_483_647)) -> JSONResponse:
         """Run the isolated foraging ruler for one deterministic seed.
 
@@ -69,7 +69,7 @@ def setup_router(
 
         return JSONResponse(run(seed))
 
-    @router.get("/foraging-gym/summary")
+    @router.get("/api/skill/foraging-gym/summary")
     def get_foraging_gym_summary(
         world_id: str | None = Query(default=None),
     ) -> JSONResponse:
@@ -86,7 +86,7 @@ def setup_router(
     )
     evaluation_service.set_evaluator(evaluate_observatory_snapshot)
 
-    @router.get("/foraging-gym/observatory")
+    @router.get("/api/skill/foraging-gym/observatory")
     def get_foraging_gym_observatory(world_id: str | None = Query(default=None)) -> JSONResponse:
         """Return the latest completed result without starting an evaluation."""
         if world_manager is None:
@@ -108,5 +108,70 @@ def setup_router(
                 "message": "Skill evaluation is pending; showing the last completed result when ready.",
             }
         return JSONResponse(latest)
+
+    @router.get("/api/skill/snapshots")
+    @router.get("/api/world/{world_id}/skill/snapshots")
+    def get_skill_snapshots(
+        world_id: str | None = None,
+        domain: str | None = Query(default=None),
+        limit: int | None = Query(default=None, ge=1, le=100),
+    ) -> JSONResponse:
+        """Return recorded live skill snapshots for a world."""
+        if world_manager is None:
+            return JSONResponse({"status": "no_data", "message": "World manager not available"})
+
+        worlds = world_manager.list_worlds()
+        if not worlds:
+            return JSONResponse({"status": "no_data", "message": "No active worlds available"})
+
+        resolved_world_id = world_id
+        if not resolved_world_id or resolved_world_id == "default":
+            resolved_world_id = (
+                getattr(world_manager, "default_world_id", None) or worlds[0].world_id
+            )
+
+        instance = world_manager.get_world(resolved_world_id)
+        if instance is None:
+            return JSONResponse(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "world_id": resolved_world_id,
+                    "count": 0,
+                    "tank_best": 0.0,
+                    "latest_baseline_score_diff": None,
+                    "snapshots": [],
+                }
+            )
+
+        runner = getattr(instance, "runner", None)
+        engine = getattr(runner, "engine", None) if runner else getattr(instance, "engine", None)
+        store = getattr(engine, "skill_snapshot_store", None) if engine else None
+        evaluator = getattr(engine, "soccer_ladder_evaluator", None) if engine else None
+
+        if store is None:
+            return JSONResponse(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "world_id": resolved_world_id,
+                    "count": 0,
+                    "tank_best": 0.0,
+                    "latest_baseline_score_diff": None,
+                    "snapshots": [],
+                }
+            )
+
+        snapshots = store.get_snapshots(limit=limit, domain=domain)
+        latest_diff = getattr(evaluator, "latest_baseline_score_diff", None) if evaluator else None
+
+        return JSONResponse(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "world_id": resolved_world_id,
+                "count": len(snapshots),
+                "tank_best": store.tank_best,
+                "latest_baseline_score_diff": latest_diff,
+                "snapshots": [s.to_dict() for s in snapshots],
+            }
+        )
 
     return router

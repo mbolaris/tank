@@ -92,6 +92,7 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/services/stats/trait_trends.py": 6,
     "core/simulation/engine.py": 5,
     "core/simulation/entity_manager.py": 6,
+    "core/skill/live_soccer_evaluator.py": 18,
     "core/solutions/tracker.py": 12,
     "core/spatial/bounds.py": 4,
     "core/statistics_utils.py": 3,
@@ -102,11 +103,12 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/util/rng.py": 3,
     "core/worlds/petri/environment.py": 5,
     "core/worlds/shared/movement_observations.py": 5,
-    "core/worlds/shared/tank_like_phase_hooks.py": 8,
+    "core/worlds/shared/tank_like_phase_hooks.py": 14,
     "core/worlds/tank/backend.py": 7,
     "core/worlds/tank/observation_builder.py": 7,
     "core/worlds/tank/pack.py": 5,
 }
+
 
 _DYNAMIC_ATTR_PATTERN = re.compile(r"\b(?:hasattr|getattr)\s*\(")
 

@@ -189,6 +189,8 @@ class SimulationEngine:
 
         # Periodic poker benchmark evaluation
         self.benchmark_evaluator: PeriodicBenchmarkEvaluator | None = None
+        self.skill_snapshot_store: Any = None
+        self.soccer_ladder_evaluator: Any = None
 
         # Phase debug flag for invariant enforcement.
         # Enable via config OR env var (for tests to force invariant checking)
