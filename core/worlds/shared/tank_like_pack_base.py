@@ -27,7 +27,10 @@ from core.ecosystem import EcosystemManager
 from core.events import EventBus
 from core.exceptions import SimulationError
 from core.plant_manager import PlantManager
-from core.poker.evaluation.periodic_benchmark import PeriodicBenchmarkEvaluator
+from core.poker.evaluation.periodic_benchmark import (
+    PeriodicBenchmarkEvaluator,
+    make_live_benchmark_config,
+)
 from core.poker.integration.poker_system import PokerSystem
 from core.reproduction.reproduction_service import ReproductionService
 from core.reproduction.reproduction_system import ReproductionSystem
@@ -102,9 +105,23 @@ class TankLikePackBase(ABC):
         systems["poker_system"] = poker
         systems["poker_proximity_system"] = PokerProximitySystem(engine)
 
-        if self.config.poker.enable_periodic_benchmarks:
+        skill_eval_enabled = self.config.server.poker_skill_eval_enabled or (
+            # Compatibility for old debug/profile callers. The server flag is
+            # the preferred path and uses the bounded live configuration.
+            self.config.poker.enable_periodic_benchmarks
+        )
+        if skill_eval_enabled:
+            from core.skill.snapshots import SkillSnapshotStore
+
+            store = getattr(engine, "skill_snapshot_store", None)
+            if store is None:
+                store = SkillSnapshotStore()
+                engine.skill_snapshot_store = store
             systems["benchmark_evaluator"] = PeriodicBenchmarkEvaluator(
-                self.config.poker.benchmark_config
+                cfg=make_live_benchmark_config(),
+                store=store,
+                eval_interval_frames=self.config.server.poker_skill_eval_interval_frames,
+                phase_offset_frames=self.config.server.poker_skill_eval_interval_frames // 2,
             )
 
         return systems

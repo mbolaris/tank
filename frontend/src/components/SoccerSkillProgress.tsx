@@ -3,13 +3,39 @@ import type { SkillSnapshot, SkillSnapshotsResponse } from '../types/skill';
 import { getRungHumanName } from '../utils/rungMapping';
 import styles from './SoccerSkillProgress.module.css';
 
+export type SkillProgressDomain = 'soccer' | 'poker';
 
-interface SoccerSkillProgressProps {
+interface SkillProgressProps {
     worldId?: string;
+    domain: SkillProgressDomain;
 }
 
-export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgressProps) {
+const DOMAIN_COPY: Record<SkillProgressDomain, {
+    title: string;
+    badge: string;
+    empty: string;
+    subjectLabel: string;
+    metricSuffix: string;
+}> = {
+    soccer: {
+        title: 'Soccer Progress',
+        badge: 'Live Ladder Evaluation',
+        empty: 'Awaiting first ladder evaluation',
+        subjectLabel: 'Best Team Skill',
+        metricSuffix: 'goals/match',
+    },
+    poker: {
+        title: 'Poker Progress',
+        badge: 'Frozen Ladder Evaluation',
+        empty: 'Awaiting first poker ladder evaluation',
+        subjectLabel: 'Best Fish Skill',
+        metricSuffix: 'bb/100',
+    },
+};
+
+export function SkillProgress({ worldId = 'default', domain }: SkillProgressProps) {
     const [snapshotsResponse, setSnapshotsResponse] = useState<SkillSnapshotsResponse | null>(null);
+    const copy = DOMAIN_COPY[domain];
 
     useEffect(() => {
         let isMounted = true;
@@ -17,7 +43,7 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
         async function fetchSnapshots() {
             try {
                 const targetWorld = worldId || 'default';
-                const url = `/api/skill/snapshots?world_id=${encodeURIComponent(targetWorld)}&domain=soccer&limit=100`;
+                const url = `/api/skill/snapshots?world_id=${encodeURIComponent(targetWorld)}&domain=${domain}&limit=100`;
                 const res = await fetch(url);
                 if (!res.ok) return;
                 const json: SkillSnapshotsResponse = await res.json();
@@ -36,23 +62,19 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
             isMounted = false;
             clearInterval(interval);
         };
-    }, [worldId]);
+    }, [worldId, domain]);
 
     const snapshots = snapshotsResponse?.snapshots ?? [];
-    const hasData = snapshots.length > 0;
-
-    if (!hasData) {
+    if (snapshots.length === 0) {
         return (
-            <div className={styles.container} aria-label="Soccer Progress">
+            <div className={styles.container} aria-label={copy.title}>
                 <div className={styles.header}>
                     <div className={styles.titleGroup}>
-                        <h3 className={styles.title}>Soccer Progress</h3>
-                        <span className={styles.badge}>Live Ladder Evaluation</span>
+                        <h3 className={styles.title}>{copy.title}</h3>
+                        <span className={styles.badge}>{copy.badge}</span>
                     </div>
                 </div>
-                <div className={styles.emptyState}>
-                    Awaiting first ladder evaluation
-                </div>
+                <div className={styles.emptyState}>{copy.empty}</div>
             </div>
         );
     }
@@ -60,20 +82,14 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
     const latestSnapshot: SkillSnapshot = snapshots[snapshots.length - 1];
     const oldestSnapshot: SkillSnapshot = snapshots[0];
     const summary = latestSnapshot.summary;
-
-    // Highest beaten rung
     const beatenRungs = summary.rungs.filter(r => r.beaten);
     const highestBeaten = beatenRungs.length > 0 ? beatenRungs[beatenRungs.length - 1] : null;
     const highestBeatenName = highestBeaten
         ? getRungHumanName(highestBeaten.rung_id, highestBeaten.rung)
         : 'Unranked';
-
-    // Rung progress & skill index
     const rungsBeatenCount = summary.rungs_beaten ?? beatenRungs.length;
     const totalRungsCount = summary.total_rungs ?? summary.rungs.length;
     const skillIndexVal = Math.round(summary.skill_index);
-
-    // Target (next unbeaten) rung
     const nextUnbeaten = summary.rungs.find(r => !r.beaten);
     const targetRung = nextUnbeaten || summary.rungs[summary.rungs.length - 1];
     const targetRungName = targetRung
@@ -81,43 +97,37 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
         : 'Ceiling';
     const currentMetric = targetRung ? targetRung.metric : 0;
 
-    // Previous metric comparison
-    let prevMetric: number | null = null;
+    let previousMetric: number | null = null;
     if (snapshots.length >= 2) {
-        const prevSnap = snapshots[snapshots.length - 2];
-        const prevTargetRung = prevSnap.summary.rungs.find(r => r.rung_id === targetRung?.rung_id) ||
-            prevSnap.summary.rungs.find(r => !r.beaten);
-        if (prevTargetRung) {
-            prevMetric = prevTargetRung.metric;
-        }
-    } else if (latestSnapshot.previous_score !== undefined && latestSnapshot.previous_score !== null) {
-        prevMetric = latestSnapshot.previous_score;
+        const previousSnapshot = snapshots[snapshots.length - 2];
+        const previousRung = previousSnapshot.summary.rungs.find(
+            r => r.rung_id === targetRung?.rung_id,
+        ) || previousSnapshot.summary.rungs.find(r => !r.beaten);
+        if (previousRung) previousMetric = previousRung.metric;
     }
 
     let metricComparisonText = '';
-    if (prevMetric !== null) {
-        const delta = currentMetric - prevMetric;
-        const formattedPrev = `${prevMetric >= 0 ? '+' : ''}${prevMetric.toFixed(1)}`;
+    if (previousMetric !== null) {
+        const delta = currentMetric - previousMetric;
+        const formattedPrev = `${previousMetric >= 0 ? '+' : ''}${previousMetric.toFixed(1)}`;
         const formattedDelta = `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}`;
         metricComparisonText = `, was ${formattedPrev} (${formattedDelta})`;
     }
 
-    // Since generation N delta
     const sinceGen = oldestSnapshot.generation;
     const skillDelta = Math.round(summary.skill_index - oldestSnapshot.summary.skill_index);
     const skillDeltaText = `${skillDelta >= 0 ? '+' : ''}${skillDelta}`;
 
     return (
-        <div className={styles.container} aria-label="Soccer Progress">
+        <div className={styles.container} aria-label={copy.title}>
             <div className={styles.header}>
                 <div className={styles.titleGroup}>
-                    <h3 className={styles.title}>Soccer Progress</h3>
-                    <span className={styles.badge}>Live Ladder Evaluation</span>
+                    <h3 className={styles.title}>{copy.title}</h3>
+                    <span className={styles.badge}>{copy.badge}</span>
                 </div>
             </div>
 
             <div className={styles.grid}>
-                {/* Tank Level / Highest Beaten Rung */}
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Tank Level</span>
                     <span className={styles.statValue}>
@@ -125,18 +135,16 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
                     </span>
                 </div>
 
-                {/* Best Team Skill & Goal Diff vs Next Unbeaten Rung */}
                 <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Best Team Skill</span>
+                    <span className={styles.statLabel}>{copy.subjectLabel}</span>
                     <span className={styles.statValue}>
                         {skillIndexVal} <span className={styles.subText}>({rungsBeatenCount}/{totalRungsCount} rungs)</span>
                     </span>
                     <span className={styles.subText}>
-                        vs {targetRungName}: {currentMetric >= 0 ? '+' : ''}{currentMetric.toFixed(1)} goals/match{metricComparisonText}
+                        vs {targetRungName}: {currentMetric >= 0 ? '+' : ''}{currentMetric.toFixed(1)} {copy.metricSuffix}{metricComparisonText}
                     </span>
                 </div>
 
-                {/* Since Generation N Progress */}
                 <div className={styles.statCard}>
                     <span className={styles.statLabel}>Skill Delta</span>
                     <span className={styles.statValue}>
@@ -146,4 +154,12 @@ export function SoccerSkillProgress({ worldId = 'default' }: SoccerSkillProgress
             </div>
         </div>
     );
+}
+
+export function SoccerSkillProgress({ worldId = 'default' }: { worldId?: string }) {
+    return <SkillProgress worldId={worldId} domain="soccer" />;
+}
+
+export function PokerSkillProgress({ worldId = 'default' }: { worldId?: string }) {
+    return <SkillProgress worldId={worldId} domain="poker" />;
 }

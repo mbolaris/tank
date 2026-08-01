@@ -106,9 +106,8 @@ class SimulationEngine:
         if headless is not None:
             self.config = self.config.with_overrides(headless=headless)
         if enable_poker_benchmarks is not None:
-            poker_config = self.config.poker
-            poker_config.enable_periodic_benchmarks = enable_poker_benchmarks
-            self.config.poker = poker_config
+            self.config.poker.enable_periodic_benchmarks = enable_poker_benchmarks
+            self.config.server.poker_skill_eval_enabled = enable_poker_benchmarks
         self.config.validate()
         self.headless = self.config.headless
 

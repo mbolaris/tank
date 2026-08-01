@@ -46,6 +46,8 @@ from core.config.server import (
     DEFAULT_API_PORT,
     PLANTS_ENABLED,
     POKER_ACTIVITY_ENABLED,
+    POKER_SKILL_EVAL_ENABLED,
+    POKER_SKILL_EVAL_INTERVAL_FRAMES,
     SOCCER_LADDER_EVAL_ENABLED,
     SOCCER_LADDER_EVAL_INTERVAL_FRAMES,
 )
@@ -136,6 +138,8 @@ class ServerConfig:
     plants_enabled: bool = PLANTS_ENABLED
     soccer_ladder_eval_enabled: bool = SOCCER_LADDER_EVAL_ENABLED
     soccer_ladder_eval_interval_frames: int = SOCCER_LADDER_EVAL_INTERVAL_FRAMES
+    poker_skill_eval_enabled: bool = POKER_SKILL_EVAL_ENABLED
+    poker_skill_eval_interval_frames: int = POKER_SKILL_EVAL_INTERVAL_FRAMES
 
 
 @dataclass
@@ -269,6 +273,7 @@ class SimulationConfig:
                 default_api_port=DEFAULT_API_PORT,
                 poker_activity_enabled=False,
                 plants_enabled=False,
+                poker_skill_eval_enabled=False,
             ),
             poker=PokerConfig(
                 max_poker_events=5,
@@ -367,6 +372,8 @@ class SimulationConfig:
             "poker_activity_enabled": "poker_activity_enabled",
             "soccer_ladder_eval_enabled": "soccer_ladder_eval_enabled",
             "soccer_ladder_eval_interval_frames": "soccer_ladder_eval_interval_frames",
+            "poker_skill_eval_enabled": "poker_skill_eval_enabled",
+            "poker_skill_eval_interval_frames": "poker_skill_eval_interval_frames",
         }
 
         for flat_key, attr in server_map.items():

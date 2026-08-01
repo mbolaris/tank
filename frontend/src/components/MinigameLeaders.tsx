@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PokerLeaderboardEntry, SoccerFishLeaderEntry } from '../types/simulation';
+import { PokerSkillProgress } from './PokerSkillProgress';
 
 /**
  * Compact standings panels shown under the poker table and the soccer field.
@@ -94,7 +95,7 @@ function LeaderRow({
 }
 
 /** Top poker players in the tank, shown under the poker table. */
-export function PokerLeaders({ leaders }: { leaders: PokerLeaderboardEntry[] }) {
+export function PokerLeaders({ leaders, worldId }: { leaders: PokerLeaderboardEntry[]; worldId?: string }) {
     const rows = leaders
         .slice(0, TOP_N)
         .map((entry, index) => {
@@ -114,13 +115,14 @@ export function PokerLeaders({ leaders }: { leaders: PokerLeaderboardEntry[] }) 
             );
         });
 
-    return (
+    return <>
+        <PokerSkillProgress worldId={worldId} />
         <LeadersPanel
             title="Poker Leaders"
             rows={rows}
             emptyMessage="No poker games yet. The tank's best players will appear here."
         />
-    );
+    </>;
 }
 
 /** Top soccer players in the tank, shown under the field. */
