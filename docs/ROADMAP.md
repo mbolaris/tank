@@ -266,6 +266,9 @@ trust states — lives in [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md).*
       [ADR-011](adr/011-minigames-out-of-core.md)); poker + soccer become the first
       two plugins
 - [ ] Reference minigame plugin + contributor docs for the ALife hobbyist community
+- [ ] Skill progression layer: live ladder evaluation of evolved fish against the
+      frozen rulers, skill snapshots, and breakthrough events — plan of record in
+      [SKILL_PROGRESSION.md](SKILL_PROGRESSION.md)
 - [ ] Story layer: named lineages, fish "trading cards" (behavior + stats +
       ancestry), match highlights, Hall of Fame fed by `champions/`
 - [ ] Lower the front door: cut releases, `pip install tankworld && tankworld` to a

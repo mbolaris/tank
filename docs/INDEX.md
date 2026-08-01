@@ -24,6 +24,7 @@ This index provides a guide to all documentation in the Tank World project.
 | [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) | Must-implement UI roadmap, including soccer/poker skill-over-time tracking |
 | [DISCUSSION_BOARD.md](DISCUSSION_BOARD.md) | Discussion board v2 (shipped): topic-filtered Insights feed + emoji reactions |
 | [EXPERIENCE_ROADMAP.md](EXPERIENCE_ROADMAP.md) | Strategic "make it fun to watch" roadmap: entity inspector, Living History, presentation modes, ecosystem trust states |
+| [SKILL_PROGRESSION.md](SKILL_PROGRESSION.md) | Skill progression track (S1–S4): live frozen-ladder evaluation of evolved fish, skill snapshots, Skill Progress UI, breakthrough events |
 | [MULTILEVEL_EVOLUTION_STRATEGY.md](MULTILEVEL_EVOLUTION_STRATEGY.md) | Multi-level evolutionary optimization strategy |
 | [MULTI_PROBLEM_SPACE_SEARCH.md](MULTI_PROBLEM_SPACE_SEARCH.md) | Assessment + plan for cross-domain transfer (searching many problem spaces at once) |
 | [FEDERATION.md](FEDERATION.md) | Design for connecting tanks online: data-only genome wire format, sealed vs open mode, cross-tank lineage |

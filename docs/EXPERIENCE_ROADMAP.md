@@ -123,6 +123,12 @@ E0 and E1 may be developed independently but should remain separate PRs. E3 shou
 with only three detectors—population danger/recovery, generation milestone, and lineage
 share threshold—so the event contract can stabilize before detector breadth grows.
 
+A parallel **skill progression track** (S1–S4) makes in-tank evolution visible against
+frozen references: live ladder evaluation of evolved fish, a Skill Progress panel,
+per-fish poker skill, and breakthrough events. It fills the fixed-baseline soccer
+evaluation gap noted above (U12) and its event PR (S4) depends on E3. Plan of record:
+[SKILL_PROGRESSION.md](SKILL_PROGRESSION.md).
+
 ## Phase outcomes
 
 ### Phase 0: curiosity has somewhere to go
