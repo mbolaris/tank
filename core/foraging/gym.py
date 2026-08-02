@@ -40,6 +40,14 @@ FOOD_COUNT = 12
 SETTLE_FRAMES = 160
 RANDOM_WALK_TURN_INTERVAL = 30
 
+# Lane X-positions for alternating food spawns.  Must satisfy:
+#   sqrt((LANE_RIGHT - LANE_LEFT)^2 + y_spread^2) < CHASE_DISTANCE_SAFE_BASE
+# so that a well-fed fish can always *detect* food on the other lane.  The old
+# values (170 / 430, gap 260px) exceeded the 180px safe-energy chase cap,
+# causing the benchmark to measure detection-range gating instead of pursuit.
+LANE_LEFT_X = 240.0
+LANE_RIGHT_X = 360.0
+
 
 @dataclass(frozen=True)
 class FoodSpawn:
@@ -166,9 +174,10 @@ class _GymPolicy(Protocol):
 def build_food_schedule(seed: int) -> tuple[FoodSpawn, ...]:
     """Build the immutable scripted schedule for ``seed``.
 
-    Food alternates between distant left/right lanes.  The maximum possible
-    lane-to-lane distance is below ``MAX_SPEED * SPAWN_INTERVAL``; an oracle
-    that knows each exact spawn can therefore collect every item before the
+    Food alternates between left/right lanes (``LANE_LEFT_X`` / ``LANE_RIGHT_X``).
+    The lane gap (120px) plus y-spread (121px) yields a worst-case diagonal of
+    ~170px, safely within the production ``CHASE_DISTANCE_SAFE_BASE`` (180px).
+    An oracle that knows each exact spawn can collect every item before the
     next one appears.  A fixed integer recurrence, rather than platform RNG,
     supplies the per-seed lane heights and energy values.
     """
@@ -182,7 +191,7 @@ def build_food_schedule(seed: int) -> tuple[FoodSpawn, ...]:
         spawns.append(
             FoodSpawn(
                 frame=(index + 1) * SPAWN_INTERVAL,
-                x=170.0 if index % 2 == 0 else 430.0,
+                x=LANE_LEFT_X if index % 2 == 0 else LANE_RIGHT_X,
                 y=y,
                 energy=energy,
             )
