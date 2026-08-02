@@ -65,13 +65,17 @@ Tank match engine ─────[ TankMatchAdapter ]─────┘         
                                           replay, benchmarks, policy observations          [ fitTransform ] ──▶ css px
 ```
 
-Two rules:
+Three rules:
 
-1. **Adapters convert *to* canonical, never to render space.** An adapter that
-   knows about pixels is a bug.
+1. **Production adapters convert *to* canonical, never to render space.** An
+   adapter that knows about pixels is a bug.
 2. **`renderFromCanonical` is the only place the `y` sign flips**, and the only
-   place angle handedness changes. It is one function, in one file, with a
-   round-trip test.
+   place angle handedness changes. It is one function, in one file.
+3. **Pure coordinate utilities may be bidirectional** —
+   `legacy_to_canonical()` / `canonical_to_legacy()` — for validation and for
+   the render boundary. They know about coordinates and nothing else: no
+   pixels, no canvas dimensions, no DPR, no layout. The round-trip test applies
+   to these utilities, not to the one-way production adapter.
 
 Below that boundary, all drawing code continues to assume `+y = down` exactly
 as it does today. The render path pays nothing for this decision.
@@ -112,10 +116,14 @@ the adapter lands; the existing panel keeps working throughout.
 
 Required by [SOCCER_ARENA_DESIGN.md](../SOCCER_ARENA_DESIGN.md) §10.5:
 
-- Golden fixture tests against captured RCSS monitor `(show ...)` frames,
-  asserting canonical positions, headings, and ball velocity.
+- Golden **engine** fixture tests — hand-checked deterministic engine snapshots
+  adapted through `tank_adapter.py`, asserting canonical positions, headings,
+  and ball velocity. Monitor-protocol `(show ...)` fixtures belong with the
+  RCSS adapter, not here: `core/minigames/soccer/fake_server.py` emits
+  player-facing `(see ...)` / `(sense_body ...)`, not monitor frames.
 - Attack-direction test per side, surviving the half swap.
-- Round-trip: `canonicalFromRender(renderFromCanonical(p)) ≈ p`.
+- Round-trip on the pure utilities:
+  `canonical_to_legacy(legacy_to_canonical(p)) ≈ p`.
 - Handedness test asserting counter-clockwise in canonical and clockwise on
   screen, named so the two cannot be confused.
 
