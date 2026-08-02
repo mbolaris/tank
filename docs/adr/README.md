@@ -28,6 +28,8 @@ architectural choices made during development.
 | [ADR-013](013-collapse-generic-agent-state-layer.md) | Collapse the GenericAgent State Layer | Accepted | 2026-06 |
 | [ADR-014](014-deterministic-algorithm-ids.md) | Deterministic Algorithm / Diversity IDs | Accepted | 2026-06 |
 | [ADR-015](015-per-algorithm-stats-keying.md) | Per-Algorithm Stats Keyed by Composable behavior_id | Accepted | 2026-06 |
+| [ADR-016](016-remove-vestigial-monolith-algorithms.md) | Remove the Vestigial Monolithic Algorithm Categories | Accepted | 2026-07 |
+| [ADR-017](017-soccer-coordinate-space.md) | Canonical Soccer Coordinate Space | Accepted | 2026-08 |
 
 ## What is an ADR?
 

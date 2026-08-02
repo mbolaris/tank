@@ -59,17 +59,75 @@ team is better than it was twenty generations ago.
 | **Reference team** | A frozen ruler from `core/minigames/soccer/reference_teams.py` (L0–L3). |
 | **Team Skill** | Standardised ladder-derived rating (`skill_index`), *not* league points. |
 | **League** | Round-robin fixtures between tanks/bots; produces points and standings. |
+| **Roster snapshot** | The immutable copy of a participant taken at selection time. See §1.2. |
+
+### 1.2 Roster Lifecycle Semantics
+
+"Fish leave the tank" is **presentation language, not simulation semantics.**
+Getting this wrong is the most likely source of serious bugs in the whole
+feature, so it is specified normatively here.
+
+**Rule: a match runs on immutable roster snapshots. The source fish never
+leave the aquarium and are never suspended.**
+
+| Question | Answer |
+|---|---|
+| Do source fish remain active in the aquarium? | **Yes.** They swim, forage, and are rendered in the tank for the entire match. |
+| Do they continue aging and consuming energy? | **Yes.** Normal ecosystem rules apply, unmodified. |
+| Can they reproduce during a match? | **Yes.** |
+| Can they die during a match? | **Yes.** See the reconciliation rules below. |
+| Are they frozen? | **No.** Nothing about the aquarium changes because a match is running. |
+| What plays on the pitch? | A snapshot: identity, genome, policy, and visual traits, copied at selection time. |
+
+**Why snapshots.** Three reasons, in order of weight:
+
+1. **Determinism.** A match must be reproducible from `(roster snapshot, seed)`
+   alone. If the match reads live fish state, its result depends on aquarium
+   timing, and `tests/test_soccer_match_runner_determinism.py` becomes a lie.
+2. **No shared mutable state.** A live `source_entity` handle means the match
+   and the ecosystem can both write the same fish in the same frame. The
+   current `SoccerParticipant.source_entity` is exactly this handle, and it is
+   the thing to remove.
+3. **RCSS parity.** An external RCSS client is a snapshot by construction — it
+   has no ecosystem behind it. Making tank rosters work the same way means the
+   two paths share one model instead of diverging.
+
+**Reconciliation.** Match outcomes (energy rewards, entry fees, reproduction
+credit, stat attribution) are applied **atomically at full time**, never
+incrementally during play:
+
+- Source fish **alive** at full time: all deltas applied normally.
+- Source fish **dead** before full time: energy and reproduction-credit deltas
+  are **dropped** (there is nothing to credit). Match statistics and records
+  are **still recorded** against the fish's identity — a dead fish keeps its
+  goals, and a posthumous leading-scorer record is legitimate.
+- Source fish **reproduced** during the match: offspring are unaffected. Match
+  performance influences the *parent's* future reproduction, not a birth that
+  already happened.
+- The match itself **never** aborts because a source fish died. The snapshot
+  plays to full time regardless.
+
+**UI consequence.** The lineup panel shows a small status glyph per player when
+the source fish's aquarium state has changed since kickoff: `✝` died,
+`⊕` reproduced, `↓` energy critical. This is a genuinely interesting thing to
+watch — a fish scoring a winner while its body starves in the tank is exactly
+the kind of moment this project should surface — but it must never be confused
+with the on-pitch snapshot, which plays on unaffected.
+
+> **If you instead want fish physically absent from the tank during a match**,
+> that is a different feature with a much larger blast radius: entity removal
+> and reinsertion, suspended lifecycle timers, population-count effects on
+> emergency spawns, and benchmark-score impact (see the reproduction/overflow
+> gotchas in [CLAUDE.md](../CLAUDE.md)). It is explicitly **not** what this
+> design specifies, and it should not be implemented without its own ADR.
 
 ---
 
 ## 2. Critique of the Current State
 
-> **Note:** the screenshot referenced in the design brief did not arrive with
-> the request. This critique is derived from the live implementation —
-> `TankSoccerTab.tsx`, `SoccerLeagueLive.tsx`, `SoccerPitch.tsx`, and
-> `renderers/soccer/SoccerTopDownRenderer.ts` — which is what produces that
-> screenshot. If the screenshot shows something this section misses, treat the
-> screenshot as authoritative and amend this section.
+This critiques the shipped Soccer League panel — the plain, cramped modal with
+the flat green field. Each point names the code that produces it, so every
+complaint has an address to fix.
 
 ### 2.1 Structural problems
 
@@ -173,7 +231,7 @@ Five tiers. Anything that cannot be placed in a tier does not go on screen.
 
 | Tier | Content | Treatment |
 |---|---|---|
-| **0 — The field** | Pitch, ball, players, goals, attack direction | Largest element on screen. Always visible. Never occluded by more than ~12% of its area. |
+| **0 — The field** | Pitch, ball, players, goals, attack direction | Largest element on screen. Always visible. Subject to the occlusion budget below. |
 | **1 — State of the match** | Team names, score, clock, stage, live/paused | Persistent broadcast overlay, top of the arena, ~64 px tall. Legible at a glance from across a room. |
 | **2 — What just happened** | Goal, save, shot, possession change, halftime, breakthrough | Transient. Enters, holds 2–4 s, fades. Never more than one major card at a time. |
 | **3 — Is it getting better?** | Team Skill, ladder rung, recent form, next milestone | A compact rail. Always present in Broadcast, expanded in Analysis. |
@@ -186,11 +244,40 @@ Five tiers. Anything that cannot be placed in a tier does not go on screen.
 - Tier 3 numbers are *rates and ranks*, never cumulative totals.
 - Tier 4 is opt-in. The default view shows it collapsed or not at all.
 
+### 3.1 Occlusion Budget (normative)
+
+One rule, no exceptions. **Nothing ever covers the middle of the pitch, and
+total occlusion never exceeds 15% of pitch area.**
+
+| Surface | Placement | Budget |
+|---|---|---|
+| Goal / breakthrough / full-time cards | **Lower third**, horizontally centred, bottom-anchored. Never centre-field. | ≤ 15% |
+| Notable toasts | Top-right corner of the pitch, inset 12 px | ≤ 4% |
+| Bottom drawer (desktop) | **Reserves layout space below the pitch** — the pitch box shrinks and the transform re-fits. It does *not* float over the pitch. | 0% |
+| Bottom drawer (compact) | Below the pitch in document flow, scrolls | 0% |
+| Tactical mode | **No field-covering overlays at all.** Cards route to the timeline rail. | 0% |
+| Analysis mode | No cards; timeline only | 0% |
+
+Two consequences the implementation must honour:
+
+1. Opening the drawer **does** resize the pitch canvas. The earlier version of
+   this spec avoided that to dodge a mid-match re-fit; the fix is to make
+   re-fit cheap and correct (the static field layer redraws once; the dynamic
+   layer is transform-driven and needs no work) rather than to cover the pitch.
+2. Because cards live in the lower third, the pitch's **lower third must not be
+   where the action is assumed to be**. It isn't — play is centre-weighted —
+   but the card's backdrop is 92% opaque with a soft top edge, and any player
+   or the ball inside the card's rect is drawn *over* it at 60% alpha so the
+   ball is never truly lost. **The ball is never fully occluded by UI.**
+
 ---
 
 ## 4. Desktop Layout — Broadcast (default)
 
 Target: ≥1280 px wide. The arena is a full view, not a panel.
+
+*The diagram below shows both rails **expanded**. That is not the default —
+see the rule immediately after it.*
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -225,18 +312,34 @@ Target: ≥1280 px wide. The arena is a full view, not a panel.
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+**The pitch is dominant by default.** Both rails start **collapsed**. The
+default Broadcast experience is deliberately minimal:
+
+```
+Scoreboard
+   ↓
+Large pitch                    ← as wide as the viewport allows
+   ↓
+Progress strip (one line)      ← Skill 68 ↑9 · L2 ✓ · W W D W L
+   ↓
+Event lower-third              ← only when something happens
+```
+
+Rails are opened by the user (click the edge handle, or `[` / `]`), and the
+choice is persisted per user. A first-time viewer sees pitch, score, and a
+one-line improvement strip — nothing else.
+
 Rules:
 
-- **Pitch is the flex child.** It consumes all width left after the two rails
-  and all height left after scoreboard and tab bar, then letterboxes to the
-  field's true aspect ratio inside that box.
-- Left rail (Lineup) and right rail (Progress) are collapsible to 0. At
-  <1440 px the left rail auto-collapses to a 40 px strip of team-coloured
-  number chips.
-- The bottom drawer overlays the pitch's lower ~30% at 92% opacity when open.
-  Opening it never resizes the pitch canvas (avoids a re-fit mid-match).
-- Goal/breakthrough cards render in a centred overlay layer above everything
-  except the scoreboard.
+- **Pitch is the flex child.** It consumes all width left after any open rails
+  and all height left after scoreboard, progress strip, and tab bar, then
+  letterboxes to the field's true aspect ratio inside that box.
+- Left rail (Lineup, 200 px) and right rail (Progress, 240 px) collapse to a
+  12 px handle. Below 1440 px, opening one auto-closes the other. Below
+  1100 px, rails are unavailable and their content lives in the drawer.
+- Opening a rail or the drawer resizes the pitch box and re-fits the
+  transform. This is correct and cheap — see §3.1.
+- Goal/breakthrough cards render bottom-anchored in the lower third, per §3.1.
 
 ### 4.1 Tactical layout
 
@@ -325,12 +428,36 @@ disappears. State changes swap content inside fixed slots.
 ### 6.2 Field
 
 Replace the two-transform pipeline with **one** transform derived from real
-field metres.
+field metres — and put an explicit boundary between the *domain* coordinate
+convention and the *screen* one.
 
 ```
-metres (centred at origin, +x = right, +y = down)
-  ──[ fitTransform(field, viewport, margin) ]──▶  css pixels
+  canonical match coordinates            ← domain truth; defined by ADR-017,
+  (metres, field-centred, +y NORTH)        NOT by what a canvas finds convenient
+            │
+            │  adapters — each owns exactly one sign/axis convention
+            ├── TankMatchAdapter        (native; identity)
+            └── RcssMonitorAdapter      (RCSS wire → canonical)
+            ▼
+  render coordinates                     ← +x right, +y DOWN (canvas convention)
+  (metres, field-centred, +y DOWN)
+            │
+            │  fitTransform(geometry, viewport, margin)   ← the one transform
+            ▼
+  css pixels
 ```
+
+**Why the extra step.** The earlier version of this spec declared `+y = down`
+as the canonical convention. That is a canvas convention leaking into the
+domain model, and it is exactly the kind of thing that makes an imported RCSS
+team attack the wrong goal, turn the wrong way, or curl a kick backwards — a
+sign error that is invisible in a static screenshot and obvious only in motion.
+The domain model must be able to state its convention without reference to a
+rendering surface.
+
+The flip is **one line in one place** (`renderCoordsFromCanonical`), covered by
+fixture tests (§10.3). The render path below it is unchanged and still assumes
+`+y = down` throughout, so no drawing code pays for this.
 
 ```ts
 interface PitchTransform {
@@ -346,24 +473,53 @@ Everything — markings, players, ball, trails, labels — is expressed in metre
 and passed through `toScreen`. This is the single change that makes 11v11 and
 RCSS field dimensions free.
 
-**Markings, in metres (RCSS-standard, scaled proportionally for small fields):**
+**Markings come from a field-geometry profile, not from scaled constants.**
 
-| Marking | Metres |
-|---|---|
-| Touchline / goal line | field length × width from `field.length` / `field.width` |
-| Halfway line | x = 0 |
-| Centre circle | r = 9.15 |
-| Centre spot | r = 0.15 |
-| Penalty area | 16.5 deep × 40.32 wide |
-| Goal area | 5.5 deep × 18.32 wide |
-| Penalty spot | 11.0 from goal line |
-| Penalty arc | r = 9.15 about the penalty spot, clipped outside the area |
-| Corner arc | r = 1.0 |
-| Goal | `field.goal_width` × `field.goal_depth` from the payload |
+The renderer draws whatever geometry it is handed. It contains **no marking
+constants at all** — not 9.15, not 16.5, not a `length / 105` scale factor.
+Deriving marking sizes by scaling regulation values is only valid when length
+and width scale together, and they don't: a 60 × 40 pitch is not a shrunken
+105 × 68 one, and a uniformly scaled penalty area on it would be geometrically
+wrong.
 
-For sub-regulation fields (the current small-sided pitch), scale all marking
-constants by `field.length / 105` so the pitch stays proportionate rather than
-having a penalty area that swallows the field.
+```ts
+interface SoccerFieldGeometry {
+  profile_id: string;            // e.g. 'rcss_standard_105x68'
+  length: number;                // touchline to touchline, x-axis
+  width: number;                 // goal line to goal line, y-axis
+  goal_width: number;
+  goal_depth: number;
+  centre_circle_radius: number;
+  penalty_area_depth: number;
+  penalty_area_width: number;
+  goal_area_depth: number;
+  goal_area_width: number;
+  penalty_spot_distance: number; // from goal line
+  corner_arc_radius: number;
+}
+```
+
+**Named profiles** (defined once, backend-side, in
+`core/minigames/soccer/field_profiles.py`; the frontend only consumes them):
+
+| `profile_id` | Length × Width | Notes |
+|---|---|---|
+| `rcss_standard_105x68` | 105 × 68 | RCSS/FIFA regulation. Circle 9.15, penalty area 16.5 × 40.32, goal area 5.5 × 18.32, spot 11.0, corner 1.0. |
+| `tank_small_sided` | current small pitch | Hand-authored proportions suited to 3v3/6v6 — **not** a scaled copy of regulation. Larger relative goals, shallower penalty area, smaller circle. |
+
+Rules:
+
+- The profile ships **in the match payload**, not in the client. A client that
+  receives an unrecognised `profile_id` still renders correctly, because every
+  number it needs is in the same object.
+- Adding an 11v11 or a futsal-sized pitch is a new profile row and zero
+  renderer changes.
+- Missing profile → fall back to `rcss_standard_105x68` and log once. Never
+  guess individual markings.
+- Any marking whose value is `0` or absent is **not drawn**. A pitch without a
+  penalty area is a legitimate configuration, not an error.
+- The goal is drawn from `goal_width` / `goal_depth`, which already exist on
+  the wire today.
 
 **Surface treatment:**
 
@@ -464,7 +620,7 @@ The one moment that gets full treatment.
 |---|---|
 | 0 ms | Goal detected. Scoring team's goal mouth flashes to full team colour; a shockwave ring expands from the ball. |
 | 0–200 ms | Pitch desaturates to 60% *except* a radial window around the scorer. Scoreboard digit animates 0→1. |
-| 250 ms | Card enters from below with a 220 ms ease-out. Ball trail from the shot origin redraws once, bright. |
+| 250 ms | Card enters from below with a 220 ms ease-out, **bottom-anchored in the pitch's lower third** (§3.1) — never centre-field. Ball trail from the shot origin redraws once, bright. |
 | 250–3000 ms | Card holds. Scorer's fish gets the golden bloom (§6.3). |
 | 3000–3600 ms | Card fades and drops 8 px. Desaturation releases. Play presentation resumes. |
 
@@ -549,8 +705,41 @@ in Broadcast, expands in Analysis.
 Never let cumulative goals imply improvement. If we show total goals anywhere,
 it is labelled `career` and sits in tier 4.
 
-**Breakthroughs.** These are the payoff moments. Each fires once, is persisted,
-and gets a Major-tier card during or after the match:
+**Breakthroughs.** These are the payoff moments — and **the backend is the sole
+authority on whether one occurred.**
+
+The frontend must never decide that a historical first has happened. A client
+that computes "this is a record" from the data it happens to hold is wrong
+across every axis that matters here: two open browsers both claim the first,
+a reload re-fires it, a client that was disconnected misses it entirely, a
+replay re-announces decade-old records as new, and an externally-driven match
+has no client-side history to compare against at all.
+
+The backend detects, assigns a stable id, and **persists** the event:
+
+```json
+{
+  "event_id": "world1a-ladder-l2-28491",
+  "kind": "ladder_rung_cleared",
+  "tank_id": "world1a",
+  "frame": 28491,
+  "match_id": "m-4412",
+  "rung": "L2",
+  "detail": { "previous_best": "L1", "margin_goals_per_match": 0.8 }
+}
+```
+
+`event_id` is deterministic — `{tank}-{kind}-{frame}` or equivalent — so the
+same breakthrough regenerated by a replay produces the same id and is
+recognised as the same event, not a new one.
+
+The frontend's job is exactly three things: **deduplicate** on `event_id`,
+**decide presentation** (Major card now, or timeline entry if it arrived while
+the tab was hidden), and **render**. `useBreakthroughs` holds a seen-set for
+the session; it computes nothing.
+
+Catalogue — each fires once per tank, is persisted server-side, and gets a
+Major-tier card during or after the match:
 
 | Breakthrough | Trigger |
 |---|---|
@@ -708,9 +897,28 @@ frontend/src/
   hooks/
     useSoccerArenaState.ts         NEW  selects arena slice from the sim stream
     useSkillSnapshots.ts           NEW  extracted from SoccerSkillProgress
-    useBreakthroughs.ts            NEW  diffing + once-only firing
+    useBreakthroughs.ts            NEW  seen-set + presentation routing ONLY.
+                                        Detects nothing — see §6.6.
+  coords/
+    canonical.ts                   NEW  CanonicalPoint / RenderPoint types +
+                                        renderFromCanonical, per ADR-017
   types/
     soccer.ts                      NEW  arena-specific types, §10
+```
+
+Backend, added by PR 0:
+
+```
+core/minigames/soccer/
+  field_profiles.py                NEW  SoccerFieldGeometry profiles, §6.2
+  roster_snapshot.py               NEW  immutable participant snapshot, §1.2
+  reconciliation.py                NEW  atomic full-time outcome application
+  participant.py                   EDIT drop the live `source_entity` handle
+  adapters/
+    tank_adapter.py                NEW  engine → canonical coords (ADR-017)
+    rcss_monitor_adapter.py        LATER (PR 5)
+backend/state_payloads/soccer.py   EDIT participants[], geometry, coord_space,
+                                        events[] with seq + event_id
 ```
 
 **Absorbed / retired:**
@@ -723,9 +931,10 @@ frontend/src/
   grid: score, clock, mini pitch, and a `Open Arena →` button. The panel stops
   trying to be the whole experience.
 
-**State ownership:** `SoccerArenaView` owns `viewMode`, `selectedPlayerId`,
-`drawerTab`, and `cameraLocked`. Match data flows down from the existing
-simulation websocket stream; the arena adds no new socket.
+**State ownership:** `SoccerArenaView` owns `viewMode`, `selectedParticipantId`,
+`drawerTab`, `railsOpen`, and `cameraLocked`. Match data flows down from the
+existing simulation websocket stream; the arena adds no new socket. Selection
+state keys on `participant_id`, never on uniform number or entity id (§10.2).
 
 ---
 
@@ -734,6 +943,78 @@ simulation websocket stream; the arena adds no new socket.
 Most of what the arena needs already exists. Additions are marked **NEW** and
 must all be **optional** so the arena degrades gracefully against an older
 backend.
+
+### 10.1 Participants
+
+**Players are participants, not fish.** A match may field tank fish, frozen
+reference policies, external RCSS clients, generic bots, or another tank's
+roster — so player identity cannot live in `EntityData.render_hint`, which is
+a Tank-entity bag by construction.
+
+The backend already has the right abstraction:
+`core/minigames/soccer/participant.py` defines `SoccerParticipant` with a
+`participant_id`. It is simply never exposed on the wire. This contract lifts
+it up rather than inventing a parallel model.
+
+```ts
+interface SoccerParticipant {
+  participant_id: string;          // stable for the whole match; the render key
+  side: 'left' | 'right';
+  uniform_number: number;          // 1..N; unique WITHIN a side only
+
+  team_id: string;
+  display_name?: string;
+  avatar_kind: 'fish' | 'reference' | 'external' | 'bot';
+
+  // Present only when avatar_kind === 'fish' — the aquarium link
+  fish_id?: number;
+  tank_id?: string;
+  generation?: number;
+  parent_id?: number | null;
+
+  // Present for reference/bot participants
+  policy_label?: string;           // e.g. 'chase_shoot_v1'
+}
+```
+
+`SoccerMatchState.participants` carries these. Match entities reference a
+participant by `participant_id` and carry **only physical state** — position,
+velocity, facing, stamina, possession. Identity and physics stay separate.
+
+The renderer branches on `avatar_kind` exactly once:
+
+| `avatar_kind` | Render |
+|---|---|
+| `fish` | `drawAvatar` from genome data — full identity, as today |
+| `reference` | Neutral chevron glyph in the frozen-ruler grey, `policy_label` on hover |
+| `external` | Neutral chevron in the external-client colour, `display_name` on hover |
+| `bot` | Neutral chevron, muted |
+
+An RCSS-driven match is then a **data-source swap**: the adapter emits
+participants with `avatar_kind: 'external'` and the entire render, layout,
+scoreboard, lineup, and event path is unchanged.
+
+### 10.2 Player identity
+
+**`participant_id` is the render key. Uniform number is not, and never was.**
+
+Both sides number their players 1–11, so `uniform_number` alone collides on
+every single match. Where a composite is needed for protocol-facing work, it is
+`(side, uniform_number)` — never the number alone.
+
+| Use | Key |
+|---|---|
+| React list keys, selection state, lookup maps, trail buffers | `participant_id` |
+| RCSS protocol identity, jersey badge display | `(side, uniform_number)` |
+| Aquarium linkage (lineage, records, rewards) | `fish_id` + `tank_id` |
+| Physics entity in the match snapshot | `entity_id` → `participant_id` |
+
+These are four different namespaces and must not be conflated. (This project
+has been bitten by exactly this before — see the tank object-id namespaces.)
+`participant_id` is stable for the whole match; `uniform_number` is stable for
+the whole match; `entity_id` is not guaranteed stable across a half swap.
+
+### 10.3 Match state
 
 ```ts
 interface SoccerMatchState {
@@ -744,70 +1025,105 @@ interface SoccerMatchState {
   game_over: boolean;
   winner_team: 'left' | 'right' | 'draw' | null;
   entities: EntityData[];
-  field?: { length: number; width: number; goal_width: number; goal_depth: number };
-  teams?: { left: number[]; right: number[] };
   home_id?: string; away_id?: string; home_name?: string; away_name?: string;
   league_round?: number;
   last_goal?: SoccerGoalEvent | null;
 
+  // NEW — identity and geometry
+  participants?: SoccerParticipant[];      // §10.1
+  geometry?: SoccerFieldGeometry;          // §6.2 — supersedes the flat `field`
+  coord_space?: 'canonical' | 'legacy_render';  // §6.2; absent ⇒ 'legacy_render'
+
   // NEW — presentation
-  play_mode?: 'before_kick_off' | 'kick_off' | 'play_on' | 'after_goal'
-           | 'half_time' | 'time_over' | 'free_kick' | 'goal_kick' | 'corner_kick';
+  play_mode?: string;              // RCSS mode name verbatim; see rule 5
   half?: 1 | 2;
   period_frames?: number;          // frames per half, for clock + progress
   possession?: { left: number; right: number };   // rolling window, 0..1
-  ball_owner_id?: number | null;   // last/current touch
+  ball_owner?: string | null;      // participant_id of last/current touch
   home_tank_id?: string; away_tank_id?: string;   // link back to aquarium
   home_color?: string;  away_color?: string;      // team colours, backend-assigned
   events?: SoccerMatchEvent[];     // append-only, presentation reads the tail
+
+  // DEPRECATED — kept for the existing panel during the migration
+  field?: { length: number; width: number; goal_width: number; goal_depth: number };
+  teams?: { left: number[]; right: number[] };
 }
 
 // NEW
 interface SoccerMatchEvent {
   frame: number;
-  seq: number;                     // monotonic; the presenter dedupes on this
+  seq: number;                     // monotonic within a match; presenter dedupes
+  event_id?: string;               // stable across replays; required for breakthroughs
   kind: 'kickoff' | 'goal' | 'shot' | 'save' | 'assist' | 'possession_change'
       | 'half_time' | 'full_time' | 'breakthrough';
-  team?: 'left' | 'right';
-  actor_id?: number;               // scorer / shooter / keeper
-  assist_id?: number;
+  side?: 'left' | 'right';
+  actor?: string;                  // participant_id — scorer / shooter / keeper
+  assist?: string;                 // participant_id
   detail?: Record<string, string | number>;
 }
 
-// NEW — per-player, rides on EntityData.render_hint (already exists as a bag)
+// NEW — per-entity PHYSICAL state only. Identity lives on SoccerParticipant.
 interface SoccerRenderHint {
-  team?: 'left' | 'right';
-  jersey_number?: number;
-  stamina?: number;                // 0..1
-  facing_angle?: number;
+  participant_id: string;          // the join key
+  stamina?: number;                // 0..1, normalised — never RCSS's 8000 scale
+  facing_angle?: number;           // BODY orientation only
   has_ball?: boolean;
   velocity_x?: number; velocity_y?: number;
-  role?: 'GK' | 'D' | 'M' | 'F';   // NEW
-  fish_id?: number;                // NEW — tank identity, distinct from entity id
-  generation?: number;             // NEW
-  parent_id?: number | null;       // NEW
+  role?: 'GK' | 'D' | 'M' | 'F';
 }
 ```
 
-**RCSS forward-compatibility rules** (§8 of the brief) — the design commits to
-these so the later protocol work is a data-source swap, not a rewrite:
+### 10.4 RCSS forward-compatibility rules
 
-1. All positions are **metres, field-centred, +x right, +y down**. Already true.
+The design commits to these so the later protocol work is a data-source swap,
+not a rewrite:
+
+1. **Canonical match coordinates are metres, field-centred, `+x` toward the
+   right team's goal, `+y` north.** They are *not* screen coordinates. The
+   `+y = down` flip happens in exactly one function on the render boundary
+   (§6.2), and is recorded in **[ADR-017](adr/017-soccer-coordinate-space.md)**.
+   Every adapter converts *to* canonical, never to render space.
 2. Team sides are **left/right**, never home/away, in the render path. Home/away
    is a *label* resolved at the scoreboard, so a half swap is a label change
    plus an attack-direction flip, nothing more.
-3. Uniform numbers are **1–11** and are the render key for a player slot.
-   `jersey_number` must be stable for a whole match.
+3. **`participant_id` is the render key** (§10.2). Uniform numbers are 1–11 and
+   unique only within a side; where a composite is needed it is
+   `(side, uniform_number)`. Both are stable for a whole match.
 4. Player count is **data-driven**. No component may hard-code 3 or 6. Layout
    (lineup rail, badges, label thresholds) must be tested at 3, 6, and 11.
-5. `play_mode` uses RCSS mode names verbatim. Unknown modes render as `play_on`
-   rather than breaking.
+5. `play_mode` carries RCSS mode names **verbatim as a string**, not a closed
+   union — a new server mode must not break an old client. Handling:
+   - **Known mode** → render its presentation.
+   - **Unknown mode** → **hold the last known presentation state** and show
+     `UNKNOWN: <value>` in the scoreboard's stage slot.
+
+   Unknown modes must **never** fall back to `play_on`. A stopped, constrained,
+   or errored match rendered as live play is worse than an honest unknown: it
+   tells the viewer the sim is fine when it is not.
 6. Body orientation (`facing_angle`) and neck/view angle are separate concepts;
    the hint reserves `facing_angle` for body. If we later add view angle, it is
    a new field, not a redefinition.
-7. Field dimensions always come from the payload. A default of 105×68 (RCSS
-   full size) replaces today's 100×60 fallback.
+7. Field geometry always comes from the payload as a profile (§6.2). Default
+   `rcss_standard_105x68` replaces today's 100×60 fallback.
 8. Stamina is normalised 0..1 on the wire, not RCSS's raw 8000-scale.
+
+### 10.5 Fixture tests (required)
+
+Sign and axis errors are invisible in a screenshot and obvious only in motion,
+so they must be caught by fixtures rather than by eye:
+
+- **Golden RCSS monitor messages.** Capture real `(show ...)` frames — from
+  `core/minigames/soccer/fake_server.py` and from the upstream
+  [rcsoccersim](https://github.com/rcsoccersim) monitor format — and assert the
+  adapter's canonical output positions, headings, and ball velocity against
+  hand-checked expected values.
+- **Attack-direction test.** For each side, assert that a participant moving
+  toward its opponent's goal has the expected canonical `+x` / `−x` sign, and
+  that this survives the half swap.
+- **Round-trip.** `canonicalFromRender(renderFromCanonical(p)) ≈ p`.
+- **Handedness.** A positive turn is counter-clockwise in canonical space and
+  clockwise on screen. Assert both, explicitly, in one test named so that a
+  future reader cannot mistake which is which.
 
 ---
 
@@ -816,7 +1132,7 @@ these so the later protocol work is a data-source swap, not a rewrite:
 **MVP** — the 30-second success criteria are met:
 
 - Dedicated full-size arena view, reachable from the tank and back.
-- One-transform pitch with real RCSS-proportioned markings, gradient + stripes,
+- One-transform pitch driven by a field-geometry profile, gradient + stripes,
   bright goals, attack-direction labels.
 - rAF render loop with interpolation between pushes.
 - Fish rendered with genome avatars + team ring beneath + offset number badge.
@@ -845,26 +1161,102 @@ these so the later protocol work is a data-source swap, not a rewrite:
 Each PR is independently shippable, gated by
 `python tools/pre_pr_gate.py`, and must not regress the existing panel.
 
-### PR 1 — Arena shell and rendering foundation
+### PR 0 — Contracts (backend, no UI)
 
-*Goal: a real venue with a readable pitch.*
+*Goal: the data model the arena assumes actually exists.*
 
-- `SoccerArenaView` + route/view-mode entry; `TankSoccerTab` reduced to a
-  preview card with `Open Arena →`.
-- `PitchCanvas` with correct sizing, DPR handling, resize observer, and a rAF
-  loop.
-- `usePitchTransform` — single metres→px transform; delete the 1088×612
+Split out because every later PR consumes it, and because a contract change
+reviewed alongside a canvas rewrite gets reviewed as neither.
+
+- `SoccerParticipant` on the wire (§10.1) — lift the existing
+  `core/minigames/soccer/participant.py` type into
+  `backend/state_payloads/soccer.py`. Entities reference `participant_id`.
+- Remove the live `source_entity` handle from the match path; replace with an
+  immutable roster snapshot per §1.2, and move outcome application to an
+  atomic full-time reconciliation step.
+- `SoccerFieldGeometry` profiles in `core/minigames/soccer/field_profiles.py`
+  (`rcss_standard_105x68`, `tank_small_sided`); emit `geometry` on match state.
+- ADR-017 canonical coordinate space: `coord_space` field, `TankMatchAdapter`,
+  and the canonical↔render boundary function.
+- Tests: roster-snapshot determinism (same snapshot + seed ⇒ same result,
+  independent of aquarium activity); reconciliation with a source fish that
+  dies mid-match; participant round-trip; geometry profile serialisation;
+  the §10.5 fixture suite (golden RCSS frames, attack direction, round-trip,
+  handedness).
+
+**Gate:** `python tools/pre_pr_gate.py`. Because this touches
+`core/minigames/soccer/`, re-run the soccer benchmarks and confirm champion
+scores are unchanged — this PR must be behaviour-neutral.
+
+### PR 1A — Arena shell
+
+*Goal: soccer has its own venue. Nothing about rendering changes yet.*
+
+- `SoccerArenaView` — full-view route/view-mode entry, `ArenaHeader`, back
+  navigation to the tank, layout scaffolding per §4 with **both rails
+  collapsed** and the drawer reserving layout space (§3.1).
+- The **existing** `SoccerPitch` is embedded unchanged. No visual rewrite.
+- `TankSoccerTab` reduced to a preview card with `Open Arena →`; the analyze
+  panel keeps working.
+- Tests: arena mounts and unmounts cleanly; navigation both ways; preview card
+  renders with and without an active match; rail collapse/expand persists.
+
+*Reviewable as: "is the navigation and layout right?" — nothing else.*
+
+### PR 1B — Coordinate and field foundation
+
+*Goal: the pitch is geometrically correct and correctly sized.*
+
+- `usePitchTransform` — the single metres→px transform. Delete the 1088×612
   intermediate.
-- `StaticFieldLayer` (offscreen; grass gradient, stripes, vignette,
-  metre-accurate markings, bright goals) + `PlayersLayer` + `BallLayer` +
-  `LabelsLayer` (attack direction only).
-- Team treatment: ring beneath, offset badge. Ball: min size, contrast ring,
-  halo.
-- `Scoreboard` with team blocks, score, clock, stage, status.
-- Empty / loading / paused / disconnected states.
-- Tests: transform round-trip (`toField(toScreen(p)) ≈ p`) at 3 field sizes;
-  marking geometry at 105×68 and at the small-sided size; scoreboard renders
-  every status; canvas layer smoke test via the existing renderer test harness.
+- `renderFromCanonical` boundary function consuming PR 0's `coord_space`.
+- Correct canvas sizing: `ResizeObserver` + `devicePixelRatio`, backing store
+  matched to display size. No CSS upscaling.
+- `StaticFieldLayer` — offscreen; grass gradient, mow stripes, vignette,
+  stadium edge, bright goals, and all markings driven by the geometry profile
+  (no marking constants in the renderer).
+- Still a static draw. No rAF loop yet — players and ball render through the
+  existing path against the new transform.
+- Tests: transform round-trip at 3 geometries; every marking lands at its
+  profile-specified offset for both profiles; a profile with a zero-valued
+  marking omits it; DPR 1 and 2 produce matched backing stores; unknown
+  `profile_id` falls back and logs once.
+
+*Reviewable as: "is the maths right?" — pure geometry, testable numerically.*
+
+### PR 1C — Dynamic rendering
+
+*Goal: it moves, and you can always find the ball and tell the teams apart.*
+
+- `PitchCanvas` rAF loop and `useMatchAnimator` interpolation between pushes.
+- `PlayersLayer` — `drawAvatar` preserved; team ring beneath, offset number
+  badge (§6.3); `avatar_kind` branch for reference/external/bot participants.
+- `BallLayer` — min-size clamp, contrast ring, halo, speed-gated trail,
+  distance-driven spin (§6.4). Absorbs `utils/drawSoccerBall.ts`.
+- `LabelsLayer` — attack-direction chevrons and touchline team labels only.
+- Correct z-order per §6.3: the ball is never behind a player.
+- Tests: interpolation is monotonic and clamps at the newest frame; trail
+  buffer is bounded; z-order asserted via draw-call ordering; ball min-size
+  clamp at extreme zooms; each `avatar_kind` renders its branch.
+
+*Reviewable as: "does it look and move right?" — the visual PR.*
+
+### PR 1D — Scoreboard and states
+
+*Goal: you always know the state of the match, including when it's broken.*
+
+- `Scoreboard`, `TeamBlock`, `MatchClock` (§6.1) — fixed slots, no layout
+  shift between states.
+- The one-line progress strip under the pitch (§4).
+- States per §8: empty, loading, live, paused, disconnected, finished,
+  skipped (plain-language reason, never the raw enum), error boundary.
+- `play_mode` handling per §10.4 rule 5, including the `UNKNOWN: <value>`
+  path that holds last state.
+- Tests: every state renders without layout shift; unknown `play_mode` holds
+  the previous presentation and never shows `play_on`; skipped reason is
+  humanised; clock never invents seconds.
+
+*Reviewable as: "is the state machine honest?"*
 
 ### PR 2 — Broadcast event presentation
 
@@ -875,24 +1267,27 @@ Each PR is independently shippable, gated by
   halftime (including the visible attack-direction swap), full-time card.
 - `EffectsLayer`: ball trail, shot line, scorer bloom, goal shockwave,
   possession ring.
-- Backend: emit `SoccerMatchEvent` list with `seq`; add `play_mode`, `half`,
-  `ball_owner_id`. All optional.
-- Tests: presenter tier/queue/rate-limit logic; dedupe on `seq`; reduced-motion
-  path; goal card content from a fixture event.
+- Backend: emit the `SoccerMatchEvent` list with `seq` and `event_id`; add
+  `half`, `possession`, `ball_owner`. All optional.
+- Tests: presenter tier/queue/rate-limit logic; dedupe on `seq` and
+  `event_id`; reduced-motion path; goal card content from a fixture event;
+  cards stay in the lower third and never exceed the §3.1 occlusion budget.
 
 ### PR 3 — Team progress and improvement
 
 *Goal: you can see the tank getting better.*
 
 - `TeamProgressPanel`, `ReferenceLadder`, `FormChips`, `TopPerformers`.
-- `useSkillSnapshots` extracted; `useBreakthroughs` with once-only firing and
-  persistence.
+- `useSkillSnapshots` extracted. `useBreakthroughs` holds a seen-set and
+  **computes nothing** — the backend is the sole authority (§6.6).
 - `BreakthroughCard` wired into the Major tier.
 - Standings gains the skill column and the frozen/tank distinction.
-- Backend: persist breakthrough records; expose recent form and league position.
-- Tests: skill vs league vs match number families never mixed; breakthrough
-  fires once across reloads; ladder rendering with 0, partial, and all rungs
-  beaten.
+- Backend: **detect and persist** breakthrough records with deterministic
+  `event_id`; expose recent form and league position.
+- Tests: skill vs league vs match number families never mixed; a breakthrough
+  presents once across reload and across two simultaneous clients; a replayed
+  match reuses `event_id` and does not re-announce; ladder rendering with 0,
+  partial, and all rungs beaten.
 
 ### PR 4 — Tactical mode
 
@@ -910,15 +1305,27 @@ Each PR is independently shippable, gated by
 *Goal: nothing here has to be rebuilt for the real thing.*
 
 - Player-count-driven layout hardening; render and layout tests at 11v11.
-- Default field 105×68; `play_mode` handling for all RCSS modes with graceful
-  unknown fallback.
+- `RcssMonitorAdapter` producing canonical coordinates (ADR-017) from monitor
+  frames; `avatar_kind: 'external'` participants rendered end to end.
 - Left/right vs home/away separation enforced by a lint-level test.
 - Analysis mode with metrics stack and match timeline.
 - Fixture-driven RCSS-shaped match state (from `fake_server.py`) rendered end
   to end in a test.
 
-**Sequencing note:** PRs 1–3 deliver the success criteria. PR 4 and PR 5 are
-enhancement and future-proofing and may be reordered against other priorities.
+**Sequencing note:** PR 0 gates everything. PRs 1A–1D, 2, and 3 deliver the
+success criteria. PR 4 and PR 5 are enhancement and future-proofing and may be
+reordered against other priorities.
+
+**Dependency order:**
+
+```
+PR 0 (contracts) ──┬─▶ 1A (shell) ──▶ 1B (geometry) ──▶ 1C (dynamic) ──▶ 1D (scoreboard/states)
+                   │                                          │
+                   └──────────────────────────────────────────┴─▶ PR 2 (events) ──▶ PR 3 (progress)
+                                                                                          │
+                                                                    PR 4 (tactical) ◀─────┤
+                                                                    PR 5 (11v11/RCSS) ◀───┘
+```
 
 ---
 
@@ -944,6 +1351,8 @@ And a viewer who knows the project can additionally state:
 
 ## Related Documents
 
+- [ADR-017](adr/017-soccer-coordinate-space.md) — canonical soccer coordinate
+  space and the canonical↔render boundary
 - [UI_SPEC.md](UI_SPEC.md) — colour tokens, typography, panel and glass rules
 - [SKILL_PROGRESSION.md](SKILL_PROGRESSION.md) — the frozen-ladder evaluation
   that Team Progress renders
