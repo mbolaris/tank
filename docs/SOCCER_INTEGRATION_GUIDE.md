@@ -17,6 +17,12 @@ This document describes how to integrate ball-based soccer gameplay into the Tan
 >
 > Treat the code snippets below as design intent; cross-check module paths
 > against the tree before copying them.
+>
+> **For the presentation layer**, see
+> [SOCCER_ARENA_DESIGN.md](SOCCER_ARENA_DESIGN.md) — the dedicated Soccer
+> Arena spec. This document covers physics, observations, and evolution
+> tracking; that one covers the arena view, match broadcast, and how a tank's
+> soccer improvement is made visible.
 
 ## Architecture Overview
 
