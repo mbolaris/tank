@@ -277,10 +277,10 @@ export function ForagingGymSummaryDisplay({ summary }: { summary: ForagingGymSum
                     How this is measured
                 </summary>
                 <div style={styles.detailsContent}>
-                    The foraging gym measures target selection, target prediction, and physical pathing algorithms
-                    under strict day/night and movement cost bounds. It runs a standardized scenario where a single
-                    neutral-policy fish chases scripted spawns. Score represents the ratio of food energy captured
-                    relative to an omniscient greedy oracle.
+                    The foraging gym isolates food pursuit from ecosystem confounders (no predators,
+                    reproduction, or population dynamics). A single neutral-policy fish chases scripted
+                    food spawns that alternate between two lanes. Score is gross food energy captured
+                    relative to an omniscient greedy oracle that always takes the optimal route.
                 </div>
             </details>
 
