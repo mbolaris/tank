@@ -210,10 +210,11 @@ class SoccerSystem(BaseSystem):
         right = (width - 50.0, height / 2.0)
 
         # Prefer the real goal zones when they exist, so this stays correct if
-        # goal geometry is ever changed in the world pack.
-        if self.goal_manager is not None and getattr(self.goal_manager, "zones", None):
-            zones = list(self.goal_manager.zones.values())
-            by_id = {getattr(zone, "goal_id", ""): zone for zone in zones}
+        # goal geometry is ever changed in the world pack. GoalZoneManager.zones
+        # and GoalZone.goal_id are always-present declared attributes, so they
+        # are read directly; only the manager itself is optional.
+        if self.goal_manager is not None and self.goal_manager.zones:
+            by_id = {zone.goal_id: zone for zone in self.goal_manager.zones.values()}
             left_zone = by_id.get("goal_left")
             right_zone = by_id.get("goal_right")
             if left_zone is not None:
