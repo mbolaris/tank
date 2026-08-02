@@ -50,6 +50,7 @@ This index provides a guide to all documentation in the Tank World project.
 | [persistence.md](persistence.md) | State persistence and save/load |
 | [REPLAY.md](REPLAY.md) | Deterministic record/replay for debugging and verification |
 | [UI_SPEC.md](UI_SPEC.md) | Web UI/UX specification |
+| [SOCCER_ARENA_DESIGN.md](SOCCER_ARENA_DESIGN.md) | Design spec for the dedicated Soccer Arena: broadcast presentation, pitch rendering, team progress, and the staged PR plan |
 
 ### AI Tournament
 
