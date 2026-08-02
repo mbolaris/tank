@@ -298,3 +298,53 @@ def test_leaderboard_sorting(base_config):
     assert lb[0]["team_id"] == "A"
     assert lb[1]["team_id"] == "B"
     assert lb[2]["team_id"] == "C"
+
+
+class _TankCfg:
+    def __init__(self, enabled: bool) -> None:
+        self.target_pursuit_module_enabled = enabled
+
+
+class _SimCfg:
+    def __init__(self, enabled: bool) -> None:
+        self.tank = _TankCfg(enabled)
+
+
+class _Env:
+    def __init__(self, enabled: bool) -> None:
+        self.simulation_config = _SimCfg(enabled)
+
+
+class _Engine:
+    """Stand-in for SimulationEngine: config lives on .environment, not here."""
+
+    def __init__(self, enabled: bool) -> None:
+        self.environment = _Env(enabled)
+
+
+def test_pursuit_module_flag_read_from_engine_environment():
+    """The league arm must find the flag on engine.environment.
+
+    Regression: ``tick`` is called with the SimulationEngine, which has no
+    ``simulation_config`` attribute. Reading the flag off the engine returned
+    None unconditionally, so league matches always ran with the shared Target
+    Pursuit Module disabled and tank-ball pursuit skill never transferred.
+    """
+    from core.minigames.soccer.league_runtime import _target_pursuit_module_enabled
+
+    assert _target_pursuit_module_enabled(_Engine(True)) is True
+    assert _target_pursuit_module_enabled(_Engine(False)) is False
+
+
+def test_pursuit_module_flag_prefers_direct_config_then_environment():
+    """A config on the world_state itself still wins; missing config is False."""
+    from core.minigames.soccer.league_runtime import _target_pursuit_module_enabled
+
+    class _Direct:
+        def __init__(self) -> None:
+            self.simulation_config = _SimCfg(True)
+            self.environment = _Env(False)
+
+    assert _target_pursuit_module_enabled(_Direct()) is True
+    assert _target_pursuit_module_enabled(object()) is False
+    assert _target_pursuit_module_enabled(None) is False

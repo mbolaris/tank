@@ -23,6 +23,27 @@ from core.minigames.soccer.league.types import (
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 
+def _target_pursuit_module_enabled(world_state: Any) -> bool:
+    """Whether league matches should evaluate each fish's shared pursuit module.
+
+    ``world_state`` is the :class:`~core.simulation.engine.SimulationEngine`
+    (``tick`` is called with the engine). The engine carries ``view_mode`` and
+    ``genome_code_pool`` directly, but **not** ``simulation_config`` - that
+    lives on ``engine.environment``. Reading it off the engine silently
+    returned None and pinned this flag to False forever, so the league arm of
+    the shared Target Pursuit Module never ran and tank-ball pursuit skill
+    could not transfer into league play. Check the engine first (so a future
+    engine-level config, or a test double, still works), then the environment.
+    """
+    for holder in (world_state, getattr(world_state, "environment", None)):
+        if holder is None:
+            continue
+        tank_config = getattr(getattr(holder, "simulation_config", None), "tank", None)
+        if tank_config is not None:
+            return bool(getattr(tank_config, "target_pursuit_module_enabled", False))
+    return False
+
+
 class BotEntity:
     """A generated bot entity for soccer matches."""
 
@@ -266,13 +287,7 @@ class SoccerLeagueRuntime:
         # Determine view mode from world state (default to side/tank)
         view_mode = getattr(world_state, "view_mode", "side")
 
-        sim_config = getattr(world_state, "simulation_config", None)
-        tank_config = getattr(sim_config, "tank", None) if sim_config is not None else None
-        target_pursuit_enabled = (
-            getattr(tank_config, "target_pursuit_module_enabled", False)
-            if tank_config is not None
-            else False
-        )
+        target_pursuit_enabled = _target_pursuit_module_enabled(world_state)
 
         setup = create_soccer_match_from_participants(
             participants,
