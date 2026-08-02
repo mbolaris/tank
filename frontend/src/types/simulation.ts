@@ -192,7 +192,7 @@ export interface SoccerGoalEvent {
     frame?: number;
 }
 
-export interface SoccerEventData {
+  export interface SoccerEventData {
     frame: number;
     match_id: string;
     match_counter: number;
@@ -213,10 +213,54 @@ export interface SoccerEventData {
     };
     last_goal?: SoccerGoalEvent | null;
     skipped?: boolean;
-    skip_reason?: string;
-}
+      skip_reason?: string;
+      participants?: SoccerParticipant[];
+      geometry?: SoccerFieldGeometry;
+      coord_space?: 'canonical' | 'legacy_render';
+      events?: SoccerMatchEvent[];
+  }
 
-export interface SoccerMatchState {
+  export interface SoccerParticipant {
+      participant_id: string;
+      side: 'left' | 'right';
+      team_id: string;
+      uniform_number: number;
+      avatar_kind: 'fish' | 'reference' | 'external' | 'bot';
+      display_name?: string;
+      fish_id?: number;
+      tank_id?: string;
+      generation?: number;
+      parent_id?: number | null;
+      policy_label?: string;
+  }
+
+  export interface SoccerFieldGeometry {
+      profile_id: string;
+      length: number;
+      width: number;
+      goal_width: number;
+      goal_depth: number;
+      centre_circle_radius?: number;
+      penalty_area_depth?: number;
+      penalty_area_width?: number;
+      goal_area_depth?: number;
+      goal_area_width?: number;
+      penalty_spot_distance?: number;
+      corner_arc_radius?: number;
+  }
+
+  export interface SoccerMatchEvent {
+      frame: number;
+      seq: number;
+      event_id?: string;
+      kind: string;
+      side?: 'left' | 'right';
+      actor?: string;
+      assist?: string;
+      detail?: Record<string, string | number>;
+  }
+
+  export interface SoccerMatchState {
     match_id: string;
     game_over: boolean;
     winner_team: 'left' | 'right' | 'draw' | null;
@@ -226,7 +270,11 @@ export interface SoccerMatchState {
         left: number;
         right: number;
     };
-    last_goal?: SoccerGoalEvent | null;
+      last_goal?: SoccerGoalEvent | null;
+      participants?: SoccerParticipant[];
+      geometry?: SoccerFieldGeometry;
+      coord_space?: 'canonical' | 'legacy_render';
+      events?: SoccerMatchEvent[];
     entities: EntityData[];
     view_mode?: string;
     teams?: {

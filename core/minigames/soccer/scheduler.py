@@ -269,6 +269,7 @@ class SoccerMinigameScheduler:
             reward_multiplier=reward_multiplier,
             repro_reward_mode=repro_reward_mode,
             repro_credit_award=repro_credit_award,
+            source_resolver=setup.source_resolver,
         )
 
     def _build_skip_outcome(

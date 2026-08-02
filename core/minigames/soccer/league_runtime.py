@@ -333,6 +333,7 @@ class SoccerLeagueRuntime:
             reward_multiplier=getattr(self.config, "reward_multiplier", 1.0),
             repro_reward_mode=getattr(self.config, "repro_reward_mode", "credits"),
             repro_credit_award=getattr(self.config, "repro_credit_award", 0.0),
+            source_resolver=self._active_setup.source_resolver,
         )
 
         if self._current_league_match:

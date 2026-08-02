@@ -7,7 +7,7 @@ matches, decoupling the match logic from specific entity types (Fish, Microbe).
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
@@ -53,14 +53,74 @@ class SoccerParticipant:
         team: Team assignment ('left' or 'right')
         genome_ref: Optional reference to genome for policy lookup
         render_hint: Optional rendering hints (genome data for avatar)
-        source_entity: Optional reference to the original entity
+        fish_id: Optional aquarium identity.  This is an identity value, not
+            a reference to the live fish.
     """
 
     participant_id: str
     team: str
     genome_ref: Any | None = None
     render_hint: dict | None = None
-    source_entity: Any | None = field(default=None, repr=False)
+    team_id: str | None = None
+    uniform_number: int | None = None
+    avatar_kind: str = "fish"
+    fish_id: int | None = None
+    tank_id: str | None = None
+    generation: int | None = None
+    parent_id: int | None = None
+    policy_label: str | None = None
+    repro_credit_capable: bool = False
+    energy: float | None = None
+    max_energy: float | None = None
+    display_name: str | None = None
+
+    def __post_init__(self) -> None:
+        # ``team`` is the established internal side name.  ``team_id`` is the
+        # stable wire identity and intentionally has a separate namespace.
+        if self.team_id is None:
+            self.team_id = self.team
+        if self.uniform_number is None:
+            try:
+                self.uniform_number = int(self.participant_id.rsplit("_", 1)[1])
+            except (IndexError, ValueError):
+                self.uniform_number = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "participant_id": self.participant_id,
+            "side": self.team,
+            "team_id": self.team_id,
+            "uniform_number": self.uniform_number,
+            "avatar_kind": self.avatar_kind,
+        }
+        for name in (
+            "fish_id",
+            "tank_id",
+            "generation",
+            "parent_id",
+            "policy_label",
+            "display_name",
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                data[name] = value
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> SoccerParticipant:
+        return cls(
+            participant_id=str(data["participant_id"]),
+            team=str(data.get("side", data.get("team", "left"))),
+            team_id=str(data.get("team_id", data.get("side", "left"))),
+            uniform_number=int(data.get("uniform_number", 0)),
+            avatar_kind=str(data.get("avatar_kind", "bot")),
+            fish_id=data.get("fish_id"),
+            tank_id=data.get("tank_id"),
+            generation=data.get("generation"),
+            parent_id=data.get("parent_id"),
+            policy_label=data.get("policy_label"),
+            display_name=data.get("display_name"),
+        )
 
 
 def fish_to_participant(
@@ -82,23 +142,55 @@ def fish_to_participant(
     render_hint: dict | None = None
     genome_ref = getattr(fish, "genome", None)
 
-    if genome_ref and hasattr(genome_ref, "physical"):
+    if (
+        genome_ref
+        and hasattr(genome_ref, "physical")
+        and getattr(genome_ref, "physical", None) is not None
+    ):
         try:
             from core.genetics.physical import PHYSICAL_TRAIT_SPECS
 
-            render_hint = {
+            candidate_hint = {
                 spec.name: getattr(genome_ref.physical, spec.name).value
                 for spec in PHYSICAL_TRAIT_SPECS
             }
+            if all(isinstance(value, (bool, int, float, str)) for value in candidate_hint.values()):
+                render_hint = candidate_hint
         except Exception:
             logger.debug("Failed to build render hints from physical traits", exc_info=True)
+
+    raw_tank_id = getattr(fish, "tank_id", None)
+    tank_id = raw_tank_id if isinstance(raw_tank_id, str) else None
+    raw_generation = getattr(fish, "generation", None)
+    generation = raw_generation if isinstance(raw_generation, int) else None
+    raw_parent_id = getattr(fish, "parent_id", None)
+    parent_id = raw_parent_id if isinstance(raw_parent_id, int) else None
+    raw_display_name = getattr(fish, "name", None)
+    display_name = raw_display_name if isinstance(raw_display_name, str) else None
+    raw_energy = getattr(fish, "energy", None)
+    energy = float(raw_energy) if isinstance(raw_energy, (int, float)) else None
+    raw_max_energy = getattr(fish, "max_energy", None)
+    max_energy = float(raw_max_energy) if isinstance(raw_max_energy, (int, float)) else None
 
     return SoccerParticipant(
         participant_id=f"{team}_{player_index}",
         team=team,
         genome_ref=genome_ref,
         render_hint=render_hint,
-        source_entity=fish,
+        team_id=tank_id or team,
+        uniform_number=player_index,
+        avatar_kind="fish",
+        fish_id=(int(fish.fish_id) if getattr(fish, "fish_id", None) is not None else None),
+        tank_id=tank_id,
+        generation=generation,
+        parent_id=parent_id,
+        energy=energy,
+        max_energy=max_energy,
+        display_name=display_name,
+        repro_credit_capable=hasattr(
+            getattr(fish, "reproduction_component", None), "add_repro_credits"
+        )
+        or hasattr(getattr(fish, "_reproduction_component", None), "add_repro_credits"),
     )
 
 
@@ -134,7 +226,7 @@ def create_participants(
         p: SoccerParticipantProtocol
         # Prefer fish-like adaptation if fish_id is present. This avoids runtime-checkable
         # Protocol + Mock traps where mocks accidentally satisfy SoccerParticipantProtocol.
-        if hasattr(entity, "fish_id"):
+        if hasattr(entity, "fish_id") and not isinstance(entity, SoccerParticipant):
             # It's a Fish-like entity (Fish, BotEntity, etc.)
             # fish_to_participant handles entities with or without genome
             p = fish_to_participant(entity, "left", i + 1)
@@ -158,16 +250,15 @@ def create_participants(
             )
 
         participants.append(p)
-        if isinstance(entity, SoccerParticipantProtocol):
-            entity_map[p.participant_id] = getattr(p, "source_entity", None) or p
-        else:
-            entity_map[p.participant_id] = entity
+        # The map is deliberately participant-only. Live source entities are
+        # reconciled after full time through their stable identity.
+        entity_map[p.participant_id] = p
 
     # Right team
     for i, entity in enumerate(entities[half:]):
         # Prefer fish-like adaptation if fish_id is present. This avoids runtime-checkable
         # Protocol + Mock traps where mocks accidentally satisfy SoccerParticipantProtocol.
-        if hasattr(entity, "fish_id"):
+        if hasattr(entity, "fish_id") and not isinstance(entity, SoccerParticipant):
             # It's a Fish-like entity (Fish, BotEntity, etc.)
             # fish_to_participant handles entities with or without genome
             p = fish_to_participant(entity, "right", i + 1)
@@ -191,10 +282,7 @@ def create_participants(
             )
 
         participants.append(p)
-        if isinstance(entity, SoccerParticipantProtocol):
-            entity_map[p.participant_id] = getattr(p, "source_entity", None) or p
-        else:
-            entity_map[p.participant_id] = entity
+        entity_map[p.participant_id] = p
 
     return participants, entity_map
 

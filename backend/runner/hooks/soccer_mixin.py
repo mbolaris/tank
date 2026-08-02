@@ -52,6 +52,10 @@ class SoccerMixin:
                     last_goal=event.get("last_goal"),
                     skipped=event.get("skipped", False),
                     skip_reason=event.get("skip_reason"),
+                    participants=event.get("participants"),
+                    geometry=event.get("geometry"),
+                    coord_space=event.get("coord_space"),
+                    events=event.get("events"),
                 )
             )
 

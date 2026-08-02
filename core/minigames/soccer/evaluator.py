@@ -7,6 +7,12 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from core.minigames.soccer.match import SoccerMatch
+from core.minigames.soccer.participant import SoccerParticipant
+from core.minigames.soccer.reconciliation import (
+    SoccerSettlement,
+    SourceIdentity,
+    reconcile_match,
+)
 from core.minigames.soccer.rewards import (
     apply_shaped_soccer_rewards,
     apply_soccer_entry_fees,
@@ -23,6 +29,43 @@ from core.minigames.soccer.selection import (
 from core.minigames.soccer.types import SoccerMatchSetup, SoccerMinigameOutcome
 
 
+class _CreditRecorder:
+    def __init__(self) -> None:
+        self.amount = 0.0
+
+    def add_repro_credits(self, amount: float) -> float:
+        self.amount += float(amount)
+        return float(amount)
+
+
+class _SettlementParticipant:
+    """Detached value object used to calculate rewards without live writes."""
+
+    def __init__(self, participant: Any) -> None:
+        self.fish_id = getattr(participant, "fish_id", None)
+        raw_energy = getattr(participant, "energy", None)
+        raw_max_energy = getattr(participant, "max_energy", None)
+        object.__setattr__(
+            self, "_energy", float(raw_energy) if isinstance(raw_energy, (int, float)) else 0.0
+        )
+        object.__setattr__(
+            self,
+            "max_energy",
+            float(raw_max_energy) if isinstance(raw_max_energy, (int, float)) else 1000.0,
+        )
+        self.reproduction_component = (
+            _CreditRecorder() if bool(getattr(participant, "repro_credit_capable", False)) else None
+        )
+
+    def modify_energy(self, amount: float, *, source: str = "unknown") -> float:
+        self._energy += float(amount)
+        return float(amount)
+
+    @property
+    def energy(self) -> float:
+        return self._energy
+
+
 def create_soccer_match_from_participants(
     participants: Sequence[Any],
     *,
@@ -35,6 +78,7 @@ def create_soccer_match_from_participants(
     selection_seed: int | None = None,
     entry_fee_energy: float = 0.0,
     target_pursuit_module_enabled: bool | None = None,
+    source_resolver: Any | None = None,
 ) -> SoccerMatchSetup:
     """Create a soccer match from pre-selected participants."""
     participants = list(participants)
@@ -62,6 +106,22 @@ def create_soccer_match_from_participants(
 
     entry_fees = apply_soccer_entry_fees(participants, entry_fee_energy)
 
+    if source_resolver is None:
+        source_resolver = {
+            (
+                get_entity_id(entity),
+                (
+                    getattr(entity, "tank_id", None)
+                    if isinstance(getattr(entity, "tank_id", None), str)
+                    else None
+                ),
+            ): entity
+            for entity in participants
+            if not isinstance(entity, SoccerParticipant)
+            and get_entity_id(entity) is not None
+            and hasattr(entity, "modify_energy")
+        }
+
     match = SoccerMatch(
         match_id=match_id,
         entities=participants,
@@ -70,6 +130,7 @@ def create_soccer_match_from_participants(
         view_mode=view_mode,
         seed=effective_seed,
         target_pursuit_module_enabled=target_pursuit_module_enabled,
+        reconciliation_resolver=source_resolver,
     )
 
     return SoccerMatchSetup(
@@ -80,6 +141,7 @@ def create_soccer_match_from_participants(
         match_counter=match_counter,
         selection_seed=selection_seed,
         entry_fees=entry_fees,
+        source_resolver=source_resolver,
     )
 
 
@@ -147,9 +209,12 @@ def finalize_soccer_match(
     reward_multiplier: float = 1.0,
     repro_reward_mode: str = "credits",
     repro_credit_award: float = 0.0,
+    source_resolver: Any | None = None,
+    reconciliation_store: Any | None = None,
 ) -> SoccerMinigameOutcome:
     """Apply rewards and return a compact outcome summary."""
     state = match.get_state()
+    source_resolver = source_resolver or getattr(match, "_reconciliation_resolver", None)
     entry_fees = dict(entry_fees or {})
 
     # Per-fish scoring stats from the match's goal log (participant -> fish id)
@@ -166,10 +231,17 @@ def finalize_soccer_match(
             fish_id = get_entity_id(entity)
             counts[fish_id] = counts.get(fish_id, 0) + 1
 
+    # Calculate against detached participants.  No source fish is mutated
+    # during play or while building the settlement.
+    settlement_map = {
+        participant_id: _SettlementParticipant(entity)
+        for participant_id, entity in match.player_map.items()
+    }
+
     # Dispatch reward logic based on reward_mode
     if reward_mode.lower().strip() == "shaped_pot":
         rewards = apply_shaped_soccer_rewards(
-            match.player_map,
+            settlement_map,
             match.winner_team,
             match.telemetry,
             entry_fees=entry_fees,
@@ -179,7 +251,7 @@ def finalize_soccer_match(
         )
     else:
         rewards = apply_soccer_rewards(
-            match.player_map,
+            settlement_map,
             match.winner_team,
             reward_mode=reward_mode,
             entry_fees=entry_fees,
@@ -189,7 +261,7 @@ def finalize_soccer_match(
         )
 
     repro_credit_deltas = apply_soccer_repro_rewards(
-        match.player_map,
+        settlement_map,
         match.winner_team,
         reward_mode=repro_reward_mode,
         credit_award=repro_credit_award,
@@ -199,11 +271,60 @@ def finalize_soccer_match(
     for fish_id, fee in entry_fees.items():
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) - fee
     for participant_id, delta in rewards.items():
-        entity = match.player_map.get(participant_id)
+        entity = settlement_map.get(participant_id)
         if entity is None:
             continue
         fish_id = get_entity_id(entity)
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) + delta
+
+    # The charged entry fee remains an accounting input and is already applied
+    # at setup. It is intentionally excluded from post-match reconciliation.
+    identity_by_participant = {
+        participant.participant_id: SourceIdentity(participant.fish_id, participant.tank_id)
+        for participant in match.roster_snapshot.participants
+        if participant.fish_id is not None
+    }
+    post_match_energy: dict[SourceIdentity, float] = {}
+    for participant_id, delta in rewards.items():
+        identity = identity_by_participant.get(participant_id)
+        if identity is not None:
+            post_match_energy[identity] = post_match_energy.get(identity, 0.0) + float(delta)
+    post_match_repro: dict[SourceIdentity, float] = {}
+    for fish_id, delta in repro_credit_deltas.items():
+        identity = next(
+            (value for value in identity_by_participant.values() if value.fish_id == fish_id), None
+        )
+        if identity is not None:
+            post_match_repro[identity] = post_match_repro.get(identity, 0.0) + float(delta)
+    statistics = {
+        identity: {
+            "goals": goals_by_fish.get(identity.fish_id, 0),
+            "assists": assists_by_fish.get(identity.fish_id, 0),
+        }
+        for identity in identity_by_participant.values()
+    }
+    settlement = SoccerSettlement.for_match(
+        match.match_id,
+        entry_fees={
+            identity: float(entry_fees.get(identity.fish_id, 0.0))
+            for identity in identity_by_participant.values()
+            if identity.fish_id in entry_fees
+        },
+        energy_deltas=post_match_energy,
+        repro_credit_deltas=post_match_repro,
+        statistics=statistics,
+        energy_source=(
+            "soccer_shaped" if reward_mode.lower().strip() == "shaped_pot" else "soccer_win"
+        ),
+    )
+    if source_resolver is not None:
+        reconcile_match(
+            settlement,
+            source_resolver,
+            # A missing injected store uses reconciliation.py's process-level
+            # idempotency store. Do not create a new store per retry.
+            store=reconciliation_store,
+        )
 
     tank_names_by_fish: dict[int, str] = {}
     tank_ids_by_fish: dict[int, str] = {}
@@ -267,4 +388,8 @@ def run_soccer_minigame(
 
     while not match.game_over:
         match.step(num_steps=5)
-    return finalize_soccer_match(match, seed=setup.seed)
+    return finalize_soccer_match(
+        match,
+        seed=setup.seed,
+        source_resolver=getattr(setup, "source_resolver", None),
+    )
