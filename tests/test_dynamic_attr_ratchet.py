@@ -62,7 +62,7 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/minigames/soccer/evaluator.py": 5,
     "core/minigames/soccer/fish_stats.py": 3,
     "core/minigames/soccer/league/provider.py": 23,
-    "core/minigames/soccer/league_runtime.py": 17,
+    "core/minigames/soccer/league_runtime.py": 16,
     "core/minigames/soccer/match.py": 5,
     "core/minigames/soccer/participant.py": 7,
     "core/minigames/soccer/policy_adapter.py": 7,

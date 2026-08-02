@@ -34,13 +34,17 @@ def _target_pursuit_module_enabled(world_state: Any) -> bool:
     the shared Target Pursuit Module never ran and tank-ball pursuit skill
     could not transfer into league play. Check the engine first (so a future
     engine-level config, or a test double, still works), then the environment.
+
+    Only the two genuinely optional hops are dynamic. ``SimulationConfig.tank``
+    and ``TankConfig.target_pursuit_module_enabled`` are declared dataclass
+    fields that always exist, so those are read directly rather than through
+    getattr defaults - a missing one is a bug worth raising, not a silent
+    False, which is exactly the failure mode being fixed here.
     """
     for holder in (world_state, getattr(world_state, "environment", None)):
-        if holder is None:
-            continue
-        tank_config = getattr(getattr(holder, "simulation_config", None), "tank", None)
-        if tank_config is not None:
-            return bool(getattr(tank_config, "target_pursuit_module_enabled", False))
+        config = getattr(holder, "simulation_config", None)
+        if config is not None:
+            return bool(config.tank.target_pursuit_module_enabled)
     return False
 
 
