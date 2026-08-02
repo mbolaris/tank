@@ -215,7 +215,12 @@ def reconcile_match(
                 if identity not in dropped:
                     dropped.append(identity)
                 continue
-            amount = float(_repro_component(entity).add_repro_credits(delta))
+            component = _repro_component(entity)
+            if component is None:
+                raise SourceResolutionUnavailableError(
+                    f"resolved fish {identity!r} cannot accept reproduction credits"
+                )
+            amount = float(component.add_repro_credits(delta))
             applied_repro[identity] = amount
     except Exception:
         for entity, amount, source in reversed(undo):

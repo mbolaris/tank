@@ -45,15 +45,11 @@ class _SettlementParticipant:
         self.fish_id = getattr(participant, "fish_id", None)
         raw_energy = getattr(participant, "energy", None)
         raw_max_energy = getattr(participant, "max_energy", None)
-        object.__setattr__(
-            self, "_energy", float(raw_energy) if isinstance(raw_energy, (int, float)) else 0.0
+        self._energy: float = float(raw_energy) if isinstance(raw_energy, (int, float)) else 0.0
+        self.max_energy: float = (
+            float(raw_max_energy) if isinstance(raw_max_energy, (int, float)) else 1000.0
         )
-        object.__setattr__(
-            self,
-            "max_energy",
-            float(raw_max_energy) if isinstance(raw_max_energy, (int, float)) else 1000.0,
-        )
-        self.reproduction_component = (
+        self.reproduction_component: _CreditRecorder | None = (
             _CreditRecorder() if bool(getattr(participant, "repro_credit_capable", False)) else None
         )
 
@@ -271,10 +267,10 @@ def finalize_soccer_match(
     for fish_id, fee in entry_fees.items():
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) - fee
     for participant_id, delta in rewards.items():
-        entity = settlement_map.get(participant_id)
-        if entity is None:
+        settlement_participant = settlement_map.get(participant_id)
+        if settlement_participant is None:
             continue
-        fish_id = get_entity_id(entity)
+        fish_id = get_entity_id(settlement_participant)
         energy_deltas[fish_id] = energy_deltas.get(fish_id, 0.0) + delta
 
     # The charged entry fee remains an accounting input and is already applied

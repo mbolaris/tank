@@ -11,7 +11,7 @@ from __future__ import annotations
 import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from core.minigames.soccer.participant import SoccerParticipant
 
@@ -39,12 +39,13 @@ def _freeze(value: Any) -> FrozenValue:
 
 def _thaw(value: FrozenValue) -> Any:
     if isinstance(value, tuple):
+        tuple_value = cast(tuple[Any, ...], value)
         if all(
             isinstance(item, tuple) and len(item) == 2 and isinstance(item[0], str)
-            for item in value
+            for item in tuple_value
         ):
-            return {key: _thaw(item) for key, item in value}
-        return [_thaw(item) for item in value]
+            return {str(item[0]): _thaw(cast(FrozenValue, item[1])) for item in tuple_value}
+        return [_thaw(cast(FrozenValue, item)) for item in tuple_value]
     return value
 
 
