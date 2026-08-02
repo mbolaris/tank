@@ -165,8 +165,16 @@ def test_target_pursuit_module_absent_for_both_parents_stays_none_in_offspring()
 
 
 def test_founders_get_the_module_when_its_flag_is_enabled_independently() -> None:
-    """The pursuit module flag is an independent graph/module ablation."""
-    graph_only = SimulationRunner(seed=42, config={"graph_behavior_enabled": True})
+    """The pursuit module flag is an independent graph/module ablation.
+
+    ``target_pursuit_module_enabled`` defaults to True project-wide, so the
+    graph-only case below overrides it explicitly to exercise the "graph
+    without module" ablation instead of silently testing "both on".
+    """
+    graph_only = SimulationRunner(
+        seed=42,
+        config={"graph_behavior_enabled": True, "target_pursuit_module_enabled": False},
+    )
     fish = next(e for e in graph_only.world.entities_list if isinstance(e, Fish))
     assert fish.genome.behavioral.behavior_graph is not None
     assert fish.genome.behavioral.target_pursuit_module is None
@@ -180,7 +188,9 @@ def test_founders_get_the_module_when_its_flag_is_enabled_independently() -> Non
     assert fish.genome.behavioral.target_pursuit_module is not None
     assert isinstance(fish.genome.behavioral.target_pursuit_module.value, BehaviorGraph)
 
-    module_flag_only = SimulationRunner(seed=42, config={"target_pursuit_module_enabled": True})
+    # Module flag at its new default (True), graph flag left at its own
+    # default (False): the module-only ablation this project now ships with.
+    module_flag_only = SimulationRunner(seed=42)
     fish = next(e for e in module_flag_only.world.entities_list if isinstance(e, Fish))
     assert fish.genome.behavioral.behavior_graph is None
     assert fish.genome.behavioral.target_pursuit_module is not None

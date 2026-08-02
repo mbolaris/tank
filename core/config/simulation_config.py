@@ -214,9 +214,13 @@ class TankConfig:
     # Experimental fixed-topology behavior graph controller.  Disabled by
     # default so existing replays retain their exact RNG schedule.
     graph_behavior_enabled: bool = False
-    # Shared Target Pursuit Module for food AND soccer-ball pursuit. Independent
-    # from graph_behavior_enabled so experiments can isolate either component.
-    target_pursuit_module_enabled: bool = False
+    # Shared Target Pursuit Module for soccer-ball pursuit (tank practice ball
+    # and league soccer both evaluate one inherited/mutated graph per fish -
+    # core/movement/ball_pursuit.py, core/minigames/soccer/policy_adapter.py).
+    # Also feeds food pursuit, but only when graph_behavior_enabled additionally
+    # replaces the default food-approach controller (off by default) - the two
+    # flags are independent so experiments can isolate either component.
+    target_pursuit_module_enabled: bool = True
     # Target Memory: decides what target a fish is committed to and when to
     # switch, for food AND soccer-ball pursuit. Independent from the other
     # two flags so experiments can isolate any component.

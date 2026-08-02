@@ -12,8 +12,15 @@ def _fish_and_snapshot(runner: SimulationRunner):
     return fish, snapshot
 
 
-def test_modules_is_none_without_the_opt_in_flags() -> None:
-    runner = SimulationRunner(seed=42)
+def test_modules_is_none_without_the_opt_in_flag() -> None:
+    """The inspector reports no module when a fish doesn't carry one.
+
+    ``target_pursuit_module_enabled`` defaults to True (the module now steers
+    tank-ball and league-soccer pursuit for every fish by default), so the
+    "off" case needs an explicit override rather than relying on the bare
+    default.
+    """
+    runner = SimulationRunner(seed=42, config={"target_pursuit_module_enabled": False})
     _, snapshot = _fish_and_snapshot(runner)
     result = runner.handle_command("get_entity_details", {"entity_id": snapshot.id})
 
