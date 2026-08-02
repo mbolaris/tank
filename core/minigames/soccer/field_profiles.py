@@ -63,7 +63,20 @@ class SoccerFieldGeometry:
         for item in fields(cls):
             if item.name != "profile_id" and item.name in data:
                 values[item.name] = data[item.name]
-        return cls(**{item.name: values[item.name] for item in fields(cls)})
+        return cls(
+            profile_id=str(values["profile_id"]),
+            length=float(values["length"]),
+            width=float(values["width"]),
+            goal_width=float(values["goal_width"]),
+            goal_depth=float(values["goal_depth"]),
+            centre_circle_radius=float(values["centre_circle_radius"]),
+            penalty_area_depth=float(values["penalty_area_depth"]),
+            penalty_area_width=float(values["penalty_area_width"]),
+            goal_area_depth=float(values["goal_area_depth"]),
+            goal_area_width=float(values["goal_area_width"]),
+            penalty_spot_distance=float(values["penalty_spot_distance"]),
+            corner_arc_radius=float(values["corner_arc_radius"]),
+        )
 
 
 rcss_standard_105x68 = SoccerFieldGeometry(
