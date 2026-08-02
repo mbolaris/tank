@@ -106,3 +106,6 @@ class SoccerMatchSetup:
     match_counter: int
     selection_seed: int | None
     entry_fees: dict[int, float]
+    # Resolver is held by the orchestration layer, never by SoccerMatch.  It
+    # locates the source fish after full time, including after a transfer.
+    source_resolver: Any | None = None

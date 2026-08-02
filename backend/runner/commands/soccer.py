@@ -195,6 +195,7 @@ class SoccerCommands:
             self._soccer_match_seed = setup.seed
             self._soccer_match_counter = counter + 1
             self._soccer_match_entry_fees = setup.entry_fees
+            self._soccer_match_source_resolver = setup.source_resolver
             self._soccer_match_selection_seed = setup.selection_seed
             self._soccer_match_counter_current = setup.match_counter
             logger.info(
@@ -278,6 +279,7 @@ class SoccerCommands:
                         if soccer_cfg is not None
                         else "credits"
                     ),
+                    source_resolver=getattr(self, "_soccer_match_source_resolver", None),
                 )
                 if engine:
                     engine.soccer_events.record_outcome(outcome)

@@ -59,12 +59,20 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/genetics/genome_codec.py": 9,
     "core/genetics/trait.py": 8,
     "core/genetics/trait_utils.py": 3,
-    "core/minigames/soccer/evaluator.py": 5,
+    # PR 0: identity/policy serialization and detached settlement boundaries
+    # must accept legacy entity implementations without importing concrete Fish.
+    "core/minigames/soccer/evaluator.py": 15,
     "core/minigames/soccer/fish_stats.py": 3,
     "core/minigames/soccer/league/provider.py": 23,
     "core/minigames/soccer/league_runtime.py": 16,
     "core/minigames/soccer/match.py": 5,
-    "core/minigames/soccer/participant.py": 7,
+    # PR 0: entity-to-identity adaptation is a true protocol boundary.
+    "core/minigames/soccer/participant.py": 23,
+    "core/minigames/soccer/field_profiles.py": 7,
+    # Engine adapters accept RCSS-compatible objects at a serialization boundary.
+    "core/minigames/soccer/adapters/tank_adapter.py": 3,
+    "core/minigames/soccer/reconciliation.py": 8,
+    "core/minigames/soccer/roster_snapshot.py": 8,
     "core/minigames/soccer/policy_adapter.py": 7,
     "core/minigames/soccer/rewards.py": 5,
     "core/minigames/soccer/scheduler.py": 19,

@@ -23,9 +23,11 @@ from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.field_profiles import geometry_for_params
 from core.minigames.soccer.formation import build_default_formation
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS
 from core.minigames.soccer.participant import create_participants
+from core.minigames.soccer.roster_snapshot import snapshot_roster
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
 
 if TYPE_CHECKING:
@@ -66,6 +68,7 @@ class SoccerMatch:
         view_mode: str = "side",
         seed: int | None = None,
         target_pursuit_module_enabled: bool | None = None,
+        reconciliation_resolver: Any | None = None,
     ):
         """Initialize a new soccer match.
 
@@ -87,13 +90,24 @@ class SoccerMatch:
         self.view_mode = view_mode
         self._last_goal_event: dict[str, Any] | None = None
         self.target_pursuit_module_enabled = target_pursuit_module_enabled or False
+        # Orchestration-only resolver. It is never consulted by policy or
+        # physics execution; it is used solely after full time to reconcile
+        # stable aquarium identities.
+        self._reconciliation_resolver = reconciliation_resolver
         # Every goal event of the match (for per-player scoring stats)
         self.goal_log: list[dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
+        self.command_log: list[dict[str, Any]] = []
 
         # Convert entities to participants (entity-agnostic adapter)
-        self.participants, self._entity_by_participant_id = create_participants(entities)
+        selected_participants, _selected_entity_map = create_participants(entities)
+        # Snapshot before any match execution.  This consumes no match RNG and
+        # leaves source fish entirely outside the execution graph.
+        self.roster_snapshot = snapshot_roster(selected_participants)
+        self.participants = self.roster_snapshot.detached_participants()
+        self._entity_by_participant_id = {p.participant_id: p for p in self.participants}
 
-        # Legacy compatibility: player_map for existing code
+        # Physics, policy, and rendering all use detached participants.
         self.player_map = self._entity_by_participant_id
 
         # Store code source for policy lookup (used directly, no copying)
@@ -114,6 +128,7 @@ class SoccerMatch:
         self._params = SOCCER_CANONICAL_PARAMS
 
         # Field dimensions for snapshot output
+        self._geometry = geometry_for_params(self._params)
         self._field = FieldDimensions(
             length=self._params.field_length,
             width=self._params.field_width,
@@ -130,6 +145,7 @@ class SoccerMatch:
         # Add players to engine with formation positions
         team_size = len(self.participants) // 2
         self._setup_formations(team_size)
+        self._emit_event(kind="kickoff", frame=0)
 
         # Stable ID mapping for entity IDs (player/ball -> stable int)
         self._entity_ids: dict[str, int] = {}
@@ -195,12 +211,20 @@ class SoccerMatch:
                     event["frame"] = self.current_frame
                     self._last_goal_event = event
                     self.goal_log.append(event)
+                    self._emit_event(
+                        kind="goal",
+                        frame=self.current_frame,
+                        side=event.get("team"),
+                        actor=event.get("scorer_id"),
+                        assist=event.get("assist_id"),
+                    )
                     # Goal was scored - engine reset ball/mode, we reset players
                     self._reset_players()
 
             # Check for half-time
             if self.current_frame == self.duration_frames // 2:
                 self._handle_half_time()
+                self._emit_event(kind="half_time", frame=self.current_frame)
 
             if self.current_frame >= self.duration_frames:
                 break
@@ -221,6 +245,7 @@ class SoccerMatch:
             else:
                 self.winner_team = "draw"
                 self.message = f"Match Draw! ({left_score}-{right_score})"
+            self._emit_event(kind="full_time", frame=self.current_frame)
         else:
             self.message = (
                 f"Time: {self.current_frame}/{self.duration_frames} | "
@@ -279,6 +304,15 @@ class SoccerMatch:
             cmd = action_to_command(action, self._params)
 
             if cmd:
+                self.command_log.append(
+                    {
+                        "frame": self.current_frame,
+                        "participant_id": player_id,
+                        "type": cmd.cmd_type.value,
+                        "power": cmd.power,
+                        "direction": cmd.direction,
+                    }
+                )
                 self._engine.queue_command(player_id, cmd)
 
     def _reset_players(self) -> None:
@@ -330,6 +364,31 @@ class SoccerMatch:
             self._next_id += 1
             self._entity_ids[key] = stable
         return stable
+
+    def _emit_event(
+        self,
+        *,
+        kind: str,
+        frame: int,
+        side: str | None = None,
+        actor: str | None = None,
+        assist: str | None = None,
+    ) -> dict[str, Any]:
+        seq = len(self.events)
+        event: dict[str, Any] = {
+            "frame": int(frame),
+            "seq": seq,
+            "event_id": f"{self.match_id}-{kind}-{frame}-{seq}",
+            "kind": kind,
+        }
+        if side is not None:
+            event["side"] = side
+        if actor is not None:
+            event["actor"] = actor
+        if assist is not None:
+            event["assist"] = assist
+        self.events.append(event)
+        return event
 
     def get_state(self) -> dict[str, Any]:
         """Get renderable state for frontend.
@@ -386,8 +445,13 @@ class SoccerMatch:
                     "team": player.team,
                     "jersey_number": jersey_num,
                     "facing": player.body_angle,
+                    "participant_id": player_id,
                     "genome_data": participant.render_hint,
                     "render_hint": {
+                        # New physical-state join key.  Identity duplication
+                        # below is the deprecated §10.1 compatibility bridge:
+                        # SoccerTopDownRenderer still reads these fields.
+                        "participant_id": player_id,
                         "style": "soccer",
                         "sprite": "player",
                         "team": player.team,
@@ -433,6 +497,12 @@ class SoccerMatch:
             "frame": self.current_frame,
             "score": score,
             "last_goal": self._last_goal_event,
+            "events": list(self.events),
+            "participants": [p.to_wire_dict() for p in self.roster_snapshot.participants],
+            "geometry": self._geometry.to_dict(),
+            # Explicit legacy default keeps the existing renderer's y-down
+            # convention intact until its canonical boundary lands.
+            "coord_space": "legacy_render",
             "entities": entities_dicts,
             "view_mode": self.view_mode,
             "teams": {

@@ -9,11 +9,7 @@ from __future__ import annotations
 
 from backend.state_payloads._common import orjson
 from backend.state_payloads.entities import EntitySnapshot
-from backend.state_payloads.frames import (
-    STATE_SCHEMA_VERSION,
-    DeltaStatePayload,
-    FullStatePayload,
-)
+from backend.state_payloads.frames import STATE_SCHEMA_VERSION, DeltaStatePayload, FullStatePayload
 from backend.state_payloads.metrics import (
     MetricsHistoryPayload,
     MetricsPokerSamplePayload,
@@ -26,7 +22,11 @@ from backend.state_payloads.poker import (
     PokerLeaderboardEntryPayload,
     PokerStatsPayload,
 )
-from backend.state_payloads.soccer import SoccerEventPayload
+from backend.state_payloads.soccer import (
+    SoccerEventPayload,
+    SoccerMatchEventPayload,
+    SoccerParticipantPayload,
+)
 from backend.state_payloads.stats import StatsPayload
 
 __all__ = [
@@ -44,5 +44,7 @@ __all__ = [
     "PokerLeaderboardEntryPayload",
     "PokerStatsPayload",
     "SoccerEventPayload",
+    "SoccerMatchEventPayload",
+    "SoccerParticipantPayload",
     "StatsPayload",
 ]

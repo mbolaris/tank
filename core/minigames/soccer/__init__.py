@@ -23,6 +23,12 @@ from core.minigames.soccer.evaluator import (
     select_soccer_participants,
 )
 from core.minigames.soccer.fake_server import FakeRCSSServer
+from core.minigames.soccer.field_profiles import (
+    SoccerFieldGeometry,
+    get_field_profile,
+    rcss_standard_105x68,
+    tank_small_sided,
+)
 from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
 from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.match_runner import AgentResult, EpisodeResult, SoccerMatchRunner
@@ -32,7 +38,20 @@ from core.minigames.soccer.participant import (
     create_participants_from_fish,
     fish_to_participant,
 )
+from core.minigames.soccer.reconciliation import (
+    InMemoryReconciliationStore,
+    ReconciliationResult,
+    SoccerSettlement,
+    SourceIdentity,
+    reconcile_match,
+)
 from core.minigames.soccer.rewards import apply_soccer_entry_fees, apply_soccer_rewards
+from core.minigames.soccer.roster_snapshot import (
+    RosterSnapshot,
+    SoccerParticipantSnapshot,
+    SoccerRosterSnapshot,
+    snapshot_roster,
+)
 from core.minigames.soccer.scheduler import SoccerMinigameScheduler
 
 __all__ = [
@@ -59,6 +78,19 @@ __all__ = [
     "finalize_soccer_match",
     "apply_soccer_entry_fees",
     "apply_soccer_rewards",
+    "SoccerFieldGeometry",
+    "rcss_standard_105x68",
+    "tank_small_sided",
+    "get_field_profile",
+    "SoccerParticipantSnapshot",
+    "SoccerRosterSnapshot",
+    "RosterSnapshot",
+    "snapshot_roster",
+    "SourceIdentity",
+    "SoccerSettlement",
+    "ReconciliationResult",
+    "InMemoryReconciliationStore",
+    "reconcile_match",
     "select_soccer_participants",
     "derive_soccer_seed",
     "SoccerMinigameScheduler",
