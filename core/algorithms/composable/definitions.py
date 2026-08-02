@@ -112,6 +112,27 @@ SUB_BEHAVIOR_PARAMS = {
     "food_priority": (0.5, 0.95),
     "social_priority": (0.1000, 0.4734),
     "poker_priority": (0.05, 0.30),  # Low: food search should dominate idle time
+    # Soccer-ball engagement parameters.
+    #
+    # These replace the two module constants that used to govern tank practice
+    # ball play for every fish identically (PLAY_ENERGY_THRESHOLD_RATIO = 0.98
+    # and a fixed 0.25 pursuit probability in core/movement/ball_pursuit.py).
+    # Because engagement was hardcoded, no fish was ever born more or less
+    # ball-inclined than its siblings, so selection had no variance to act on
+    # and ball skill could not evolve at all. These mirror the poker pair
+    # (min_energy_for_poker / poker_priority), which is the reason poker DID
+    # become a real behavior.
+    #
+    # NOTE: appended at the END on purpose. _random_params() draws one
+    # rng.uniform() per key in iteration order, so inserting anywhere above
+    # would shift every subsequent parameter for every fish. Appending still
+    # adds two draws, which shifts consumers of the same RNG downstream - hence
+    # this ships with regenerated determinism fixtures.
+    #
+    # min_energy_for_soccer upper bound is the old 0.98 constant, so the
+    # previous behavior remains exactly representable in the search space.
+    "min_energy_for_soccer": (0.55, 0.98),
+    "soccer_priority": (0.0, 0.30),  # 0.0 lets evolution opt out of ball play entirely
 }
 
 

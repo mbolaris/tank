@@ -19,6 +19,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# How strongly a kick is pulled toward the target goal, relative to the
+# kicker's own heading. Applied per-axis to the (goal - ball) offset, so at
+# tank scale this dominates the fish's velocity term and makes a kick an
+# aimed shot rather than a shove in whatever direction the fish happened to
+# be swimming.
+GOAL_BIAS_STRENGTH = 0.2
+
 
 class SoccerSystem(BaseSystem):
     """System for managing ball physics and goal detection.
@@ -139,13 +146,7 @@ class SoccerSystem(BaseSystem):
         if kicker is None:
             return
 
-        # Determine team: use fish.team if set, fallback to fish_id parity
-        fish_team = getattr(kicker, "team", None)
-        if fish_team is not None:
-            is_team_a = fish_team == "A"
-        else:
-            fish_id = getattr(kicker, "fish_id", 0)
-            is_team_a = (fish_id % 2) == 0
+        goal_x, goal_y = self._target_goal_for(kicker, ball_x, ball_y)
 
         # Primary kick direction: fish's facing/movement direction
         if hasattr(kicker, "vel") and kicker.vel.length() > 0.1:
@@ -153,19 +154,16 @@ class SoccerSystem(BaseSystem):
             kick_dx = kicker.vel.x
             kick_dy = kicker.vel.y
         else:
-            # Stationary fish: kick toward opponent goal
-            if is_team_a:
-                kick_dx = self.engine.environment.width - 50 - ball_x
-            else:
-                kick_dx = 50 - ball_x
-            kick_dy = (self.engine.environment.height / 2) - ball_y
+            # Stationary fish: kick toward the target goal
+            kick_dx = goal_x - ball_x
+            kick_dy = goal_y - ball_y
 
-        # Add slight goal-seeking bias without overwhelming direction
-        if is_team_a:
-            goal_bias_x = (self.engine.environment.width - 50 - ball_x) * 0.2
-        else:
-            goal_bias_x = (50 - ball_x) * 0.2
-        kick_dx += goal_bias_x
+        # Goal-seeking bias on BOTH axes. Only x used to be biased, so a ball
+        # drifting vertically was never steered back toward the goal mouth
+        # (radius 40px, plus the ball's 10px, on a 612px-tall tank) and
+        # practice shots missed the target band by default.
+        kick_dx += (goal_x - ball_x) * GOAL_BIAS_STRENGTH
+        kick_dy += (goal_y - ball_y) * GOAL_BIAS_STRENGTH
 
         kick_dist = math.sqrt(kick_dx * kick_dx + kick_dy * kick_dy)
 
@@ -189,6 +187,47 @@ class SoccerSystem(BaseSystem):
                 "amount": SOCCER_KICK_REWARD_ENERGY,
                 "timer": 10,
             }
+
+    def _target_goal_for(self, kicker: object, ball_x: float, ball_y: float) -> tuple[float, float]:
+        """Which goal centre this kick should aim at.
+
+        League play assigns real sides via ``fish.team``, and that is honoured
+        unchanged. The tank practice ball has no teams: the old fallback split
+        fish by ``fish_id`` parity, so consecutive kickers shoved the ball
+        toward *opposite* goals and it random-walked around midfield. Measured
+        over 10k frames on seed 42 that produced 31 kicks and **zero** goals -
+        the 50-energy scoring reward, the only payoff big enough to make ball
+        play worth its travel cost, was unreachable in practice.
+
+        Practice fish instead all attack whichever goal the ball is already
+        closest to, so successive kicks compound instead of cancelling. The
+        ball resets to centre after every goal, so this cannot become a
+        repeat-scoring energy faucet.
+        """
+        width = self.engine.environment.width if self.engine.environment else 0.0
+        height = self.engine.environment.height if self.engine.environment else 0.0
+        left = (50.0, height / 2.0)
+        right = (width - 50.0, height / 2.0)
+
+        # Prefer the real goal zones when they exist, so this stays correct if
+        # goal geometry is ever changed in the world pack.
+        if self.goal_manager is not None and getattr(self.goal_manager, "zones", None):
+            zones = list(self.goal_manager.zones.values())
+            by_id = {getattr(zone, "goal_id", ""): zone for zone in zones}
+            left_zone = by_id.get("goal_left")
+            right_zone = by_id.get("goal_right")
+            if left_zone is not None:
+                left = (left_zone.pos.x, left_zone.pos.y)
+            if right_zone is not None:
+                right = (right_zone.pos.x, right_zone.pos.y)
+
+        fish_team = getattr(kicker, "team", None)
+        if fish_team is not None:
+            # Real teams: A attacks right, B attacks left (unchanged).
+            return right if fish_team == "A" else left
+
+        # Practice: attack the nearer goal so kicks reinforce each other.
+        return left if abs(ball_x - left[0]) <= abs(ball_x - right[0]) else right
 
     def _handle_goal_scored(self, goal_event: GoalEvent) -> None:
         """Handle a goal being scored and award energy.

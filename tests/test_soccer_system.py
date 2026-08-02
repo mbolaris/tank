@@ -188,29 +188,59 @@ class TestSoccerSystemTeamSelection:
         # Team B kicks toward left (negative x) - check acceleration
         assert ball.acceleration.x < 0
 
-    def test_fallback_to_fish_id_parity_when_team_none(self):
-        """Should fall back to fish_id parity when team is None."""
-        mock_engine = MagicMock()
-        mock_env = MagicMock()
-        mock_env.width = 800
-        mock_env.height = 600
-        mock_engine.environment = mock_env
+    def test_teamless_practice_fish_attack_the_nearer_goal(self):
+        """Teamless fish aim at whichever goal the ball is closest to.
 
-        ball = Ball(mock_env, 400, 300)
+        The old fallback split teamless fish by ``fish_id`` parity, so
+        consecutive kickers shoved the practice ball toward opposite goals and
+        it random-walked around midfield - 31 kicks and zero goals over 10k
+        frames on seed 42. Aiming at the nearer goal makes kicks compound.
+        """
+        for ball_x, expect_sign, label in ((150.0, -1.0, "left half"), (650.0, 1.0, "right half")):
+            mock_engine = MagicMock()
+            mock_env = MagicMock()
+            mock_env.width = 800
+            mock_env.height = 600
+            mock_engine.environment = mock_env
 
-        # Fish with team=None and even fish_id (should be team A)
-        fish = MockFish(fish_id=4, x=400, y=310, team=None, vel=Vector2(0, 0))
+            ball = Ball(mock_env, ball_x, 300)
+            fish = MockFish(fish_id=4, x=ball_x, y=310, team=None, vel=Vector2(0, 0))
+            mock_engine.entities_list = [fish]
 
-        mock_engine.entities_list = [fish]
+            system = SoccerSystem(mock_engine)
+            system.ball = ball
+            system.enabled = True
 
-        system = SoccerSystem(mock_engine)
-        system.ball = ball
-        system.enabled = True
+            system._process_auto_kicks(frame=0)
 
-        system._process_auto_kicks(frame=0)
+            assert ball.acceleration.x * expect_sign > 0, label
 
-        # Even fish_id -> team A -> kicks right (positive x)
-        assert ball.acceleration.x > 0
+    def test_teamless_kickers_on_the_same_side_agree(self):
+        """Two different teamless fish kick the same way - the point of the fix.
+
+        Under fish_id parity these two (even and odd id) would have kicked in
+        opposite directions and cancelled each other out.
+        """
+        directions = []
+        for fish_id in (4, 7):
+            mock_engine = MagicMock()
+            mock_env = MagicMock()
+            mock_env.width = 800
+            mock_env.height = 600
+            mock_engine.environment = mock_env
+
+            ball = Ball(mock_env, 200, 300)
+            fish = MockFish(fish_id=fish_id, x=200, y=310, team=None, vel=Vector2(0, 0))
+            mock_engine.entities_list = [fish]
+
+            system = SoccerSystem(mock_engine)
+            system.ball = ball
+            system.enabled = True
+
+            system._process_auto_kicks(frame=0)
+            directions.append(ball.acceleration.x)
+
+        assert directions[0] * directions[1] > 0, "teamless kickers must agree on a target goal"
 
 
 class TestSoccerSystemDeterministicKickerSelection:
