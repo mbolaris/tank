@@ -77,6 +77,7 @@ These continuous parameters tune the execution of the selected sub-behaviors.
 | `freeze_distance` | `[40, 100]` |
 | `intercept_skill` | `[0.3, 0.9]` |
 | `min_energy_for_poker` | `[0.5653, 0.8]` |
+| `min_energy_for_soccer` | `[0.55, 0.98]` |
 | `patrol_radius` | `[60, 150]` |
 | `poker_avoid_radius` | `[60, 150]` |
 | `poker_priority` | `[0.05, 0.3]` |
@@ -84,6 +85,7 @@ These continuous parameters tune the execution of the selected sub-behaviors.
 | `pursuit_speed` | `[0.9, 1.6]` |
 | `rest_duration` | `[40, 100]` |
 | `separation_distance` | `[15, 40]` |
+| `soccer_priority` | `[0, 0.3]` |
 | `social_distance` | `[30, 80]` |
 | `social_priority` | `[0.1, 0.4734]` |
 | `stealth_speed` | `[0.2121, 0.5]` |

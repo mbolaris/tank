@@ -135,9 +135,14 @@ class TestAlgorithmicMovement:
 
         assert velocity is not None
 
-    def test_ball_pursuit_yields_to_survival_priority(self, simulation_env):
-        """Survival outranks leisure: a topped-up fish that rolled 'play' still
-        yields the ball when a survival drive (threat/food) is active (ADR-010).
+    def test_ball_pursuit_yields_to_threat_but_not_to_food(self, simulation_env):
+        """Threat outranks leisure absolutely; food is a choice for a fed fish.
+
+        A predator in range always wins - a fish never plays while being
+        hunted. Food no longer wins unconditionally: the fish has already
+        cleared its own evolved ``min_energy_for_soccer`` threshold, and that
+        gene is what prices the risk. Yielding to food as well made the
+        engagement genes inert, because below max energy a fish can always eat.
         """
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
@@ -154,33 +159,85 @@ class TestAlgorithmicMovement:
         env._rng = FixedRng()
         behavior = fish.genome.behavioral.behavior.value
 
-        # No survival drive -> fish pursues the ball.
-        behavior.has_survival_priority = lambda f: False
+        # No threat -> fish pursues the ball.
+        behavior.has_threat_priority = lambda f: False
         assert ball_pursuit_velocity(fish) is not None
 
-        # Survival drive active -> fish yields the ball even though it rolled play.
-        behavior.has_survival_priority = lambda f: True
+        # Hungry-but-fed fish with food available still plays: food does not
+        # pre-empt a fish that has cleared its own energy threshold.
+        behavior.has_food_priority = lambda f: True
+        assert ball_pursuit_velocity(fish) is not None
+
+        # Predator in range -> fish yields the ball even though it rolled play.
+        behavior.has_threat_priority = lambda f: True
         assert ball_pursuit_velocity(fish) is None
 
-    def test_ball_pursuit_requires_near_full_energy(self, simulation_env):
-        """Ball play should stay rare until a fish is genuinely surplus-rich."""
+    def test_ball_pursuit_energy_gate_is_the_fish_s_own_gene(self, simulation_env):
+        """The play threshold is heritable, not a shared constant.
+
+        Two fish differing only in ``min_energy_for_soccer`` must disagree
+        about whether the same energy level is rich enough to play. That
+        disagreement is the variance selection needs: with the old module
+        constant, every fish was born equally ball-inclined and ball skill
+        could not evolve at all.
+        """
         env, agents = simulation_env
         strategy = AlgorithmicMovement()
-        genome = Genome.random(use_algorithm=True)
-        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
-        agents.add(fish)
-        env.ball = Ball(env, 500, 500)
 
         class FixedRng:
             def random(self) -> float:
                 return 0.0
 
         env._rng = FixedRng()
+        env.ball = Ball(env, 500, 500)
 
-        fish.energy = fish.max_energy * 0.95
+        def _fish_with(threshold: float) -> Fish:
+            genome = Genome.random(use_algorithm=True)
+            fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
+            behavior = fish.genome.behavioral.behavior.value
+            behavior.parameters["min_energy_for_soccer"] = threshold
+            behavior.parameters["soccer_priority"] = 0.3
+            behavior.has_threat_priority = lambda f: False
+            agents.add(fish)
+            fish.energy = fish.max_energy * 0.80
+            return fish
+
+        cautious = _fish_with(0.95)  # wants to be nearly full before playing
+        keen = _fish_with(0.60)  # happy to play at 80% energy
+
+        assert ball_pursuit_velocity(cautious) is None
+        assert ball_pursuit_velocity(keen) is not None
+
+    def test_ball_pursuit_commits_once_close(self, simulation_env):
+        """Inside the commit radius a fish finishes the approach without re-rolling.
+
+        Re-rolling every frame made fish dither ballward and never arrive:
+        11,891 pursuit-frames converted to 374 kicks with commitment, versus
+        4,461 frames producing only 37 kicks without it.
+        """
+        env, agents = simulation_env
+        strategy = AlgorithmicMovement()
+        genome = Genome.random(use_algorithm=True)
+        fish = Fish(env, strategy, "george1.png", 100, 100, 3, genome=genome)
+        fish.energy = fish.max_energy
+        agents.add(fish)
+        behavior = fish.genome.behavioral.behavior.value
+        behavior.parameters["min_energy_for_soccer"] = 0.5
+        behavior.parameters["soccer_priority"] = 0.0  # never rolls "play"
+        behavior.has_threat_priority = lambda f: False
+
+        class NeverPlayRng:
+            def random(self) -> float:
+                return 1.0  # roll always fails the priority check
+
+        env._rng = NeverPlayRng()
+
+        # Far away: the failed roll means no pursuit.
+        env.ball = Ball(env, 900, 900)
         assert ball_pursuit_velocity(fish) is None
 
-        fish.energy = fish.max_energy * 0.99
+        # Close: committed, so the roll is skipped entirely.
+        env.ball = Ball(env, 160, 100)
         assert ball_pursuit_velocity(fish) is not None
 
     def test_isolated_full_fish_has_no_survival_priority(self, simulation_env):
