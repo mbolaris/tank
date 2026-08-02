@@ -28,6 +28,7 @@ from core.entities.ball import Ball
 from core.movement.intents import MovementIntent
 
 if TYPE_CHECKING:
+    from core.algorithms.composable.behavior import ComposableBehavior
     from core.behavior.target_memory import TargetMemoryDecision
     from core.entities import Fish
     from core.movement_strategy import AlgorithmicMovement
@@ -188,17 +189,21 @@ def _distance_to(fish: Fish, position: Velocity) -> float:
     return math.sqrt(dx * dx + dy * dy)
 
 
-def _engagement_genes(behavior: object | None) -> tuple[float, float]:
+def _engagement_genes(behavior: ComposableBehavior | None) -> tuple[float, float]:
     """This fish's evolved (energy threshold, pursuit priority) for ball play.
 
     Falls back to the pre-heritable constants when the fish carries no
     composable behavior, or to each parameter's own default when a genome
     predates these genes - so old serialized genomes keep working and simply
     behave as they did before.
+
+    ``ComposableBehavior.parameters`` always exists (``__post_init__`` fills it
+    with midpoints), so it is read directly; only the individual keys are
+    treated as optional, which is what genome-version skew actually varies.
     """
-    parameters = getattr(behavior, "parameters", None)
-    if not isinstance(parameters, dict):
+    if behavior is None:
         return PLAY_ENERGY_THRESHOLD_RATIO, DEFAULT_SOCCER_PRIORITY
+    parameters = behavior.parameters
 
     threshold = parameters.get("min_energy_for_soccer", PLAY_ENERGY_THRESHOLD_RATIO)
     priority = parameters.get("soccer_priority", DEFAULT_SOCCER_PRIORITY)

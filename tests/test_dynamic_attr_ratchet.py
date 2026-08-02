@@ -96,7 +96,7 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/spatial/bounds.py": 4,
     "core/statistics_utils.py": 3,
     "core/systems/entity_lifecycle.py": 6,
-    "core/systems/soccer_system.py": 15,
+    "core/systems/soccer_system.py": 14,
     "core/transfer/entity_transfer.py": 19,
     "core/util/mutations.py": 8,
     "core/util/rng.py": 3,
