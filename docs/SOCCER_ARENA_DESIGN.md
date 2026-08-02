@@ -92,20 +92,79 @@ leave the aquarium and are never suspended.**
    has no ecosystem behind it. Making tank rosters work the same way means the
    two paths share one model instead of diverging.
 
-**Reconciliation.** Match outcomes (energy rewards, entry fees, reproduction
-credit, stat attribution) are applied **atomically at full time**, never
-incrementally during play:
+**Snapshot isolation is deep, not nominal.** A frozen dataclass wrapping a live
+`Genome` is not a snapshot. The snapshot must contain:
 
-- Source fish **alive** at full time: all deltas applied normally.
-- Source fish **dead** before full time: energy and reproduction-credit deltas
-  are **dropped** (there is nothing to credit). Match statistics and records
-  are **still recorded** against the fish's identity — a dead fish keeps its
-  goals, and a posthumous leading-scorer record is legitimate.
+- immutable primitives, tuples, and deeply copied or serialised value objects,
+  and **nothing else**;
+- **no** references to `Fish`, `Genome`, `GeneticTrait`, mutable policy dicts,
+  `GenomeCodePool` entries, callables, world state, or entity managers;
+- policy **identifiers and immutable parameters**, never callable objects.
+
+Snapshot construction must consume **no RNG draws** and must not alter
+participant ordering, policy execution order, or any match RNG stream. If the
+execution path needs a live object, it reconstructs a detached one *from* the
+snapshot; the snapshot itself stays serialised immutable data.
+
+**Entry fees keep their current timing.** Fees are charged **at match setup,
+before the match runs** — `apply_soccer_entry_fees()` in
+`core/minigames/soccer/evaluator.py`, called before `SoccerMatch` is
+constructed — and the charged amounts are then fed into
+`apply_soccer_rewards()` to compute the pot payout. Deferring them to full time
+would change *both* aquarium energy during the match (and therefore
+reproduction eligibility, later-match eligibility, and what a fish can spend
+elsewhere) *and* the payout arithmetic.
+
+**Do not move entry-fee collection.** Record the charged amount in the
+settlement record for accounting and attribution. If deferred fees are ever
+wanted, that is a separate economy PR with its own benchmark evidence.
+
+**Post-match reconciliation.** Everything *except* entry fees — goal, assist,
+win, shaped-energy, reproduction-credit, and statistical outcomes — is
+accumulated **without mutating source fish during play** and applied exactly
+once at full time:
+
+- Source fish **alive** at full time: all post-match energy and
+  reproduction-credit deltas applied.
+- Source fish **dead** before full time: post-match energy and
+  reproduction-credit deltas are **dropped** (there is nothing to credit).
+  Match statistics and records are **still recorded** against the fish's
+  identity — a dead fish keeps its goals, and a posthumous leading-scorer
+  record is legitimate. **Entry fees already charged are not refunded.**
 - Source fish **reproduced** during the match: offspring are unaffected. Match
   performance influences the *parent's* future reproduction, not a birth that
   already happened.
 - The match itself **never** aborts because a source fish died. The snapshot
   plays to full time regardless.
+
+**Reconciliation is idempotent.** "Apply once" is an intention until it is
+enforced, and full time can be reached more than once — reconnects, state
+restoration, replay, a retried settlement. Therefore:
+
+- Every completed match settlement carries a stable `reconciliation_id`, and
+  whether it has been applied is **persisted**.
+- `reconcile_match()` called twice with the same `reconciliation_id` must apply
+  no fish delta, no reproduction credit, and no statistic a second time. The
+  second call is a no-op returning the first call's result.
+- Atomicity is defined **at the match level**: either the complete settlement
+  batch commits, or none of its mutable aquarium effects do. No partial
+  settlements.
+
+**Resolving the source fish.** `fish_id` is **not globally unique** — it comes
+from a per-tank `PopulationTracker.generate_new_fish_id()`, and
+`core/transfer/entity_transfer.py` can transfer a fish between tanks with
+`preserve_identity`. A fish can therefore change tanks mid-match. So:
+
+- `tank_id` on the roster snapshot records **provenance at selection time**,
+  alongside the fish's existing `origin_tank_id`.
+- Reconciliation resolves the source by **stable fish identity across worlds**,
+  not by looking only inside the originally-selected tank.
+- If the fish transferred and is still alive, deltas apply to that same fish in
+  its **current** world.
+- "Not found in the original tank" **must not** be treated as death. If stable
+  cross-world resolution is unavailable in the current code, **stop and report
+  the limitation** rather than guessing — and do not invent a new global id
+  scheme to work around it; use the existing `(fish_id, tank_id)` identity.
 
 **UI consequence.** The lineup panel shows a small status glyph per player when
 the source fish's aquarium state has changed since kickoff: `✝` died,
@@ -981,6 +1040,28 @@ interface SoccerParticipant {
 participant by `participant_id` and carry **only physical state** — position,
 velocity, facing, stamina, possession. Identity and physics stay separate.
 
+**Compatibility bridge (required).** The *internal* model separates identity
+from physics immediately. The *wire* does not, until the frontend has migrated.
+The shipped renderer reads `team` and `jersey_number` off `render_hint`
+(`SoccerTopDownRenderer.buildSoccerScene`), so dropping them in a backend-only
+PR breaks the running app.
+
+- The serialiser **must keep emitting** the existing legacy `render_hint`
+  identity fields the current frontend reads. Mark the duplication deprecated
+  in a code comment naming this section.
+- It **also** emits the new optional `participants[]`.
+- Legacy identity fields may be removed **only after** a frontend PR has
+  migrated to `participants[]` — not in the same PR, and not before.
+
+**Legacy payload preservation.** More generally, for every PR that touches the
+wire before the frontend migration completes:
+
+- Preserve all existing match-state fields, `last_goal` payloads, event
+  payloads, and the flat `field` object **byte-for-byte where practical**.
+- New fields are **additive only**.
+- Do not rename, remove, reinterpret, or change the units of any existing wire
+  field. A unit change is a breaking change even when the field name survives.
+
 The renderer branches on `avatar_kind` exactly once:
 
 | `avatar_kind` | Render |
@@ -1061,6 +1142,20 @@ interface SoccerMatchEvent {
   assist?: string;                 // participant_id
   detail?: Record<string, string | number>;
 }
+```
+
+**Event identity rules:**
+
+- `seq` is monotonic **within one match** and starts at `0` for the first
+  emitted event. It is not global and not stable across matches.
+- `event_id` is derived **only** from deterministic match identity and event
+  data — e.g. `{match_id}-{kind}-{frame}-{seq}`. It must **never** incorporate
+  wall-clock time, `uuid4()`, process identity, object addresses, or Python's
+  `hash()` (which is salted per process — see ADR-012).
+- Replaying an identical match must produce an identical ordered sequence of
+  `(seq, event_id)` pairs. This is a required test.
+
+```ts
 
 // NEW — per-entity PHYSICAL state only. Identity lives on SoccerParticipant.
 interface SoccerRenderHint {
@@ -1110,17 +1205,38 @@ not a rewrite:
 ### 10.5 Fixture tests (required)
 
 Sign and axis errors are invisible in a screenshot and obvious only in motion,
-so they must be caught by fixtures rather than by eye:
+so they must be caught by fixtures rather than by eye.
 
-- **Golden RCSS monitor messages.** Capture real `(show ...)` frames — from
-  `core/minigames/soccer/fake_server.py` and from the upstream
-  [rcsoccersim](https://github.com/rcsoccersim) monitor format — and assert the
-  adapter's canonical output positions, headings, and ball velocity against
-  hand-checked expected values.
+**One-way adapters, bidirectional utilities.** These are different things and
+the distinction resolves an apparent contradiction:
+
+| Layer | Direction | May know about |
+|---|---|---|
+| Production match-state adapter (`tank_adapter.py`) | **One-way**: engine/legacy → canonical | engine state, canonical space |
+| Pure coordinate utilities (`coords/canonical.ts`, its Python peer) | **Bidirectional**: `legacy_to_canonical()` / `canonical_to_legacy()` | nothing but coordinates |
+
+Neither may know about pixels, canvas dimensions, DPR, or UI layout. The
+round-trip test applies to the **pure utilities**; the production adapter stays
+one-way.
+
+**Required tests:**
+
+- **Golden engine fixtures.** Hand-checked deterministic engine snapshots
+  containing player positions, headings, ball position, and ball velocity,
+  adapted through `tank_adapter.py` with canonical values asserted.
+
+  > **Do not** build an RCSS monitor-protocol parser or serialiser in PR 0 to
+  > manufacture a `(show ...)` fixture. `core/minigames/soccer/fake_server.py`
+  > emits player-facing `(see ...)` and `(sense_body ...)` messages, **not**
+  > monitor frames — requiring monitor fixtures now would force an unrelated
+  > protocol expansion. Official monitor-message fixtures belong with the RCSS
+  > adapter in PR 5.
+
 - **Attack-direction test.** For each side, assert that a participant moving
   toward its opponent's goal has the expected canonical `+x` / `−x` sign, and
   that this survives the half swap.
-- **Round-trip.** `canonicalFromRender(renderFromCanonical(p)) ≈ p`.
+- **Round-trip.** `canonical_to_legacy(legacy_to_canonical(p)) ≈ p`, on the
+  pure utilities.
 - **Handedness.** A positive turn is counter-clockwise in canonical space and
   clockwise on screen. Assert both, explicitly, in one test named so that a
   future reader cannot mistake which is which.
@@ -1171,22 +1287,45 @@ reviewed alongside a canvas rewrite gets reviewed as neither.
 - `SoccerParticipant` on the wire (§10.1) — lift the existing
   `core/minigames/soccer/participant.py` type into
   `backend/state_payloads/soccer.py`. Entities reference `participant_id`.
-- Remove the live `source_entity` handle from the match path; replace with an
-  immutable roster snapshot per §1.2, and move outcome application to an
-  atomic full-time reconciliation step.
+  **Keep emitting legacy `render_hint` identity fields** per the compatibility
+  bridge in §10.1.
+- Remove the live `source_entity` handle from the match path; replace with a
+  deeply-isolated immutable roster snapshot per §1.2.
+- Idempotent post-match reconciliation with a persisted `reconciliation_id`
+  (§1.2). **Entry-fee timing is unchanged.**
 - `SoccerFieldGeometry` profiles in `core/minigames/soccer/field_profiles.py`
   (`rcss_standard_105x68`, `tank_small_sided`); emit `geometry` on match state.
-- ADR-017 canonical coordinate space: `coord_space` field, `TankMatchAdapter`,
-  and the canonical↔render boundary function.
-- Tests: roster-snapshot determinism (same snapshot + seed ⇒ same result,
-  independent of aquarium activity); reconciliation with a source fish that
-  dies mid-match; participant round-trip; geometry profile serialisation;
-  the §10.5 fixture suite (golden RCSS frames, attack direction, round-trip,
-  handedness).
+- ADR-017 canonical coordinate space: `coord_space` field, one-way
+  `tank_adapter.py`, and the bidirectional pure coordinate utilities.
+- Tests:
+  - **Snapshot isolation (the important one).** Select and snapshot a roster;
+    run match A. Select and snapshot the same roster again; then aggressively
+    mutate, age, move, reproduce, and remove the original source entities
+    before and during match B; run match B with the same match seed. Assert
+    identical commands, events, final physical state, score, statistics, and
+    ordered `(seq, event_id)` pairs. This proves isolation without depending
+    on thread scheduling, so it cannot go flaky.
+  - Reconciliation with a source fish that dies mid-match: post-match deltas
+    dropped, statistics retained, entry fee not refunded, match completed.
+  - Reconciliation idempotency: a second `reconcile_match()` call with the same
+    `reconciliation_id` is a no-op.
+  - Participant serialisation round-trip for all four `avatar_kind` values.
+  - Geometry profile serialisation; a zero-valued marking omitted; an unknown
+    `profile_id` falling back and logging once.
+  - The §10.5 fixture suite.
+  - Legacy payload preservation: a golden serialised match-state fixture from
+    before this PR still deserialises and still contains every field it did.
 
-**Gate:** `python tools/pre_pr_gate.py`. Because this touches
-`core/minigames/soccer/`, re-run the soccer benchmarks and confirm champion
-scores are unchanged — this PR must be behaviour-neutral.
+**Gate:** `python tools/pre_pr_gate.py`, plus the soccer benchmarks.
+**This PR must be behaviour-neutral**, and the top-level benchmark score alone
+does not prove that — two internal changes can coincidentally land on the same
+score. Also diff, against pre-change runs:
+
+- participant ordering
+- event ordering and the full `(seq, event_id)` sequence
+- final score and goal/assist attribution
+- per-player match statistics
+- RNG fingerprint output where available (`tests/test_fingerprint_stream.py`)
 
 ### PR 1A — Arena shell
 
