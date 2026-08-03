@@ -116,7 +116,7 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) =
         targetZoom = Math.min(1.5, Math.max(0.01, targetZoom));
 
         // Center the bounding box in the container
-        let tx = containerW / 2 - bbox.centerX * targetZoom;
+        const tx = containerW / 2 - bbox.centerX * targetZoom;
         let ty = containerH / 2 - bbox.centerY * targetZoom;
 
         if (mode === 'leaves') {
