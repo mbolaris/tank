@@ -140,6 +140,7 @@ def setup_router(
                     "tank_best": 0.0,
                     "latest_baseline_score_diff": None,
                     "snapshots": [],
+                    "breakthroughs": [],
                 }
             )
 
@@ -157,6 +158,7 @@ def setup_router(
                     "tank_best": 0.0,
                     "latest_baseline_score_diff": None,
                     "snapshots": [],
+                    "breakthroughs": [],
                 }
             )
 
@@ -169,6 +171,11 @@ def setup_router(
         tank_best = (
             store.get_tank_best(domain) if hasattr(store, "get_tank_best") else store.tank_best
         )
+        breakthroughs = (
+            store.get_breakthroughs(limit=limit)
+            if hasattr(store, "get_breakthroughs") and (domain is None or domain == "soccer")
+            else []
+        )
 
         return JSONResponse(
             {
@@ -178,6 +185,7 @@ def setup_router(
                 "tank_best": tank_best,
                 "latest_baseline_score_diff": latest_diff,
                 "snapshots": [s.to_dict() for s in snapshots],
+                "breakthroughs": [item.to_dict() for item in breakthroughs],
             }
         )
 

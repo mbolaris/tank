@@ -214,7 +214,15 @@ class TankLikePhaseHooks(PhaseHooks):
             engine.skill_snapshot_store = store
 
         interval = getattr(server_cfg, "soccer_ladder_eval_interval_frames", 20_000)
-        evaluator = IncrementalSoccerLadderEvaluator(store, eval_interval_frames=interval)
+        environment = engine.environment
+        source_id = (
+            str(environment.world_id)
+            if environment is not None and environment.world_id is not None
+            else "tank"
+        )
+        evaluator = IncrementalSoccerLadderEvaluator(
+            store, eval_interval_frames=interval, source_id=source_id
+        )
         engine.soccer_ladder_evaluator = evaluator
         self._soccer_ladder_evaluator = evaluator
         return evaluator

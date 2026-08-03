@@ -31,7 +31,7 @@ from core.minigames.soccer.reference_teams import (
 )
 from core.minigames.soccer.seeds import derive_soccer_seed
 from core.skill.ladder import RungResult, SkillLadderSummary, ladder_position_index
-from core.skill.snapshots import SkillSnapshot, SkillSnapshotStore
+from core.skill.snapshots import BreakthroughRecord, SkillSnapshot, SkillSnapshotStore
 
 if TYPE_CHECKING:
     from core.simulation.engine import SimulationEngine
@@ -76,6 +76,7 @@ class IncrementalSoccerLadderEvaluator:
         frames_per_match: int = 5000,
         team_size: int = 3,
         cycles_per_frame: int = 1,
+        source_id: str = "tank",
     ) -> None:
         self.store = store if store is not None else SkillSnapshotStore()
         self.eval_interval_frames = eval_interval_frames
@@ -103,6 +104,7 @@ class IncrementalSoccerLadderEvaluator:
 
         # Cached goal diff vs top unbeaten rung (populated after each pass)
         self._latest_baseline_score_diff: float | None = None
+        self._source_id = source_id
 
     @property
     def latest_baseline_score_diff(self) -> float | None:
@@ -214,7 +216,6 @@ class IncrementalSoccerLadderEvaluator:
         ]
         self._current_generation = max((getattr(f, "generation", 0) for f in top_fish), default=0)
         self._hero_genomes = self._build_hero_genomes(top_fish)
-
         seed_val = getattr(engine, "seed", 42)
         seed_base: int = 42 if seed_val is None else int(seed_val)
 
@@ -367,6 +368,12 @@ class IncrementalSoccerLadderEvaluator:
 
         prev_snap = self.store.get_latest_snapshot(domain="soccer")
         prev_score = prev_snap.summary.skill_index if prev_snap is not None else None
+        previous_rungs = (
+            {rung.rung_id: rung.beaten for rung in prev_snap.summary.rungs}
+            if prev_snap is not None
+            else {}
+        )
+        tank_best_before = self.store.get_tank_best("soccer")
         pb = self.store.get_personal_best_for_team(self._subject_fish_ids)
         current_score = summary.skill_index
         if current_score > pb:
@@ -386,6 +393,35 @@ class IncrementalSoccerLadderEvaluator:
             tank_best=tank_best,
             sample_size=len(self._completed_matches),
         )
+
+        for rung in summary.rungs:
+            if rung.beaten and not previous_rungs.get(rung.rung_id, False):
+                self.store.add_breakthrough(
+                    BreakthroughRecord(
+                        event_id=(
+                            f"{self._source_id}-ladder_rung_cleared-"
+                            f"{rung.rung_id}-{self._current_eval_frame}"
+                        ),
+                        kind="ladder_rung_cleared",
+                        source_id=self._source_id,
+                        frame=self._current_eval_frame,
+                        detail={
+                            "rung": rung.rung,
+                            "rung_id": rung.rung_id,
+                            "skill_index": current_score,
+                        },
+                    )
+                )
+        if current_score > tank_best_before:
+            self.store.add_breakthrough(
+                BreakthroughRecord(
+                    event_id=f"{self._source_id}-team_skill_record-{self._current_eval_frame}",
+                    kind="team_skill_record",
+                    source_id=self._source_id,
+                    frame=self._current_eval_frame,
+                    detail={"skill_index": current_score, "previous_best": tank_best_before},
+                )
+            )
 
         self.store.add_snapshot(snapshot)
         logger.info(

@@ -128,5 +128,14 @@ export interface SkillSnapshotsResponse {
     tank_best: number;
     latest_baseline_score_diff?: number | null;
     snapshots: SkillSnapshot[];
+    breakthroughs?: SkillBreakthrough[];
 }
 
+export interface SkillBreakthrough {
+    event_id: string;
+    kind: string;
+    source_id: string;
+    frame: number;
+    match_id?: string | null;
+    detail?: Record<string, string | number>;
+}

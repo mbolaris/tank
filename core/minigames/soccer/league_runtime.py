@@ -158,6 +158,26 @@ class SoccerLeagueRuntime:
     def get_live_state(self) -> dict[str, Any] | None:
         """Return live match state for rendering."""
 
+        ordered_entries = sorted(
+            self._leaderboard.values(),
+            key=lambda x: (x.points, x.goal_difference),
+            reverse=True,
+        )
+        team_positions = {entry.team_id: index + 1 for index, entry in enumerate(ordered_entries)}
+        team_form: dict[str, list[str]] = {}
+        for result in self._recent_results:
+            if result.skipped or not result.played:
+                continue
+            if result.winner_team_id == result.home_team_id:
+                home_form, away_form = "W", "L"
+            elif result.winner_team_id == result.away_team_id:
+                home_form, away_form = "L", "W"
+            else:
+                home_form = away_form = "D"
+            team_form.setdefault(result.home_team_id, []).append(home_form)
+            team_form.setdefault(result.away_team_id, []).append(away_form)
+        team_form = {team_id: values[-5:] for team_id, values in team_form.items()}
+
         state = {
             "leaderboard": [
                 {
@@ -173,12 +193,10 @@ class SoccerLeagueRuntime:
                     "rating": e.rating,
                     "source": e.source,
                 }
-                for e in sorted(
-                    self._leaderboard.values(),
-                    key=lambda x: (x.points, x.goal_difference),
-                    reverse=True,
-                )
+                for e in ordered_entries
             ],
+            "team_positions": team_positions,
+            "team_form": team_form,
             "availability": {
                 tid: {"available": a.is_available, "reason": a.reason, "count": a.eligible_count}
                 for tid, a in self._team_availability.items()
@@ -359,6 +377,9 @@ class SoccerLeagueRuntime:
             self._current_league_match.home_score = outcome.score_left
             self._current_league_match.away_score = outcome.score_right
             self._current_league_match.winner_team_id = winner
+            self._current_league_match.played = True
+            self._recent_results.append(replace(self._current_league_match))
+            self._recent_results = self._recent_results[-50:]
             self._scheduler.advance_match()
 
             if winner:

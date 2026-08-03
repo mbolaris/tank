@@ -5,6 +5,7 @@ import { Scoreboard } from './Scoreboard';
 import { SoccerProgressStrip } from './SoccerProgressStrip';
 import { EventPresenter } from './EventPresenter';
 import { SoccerEffectsLayer } from './SoccerEffectsLayer';
+import { TeamProgressPanel } from './TeamProgressPanel';
 import { activeEffectEvent, type SoccerBroadcastMatch } from './soccerEvents';
 import { deriveArenaState, type ArenaConnectionState, type ArenaPresentation } from './soccerArenaState';
 import styles from './SoccerArenaView.module.css';
@@ -175,7 +176,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
 
                 <aside className={`${styles.rail} ${rightRailExpanded ? styles.railExpanded : styles.railCollapsed}`}>
                     <RailToggle label="Progress" expanded={rightRailExpanded} onClick={() => setRightRailExpanded((expanded) => !expanded)} />
-                    {rightRailExpanded && <RailPlaceholder title="Progress" detail="Team skill and ladder progress will appear here in the next arena stage." />}
+                    {rightRailExpanded && <TeamProgressPanel worldId={worldId} liveState={liveState} />}
                 </aside>
             </div>
         </section>
