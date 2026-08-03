@@ -1,5 +1,5 @@
 import type { LeagueLeaderboardEntry, SoccerLeagueLiveState } from '../types/simulation';
-import { SoccerPitch } from './SoccerPitch';
+import { PitchCanvas } from './PitchCanvas';
 
 interface SoccerLeagueLiveProps {
     liveState?: SoccerLeagueLiveState | null;
@@ -96,7 +96,7 @@ export function SoccerLeagueLive({ liveState }: SoccerLeagueLiveProps) {
                 )}
 
                 {activeMatch ? (
-                    <SoccerPitch gameState={activeMatch} width={undefined} height={undefined} style={{ flex: 1, minHeight: '300px' }} />
+                    <PitchCanvas gameState={activeMatch} width={undefined} height={undefined} style={{ flex: 1, minHeight: '300px' }} />
                 ) : (
                     <div style={{
                         flex: 1,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SoccerPitch } from './SoccerPitch';
+import { PitchCanvas } from './PitchCanvas';
 import { Button } from './ui';
 import type { Command, SoccerMatchState } from '../types/simulation';
 
@@ -128,7 +128,7 @@ export const SoccerGame: React.FC<SoccerGameProps> = ({ sendCommandWithResponse 
                 </div>
             </div>
 
-            <SoccerPitch gameState={gameState} width={800} height={450} />
+            <PitchCanvas gameState={gameState} width={800} height={450} />
 
             <div style={{ marginTop: '16px', display: 'flex', gap: '16px' }}>
                 <Button

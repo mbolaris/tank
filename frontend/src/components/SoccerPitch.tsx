@@ -3,6 +3,7 @@ import { SoccerTopDownRenderer } from '../renderers/soccer/SoccerTopDownRenderer
 import type { SoccerMatchState } from '../types/simulation';
 import type { RenderContext, RenderFrame } from '../rendering/types';
 import { calculatePitchViewport, type PitchViewportSize } from './pitchViewport';
+import { useMatchAnimator } from './useMatchAnimator';
 
 const FALLBACK_GEOMETRY = { length: 105, width: 68 };
 
@@ -17,6 +18,7 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
     const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<SoccerTopDownRenderer | null>(null);
+    const animatedState = useMatchAnimator(gameState);
     const [viewport, setViewport] = useState<PitchViewportSize>(() =>
         calculatePitchViewport(width, { length: width, width: height }, width, 1),
     );
@@ -52,20 +54,20 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
     }, []);
 
     useEffect(() => {
-        if (!rendererRef.current || !canvasRef.current || !gameState) return;
+        if (!rendererRef.current || !canvasRef.current || !animatedState) return;
 
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
         const viewMode =
-            gameState.view_mode === 'side' || gameState.view_mode === 'topdown'
-                ? gameState.view_mode
+            animatedState.view_mode === 'side' || animatedState.view_mode === 'topdown'
+                ? animatedState.view_mode
                 : 'topdown';
 
         const frame: RenderFrame = {
             worldType: 'soccer',
             viewMode: 'topdown',
-            snapshot: gameState,
+            snapshot: animatedState,
             options: {
                 viewMode,
             }
@@ -80,7 +82,7 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
 
         rendererRef.current.render(frame, rc);
 
-    }, [gameState, viewport]);
+    }, [animatedState, viewport]);
 
     return (
         <div

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { SoccerEventData, SoccerLeagueLiveState } from '../types/simulation';
-import { SoccerPitch } from './SoccerPitch';
+import { PitchCanvas } from './PitchCanvas';
 import styles from './SoccerArenaView.module.css';
 
 interface SoccerArenaViewProps {
@@ -108,7 +108,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack }: SoccerAr
 
                     <div className={styles.pitchFrame}>
                         {activeMatch ? (
-                            <SoccerPitch gameState={activeMatch} width={800} height={450} />
+                            <PitchCanvas gameState={activeMatch} width={800} height={450} />
                         ) : (
                             <div className={styles.emptyPitch} role="status">
                                 <span className={styles.emptyPitchIcon} aria-hidden="true">⚽</span>
