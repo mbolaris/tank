@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from core.code_pool.safety import fork_rng
 from core.minigames.soccer.engine import RCSSLiteEngine, RCSSVector
+from core.minigames.soccer.broadcast_metadata import build_match_broadcast_metadata
 from core.minigames.soccer.field_profiles import geometry_for_params
 from core.minigames.soccer.formation import build_default_formation
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS
@@ -498,13 +499,10 @@ class SoccerMatch:
 
         entities_dicts.sort(key=_z_key)
 
-        # Get team rosters from participants
-        # Handle both Fish entities (with fish_id) and generic entities
         left_ids = []
         for p in self.participants:
             if p.team == "left" and p.participant_id in self.player_map:
                 entity = self.player_map[p.participant_id]
-                # Try to get fish_id if it's a Fish, otherwise use participant_id
                 entity_id = getattr(entity, "fish_id", None)
                 if entity_id is None:
                     entity_id = p.participant_id
@@ -526,6 +524,7 @@ class SoccerMatch:
             "message": self.message,
             "frame": self.current_frame,
             "score": score,
+            **build_match_broadcast_metadata(self),
             "last_goal": self._last_goal_event,
             "events": list(self.events),
             "participants": [p.to_wire_dict() for p in self.roster_snapshot.participants],
