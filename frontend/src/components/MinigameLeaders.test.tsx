@@ -101,7 +101,7 @@ describe('SoccerLeaders', () => {
 });
 
 describe('TankSoccerTab', () => {
-    it('shows leaders instead of the old reward log and no repro text', () => {
+    it('renders the compact arena preview instead of the full league panel', () => {
         const html = renderToString(
             <TankSoccerTab
                 liveState={{
@@ -112,14 +112,13 @@ describe('TankSoccerTab', () => {
                 }}
                 events={[]}
                 currentFrame={0}
+                onOpenArena={() => undefined}
             />
         );
 
-        expect(html).toContain('Season Leaders');
-        expect(html).toContain('Fish #9');
-
-        expect(html).not.toContain('Reward Log');
-        expect(html).not.toContain('repro credit');
-        expect(html).not.toContain('Repro Delta');
+        expect(html).toContain('Soccer Arena');
+        expect(html).toContain('Open Arena');
+        expect(html).toContain('teams in standings');
+        expect(html).not.toContain('League Results');
     });
 });
