@@ -10,6 +10,8 @@ from core.minigames.soccer.match import SoccerMatch
 from core.minigames.soccer.reconciliation import (
     SoccerSettlement,
     SourceIdentity,
+    SourceResolutionUnavailableError,
+    _is_dead,
     reconcile_match,
     resolve_source,
 )
@@ -232,14 +234,25 @@ def finalize_soccer_match(
     # Resolve current sources only in orchestration. The match itself never
     # owns this resolver or any live fish references.
     source_by_participant: dict[str, Any] = {}
+    missing_dead_identities: set[SourceIdentity] = set()
     if source_resolver is not None:
         for participant in match.roster_snapshot.participants:
             if participant.fish_id is None or participant.tank_id is None:
                 continue
             identity = SourceIdentity(participant.fish_id, participant.tank_id)
-            source_by_participant[participant.participant_id] = resolve_source(
-                source_resolver, identity
-            )
+            try:
+                source_by_participant[participant.participant_id] = resolve_source(
+                    source_resolver, identity
+                )
+            except SourceResolutionUnavailableError:
+                # A selected fish may finish its death animation before the
+                # match does. Its detached match object is the only remaining
+                # evidence that this was death rather than a transfer; mark
+                # it for a dropped settlement instead of crashing the world.
+                source_entity = match.player_map.get(participant.participant_id)
+                if source_entity is None or not _is_dead(source_entity):
+                    raise
+                missing_dead_identities.add(identity)
 
     # Calculate against detached settlement participants using full-time
     # source state when available. No source fish is mutated while calculating.
@@ -339,6 +352,7 @@ def finalize_soccer_match(
             # A missing injected store uses reconciliation.py's process-level
             # idempotency store. Do not create a new store per retry.
             store=reconciliation_store,
+            missing_as_dead=missing_dead_identities,
         )
 
     # Reconciliation is authoritative for live-world effects. Entry fees were

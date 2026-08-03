@@ -20,6 +20,10 @@ from core.minigames.soccer.field_profiles import (
     tank_small_sided,
 )
 from core.minigames.soccer.match import SoccerMatch
+from core.minigames.soccer.evaluator import (
+    create_soccer_match_from_participants,
+    finalize_soccer_match,
+)
 from backend.state_payloads.soccer import SoccerParticipantPayload
 from core.minigames.soccer.reconciliation import (
     InMemoryReconciliationStore,
@@ -116,6 +120,56 @@ def test_reconciliation_drops_dead_energy_keeps_statistics_and_is_idempotent() -
     assert first == second
     assert first.retained_statistics[identity]["goals"] == 1
     assert identity in first.dropped_dead_deltas
+
+
+def test_reconciliation_drops_known_dead_source_removed_before_finalize() -> None:
+    identity = SourceIdentity(8, "tank-a")
+    settlement = SoccerSettlement.for_match(
+        "removed-dead-8",
+        energy_deltas={identity: 12.0},
+        statistics={identity: {"goals": 1}},
+    )
+    result = reconcile_match(
+        settlement,
+        {},
+        store=InMemoryReconciliationStore(),
+        missing_as_dead={identity},
+    )
+
+    assert result.applied_energy_deltas == {}
+    assert result.retained_statistics[identity]["goals"] == 1
+    assert result.dropped_dead_deltas == (identity,)
+
+
+def test_finalize_match_survives_fish_removed_after_selection() -> None:
+    fish = [_Fish(10), _Fish(11)]
+    live_fish = list(fish)
+    world = SimpleNamespace(
+        entity_manager=SimpleNamespace(get_fish=lambda: list(live_fish)),
+        environment=SimpleNamespace(),
+    )
+    source_resolver = build_world_source_resolver(world)
+    setup = create_soccer_match_from_participants(
+        fish,
+        duration_frames=1,
+        match_id="removed-during-match",
+        seed=42,
+    )
+    setup.match.winner_team = "left"
+    setup.match.game_over = True
+    for item in fish:
+        item.dead = True
+    live_fish.clear()
+
+    outcome = finalize_soccer_match(
+        setup.match,
+        entry_fees=setup.entry_fees,
+        source_resolver=source_resolver,
+        reconciliation_store=InMemoryReconciliationStore(),
+    )
+
+    assert outcome.match_id == "removed-during-match"
+    assert outcome.reconciliation_id is not None
 
 
 def test_reconciliation_rolls_back_energy_and_repro_credits_atomically() -> None:
