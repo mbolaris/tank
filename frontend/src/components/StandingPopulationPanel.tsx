@@ -53,14 +53,18 @@ export function StandingPopulationPanel({ stats }: StandingPopulationPanelProps)
     const [viewMode, setViewMode] = useState<'graphs' | 'compact'>('graphs');
 
     const geneDistributions = stats?.gene_distributions;
-    const physicalGenes = geneDistributions?.physical ?? [];
-    const behavioralGenes = geneDistributions?.behavioral ?? [];
 
     const allDistributions: GeneDistributionEntry[] = useMemo(() => {
-        const physicalWithCat = physicalGenes.map(g => ({ ...g, category: 'physical' as const }));
-        const behavioralWithCat = behavioralGenes.map(g => ({ ...g, category: 'behavioral' as const }));
+        const physicalWithCat = (geneDistributions?.physical ?? []).map(g => ({
+            ...g,
+            category: 'physical' as const,
+        }));
+        const behavioralWithCat = (geneDistributions?.behavioral ?? []).map(g => ({
+            ...g,
+            category: 'behavioral' as const,
+        }));
         return [...physicalWithCat, ...behavioralWithCat];
-    }, [physicalGenes, behavioralGenes]);
+    }, [geneDistributions]);
 
     const filteredDistributions = useMemo(() => {
         return allDistributions.filter(dist => {
@@ -181,14 +185,14 @@ export function StandingPopulationPanel({ stats }: StandingPopulationPanelProps)
                             className={`${styles.pillBtn} ${selectedCategory === 'physical' ? styles.activePill : ''}`}
                             onClick={() => setSelectedCategory('physical')}
                         >
-                            🧬 Physical ({physicalGenes.length})
+                            🧬 Physical ({geneDistributions?.physical?.length ?? 0})
                         </button>
                         <button
                             type="button"
                             className={`${styles.pillBtn} ${selectedCategory === 'behavioral' ? styles.activePill : ''}`}
                             onClick={() => setSelectedCategory('behavioral')}
                         >
-                            🧠 Behavioral ({behavioralGenes.length})
+                            🧠 Behavioral ({geneDistributions?.behavioral?.length ?? 0})
                         </button>
                     </div>
 
