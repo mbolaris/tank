@@ -1,7 +1,10 @@
-import React, { useEffect, useRef, type CSSProperties } from 'react';
+import React, { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { SoccerTopDownRenderer } from '../renderers/soccer/SoccerTopDownRenderer';
 import type { SoccerMatchState } from '../types/simulation';
 import type { RenderContext, RenderFrame } from '../rendering/types';
+import { calculatePitchViewport, type PitchViewportSize } from './pitchViewport';
+
+const FALLBACK_GEOMETRY = { length: 105, width: 68 };
 
 export interface SoccerPitchProps {
     gameState: SoccerMatchState | null;
@@ -11,8 +14,37 @@ export interface SoccerPitchProps {
 }
 
 export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800, height = 450, style }) => {
+    const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<SoccerTopDownRenderer | null>(null);
+    const [viewport, setViewport] = useState<PitchViewportSize>(() =>
+        calculatePitchViewport(width, { length: width, width: height }, width, 1),
+    );
+
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+
+        const measure = () => {
+            setViewport(
+                calculatePitchViewport(
+                    host.clientWidth || width,
+                    gameState?.geometry ?? FALLBACK_GEOMETRY,
+                    width,
+                    window.devicePixelRatio || 1,
+                ),
+            );
+        };
+
+        measure();
+        const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+        observer?.observe(host);
+        window.addEventListener('resize', measure);
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener('resize', measure);
+        };
+    }, [gameState?.geometry, width]);
 
     useEffect(() => {
         rendererRef.current = new SoccerTopDownRenderer();
@@ -42,29 +74,37 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
         const rc: RenderContext = {
             ctx,
             canvas: canvasRef.current,
-            dpr: window.devicePixelRatio || 1,
+            dpr: viewport.dpr,
             nowMs: performance.now(),
         };
 
         rendererRef.current.render(frame, rc);
 
-    }, [gameState]);
+    }, [gameState, viewport]);
 
     return (
-        <canvas
-            ref={canvasRef}
-            width={width}
-            height={height}
+        <div
+            ref={hostRef}
             className="rounded-lg shadow-lg"
             style={{
-                background: '#2e9a30',
                 width: '100%',
                 maxWidth: `${width}px`,
-                height: 'auto',
-                display: 'block',
+                aspectRatio: `${gameState?.geometry?.length ?? FALLBACK_GEOMETRY.length}/${gameState?.geometry?.width ?? FALLBACK_GEOMETRY.width}`,
                 margin: '0 auto',
                 ...style,
             }}
-        />
+        >
+            <canvas
+                ref={canvasRef}
+                width={Math.round(viewport.width * viewport.dpr)}
+                height={Math.round(viewport.height * viewport.dpr)}
+                className="rounded-lg shadow-lg"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'block',
+                }}
+            />
+        </div>
     );
 };
