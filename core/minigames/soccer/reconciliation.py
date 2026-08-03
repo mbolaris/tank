@@ -209,11 +209,33 @@ class EntityCollectionResolver:
 
     def __init__(self, providers: Sequence[Callable[[], Iterable[Any]]]) -> None:
         self._providers = tuple(providers)
+        self._seen_identities: set[SourceIdentity] = set()
+        self._prime_seen_identities()
+
+    def _prime_seen_identities(self) -> None:
+        """Remember sources present when a match selects its roster."""
+        for provider in self._providers:
+            self._remember_entities(provider())
+
+    def _remember_entities(self, entities: Iterable[object]) -> None:
+        for entity in entities:
+            try:
+                fields = vars(entity)
+            except TypeError:
+                continue
+            fish_id = fields.get("fish_id")
+            if fish_id is None:
+                continue
+            for tank_id in (fields.get("tank_id"), fields.get("origin_tank_id")):
+                if isinstance(tank_id, str):
+                    self._seen_identities.add(SourceIdentity(int(fish_id), tank_id))
 
     def resolve_fish(self, fish_id: int, tank_id: str | None = None) -> Any | None:
         matches: list[Any] = []
         for provider in self._providers:
-            for entity in provider():
+            entities = list(provider())
+            self._remember_entities(entities)
+            for entity in entities:
                 if getattr(entity, "fish_id", None) != fish_id:
                     continue
                 origin_tank_id = getattr(entity, "origin_tank_id", None)
@@ -221,6 +243,8 @@ class EntityCollectionResolver:
                 if tank_id is None or tank_id in (origin_tank_id, current_tank_id):
                     matches.append(entity)
         if not matches:
+            if SourceIdentity(fish_id, tank_id) in self._seen_identities:
+                return _RemovedSource(fish_id=fish_id, tank_id=tank_id)
             return None
         if len(matches) == 1:
             return matches[0]
@@ -232,6 +256,18 @@ class EntityCollectionResolver:
         raise SourceResolutionUnavailableError(
             f"ambiguous live resolution for fish {fish_id!r} from tank {tank_id!r}"
         )
+
+
+@dataclass(frozen=True)
+class _RemovedSource:
+    """Dead tombstone for a source removed after roster selection."""
+
+    fish_id: int
+    tank_id: str | None
+    dead: bool = True
+
+    def is_dead(self) -> bool:
+        return True
 
 
 def build_world_source_resolver(world_state: Any) -> EntityCollectionResolver:
@@ -334,6 +370,7 @@ def reconcile_match(
     resolver: Any,
     *,
     store: ReconciliationStore | None = None,
+    missing_as_dead: Iterable[SourceIdentity] = (),
 ) -> ReconciliationResult:
     """Apply one complete settlement batch exactly once.
 
@@ -352,26 +389,35 @@ def reconcile_match(
         | set(settlement.repro_credit_deltas)
         | set(settlement.statistics)
     )
+    missing_as_dead_set = set(missing_as_dead)
     resolved = {identity: _resolve(resolver, identity) for identity in identities}
-    if any(entity is None for entity in resolved.values()):
-        missing = next(identity for identity, entity in resolved.items() if entity is None)
+    unresolved = [
+        identity
+        for identity, entity in resolved.items()
+        if entity is None and identity not in missing_as_dead_set
+    ]
+    if unresolved:
+        missing = unresolved[0]
         raise SourceResolutionUnavailableError(
             f"could not resolve fish {missing.fish_id!r} after selection; transfer is not death"
         )
 
     # Validate all mutation capabilities before changing any entity.
     for identity, delta in settlement.energy_deltas.items():
+        entity = resolved[identity]
         if (
-            not _is_dead(resolved[identity])
+            entity is not None
+            and not _is_dead(entity)
             and delta
-            and not hasattr(resolved[identity], "modify_energy")
+            and not hasattr(entity, "modify_energy")
         ):
             raise SourceResolutionUnavailableError(
                 f"resolved fish {identity!r} cannot accept energy settlement"
             )
     for identity, delta in settlement.repro_credit_deltas.items():
-        if not _is_dead(resolved[identity]) and delta:
-            component = _repro_component(resolved[identity])
+        entity = resolved[identity]
+        if entity is not None and not _is_dead(entity) and delta:
+            component = _repro_component(entity)
             if component is None or not hasattr(component, "add_repro_credits"):
                 raise SourceResolutionUnavailableError(
                     f"resolved fish {identity!r} cannot accept reproduction credits"
@@ -379,11 +425,16 @@ def reconcile_match(
 
     applied_energy: dict[SourceIdentity, float] = {}
     applied_repro: dict[SourceIdentity, float] = {}
-    dropped: list[SourceIdentity] = []
+    dropped: list[SourceIdentity] = sorted(
+        (identity for identity in identities if resolved[identity] is None),
+        key=lambda identity: (identity.fish_id, identity.tank_id or ""),
+    )
     undo: list[tuple[Any, float, str]] = []
     repro_undo: list[tuple[Any, float]] = []
     for identity, delta in settlement.repro_credit_deltas.items():
         entity = resolved[identity]
+        if entity is None:
+            continue
         if _is_dead(entity) or not delta:
             continue
         component = _repro_component(entity)
@@ -396,6 +447,8 @@ def reconcile_match(
     try:
         for identity, delta in settlement.energy_deltas.items():
             entity = resolved[identity]
+            if entity is None:
+                continue
             if _is_dead(entity):
                 dropped.append(identity)
                 continue
@@ -404,6 +457,10 @@ def reconcile_match(
             undo.append((entity, amount, "soccer_reconciliation_rollback"))
         for identity, delta in settlement.repro_credit_deltas.items():
             entity = resolved[identity]
+            if entity is None:
+                if identity not in dropped:
+                    dropped.append(identity)
+                continue
             if _is_dead(entity):
                 if identity not in dropped:
                     dropped.append(identity)
