@@ -6,8 +6,8 @@ import {
     useEffect,
     useRef,
     type ChangeEvent,
-    type ReactNode,
 } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { useWebSocket } from '../hooks/useWebSocket';
 import type { PursuitOverlayData, TargetMemoryOverlayData } from '../rendering/types';
 import { useEntitySelection } from '../hooks/useEntitySelection';
@@ -16,6 +16,9 @@ import { useVisiblePanels } from '../hooks/useVisiblePanels';
 import { useWatchMode } from '../hooks/useWatchMode';
 import { useUiMode } from '../hooks/useUiMode';
 import { Canvas } from './Canvas';
+import { SoccerArenaView } from './SoccerArenaView';
+import { TankSoccerPanel } from './TankSoccerPanel';
+import { Panel, PanelLoading } from './TankPanel';
 import { CommentaryFeed } from './CommentaryFeed';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
@@ -40,9 +43,6 @@ const TransferDialog = lazy(() =>
 );
 const EntityInspectorDrawer = lazy(() =>
     import('./EntityInspectorDrawer').then((module) => ({ default: module.EntityInspectorDrawer }))
-);
-const TankSoccerTab = lazy(() =>
-    import('./tank_tabs/TankSoccerTab').then((module) => ({ default: module.TankSoccerTab }))
 );
 const TankPokerTab = lazy(() =>
     import('./tank_tabs/TankPokerTab').then((module) => ({ default: module.TankPokerTab }))
@@ -69,6 +69,8 @@ const BUILD_OBJECT_SIZES: Record<string, [number, number]> = {
 const BUILD_OBJECT_TYPES = new Set(['castle', 'algae_reef', 'protein_grotto', 'decorative_rock']);
 
 export function TankView({ worldId }: TankViewProps) {
+    const location = useLocation();
+    const navigate = useNavigate();
     const { state, isConnected, connectionStatus, sendCommand, sendCommandWithResponse, connectedWorldId, schemaError } =
         useWebSocket(worldId);
     const [showEffects, setShowEffects] = useState(true);
@@ -128,6 +130,7 @@ export function TankView({ worldId }: TankViewProps) {
     const effectiveWorldType = state?.world_type ?? worldType;
 
     const effectiveWorldId = worldId || connectedWorldId || state?.world_id;
+    const isSoccerArena = location.pathname.endsWith('/soccer');
 
     const liveEntities = useLiveEntities(state);
     const selectedEntity =
@@ -162,6 +165,17 @@ export function TankView({ worldId }: TankViewProps) {
     const followedFish = selection.followEnabled && selectedEntity?.type === 'fish' ? selectedEntity : null;
 
     useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
+
+    if (isSoccerArena) {
+        return (
+            <SoccerArenaView
+                liveState={state?.soccer_league_live ?? null}
+                events={state?.soccer_events ?? []}
+                worldId={effectiveWorldId}
+                onBack={() => navigate(effectiveWorldId ? `/tank/${effectiveWorldId}` : '/')}
+            />
+        );
+    }
 
     return (
         <>
@@ -491,19 +505,7 @@ export function TankView({ worldId }: TankViewProps) {
                         </Panel>
                     )}
 
-                    {isVisible('soccer') && (
-                        <Panel title="Soccer League" icon="⚽" onClose={() => toggle('soccer')}>
-                            <Suspense fallback={<PanelLoading />}>
-                                <TankSoccerTab
-                                    liveState={state?.soccer_league_live ?? null}
-                                    events={state?.soccer_events ?? []}
-                                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
-                                    worldId={effectiveWorldId}
-                                />
-
-                            </Suspense>
-                        </Panel>
-                    )}
+                    {isVisible('soccer') && <TankSoccerPanel liveState={state?.soccer_league_live ?? null} events={state?.soccer_events ?? []} currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0} worldId={effectiveWorldId} onClose={() => toggle('soccer')} onOpenArena={effectiveWorldId ? () => navigate(`/tank/${effectiveWorldId}/soccer`) : undefined} />}
 
                     {isVisible('poker') && (
                         <Panel title="Poker" icon="♠" onClose={() => toggle('poker')}>
@@ -614,55 +616,5 @@ export function TankView({ worldId }: TankViewProps) {
                 </div>
             )}
         </>
-    );
-}
-
-function PanelLoading() {
-    return (
-        <div
-            style={{
-                minHeight: '96px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-text-muted)',
-                fontSize: '12px',
-                fontWeight: 600,
-            }}
-        >
-            Loading panel...
-        </div>
-    );
-}
-
-function Panel({
-    title,
-    icon,
-    onClose,
-    children,
-}: {
-    title: string;
-    icon: string;
-    onClose: () => void;
-    children: ReactNode;
-}) {
-    return (
-        <div className={styles.dashboardPanel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div className={styles.panelHeader}>
-                <div className={styles.panelHeaderTitle}>
-                    <span style={{ fontSize: '16px' }}>{icon}</span>
-                    <span>{title}</span>
-                </div>
-                <button
-                    className={styles.panelClose}
-                    onClick={onClose}
-                    aria-label={`Hide ${title} panel`}
-                    title={`Hide ${title} panel`}
-                >
-                    ×
-                </button>
-            </div>
-            <div className={styles.panelBody}>{children}</div>
-        </div>
     );
 }

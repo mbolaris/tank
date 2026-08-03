@@ -435,6 +435,7 @@ function App() {
                 <div style={{ flex: 1 }}>
                     <Routes>
                         <Route path="/" element={<HomePage />} />
+                        <Route path="/tank/:tankId/soccer" element={<TankPage />} />
                         <Route path="/tank/:tankId" element={<TankPage />} />
                         <Route
                             path="/network"
