@@ -15,6 +15,7 @@ from core.minigames.soccer.evaluator import (
     finalize_soccer_match,
     select_soccer_participants,
 )
+from core.minigames.soccer.reconciliation import build_world_source_resolver
 
 MatchRunner = Callable[..., SoccerMinigameOutcome]
 
@@ -157,6 +158,12 @@ class SoccerMinigameScheduler:
                         repro_reward_mode=getattr(self.config, "repro_reward_mode", "credits"),
                         repro_credit_award=getattr(self.config, "repro_credit_award", 0.0),
                         target_pursuit_module_enabled=target_pursuit_enabled,
+                        source_resolver=build_world_source_resolver(world_state),
+                        reconciliation_store=getattr(
+                            getattr(world_state, "soccer_events", None),
+                            "reconciliation_store",
+                            None,
+                        ),
                     )
                 except ValueError:
                     outcome = self._build_skip_outcome(
@@ -171,9 +178,9 @@ class SoccerMinigameScheduler:
 
             # Track which fish played for cooldown
             if not outcome.skipped:
-                played_ids = []
+                played_ids: list[int] = []
                 for team in outcome.teams.values():
-                    played_ids.extend(team)
+                    played_ids.extend(player_id for player_id in team if isinstance(player_id, int))
                 self._add_to_cooldown(played_ids)
 
             self._match_counter += 1
@@ -222,6 +229,8 @@ class SoccerMinigameScheduler:
         repro_reward_mode: str = "credits",
         repro_credit_award: float = 0.0,
         target_pursuit_module_enabled: bool | None = None,
+        source_resolver: Any | None = None,
+        reconciliation_store: Any | None = None,
     ) -> SoccerMinigameOutcome:
         # Select participants with new strategy
         selected = select_soccer_participants(
@@ -253,6 +262,8 @@ class SoccerMinigameScheduler:
             selection_seed=selection_seed,
             entry_fee_energy=entry_fee_energy,
             target_pursuit_module_enabled=target_pursuit_module_enabled,
+            source_resolver=source_resolver,
+            reconciliation_store=reconciliation_store,
         )
         match = setup.match
 
@@ -270,6 +281,7 @@ class SoccerMinigameScheduler:
             repro_reward_mode=repro_reward_mode,
             repro_credit_award=repro_credit_award,
             source_resolver=setup.source_resolver,
+            reconciliation_store=setup.reconciliation_store,
         )
 
     def _build_skip_outcome(

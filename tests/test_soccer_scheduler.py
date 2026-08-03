@@ -21,6 +21,7 @@ class DummyFish:
 
     def __init__(self, fish_id: int, energy: float, max_energy: float) -> None:
         self.fish_id = fish_id
+        self.tank_id = f"tank_{fish_id}"
         self.energy = energy
         self.max_energy = max_energy
         self.genome = None
@@ -188,6 +189,10 @@ def test_scheduler_applies_rewards_to_winners() -> None:
             reward_multiplier=reward_multiplier,
             repro_reward_mode=repro_reward_mode,
             repro_credit_award=repro_credit_award,
+            source_resolver={
+                (left.fish_id, getattr(left, "tank_id", None)): left,
+                (right.fish_id, getattr(right, "tank_id", None)): right,
+            },
         )
 
     config = SoccerConfig(

@@ -291,6 +291,10 @@ def restore_world_from_snapshot(
             logger.error("Failed to resolve engine for restoration")
             return False
 
+        soccer_event_state = snapshot.get("soccer_event_state")
+        if isinstance(soccer_event_state, dict):
+            engine.soccer_events.restore_state(soccer_event_state)
+
         logger.debug(
             f"Resolved engine: {type(engine).__name__}, entities: {len(engine.entities_list)}"
         )

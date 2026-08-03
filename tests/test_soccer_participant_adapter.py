@@ -48,8 +48,10 @@ def test_finalize_rewards_resolves_wrapped_participant_by_stable_identity():
     match = setup.match
 
     match.winner_team = "left"
+    # Full-time source state is authoritative; the kickoff snapshot said 50.
+    fish_left.energy = 80.0
 
-    finalize_soccer_match(
+    outcome = finalize_soccer_match(
         match,
         seed=setup.seed,
         reward_mode="refill_to_max",
@@ -63,6 +65,7 @@ def test_finalize_rewards_resolves_wrapped_participant_by_stable_identity():
     assert match.player_map["right_1"] is not fish_right
     assert fish_left.energy == 100.0
     assert fish_right.energy == 60.0
+    assert outcome.rewarded["left_1"] == 20.0
 
     # Retried full-time handling must not apply the settlement twice.
     finalize_soccer_match(

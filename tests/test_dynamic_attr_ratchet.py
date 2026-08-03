@@ -59,23 +59,25 @@ LEGACY_DYNAMIC_ATTR_COUNTS = {
     "core/genetics/genome_codec.py": 9,
     "core/genetics/trait.py": 8,
     "core/genetics/trait_utils.py": 3,
-    # PR 0: identity/policy serialization and detached settlement boundaries
-    # must accept legacy entity implementations without importing concrete Fish.
-    "core/minigames/soccer/evaluator.py": 15,
+    # PR 0 follow-up: the settlement boundary accepts legacy entity objects,
+    # and the orchestration-only resolver must inspect transferred sources.
+    "core/minigames/soccer/evaluator.py": 20,
     "core/minigames/soccer/fish_stats.py": 3,
     "core/minigames/soccer/league/provider.py": 23,
-    "core/minigames/soccer/league_runtime.py": 16,
+    "core/minigames/soccer/league_runtime.py": 18,
     "core/minigames/soccer/match.py": 5,
     # PR 0: entity-to-identity adaptation is a true protocol boundary.
     "core/minigames/soccer/participant.py": 23,
     "core/minigames/soccer/field_profiles.py": 7,
     # Engine adapters accept RCSS-compatible objects at a serialization boundary.
     "core/minigames/soccer/adapters/tank_adapter.py": 3,
-    "core/minigames/soccer/reconciliation.py": 8,
+    # World-owned resolver providers are a deliberate duck-typed integration
+    # boundary: they must support standalone tests and multi-world runners.
+    "core/minigames/soccer/reconciliation.py": 22,
     "core/minigames/soccer/roster_snapshot.py": 8,
     "core/minigames/soccer/policy_adapter.py": 7,
     "core/minigames/soccer/rewards.py": 5,
-    "core/minigames/soccer/scheduler.py": 19,
+    "core/minigames/soccer/scheduler.py": 21,
     "core/minigames/soccer/selection.py": 3,
     "core/mixed_poker/interaction.py": 15,
     "core/movement/considerations.py": 4,

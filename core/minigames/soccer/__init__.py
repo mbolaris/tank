@@ -39,10 +39,13 @@ from core.minigames.soccer.participant import (
     fish_to_participant,
 )
 from core.minigames.soccer.reconciliation import (
+    EntityCollectionResolver,
     InMemoryReconciliationStore,
     ReconciliationResult,
     SoccerSettlement,
     SourceIdentity,
+    SourceResolutionUnavailableError,
+    build_world_source_resolver,
     reconcile_match,
 )
 from core.minigames.soccer.rewards import apply_soccer_entry_fees, apply_soccer_rewards
@@ -90,6 +93,9 @@ __all__ = [
     "SoccerSettlement",
     "ReconciliationResult",
     "InMemoryReconciliationStore",
+    "EntityCollectionResolver",
+    "SourceResolutionUnavailableError",
+    "build_world_source_resolver",
     "reconcile_match",
     "select_soccer_participants",
     "derive_soccer_seed",

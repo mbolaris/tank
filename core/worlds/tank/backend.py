@@ -608,6 +608,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
                 if self._engine.ecosystem is not None
                 else []
             ),
+            "soccer_event_state": self._engine.soccer_events.to_dict(),
         }
 
     def restore_state_from_save(self, state: dict[str, object]) -> None:
@@ -626,3 +627,7 @@ class TankWorldBackendAdapter(MultiAgentWorldBackend):
         # Restore pause state if present
         if "paused" in state:
             self._engine.paused = cast(bool, state["paused"])
+
+        soccer_event_state = state.get("soccer_event_state")
+        if isinstance(soccer_event_state, dict):
+            self._engine.soccer_events.restore_state(soccer_event_state)

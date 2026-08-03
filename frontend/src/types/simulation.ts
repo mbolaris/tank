@@ -208,8 +208,8 @@ export interface SoccerGoalEvent {
     energy_deltas?: Record<string, number>;
     repro_credit_deltas?: Record<string, number>;
     teams?: {
-        left: number[];
-        right: number[];
+        left: Array<number | string>;
+        right: Array<number | string>;
     };
     last_goal?: SoccerGoalEvent | null;
     skipped?: boolean;

@@ -16,6 +16,7 @@ from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 from core.minigames.soccer.fish_stats import SoccerFishStatsTracker
+from core.minigames.soccer.reconciliation import InMemoryReconciliationStore
 
 if TYPE_CHECKING:
     from core.minigames.soccer.evaluator import SoccerMinigameOutcome
@@ -42,6 +43,8 @@ class SoccerEventManager:
         self._league_live_state: dict[str, object] | None = None
         self._frame_provider = frame_provider or (lambda: 0)
         self._fish_stats = SoccerFishStatsTracker()
+        self.reconciliation_store = InMemoryReconciliationStore()
+        self._recorded_reconciliation_ids: set[str] = set()
 
     def record_outcome(self, outcome: SoccerMinigameOutcome) -> None:
         """Record an outcome, sourcing the current frame from the provider."""
@@ -61,6 +64,9 @@ class SoccerEventManager:
 
     def add_outcome(self, frame: int, outcome: SoccerMinigameOutcome) -> None:
         """Build and record an event dict from a soccer minigame outcome."""
+        reconciliation_id = outcome.reconciliation_id
+        if reconciliation_id and reconciliation_id in self._recorded_reconciliation_ids:
+            return
         self._fish_stats.record(outcome)
 
         def stringify_keys(values: Mapping[Any, Any]) -> dict[str, object]:
@@ -88,8 +94,33 @@ class SoccerEventManager:
             "last_goal": outcome.last_goal,
             "skipped": outcome.skipped,
             "skip_reason": outcome.skip_reason,
+            "reconciliation_id": reconciliation_id,
         }
         self.add_event(event)
+        if reconciliation_id:
+            self._recorded_reconciliation_ids.add(reconciliation_id)
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialize reconciliation and statistics dedupe state for saves."""
+        return {
+            "reconciliation_store": self.reconciliation_store.to_dict(),
+            "recorded_reconciliation_ids": sorted(self._recorded_reconciliation_ids),
+            "fish_stats": self._fish_stats.to_dict(),
+        }
+
+    def restore_state(self, state: Mapping[str, object] | None) -> None:
+        """Restore persisted reconciliation and outcome dedupe state."""
+        if not state:
+            return
+        raw_store = state.get("reconciliation_store")
+        if isinstance(raw_store, Mapping):
+            self.reconciliation_store = InMemoryReconciliationStore.from_dict(raw_store)
+        raw_stats = state.get("fish_stats")
+        if isinstance(raw_stats, Mapping):
+            self._fish_stats = SoccerFishStatsTracker.from_dict(raw_stats)
+        raw_ids = state.get("recorded_reconciliation_ids")
+        if isinstance(raw_ids, list):
+            self._recorded_reconciliation_ids = {str(item) for item in raw_ids}
 
     def get_recent(self, current_frame: int, max_age_frames: int = 1800) -> list[dict[str, object]]:
         """Get events within max_age_frames of current_frame."""
