@@ -3,6 +3,9 @@ import type { SoccerEventData, SoccerLeagueLiveState } from '../types/simulation
 import { PitchCanvas } from './PitchCanvas';
 import { Scoreboard } from './Scoreboard';
 import { SoccerProgressStrip } from './SoccerProgressStrip';
+import { EventPresenter } from './EventPresenter';
+import { SoccerEffectsLayer } from './SoccerEffectsLayer';
+import { activeEffectEvent, type SoccerBroadcastMatch } from './soccerEvents';
 import { deriveArenaState, type ArenaConnectionState, type ArenaPresentation } from './soccerArenaState';
 import styles from './SoccerArenaView.module.css';
 
@@ -95,6 +98,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
     const [previousPresentation, setPreviousPresentation] = useState<ArenaPresentation>('live');
     const arenaState = deriveArenaState({ liveState, connectionState, errorMessage, previousPresentation });
     const activeMatch = arenaState.match;
+    const broadcastMatch = activeMatch as SoccerBroadcastMatch | null;
 
     useEffect(() => {
         if (!arenaState.unknownStage) {
@@ -153,6 +157,8 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                                 {arenaState.presentation === 'error' && onRetry && <button type="button" onClick={onRetry}>Retry</button>}
                             </div>
                         )}
+                        <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} />
+                        <EventPresenter match={activeMatch} />
                         <PitchStateOverlay presentation={arenaState.presentation} staleLabel={arenaState.staleLabel} />
                     </div>
 
