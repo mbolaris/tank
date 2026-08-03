@@ -66,6 +66,44 @@ class SkillSnapshot:
         )
 
 
+@dataclass(frozen=True)
+class BreakthroughRecord:
+    """A backend-authored, deterministic milestone for one tank."""
+
+    event_id: str
+    kind: str
+    source_id: str
+    frame: int
+    detail: dict[str, object] = field(default_factory=dict)
+    match_id: str | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        data: dict[str, object] = {
+            "event_id": self.event_id,
+            "kind": self.kind,
+            "source_id": self.source_id,
+            "frame": self.frame,
+            "detail": dict(self.detail),
+        }
+        if self.match_id is not None:
+            data["match_id"] = self.match_id
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> BreakthroughRecord:
+        raw_detail = data.get("detail", {})
+        raw_frame = data.get("frame", 0)
+        frame = int(raw_frame) if isinstance(raw_frame, (int, float, str)) else 0
+        return cls(
+            event_id=str(data.get("event_id", "")),
+            kind=str(data.get("kind", "")),
+            source_id=str(data.get("source_id", "tank")),
+            frame=frame,
+            detail=dict(raw_detail) if isinstance(raw_detail, dict) else {},
+            match_id=str(data["match_id"]) if data.get("match_id") is not None else None,
+        )
+
+
 @dataclass
 class SkillSnapshotStore:
     """Bounded in-memory store for skill progression snapshots.
@@ -80,6 +118,7 @@ class SkillSnapshotStore:
     _tank_best: float = 0.0
     _tank_bests: dict[str, float] = field(default_factory=dict)
     _personal_bests: dict[str, float] = field(default_factory=dict)
+    _breakthroughs: list[BreakthroughRecord] = field(default_factory=list)
 
     @property
     def tank_best(self) -> float:
@@ -170,6 +209,21 @@ class SkillSnapshotStore:
             return self._tank_best
         return self._tank_bests.get(domain, 0.0)
 
+    def add_breakthrough(self, record: BreakthroughRecord) -> bool:
+        """Persist a breakthrough once, keyed by its stable event id."""
+        if not record.event_id or any(
+            item.event_id == record.event_id for item in self._breakthroughs
+        ):
+            return False
+        self._breakthroughs.append(record)
+        self._breakthroughs = self._breakthroughs[-100:]
+        return True
+
+    def get_breakthroughs(self, limit: int | None = None) -> list[BreakthroughRecord]:
+        """Return persisted breakthroughs in emission order."""
+        result = list(self._breakthroughs)
+        return result[-limit:] if limit is not None else result
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize snapshot store for world persistence."""
         return {
@@ -178,6 +232,7 @@ class SkillSnapshotStore:
             "tank_bests": dict(self._tank_bests),
             "personal_bests": dict(self._personal_bests),
             "snapshots": [s.to_dict() for s in self._snapshots],
+            "breakthroughs": [item.to_dict() for item in self._breakthroughs],
         }
 
     def load(self, data: dict[str, Any]) -> None:
@@ -195,6 +250,12 @@ class SkillSnapshotStore:
         self._personal_bests = {str(k): float(v) for k, v in data.get("personal_bests", {}).items()}
         raw_snapshots = data.get("snapshots", [])
         self._snapshots = [SkillSnapshot.from_dict(s) for s in raw_snapshots if isinstance(s, dict)]
+        raw_breakthroughs = data.get("breakthroughs", [])
+        self._breakthroughs = [
+            BreakthroughRecord.from_dict(item)
+            for item in raw_breakthroughs
+            if isinstance(item, dict)
+        ][-100:]
         if not self._tank_bests:
             for snapshot in self._snapshots:
                 self._tank_bests[snapshot.domain] = max(

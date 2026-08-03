@@ -1,0 +1,28 @@
+.panel { display: grid; gap: 12px; padding: 14px; color: #e2e8f0; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.heading h3 { margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+.label { color: #22d3ee; font: 800 9px var(--font-main); letter-spacing: 0.14em; }
+.section { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.14); }
+.sectionTitle { color: #94a3b8; font: 800 9px var(--font-main); letter-spacing: 0.12em; text-transform: uppercase; }
+.skillRow { display: flex; align-items: baseline; gap: 8px; }
+.skillValue { color: #67e8f9; font: 800 28px ui-monospace, monospace; }
+.skillDelta { color: #4ade80; font: 700 12px ui-monospace, monospace; }
+.sparkline { color: #a78bfa; font: 12px ui-monospace, monospace; letter-spacing: 0.05em; white-space: nowrap; }
+.muted, .emptySection { color: #64748b; font-size: 11px; }
+.ladder, .performers { display: grid; gap: 5px; }
+.ladderRow, .performer { display: flex; justify-content: space-between; gap: 8px; color: #64748b; font-size: 11px; }
+.ladderRow.beaten { color: #4ade80; }
+.nextMilestone { margin-top: 4px; color: #c4b5fd; font-size: 11px; }
+.leagueSummary { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #fbbf24; font: 700 12px ui-monospace, monospace; }
+.formChips { display: inline-flex; gap: 4px; }
+.formChip { display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%; font: 800 10px ui-monospace, monospace; }
+.formW { background: rgba(74, 222, 128, 0.18); color: #4ade80; }
+.formD { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
+.formL { background: rgba(248, 113, 113, 0.18); color: #fb7185; }
+.performer { align-items: center; color: #cbd5e1; }
+.performerRank { color: #a78bfa; width: 12px; }
+.performerStats { margin-left: auto; color: #94a3b8; font: 10px ui-monospace, monospace; }
+.breakthroughCard { display: grid; gap: 4px; padding: 9px; border: 1px solid rgba(167, 139, 250, 0.42); border-radius: 8px; background: rgba(76, 29, 149, 0.18); }
+.breakthroughCard strong { font-size: 11px; }
+.breakthroughCard span { color: #c4b5fd; font-size: 10px; }
+.breakthroughEyebrow { color: #67e8f9; font: 800 9px var(--font-main); letter-spacing: 0.14em; }
