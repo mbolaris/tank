@@ -1,0 +1,37 @@
+.scoreboard { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 0.7fr) minmax(0, 1fr); align-items: stretch; min-height: 96px; border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 12px; background: rgba(15, 23, 42, 0.9); overflow: hidden; }
+.teamBlock { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 14px 18px; }
+.teamAway { flex-direction: row-reverse; text-align: right; }
+.teamBar { width: 4px; align-self: stretch; border-radius: 3px; flex: 0 0 4px; }
+.teamBarLeft { background: #facc15; }
+.teamBarRight { background: #f87171; }
+.teamEmblem { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid rgba(226, 232, 240, 0.35); border-radius: 50%; color: #e2e8f0; font-size: 12px; }
+.teamCopy { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+.teamName { overflow: hidden; color: #f8fafc; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.teamMeta { color: #94a3b8; font: 11px ui-monospace, monospace; }
+.teamScore { margin-left: auto; color: #f8fafc; font: 800 30px ui-monospace, monospace; }
+.teamAway .teamScore { margin-right: auto; margin-left: 0; }
+.centerBlock { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-inline: 1px solid rgba(148, 163, 184, 0.12); }
+.scoreLine { display: flex; align-items: baseline; gap: 9px; }
+.score { color: #f8fafc; font: 800 30px ui-monospace, monospace; line-height: 1; }
+.scoreDivider { color: #64748b; font-size: 18px; }
+.clock { color: #e2e8f0; font: 600 13px ui-monospace, monospace; }
+.stage { color: #94a3b8; font: 600 10px var(--font-main); letter-spacing: 0.08em; text-transform: uppercase; }
+.status { font: 700 10px var(--font-main); letter-spacing: 0.08em; text-transform: uppercase; }
+.statusLive { color: #4ade80; }
+.statusPaused, .statusLoading { color: #fbbf24; }
+.statusDisconnected, .statusError { color: #fb7185; }
+.statusFinished, .statusHalftime, .statusEmpty, .statusSkipped { color: #94a3b8; }
+.stateMessage { position: absolute; right: 12px; bottom: 4px; left: 12px; margin: 0; overflow: hidden; color: #fbbf24; font-size: 10px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.progressStrip { display: flex; align-items: center; gap: 8px; min-height: 36px; margin-top: 10px; padding: 0 12px; border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 8px; background: rgba(15, 23, 42, 0.68); color: #cbd5e1; font: 11px ui-monospace, monospace; }
+.progressDot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #64748b; }
+.progressDotLive { background: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.7); }
+.progressState { margin-left: auto; color: #94a3b8; text-transform: uppercase; }
+@media (max-width: 600px) {
+    .scoreboard { grid-template-columns: 1fr 1fr; min-height: 84px; }
+    .centerBlock { grid-column: 1 / -1; grid-row: 1; pointer-events: none; border: 0; }
+    .teamBlock { grid-row: 2; padding: 8px 10px; }
+    .teamScore { display: none; }
+    .teamEmblem { display: none; }
+    .stage { display: none; }
+    .stateMessage { bottom: 2px; }
+}
