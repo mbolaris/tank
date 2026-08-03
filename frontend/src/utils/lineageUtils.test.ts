@@ -108,52 +108,69 @@ describe('lineageUtils', () => {
         expect(lastChild?.attributes.IsAlive).toBe(true);
     });
 
-    it('should auto-collapse long chains with a summary node', () => {
-        // Build a chain of 8 nodes with different algorithms (so compression doesn't remove them)
-        const flatData: FishRecord[] = [];
-        for (let i = 1; i <= 8; i++) {
-            flatData.push({
+    /** A chain of `n` all-alive nodes with distinct algorithms (no pruning, no compression). */
+    const buildChain = (n: number): FishRecord[] =>
+        Array.from({ length: n }, (_, idx) => {
+            const i = idx + 1;
+            return {
                 id: String(i),
                 parent_id: i === 1 ? 'root' : String(i - 1),
                 generation: i,
-                algorithm: `Algo${i}`, // Different algos → no compression
+                algorithm: `Algo${i}`,
                 color: '#ff0000',
-                is_alive: true, // All alive → no pruning
-            });
-        }
+                is_alive: true,
+            };
+        });
 
-        const { tree, error } = transformLineageData(flatData);
+    it('should auto-collapse long chains with a summary node', () => {
+        const { tree, error } = transformLineageData(buildChain(8));
         expect(error).toBeNull();
         expect(tree).toBeDefined();
 
-        // root → summaryNode(collapsed) → (hidden: 1→2→...→8)
+        // root → summaryNode ⇢ (hidden: 1→2→...→8)
         // The chain starts at root (which has 1 child), so root's first child is the summary
         const summary = tree?.children[0];
         expect(summary?.attributes.IsCollapsedChain).toBe(true);
-        expect(summary?.attributes.ChainLength).toBeGreaterThan(0);
-        expect(summary?.attributes.GenRange).toBeDefined();
-        expect(summary?.__rd3t?.collapsed).toBe(true);
+        expect(summary?.attributes.ChainLength).toBe(8);
+        expect(summary?.attributes.GenRange).toBe('Gen 1 → 8');
 
-        // The summary's children should contain the hidden chain starting at node '1'
-        expect(summary?.children.length).toBe(1);
-        expect(summary?.children[0].attributes.ID).toBe('1');
+        // The chain must be hidden off `children` — react-d3-tree renders every
+        // node it finds under `children`, so a non-empty `children` here would
+        // mean the "collapsed" chain is still fully drawn.
+        expect(summary?.children).toEqual([]);
+        expect(summary?.hiddenChain?.length).toBe(1);
+        expect(summary?.hiddenChain?.[0].attributes.ID).toBe('1');
+    });
+
+    it('should leave a chain expanded when its summary id is in expandedChainIds', () => {
+        const flatData = buildChain(8);
+
+        const collapsed = transformLineageData(flatData).tree;
+        const summaryId = collapsed!.children[0].attributes.ID;
+        expect(summaryId).toBe('chain_1_to_7');
+
+        const expanded = transformLineageData(flatData, {
+            expandedChainIds: new Set([summaryId]),
+        }).tree;
+
+        // No summary node this time — the real chain is back under the root.
+        const first = expanded?.children[0];
+        expect(first?.attributes.IsCollapsedChain).toBeUndefined();
+        expect(first?.attributes.ID).toBe('1');
+
+        // And the whole chain is walkable end to end.
+        let cursor = first;
+        const walked: string[] = [];
+        while (cursor) {
+            walked.push(cursor.attributes.ID);
+            cursor = cursor.children[0];
+        }
+        expect(walked).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
     });
 
     it('should NOT collapse short chains (at or below threshold)', () => {
-        // Build a chain of exactly 4 nodes (below default threshold of 5)
-        const flatData: FishRecord[] = [];
-        for (let i = 1; i <= 4; i++) {
-            flatData.push({
-                id: String(i),
-                parent_id: i === 1 ? 'root' : String(i - 1),
-                generation: i,
-                algorithm: `Algo${i}`, // Different algos → no compression
-                color: '#ff0000',
-                is_alive: true,
-            });
-        }
-
-        const { tree, error } = transformLineageData(flatData);
+        // Chain of exactly 4 nodes (below default threshold of 5)
+        const { tree, error } = transformLineageData(buildChain(4));
         expect(error).toBeNull();
 
         // No summary nodes should be present anywhere in this short chain

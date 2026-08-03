@@ -28,8 +28,17 @@ export interface TreeNodeData {
     };
     nodeColor: string;
     children: TreeNodeData[];
-    /** react-d3-tree internal state for pre-collapsing nodes */
-    __rd3t?: { collapsed: boolean };
+    /**
+     * Chain continuation hidden behind a collapsed-chain summary node.
+     *
+     * react-d3-tree only walks `children`, so parking the chain here is what
+     * actually hides it. Do NOT try to hide nodes with `__rd3t.collapsed`:
+     * the library hard-assigns `__rd3t = {id, depth, collapsed: false}` to every
+     * node in `assignInternalProperties` (both on mount and whenever the `data`
+     * prop identity changes), so any preset value is discarded. `initialDepth`
+     * is its only supported way to start collapsed, and that is depth-based.
+     */
+    hiddenChain?: TreeNodeData[];
 }
 
 const ROOT_NODE_ID = 'root';
@@ -37,6 +46,15 @@ const ROOT_NODE_ID = 'root';
 export interface LineageTransformResult {
     tree: TreeNodeData | null;
     error: string | null;
+}
+
+export interface LineageTransformOptions {
+    /**
+     * Summary-node IDs the user has expanded. Chains listed here are left
+     * intact instead of being collapsed, so expansions survive the periodic
+     * lineage refetch.
+     */
+    expandedChainIds?: ReadonlySet<string>;
 }
 
 /**
@@ -88,7 +106,10 @@ const pruneDeadLeaves = (root: TreeNodeData, isRoot: boolean = false): TreeNodeD
     return pruned.has(root) ? null : root;
 };
 
-export const transformLineageData = (flatData: FishRecord[]): LineageTransformResult => {
+export const transformLineageData = (
+    flatData: FishRecord[],
+    options: LineageTransformOptions = {},
+): LineageTransformResult => {
     if (!flatData || flatData.length === 0) {
         return { tree: null, error: null };
     }
@@ -218,7 +239,11 @@ export const transformLineageData = (flatData: FishRecord[]): LineageTransformRe
         const compressedResult = compressLineageTree(prunedResult);
 
         // Auto-collapse long chains so the tree starts compact
-        const collapsedResult = collapseLongChains(compressedResult);
+        const collapsedResult = collapseLongChains(
+            compressedResult,
+            DEFAULT_MAX_CHAIN_LENGTH,
+            options.expandedChainIds,
+        );
 
         return { tree: collapsedResult, error: null };
     } catch (error) {
@@ -277,19 +302,31 @@ export const compressLineageTree = (root: TreeNodeData | null): TreeNodeData | n
     return root;
 };
 
+export const DEFAULT_MAX_CHAIN_LENGTH = 5;
+
+/** Stable id for the summary node standing in for a hidden chain. */
+export const chainSummaryId = (firstHiddenId: string, lastHiddenId: string): string =>
+    `chain_${firstHiddenId}_to_${lastHiddenId}`;
+
 /**
  * Auto-collapse long single-child chains into summary nodes.
  *
  * Any unbroken single-child chain longer than `maxChainLength` gets a summary
- * node inserted after the first node. The summary is pre-collapsed via
- * `__rd3t.collapsed`, so the user sees a compact "N generations" pill they
- * can click to expand.
+ * node spliced in after the first node. The chain itself moves off `children`
+ * and onto the summary's `hiddenChain`, which is what actually hides it —
+ * react-d3-tree only renders `children`. The user sees a compact
+ * "N generations" pill and clicking it restores the chain (see
+ * `expandedChainIds`).
+ *
+ * Chains whose summary id appears in `expandedChainIds` are left intact, so a
+ * user's expansions survive the periodic lineage refetch.
  *
  * Uses iterative DFS to avoid stack overflow on deep trees.
  */
 export const collapseLongChains = (
     root: TreeNodeData | null,
-    maxChainLength: number = 5,
+    maxChainLength: number = DEFAULT_MAX_CHAIN_LENGTH,
+    expandedChainIds?: ReadonlySet<string>,
 ): TreeNodeData | null => {
     if (!root) return null;
 
@@ -318,31 +355,40 @@ export const collapseLongChains = (
             cursor = cursor.children[0];
         }
 
-        // Chain is short enough — no collapsing needed
-        if (chain.length <= maxChainLength) {
+        const firstNode = chain[0];
+        const secondNode = chain[1];
+        const tailNode = chain[chain.length - 1]; // has 0 or 2+ children
+
+        // Only chains longer than the threshold get a summary node. `chain` is
+        // then at least 6 long, so chain[length - 2] is a genuine hidden node.
+        const summaryId =
+            chain.length > maxChainLength
+                ? chainSummaryId(
+                      secondNode.attributes.ID,
+                      chain[chain.length - 2].attributes.ID,
+                  )
+                : null;
+
+        // Leave the chain intact when it is short enough, or when the user has
+        // already expanded this exact chain.
+        if (summaryId === null || expandedChainIds?.has(summaryId)) {
             // Still need to process any branching at the tail
-            const tail = chain[chain.length - 1];
-            if (tail.children) {
-                for (const child of tail.children) {
+            if (tailNode.children) {
+                for (const child of tailNode.children) {
                     stack.push(child);
                 }
             }
             continue;
         }
 
-        // --- Chain is too long: insert a collapsible summary node ---
-        const firstNode = chain[0];
-        const secondNode = chain[1];
-        const lastHiddenNode = chain[chain.length - 2];
-        const tailNode = chain[chain.length - 1]; // has 0 or 2+ children
-
+        // --- Chain is too long: splice in a summary node that hides it ---
         const collapsedCount = chain.length - 1; // nodes hidden behind summary
 
         const summaryNode: TreeNodeData = {
             name: `${collapsedCount} gen`,
             attributes: {
                 Algo: '⋯ chain',
-                ID: `chain_${secondNode.attributes.ID}_to_${lastHiddenNode.attributes.ID}`,
+                ID: summaryId,
                 Gen: secondNode.attributes.Gen,
                 IsAlive: false,
                 IsCollapsedChain: true,
@@ -350,12 +396,13 @@ export const collapseLongChains = (
                 GenRange: `Gen ${secondNode.attributes.Gen} → ${tailNode.attributes.Gen}`,
             },
             nodeColor: '#475569',
-            // Full chain continuation lives inside the summary
-            children: [secondNode],
-            __rd3t: { collapsed: true },
+            // Empty `children` is what hides the chain; the continuation is
+            // parked on `hiddenChain` for the expand handler to restore.
+            children: [],
+            hiddenChain: [secondNode],
         };
 
-        // Splice the summary in: firstNode → summaryNode → (hidden chain)
+        // Splice the summary in: firstNode → summaryNode ⇢ (hidden chain)
         firstNode.children = [summaryNode];
 
         // Continue processing the tail's branches (they're hidden but should

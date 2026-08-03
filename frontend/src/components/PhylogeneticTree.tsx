@@ -84,6 +84,10 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) =
     const hasInitializedView = useRef<boolean>(false);
     // Incrementing key forces <Tree> to re-mount with fresh translate/zoom
     const [treeKey, setTreeKey] = useState<number>(0);
+    // Last raw lineage records, kept so a chain can be expanded without refetching
+    const rawRecordsRef = useRef<FishRecord[]>([]);
+    // Summary-node ids the user has expanded; survives the 10s refetch
+    const expandedChainsRef = useRef<Set<string>>(new Set());
 
     /**
      * Fit the tree into the viewport by reading actual rendered SVG positions.
@@ -155,9 +159,13 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) =
             }
 
             const data: FishRecord[] = await response.json();
+            rawRecordsRef.current = data ?? [];
 
             if (data && data.length > 0) {
-                const { tree, error: lineageError }: LineageTransformResult = transformLineageData(data);
+                const { tree, error: lineageError }: LineageTransformResult = transformLineageData(
+                    data,
+                    { expandedChainIds: expandedChainsRef.current },
+                );
                 if (lineageError) {
                     setTreeData(null);
                     setError(lineageError);
@@ -197,6 +205,19 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) =
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [worldId]);
 
+    /**
+     * Expand a collapsed chain in place. The tree is rebuilt from the cached
+     * records rather than mutated, and the id is remembered so the periodic
+     * refetch keeps the chain open.
+     */
+    const expandChain = useCallback((summaryId: string) => {
+        expandedChainsRef.current.add(summaryId);
+        const { tree } = transformLineageData(rawRecordsRef.current, {
+            expandedChainIds: expandedChainsRef.current,
+        });
+        if (tree) setTreeData(tree);
+    }, []);
+
     // Custom node renderer to color-code by fish color
     const renderCustomNode = ({ nodeDatum, toggleNode }: CustomNodeElementProps) => {
         const treeNode = nodeDatum as unknown as TreeNodeData;
@@ -208,7 +229,11 @@ export const PhylogeneticTree: React.FC<PhylogeneticTreeProps> = ({ worldId }) =
             const chainLength = treeNode.attributes.ChainLength ?? 0;
             const genRange = treeNode.attributes.GenRange ?? '';
             return (
-                <g onClick={toggleNode} style={{ cursor: 'pointer' }} className="chain-summary-node">
+                <g
+                    onClick={() => expandChain(treeNode.attributes.ID)}
+                    style={{ cursor: 'pointer' }}
+                    className="chain-summary-node"
+                >
                     <rect
                         x={-pillWidth / 2}
                         y={-pillHeight / 2}
