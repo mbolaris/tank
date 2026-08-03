@@ -82,7 +82,7 @@ class SoccerMinigameOutcome:
     entry_fees: dict[int, float]
     energy_deltas: dict[int, float]
     repro_credit_deltas: dict[int, float]
-    teams: dict[str, list[int]]
+    teams: dict[str, list[int | str]]
     skipped: bool = False
     skip_reason: str = ""
     last_goal: dict[str, Any] | None = None
@@ -93,6 +93,7 @@ class SoccerMinigameOutcome:
     tank_names_by_fish: dict[int, str] = field(default_factory=dict)
     tank_ids_by_fish: dict[int, str] = field(default_factory=dict)
     offspring_count_by_fish: dict[int, int] = field(default_factory=dict)
+    reconciliation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -109,3 +110,4 @@ class SoccerMatchSetup:
     # Resolver is held by the orchestration layer, never by SoccerMatch.  It
     # locates the source fish after full time, including after a transfer.
     source_resolver: Any | None = None
+    reconciliation_store: Any | None = None

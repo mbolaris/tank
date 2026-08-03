@@ -3,6 +3,7 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Any
 
 from core.minigames.soccer import SelectionStrategy, create_soccer_match, finalize_soccer_match
+from core.minigames.soccer.reconciliation import build_world_source_resolver
 
 if TYPE_CHECKING:
     pass
@@ -190,6 +191,10 @@ class SoccerCommands:
                     if soccer_cfg is not None
                     else 0.0
                 ),
+                source_resolver=build_world_source_resolver(engine or self.world),
+                reconciliation_store=(
+                    engine.soccer_events.reconciliation_store if engine is not None else None
+                ),
             )
             self.soccer_match = setup.match
             self._soccer_match_seed = setup.seed
@@ -280,6 +285,9 @@ class SoccerCommands:
                         else "credits"
                     ),
                     source_resolver=getattr(self, "_soccer_match_source_resolver", None),
+                    reconciliation_store=(
+                        engine.soccer_events.reconciliation_store if engine is not None else None
+                    ),
                 )
                 if engine:
                     engine.soccer_events.record_outcome(outcome)

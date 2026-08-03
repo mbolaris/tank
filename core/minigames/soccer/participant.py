@@ -73,6 +73,8 @@ class SoccerParticipant:
     energy: float | None = None
     max_energy: float | None = None
     display_name: str | None = None
+    tank_name: str | None = None
+    offspring_count: int = 0
 
     def __post_init__(self) -> None:
         # ``team`` is the established internal side name.  ``team_id`` is the
@@ -100,6 +102,8 @@ class SoccerParticipant:
             "parent_id",
             "policy_label",
             "display_name",
+            "tank_name",
+            "offspring_count",
         ):
             value = getattr(self, name)
             if value is not None:
@@ -120,6 +124,8 @@ class SoccerParticipant:
             parent_id=data.get("parent_id"),
             policy_label=data.get("policy_label"),
             display_name=data.get("display_name"),
+            tank_name=data.get("tank_name"),
+            offspring_count=int(data.get("offspring_count", 0)),
         )
 
 
@@ -167,6 +173,10 @@ def fish_to_participant(
     parent_id = raw_parent_id if isinstance(raw_parent_id, int) else None
     raw_display_name = getattr(fish, "name", None)
     display_name = raw_display_name if isinstance(raw_display_name, str) else None
+    raw_tank_name = getattr(fish, "tank_name", None)
+    tank_name = raw_tank_name if isinstance(raw_tank_name, str) else None
+    raw_offspring_count = getattr(fish, "offspring_count", 0)
+    offspring_count = int(raw_offspring_count) if isinstance(raw_offspring_count, int) else 0
     raw_energy = getattr(fish, "energy", None)
     energy = float(raw_energy) if isinstance(raw_energy, (int, float)) else None
     raw_max_energy = getattr(fish, "max_energy", None)
@@ -187,6 +197,8 @@ def fish_to_participant(
         energy=energy,
         max_energy=max_energy,
         display_name=display_name,
+        tank_name=tank_name,
+        offspring_count=offspring_count,
         repro_credit_capable=hasattr(
             getattr(fish, "reproduction_component", None), "add_repro_credits"
         )

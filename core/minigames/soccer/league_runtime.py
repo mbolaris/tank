@@ -20,6 +20,7 @@ from core.minigames.soccer.league.types import (
     TeamAvailability,
     TeamSource,
 )
+from core.minigames.soccer.reconciliation import build_world_source_resolver
 from core.minigames.soccer.seeds import derive_soccer_seed
 
 
@@ -304,6 +305,10 @@ class SoccerLeagueRuntime:
             entry_fee_energy=getattr(self.config, "entry_fee_energy", 0.0),
             view_mode=view_mode,
             target_pursuit_module_enabled=target_pursuit_enabled,
+            source_resolver=build_world_source_resolver(world_state),
+            reconciliation_store=getattr(
+                getattr(world_state, "soccer_events", None), "reconciliation_store", None
+            ),
         )
 
         self._active_match = setup.match
@@ -334,6 +339,7 @@ class SoccerLeagueRuntime:
             repro_reward_mode=getattr(self.config, "repro_reward_mode", "credits"),
             repro_credit_award=getattr(self.config, "repro_credit_award", 0.0),
             source_resolver=self._active_setup.source_resolver,
+            reconciliation_store=self._active_setup.reconciliation_store,
         )
 
         if self._current_league_match:

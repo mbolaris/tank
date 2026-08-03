@@ -27,7 +27,7 @@ from core.minigames.soccer.field_profiles import geometry_for_params
 from core.minigames.soccer.formation import build_default_formation
 from core.minigames.soccer.params import SOCCER_CANONICAL_PARAMS
 from core.minigames.soccer.participant import create_participants
-from core.minigames.soccer.roster_snapshot import snapshot_roster
+from core.minigames.soccer.roster_snapshot import SoccerRosterSnapshot, snapshot_roster
 from core.minigames.soccer.telemetry_collector import SoccerTelemetryCollector
 
 if TYPE_CHECKING:
@@ -62,13 +62,13 @@ class SoccerMatch:
     def __init__(
         self,
         match_id: str,
-        entities: list[Any],
+        entities: list[Any] | None = None,
         duration_frames: int = 3000,
         code_source: GenomeCodePool | None = None,
         view_mode: str = "side",
         seed: int | None = None,
         target_pursuit_module_enabled: bool | None = None,
-        reconciliation_resolver: Any | None = None,
+        roster_snapshot: SoccerRosterSnapshot | None = None,
     ):
         """Initialize a new soccer match.
 
@@ -80,7 +80,10 @@ class SoccerMatch:
             view_mode: Rendering style ("side" for fish, "top" for microbes)
             seed: Random seed for deterministic matches
             target_pursuit_module_enabled: Whether to enable target pursuit module interception
+            roster_snapshot: Optional immutable roster to replay without source entities
         """
+        if roster_snapshot is None and entities is None:
+            raise ValueError("SoccerMatch requires entities or a roster_snapshot")
         self.match_id = match_id
         self.duration_frames = duration_frames
         self.current_frame = 0
@@ -90,20 +93,19 @@ class SoccerMatch:
         self.view_mode = view_mode
         self._last_goal_event: dict[str, Any] | None = None
         self.target_pursuit_module_enabled = target_pursuit_module_enabled or False
-        # Orchestration-only resolver. It is never consulted by policy or
-        # physics execution; it is used solely after full time to reconcile
-        # stable aquarium identities.
-        self._reconciliation_resolver = reconciliation_resolver
         # Every goal event of the match (for per-player scoring stats)
         self.goal_log: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
         self.command_log: list[dict[str, Any]] = []
 
-        # Convert entities to participants (entity-agnostic adapter)
-        selected_participants, _selected_entity_map = create_participants(entities)
-        # Snapshot before any match execution.  This consumes no match RNG and
-        # leaves source fish entirely outside the execution graph.
-        self.roster_snapshot = snapshot_roster(selected_participants)
+        # Snapshot before any match execution. This consumes no match RNG and
+        # leaves source fish entirely outside the execution graph. A supplied
+        # snapshot is reused verbatim for deterministic replay.
+        if roster_snapshot is None:
+            selected_participants, _selected_entity_map = create_participants(entities or [])
+            self.roster_snapshot = snapshot_roster(selected_participants)
+        else:
+            self.roster_snapshot = roster_snapshot
         self.participants = self.roster_snapshot.detached_participants()
         self._entity_by_participant_id = {p.participant_id: p for p in self.participants}
 
@@ -164,6 +166,30 @@ class SoccerMatch:
         logger.info(
             f"Soccer Match {match_id} initialized with {len(self.participants)} players "
             f"({team_size} vs {team_size})"
+        )
+
+    @classmethod
+    def from_roster_snapshot(
+        cls,
+        roster_snapshot: SoccerRosterSnapshot,
+        *,
+        match_id: str,
+        duration_frames: int = 3000,
+        code_source: GenomeCodePool | None = None,
+        view_mode: str = "side",
+        seed: int | None = None,
+        target_pursuit_module_enabled: bool | None = None,
+    ) -> SoccerMatch:
+        """Replay a match from immutable roster data without source entities."""
+        return cls(
+            match_id=match_id,
+            entities=None,
+            duration_frames=duration_frames,
+            code_source=code_source,
+            view_mode=view_mode,
+            seed=seed,
+            target_pursuit_module_enabled=target_pursuit_module_enabled,
+            roster_snapshot=roster_snapshot,
         )
 
     def _setup_formations(self, team_size: int) -> None:
@@ -479,14 +505,18 @@ class SoccerMatch:
             if p.team == "left" and p.participant_id in self.player_map:
                 entity = self.player_map[p.participant_id]
                 # Try to get fish_id if it's a Fish, otherwise use participant_id
-                entity_id = getattr(entity, "fish_id", p.participant_id)
+                entity_id = getattr(entity, "fish_id", None)
+                if entity_id is None:
+                    entity_id = p.participant_id
                 left_ids.append(entity_id)
 
         right_ids = []
         for p in self.participants:
             if p.team == "right" and p.participant_id in self.player_map:
                 entity = self.player_map[p.participant_id]
-                entity_id = getattr(entity, "fish_id", p.participant_id)
+                entity_id = getattr(entity, "fish_id", None)
+                if entity_id is None:
+                    entity_id = p.participant_id
                 right_ids.append(entity_id)
 
         return {

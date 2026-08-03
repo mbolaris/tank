@@ -64,7 +64,7 @@ class SoccerEventPayload:
     entry_fees: dict[str, float] = field(default_factory=dict)
     energy_deltas: dict[str, float] = field(default_factory=dict)
     repro_credit_deltas: dict[str, float] = field(default_factory=dict)
-    teams: dict[str, list[int]] = field(default_factory=dict)
+    teams: dict[str, list[int | str]] = field(default_factory=dict)
     last_goal: dict[str, Any] | None = None
     skipped: bool = False
     skip_reason: str | None = None

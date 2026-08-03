@@ -7,27 +7,36 @@ from __future__ import annotations
 
 from typing import Any
 
-
-def _vector(value: Any) -> dict[str, float]:
-    return {"x": float(value.x), "y": float(value.y)}
+from core.minigames.soccer.coords import (
+    LegacyPoint,
+    legacy_angle_to_canonical,
+    legacy_to_canonical,
+)
 
 
 def adapt_engine_player(player: Any) -> dict[str, Any]:
+    position = legacy_to_canonical(LegacyPoint(float(player.position.x), float(player.position.y)))
+    velocity = legacy_to_canonical(LegacyPoint(float(player.velocity.x), float(player.velocity.y)))
     raw_stamina = float(getattr(player, "stamina", 0.0))
     stamina_max = float(getattr(player, "stamina_max", 8000.0))
     stamina = 0.0 if stamina_max <= 0 else max(0.0, min(1.0, raw_stamina / stamina_max))
     return {
         "participant_id": str(player.player_id),
-        "position": _vector(player.position),
-        "velocity": _vector(player.velocity),
-        "facing_angle": float(player.body_angle),
+        "position": {"x": position.x, "y": position.y},
+        "velocity": {"x": velocity.x, "y": velocity.y},
+        "facing_angle": legacy_angle_to_canonical(float(player.body_angle)),
         "stamina": stamina,
         "has_ball": False,
     }
 
 
 def adapt_engine_ball(ball: Any) -> dict[str, Any]:
-    return {"position": _vector(ball.position), "velocity": _vector(ball.velocity)}
+    position = legacy_to_canonical(LegacyPoint(float(ball.position.x), float(ball.position.y)))
+    velocity = legacy_to_canonical(LegacyPoint(float(ball.velocity.x), float(ball.velocity.y)))
+    return {
+        "position": {"x": position.x, "y": position.y},
+        "velocity": {"x": velocity.x, "y": velocity.y},
+    }
 
 
 def adapt_engine_state(engine: Any) -> dict[str, Any]:

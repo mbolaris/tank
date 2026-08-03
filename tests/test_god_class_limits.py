@@ -29,7 +29,9 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "backend/simulation_runner.py": 732,
     "backend/startup_manager.py": 626,
     "backend/world_manager.py": 712,
-    "backend/world_persistence.py": 699,
+    # Follow-up PR persists the soccer reconciliation/statistics ledger through
+    # the existing world snapshot boundary.
+    "backend/world_persistence.py": 703,
     "core/algorithms/base.py": 572,
     "core/algorithms/registry.py": 584,
     "core/behavior/target_memory_transfer_gym.py": 636,
@@ -45,9 +47,9 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/genetics/plant_genome.py": 761,
     "core/interfaces.py": 665,
     "core/minigames/soccer/engine.py": 780,
-    # PR 0 adds the additive match-state contract and deterministic event
-    # stream; keep this legacy manager's reviewed ceiling explicit.
-    "core/minigames/soccer/match.py": 527,
+    # PR 0 follow-up adds snapshot replay without source entities and stable
+    # generic-participant team IDs; keep the reviewed ceiling explicit.
+    "core/minigames/soccer/match.py": 549,
     "core/mixed_poker/interaction.py": 728,
     "core/poker/evaluation/auto_evaluate_poker.py": 601,
     "core/poker/evaluation/comprehensive_benchmark.py": 601,
@@ -67,7 +69,8 @@ LEGACY_MAX_LINES: dict[str, int] = {
     # Curated taxonomy lexicons are intentionally kept together so common and
     # scientific names use the same deterministic salience vocabulary.
     "core/taxonomy/naming.py": 523,
-    "core/worlds/tank/backend.py": 629,
+    # Follow-up PR includes the soccer event ledger in tank save state.
+    "core/worlds/tank/backend.py": 633,
     "frontend/src/components/AutoEvaluateDisplay.tsx": 656,
     "frontend/src/components/EcosystemStats.tsx": 513,
     "frontend/src/components/EntityInspectorDrawer.tsx": 593,

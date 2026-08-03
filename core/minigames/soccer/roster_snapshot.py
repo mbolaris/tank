@@ -71,6 +71,8 @@ class SoccerParticipantSnapshot:
     energy: float | None = None
     max_energy: float | None = None
     display_name: str | None = None
+    tank_name: str | None = None
+    offspring_count: int = 0
 
     @classmethod
     def from_participant(cls, participant: SoccerParticipant) -> SoccerParticipantSnapshot:
@@ -117,6 +119,8 @@ class SoccerParticipantSnapshot:
             energy=participant.energy,
             max_energy=participant.max_energy,
             display_name=participant.display_name,
+            tank_name=participant.tank_name,
+            offspring_count=int(participant.offspring_count),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -136,6 +140,8 @@ class SoccerParticipantSnapshot:
             "policy_label",
             "policy_id",
             "display_name",
+            "tank_name",
+            "offspring_count",
         ):
             value = getattr(self, key)
             if value is not None:
@@ -196,6 +202,8 @@ class SoccerParticipantSnapshot:
             energy=self.energy,
             max_energy=self.max_energy,
             display_name=self.display_name,
+            tank_name=self.tank_name,
+            offspring_count=self.offspring_count,
         )
 
 

@@ -79,6 +79,57 @@ class SoccerFishStatsTracker:
     max_tracked: int = 200
     _stats: dict[int, SoccerFishStats] = field(default_factory=dict)
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize the bounded career table for world persistence."""
+        return {
+            "max_tracked": self.max_tracked,
+            "stats": [
+                {
+                    "fish_id": row.fish_id,
+                    "matches": row.matches,
+                    "wins": row.wins,
+                    "draws": row.draws,
+                    "losses": row.losses,
+                    "goals": row.goals,
+                    "assists": row.assists,
+                    "net_energy": row.net_energy,
+                    "tank_name": row.tank_name,
+                    "tank_id": row.tank_id,
+                    "offspring_count": row.offspring_count,
+                }
+                for row in self._stats.values()
+            ],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Any) -> SoccerFishStatsTracker:
+        """Restore a tracker while ignoring malformed rows from old saves."""
+        max_tracked = int(data.get("max_tracked", 200)) if isinstance(data, dict) else 200
+        tracker = cls(max_tracked=max_tracked)
+        rows = data.get("stats", []) if isinstance(data, dict) else []
+        for raw in rows:
+            if not isinstance(raw, dict) or "fish_id" not in raw:
+                continue
+            try:
+                row = SoccerFishStats(
+                    fish_id=int(raw["fish_id"]),
+                    matches=int(raw.get("matches", 0)),
+                    wins=int(raw.get("wins", 0)),
+                    draws=int(raw.get("draws", 0)),
+                    losses=int(raw.get("losses", 0)),
+                    goals=int(raw.get("goals", 0)),
+                    assists=int(raw.get("assists", 0)),
+                    net_energy=float(raw.get("net_energy", 0.0)),
+                    tank_name=str(raw.get("tank_name", "Unknown Tank")),
+                    tank_id=str(raw.get("tank_id", "unknown")),
+                    offspring_count=int(raw.get("offspring_count", 0)),
+                )
+            except (TypeError, ValueError):
+                continue
+            tracker._stats[row.fish_id] = row
+        tracker._prune()
+        return tracker
+
     def record(self, outcome: SoccerMinigameOutcome) -> None:
         """Fold one completed match outcome into the standings."""
         if outcome.skipped:
