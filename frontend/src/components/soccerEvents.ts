@@ -87,6 +87,18 @@ export function presentEvents(events: readonly BroadcastEvent[], currentFrame: n
     return { major: null, notable, collapsedNotable };
 }
 
+/**
+ * Whether a match event currently owns the major broadcast slot.
+ *
+ * The arena holds a breakthrough card back while this is true, so a goal or
+ * full-time card is never covered by one.
+ */
+export function hasMajorMatchEvent(match: SoccerMatchState | null): boolean {
+    if (!match) return false;
+    const current = match as SoccerBroadcastMatch;
+    return presentEvents((current.events ?? []) as BroadcastEvent[], current.frame).major !== null;
+}
+
 export function activeEffectEvent(match: SoccerBroadcastMatch | null): BroadcastEvent | null {
     if (!match?.events?.length) return null;
     const currentFrame = match.frame;

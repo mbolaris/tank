@@ -83,6 +83,10 @@ def test_no_tank_id_in_world_agnostic_code():
         "frontend/src/config.ts",
         "frontend/src/components/MinigameLeaders.tsx",
         "frontend/src/components/MinigameLeaders.test.tsx",
+        # Resolves which league team belongs to this tank world, and filters
+        # soccer fish leaders by their originating tank. Reads the same
+        # tank-specific leader payload MinigameLeaders does.
+        "frontend/src/components/tankTeamResolution",
         "frontend/src/types/simulation.ts",
     ]
 

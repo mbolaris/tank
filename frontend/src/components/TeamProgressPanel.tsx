@@ -5,6 +5,7 @@ import { useSkillSnapshots } from '../hooks/useSkillSnapshots';
 import { BreakthroughCard } from './BreakthroughCard';
 import { FormChips } from './FormChips';
 import { ReferenceLadder } from './ReferenceLadder';
+import { filterLeadersForWorld, resolveWorldTeam } from './tankTeamResolution';
 import { TopPerformers } from './TopPerformers';
 import styles from './TeamProgressPanel.module.css';
 
@@ -17,35 +18,33 @@ function latestLadder(snapshots: { summary: SkillLadder }[]): SkillLadder | unde
     return snapshots.at(-1)?.summary;
 }
 
-function tankTeamId(liveState: ProgressLiveState): string | null {
-    const active = liveState.active_match;
-    const tankEntry = liveState.leaderboard.find((entry) => entry.source === 'tank');
-    if (!tankEntry) return null;
-    if (active?.home_id === tankEntry.team_id || active?.away_id === tankEntry.team_id) return tankEntry.team_id;
-    return tankEntry.team_id;
-}
-
 export function TeamProgressPanel({ worldId, liveState }: { worldId?: string; liveState: SoccerLeagueLiveState | null }) {
     const { data, loading } = useSkillSnapshots(worldId);
     const progressState = liveState as ProgressLiveState | null;
-    const unseenBreakthroughs = useBreakthroughs(data?.breakthroughs ?? [], worldId);
+    // Skill snapshots stay keyed by worldId; only the league row is keyed by team.
+    const { acknowledged } = useBreakthroughs(data?.breakthroughs ?? [], worldId);
     const snapshots = data?.snapshots ?? [];
     const ladder = latestLadder(snapshots);
     const firstScore = snapshots[0]?.summary.skill_index;
     const currentScore = ladder?.skill_index ?? data?.tank_best ?? 0;
     const delta = firstScore === undefined ? null : currentScore - firstScore;
-    const teamId = progressState ? tankTeamId(progressState) : null;
+    const { teamId, displayName, squad, fielded } = resolveWorldTeam(progressState, worldId);
     const position = teamId ? progressState?.team_positions?.[teamId] : undefined;
     const entry = teamId ? progressState?.leaderboard.find((item) => item.team_id === teamId) : undefined;
     const form = teamId ? progressState?.team_form?.[teamId] ?? [] : [];
+    const filteredLeaders = filterLeadersForWorld(progressState?.fish_leaders, worldId);
 
     return (
         <div className={styles.panel} data-testid="soccer-team-progress">
             <div className={styles.heading}>
                 <h3>Soccer Progress</h3>
-                <span className={styles.label}>SKILL</span>
+                <span className={styles.label} data-testid="soccer-team-progress-label">
+                    {fielded ? (squad ? `${squad} TEAM` : displayName?.toUpperCase() ?? 'TEAM') : 'SKILL'}
+                </span>
             </div>
-            {unseenBreakthroughs.at(-1) && <BreakthroughCard record={unseenBreakthroughs.at(-1)!} />}
+            {fielded && displayName && <div className={styles.sectionTitle}>{displayName}</div>}
+            {/* The broadcast presenter owns the live card; this is the history. */}
+            {acknowledged.at(-1) && <BreakthroughCard record={acknowledged.at(-1)!} />}
             {loading && !data ? <div className={styles.emptySection}>Loading skill snapshots...</div> : (
                 <>
                     <section className={styles.section} aria-label="Team skill">
@@ -63,14 +62,20 @@ export function TeamProgressPanel({ worldId, liveState }: { worldId?: string; li
                     <section className={styles.section} aria-label="League form">
                         <div className={styles.sectionTitle}>League · relative context</div>
                         <div className={styles.leagueSummary}>
-                            <span>{position ? `${position}${position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} of ${progressState?.leaderboard.length ?? '?'}` : 'Position pending'}</span>
+                            <span>
+                                {teamId
+                                    ? position
+                                        ? `${position}${position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th'} of ${progressState?.leaderboard.length ?? '?'}`
+                                        : 'Position pending'
+                                    : 'Team not currently fielded'}
+                            </span>
                             <span>{entry ? `${entry.points} pts` : '—'}</span>
                         </div>
                         <FormChips form={form} />
                     </section>
                     <section className={styles.section} aria-label="Top performers">
                         <div className={styles.sectionTitle}>Top performers · match records</div>
-                        <TopPerformers leaders={progressState?.fish_leaders ?? []} />
+                        <TopPerformers leaders={filteredLeaders} />
                     </section>
                 </>
             )}

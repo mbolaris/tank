@@ -6,6 +6,19 @@ export interface PitchViewportSize {
     dpr: number;
 }
 
+/**
+ * Resolve the pitch's visual cap.
+ *
+ * `maxWidth` wins when given. Otherwise an explicit `width` is treated as a
+ * deliberate fixed size and caps the pitch. With neither, the pitch is
+ * responsive and fills whatever the host gives it - which is what the dedicated
+ * arena wants, and why it passes neither.
+ */
+export function resolvePitchMaxWidth(width?: number, maxWidth?: number): number | undefined {
+    if (maxWidth !== undefined) return maxWidth;
+    return width;
+}
+
 export function calculatePitchViewport(
     containerWidth: number,
     geometry: Pick<SoccerFieldGeometry, 'length' | 'width'> | undefined,

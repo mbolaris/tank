@@ -6,9 +6,14 @@ import { SoccerProgressStrip } from './SoccerProgressStrip';
 import { EventPresenter } from './EventPresenter';
 import { SoccerEffectsLayer } from './SoccerEffectsLayer';
 import { TeamProgressPanel } from './TeamProgressPanel';
-import { activeEffectEvent, type SoccerBroadcastMatch } from './soccerEvents';
+import { activeEffectEvent, hasMajorMatchEvent, type SoccerBroadcastMatch } from './soccerEvents';
 import { deriveArenaState, type ArenaConnectionState, type ArenaPresentation } from './soccerArenaState';
 import styles from './SoccerArenaView.module.css';
+
+import { useSkillSnapshots } from '../hooks/useSkillSnapshots';
+import { useBreakthroughs } from '../hooks/useBreakthroughs';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+import { useStaleClock } from '../hooks/useStaleClock';
 
 interface SoccerArenaViewProps {
     liveState: SoccerLeagueLiveState | null;
@@ -17,6 +22,7 @@ interface SoccerArenaViewProps {
     onBack: () => void;
     connectionState?: ArenaConnectionState;
     errorMessage?: string | null;
+    lastArrivalMs?: number;
     onRetry?: () => void;
 }
 
@@ -93,13 +99,36 @@ function PitchStateOverlay({ presentation, staleLabel }: { presentation: ArenaPr
     return <div className={`${styles.pitchStateOverlay} ${styles[className]}`} role="status">{copy[presentation]}</div>;
 }
 
-export function SoccerArenaView({ liveState, events, worldId, onBack, connectionState, errorMessage, onRetry }: SoccerArenaViewProps) {
+export function SoccerArenaView({ liveState, events, worldId, onBack, connectionState, errorMessage, lastArrivalMs, onRetry }: SoccerArenaViewProps) {
     const [leftRailExpanded, setLeftRailExpanded] = useState(() => readStoredRail(LEFT_RAIL_STORAGE_KEY));
     const [rightRailExpanded, setRightRailExpanded] = useState(() => readStoredRail(RIGHT_RAIL_STORAGE_KEY));
     const [previousPresentation, setPreviousPresentation] = useState<ArenaPresentation>('live');
-    const arenaState = deriveArenaState({ liveState, connectionState, errorMessage, previousPresentation });
+    const reducedMotion = usePrefersReducedMotion();
+    const { data: skillData } = useSkillSnapshots(worldId);
+
+    // The stale age only ticks while disconnected, so a healthy feed does not
+    // re-render once a second for nothing.
+    const isStale = connectionState === 'disconnected';
+    const staleNowMs = useStaleClock(isStale);
+    const arenaState = deriveArenaState({
+        liveState,
+        connectionState,
+        errorMessage,
+        previousPresentation,
+        lastArrivalMs,
+        nowMs: staleNowMs,
+    });
     const activeMatch = arenaState.match;
     const broadcastMatch = activeMatch as SoccerBroadcastMatch | null;
+
+    // A goal or full-time card owns the major slot first; the breakthrough
+    // queues behind it rather than overlapping. Rail state is irrelevant here -
+    // the broadcast card lives on the pitch, not in the Progress rail.
+    const { presenting: presentedBreakthrough } = useBreakthroughs(
+        skillData?.breakthroughs ?? [],
+        worldId,
+        { blocked: hasMajorMatchEvent(activeMatch) },
+    );
 
     useEffect(() => {
         if (!arenaState.unknownStage) {
@@ -150,7 +179,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
 
                     <div className={styles.pitchFrame} data-state={arenaState.presentation}>
                         {activeMatch ? (
-                            <PitchCanvas gameState={activeMatch} width={800} height={450} />
+                            <PitchCanvas gameState={activeMatch} />
                         ) : (
                             <div className={styles.emptyPitch} role="status">
                                 <span className={styles.emptyPitchIcon} aria-hidden="true">⚽</span>
@@ -158,8 +187,8 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                                 {arenaState.presentation === 'error' && onRetry && <button type="button" onClick={onRetry}>Retry</button>}
                             </div>
                         )}
-                        <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} />
-                        <EventPresenter match={activeMatch} />
+                        <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} reducedMotion={reducedMotion} />
+                        <EventPresenter match={activeMatch} breakthrough={presentedBreakthrough} reducedMotion={reducedMotion} />
                         <PitchStateOverlay presentation={arenaState.presentation} staleLabel={arenaState.staleLabel} />
                     </div>
 

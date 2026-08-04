@@ -1,8 +1,17 @@
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { SoccerMatchState } from '../types/simulation';
+import type { SkillBreakthrough } from '../types/skill';
 import { EventPresenter } from './EventPresenter';
+import { hasMajorMatchEvent } from './soccerEvents';
 import { SoccerEffectsLayer } from './SoccerEffectsLayer';
+
+const breakthrough: SkillBreakthrough = {
+    event_id: 'b-1',
+    kind: 'ladder_rung_cleared',
+    source_id: 'tank',
+    frame: 120,
+};
 
 function match(events: SoccerMatchState['events'] = [], frame = 100): SoccerMatchState {
     return {
@@ -45,5 +54,57 @@ describe('EventPresenter', () => {
         const html = renderToString(<SoccerEffectsLayer event={{ frame: 100, seq: 1, kind: 'goal' }} />);
         expect(html).toContain('soccer-effects-layer');
         expect(html).toContain('effectsLayer');
+    });
+
+    it('presents a breakthrough as a major broadcast card', () => {
+        const html = renderToString(<EventPresenter match={match()} breakthrough={breakthrough} />);
+        expect(html).toContain('data-testid="soccer-breakthrough-major"');
+        expect(html).toContain('BREAKTHROUGH');
+        expect(html).toContain('LADDER RUNG CLEARED');
+    });
+
+    it('never stacks a breakthrough on top of a goal card', () => {
+        const html = renderToString(
+            <EventPresenter
+                match={match([{ frame: 100, seq: 1, kind: 'goal', side: 'left', actor: 'left_1', event_id: 'goal-1' }])}
+                breakthrough={breakthrough}
+            />,
+        );
+        expect(html).toContain('soccer-goal-card');
+        expect(html).not.toContain('soccer-breakthrough-major');
+    });
+
+    it('never stacks a breakthrough on top of a full-time card', () => {
+        const html = renderToString(
+            <EventPresenter
+                match={match([{ frame: 100, seq: 1, kind: 'full_time', event_id: 'full-1' }])}
+                breakthrough={breakthrough}
+            />,
+        );
+        expect(html).toContain('soccer-full-time-card');
+        expect(html).not.toContain('soccer-breakthrough-major');
+    });
+
+    it('still presents a breakthrough between matches', () => {
+        const html = renderToString(<EventPresenter match={null} breakthrough={breakthrough} />);
+        expect(html).toContain('data-testid="soccer-breakthrough-major"');
+    });
+
+    it('renders nothing with neither a match nor a breakthrough', () => {
+        expect(renderToString(<EventPresenter match={null} breakthrough={null} />)).toBe('');
+    });
+});
+
+describe('hasMajorMatchEvent', () => {
+    it('is true while a goal card holds the major slot', () => {
+        expect(hasMajorMatchEvent(match([{ frame: 98, seq: 1, kind: 'goal', event_id: 'goal-1' }], 100))).toBe(true);
+    });
+
+    it('is false once the card has aged out', () => {
+        expect(hasMajorMatchEvent(match([{ frame: 98, seq: 1, kind: 'goal', event_id: 'goal-1' }], 400))).toBe(false);
+    });
+
+    it('is false without a match', () => {
+        expect(hasMajorMatchEvent(null)).toBe(false);
     });
 });

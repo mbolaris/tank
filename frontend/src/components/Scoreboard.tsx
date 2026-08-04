@@ -37,6 +37,8 @@ export function Scoreboard({ match, presentation, unknownStage, skippedReason, e
     const leftScore = match?.score.left ?? 0;
     const rightScore = match?.score.right ?? 0;
     const status = STATUS_LABELS[presentation];
+    // Held stale data must not read as a live match ticking along.
+    const clockStopped = presentation === 'disconnected';
 
     return (
         <section className={styles.scoreboard} data-testid="soccer-scoreboard" aria-label="Soccer scoreboard">
@@ -47,7 +49,9 @@ export function Scoreboard({ match, presentation, unknownStage, skippedReason, e
                     <span className={styles.scoreDivider}>–</span>
                     <span className={styles.score}>{rightScore}</span>
                 </div>
-                <div className={styles.clock}><MatchClock frame={match?.frame} /></div>
+                <div className={`${styles.clock}${clockStopped ? ` ${styles.clockStopped}` : ''}`}>
+                    <MatchClock frame={match?.frame} stopped={clockStopped} />
+                </div>
                 <div className={styles.stage}>{stageLabel(match, presentation, unknownStage)}</div>
                 <div className={`${styles.status} ${styles[`status${presentation[0].toUpperCase()}${presentation.slice(1)}`]}`}>
                     {status}

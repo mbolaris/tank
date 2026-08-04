@@ -1,26 +1,51 @@
-import React, { useEffect, useRef, useState, type CSSProperties } from 'react';
+import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { SoccerTopDownRenderer } from '../renderers/soccer/SoccerTopDownRenderer';
 import type { SoccerMatchState } from '../types/simulation';
 import type { RenderContext, RenderFrame } from '../rendering/types';
-import { calculatePitchViewport, type PitchViewportSize } from './pitchViewport';
+import { calculatePitchViewport, resolvePitchMaxWidth, type PitchViewportSize } from './pitchViewport';
 import { useMatchAnimator } from './useMatchAnimator';
 
 const FALLBACK_GEOMETRY = { length: 105, width: 68 };
 
+/** Fallback CSS width used only before the host has been measured. */
+const UNMEASURED_WIDTH = 800;
+
 export interface SoccerPitchProps {
     gameState: SoccerMatchState | null;
+    /**
+     * Explicit fixed viewport width. Legacy panels pass this and keep their
+     * existing size; it also acts as the visual cap unless `maxWidth` overrides
+     * it, so no embedded pitch silently becomes unbounded.
+     */
     width?: number;
+    /** Explicit fixed viewport height. Only used to seed the pre-geometry aspect. */
     height?: number;
+    /** Optional visual cap, independent of a fixed viewport. */
+    maxWidth?: number;
     style?: CSSProperties;
 }
 
-export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800, height = 450, style }) => {
+export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width, height, maxWidth, style }) => {
     const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<SoccerTopDownRenderer | null>(null);
     const animatedState = useMatchAnimator(gameState);
+    const cap = resolvePitchMaxWidth(width, maxWidth);
+    // Real field geometry always wins. Legacy width/height only seed the aspect
+    // for the frames before a match state arrives. Memoised on the *values*:
+    // every websocket payload brings a fresh geometry object, and re-running the
+    // measuring effect on each one would resubscribe ResizeObserver 10x/second.
+    const fieldLength = gameState?.geometry?.length;
+    const fieldWidth = gameState?.geometry?.width;
+    const geometry = useMemo(() => {
+        if (fieldLength !== undefined && fieldWidth !== undefined) {
+            return { length: fieldLength, width: fieldWidth };
+        }
+        if (width !== undefined && height !== undefined) return { length: width, width: height };
+        return FALLBACK_GEOMETRY;
+    }, [fieldLength, fieldWidth, width, height]);
     const [viewport, setViewport] = useState<PitchViewportSize>(() =>
-        calculatePitchViewport(width, { length: width, width: height }, width, 1),
+        calculatePitchViewport(width ?? UNMEASURED_WIDTH, geometry, cap ?? width ?? UNMEASURED_WIDTH, 1),
     );
 
     useEffect(() => {
@@ -28,13 +53,20 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
         if (!host) return;
 
         const measure = () => {
-            setViewport(
-                calculatePitchViewport(
-                    host.clientWidth || width,
-                    gameState?.geometry ?? FALLBACK_GEOMETRY,
-                    width,
-                    window.devicePixelRatio || 1,
-                ),
+            // clientWidth is 0 while the host is detached or display:none.
+            const hostWidth = host.clientWidth || width || UNMEASURED_WIDTH;
+            const next = calculatePitchViewport(
+                hostWidth,
+                geometry,
+                cap ?? hostWidth,
+                window.devicePixelRatio || 1,
+            );
+            // Bailing out on an unchanged viewport keeps ResizeObserver from
+            // looping: setState -> re-render -> observed resize -> setState.
+            setViewport((current) =>
+                current.width === next.width && current.height === next.height && current.dpr === next.dpr
+                    ? current
+                    : next,
             );
         };
 
@@ -46,7 +78,7 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
             observer?.disconnect();
             window.removeEventListener('resize', measure);
         };
-    }, [gameState?.geometry, width]);
+    }, [geometry, width, cap]);
 
     useEffect(() => {
         rendererRef.current = new SoccerTopDownRenderer();
@@ -88,10 +120,16 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width = 800
         <div
             ref={hostRef}
             className="rounded-lg shadow-lg"
+            data-testid="soccer-pitch-host"
             style={{
                 width: '100%',
-                maxWidth: `${width}px`,
-                aspectRatio: `${gameState?.geometry?.length ?? FALLBACK_GEOMETRY.length}/${gameState?.geometry?.width ?? FALLBACK_GEOMETRY.width}`,
+                // Uncapped only when the caller passed neither a fixed width nor
+                // an explicit cap, i.e. deliberately asked to be responsive.
+                maxWidth: cap !== undefined ? `${cap}px` : undefined,
+                // The pitch stays landscape at every breakpoint: the aspect comes
+                // from the real field, so a compact screen gets a shorter,
+                // full-width pitch rather than a rotated one.
+                aspectRatio: `${geometry.length}/${geometry.width}`,
                 margin: '0 auto',
                 ...style,
             }}

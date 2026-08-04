@@ -7,6 +7,7 @@ import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { config, type WorldStatus } from './config';
 import { FishIcon, GlobeIcon, WaveIcon, ChevronLeftIcon, ChevronRightIcon } from './components/ui';
+import { isTankRoute, parseTankIdFromPath } from './routes';
 import './App.css';
 
 const TankView = lazy(() =>
@@ -243,10 +244,8 @@ function ViewToggle({ isNetwork }: { isNetwork: boolean }) {
 function NavBar() {
     const location = useLocation();
     const isNetwork = location.pathname === '/network';
-    const isTankView = location.pathname === '/' || location.pathname.startsWith('/tank/');
-
-    const tankIdMatch = location.pathname.match(/^\/tank\/(.+)$/);
-    const currentTankId = tankIdMatch ? tankIdMatch[1] : undefined;
+    const isTankView = isTankRoute(location.pathname);
+    const currentTankId = parseTankIdFromPath(location.pathname);
 
     return (
         <nav className="app-nav" style={{
