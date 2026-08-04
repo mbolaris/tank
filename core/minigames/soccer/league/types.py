@@ -31,6 +31,10 @@ class LeagueTeam:
     display_name: str
     source: TeamSource
     roster: list[int] = field(default_factory=list)  # List of Entity IDs
+    # Authoritative origin of a tank team: the ``world_id`` its roster came
+    # from. Bot teams have none. The arena resolves "which team is mine" from
+    # this, never by parsing ``team_id`` or the human-readable display name.
+    world_id: str | None = None
 
 
 @dataclass
@@ -57,6 +61,7 @@ class LeagueLeaderboardEntry:
     team_id: str
     display_name: str
     source: TeamSource
+    world_id: str | None = None  # Origin world for tank teams; None for bots.
     matches_played: int = 0
     wins: int = 0
     draws: int = 0

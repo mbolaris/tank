@@ -15,6 +15,8 @@
 .score { color: #f8fafc; font: 800 30px ui-monospace, monospace; line-height: 1; }
 .scoreDivider { color: #64748b; font-size: 18px; }
 .clock { color: #e2e8f0; font: 600 13px ui-monospace, monospace; }
+/* Disconnected: the clock is frozen, and must look frozen rather than live. */
+.clockStopped { color: #94a3b8; opacity: 0.7; }
 .stage { color: #94a3b8; font: 600 10px var(--font-main); letter-spacing: 0.08em; text-transform: uppercase; }
 .status { font: 700 10px var(--font-main); letter-spacing: 0.08em; text-transform: uppercase; }
 .statusLive { color: #4ade80; }

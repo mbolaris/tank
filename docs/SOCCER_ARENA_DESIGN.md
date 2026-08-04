@@ -1120,7 +1120,8 @@ interface SoccerMatchState {
   half?: 1 | 2;
   period_frames?: number;          // frames per half, for clock + progress
   possession?: { left: number; right: number };   // rolling window, 0..1
-  ball_owner?: string | null;      // participant_id of last/current touch
+  ball_owner?: string | null;      // participant_id in CURRENT control; see below
+  sides_swapped?: boolean;         // true once teams have changed ends
   home_tank_id?: string; away_tank_id?: string;   // link back to aquarium
   home_color?: string;  away_color?: string;      // team colours, backend-assigned
   events?: SoccerMatchEvent[];     // append-only, presentation reads the tail
@@ -1154,6 +1155,50 @@ interface SoccerMatchEvent {
   `hash()` (which is salted per process — see ADR-012).
 - Replaying an identical match must produce an identical ordered sequence of
   `(seq, event_id)` pairs. This is a required test.
+
+**Possession vs last touch** (implemented):
+
+- `ball_owner` is the participant *currently controlling* the ball — inside the
+  engine's own `kickable_margin + player_size` radius, so the possession ring
+  can never highlight a player who could not actually play the ball. Contention
+  resolves deterministically: nearest first, then lowest participant id. A loose
+  ball is an explicit `null`, and the renderer draws no ring for it.
+- Last touch stays separately available (`RCSSLiteEngine.last_touch_info`) for
+  goal and assist attribution. It is not ownership: calling it that leaves the
+  ring stuck on a player who passed the ball away seconds ago.
+- `ball_owner` is metadata. It is derived by reading resolved engine state and
+  feeds nothing back into physics or policy inputs.
+
+**Side assignment** (implemented):
+
+- Team identity (home / away) is fixed for a match; the side a team *occupies*
+  is not. `sides_swapped` mirrors the engine's own half-time swap and is the
+  authority. `half === 2` is the fallback for payloads predating it, and an
+  absent or unrecognised value defaults conservatively to the first half.
+- Attack direction belongs to the side, not the team: whoever occupies the left
+  half always attacks right. Only the *names* move at half time.
+- Side assignment must never be inferred from the score, the player arrays, or
+  display names.
+
+**Presentation snapshot** (implemented):
+
+```ts
+// SoccerLeagueLiveState — both optional and additive.
+active_match?: SoccerMatchState | null;        // a match currently EXECUTING
+presentation_match?: SoccerMatchState | null;  // detached, display-only
+```
+
+- `active_match` keeps its existing meaning exactly; old consumers are unchanged.
+- `presentation_match` is a deep-copied, inert snapshot captured immediately
+  before finalization drops the live match. It carries `game_over: true`,
+  `play_mode: 'time_over'`, the final score and positions, the same league
+  identity fields as `active_match`, and one deterministic `full_time` event.
+- It holds no reference to the match, engine, roster or any fish, so retaining
+  it cannot keep a finished match alive or delay fixture scheduling.
+- Retention is counted in **world ticks**
+  (`presentation.PRESENTATION_MATCH_HOLD_TICKS`, 6s at `FRAME_RATE`), never
+  wall-clock time, so expiry stays deterministic under replay and fast-forward.
+- A new active fixture supersedes a retained snapshot immediately.
 
 ```ts
 

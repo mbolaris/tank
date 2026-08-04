@@ -17,6 +17,7 @@ import { useWatchMode } from '../hooks/useWatchMode';
 import { useUiMode } from '../hooks/useUiMode';
 import { Canvas } from './Canvas';
 import { SoccerArenaView } from './SoccerArenaView';
+import { arenaStateFromConnection } from './soccerArenaState';
 import { TankSoccerPanel } from './TankSoccerPanel';
 import { Panel, PanelLoading } from './TankPanel';
 import { CommentaryFeed } from './CommentaryFeed';
@@ -166,12 +167,29 @@ export function TankView({ worldId }: TankViewProps) {
 
     useEntityPresenceReconciliation(liveEntities, selection.reconcileEntities);
 
+    // When the last usable payload landed. Presentation-only browser monotonic
+    // time: it labels held frames as stale and never enters simulation state.
+    // Held in state, not a ref, so the arena re-renders when it changes.
+    const [lastArrivalMs, setLastArrivalMs] = useState<number | undefined>(undefined);
+    useEffect(() => {
+        if (state) setLastArrivalMs(performance.now());
+    }, [state]);
+
+    const arenaConnectionState = arenaStateFromConnection({
+        connectionStatus,
+        schemaError,
+        hasState: Boolean(state),
+    });
+
     if (isSoccerArena) {
         return (
             <SoccerArenaView
                 liveState={state?.soccer_league_live ?? null}
                 events={state?.soccer_events ?? []}
                 worldId={effectiveWorldId}
+                connectionState={arenaConnectionState}
+                errorMessage={schemaError}
+                lastArrivalMs={lastArrivalMs}
                 onBack={() => navigate(effectiveWorldId ? `/tank/${effectiveWorldId}` : '/')}
             />
         );

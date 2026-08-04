@@ -287,6 +287,15 @@ export interface SoccerGoalEvent {
         goal_width: number;
         goal_depth: number;
     };
+    // Broadcast presentation metadata (§10.3). All optional and additive.
+    play_mode?: string;
+    half?: 1 | 2;
+    period_frames?: number;
+    possession?: { left: number; right: number };
+    /** participant_id currently controlling the ball; null when it is loose. */
+    ball_owner?: string | null;
+    /** True once the engine has swapped which half of the pitch each team occupies. */
+    sides_swapped?: boolean;
     // League metadata
     league_round?: number;
     home_id?: string;
@@ -307,6 +316,7 @@ export interface LeagueLeaderboardEntry {
     ga: number;
     points: number;
     rating: number;
+    world_id?: string;
 }
 
 export interface TeamAvailability {
@@ -339,6 +349,8 @@ export interface SoccerLeagueLiveState {
     leaderboard: LeagueLeaderboardEntry[];
     availability: Record<string, TeamAvailability>;
     active_match: SoccerMatchState | null;
+    presentation_match?: SoccerMatchState | null;
+    team_world_ids?: Record<string, string>;
     fish_leaders?: SoccerFishLeaderEntry[];
 }
 

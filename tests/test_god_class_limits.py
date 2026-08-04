@@ -80,7 +80,9 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "frontend/src/renderers/petri/PetriTopDownRenderer.ts": 569,
     # PR 0's additive participant/geometry/event types are wire declarations;
     # no renderer or visual code changed.
-    "frontend/src/types/simulation.ts": 949,
+    # +12: additive optional SoccerMatchState broadcast metadata (play_mode,
+    # half, period_frames, possession, ball_owner, sides_swapped) per §10.3.
+    "frontend/src/types/simulation.ts": 961,
     "frontend/src/utils/plants/nectar.ts": 616,
     "frontend/src/utils/renderer.ts": 824,
     "tools/evolve.py": 554,

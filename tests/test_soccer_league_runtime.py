@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import copy
+from types import SimpleNamespace
+
 import pytest
 
 from core.config.simulation_config import SoccerConfig
+from core.minigames.soccer.broadcast_metadata import compute_ball_owner
 from core.minigames.soccer.league.types import TeamSource
 from core.minigames.soccer.league_runtime import SoccerLeagueRuntime
+from core.minigames.soccer.presentation import (
+    PRESENTATION_MATCH_HOLD_TICKS,
+    build_presentation_snapshot,
+)
 
 
 class DummyFish:
@@ -348,3 +356,257 @@ def test_pursuit_module_flag_prefers_direct_config_then_environment():
     assert _target_pursuit_module_enabled(_Direct()) is True
     assert _target_pursuit_module_enabled(object()) is False
     assert _target_pursuit_module_enabled(None) is False
+
+
+def _run_to_full_time(runtime, world, *, start_cycle: int, max_ticks: int = 50) -> int:
+    """Tick a fixture from kickoff up to and including finalization.
+
+    Stops on the tick that finalizes, so the presentation hold budget has not
+    been spent yet. Returns the next cycle to use.
+    """
+    cycle = start_cycle
+    runtime.tick(world, seed_base=1, cycle=cycle)
+    assert runtime.get_live_state()["active_match"] is not None
+    for _ in range(max_ticks):
+        cycle += 1
+        runtime.tick(world, seed_base=1, cycle=cycle)
+        if runtime._active_match is None:
+            return cycle + 1
+    raise AssertionError("fixture never reached full time")
+
+
+@pytest.fixture
+def presentation_config(base_config):
+    """A short fixture that will not immediately re-kickoff after full time."""
+    base_config.duration_frames = 5
+    base_config.match_every_frames = 100_000
+    return base_config
+
+
+def test_finalizing_clears_the_engine_but_retains_a_detached_snapshot(
+    presentation_config,
+):
+    runtime = SoccerLeagueRuntime(presentation_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(11)])
+
+    _run_to_full_time(runtime, world, start_cycle=100_000)
+
+    state = runtime.get_live_state()
+    # The real match is gone: no engine, no setup, no live fixture metadata.
+    assert state["active_match"] is None
+    assert runtime._active_match is None
+    assert runtime._active_setup is None
+
+    snapshot = state["presentation_match"]
+    assert snapshot is not None
+    assert snapshot["game_over"] is True
+    assert snapshot["play_mode"] == "time_over"
+    # Identity is enriched exactly like a live match.
+    assert snapshot["home_id"] and snapshot["away_id"]
+    assert snapshot["home_name"] and snapshot["away_name"]
+    assert snapshot["participants"]
+    assert snapshot["geometry"]
+    assert snapshot["entities"]
+
+
+def test_snapshot_carries_final_score_and_one_full_time_event(presentation_config):
+    runtime = SoccerLeagueRuntime(presentation_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(11)])
+
+    _run_to_full_time(runtime, world, start_cycle=100_000)
+    snapshot = runtime.get_live_state()["presentation_match"]
+
+    assert set(snapshot["score"]) == {"left", "right"}
+    full_time = [e for e in snapshot["events"] if e["kind"] == "full_time"]
+    assert len(full_time) == 1
+    # Deterministic id derived only from match identity and event data.
+    event = full_time[0]
+    assert event["event_id"] == (
+        f"{snapshot['match_id']}-full_time-{event['frame']}-{event['seq']}"
+    )
+
+
+def test_snapshot_survives_the_documented_ticks_then_expires(presentation_config):
+    runtime = SoccerLeagueRuntime(presentation_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(11)])
+
+    cycle = _run_to_full_time(runtime, world, start_cycle=100_000)
+    assert runtime.get_live_state()["presentation_match"] is not None
+
+    for _ in range(PRESENTATION_MATCH_HOLD_TICKS - 1):
+        runtime.tick(world, seed_base=1, cycle=cycle)
+        cycle += 1
+    assert runtime.get_live_state()["presentation_match"] is not None
+
+    runtime.tick(world, seed_base=1, cycle=cycle)
+    assert runtime.get_live_state()["presentation_match"] is None
+
+
+def test_a_new_active_fixture_supersedes_the_retained_presentation(base_config):
+    base_config.duration_frames = 5
+    base_config.match_every_frames = 1  # Next tick starts the next fixture.
+    runtime = SoccerLeagueRuntime(base_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(11)])
+
+    cycle = _run_to_full_time(runtime, world, start_cycle=1)
+    assert runtime.get_live_state()["presentation_match"] is not None
+
+    # match_every_frames=1 means the very next tick kicks off the next fixture.
+    runtime.tick(world, seed_base=1, cycle=cycle)
+
+    state = runtime.get_live_state()
+    assert state["active_match"] is not None
+    assert state["presentation_match"] is None
+
+
+def test_snapshot_is_immune_to_later_mutation_of_the_match(presentation_config):
+    runtime = SoccerLeagueRuntime(presentation_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(11)])
+
+    _run_to_full_time(runtime, world, start_cycle=100_000)
+    snapshot = runtime.get_live_state()["presentation_match"]
+    original_entity_x = snapshot["entities"][0]["x"]
+    original_event_count = len(snapshot["events"])
+
+    # Mutating the retained payload in place must not be visible through a
+    # nested alias, and there is no live match left to write back into it.
+    detached = copy.deepcopy(snapshot)
+    detached["entities"][0]["x"] = 999.0
+    detached["events"].append({"kind": "goal", "frame": 0, "seq": 99})
+
+    refetched = runtime.get_live_state()["presentation_match"]
+    assert refetched["entities"][0]["x"] == original_entity_x
+    assert len(refetched["events"]) == original_event_count
+
+
+def test_retaining_a_snapshot_does_not_delay_the_next_fixture(base_config):
+    """Scheduling is untouched: the round advances at finalization as before."""
+    base_config.duration_frames = 5
+    base_config.match_every_frames = 100_000
+    runtime = SoccerLeagueRuntime(base_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(22)])
+
+    _run_to_full_time(runtime, world, start_cycle=100_000)
+
+    assert runtime.get_live_state()["presentation_match"] is not None
+    # One completed result recorded, and the scheduler has moved on.
+    assert len(runtime._recent_results) == 1
+    assert runtime._recent_results[0].played is True
+
+
+def test_build_presentation_snapshot_is_a_pure_detached_copy():
+    source = {
+        "match_id": "m-1",
+        "frame": 40,
+        "game_over": False,
+        "play_mode": "play_on",
+        "half": 1,
+        "score": {"left": 1, "right": 2},
+        "events": [{"frame": 4, "seq": 0, "kind": "kickoff", "event_id": "m-1-kickoff-4-0"}],
+        "entities": [{"id": 1, "type": "ball", "x": 3.0, "y": 0.0}],
+    }
+    snapshot = build_presentation_snapshot(
+        source, league_round=2, home_id="A", away_id="B", home_name="A FC", away_name="B FC"
+    )
+
+    assert snapshot["game_over"] is True
+    assert snapshot["play_mode"] == "time_over"
+    assert snapshot["league_round"] == 2
+    assert snapshot["home_name"] == "A FC"
+    assert snapshot["score"] == {"left": 1, "right": 2}
+    # half is reported as the match saw it, never forced to 2.
+    assert snapshot["half"] == 1
+
+    # Source is untouched, and mutating it afterwards cannot reach the snapshot.
+    assert source["game_over"] is False
+    assert source["play_mode"] == "play_on"
+    source["entities"][0]["x"] = 999.0
+    source["events"].clear()
+    assert snapshot["entities"][0]["x"] == 3.0
+    assert snapshot["events"][0]["kind"] == "kickoff"
+
+
+def test_build_presentation_snapshot_synthesizes_full_time_only_when_missing():
+    without = build_presentation_snapshot({"match_id": "m-1", "frame": 10, "events": []})
+    kinds = [event["kind"] for event in without["events"]]
+    assert kinds == ["full_time"]
+    assert without["events"][0]["event_id"] == "m-1-full_time-10-0"
+
+    already = build_presentation_snapshot(
+        {
+            "match_id": "m-1",
+            "frame": 10,
+            "events": [
+                {"frame": 10, "seq": 3, "kind": "full_time", "event_id": "m-1-full_time-10-3"}
+            ],
+        }
+    )
+    assert [event["kind"] for event in already["events"]] == ["full_time"]
+    assert already["events"][0]["seq"] == 3
+
+
+class _FakePlayer:
+    def __init__(self, player_id: str, distance: float) -> None:
+        self.player_id = player_id
+        self._distance = distance
+
+    def distance_to(self, _position) -> float:
+        return self._distance
+
+
+class _FakeEngine:
+    """Minimal stand-in exposing the kickable geometry compute_ball_owner reads."""
+
+    def __init__(self, players, *, kickable_margin=0.7, player_size=0.3) -> None:
+        self._players = players
+        self.params = SimpleNamespace(kickable_margin=kickable_margin, player_size=player_size)
+
+    def get_ball(self):
+        return SimpleNamespace(position=SimpleNamespace(x=0.0, y=0.0))
+
+    def iter_players(self):
+        return list(self._players)
+
+
+def test_ball_owner_is_the_single_player_within_kickable_distance():
+    engine = _FakeEngine([_FakePlayer("left_1", 0.5), _FakePlayer("right_1", 4.0)])
+    assert compute_ball_owner(engine) == "left_1"
+
+
+def test_ball_owner_is_none_when_the_ball_is_loose():
+    engine = _FakeEngine([_FakePlayer("left_1", 1.5), _FakePlayer("right_1", 2.0)])
+    assert compute_ball_owner(engine) is None
+    # Exactly on the boundary still counts as control, matching _apply_kick.
+    assert compute_ball_owner(_FakeEngine([_FakePlayer("left_1", 1.0)])) == "left_1"
+
+
+def test_ball_owner_resolves_contention_deterministically():
+    # Nearest wins regardless of iteration order.
+    assert (
+        compute_ball_owner(_FakeEngine([_FakePlayer("left_1", 0.8), _FakePlayer("right_1", 0.3)]))
+        == "right_1"
+    )
+    assert (
+        compute_ball_owner(_FakeEngine([_FakePlayer("right_1", 0.3), _FakePlayer("left_1", 0.8)]))
+        == "right_1"
+    )
+    # An exact tie falls back to the stable participant id, order-independently.
+    tie = [_FakePlayer("right_2", 0.4), _FakePlayer("left_3", 0.4)]
+    assert compute_ball_owner(_FakeEngine(tie)) == "left_3"
+    assert compute_ball_owner(_FakeEngine(list(reversed(tie)))) == "left_3"
+
+
+def test_leaderboard_carries_the_authoritative_origin_world(base_config):
+    runtime = SoccerLeagueRuntime(base_config)
+    world = DummyWorld([DummyFish(i, 100.0) for i in range(22)])
+
+    runtime.tick(world, seed_base=1, cycle=1)
+    state = runtime.get_live_state()
+
+    by_id = {entry["team_id"]: entry for entry in state["leaderboard"]}
+    assert by_id["Tank1:A"]["world_id"] == "Tank1"
+    assert by_id["Tank1:B"]["world_id"] == "Tank1"
+    # Bot teams belong to no world and must never be attributed to one.
+    assert by_id["Bot:Balanced"]["world_id"] is None
+
+    assert state["team_world_ids"] == {"Tank1:A": "Tank1", "Tank1:B": "Tank1"}

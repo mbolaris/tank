@@ -20,6 +20,10 @@ from core.minigames.soccer.league.types import (
     TeamAvailability,
     TeamSource,
 )
+from core.minigames.soccer.presentation import (
+    PRESENTATION_MATCH_HOLD_TICKS,
+    build_presentation_snapshot,
+)
 from core.minigames.soccer.reconciliation import build_world_source_resolver
 from core.minigames.soccer.seeds import derive_soccer_seed
 
@@ -82,6 +86,11 @@ class SoccerLeagueRuntime:
     _active_setup: Any | None = None
     _current_league_match: LeagueMatch | None = None  # Metadata for active match
 
+    # Detached full-time snapshot kept only so the arena can present a result
+    # instead of the match vanishing. Never a live match - see presentation.py.
+    _presentation_match: dict[str, Any] | None = None
+    _presentation_ticks_remaining: int = 0
+
     # Recent history
     _recent_results: list[LeagueMatch] = field(default_factory=list)
     _team_availability: dict[str, TeamAvailability] = field(default_factory=dict)
@@ -95,7 +104,13 @@ class SoccerLeagueRuntime:
         """Advance the league by one world frame."""
         if not self.config.enabled:
             self._clear_active_match()
+            self._clear_presentation_match()
             return
+
+        # Age out the retained full-time snapshot. Only while nothing is
+        # executing: a live match already takes presentation priority.
+        if self._active_match is None:
+            self._expire_presentation_match()
 
         # 1. Provide Teams & Update Availability
         teams, availability = self._provider.get_teams(world_state)
@@ -108,7 +123,12 @@ class SoccerLeagueRuntime:
                     team_id=team_id,
                     display_name=team.display_name,
                     source=team.source,
+                    world_id=team.world_id,
                 )
+            elif self._leaderboard[team_id].world_id is None and team.world_id is not None:
+                # Entries created before the provider knew the origin world
+                # (or by an older payload) get backfilled rather than stranded.
+                self._leaderboard[team_id].world_id = team.world_id
 
         # Defensive: prune leaderboard if it exceeds the cap
         if len(self._leaderboard) > self.MAX_LEADERBOARD_SIZE:
@@ -178,6 +198,13 @@ class SoccerLeagueRuntime:
             team_form.setdefault(result.away_team_id, []).append(away_form)
         team_form = {team_id: values[-5:] for team_id, values in team_form.items()}
 
+        # Authoritative team -> origin world mapping. Only tank teams have one,
+        # and it comes from the provider rather than from splitting team_id or
+        # reading a display name.
+        team_world_ids = {
+            entry.team_id: entry.world_id for entry in ordered_entries if entry.world_id is not None
+        }
+
         state = {
             "leaderboard": [
                 {
@@ -192,35 +219,50 @@ class SoccerLeagueRuntime:
                     "points": e.points,
                     "rating": e.rating,
                     "source": e.source,
+                    "world_id": e.world_id,
                 }
                 for e in ordered_entries
             ],
             "team_positions": team_positions,
             "team_form": team_form,
+            "team_world_ids": team_world_ids,
             "availability": {
                 tid: {"available": a.is_available, "reason": a.reason, "count": a.eligible_count}
                 for tid, a in self._team_availability.items()
             },
             "active_match": None,
+            "presentation_match": (
+                self._presentation_match if self._presentation_ticks_remaining > 0 else None
+            ),
         }
 
         if self._active_match:
             match_state = self._active_match.get_state()
-            # Enrich with league metadata
-            if self._current_league_match:
-                home_id = self._current_league_match.home_team_id
-                away_id = self._current_league_match.away_team_id
-                match_state["league_round"] = self._current_league_match.round_index
-                match_state["home_id"] = home_id
-                match_state["away_id"] = away_id
-                # Look up display names from leaderboard
-                home_entry = self._leaderboard.get(home_id)
-                away_entry = self._leaderboard.get(away_id)
-                match_state["home_name"] = home_entry.display_name if home_entry else home_id
-                match_state["away_name"] = away_entry.display_name if away_entry else away_id
+            match_state.update(self._league_metadata())
             state["active_match"] = match_state
 
         return state
+
+    def _league_metadata(self) -> dict[str, Any]:
+        """League identity fields layered onto a match state for the UI.
+
+        Shared by ``active_match`` and the retained ``presentation_match`` so a
+        finished match is labelled exactly like it was while it played.
+        """
+        league_match = self._current_league_match
+        if league_match is None:
+            return {}
+        home_id = league_match.home_team_id
+        away_id = league_match.away_team_id
+        home_entry = self._leaderboard.get(home_id)
+        away_entry = self._leaderboard.get(away_id)
+        return {
+            "league_round": league_match.round_index,
+            "home_id": home_id,
+            "away_id": away_id,
+            "home_name": home_entry.display_name if home_entry else home_id,
+            "away_name": away_entry.display_name if away_entry else away_id,
+        }
 
     def drain_events(self) -> list[SoccerMinigameOutcome]:
         """Return completed match outcomes and clear the buffer."""
@@ -329,6 +371,8 @@ class SoccerLeagueRuntime:
             ),
         )
 
+        # A new fixture takes presentation priority immediately.
+        self._clear_presentation_match()
         self._active_match = setup.match
         self._active_setup = setup
         self._current_league_match = league_match
@@ -392,6 +436,16 @@ class SoccerLeagueRuntime:
 
         self._pending_events.append(outcome)
         self._match_counter += 1
+
+        # Detach a full-time snapshot for the arena *before* the live match is
+        # dropped. build_presentation_snapshot deep-copies, so nothing below
+        # keeps a reference to the match, engine, roster, or any fish.
+        self._presentation_match = build_presentation_snapshot(
+            self._active_match.get_state(),
+            **self._league_metadata(),
+        )
+        self._presentation_ticks_remaining = PRESENTATION_MATCH_HOLD_TICKS
+
         self._clear_active_match()
 
     def _update_leaderboard(
@@ -422,3 +476,16 @@ class SoccerLeagueRuntime:
         self._active_match = None
         self._active_setup = None
         self._current_league_match = None
+
+    def _clear_presentation_match(self) -> None:
+        """Drop the retained full-time snapshot immediately."""
+        self._presentation_match = None
+        self._presentation_ticks_remaining = 0
+
+    def _expire_presentation_match(self) -> None:
+        """Age the retained snapshot by one world tick, dropping it at zero."""
+        if self._presentation_ticks_remaining <= 0:
+            return
+        self._presentation_ticks_remaining -= 1
+        if self._presentation_ticks_remaining <= 0:
+            self._presentation_match = None

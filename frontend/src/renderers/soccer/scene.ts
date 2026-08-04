@@ -64,6 +64,17 @@ export function soccerSceneFromFrame(frame: RenderFrame, transform: PitchTransfo
         const fieldSpeed = Math.hypot(entity.vel_x ?? hint?.velocity_x ?? 0, entity.vel_y ?? hint?.velocity_y ?? 0);
         const facing = entity.facing ?? hint?.facing_angle;
 
+        // Possession joins the authoritative ball_owner to the participant.
+        // Legacy per-entity has_ball is only a fallback for payloads that
+        // predate ball_owner - once the field is present (including an
+        // explicit null for a loose ball) it is the single source of truth,
+        // so exactly one ring is drawn and a loose ball draws none.
+        const hasBallOwnerField = state.ball_owner !== undefined;
+        const pid = participantId(entity, hint);
+        const isBallOwner = hasBallOwnerField
+            ? pid !== undefined && pid === state.ball_owner
+            : Boolean(entity.has_ball ?? hint?.has_ball);
+
         entities.push({
             id: entity.id,
             type: entity.type,
@@ -81,7 +92,7 @@ export function soccerSceneFromFrame(frame: RenderFrame, transform: PitchTransfo
             jersey_number: entity.jersey_number ?? hint?.jersey_number ?? participant?.uniform_number,
             stamina: entity.stamina ?? hint?.stamina,
             facing: facing === undefined ? undefined : state.coord_space === 'canonical' ? -facing : facing,
-            has_ball: entity.has_ball ?? hint?.has_ball,
+            has_ball: entity.type === 'player' ? isBallOwner : false,
             genome_data: entity.genome_data,
             participant,
         });

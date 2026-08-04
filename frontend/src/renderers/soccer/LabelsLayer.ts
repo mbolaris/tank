@@ -1,5 +1,6 @@
 import type { SoccerMatchState } from '../../types/simulation';
 import type { ResolvedSoccerFieldGeometry } from './fieldGeometry';
+import { resolveSideAssignment } from './sideAssignment';
 import type { PitchTransform } from './usePitchTransform';
 
 export class LabelsLayer {
@@ -13,10 +14,12 @@ export class LabelsLayer {
         ctx.fillStyle = 'rgba(226, 232, 240, 0.42)';
         ctx.strokeStyle = 'rgba(226, 232, 240, 0.2)';
         ctx.lineWidth = 1;
-        this.drawAttackBand(ctx, geometry, transform, -1, 1);
-        this.drawAttackBand(ctx, geometry, transform, 1, -1);
-        this.drawTeamLabel(ctx, state.home_name || state.home_id || 'HOME', geometry, transform, -1, 1);
-        this.drawTeamLabel(ctx, state.away_name || state.away_id || 'AWAY', geometry, transform, 1, -1);
+        // Sides are the pitch's; names belong to the teams and follow the swap.
+        const sides = resolveSideAssignment(state);
+        this.drawAttackBand(ctx, geometry, transform, -1, sides.leftAttackDirection);
+        this.drawAttackBand(ctx, geometry, transform, 1, sides.rightAttackDirection);
+        this.drawTeamLabel(ctx, sides.leftLabel, geometry, transform, -1, sides.leftAttackDirection);
+        this.drawTeamLabel(ctx, sides.rightLabel, geometry, transform, 1, sides.rightAttackDirection);
         ctx.restore();
     }
 

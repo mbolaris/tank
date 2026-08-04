@@ -275,6 +275,7 @@ class LeagueTeamProvider:
             display_name=display_name,
             source=TeamSource.TANK,
             roster=roster,
+            world_id=source_id,
         )
 
         reason = "ok" if is_available else f"Not enough players ({count}/{team_size})"

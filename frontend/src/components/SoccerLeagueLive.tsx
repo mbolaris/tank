@@ -96,7 +96,8 @@ export function SoccerLeagueLive({ liveState }: SoccerLeagueLiveProps) {
                 )}
 
                 {activeMatch ? (
-                    <PitchCanvas gameState={activeMatch} width={undefined} height={undefined} style={{ flex: 1, minHeight: '300px' }} />
+                    // Legacy embedded panel: keep its deliberate 800px cap.
+                    <PitchCanvas gameState={activeMatch} maxWidth={800} style={{ flex: 1, minHeight: '300px' }} />
                 ) : (
                     <div style={{
                         flex: 1,
