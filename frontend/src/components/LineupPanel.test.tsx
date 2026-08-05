@@ -152,6 +152,19 @@ describe('PlayerCard', () => {
         expect(keys).toEqual(['Kind']);
     });
 
+    it('does not show a bot its synthetic fish id', () => {
+        const bot = participant({
+            participant_id: 'right_2',
+            side: 'right',
+            uniform_number: 2,
+            avatar_kind: 'bot',
+            fish_id: 4882397523792860000,
+        });
+        const html = renderToString(<PlayerCard participant={bot} />);
+        expect(html).not.toContain('4882397523792860000');
+        expect([...html.matchAll(/_cardKey_\w+">([^<]+)</g)].map((entry) => entry[1])).toEqual(['Kind']);
+    });
+
     it('names the participant kind for a non-fish player', () => {
         const html = renderToString(<PlayerCard participant={squad[2]} />);
         expect(html).toContain('Frozen reference');

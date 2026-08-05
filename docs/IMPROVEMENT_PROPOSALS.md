@@ -399,10 +399,9 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-08-05: **224 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **653 plain `Any` occurrences** across `core/`. Both
-
-
-went *up* since earlier counts — `core/` grew faster than the
+`-> Any`, `[Any]`) and **653 plain `Any` occurrences** across `core/`. Plain
+occurrences went *up* while simple annotation hits ticked slightly *down* —
+`core/` grew faster than the
 cleanup passes retired `Any`, so treat 6.2 as a treadmill, not a burn-down. The
 global mypy config stays deliberately relaxed (`disallow_untyped_defs = false`,
 `check_untyped_defs = true`); strictness is applied per package via overrides

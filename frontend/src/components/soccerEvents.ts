@@ -1,4 +1,5 @@
 import type { SoccerMatchEvent, SoccerMatchState } from '../types/simulation';
+import { participantLabel } from './soccerParticipantLabels';
 
 export type BroadcastEventKind =
     | 'kickoff'
@@ -107,13 +108,18 @@ export function activeEffectEvent(match: SoccerBroadcastMatch | null): Broadcast
         .at(-1) ?? null;
 }
 
+/**
+ * The name to announce for an event's actor.
+ *
+ * Delegates to `participantLabel` so every surface that names a player - goal
+ * cards, toasts, the timeline - shares one rule. It used to reach for
+ * `fish_id` directly, which named a bot after its synthetic 19-digit hash.
+ */
 export function participantName(match: SoccerBroadcastMatch, participantId?: string): string | null {
     if (!participantId) return null;
     const participant = match.participants?.find((item) => item.participant_id === participantId);
     if (!participant) return participantId;
-    if (participant.display_name) return participant.display_name;
-    if (participant.fish_id !== undefined) return `Fish #${participant.fish_id}`;
-    return participant.participant_id;
+    return participantLabel(participant);
 }
 
 export function teamName(match: SoccerBroadcastMatch, side?: 'left' | 'right'): string {
