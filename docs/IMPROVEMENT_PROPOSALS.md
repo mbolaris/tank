@@ -398,8 +398,8 @@ actionable starter task.
 
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
-does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **644 plain `Any` occurrences** across `core/`. Both
+does. Re-measured 2026-08-05: **224 simple `Any` annotation hits** (`: Any`,
+`-> Any`, `[Any]`) and **653 plain `Any` occurrences** across `core/`. Both
 
 
 went *up* since earlier counts — `core/` grew faster than the

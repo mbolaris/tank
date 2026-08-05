@@ -7,22 +7,32 @@
  * compressed, and whether the pitch carries tactical overlays.
  */
 
-export type ArenaViewMode = 'broadcast' | 'tactical';
+export type ArenaViewMode = 'broadcast' | 'tactical' | 'analysis';
 
-export const ARENA_VIEW_MODES: readonly ArenaViewMode[] = ['broadcast', 'tactical'];
+export const ARENA_VIEW_MODES: readonly ArenaViewMode[] = ['broadcast', 'tactical', 'analysis'];
 
 export const ARENA_VIEW_MODE_STORAGE_KEY = 'tank_soccer_arena_view_mode';
 
 const VIEW_MODE_LABELS: Record<ArenaViewMode, string> = {
     broadcast: 'Broadcast',
     tactical: 'Tactical',
+    analysis: 'Analysis',
 };
 
-/** §7: `B` / `T` switch modes. Matched case-insensitively on `KeyboardEvent.key`. */
+/** §7: `B` / `T` / `A` switch modes. Matched case-insensitively on `KeyboardEvent.key`. */
 const VIEW_MODE_HOTKEYS: Record<string, ArenaViewMode> = {
     b: 'broadcast',
     t: 'tactical',
+    a: 'analysis',
 };
+
+/**
+ * Modes that annotate the pitch (§6.3: stamina and role are "Tactical/Analysis
+ * only") and take the §3.1 zero-occlusion budget.
+ */
+export function isAnalyticalMode(mode: ArenaViewMode): boolean {
+    return mode === 'tactical' || mode === 'analysis';
+}
 
 export function isArenaViewMode(value: unknown): value is ArenaViewMode {
     return typeof value === 'string' && (ARENA_VIEW_MODES as readonly string[]).includes(value);

@@ -1,0 +1,20 @@
+.panel { display: grid; gap: 12px; padding: 14px; color: #e2e8f0; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.heading h3 { margin: 0; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+.label { color: #22d3ee; font: 800 9px var(--font-main); letter-spacing: 0.14em; }
+.section { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.14); }
+.sectionTitle { color: #94a3b8; font: 800 9px var(--font-main); letter-spacing: 0.12em; text-transform: uppercase; }
+.empty { margin: 0; color: #64748b; font-size: 11px; }
+.metrics { display: grid; gap: 3px; margin: 0; }
+.metric { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.metric dt { overflow: hidden; color: #64748b; font: 9px var(--font-main); letter-spacing: 0.08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.metric dd { flex: none; margin: 0; color: #cbd5e1; font: 700 11px ui-monospace, monospace; }
+.table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.table th { padding: 2px 4px; color: #64748b; font: 800 8px var(--font-main); letter-spacing: 0.1em; text-align: left; text-transform: uppercase; }
+.table td { padding: 3px 4px; border-top: 1px solid rgba(148, 163, 184, 0.08); color: #cbd5e1; }
+.numberLeft { color: #facc15; font: 800 10px ui-monospace, monospace; }
+.numberRight { color: #f87171; font: 800 10px ui-monospace, monospace; }
+.name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.numeric { font: 10px ui-monospace, monospace; text-align: right; }
+.kinds { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.kinds li { display: flex; justify-content: space-between; gap: 8px; color: #94a3b8; font-size: 10px; text-transform: capitalize; }

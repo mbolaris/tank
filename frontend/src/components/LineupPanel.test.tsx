@@ -41,7 +41,26 @@ describe('participant labels', () => {
         expect(participantLabel(participant({ participant_id: 'left_1', side: 'left', uniform_number: 1, display_name: 'Nemo' }))).toBe('Nemo');
         expect(participantLabel(squad[2])).toBe('Chase & Shoot');
         expect(participantLabel(squad[0])).toBe('Fish #284');
-        expect(participantLabel(participant({ participant_id: 'left_9', side: 'left', uniform_number: 9 }))).toBe('left_9');
+        expect(participantLabel(participant({ participant_id: 'left_9', side: 'left', uniform_number: 9 }))).toBe('Left #9');
+    });
+
+    it('does not name a bot after a synthetic fish id', () => {
+        // The live league hands bot participants ids like 4882397523792860000;
+        // "Fish #4882397523792860000" overflows the row and claims a lineage
+        // the participant does not have.
+        const bot = participant({
+            participant_id: 'right_2',
+            side: 'right',
+            uniform_number: 2,
+            avatar_kind: 'bot',
+            fish_id: 4882397523792860000,
+        });
+        expect(participantLabel(bot)).toBe('Right #2');
+    });
+
+    it('names an external RCSS participant by its side and number', () => {
+        const external = participant({ participant_id: 'left_7', side: 'left', uniform_number: 7, avatar_kind: 'external' });
+        expect(participantLabel(external)).toBe('Left #7');
     });
 
     it('reads a fish with no recorded parent as a founder, not as missing data', () => {

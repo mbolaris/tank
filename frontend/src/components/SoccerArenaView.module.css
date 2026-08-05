@@ -16,6 +16,8 @@
 .rail { min-height: 104px; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: var(--radius-md); background: rgba(15, 23, 42, 0.62); overflow: hidden; }
 .railCollapsed { width: 48px; }
 .railExpanded { width: 196px; }
+/* §4.2: Analysis is a metrics stack, not a rail that can be shut. */
+.railAnalysis { width: 300px; }
 .railToggle { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 42px; padding: 8px; border-width: 0 0 1px; border-radius: 0; font: 700 11px var(--font-main); letter-spacing: 0.06em; text-transform: uppercase; }
 .railToggleLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .railCollapsed .railToggleLabel { font-size: 0; }

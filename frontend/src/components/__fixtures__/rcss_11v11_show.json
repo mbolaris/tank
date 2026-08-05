@@ -1,0 +1,506 @@
+{
+  "canonical": {
+    "ball": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "velocity": {
+        "x": 0.0,
+        "y": 0.0
+      }
+    },
+    "coord_space": "canonical",
+    "play_mode": "pm:0",
+    "players": [
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_1",
+        "position": {
+          "x": -25.0,
+          "y": -10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 1,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_10",
+        "position": {
+          "x": -20.0,
+          "y": 10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 10,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_11",
+        "position": {
+          "x": -15.0,
+          "y": 10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 11,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_2",
+        "position": {
+          "x": -20.0,
+          "y": -10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 2,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_3",
+        "position": {
+          "x": -15.0,
+          "y": -10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 3,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_4",
+        "position": {
+          "x": -10.0,
+          "y": -10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 4,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_5",
+        "position": {
+          "x": -25.0,
+          "y": -0.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 5,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_6",
+        "position": {
+          "x": -20.0,
+          "y": -0.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 6,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_7",
+        "position": {
+          "x": -15.0,
+          "y": -0.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 7,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_8",
+        "position": {
+          "x": -10.0,
+          "y": -0.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 8,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": 0.0,
+        "participant_id": "left_9",
+        "position": {
+          "x": -25.0,
+          "y": 10.0
+        },
+        "side": "left",
+        "stamina": 1.0,
+        "uniform_number": 9,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_1",
+        "position": {
+          "x": 25.0,
+          "y": -10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 1,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_10",
+        "position": {
+          "x": 20.0,
+          "y": 10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 10,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_11",
+        "position": {
+          "x": 15.0,
+          "y": 10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 11,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_2",
+        "position": {
+          "x": 20.0,
+          "y": -10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 2,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_3",
+        "position": {
+          "x": 15.0,
+          "y": -10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 3,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_4",
+        "position": {
+          "x": 10.0,
+          "y": -10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 4,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_5",
+        "position": {
+          "x": 25.0,
+          "y": -0.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 5,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_6",
+        "position": {
+          "x": 20.0,
+          "y": -0.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 6,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_7",
+        "position": {
+          "x": 15.0,
+          "y": -0.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 7,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_8",
+        "position": {
+          "x": 10.0,
+          "y": -0.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 8,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      },
+      {
+        "facing_angle": -3.141592653589793,
+        "participant_id": "right_9",
+        "position": {
+          "x": 25.0,
+          "y": 10.0
+        },
+        "side": "right",
+        "stamina": 1.0,
+        "uniform_number": 9,
+        "velocity": {
+          "x": 0.0,
+          "y": 0.0
+        }
+      }
+    ]
+  },
+  "generated_by": "tests/test_rcss_fixture_contract.py",
+  "participants": [
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_1",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 1
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_10",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 10
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_11",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 11
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_2",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 2
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_3",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 3
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_4",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 4
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_5",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 5
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_6",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 6
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_7",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 7
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_8",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 8
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "left_9",
+      "side": "left",
+      "team_id": "left",
+      "uniform_number": 9
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_1",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 1
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_10",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 10
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_11",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 11
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_2",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 2
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_3",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 3
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_4",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 4
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_5",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 5
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_6",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 6
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_7",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 7
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_8",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 8
+    },
+    {
+      "avatar_kind": "external",
+      "participant_id": "right_9",
+      "side": "right",
+      "team_id": "right",
+      "uniform_number": 9
+    }
+  ],
+  "show_message": "(show 0 (pm 0) (tm left right 0 0) ((b) 0.0000 -0.0000 0.0000 -0.0000) ((l 1) 0 0x1 -25.0000 10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 10) 0 0x1 -20.0000 -10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 11) 0 0x1 -15.0000 -10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 2) 0 0x1 -20.0000 10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 3) 0 0x1 -15.0000 10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 4) 0 0x1 -10.0000 10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 5) 0 0x1 -25.0000 0.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 6) 0 0x1 -20.0000 0.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 7) 0 0x1 -15.0000 0.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 8) 0 0x1 -10.0000 0.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((l 9) 0 0x1 -25.0000 -10.0000 0.0000 -0.0000 -0.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 1) 0 0x1 25.0000 10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 10) 0 0x1 20.0000 -10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 11) 0 0x1 15.0000 -10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 2) 0 0x1 20.0000 10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 3) 0 0x1 15.0000 10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 4) 0 0x1 10.0000 10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 5) 0 0x1 25.0000 0.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 6) 0 0x1 20.0000 0.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 7) 0 0x1 15.0000 0.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 8) 0 0x1 10.0000 0.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)) ((r 9) 0 0x1 25.0000 -10.0000 0.0000 -0.0000 -180.0000 0 (v h 90) (s 8000.0 1 1 130600) (c 0 0 0 0 0 0 0 0 0 0 0)))"
+}

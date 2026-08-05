@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     ARENA_VIEW_MODE_STORAGE_KEY,
     arenaViewModeLabel,
+    isAnalyticalMode,
     isArenaViewMode,
     readStoredViewMode,
     viewModeForHotkey,
@@ -31,9 +32,9 @@ describe('arena view mode', () => {
 
     it('treats an unrecognised stored mode as absent rather than rendering it', () => {
         // What a downgrade from a build with more modes leaves behind.
-        stubStorage({ [ARENA_VIEW_MODE_STORAGE_KEY]: 'analysis' });
+        stubStorage({ [ARENA_VIEW_MODE_STORAGE_KEY]: 'holographic' });
         expect(readStoredViewMode()).toBe('broadcast');
-        expect(isArenaViewMode('analysis')).toBe(false);
+        expect(isArenaViewMode('holographic')).toBe(false);
     });
 
     it('falls back to broadcast when storage throws', () => {
@@ -51,10 +52,17 @@ describe('arena view mode', () => {
         expect(() => writeStoredViewMode('tactical')).not.toThrow();
     });
 
-    it('maps B and T to their modes, case-insensitively', () => {
+    it('maps B, T and A to their modes, case-insensitively', () => {
         expect(viewModeForHotkey({ key: 'b', ctrlKey: false, metaKey: false, altKey: false })).toBe('broadcast');
         expect(viewModeForHotkey({ key: 'T', ctrlKey: false, metaKey: false, altKey: false })).toBe('tactical');
+        expect(viewModeForHotkey({ key: 'a', ctrlKey: false, metaKey: false, altKey: false })).toBe('analysis');
         expect(viewModeForHotkey({ key: 'q', ctrlKey: false, metaKey: false, altKey: false })).toBeNull();
+    });
+
+    it('marks the two modes that annotate the pitch', () => {
+        expect(isAnalyticalMode('tactical')).toBe(true);
+        expect(isAnalyticalMode('analysis')).toBe(true);
+        expect(isAnalyticalMode('broadcast')).toBe(false);
     });
 
     it('never steals a modified keystroke from the browser', () => {
@@ -66,5 +74,6 @@ describe('arena view mode', () => {
     it('labels each mode', () => {
         expect(arenaViewModeLabel('broadcast')).toBe('Broadcast');
         expect(arenaViewModeLabel('tactical')).toBe('Tactical');
+        expect(arenaViewModeLabel('analysis')).toBe('Analysis');
     });
 });
