@@ -189,7 +189,11 @@ def fish_to_participant(
         render_hint=render_hint,
         team_id=tank_id or team,
         uniform_number=player_index,
-        avatar_kind="fish",
+        # Entities that are not tank fish (bots, reference policies) reach this
+        # function because they carry a `fish_id`; they declare their own kind
+        # so the arena can take its neutral render branch (§6.3) instead of
+        # drawing them as fish with a genome they do not have.
+        avatar_kind=str(getattr(fish, "avatar_kind", "fish")),
         fish_id=(int(fish.fish_id) if getattr(fish, "fish_id", None) is not None else None),
         tank_id=tank_id,
         generation=generation,

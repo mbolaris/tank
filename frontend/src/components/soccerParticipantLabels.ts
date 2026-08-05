@@ -1,12 +1,22 @@
 import type { SoccerMatchState, SoccerParticipant } from '../types/simulation';
 import { sidesAreSwapped } from '../renderers/soccer/sideAssignment';
 
-/** §6.8: the roster name, falling back through the identity namespaces (§10.2). */
+/**
+ * §6.8: the roster name, falling back through the identity namespaces (§10.2).
+ *
+ * `fish_id` is only a *name* for an actual fish. Bot and external participants
+ * carry synthetic ids - the live league hands bots values like
+ * `4882397523792860000` - and rendering one as "Fish #4882397523792860000"
+ * both overflows the row and claims an aquarium lineage that does not exist.
+ * They fall through to the `(side, uniform_number)` composite instead.
+ */
 export function participantLabel(participant: SoccerParticipant): string {
     if (participant.display_name) return participant.display_name;
     if (participant.policy_label) return participant.policy_label;
-    if (participant.fish_id !== undefined) return `Fish #${participant.fish_id}`;
-    return participant.participant_id;
+    if (participant.avatar_kind === 'fish' && participant.fish_id !== undefined) {
+        return `Fish #${participant.fish_id}`;
+    }
+    return `${participant.side === 'left' ? 'Left' : 'Right'} #${participant.uniform_number}`;
 }
 
 /** §6.8: "Gen 41 · ↑#91", or "founder" for a fish with no recorded parent. */

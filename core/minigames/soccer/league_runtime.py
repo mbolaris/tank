@@ -56,7 +56,15 @@ def _target_pursuit_module_enabled(world_state: Any) -> bool:
 class BotEntity:
     """A generated bot entity for soccer matches."""
 
+    # A bot is not a fish, and the wire must say so. Without this the arena
+    # cannot tell them apart: bots reach `fish_to_participant` because they
+    # carry a `fish_id`, and would otherwise be announced as tank fish with a
+    # synthetic 19-digit identity and no lineage.
+    avatar_kind = "bot"
+
     def __init__(self, bot_id: str, team_id: str):
+        # Synthetic and stable for the match, but not an aquarium identity -
+        # nothing should present it as one.
         self.fish_id = abs(hash(bot_id))
         self.team_id = team_id
         self.energy = 1000.0  # Infinite energy

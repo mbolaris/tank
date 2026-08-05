@@ -271,6 +271,75 @@ class FakeRCSSServer:
             f"(catch 0) (move 0) (change_view 0))"
         )
 
+    def get_monitor_message(self) -> str:
+        """Build a monitor-protocol `(show ...)` frame for the current cycle.
+
+        This is the **monitor** view of the match, not the player-facing
+        `(see ...)` / `(sense_body ...)` messages the rest of this class emits:
+        it is omniscient, unnoised, and consumed by
+        `adapters.rcss_monitor_adapter`, which is what makes an RCSS-shaped
+        match state testable without running a real server.
+
+        Emitted in soccerserver's own convention - metres, `+y` south, body
+        angles in **degrees clockwise** - so the adapter under test has real
+        sign work to do rather than being handed canonical values.
+        """
+        score = self._engine.score
+        parts = [
+            f"(show {self._engine.cycle}",
+            f"(pm {self._monitor_play_mode()})",
+            f"(tm left right {score.get('left', 0)} {score.get('right', 0)})",
+        ]
+
+        ball = self._engine.get_ball()
+        parts.append(
+            f"((b) {ball.position.x:.4f} {-ball.position.y:.4f} "
+            f"{ball.velocity.x:.4f} {-ball.velocity.y:.4f})"
+        )
+
+        # Sorted so a frame is byte-identical for identical engine state.
+        for player_id in sorted(self._player_teams):
+            player = self._engine.get_player(player_id)
+            if player is None:
+                continue
+            side = "l" if self._player_teams[player_id] == "left" else "r"
+            number = self._monitor_uniform_number(player_id)
+            body_degrees = -math.degrees(player.body_angle)
+            stamina = getattr(player, "stamina", 0.0)
+            parts.append(
+                f"(({side} {number}) 0 0x1 "
+                f"{player.position.x:.4f} {-player.position.y:.4f} "
+                f"{player.velocity.x:.4f} {-player.velocity.y:.4f} "
+                f"{body_degrees:.4f} 0 "
+                f"(v h 90) (s {stamina:.1f} 1 1 130600) "
+                f"(c 0 0 0 0 0 0 0 0 0 0 0))"
+            )
+
+        return " ".join(parts) + ")"
+
+    def _monitor_play_mode(self) -> str:
+        """The monitor's numeric play-mode slot.
+
+        Kept numeric and unmapped on purpose: turning it into an RCSS mode name
+        needs the rcssserver PlayMode enum ordering, which nothing in this
+        repository can verify. The adapter carries it through as an honest
+        unknown instead (SOCCER_ARENA_DESIGN.md §10.4 rule 5).
+        """
+        return "0"
+
+    @staticmethod
+    def _monitor_uniform_number(player_id: str) -> int:
+        """Uniform number from a `<side>_<n>` id, defaulting to 0.
+
+        Uniform numbers are unique only within a side, so the monitor identity
+        is the `(side, uniform_number)` composite - never the number alone
+        (§10.2).
+        """
+        try:
+            return int(player_id.rsplit("_", 1)[1])
+        except (IndexError, ValueError):
+            return 0
+
     def get_hear_message(self, player_id: str, sender: str, message: str) -> str:
         """Build hear message in RCSS format."""
         cycle = self._engine.cycle

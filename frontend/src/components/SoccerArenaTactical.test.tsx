@@ -87,11 +87,19 @@ describe('SoccerArenaView view modes', () => {
         expect(renderArena('broadcast')).toContain('data-view-mode="broadcast"');
     });
 
-    it('offers both modes as one exclusive control', () => {
+    it('offers every mode as one exclusive control', () => {
         const html = renderArena('tactical');
         expect(html).toContain('data-testid="arena-view-mode-broadcast"');
         expect(html).toContain('data-testid="arena-view-mode-tactical"');
+        expect(html).toContain('data-testid="arena-view-mode-analysis"');
         expect(html).toMatch(/role="radio" aria-checked="true"[^>]*arena-view-mode-tactical/);
+        expect([...html.matchAll(/aria-checked="true"/g)]).toHaveLength(1);
+    });
+
+    it('annotates the pitch in Analysis as well as Tactical', () => {
+        // §6.3 scopes stamina and role glyphs to "Tactical/Analysis only".
+        expect(renderArena('analysis')).toContain('data-compact="true"');
+        expect(renderArena('analysis')).not.toContain('data-testid="soccer-event-presenter"');
     });
 });
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SoccerEventData, SoccerLeagueLiveState } from '../types/simulation';
+import { AnalysisPanel } from './AnalysisPanel';
 import { ArenaViewModeControl } from './ArenaViewModeControl';
 import { FormationPanel } from './FormationPanel';
 import { LineupPanel } from './LineupPanel';
@@ -13,7 +14,7 @@ import { SoccerEffectsLayer } from './SoccerEffectsLayer';
 import { TeamProgressPanel } from './TeamProgressPanel';
 import { activeEffectEvent, hasMajorMatchEvent, type SoccerBroadcastMatch } from './soccerEvents';
 import { deriveArenaState, type ArenaConnectionState, type ArenaPresentation } from './soccerArenaState';
-import { readStoredViewMode, viewModeForHotkey, writeStoredViewMode, type ArenaViewMode } from './soccerViewMode';
+import { isAnalyticalMode, readStoredViewMode, viewModeForHotkey, writeStoredViewMode, type ArenaViewMode } from './soccerViewMode';
 import styles from './SoccerArenaView.module.css';
 
 import { useFormationMetrics } from '../hooks/useFormationMetrics';
@@ -105,7 +106,10 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
     const [previousPresentation, setPreviousPresentation] = useState<ArenaPresentation>('live');
     const reducedMotion = usePrefersReducedMotion();
     const { data: skillData } = useSkillSnapshots(worldId);
-    const tacticalMode = viewMode === 'tactical';
+    const analysisMode = viewMode === 'analysis';
+    // Tactical and Analysis share the annotated pitch and the zero-occlusion
+    // budget (§3.1); they differ in what the right rail carries.
+    const annotatedMode = isAnalyticalMode(viewMode);
 
     // The stale age only ticks while disconnected, so a healthy feed does not
     // re-render once a second for nothing.
@@ -131,7 +135,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
         { blocked: hasMajorMatchEvent(activeMatch) },
     );
 
-    const metrics = useFormationMetrics(activeMatch, tacticalMode);
+    const metrics = useFormationMetrics(activeMatch, annotatedMode);
     const selectedParticipant =
         activeMatch?.participants?.find((participant) => participant.participant_id === selectedParticipantId) ?? null;
     // A selected player who leaves the pitch (substitution, a new match) must
@@ -141,8 +145,8 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
     }, [selectedParticipantId, selectedParticipant]);
 
     const tactical = useMemo(
-        () => ({ enabled: tacticalMode, roles: metrics.roles, selectedParticipantId }),
-        [tacticalMode, metrics.roles, selectedParticipantId],
+        () => ({ enabled: annotatedMode, roles: metrics.roles, selectedParticipantId }),
+        [annotatedMode, metrics.roles, selectedParticipantId],
     );
 
     const changeViewMode = useCallback((next: ArenaViewMode) => {
@@ -224,7 +228,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                         unknownStage={arenaState.unknownStage}
                         skippedReason={arenaState.skippedReason}
                         errorMessage={arenaState.errorMessage}
-                        compact={tacticalMode}
+                        compact={annotatedMode}
                     />
                     <div className={styles.pitchHeader}>
                         <div>
@@ -251,7 +255,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                           * all, so the effects layer and the event cards are not
                           * mounted - the same events route to the timeline below.
                           */}
-                        {!tacticalMode && (
+                        {!annotatedMode && (
                             <>
                                 <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} reducedMotion={reducedMotion} />
                                 <EventPresenter match={activeMatch} breakthrough={presentedBreakthrough} reducedMotion={reducedMotion} />
@@ -262,7 +266,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
 
                     <SoccerProgressStrip liveState={liveState} match={activeMatch} presentation={arenaState.presentation} />
 
-                    {tacticalMode ? (
+                    {annotatedMode ? (
                         <div className={styles.drawerPanel}>
                             <MatchTimeline match={activeMatch} />
                         </div>
@@ -277,17 +281,31 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                     )}
                 </main>
 
-                <aside className={`${styles.rail} ${rightRailExpanded ? styles.railExpanded : styles.railCollapsed}`}>
-                    <RailToggle
-                        label={tacticalMode ? 'Formation' : 'Progress'}
-                        expanded={rightRailExpanded}
-                        onClick={() => setRightRailExpanded((expanded) => !expanded)}
-                    />
-                    {rightRailExpanded && (
+                {/*
+                  * §4.2: Analysis turns the right column into a full metrics
+                  * stack, so the rail is always open and wider there. The pitch
+                  * is the flex child and gives up the width, which is the same
+                  * sanctioned rail-driven re-fit as §3.1 - not a mode-driven
+                  * one, so the §7 "pitch never jumps on a mode switch"
+                  * invariant still holds for equal rail state.
+                  */}
+                <aside
+                    className={`${styles.rail} ${analysisMode ? styles.railAnalysis : rightRailExpanded ? styles.railExpanded : styles.railCollapsed}`}
+                >
+                    {!analysisMode && (
+                        <RailToggle
+                            label={annotatedMode ? 'Formation' : 'Progress'}
+                            expanded={rightRailExpanded}
+                            onClick={() => setRightRailExpanded((expanded) => !expanded)}
+                        />
+                    )}
+                    {(rightRailExpanded || analysisMode) && (
                         <div className={styles.railScroll}>
-                            {tacticalMode
-                                ? <FormationPanel match={activeMatch} metrics={metrics} />
-                                : <TeamProgressPanel worldId={worldId} liveState={liveState} />}
+                            {analysisMode
+                                ? <AnalysisPanel match={activeMatch} metrics={metrics} />
+                                : annotatedMode
+                                    ? <FormationPanel match={activeMatch} metrics={metrics} />
+                                    : <TeamProgressPanel worldId={worldId} liveState={liveState} />}
                         </div>
                     )}
                 </aside>
