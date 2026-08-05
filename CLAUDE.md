@@ -130,8 +130,14 @@ Local validation tiers:
 
 Public CI jobs are named `smoke-gate`, `pre-pr-gate`, `frontend-ci`,
 `security-audit`, and `nightly-full` in `ci.yml`, plus `verify-champions` and `benchmark-gate` in
-`bench.yml`. Benchmark CI verifies champions and runs full determinism checks
-nightly or when a maintainer dispatches it explicitly.
+`bench.yml`. Benchmark CI verifies champions and runs determinism checks on
+every PR, plus nightly and on explicit maintainer dispatch.
+
+*If your PR changes simulation behavior, `verify-champions` will fail — that is
+the gate working. Re-baseline `champions/tank/*.json` in the same PR, using CI's
+own scores (`gh workflow run bench.yml --ref master -f rebaseline_tank=true`,
+then pull the `tank-champion-rebaseline` artifact). Never re-baseline a tank
+champion from a local run: tank scores are not bit-identical across platforms.*
 
 ## Working on Improvements
 
