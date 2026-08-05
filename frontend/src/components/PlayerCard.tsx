@@ -34,7 +34,12 @@ export function PlayerCard({
     // Deliberately no originating-tank row. The arena is world-agnostic - the
     // same card presents an external RCSS participant - and the squad heading
     // already names the team. See `test_no_tank_id_in_world_agnostic_code`.
-    if (participant.fish_id !== undefined) rows.push(['Fish id', String(participant.fish_id)]);
+    // Gated on the kind for the same reason `participantLabel` is: a bot's
+    // `fish_id` is `abs(hash(bot_id))`, and showing it as an aquarium identity
+    // is a 19-digit claim about a fish that does not exist.
+    if (participant.avatar_kind === 'fish' && participant.fish_id !== undefined) {
+        rows.push(['Fish id', String(participant.fish_id)]);
+    }
     if (role) rows.push(['Role', `${role} · ${ROLE_LABELS[role]}`]);
     if (meanX !== undefined) rows.push(['Mean x', `${meanX.toFixed(1)} m`]);
 
