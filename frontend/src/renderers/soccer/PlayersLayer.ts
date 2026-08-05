@@ -1,4 +1,5 @@
 import type { FishGenomeData } from '../../types/simulation';
+import type { SoccerTacticalOptions } from '../../rendering/types';
 import { drawAvatar } from '../avatar_renderer';
 import type { SoccerRenderEntity } from './scene';
 
@@ -13,19 +14,116 @@ export function avatarKindForEntity(player: SoccerRenderEntity): SoccerAvatarKin
 }
 
 export class PlayersLayer {
-    draw(ctx: CanvasRenderingContext2D, players: SoccerRenderEntity[], forceMicrobe = false): void {
-        for (const player of players) this.drawPlayer(ctx, player, forceMicrobe);
+    draw(
+        ctx: CanvasRenderingContext2D,
+        players: SoccerRenderEntity[],
+        forceMicrobe = false,
+        tactical?: SoccerTacticalOptions | null,
+    ): void {
+        for (const player of players) this.drawPlayer(ctx, player, forceMicrobe, tactical);
     }
 
-    private drawPlayer(ctx: CanvasRenderingContext2D, player: SoccerRenderEntity, forceMicrobe: boolean): void {
+    private drawPlayer(
+        ctx: CanvasRenderingContext2D,
+        player: SoccerRenderEntity,
+        forceMicrobe: boolean,
+        tactical?: SoccerTacticalOptions | null,
+    ): void {
         const teamColor = player.team ? TEAM_COLORS[player.team] : '#cbd5e1';
         const radius = Math.max(player.radius, 15);
+        const participantId = player.participant?.participant_id;
+        const selected = Boolean(participantId && participantId === tactical?.selectedParticipantId);
         ctx.save();
         try {
             ctx.translate(player.x, player.y);
             this.drawGroundRing(ctx, radius, teamColor, player.facing, player.has_ball);
+            // §6.3: stamina and role are Tactical/Analysis only - in Broadcast
+            // they would just be two more rings competing with possession.
+            if (tactical?.enabled) {
+                this.drawStaminaArc(ctx, radius, teamColor, player.stamina);
+            }
+            if (selected) this.drawSelectionRing(ctx, radius);
             this.drawAvatarKind(ctx, player, radius, forceMicrobe);
             this.drawBadge(ctx, radius, teamColor, player.jersey_number);
+            if (tactical?.enabled && participantId) {
+                this.drawRoleGlyph(ctx, radius, teamColor, tactical.roles?.[participantId]);
+            }
+        } finally {
+            ctx.restore();
+        }
+    }
+
+    /**
+     * §6.3: "thin arc on the ring's lower half, drains clockwise".
+     *
+     * Stamina is normalised 0..1 on the wire (§10.4 rule 8); a payload without
+     * it draws nothing rather than a full bar, which would claim every player
+     * is fresh.
+     */
+    private drawStaminaArc(
+        ctx: CanvasRenderingContext2D,
+        radius: number,
+        color: string,
+        stamina: number | undefined,
+    ): void {
+        if (stamina === undefined || Number.isNaN(stamina)) return;
+        const remaining = Math.min(1, Math.max(0, stamina));
+        const arcRadius = radius + 7;
+        ctx.save();
+        try {
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'butt';
+            ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
+            ctx.beginPath();
+            ctx.arc(0, 0, arcRadius, 0.15 * Math.PI, 0.85 * Math.PI);
+            ctx.stroke();
+            if (remaining <= 0) return;
+            ctx.strokeStyle = remaining < 0.25 ? '#fb7185' : color;
+            ctx.beginPath();
+            // Drains clockwise: the arc shortens from its end back to its start.
+            ctx.arc(0, 0, arcRadius, 0.15 * Math.PI, 0.15 * Math.PI + remaining * 0.7 * Math.PI);
+            ctx.stroke();
+        } finally {
+            ctx.restore();
+        }
+    }
+
+    private drawSelectionRing(ctx: CanvasRenderingContext2D, radius: number): void {
+        ctx.save();
+        try {
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius * 1.35, 0, Math.PI * 2);
+            ctx.stroke();
+        } finally {
+            ctx.restore();
+        }
+    }
+
+    /** §6.3: single role glyph in the badge corner. */
+    private drawRoleGlyph(
+        ctx: CanvasRenderingContext2D,
+        radius: number,
+        color: string,
+        role: 'D' | 'M' | 'F' | undefined,
+    ): void {
+        if (!role) return;
+        const size = Math.max(9, radius * 0.42);
+        const x = radius * 0.95;
+        const y = -radius * 1.1;
+        ctx.save();
+        try {
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.72)';
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.72, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = color;
+            ctx.font = `bold ${size * 0.9}px ui-monospace, monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(role, x, y + 0.5);
         } finally {
             ctx.restore();
         }

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { SoccerTopDownRenderer } from '../renderers/soccer/SoccerTopDownRenderer';
 import type { SoccerMatchState } from '../types/simulation';
-import type { RenderContext, RenderFrame } from '../rendering/types';
+import type { RenderContext, RenderFrame, SoccerTacticalOptions } from '../rendering/types';
 import { calculatePitchViewport, resolvePitchMaxWidth, type PitchViewportSize } from './pitchViewport';
 import { useMatchAnimator } from './useMatchAnimator';
 
@@ -22,10 +22,19 @@ export interface SoccerPitchProps {
     height?: number;
     /** Optional visual cap, independent of a fixed viewport. */
     maxWidth?: number;
+    /**
+     * Tactical annotations (§4.1). Absent or `enabled: false` renders the
+     * Broadcast pitch, unchanged.
+     *
+     * Note that this never affects the pitch *box*: the canvas is sized from
+     * the host width and the field aspect in both modes, so switching modes
+     * cannot re-fit or jump the pitch (§7).
+     */
+    tactical?: SoccerTacticalOptions | null;
     style?: CSSProperties;
 }
 
-export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width, height, maxWidth, style }) => {
+export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width, height, maxWidth, tactical, style }) => {
     const hostRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<SoccerTopDownRenderer | null>(null);
@@ -102,6 +111,7 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width, heig
             snapshot: animatedState,
             options: {
                 viewMode,
+                soccerTactical: tactical ?? null,
             }
         };
 
@@ -114,7 +124,7 @@ export const SoccerPitch: React.FC<SoccerPitchProps> = ({ gameState, width, heig
 
         rendererRef.current.render(frame, rc);
 
-    }, [animatedState, viewport]);
+    }, [animatedState, viewport, tactical]);
 
     return (
         <div

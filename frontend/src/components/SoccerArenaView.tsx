@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SoccerEventData, SoccerLeagueLiveState } from '../types/simulation';
+import { ArenaViewModeControl } from './ArenaViewModeControl';
+import { FormationPanel } from './FormationPanel';
+import { LineupPanel } from './LineupPanel';
+import { MatchTimeline } from './MatchTimeline';
 import { PitchCanvas } from './PitchCanvas';
+import { PlayerCard } from './PlayerCard';
 import { Scoreboard } from './Scoreboard';
 import { SoccerProgressStrip } from './SoccerProgressStrip';
 import { EventPresenter } from './EventPresenter';
@@ -8,8 +13,10 @@ import { SoccerEffectsLayer } from './SoccerEffectsLayer';
 import { TeamProgressPanel } from './TeamProgressPanel';
 import { activeEffectEvent, hasMajorMatchEvent, type SoccerBroadcastMatch } from './soccerEvents';
 import { deriveArenaState, type ArenaConnectionState, type ArenaPresentation } from './soccerArenaState';
+import { readStoredViewMode, viewModeForHotkey, writeStoredViewMode, type ArenaViewMode } from './soccerViewMode';
 import styles from './SoccerArenaView.module.css';
 
+import { useFormationMetrics } from '../hooks/useFormationMetrics';
 import { useSkillSnapshots } from '../hooks/useSkillSnapshots';
 import { useBreakthroughs } from '../hooks/useBreakthroughs';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
@@ -62,15 +69,6 @@ function RailToggle({ label, expanded, onClick }: { label: string; expanded: boo
     );
 }
 
-function RailPlaceholder({ title, detail }: { title: string; detail: string }) {
-    return (
-        <div className={styles.railContent}>
-            <div className={styles.eyebrow}>{title}</div>
-            <p>{detail}</p>
-        </div>
-    );
-}
-
 function presentationTitle(presentation: ArenaPresentation): string {
     const titles: Record<ArenaPresentation, string> = {
         empty: 'Waiting for scheduled match',
@@ -102,9 +100,12 @@ function PitchStateOverlay({ presentation, staleLabel }: { presentation: ArenaPr
 export function SoccerArenaView({ liveState, events, worldId, onBack, connectionState, errorMessage, lastArrivalMs, onRetry }: SoccerArenaViewProps) {
     const [leftRailExpanded, setLeftRailExpanded] = useState(() => readStoredRail(LEFT_RAIL_STORAGE_KEY));
     const [rightRailExpanded, setRightRailExpanded] = useState(() => readStoredRail(RIGHT_RAIL_STORAGE_KEY));
+    const [viewMode, setViewMode] = useState<ArenaViewMode>(() => readStoredViewMode());
+    const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
     const [previousPresentation, setPreviousPresentation] = useState<ArenaPresentation>('live');
     const reducedMotion = usePrefersReducedMotion();
     const { data: skillData } = useSkillSnapshots(worldId);
+    const tacticalMode = viewMode === 'tactical';
 
     // The stale age only ticks while disconnected, so a healthy feed does not
     // re-render once a second for nothing.
@@ -130,6 +131,25 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
         { blocked: hasMajorMatchEvent(activeMatch) },
     );
 
+    const metrics = useFormationMetrics(activeMatch, tacticalMode);
+    const selectedParticipant =
+        activeMatch?.participants?.find((participant) => participant.participant_id === selectedParticipantId) ?? null;
+    // A selected player who leaves the pitch (substitution, a new match) must
+    // not keep a dashed ring on a participant that is no longer there.
+    useEffect(() => {
+        if (selectedParticipantId && !selectedParticipant) setSelectedParticipantId(null);
+    }, [selectedParticipantId, selectedParticipant]);
+
+    const tactical = useMemo(
+        () => ({ enabled: tacticalMode, roles: metrics.roles, selectedParticipantId }),
+        [tacticalMode, metrics.roles, selectedParticipantId],
+    );
+
+    const changeViewMode = useCallback((next: ArenaViewMode) => {
+        setViewMode(next);
+        writeStoredViewMode(next);
+    }, []);
+
     useEffect(() => {
         if (!arenaState.unknownStage) {
             setPreviousPresentation((current) => current === arenaState.presentation ? current : arenaState.presentation);
@@ -137,6 +157,26 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
     }, [arenaState.presentation, arenaState.unknownStage]);
     useEffect(() => writeStoredRail(LEFT_RAIL_STORAGE_KEY, leftRailExpanded), [leftRailExpanded]);
     useEffect(() => writeStoredRail(RIGHT_RAIL_STORAGE_KEY, rightRailExpanded), [rightRailExpanded]);
+
+    // §7 keyboard: B/T switch modes, Escape deselects. Typing in a field must
+    // never be swallowed, so the handler stands down while an editable element
+    // or any other widget with its own key handling has focus.
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.isContentEditable) return;
+            const tag = target?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (event.key === 'Escape') {
+                setSelectedParticipantId((current) => (current === null ? current : null));
+                return;
+            }
+            const nextMode = viewModeForHotkey(event);
+            if (nextMode) changeViewMode(nextMode);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [changeViewMode]);
 
     return (
         <section className={styles.arena} data-testid="soccer-arena-view" aria-label="Soccer Arena">
@@ -149,14 +189,32 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                     <h1>Soccer Arena</h1>
                 </div>
                 <div className={styles.headerActions} aria-label="Arena view controls">
-                    <span className={styles.viewLabel}>Broadcast</span>
+                    <ArenaViewModeControl mode={viewMode} onChange={changeViewMode} />
                 </div>
             </header>
 
-            <div className={styles.arenaGrid}>
+            <div className={styles.arenaGrid} data-view-mode={viewMode}>
                 <aside className={`${styles.rail} ${leftRailExpanded ? styles.railExpanded : styles.railCollapsed}`}>
                     <RailToggle label="Lineup" expanded={leftRailExpanded} onClick={() => setLeftRailExpanded((expanded) => !expanded)} />
-                    {leftRailExpanded && <RailPlaceholder title="Lineup" detail="Roster details will appear here. The arena shell keeps the pitch as the primary surface." />}
+                    {leftRailExpanded && (
+                        <div className={styles.railScroll}>
+                            <LineupPanel
+                                match={activeMatch}
+                                roles={metrics.roles}
+                                selectedParticipantId={selectedParticipantId}
+                                onSelect={setSelectedParticipantId}
+                            />
+                            {selectedParticipant && (
+                                <div className={styles.railCardSlot}>
+                                    <PlayerCard
+                                        participant={selectedParticipant}
+                                        role={metrics.roles[selectedParticipant.participant_id]}
+                                        meanX={metrics.summaries.find((summary) => summary.participantId === selectedParticipant.participant_id)?.meanX}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </aside>
 
                 <main className={styles.stage}>
@@ -166,6 +224,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                         unknownStage={arenaState.unknownStage}
                         skippedReason={arenaState.skippedReason}
                         errorMessage={arenaState.errorMessage}
+                        compact={tacticalMode}
                     />
                     <div className={styles.pitchHeader}>
                         <div>
@@ -179,7 +238,7 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
 
                     <div className={styles.pitchFrame} data-state={arenaState.presentation}>
                         {activeMatch ? (
-                            <PitchCanvas gameState={activeMatch} />
+                            <PitchCanvas gameState={activeMatch} tactical={tactical} />
                         ) : (
                             <div className={styles.emptyPitch} role="status">
                                 <span className={styles.emptyPitchIcon} aria-hidden="true">⚽</span>
@@ -187,25 +246,50 @@ export function SoccerArenaView({ liveState, events, worldId, onBack, connection
                                 {arenaState.presentation === 'error' && onRetry && <button type="button" onClick={onRetry}>Retry</button>}
                             </div>
                         )}
-                        <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} reducedMotion={reducedMotion} />
-                        <EventPresenter match={activeMatch} breakthrough={presentedBreakthrough} reducedMotion={reducedMotion} />
+                        {/*
+                          * §3.1: Tactical permits no field-covering overlays at
+                          * all, so the effects layer and the event cards are not
+                          * mounted - the same events route to the timeline below.
+                          */}
+                        {!tacticalMode && (
+                            <>
+                                <SoccerEffectsLayer event={activeEffectEvent(broadcastMatch)} reducedMotion={reducedMotion} />
+                                <EventPresenter match={activeMatch} breakthrough={presentedBreakthrough} reducedMotion={reducedMotion} />
+                            </>
+                        )}
                         <PitchStateOverlay presentation={arenaState.presentation} staleLabel={arenaState.staleLabel} />
                     </div>
 
                     <SoccerProgressStrip liveState={liveState} match={activeMatch} presentation={arenaState.presentation} />
 
-                    <div className={styles.drawer}>
-                        <div>
-                            <div className={styles.eyebrow}>Arena drawer</div>
-                            <strong>{events.length ? `${events.length} match event${events.length === 1 ? '' : 's'} recorded` : 'Match history is ready when the arena is live'}</strong>
+                    {tacticalMode ? (
+                        <div className={styles.drawerPanel}>
+                            <MatchTimeline match={activeMatch} />
                         </div>
-                        <span className={styles.drawerHint}>Open a rail for context</span>
-                    </div>
+                    ) : (
+                        <div className={styles.drawer}>
+                            <div>
+                                <div className={styles.eyebrow}>Arena drawer</div>
+                                <strong>{events.length ? `${events.length} match event${events.length === 1 ? '' : 's'} recorded` : 'Match history is ready when the arena is live'}</strong>
+                            </div>
+                            <span className={styles.drawerHint}>Open a rail for context</span>
+                        </div>
+                    )}
                 </main>
 
                 <aside className={`${styles.rail} ${rightRailExpanded ? styles.railExpanded : styles.railCollapsed}`}>
-                    <RailToggle label="Progress" expanded={rightRailExpanded} onClick={() => setRightRailExpanded((expanded) => !expanded)} />
-                    {rightRailExpanded && <TeamProgressPanel worldId={worldId} liveState={liveState} />}
+                    <RailToggle
+                        label={tacticalMode ? 'Formation' : 'Progress'}
+                        expanded={rightRailExpanded}
+                        onClick={() => setRightRailExpanded((expanded) => !expanded)}
+                    />
+                    {rightRailExpanded && (
+                        <div className={styles.railScroll}>
+                            {tacticalMode
+                                ? <FormationPanel match={activeMatch} metrics={metrics} />
+                                : <TeamProgressPanel worldId={worldId} liveState={liveState} />}
+                        </div>
+                    )}
                 </aside>
             </div>
         </section>
