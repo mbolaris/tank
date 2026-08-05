@@ -10,6 +10,14 @@ interface ScoreboardProps {
     unknownStage?: string;
     skippedReason?: string;
     errorMessage?: string;
+    /**
+     * §4.1: Tactical compresses the scoreboard to 44 px, score and clock only.
+     *
+     * The stage and status lines are *hidden*, not unmounted, so the state
+     * machine (§8) keeps driving the same DOM and switching modes cannot
+     * change what state the arena believes it is in.
+     */
+    compact?: boolean;
 }
 
 const STATUS_LABELS: Record<ArenaPresentation, string> = {
@@ -31,7 +39,7 @@ function stageLabel(match: SoccerMatchState | null, presentation: ArenaPresentat
     return 'FRIENDLY';
 }
 
-export function Scoreboard({ match, presentation, unknownStage, skippedReason, errorMessage }: ScoreboardProps) {
+export function Scoreboard({ match, presentation, unknownStage, skippedReason, errorMessage, compact = false }: ScoreboardProps) {
     const home = match?.home_name || match?.home_id || 'Home';
     const away = match?.away_name || match?.away_id || 'Away';
     const leftScore = match?.score.left ?? 0;
@@ -41,7 +49,12 @@ export function Scoreboard({ match, presentation, unknownStage, skippedReason, e
     const clockStopped = presentation === 'disconnected';
 
     return (
-        <section className={styles.scoreboard} data-testid="soccer-scoreboard" aria-label="Soccer scoreboard">
+        <section
+            className={`${styles.scoreboard}${compact ? ` ${styles.compact}` : ''}`}
+            data-testid="soccer-scoreboard"
+            data-compact={compact ? 'true' : undefined}
+            aria-label="Soccer scoreboard"
+        >
             <TeamBlock match={match} side="left" name={home} score={leftScore} />
             <div className={styles.centerBlock}>
                 <div className={styles.scoreLine}>

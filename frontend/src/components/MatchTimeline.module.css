@@ -1,0 +1,12 @@
+.timeline { display: grid; gap: 8px; padding: 12px 16px; color: #e2e8f0; }
+.heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.heading h3 { margin: 0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.count { color: #22d3ee; font: 800 9px var(--font-main); letter-spacing: 0.14em; }
+.empty { margin: 0; color: #64748b; font-size: 11px; }
+.rows { display: grid; gap: 2px; max-height: 132px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.row { display: grid; grid-template-columns: 46px minmax(88px, auto) minmax(0, 1fr); align-items: baseline; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.08); }
+.clock { color: #64748b; font: 10px ui-monospace, monospace; }
+.kind { color: #cbd5e1; font: 800 9px var(--font-main); letter-spacing: 0.1em; }
+.kind[data-kind='goal'] { color: #4ade80; }
+.kind[data-kind='full_time'], .kind[data-kind='half_time'] { color: #fbbf24; }
+.detail { overflow: hidden; color: #94a3b8; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }

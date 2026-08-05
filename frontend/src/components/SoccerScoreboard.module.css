@@ -28,6 +28,14 @@
 .progressDot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #64748b; }
 .progressDotLive { background: #4ade80; box-shadow: 0 0 8px rgba(74, 222, 128, 0.7); }
 .progressState { margin-left: auto; color: #94a3b8; text-transform: uppercase; }
+/* §4.1 Tactical: 44px, score + clock only. The pitch gets the space back. */
+.compact { min-height: 44px; }
+.compact .teamBlock { padding: 4px 12px; }
+.compact .teamEmblem, .compact .teamMeta, .compact .teamScore, .compact .stage, .compact .status { display: none; }
+.compact .teamName { font-size: 12px; }
+.compact .score { font-size: 20px; }
+.compact .clock { font-size: 11px; }
+.compact .stateMessage { bottom: 1px; font-size: 9px; }
 @media (max-width: 600px) {
     .scoreboard { grid-template-columns: 1fr 1fr; min-height: 84px; }
     .centerBlock { grid-column: 1 / -1; grid-row: 1; pointer-events: none; border: 0; }

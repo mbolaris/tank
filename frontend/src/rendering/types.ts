@@ -35,9 +35,23 @@ export interface TargetMemoryOverlayData {
     recentEvent: TargetMemoryOverlayRecentEvent | null;
 }
 
+/**
+ * Tactical-mode pitch annotations (§4.1).
+ *
+ * `roles` is keyed on `participant_id` (§10.2) and is *derived* upstream from
+ * mean position rather than assigned by the engine, so the renderer only ever
+ * draws what it is handed - it never infers a role itself.
+ */
+export interface SoccerTacticalOptions {
+    enabled: boolean;
+    roles?: Record<string, 'D' | 'M' | 'F'>;
+    selectedParticipantId?: string | null;
+}
+
 export interface RenderOptions {
     showEffects?: boolean;
     showSoccer?: boolean;
+    soccerTactical?: SoccerTacticalOptions | null;
     selectedEntityId?: number | null;
     viewMode?: ViewMode;
     pursuitOverlay?: PursuitOverlayData | null;

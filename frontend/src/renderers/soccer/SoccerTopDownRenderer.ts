@@ -5,7 +5,9 @@ import { clearAvatarPathCache } from '../avatar_renderer';
 import { resolveSoccerGeometry, soccerMatchSnapshot, type ResolvedSoccerFieldGeometry } from './fieldGeometry';
 import { BallLayer } from './BallLayer';
 import { LabelsLayer } from './LabelsLayer';
+import { PassLinesLayer } from './PassLinesLayer';
 import { PlayersLayer } from './PlayersLayer';
+import { TrailsLayer } from './TrailsLayer';
 import { drawDynamicSoccerLayers } from './DynamicLayers';
 import { soccerSceneFromFrame } from './scene';
 import { StaticFieldLayer } from './StaticFieldLayer';
@@ -17,9 +19,13 @@ export class SoccerTopDownRenderer implements Renderer {
     private readonly playersLayer = new PlayersLayer();
     private readonly ballLayer = new BallLayer();
     private readonly labelsLayer = new LabelsLayer();
+    private readonly trailsLayer = new TrailsLayer();
+    private readonly passLinesLayer = new PassLinesLayer();
 
     dispose(): void {
         clearAvatarPathCache();
+        this.trailsLayer.clear();
+        this.passLinesLayer.clear();
     }
 
     render(frame: RenderFrame, rc: RenderContext): void {
@@ -46,11 +52,37 @@ export class SoccerTopDownRenderer implements Renderer {
         const players = scene.entities.filter((entity) => entity.type === 'player');
         const balls = scene.entities.filter((entity) => entity.type === 'ball');
         const state = soccerMatchSnapshot(frame.snapshot);
-        drawDynamicSoccerLayers(ctx, rc, { entities: [...players, ...balls] }, state, geometry, transform, {
-            players: this.playersLayer,
-            ball: this.ballLayer,
-            labels: this.labelsLayer,
-        });
+        const tactical = frame.options?.soccerTactical ?? null;
+
+        if (tactical?.enabled) {
+            // Both layers dedupe by match frame internally, so the rAF loop can
+            // call them at display cadence without over-sampling.
+            this.trailsLayer.record(players, state.frame, state.match_id ?? null);
+            this.passLinesLayer.observe(players, state.ball_owner, state.frame, state.match_id ?? null);
+        } else if (this.trailsLayer.size) {
+            // Leaving Tactical drops the history rather than freezing it: a trail
+            // resumed after a minute in Broadcast would splice together two
+            // disconnected stretches of play into one continuous-looking path.
+            this.trailsLayer.clear();
+            this.passLinesLayer.clear();
+        }
+
+        drawDynamicSoccerLayers(
+            ctx,
+            rc,
+            { entities: [...players, ...balls] },
+            state,
+            geometry,
+            transform,
+            {
+                players: this.playersLayer,
+                ball: this.ballLayer,
+                labels: this.labelsLayer,
+                trails: this.trailsLayer,
+                passLines: this.passLinesLayer,
+            },
+            tactical,
+        );
     }
 
     private drawFieldOutline(
