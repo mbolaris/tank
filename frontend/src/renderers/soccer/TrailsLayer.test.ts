@@ -73,6 +73,29 @@ describe('TrailsLayer', () => {
         expect(layer.samplesFor(trailKey(player('left_1', 0)))).toHaveLength(1);
     });
 
+    it('starts a new trail at half time rather than drawing a line across the pitch', () => {
+        // `_handle_half_time` mirrors every position (x -> -x) while the frame
+        // keeps counting and the match id holds, so neither the match nor the
+        // rewind guard fires. Joining the two halves would draw a straight
+        // ~60m line from each player's old position to their mirrored one.
+        const layer = new TrailsLayer();
+        layer.record([player('left_1', -45)], 598, 'match-1', false);
+        layer.record([player('left_1', -44)], 599, 'match-1', false);
+        expect(layer.samplesFor(trailKey(player('left_1', 0)))).toHaveLength(2);
+
+        layer.record([player('left_1', 44)], 600, 'match-1', true);
+        const samples = layer.samplesFor(trailKey(player('left_1', 0)));
+        expect(samples).toHaveLength(1);
+        expect(samples[0].x).toBe(44);
+    });
+
+    it('keeps accumulating while the swap state holds', () => {
+        const layer = new TrailsLayer();
+        layer.record([player('left_1', 10)], 601, 'match-1', true);
+        layer.record([player('left_1', 11)], 602, 'match-1', true);
+        expect(layer.samplesFor(trailKey(player('left_1', 0)))).toHaveLength(2);
+    });
+
     it('discards history the sim has rewound past', () => {
         const layer = new TrailsLayer();
         layer.record([player('left_1', 0)], 10, 'match-1');

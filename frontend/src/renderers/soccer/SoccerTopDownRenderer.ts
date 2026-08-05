@@ -10,6 +10,7 @@ import { PlayersLayer } from './PlayersLayer';
 import { TrailsLayer } from './TrailsLayer';
 import { drawDynamicSoccerLayers } from './DynamicLayers';
 import { soccerSceneFromFrame } from './scene';
+import { sidesAreSwapped } from './sideAssignment';
 import { StaticFieldLayer } from './StaticFieldLayer';
 import { usePitchTransform, type PitchTransform } from './usePitchTransform';
 
@@ -56,9 +57,13 @@ export class SoccerTopDownRenderer implements Renderer {
 
         if (tactical?.enabled) {
             // Both layers dedupe by match frame internally, so the rAF loop can
-            // call them at display cadence without over-sampling.
-            this.trailsLayer.record(players, state.frame, state.match_id ?? null);
-            this.passLinesLayer.observe(players, state.ball_owner, state.frame, state.match_id ?? null);
+            // call them at display cadence without over-sampling. They also need
+            // the swap: half time mirrors every position without changing the
+            // match id or rewinding the frame, so it is invisible to their other
+            // reset guards.
+            const swapped = sidesAreSwapped(state);
+            this.trailsLayer.record(players, state.frame, state.match_id ?? null, swapped);
+            this.passLinesLayer.observe(players, state.ball_owner, state.frame, state.match_id ?? null, swapped);
         } else if (this.trailsLayer.size) {
             // Leaving Tactical drops the history rather than freezing it: a trail
             // resumed after a minute in Broadcast would splice together two

@@ -93,6 +93,26 @@ describe('PassLinesLayer', () => {
         expect(layer.activePasses(1)).toHaveLength(1);
     });
 
+    it('drops pass lines at half time, when the pitch is mirrored under them', () => {
+        // The frame keeps counting and the match id holds across the swap, so
+        // a line drawn before it would hang at coordinates nobody stands on.
+        const layer = new PassLinesLayer();
+        layer.observe(squad, 'left_1', 598, 'match-1', false);
+        layer.observe(squad, 'left_2', 599, 'match-1', false);
+        expect(layer.activePasses(599)).toHaveLength(1);
+
+        layer.observe(squad, 'left_2', 600, 'match-1', true);
+        expect(layer.activePasses(600)).toHaveLength(0);
+    });
+
+    it('does not link a release across the half-time mirror', () => {
+        const layer = new PassLinesLayer();
+        layer.observe(squad, 'left_1', 598, 'match-1', false);
+        layer.observe(squad, null, 599, 'match-1', false);
+        layer.observe(squad, 'left_2', 601, 'match-1', true);
+        expect(layer.activePasses(601)).toHaveLength(0);
+    });
+
     it('forgets the previous match', () => {
         const layer = new PassLinesLayer();
         layer.observe(squad, 'left_1', 0, 'match-1');

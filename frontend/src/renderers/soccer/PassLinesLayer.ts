@@ -58,6 +58,7 @@ export class PassLinesLayer {
     private lastOwner: string | null = null;
     private lastFrame: number | null = null;
     private matchId: string | null = null;
+    private sidesSwapped: boolean | null = null;
 
     /** Feed one match frame. Repeat and rewound frames are ignored. */
     observe(
@@ -65,11 +66,17 @@ export class PassLinesLayer {
         ballOwner: string | null | undefined,
         frame: number,
         matchId: string | null = null,
+        sidesSwapped = false,
     ): void {
         if (matchId !== this.matchId) {
             this.clear();
             this.matchId = matchId;
         }
+        // Half time mirrors every position. A pending release recorded before
+        // the swap would link to a receiver on the mirrored pitch, and lines
+        // already drawn would hang at coordinates nobody is standing on.
+        if (this.sidesSwapped !== null && this.sidesSwapped !== sidesSwapped) this.clear();
+        this.sidesSwapped = sidesSwapped;
         if (this.lastFrame !== null && frame < this.lastFrame) this.clear();
         if (this.lastFrame === frame) return;
         this.lastFrame = frame;
@@ -157,6 +164,7 @@ export class PassLinesLayer {
         this.release = null;
         this.lastOwner = null;
         this.lastFrame = null;
+        this.sidesSwapped = null;
     }
 
     draw(ctx: CanvasRenderingContext2D, frame: number, transform: PitchTransform): void {

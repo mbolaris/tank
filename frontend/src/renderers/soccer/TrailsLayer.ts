@@ -33,6 +33,7 @@ export class TrailsLayer {
     private readonly trails = new Map<string, TrailSample[]>();
     private lastRecordedFrame: number | null = null;
     private matchId: string | null = null;
+    private sidesSwapped: boolean | null = null;
 
     /**
      * Append one sample per player for `frame`.
@@ -42,12 +43,23 @@ export class TrailsLayer {
      * buffer with a fraction of a second of history, so a frame is sampled
      * exactly once and repeat ticks are dropped.
      */
-    record(players: readonly SoccerRenderEntity[], frame: number, matchId: string | null = null): void {
+    record(
+        players: readonly SoccerRenderEntity[],
+        frame: number,
+        matchId: string | null = null,
+        sidesSwapped = false,
+    ): void {
         if (matchId !== this.matchId) {
             // A different match shares nothing with the previous one's history.
             this.clear();
             this.matchId = matchId;
         }
+        // At half time the engine mirrors every position while the frame keeps
+        // counting and the match id holds, so neither of the other guards
+        // fires. Joining the two halves would draw a straight line the length
+        // of the pitch from each player's old position to their mirrored one.
+        if (this.sidesSwapped !== null && this.sidesSwapped !== sidesSwapped) this.clear();
+        this.sidesSwapped = sidesSwapped;
         // A rewound frame means a replay seek or a restarted match; holding the
         // old future would draw a trail the player has not walked yet.
         if (this.lastRecordedFrame !== null && frame < this.lastRecordedFrame) this.clear();
@@ -82,6 +94,7 @@ export class TrailsLayer {
     clear(): void {
         this.trails.clear();
         this.lastRecordedFrame = null;
+        this.sidesSwapped = null;
     }
 
     draw(

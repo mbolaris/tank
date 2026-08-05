@@ -47,12 +47,14 @@ interface PlayerHistory {
 interface Accumulator {
     matchId: string | null;
     lastFrame: number | null;
+    /** The swap state the samples were taken under; a change invalidates them. */
+    sidesSwapped: boolean | null;
     players: Map<string, PlayerHistory>;
     owners: { participantId: string; side: 'left' | 'right' }[];
 }
 
 function emptyAccumulator(): Accumulator {
-    return { matchId: null, lastFrame: null, players: new Map(), owners: [] };
+    return { matchId: null, lastFrame: null, sidesSwapped: null, players: new Map(), owners: [] };
 }
 
 function summarise(accumulator: Accumulator, fieldLength: number, sidesSwapped: boolean): FormationMetrics {
@@ -139,12 +141,25 @@ export function useFormationMetrics(match: SoccerMatchState | null, enabled: boo
         if (!enabled || !match || frame === null) return;
         const accumulator = accumulatorRef.current;
 
-        // A new match, or a rewound clock, shares no history with what came before.
-        if (accumulator.matchId !== matchId || (accumulator.lastFrame !== null && frame < accumulator.lastFrame)) {
+        // A new match, a rewound clock, or a half-time swap shares no history
+        // with what came before.
+        //
+        // The swap is the subtle one: `_handle_half_time` mirrors every position
+        // (`x -> -x`) while the frame keeps counting up and the match id is
+        // unchanged, so neither of the other two guards fires. Averaging across
+        // it pulls every mean toward the halfway line and reads deep defenders
+        // as midfielders for a full window.
+        const swapChanged = accumulator.sidesSwapped !== null && accumulator.sidesSwapped !== sidesSwapped;
+        if (
+            accumulator.matchId !== matchId ||
+            swapChanged ||
+            (accumulator.lastFrame !== null && frame < accumulator.lastFrame)
+        ) {
             accumulatorRef.current = emptyAccumulator();
             accumulatorRef.current.matchId = matchId;
         }
         const current = accumulatorRef.current;
+        current.sidesSwapped = sidesSwapped;
         // Interpolated rAF ticks repeat a frame; sampling them would shrink the
         // window to a fraction of a second of real play.
         if (current.lastFrame === frame) return;
