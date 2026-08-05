@@ -13,6 +13,18 @@ on:
         default: false
   schedule:
     - cron: '0 9 * * *'
+  # Champion reproduction and determinism are properties of a *change*, so they
+  # have to be checked before the change lands. Running these only on the cron
+  # meant a behavior-changing merge went green and the stale champion surfaced
+  # as a mystery nightly failure days later - see PR #940, where the nightly was
+  # red for four consecutive nights before anyone traced it back to 3655442a.
+  pull_request:
+
+# A PR that gets pushed twice does not need two full benchmark runs; the cron
+# and dispatch runs are never superseded, so only PR runs cancel.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify-champions:
