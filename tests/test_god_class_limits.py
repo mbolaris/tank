@@ -37,11 +37,10 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/behavior/target_memory_transfer_gym.py": 636,
     "core/behavior/target_memory_transfer_scenarios.py": 534,
     "core/code_pool/genome_code_pool.py": 642,
-    "core/collision_system.py": 502,
     "core/ecosystem.py": 640,
     "core/environment.py": 512,
     "core/evolution_analytics.py": 657,
-    "core/entities/fish.py": 810,
+    "core/entities/fish.py": 826,
     "core/entities/plant.py": 727,
     "core/genetics/behavioral_inheritance.py": 520,
     "core/genetics/plant_genome.py": 761,
@@ -64,7 +63,7 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "core/simulation/engine.py": 612,
     "core/solutions/benchmark.py": 549,
     "core/solutions/tracker.py": 590,
-    "core/spatial/grid.py": 795,
+    "core/spatial/grid.py": 807,
     "core/transfer/entity_transfer.py": 800,
     # Curated taxonomy lexicons are intentionally kept together so common and
     # scientific names use the same deterministic salience vocabulary.

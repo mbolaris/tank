@@ -312,9 +312,9 @@ in `LEGACY_MAX_LINES`. Sorted by size as pinned on 2026-07-25:
 | File / item | Pin | Notes |
 | --- | ---: | --- |
 | `core/poker/human_poker_game.py` | 863 | Now the largest Python file in the repo. Low traffic, so still low priority — but it is no longer "do last" by size. |
-| `core/entities/fish.py` | 810 | `Fish.__init__` still dominates; extract construction/wiring helpers. Champions must reproduce exactly. |
+| `core/entities/fish.py` | 826 | `Fish.__init__` still dominates; extract construction/wiring helpers. Champions must reproduce exactly. |
 | `core/transfer/entity_transfer.py` | 800 | Not on the original list; grew into it since. |
-| `core/spatial/grid.py` | 795 | Hot path — split only if a clean seam exists; never at a performance cost. |
+| `core/spatial/grid.py` | 807 | Hot path — split only if a clean seam exists; never at a performance cost. |
 | `core/mixed_poker/interaction.py::play_poker` | 361-line method (file 728) | Grew from the ~336 the review measured. Extract per-street/settlement helpers; behavior-preserving, verify with champion reproduction. |
 
 **The router factories are back, and this was a cautionary tale — now

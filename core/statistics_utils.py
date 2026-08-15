@@ -178,7 +178,11 @@ def population_variance(values: Sequence[float]) -> float:
     if n < 2:
         return 0.0
     mean_value = sum(values) / n
-    return sum((v - mean_value) ** 2 for v in values) / n
+    total_sq_diff = 0.0
+    for v in values:
+        diff = v - mean_value
+        total_sq_diff += diff * diff
+    return total_sq_diff / n
 
 
 def pearson_correlation(x_values: Sequence[float], y_values: Sequence[float]) -> float:

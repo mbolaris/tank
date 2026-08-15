@@ -296,17 +296,14 @@ class CollisionSystem(BaseSystem):
 
             # Use spatial grid to get nearby entities (within collision range)
             if environment is not None:
-                # Optimize: Get all interaction candidates (Fish, Food, Crabs) in a single pass
+                # Optimize: Get interaction candidates (Food, Crabs) without unneeded fish
                 if hasattr(environment, "nearby_interaction_candidates"):
                     nearby_entities = environment.nearby_interaction_candidates(
-                        fish, radius=COLLISION_QUERY_RADIUS, crab_type=Crab
+                        fish, radius=COLLISION_QUERY_RADIUS, crab_type=Crab, include_fish=False
                     )
                 elif hasattr(environment, "nearby_evolving_agents"):
                     # Fallback to multi-pass if combined query not available
                     nearby_entities = []
-                    nearby_entities.extend(
-                        environment.nearby_evolving_agents(fish, radius=COLLISION_QUERY_RADIUS)
-                    )
                     nearby_entities.extend(
                         environment.nearby_resources(fish, radius=COLLISION_QUERY_RADIUS)
                     )
@@ -316,17 +313,16 @@ class CollisionSystem(BaseSystem):
                         )
                     )
                 else:
-                    nearby_entities = environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
+                    nearby_entities = [
+                        e
+                        for e in environment.nearby_agents(fish, radius=COLLISION_QUERY_RADIUS)
+                        if isinstance(e, (Crab, Food))
+                    ]
             else:
                 # Fallback to checking all entities if no environment
-                nearby_entities = [e for e in all_entities if e is not fish]
+                nearby_entities = [e for e in all_entities if isinstance(e, (Crab, Food))]
 
-            # Fish-fish proximity is handled by PokerProximitySystem, so this
-            # loop only acts on Crab/Food. Drop the fish (usually most of the
-            # neighborhood) before sorting and iterating; removing entities the
-            # loop never acts on preserves the collision_sort_key order of the
-            # rest, keeping trajectories identical.
-            candidates = [e for e in nearby_entities if isinstance(e, (Crab, Food))]
+            candidates = nearby_entities
             if len(candidates) > 1:
                 candidates.sort(key=collision_sort_key)
 

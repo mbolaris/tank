@@ -42,10 +42,17 @@ def _numeric_energy_ratio(fish: Fish) -> float | None:
         if isinstance(ratio, (int, float)):
             return max(0.0, ratio)
 
-    energy = getattr(fish, "energy", None)
-    max_energy = getattr(fish, "max_energy", None)
-    if isinstance(energy, (int, float)) and isinstance(max_energy, (int, float)) and max_energy > 0:
-        return max(0.0, energy / max_energy)
+    try:
+        energy = fish.energy
+        max_energy = fish.max_energy
+        if (
+            isinstance(energy, (int, float))
+            and isinstance(max_energy, (int, float))
+            and max_energy > 0
+        ):
+            return max(0.0, energy / max_energy)
+    except AttributeError:
+        pass
 
     return None
 
@@ -74,10 +81,11 @@ def predict_food_target(
     """
     target_pos: Vector2 = food.pos
 
-    if not hasattr(food, "vel"):
+    try:
+        food_vel = food.vel
+    except AttributeError:
         return target_pos
 
-    food_vel = food.vel
     if food_vel.length() <= 0.01:
         return target_pos
 
@@ -115,6 +123,34 @@ class FoodCandidateScore:
     score: float
 
 
+def _get_nearby_food_candidates(fish: Fish) -> tuple[list[Food], float]:
+    env = fish.environment
+    if env is None:
+        return [], 0.0
+
+    get_det_mod = getattr(env, "get_detection_modifier", None)
+    detection_modifier = get_det_mod() if callable(get_det_mod) else 1.0
+    detection_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
+    chase_distance = _food_chase_distance_for_energy(fish)
+    max_distance = min(detection_distance, chase_distance)
+
+    nearby_fn = getattr(env, "nearby_resources", None)
+    if callable(nearby_fn):
+        nearby = cast(list[Food], nearby_fn(fish, int(max_distance) + 1))
+    else:
+        nearby_agents_fn = getattr(env, "nearby_agents_by_type", None)
+        if callable(nearby_agents_fn):
+            nearby = cast(list[Food], nearby_agents_fn(fish, int(max_distance) + 1, Food))
+        else:
+            nearby = []
+    return nearby, max_distance
+
+
+def _food_energy_val(food: Food) -> float:
+    get_energy = getattr(food, "get_energy_value", None)
+    return get_energy() if callable(get_energy) else 1.0
+
+
 def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
     """Score every food item within detection/chase range.
 
@@ -123,42 +159,37 @@ def score_food_candidates(fish: Fish) -> list[FoodCandidateScore]:
     ``select_food_target`` is a thin wrapper that picks the max from this list,
     so the two can never disagree on what "value" means.
     """
-    env = fish.environment
-
-    detection_modifier = getattr(env, "get_detection_modifier", lambda: 1.0)()
-    detection_distance = BASE_FOOD_DETECTION_RANGE * detection_modifier
-    chase_distance = _food_chase_distance_for_energy(fish)
-    max_distance = min(detection_distance, chase_distance)
-    max_distance_sq = max_distance * max_distance
-
-    if hasattr(env, "nearby_resources"):
-        nearby = cast(list[Food], env.nearby_resources(fish, int(max_distance) + 1))
-    else:
-        nearby = cast(list[Food], env.nearby_agents_by_type(fish, int(max_distance) + 1, Food))
+    nearby, max_distance = _get_nearby_food_candidates(fish)
     if not nearby:
         return []
 
+    max_distance_sq = max_distance * max_distance
     fish_x = fish.pos.x
     fish_y = fish.pos.y
     candidates: list[FoodCandidateScore] = []
+    candidates_append = candidates.append
+    weight = FOOD_QUALITY_DISTANCE_WEIGHT
 
     for food in nearby:
-        dx = food.pos.x - fish_x
-        dy = food.pos.y - fish_y
+        f_pos = food.pos
+        fx = f_pos.x
+        fy = f_pos.y
+        dx = fx - fish_x
+        dy = fy - fish_y
         dist_sq = dx * dx + dy * dy
         if dist_sq > max_distance_sq:
             continue
 
-        get_energy = getattr(food, "get_energy_value", None)
-        energy = get_energy() if callable(get_energy) else 1.0
+        energy = _food_energy_val(food)
         distance = math.sqrt(dist_sq)
-        score = energy / (1.0 + FOOD_QUALITY_DISTANCE_WEIGHT * distance)
+        score = energy / (1.0 + weight * distance)
 
-        candidates.append(
+        f_vel = food.vel
+        candidates_append(
             FoodCandidateScore(
                 food=food,
-                position=(float(food.pos.x), float(food.pos.y)),
-                velocity=(float(food.vel.x), float(food.vel.y)),
+                position=(float(fx), float(fy)),
+                velocity=(float(f_vel.x), float(f_vel.y)),
                 score=score,
             )
         )
@@ -185,17 +216,36 @@ def select_food_target(fish: Fish) -> Food | None:
     IEEE-754), with an explicit ``(pos.x, pos.y)`` tie-break so the choice never
     depends on spatial-query iteration order.
     """
+    nearby, max_distance = _get_nearby_food_candidates(fish)
+    if not nearby:
+        return None
+
+    max_distance_sq = max_distance * max_distance
+    fish_x = fish.pos.x
+    fish_y = fish.pos.y
     best: Food | None = None
     best_score = -1.0
     best_key: tuple[float, float] | None = None
+    weight = FOOD_QUALITY_DISTANCE_WEIGHT
 
-    for candidate in score_food_candidates(fish):
-        key = candidate.position
-        if candidate.score > best_score or (
-            candidate.score == best_score and (best_key is None or key < best_key)
-        ):
-            best_score = candidate.score
-            best = candidate.food
+    for food in nearby:
+        f_pos = food.pos
+        fx = f_pos.x
+        fy = f_pos.y
+        dx = fx - fish_x
+        dy = fy - fish_y
+        dist_sq = dx * dx + dy * dy
+        if dist_sq > max_distance_sq:
+            continue
+
+        energy = _food_energy_val(food)
+        distance = math.sqrt(dist_sq)
+        score = energy / (1.0 + weight * distance)
+        key = (float(fx), float(fy))
+
+        if score > best_score or (score == best_score and (best_key is None or key < best_key)):
+            best_score = score
+            best = food
             best_key = key
 
     return best

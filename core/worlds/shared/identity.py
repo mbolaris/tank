@@ -74,8 +74,10 @@ class TankLikeEntityIdentityProvider:
     ANON_OFFSET = 6_000_000
 
     def __init__(self) -> None:
+        _load_offsets()
         # Stable ID generation for entities without intrinsic IDs
         self._entity_stable_ids: dict[int, int] = {}
+        self._identity_cache: dict[int, tuple[str, str]] = {}
         self._next_food_id: int = 0
         self._next_nectar_id: int = 0
         self._next_other_id: int = 0
@@ -105,9 +107,11 @@ class TankLikeEntityIdentityProvider:
         Returns:
             Tuple of (entity_type, entity_id) with stable IDs
         """
-        _load_offsets()
-
         python_id = id(entity)
+        cached = self._identity_cache.get(python_id)
+        if cached is not None:
+            self._stable_id_to_entity[cached[1]] = entity
+            return cached
 
         # Determine entity type via protocol.
         # Guard against non-string snapshot_type (e.g., mocks or misconfigured entities).
@@ -126,7 +130,9 @@ class TankLikeEntityIdentityProvider:
             stable_id = intrinsic_id + offset
             stable_id_str = str(stable_id)
             self._stable_id_to_entity[stable_id_str] = entity
-            return entity_type, stable_id_str
+            res = (entity_type, stable_id_str)
+            self._identity_cache[python_id] = res
+            return res
 
         # Entities without intrinsic IDs use counter-based stable IDs
         if python_id not in self._entity_stable_ids:
@@ -144,7 +150,9 @@ class TankLikeEntityIdentityProvider:
 
         stable_id_str = str(self._entity_stable_ids[python_id])
         self._stable_id_to_entity[stable_id_str] = entity
-        return entity_type, stable_id_str
+        res = (entity_type, stable_id_str)
+        self._identity_cache[python_id] = res
+        return res
 
     def get_entity_by_id(self, entity_id: str) -> object | None:
         """Lookup an entity by its stable ID.
@@ -188,3 +196,6 @@ class TankLikeEntityIdentityProvider:
         stale_ids = set(self._entity_stable_ids.keys()) - current_entity_ids
         for stale_id in stale_ids:
             del self._entity_stable_ids[stale_id]
+        stale_cache = set(self._identity_cache.keys()) - current_entity_ids
+        for stale_id in stale_cache:
+            del self._identity_cache[stale_id]

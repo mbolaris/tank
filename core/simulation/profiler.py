@@ -10,8 +10,7 @@ def is_profiling(engine: object) -> bool:
     """Check if profiling is enabled on the engine, screening out mock objects."""
     if engine is None:
         return False
-    val = getattr(engine, "profile_phases", False)
-    return isinstance(val, bool) and val
+    return getattr(engine, "profile_phases", False) is True
 
 
 class PhaseProfiler:

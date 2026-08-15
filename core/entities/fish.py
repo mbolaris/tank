@@ -54,7 +54,11 @@ from core.agents.components.reproduction_component import ReproductionComponent
 from core.behavior.feature_flags import install_default_behavior_graph_features
 from core.energy.energy_component import EnergyComponent
 from core.fish.behavior_executor import BehaviorExecutor
-from core.fish.visual_geometry import calculate_visual_bounds, extract_traits_from_genome
+from core.fish.visual_geometry import (
+    FishTraits,
+    calculate_visual_bounds,
+    extract_traits_from_genome,
+)
 from core.genetics import Genome
 from core.telemetry.events import BirthEvent, FoodEatenEvent
 
@@ -298,6 +302,9 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
 
         # Rendering-only state is stored separately to keep domain logic lean.
         self.visual_state = FishVisualState()
+        self._cached_visual_traits: FishTraits | None = None
+        self._cached_visual_offsets: tuple[float, float, float, float] | None = None
+        self._cached_visual_offsets_size: float | None = None
 
         # Optional: Override movement policy (if set, used instead of genome behavior)
         self._movement_policy: MovementPolicyOverride | None = None
@@ -612,9 +619,21 @@ class Fish(EnergyManagementMixin, MortalityMixin, ReproductionMixin, GenericAgen
         Accounts for lifecycle scaling and parametric template geometry so the
         rendered fish stays inside the tank bounds.
         """
+        current_size = self.size
+        if (
+            self._cached_visual_offsets is not None
+            and self._cached_visual_offsets_size == current_size
+        ):
+            return self._cached_visual_offsets
+
+        if self._cached_visual_traits is None:
+            self._cached_visual_traits = extract_traits_from_genome(self.genome)
+
         base_size = max(self.width, self.height)
-        traits = extract_traits_from_genome(self.genome)
-        return calculate_visual_bounds(base_size, self.size, traits)
+        offsets = calculate_visual_bounds(base_size, current_size, self._cached_visual_traits)
+        self._cached_visual_offsets = offsets
+        self._cached_visual_offsets_size = current_size
+        return offsets
 
     def constrain_to_screen(self) -> None:
         """Override to use cached bounds."""

@@ -384,7 +384,11 @@ class Environment:
         return self.spatial_grid.query_food(agent, float(radius))
 
     def nearby_interaction_candidates(
-        self, agent: Entity, radius: float, crab_type: type[Entity]
+        self,
+        agent: Entity,
+        radius: float,
+        crab_type: type[Entity],
+        include_fish: bool = True,
     ) -> list[Entity]:
         """
         Optimized method to get nearby Fish, Food, and Crabs in a single pass.
@@ -392,10 +396,14 @@ class Environment:
         engine = getattr(self, "engine", None)
         if is_profiling(engine) and engine is not None:
             start = time.perf_counter()
-            res = self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
+            res = self.spatial_grid.query_interaction_candidates(
+                agent, float(radius), crab_type, include_fish=include_fish
+            )
             engine.profiler.record_query(time.perf_counter() - start)
             return res
-        return self.spatial_grid.query_interaction_candidates(agent, float(radius), crab_type)
+        return self.spatial_grid.query_interaction_candidates(
+            agent, float(radius), crab_type, include_fish=include_fish
+        )
 
     def nearby_poker_entities(self, agent: Entity, radius: float) -> list[Entity]:
         """

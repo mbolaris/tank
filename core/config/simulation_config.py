@@ -331,9 +331,13 @@ class SimulationConfig:
         """
         cfg = deepcopy(self)
 
-        # Headless mode
+        # Headless mode and debug flags
         if "headless" in config_dict:
             cfg.headless = bool(config_dict["headless"])
+        if "enable_phase_debug" in config_dict:
+            cfg.enable_phase_debug = bool(config_dict["enable_phase_debug"])
+        if "profile_phases" in config_dict:
+            cfg.profile_phases = bool(config_dict["profile_phases"])
 
         # Display
         display_map = {
