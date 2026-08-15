@@ -1,4 +1,5 @@
 import json
+import re
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,6 +13,9 @@ from backend.security import (
     RequestValidationMiddleware,
     WebSocketLimiter,
     WebSocketMessageRateLimiter,
+    is_origin_allowed,
+    resolve_allowed_origins,
+    resolve_bind_host,
     resolve_client_ip,
 )
 
@@ -257,3 +261,136 @@ def test_websocket_get_client_ip_shares_http_trust_boundary(
         headers = Headers({"X-Forwarded-For": "203.0.113.5"})
 
     assert _get_client_ip(_FakeWebSocket()) == "203.0.113.5"  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Browser origin policy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://localhost:3000",
+        "http://127.0.0.1:8000",
+        "http://[::1]:3000",
+        "https://localhost",
+        "http://192.168.1.42:3000",
+        "http://10.0.0.7:3000",
+        "http://172.16.5.4:3000",
+    ],
+)
+def test_local_origins_allowed_by_default(origin: str) -> None:
+    """Loopback and private-network origins keep working with no config.
+
+    The frontend derives its socket URL from window.location.hostname, so a
+    LAN-accessed UI presents a private-IP origin; rejecting those would break
+    the supported workflow.
+    """
+    assert is_origin_allowed(origin, [])
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://evil.example",
+        "https://attacker.test:3000",
+        "http://8.8.8.8:3000",
+        "http://localhost.evil.example",
+        "http://127.0.0.1.evil.example",
+        "file://",
+        "null",
+    ],
+)
+def test_public_origins_rejected_by_default(origin: str) -> None:
+    """Any origin off the local network is refused.
+
+    Covers the real attack: a page the operator happens to visit reaching the
+    unauthenticated simulation API. Includes suffix-confusion hosts, which a
+    naive substring check on "localhost"/"127.0.0.1" would wrongly admit.
+    """
+    assert not is_origin_allowed(origin, [])
+
+
+def test_missing_origin_allowed_for_non_browser_clients() -> None:
+    """curl and the tools/ CLI scripts send no Origin and must keep working."""
+    assert is_origin_allowed(None, [])
+    assert is_origin_allowed("", [])
+
+
+def test_explicit_allowlist_is_exact_and_overrides_local_default() -> None:
+    """An explicit ALLOWED_ORIGINS wins outright — including over loopback."""
+    allowed = ["https://tank.example.com"]
+    assert is_origin_allowed("https://tank.example.com", allowed)
+    assert not is_origin_allowed("https://tank.example.com.evil.test", allowed)
+    assert not is_origin_allowed("http://localhost:3000", allowed)
+
+
+def test_resolve_allowed_origins_parses_and_trims() -> None:
+    assert resolve_allowed_origins("https://a.test, https://b.test ,") == [
+        "https://a.test",
+        "https://b.test",
+    ]
+    assert resolve_allowed_origins("") == []
+
+
+def test_local_origin_regex_matches_predicate() -> None:
+    """CORSMiddleware matches by regex while the WS path uses the predicate;
+    they must agree or the two surfaces would drift apart."""
+    pattern = re.compile(security_module.LOCAL_ORIGIN_REGEX)
+    for origin in ("http://localhost:3000", "http://192.168.1.9:5173", "http://[::1]:8000"):
+        assert pattern.match(origin), origin
+        assert is_origin_allowed(origin, [])
+    for origin in ("http://evil.example", "http://127.0.0.1.evil.example"):
+        assert not pattern.match(origin), origin
+
+
+def test_resolve_bind_host_defaults_to_loopback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The API is unauthenticated, so it must not reach the LAN by default."""
+    monkeypatch.delenv("TANK_BIND_HOST", raising=False)
+    assert resolve_bind_host() == "127.0.0.1"
+
+    monkeypatch.setenv("TANK_BIND_HOST", "0.0.0.0")
+    assert resolve_bind_host() == "0.0.0.0"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("origin", "expect_rejected"),
+    [
+        ("http://evil.example", True),
+        ("http://localhost:3000", False),
+        ("http://192.168.1.42:3000", False),
+        (None, False),
+    ],
+)
+async def test_websocket_handshake_enforces_origin(
+    origin: str | None, expect_rejected: bool
+) -> None:
+    """The WS handshake must close disallowed origins *before* accept().
+
+    CORS does not cover WebSockets, so without this check any page the
+    operator visits could open the socket and issue simulation commands
+    (pause/reset/config). Rejection must happen before accept() so a blocked
+    origin never reaches the command loop.
+    """
+    from backend.routers.websocket import _reject_disallowed_origin
+
+    closed: list[int] = []
+    accepted: list[bool] = []
+
+    class _FakeWebSocket:
+        headers = Headers({"origin": origin} if origin else {})
+
+        async def close(self, code: int = 1000) -> None:
+            closed.append(code)
+
+        async def accept(self) -> None:
+            accepted.append(True)
+
+    ws = _FakeWebSocket()
+    rejected = await _reject_disallowed_origin(ws, "world-1234abcd")  # type: ignore[arg-type]
+
+    assert rejected is expect_rejected
+    assert accepted == []  # never accepted during the check
+    assert closed == ([4403] if expect_rejected else [])

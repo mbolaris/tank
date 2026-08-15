@@ -45,7 +45,7 @@ from backend.discovery_service import DiscoveryService
 from backend.logging_config import configure_logging
 from backend.migration_scheduler import MigrationScheduler
 from backend.models import ServerInfo
-from backend.security import setup_security_middleware
+from backend.security import LOCAL_ORIGIN_REGEX, resolve_allowed_origins, setup_security_middleware
 from backend.server_client import ServerClient
 from backend.skill_evaluation_service import SkillEvaluationService
 from backend.startup_manager import StartupManager
@@ -82,9 +82,7 @@ class AppContext:
     production_mode: bool = field(
         default_factory=lambda: os.getenv("PRODUCTION", "false").lower() == "true"
     )
-    allowed_origins: list = field(
-        default_factory=lambda: os.getenv("ALLOWED_ORIGINS", "*").split(",")
-    )
+    allowed_origins: list = field(default_factory=resolve_allowed_origins)
 
     # Runtime state (initialized during lifespan)
     startup_manager: StartupManager | None = None
@@ -221,12 +219,13 @@ def create_app(
     context.logger = logger
 
     # --- Production security hardening ---
-    if context.production_mode and context.allowed_origins == ["*"]:
+    if context.production_mode and (not context.allowed_origins or "*" in context.allowed_origins):
         raise RuntimeError(
-            "SECURITY ERROR: ALLOWED_ORIGINS=* is not permitted in production mode. "
-            "Set ALLOWED_ORIGINS to your actual frontend domain(s), e.g. "
-            "'ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com'. "
-            "Wildcard CORS with credentials enabled is a security vulnerability."
+            "SECURITY ERROR: production mode requires an explicit ALLOWED_ORIGINS "
+            "allowlist and does not permit '*'. Set it to your actual frontend "
+            "domain(s), e.g. 'ALLOWED_ORIGINS=https://yourdomain.com,"
+            "https://www.yourdomain.com'. Wildcard CORS with credentials enabled "
+            "is a security vulnerability."
         )
 
     # Create lifespan with context closure
@@ -294,17 +293,32 @@ def create_app(
     # Attach context to app state for access in routes
     app.state.context = context
 
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=context.allowed_origins if context.production_mode else ["*"],
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
-    )
+    # Add CORS middleware.
+    #
+    # Never "*" with allow_credentials: Starlette echoes the caller's Origin
+    # back in that combination, so any site on the internet could read
+    # authenticated responses from a locally running server. An explicit
+    # ALLOWED_ORIGINS list wins; otherwise fall back to loopback/private
+    # origins only (see backend.security for the shared policy, which the
+    # WebSocket handshake applies too).
+    cors_kwargs: dict[str, Any] = {
+        "allow_credentials": True,
+        "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["*"],
+    }
+    if context.allowed_origins:
+        cors_kwargs["allow_origins"] = context.allowed_origins
+    else:
+        cors_kwargs["allow_origins"] = []
+        cors_kwargs["allow_origin_regex"] = LOCAL_ORIGIN_REGEX
 
-    # Add security middleware
-    setup_security_middleware(app, enable_rate_limiting=context.production_mode)
+    app.add_middleware(CORSMiddleware, **cors_kwargs)
+
+    # Add security middleware. Rate limiting is on outside production too:
+    # IP_WHITELIST exempts loopback by default, so local development is
+    # unaffected, but a server deliberately exposed with TANK_BIND_HOST no
+    # longer depends on PRODUCTION=true to get any limiting at all.
+    setup_security_middleware(app, enable_rate_limiting=True)
 
     return app
 

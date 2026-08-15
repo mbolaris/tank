@@ -9,6 +9,7 @@ import os
 import uvicorn
 
 from backend.app_factory import create_app
+from backend.security import resolve_bind_host
 
 # Create the application instance using the factory
 # This global 'app' variable is what uvicorn looks for
@@ -26,7 +27,7 @@ def main() -> None:
     # Configure uvicorn
     uvicorn.run(
         "backend.main:app",
-        host="0.0.0.0",
+        host=resolve_bind_host(),
         port=port,
         reload=not is_production,
         log_level="info",

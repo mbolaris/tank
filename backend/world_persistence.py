@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from backend.lineage_restore import advance_fish_id_counter, restore_lineage_state
+from backend.world_paths import DATA_DIR, world_data_dir
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 from core.exceptions import PersistenceError
 
@@ -24,10 +25,6 @@ if TYPE_CHECKING:
     from backend.runner.runner_protocol import RunnerProtocol
 
 logger = logging.getLogger(__name__)
-
-
-# Base directory for all world data
-DATA_DIR = Path("data/worlds")
 
 
 def _bootstrap_transient_elements(engine: Any) -> None:
@@ -144,7 +141,7 @@ def ensure_world_directory(world_id: str) -> Path:
     Returns:
         Path to the world's data directory
     """
-    world_dir = DATA_DIR / world_id / "snapshots"
+    world_dir = world_data_dir(world_id, DATA_DIR) / "snapshots"
     world_dir.mkdir(parents=True, exist_ok=True)
     return world_dir
 
@@ -561,7 +558,7 @@ def list_world_snapshots(world_id: str) -> list[dict[str, Any]]:
     Returns:
         List of snapshot metadata (filename, timestamp, frame)
     """
-    world_dir = DATA_DIR / world_id / "snapshots"
+    world_dir = world_data_dir(world_id, DATA_DIR) / "snapshots"
     if not world_dir.exists():
         return []
 
@@ -665,8 +662,8 @@ def delete_world_data(world_id: str) -> bool:
     Returns:
         True if the world data directory was removed, False otherwise
     """
-    world_dir = DATA_DIR / world_id
     try:
+        world_dir = world_data_dir(world_id, DATA_DIR)
         if not world_dir.exists():
             logger.info(f"No persisted data found for world {world_id[:8]}")
             return False

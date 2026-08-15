@@ -48,6 +48,7 @@ def run_web_server():
         import uvicorn
 
         from backend.main import app
+        from backend.security import resolve_bind_host
 
         logger.info("=" * SEPARATOR_WIDTH)
         logger.info("FISH TANK SIMULATION - WEB SERVER")
@@ -64,7 +65,14 @@ def run_web_server():
         # Disable Uvicorn access logs to reduce verbosity in stdout
         logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
         logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
-        uvicorn.run(app, host="0.0.0.0", port=DEFAULT_API_PORT, access_log=False)
+        bind_host = resolve_bind_host()
+        if bind_host not in ("127.0.0.1", "localhost", "::1"):
+            logger.warning(
+                "Binding to %s: the simulation API is unauthenticated, so anyone "
+                "who can reach this address can control the running world.",
+                bind_host,
+            )
+        uvicorn.run(app, host=bind_host, port=DEFAULT_API_PORT, access_log=False)
     except ImportError as e:
         logger.error("Error: Required dependencies not installed: %s", e)
         logger.error("Install with: pip install -e .")

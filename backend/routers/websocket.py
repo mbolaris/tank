@@ -10,7 +10,12 @@ from typing import TYPE_CHECKING
 import orjson
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from backend.security import resolve_client_ip, websocket_limiter, websocket_message_limiter
+from backend.security import (
+    is_origin_allowed,
+    resolve_client_ip,
+    websocket_limiter,
+    websocket_message_limiter,
+)
 
 if TYPE_CHECKING:
     from backend.world_broadcast_adapter import WorldBroadcastAdapter
@@ -25,6 +30,30 @@ def _get_client_ip(websocket: WebSocket) -> str:
     behind a trusted reverse proxy isn't misattributed to the proxy's IP)."""
     direct_ip = websocket.client.host if websocket.client else None
     return resolve_client_ip(direct_ip, websocket.headers)
+
+
+async def _reject_disallowed_origin(websocket: WebSocket, world_id: str) -> bool:
+    """Close the handshake when the browser Origin is not permitted.
+
+    WebSockets are exempt from the same-origin policy and are *not* covered by
+    the CORS middleware, so without this check any web page the operator
+    happens to visit could open this socket and issue commands (pause, reset,
+    config mutation) against the running simulation, and stream the full world
+    state back out. Checked before ``accept()`` so a rejected origin never
+    reaches the command loop.
+    """
+    origin = websocket.headers.get("origin")
+    if is_origin_allowed(origin):
+        return False
+
+    logger.warning(
+        "World %s: rejecting WebSocket handshake from disallowed origin %s",
+        world_id[:8] if len(world_id) >= 8 else world_id,
+        origin,
+    )
+    # 4403 = app-defined "Forbidden" (close codes 4000-4999 are private-use).
+    await websocket.close(code=4403)
+    return True
 
 
 async def _handle_websocket_for_adapter(
@@ -166,6 +195,11 @@ async def _handle_websocket_for_world(
         world_manager: The WorldManager to get worlds from
         world_id: The world ID to connect to
     """
+    # Reject foreign browser origins before doing any work — this runs first so
+    # a disallowed origin cannot probe which world ids exist via close codes.
+    if await _reject_disallowed_origin(websocket, world_id):
+        return
+
     # Handle "default" as special case
     if world_id == "default":
         default_id = world_manager.default_world_id

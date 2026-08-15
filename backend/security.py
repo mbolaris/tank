@@ -7,11 +7,14 @@ This module provides:
 - IP-based access control (optional)
 """
 
+import ipaddress
 import os
+import re
 import time
 from collections import defaultdict
 from collections.abc import Callable
 from functools import wraps
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -57,6 +60,105 @@ def resolve_client_ip(direct_ip: str | None, headers: Headers) -> str:
             return real_ip
 
     return direct_ip or "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Browser origin policy (shared by CORS and the WebSocket handshake)
+# ---------------------------------------------------------------------------
+#
+# The simulation API is unauthenticated: anything that can reach it can drive
+# the world (pause, reset, mutate config). The only thing standing between a
+# running dev server and an arbitrary web page is the origin check, and CORS
+# alone is not enough — WebSockets are exempt from the same-origin policy, so
+# the handshake has to be checked explicitly (see routers/websocket.py).
+#
+# Default policy (no ALLOWED_ORIGINS set): permit loopback and private-network
+# origins only. That keeps both `localhost:3000` and the LAN workflow the
+# frontend supports (it derives the socket URL from window.location.hostname)
+# working, while rejecting public internet origins — the actual attack, where
+# a site you happen to visit reaches into your local simulation.
+#
+# When ALLOWED_ORIGINS is set it wins outright and is matched exactly; it is
+# mandatory in production mode (enforced in app_factory.create_app).
+
+LOCAL_ORIGIN_HOSTS = {"localhost", "localhost.localdomain"}
+
+# Equivalent of _is_local_origin_host, for Starlette's CORSMiddleware which
+# matches origins by regex rather than by predicate.
+LOCAL_ORIGIN_REGEX = (
+    r"^https?://("
+    r"localhost|localhost\.localdomain"
+    r"|127(?:\.\d{1,3}){3}"
+    r"|\[::1\]"
+    r"|10(?:\.\d{1,3}){3}"
+    r"|192\.168(?:\.\d{1,3}){2}"
+    r"|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}"
+    r"|169\.254(?:\.\d{1,3}){2}"
+    r")(?::\d+)?$"
+)
+
+_LOCAL_ORIGIN_PATTERN = re.compile(LOCAL_ORIGIN_REGEX)
+
+
+def resolve_allowed_origins(raw: str | None = None) -> list[str]:
+    """Parse ALLOWED_ORIGINS into an exact-match list (empty = use defaults)."""
+    value = raw if raw is not None else os.getenv("ALLOWED_ORIGINS", "")
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
+def _is_local_origin_host(origin: str) -> bool:
+    """True when ``origin`` points at loopback or a private network."""
+    try:
+        parts = urlsplit(origin)
+    except ValueError:
+        return False
+
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return False
+
+    host = parts.hostname.lower()
+    if host in LOCAL_ORIGIN_HOSTS:
+        return True
+
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+
+    return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
+def is_origin_allowed(origin: str | None, allowed_origins: list[str] | None = None) -> bool:
+    """Decide whether a browser ``Origin`` may talk to this server.
+
+    A missing Origin is allowed: non-browser clients (the CLI tools in
+    ``tools/``, test harnesses, ``curl``) do not send one, and they carry no
+    ambient credentials for an attacker to ride on. The header is only
+    forgeable by something that is already not a browser, so rejecting on
+    absence would break tooling without closing any hole.
+    """
+    if not origin:
+        return True
+
+    if allowed_origins is None:
+        allowed_origins = resolve_allowed_origins()
+
+    if allowed_origins:
+        return origin in allowed_origins
+
+    return bool(_LOCAL_ORIGIN_PATTERN.match(origin)) or _is_local_origin_host(origin)
+
+
+def resolve_bind_host(default: str = "127.0.0.1") -> str:
+    """Address the API server binds to.
+
+    Defaults to loopback. The simulation API is unauthenticated — anyone who
+    can reach it can pause, reset or reconfigure a running world — so binding
+    every interface hands that control to the whole local network. Set
+    ``TANK_BIND_HOST=0.0.0.0`` to deliberately expose it (e.g. to demo the UI
+    from another machine on a trusted network).
+    """
+    return os.getenv("TANK_BIND_HOST", default).strip() or default
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

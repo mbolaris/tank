@@ -163,6 +163,22 @@ This runs pre-flight checks, installs frontend dependencies if missing, starts b
 
 *(Alternatively, run them in separate terminals: `python main.py` from the root for the backend, and `cd frontend && npm run dev` for the frontend.)*
 
+#### Network exposure
+
+The simulation API is **unauthenticated** — anything that can reach it can pause,
+reset or reconfigure a running world. It therefore binds loopback only, and
+accepts browser requests (including the WebSocket) from loopback and
+private-network origins only.
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `TANK_BIND_HOST` | `127.0.0.1` | Set to `0.0.0.0` to serve the UI to other machines on a trusted network. |
+| `ALLOWED_ORIGINS` | *(unset)* | Comma-separated exact origin allowlist. Overrides the local-network default; required when `PRODUCTION=true`, where `*` is rejected. |
+
+Viewing the UI from another machine needs both: `TANK_BIND_HOST=0.0.0.0` on the
+backend and `--host` on Vite. Public origins are always refused unless named in
+`ALLOWED_ORIGINS`.
+
 ### Run Headless (10-300x Faster)
 
 ```bash
