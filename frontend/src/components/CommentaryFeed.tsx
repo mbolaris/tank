@@ -8,34 +8,54 @@
  *
  * v2 additions: topic filter chips, per-message topic badges, and Slack-style
  * emoji reaction bar (via CommentaryCard). See docs/DISCUSSION_BOARD.md.
+ *
+ * U7/E4 additions: deterministic world events from the E3 story-event service
+ * are merged into the same stream, rendered as visibly distinct WORLD EVENT
+ * cards (StoryEventCard). The two kinds share one surface but never one voice -
+ * a story event is something the tank *did*, a comment is what an agent
+ * *thinks* about it. The merged stream is ordered by simulation frame, the one
+ * axis both kinds actually share; their ids come from separate spaces and are
+ * not comparable.
  */
 
 import { useCallback, useState } from 'react';
-import { buildDiscussionPrompt, type BoardPromptRole } from '../boardPrompts';
+import { buildDiscussionPrompt, type BoardPromptRole, type BoardPromptScope } from '../boardPrompts';
 import { config } from '../config';
 import { useCommentary } from '../hooks/useCommentary';
+import { useStoryEvents } from '../hooks/useStoryEvents';
 import type { CommentaryTopic } from '../types/simulation';
 import { CommentaryCard } from './CommentaryCard';
+import { StoryEventCard } from './StoryEventCard';
+import { mergeFeedRows } from '../utils/storyFeed';
 import styles from './CommentaryFeed.module.css';
 
 const LS_TOPIC_KEY = 'tank.boardTopicFilter';
 const LS_REACTOR_KEY = 'tank.reactorName';
 const DEFAULT_REACTOR = 'viewer';
 
+/**
+ * Board filter values: the four commentary topics, plus `all` and a `world`
+ * pseudo-topic for the deterministic story events. Story events carry no topic
+ * of their own - they are measurements, not conversations - so they are shown
+ * under `all` and `world` and hidden when a specific conversation is selected.
+ */
+export type BoardFilter = CommentaryTopic | 'all' | 'world';
+
 /** Topic filter chips configuration. */
-const TOPIC_CHIPS: { value: CommentaryTopic | 'all'; icon: string; label: string }[] = [
+const TOPIC_CHIPS: { value: BoardFilter; icon: string; label: string }[] = [
     { value: 'all', icon: '', label: 'All' },
+    { value: 'world', icon: '🌍', label: 'World events' },
     { value: 'ecosystem', icon: '🌱', label: 'Ecosystem' },
     { value: 'substrate', icon: '🧬', label: 'Substrate' },
     { value: 'environment', icon: '🪸', label: 'Environment' },
     { value: 'ui', icon: '🖥️', label: 'UI' },
 ];
 
-function getStoredTopic(): CommentaryTopic | 'all' {
+function getStoredTopic(): BoardFilter {
     try {
         const stored = localStorage.getItem(LS_TOPIC_KEY);
         if (stored && TOPIC_CHIPS.some(c => c.value === stored)) {
-            return stored as CommentaryTopic | 'all';
+            return stored as BoardFilter;
         }
     } catch {
         // localStorage not available
@@ -53,18 +73,23 @@ function getViewerName(): string {
 
 interface CommentaryFeedProps {
     worldId: string | undefined;
+    /** Ids present in the latest reconciled world state (for U4 links). */
+    liveEntityIds?: ReadonlySet<number>;
+    /** Opens the U4 inspector from a world event. */
+    onInspectEntity?: (entityId: number) => void;
 }
 
-export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
+export function CommentaryFeed({ worldId, liveEntityIds, onInspectEntity }: CommentaryFeedProps) {
     const { comments, setComments, error, loaded } = useCommentary(worldId);
-    const [activeTopic, setActiveTopic] = useState<CommentaryTopic | 'all'>(getStoredTopic);
+    const { events: storyEvents } = useStoryEvents(worldId);
+    const [activeTopic, setActiveTopic] = useState<BoardFilter>(getStoredTopic);
     const [copiedRole, setCopiedRole] = useState<BoardPromptRole | null>(null);
     const viewerName = getViewerName();
 
     const effectiveId = worldId || 'default';
 
     // --- Topic filter ---
-    const handleTopicChange = useCallback((topic: CommentaryTopic | 'all') => {
+    const handleTopicChange = useCallback((topic: BoardFilter) => {
         setActiveTopic(topic);
         try {
             localStorage.setItem(LS_TOPIC_KEY, topic);
@@ -73,13 +98,21 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
         }
     }, []);
 
-    // Client-side topic filtering
-    const filteredComments = activeTopic === 'all'
+    // Client-side filtering. `world` shows only measurements; a named topic
+    // shows only that conversation; `all` shows the merged stream.
+    const visibleComments = activeTopic === 'all'
         ? comments
-        : comments.filter(c => c.topic === activeTopic);
+        : activeTopic === 'world'
+            ? []
+            : comments.filter(c => c.topic === activeTopic);
+    const visibleEvents = activeTopic === 'all' || activeTopic === 'world' ? storyEvents : [];
+    const rows = mergeFeedRows(visibleEvents, visibleComments);
 
-    // Count per topic for the chips
-    const topicCounts: Record<string, number> = { all: comments.length };
+    // Counts for the chips
+    const topicCounts: Record<string, number> = {
+        all: comments.length + storyEvents.length,
+        world: storyEvents.length,
+    };
     for (const c of comments) {
         topicCounts[c.topic] = (topicCounts[c.topic] || 0) + 1;
     }
@@ -139,7 +172,11 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
 
     // --- Discussion prompts (copy to clipboard) ---
     const handleCopyPrompt = useCallback(async (role: BoardPromptRole) => {
-        const text = buildDiscussionPrompt(role, activeTopic, config.apiBaseUrl);
+        // The prompts brief an agent to join a *conversation*. World events are
+        // measurements with no conversation to scope to, so that filter falls
+        // back to the un-narrowed prompt rather than inventing a topic.
+        const scope: BoardPromptScope = activeTopic === 'world' ? 'all' : activeTopic;
+        const text = buildDiscussionPrompt(role, scope, config.apiBaseUrl);
         try {
             await navigator.clipboard.writeText(text);
             setCopiedRole(role);
@@ -199,7 +236,7 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
                 <div className={styles.error}>Could not load commentary: {error}</div>
             )}
 
-            {loaded && !error && comments.length === 0 && (
+            {loaded && !error && comments.length === 0 && storyEvents.length === 0 && (
                 <div className={styles.empty}>
                     No commentary yet. An agent can post one with{' '}
                     <code>python tools/post_commentary.py --text &quot;...&quot;</code> or by POSTing to{' '}
@@ -207,16 +244,25 @@ export function CommentaryFeed({ worldId }: CommentaryFeedProps) {
                 </div>
             )}
 
-            {filteredComments.length > 0 && (
+            {rows.length > 0 && (
                 <div className={styles.list}>
-                    {filteredComments.map((c) => (
-                        <CommentaryCard
-                            key={c.id}
-                            comment={c}
-                            viewerName={viewerName}
-                            onReact={handleReact}
-                            onUnreact={handleUnreact}
-                        />
+                    {rows.map((row) => (
+                        row.kind === 'event' ? (
+                            <StoryEventCard
+                                key={row.key}
+                                event={row.event}
+                                liveEntityIds={liveEntityIds}
+                                onInspectEntity={onInspectEntity}
+                            />
+                        ) : (
+                            <CommentaryCard
+                                key={row.key}
+                                comment={row.comment}
+                                viewerName={viewerName}
+                                onReact={handleReact}
+                                onUnreact={handleUnreact}
+                            />
+                        )
                     ))}
                 </div>
             )}

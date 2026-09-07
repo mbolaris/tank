@@ -111,8 +111,8 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | 2 | E1 | Fish inspector; transfer becomes secondary | DONE | — |
 | 3 | E2 | Selection persistence, highlight, and follow camera | DONE | E1 |
 | 4 | E3 | Structured story-event schema, store, API, and first three detectors | DONE | — |
-| 5 | E4 | Living History feed and event timeline markers | NEXT | E1, E3 |
-| 6 | E5 | “Since your last visit” recap | QUEUED | E3, E4 |
+| 5 | E4 | Living History feed and event timeline markers | DONE | E1, E3 |
+| 6 | E5 | “Since your last visit” recap | NEXT | E3, E4 |
 | 7 | E6 | Notable-organism and lineage legends | QUEUED | E1, E3 |
 | 8 | E7 | Observe / Design / Lab shell; Observe becomes default | QUEUED | E1, E4 |
 | 9 | E8 | Contextual overlays and intervention toolbelt | QUEUED | E7 |
@@ -144,7 +144,7 @@ reconnects. Transfer is available only through an explicit inspector action.
 
 ### Phase 1: the world remembers
 
-Complete E3–E6. **E3 is done (2026-09)**; E4 is next. A story record contains a stable
+Complete E3–E6. **E3 and E4 are done (2026-09)**; E5 is next. A story record contains a stable
 id, type, frame, simulation time, severity, involved entity/lineage ids, before/after
 metrics, detector threshold, and replay availability. Detectors observe state without
 consuming RNG or mutating the simulation. Events persist with the world, appear in

@@ -1,0 +1,156 @@
+.timeline {
+    /* Owns its own placement band: it sits *after* TankView's flex-row scene
+       workspace, so it centres on the same 1140px content column instead of
+       becoming a squeezed third column inside that row. */
+    width: 100%;
+    max-width: 1140px;
+    margin: 12px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 10px;
+}
+
+.heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.count {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: #64748b;
+}
+
+.empty {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+.track {
+    position: relative;
+    /* Tall enough that every marker keeps a >=24px touch target without the
+       rail itself becoming a thick band. */
+    height: 28px;
+    margin: 0 4px;
+}
+
+.rail {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    transform: translateY(-50%);
+    background: rgba(148, 163, 184, 0.22);
+    border-radius: 1px;
+}
+
+.marker {
+    position: absolute;
+    top: 50%;
+    /* The button is the touch target (28px); the dot inside is the visual mark. */
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.85);
+    transition: transform 120ms ease;
+}
+
+.marker:hover .dot {
+    transform: scale(1.35);
+}
+
+.markerActive .dot {
+    transform: scale(1.5);
+    box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.85), 0 0 0 4px rgba(6, 182, 212, 0.6);
+}
+
+.marker:focus-visible {
+    outline: none;
+}
+
+.marker:focus-visible .dot {
+    transform: scale(1.5);
+    box-shadow: 0 0 0 2px rgba(2, 6, 23, 0.85), 0 0 0 4px #06b6d4;
+}
+
+.clusterCount {
+    position: absolute;
+    top: -1px;
+    right: 0;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    color: #e2e8f0;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 999px;
+    padding: 1px 4px;
+}
+
+.scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    color: #475569;
+    margin: -4px 4px 0;
+}
+
+.detail {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    /* A dense cluster can hold many events; cap the panel and scroll instead
+       of pushing the rest of the page down. */
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+    .timeline {
+        padding: 8px 10px;
+    }
+
+    .detail {
+        max-height: 200px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dot {
+        transition: none;
+    }
+}

@@ -27,6 +27,13 @@ describe('CommentaryFeed', () => {
         expect(html).toContain('UI');
     });
 
+    it('offers a World events filter alongside the conversation topics (U7)', () => {
+        // Story events are measurements, not a conversation, so they get their
+        // own chip rather than being folded into a topic.
+        const html = renderToString(<CommentaryFeed worldId="world-1" />);
+        expect(html).toContain('World events');
+    });
+
     it('renders discussion prompt copy buttons', () => {
         const html = renderToString(<CommentaryFeed worldId="world-1" />);
         expect(html).toContain('Copy Discussion Leader Prompt');

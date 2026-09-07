@@ -168,6 +168,16 @@ export const config = {
     reactionUrl(worldId: string, commentId: number): string {
         return `${this.apiBaseUrl}/api/world/${worldId}/commentary/${commentId}/reactions`;
     },
+
+    /**
+     * Get API URL for a world's structured story-event feed (E3/U6).
+     * Read-only: story events are measured by backend detectors, never posted.
+     * Accepts "default" to target the server's default world.
+     * @param worldId - The world ID (or "default")
+     */
+    storyEventsUrl(worldId: string): string {
+        return `${this.apiBaseUrl}/api/world/${worldId}/story-events`;
+    },
 } as const;
 
 export type Config = typeof config;

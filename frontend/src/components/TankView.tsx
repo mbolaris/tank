@@ -4,6 +4,7 @@ import {
     useState,
     useCallback,
     useEffect,
+    useMemo,
     useRef,
     type ChangeEvent,
 } from 'react';
@@ -21,6 +22,8 @@ import { arenaStateFromConnection } from './soccerArenaState';
 import { TankSoccerPanel } from './TankSoccerPanel';
 import { Panel, PanelLoading } from './TankPanel';
 import { CommentaryFeed } from './CommentaryFeed';
+import { StoryTimeline } from './StoryTimeline';
+import { useStoryEvents } from '../hooks/useStoryEvents';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
 import { PanelToggleBar } from './PanelToggleBar';
@@ -134,6 +137,13 @@ export function TankView({ worldId }: TankViewProps) {
     const isSoccerArena = location.pathname.endsWith('/soccer');
 
     const liveEntities = useLiveEntities(state);
+    const { events: storyEvents } = useStoryEvents(effectiveWorldId);
+    // Story events name entities that may since have died; the timeline and the
+    // Board use this to offer an inspector link only when the fish still exists.
+    const liveEntityIds = useMemo(
+        () => new Set(liveEntities.map((e) => e.id)),
+        [liveEntities],
+    );
     const selectedEntity =
         selection.selectedEntityId !== null
             ? liveEntities.find((e) => e.id === selection.selectedEntityId) ?? null
@@ -490,6 +500,17 @@ export function TankView({ worldId }: TankViewProps) {
                 )}
             </div>
 
+            {/* Under the canvas, not beside it: sceneWorkspace is a flex row, so
+                the timeline sits after it and centres itself on the same column. */}
+            {!watchMode && (
+                <StoryTimeline
+                    events={storyEvents}
+                    currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
+                    liveEntityIds={liveEntityIds}
+                    onInspectEntity={(entityId) => selection.selectEntity(entityId, 'fish')}
+                />
+            )}
+
             {!watchMode && <>
             {buildMode && (
                 <BuildMode
@@ -511,7 +532,11 @@ export function TankView({ worldId }: TankViewProps) {
                 <div className={styles.panelGrid}>
                     {isVisible('insights') && (
                         <Panel title="Board" icon="📋" onClose={() => toggle('insights')}>
-                            <CommentaryFeed worldId={effectiveWorldId} />
+                            <CommentaryFeed
+                                worldId={effectiveWorldId}
+                                liveEntityIds={liveEntityIds}
+                                onInspectEntity={(entityId) => selection.selectEntity(entityId, 'fish')}
+                            />
                         </Panel>
                     )}
 

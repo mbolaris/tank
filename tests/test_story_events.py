@@ -14,6 +14,8 @@ event is emitted repeatedly while a metric remains on one side of a threshold.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -712,3 +714,51 @@ def test_set_world_identity_rebinds_every_telemetry_store(client_and_world):
         assert runner.metrics_history.world_id == "renamed-world"
     finally:
         runner.set_world_identity(world_id)
+
+
+# ---------------------------------------------------------------------------
+# Frontend contract
+# ---------------------------------------------------------------------------
+
+
+def test_frontend_story_event_type_declares_every_record_field():
+    """The TS ``StoryEvent`` interface must cover the whole backend record.
+
+    U6 produces these records and U7 renders them. Nothing else pins the two
+    together, so a field added to ``make_event`` without a matching frontend
+    declaration would reach the feed as ``undefined`` at runtime instead of
+    failing here.
+    """
+    from pathlib import Path
+
+    record = StoryEventStore(world_id="w").add(
+        make_event(
+            event_type="population_danger",
+            frame=1,
+            simulation_time=0.0,
+            severity="concern",
+            title="t",
+            detector_name="d",
+        )
+    )
+
+    source = (
+        Path(__file__).resolve().parents[1] / "frontend" / "src" / "types" / "story.ts"
+    ).read_text(encoding="utf-8")
+    start = source.index("export interface StoryEvent {")
+    body = source[start : source.index("}", start)]
+
+    missing = [key for key in record if f"{key}:" not in body and f"{key}?:" not in body]
+    assert not missing, f"frontend StoryEvent is missing fields: {missing}"
+
+
+def test_frontend_story_event_type_union_matches_the_backend_event_types():
+    """``StoryEventType`` must list exactly the backend's closed EVENT_TYPES."""
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1] / "frontend" / "src" / "types" / "story.ts"
+    ).read_text(encoding="utf-8")
+    start = source.index("export type StoryEventType =")
+    declared = set(re.findall(r"'([a-z_]+)'", source[start : source.index(";", start)]))
+    assert declared == set(EVENT_TYPES)
