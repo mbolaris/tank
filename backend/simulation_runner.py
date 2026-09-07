@@ -20,13 +20,16 @@ from backend.runner import (
     evolution_benchmark,
     loop,
     stats_collector,
+    story_sampler,
     world_switch,
 )
 from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
+from backend.runner_stores import rebind_runner_stores
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
+from backend.story_event_service import StoryEventService
 from backend.world_registry import create_world, get_world_metadata
 from core import entities
 from core.config.display import FRAME_RATE
@@ -151,6 +154,9 @@ class SimulationRunner(CommandHandlerMixin):
         # Initialize agent commentary buffer (the "Insights" feed)
         self.commentary = CommentaryStore(world_id=self.world_id)
 
+        # Initialize the structured story-event service (deterministic world facts)
+        self.story_events = StoryEventService(world_id=self.world_id)
+
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
         if not hasattr(self.world_hooks, attr):
@@ -213,13 +219,8 @@ class SimulationRunner(CommandHandlerMixin):
         if world_name is not None:
             self.world_name = world_name
 
-        # Update metrics history world_id
-        if hasattr(self, "metrics_history") and self.metrics_history is not None:
-            self.metrics_history.world_id = world_id
-
-        # Update commentary buffer world_id
-        if hasattr(self, "commentary") and self.commentary is not None:
-            self.commentary.world_id = world_id
+        # Point the telemetry stores (metrics, commentary, story events) at the new id
+        rebind_runner_stores(self, world_id)
 
         # Update hooks with new world identity
         if hasattr(self.world_hooks, "update_benchmark_tracker_path"):
@@ -436,6 +437,7 @@ class SimulationRunner(CommandHandlerMixin):
             self.world.runner = self
             self.metrics_history = MetricsHistory(world_id=self.world_id)
             self.commentary = CommentaryStore(world_id=self.world_id)
+            self.story_events = StoryEventService(world_id=self.world_id)
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
@@ -511,6 +513,8 @@ class SimulationRunner(CommandHandlerMixin):
         if frame > 0 and frame % self.metrics_history.sample_interval_frames == 0:
             self._collect_stats(frame, include_distributions=False)
             self._check_noteworthy_pursuit_variants(frame)
+        # Story-event detection runs on its own (finer) frame cadence.
+        story_sampler.observe_if_due(self)
 
     def _check_noteworthy_pursuit_variants(self, frame: int) -> None:
         """Scan population to identify and announce spread of new pursuit module variants."""
