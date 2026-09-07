@@ -1,0 +1,119 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    /* Warmer, flatter ground than CommentaryCard so the two kinds of item are
+       distinguishable at a glance, not only by their badge. */
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-left-width: 3px;
+    border-radius: 8px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0f172a;
+    background: #94a3b8;
+    border-radius: 4px;
+    padding: 1px 6px;
+    white-space: nowrap;
+}
+
+.kind {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.severity {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.clock {
+    margin-left: auto;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: #64748b;
+}
+
+.title {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #f1f5f9;
+}
+
+.change {
+    margin: 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: #cbd5e1;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 10px;
+    color: #64748b;
+}
+
+.detector,
+.lineage,
+.frame {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.02em;
+}
+
+.threshold {
+    color: #475569;
+}
+
+.frame {
+    margin-left: auto;
+}
+
+.gone {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+.inspect {
+    font: inherit;
+    font-size: 10px;
+    color: #06b6d4;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+
+.inspect:hover {
+    background: rgba(6, 182, 212, 0.22);
+}
+
+.inspect:focus-visible {
+    outline: 2px solid #06b6d4;
+    outline-offset: 2px;
+}

@@ -18,8 +18,8 @@ incorrectly described several shipped foundations as future work.
 | U4 | Fish inspector replacing click-to-transfer | DONE | Inspector drawer + on-demand `get_entity_details`; transfer is a secondary action |
 | U5 | Persistent selection and follow camera | DONE | Selection reconciles across merged deltas/full resync; follow is opt-in and stops when an entity disappears |
 | U6 | Structured story-event service | DONE | Store, detectors, service, REST API, and persistence; three detectors as specified |
-| U7 | Living History feed and timeline | NEXT | U4 and U6 are both DONE; this is unblocked |
-| U8 | Return recap and legends | QUEUED | Depends on U6 and U7; split into separate PRs |
+| U7 | Living History feed and timeline | DONE | World events merged into the Board + a keyboard-navigable timeline under the canvas |
+| U8 | Return recap and legends | NEXT | U6 and U7 are both DONE; still split into separate PRs (U8a, U8b) |
 | U9 | Observe / Design / Lab presentation shell | QUEUED | Depends on U4 and U7 |
 | U10 | Contextual overlays and intervention toolbelt | QUEUED | Depends on U9 |
 | U11 | Trust states and intervention provenance | QUEUED | Depends on U9 |
@@ -176,6 +176,45 @@ event frame without pretending replay is available.
 **Acceptance:** ordering and deduplication survive reconnects; markers aggregate at high
 density; severity is conveyed by text/icon as well as color; timeline remains usable on
 touch and narrow screens; an event can open its related entity or explain why it cannot.
+
+**Shipped (2026-09).** What landed:
+
+| Piece | File |
+|---|---|
+| Incremental `since_id` polling, dedup, restart-safe | [`frontend/src/hooks/useStoryEvents.ts`](../frontend/src/hooks/useStoryEvents.ts) |
+| Clustering + merged-stream ordering (pure) | [`frontend/src/utils/storyFeed.ts`](../frontend/src/utils/storyFeed.ts) |
+| World-event card | [`frontend/src/components/StoryEventCard.tsx`](../frontend/src/components/StoryEventCard.tsx) |
+| Timeline under the canvas | [`frontend/src/components/StoryTimeline.tsx`](../frontend/src/components/StoryTimeline.tsx) |
+| REST contract types | [`frontend/src/types/story.ts`](../frontend/src/types/story.ts) |
+| Browser-level contract | [`frontend/e2e/story-timeline.spec.ts`](../frontend/e2e/story-timeline.spec.ts) |
+
+![Living History timeline](assets/living-history-timeline.png)
+
+How each acceptance clause is met:
+
+- **Ordering/dedup across reconnects** — polling is incremental (`since_id`) and
+  merges by id, so a retried or overlapping page cannot duplicate a row. A
+  *restart* of the id space (world switch, server restart) is detected by the
+  whole page sitting behind the cursor and replaces the list instead of
+  interleaving two numbering schemes.
+- **Aggregation** — markers closer than `MIN_SEPARATION_PCT` of the track
+  collapse into one marker carrying a count.
+- **Severity not by colour alone** — every marker's accessible name states its
+  kind and severity in words, and the card repeats both as text.
+- **Keyboard/touch** — the track is a listbox with roving tabindex (one tab
+  stop, then Arrow/Home/End); markers carry a 28px touch target around a 9px
+  dot.
+- **Entity link** — an event offers `Inspect fish #N` only for an entity still
+  in the reconciled world state, and otherwise says the fish has left the tank.
+  Before the live set is known it claims neither.
+- **Replay honesty** — no `watch` affordance exists anywhere in the card; it
+  shows the frame instead. `replay_ref` is still always `null`.
+
+**Two decisions U8 inherits.** The Board's merged stream is ordered by
+*simulation frame*, the only axis world events and commentary share — their ids
+come from separate spaces and are not comparable. And world events get their own
+`world` filter chip rather than a topic, because they are measurements, not a
+conversation; a named topic filter therefore hides them.
 
 ## U8 — Return recap and legends
 
