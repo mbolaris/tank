@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from backend.lineage_restore import advance_fish_id_counter, restore_lineage_state
+from backend.runner_stores import capture_runner_stores, restore_runner_stores
 from core.contracts import SNAPSHOT_VERSION, validate_snapshot_version
 from core.exceptions import PersistenceError
 
@@ -216,12 +217,9 @@ def save_world_state(
                 # Merge provided metadata
                 if metadata:
                     snapshot.update(metadata)
-                # Persist metrics history if available
-                if hasattr(runner, "metrics_history") and runner.metrics_history is not None:
-                    snapshot["metrics_history"] = runner.metrics_history.to_payload()
-                # Persist agent commentary (the Insights feed) if available
-                if hasattr(runner, "commentary") and runner.commentary is not None:
-                    snapshot["commentary"] = runner.commentary.to_payload()
+                # Persist the runner's telemetry stores (metrics history, the
+                # Board commentary feed, and structured story events)
+                capture_runner_stores(runner, snapshot)
                 # Persist skill snapshots if available
                 engine = _resolve_engine(world)
                 if engine is not None:
@@ -303,24 +301,10 @@ def restore_world_from_snapshot(
         if "frame" in snapshot:
             engine.frame_count = snapshot["frame"]
 
-        # Restore metrics history if present on snapshot and target has runner/metrics_history
+        # Restore the runner's telemetry stores (metrics history, the Board
+        # commentary feed, and structured story events)
         runner = getattr(target_world, "runner", None)
-        if (
-            runner is not None
-            and hasattr(runner, "metrics_history")
-            and runner.metrics_history is not None
-        ):
-            if "metrics_history" in snapshot:
-                runner.metrics_history.load(snapshot["metrics_history"])
-
-        # Restore agent commentary (the Insights feed) if present
-        if (
-            runner is not None
-            and hasattr(runner, "commentary")
-            and runner.commentary is not None
-            and "commentary" in snapshot
-        ):
-            runner.commentary.load(snapshot["commentary"])
+        restore_runner_stores(runner, snapshot)
 
         # Restore skill snapshots if present
         if "skill_snapshots" in snapshot:
@@ -437,9 +421,7 @@ def restore_world_from_snapshot(
         # Iterate again to find castles (or could initiate in pass 1, but order matters little for castle)
         for entity_data in snapshot.get("entities", []):
             if entity_data.get("type") == "castle":
-                from core.tank_objects import TankObject
-
-                from core.tank_objects import DEFAULT_TANK_LAYOUT
+                from core.tank_objects import DEFAULT_TANK_LAYOUT, TankObject
 
                 castle_layout = next(
                     layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle"
@@ -536,9 +518,7 @@ def _bootstrap_static_elements(engine: Any) -> None:
         return
 
     # Default tank castle position (matches TankWorldHooks restore behavior)
-    from core.tank_objects import TankObject
-
-    from core.tank_objects import DEFAULT_TANK_LAYOUT
+    from core.tank_objects import DEFAULT_TANK_LAYOUT, TankObject
 
     castle_layout = next(layout for layout in DEFAULT_TANK_LAYOUT if layout.kind == "castle")
     castle = TankObject(

@@ -30,8 +30,10 @@ LEGACY_MAX_LINES: dict[str, int] = {
     "backend/startup_manager.py": 626,
     "backend/world_manager.py": 712,
     # Follow-up PR persists the soccer reconciliation/statistics ledger through
-    # the existing world snapshot boundary.
-    "backend/world_persistence.py": 703,
+    # the existing world snapshot boundary. Re-pinned 703 -> 683 (2026-09) when
+    # the per-store save/restore blocks moved to backend/runner_stores.py (and
+    # isort collapsed two split local imports on the way through).
+    "backend/world_persistence.py": 683,
     "core/algorithms/base.py": 572,
     "core/algorithms/registry.py": 584,
     "core/behavior/target_memory_transfer_gym.py": 636,

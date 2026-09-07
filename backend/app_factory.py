@@ -318,6 +318,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
         metrics,
         servers,
         skill,
+        story_events,
         transfers,
         websocket,
     )
@@ -368,6 +369,10 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup agent commentary router (the "Insights" feed)
     commentary_router = commentary.setup_router(ctx.world_manager)
     app.include_router(commentary_router)
+
+    # Setup structured story-event router (deterministic world facts)
+    story_events_router = story_events.setup_router(ctx.world_manager)
+    app.include_router(story_events_router)
 
     # Setup skill-ladder standings router (reads the champion registry)
     if ctx.skill_evaluation_service is None:

@@ -17,8 +17,8 @@ incorrectly described several shipped foundations as future work.
 | U3 | Remove inactive navigation fork | DONE | Delete unused `TankTabs` / `TankPlayTab` files and orphaned tests/styles |
 | U4 | Fish inspector replacing click-to-transfer | DONE | Inspector drawer + on-demand `get_entity_details`; transfer is a secondary action |
 | U5 | Persistent selection and follow camera | DONE | Selection reconciles across merged deltas/full resync; follow is opt-in and stops when an entity disappears |
-| U6 | Structured story-event service | QUEUED | Backend/contract task; independent of U4 |
-| U7 | Living History feed and timeline | QUEUED | Depends on U4 and U6 |
+| U6 | Structured story-event service | DONE | Store, detectors, service, REST API, and persistence; three detectors as specified |
+| U7 | Living History feed and timeline | NEXT | U4 and U6 are both DONE; this is unblocked |
 | U8 | Return recap and legends | QUEUED | Depends on U6 and U7; split into separate PRs |
 | U9 | Observe / Design / Lab presentation shell | QUEUED | Depends on U4 and U7 |
 | U10 | Contextual overlays and intervention toolbelt | QUEUED | Depends on U9 |
@@ -130,6 +130,33 @@ an LLM, UI timeline, or a dozen detector types in this PR.
 does not duplicate events; buffer limits work; old schema payloads fail safely or
 migrate explicitly; no event is emitted repeatedly while a metric remains on one side
 of a threshold.
+
+**Shipped (2026-09).** Every acceptance clause above is pinned by a test in
+[`tests/test_story_events.py`](../tests/test_story_events.py) (54 tests). What landed:
+
+| Piece | File |
+|---|---|
+| Record contract (`make_event`) + bounded store | [`backend/story_events.py`](../backend/story_events.py) |
+| The three detectors + explicit thresholds | [`backend/story_detectors.py`](../backend/story_detectors.py) |
+| Store/detector seam + frame cadence | [`backend/story_event_service.py`](../backend/story_event_service.py) |
+| Read-only world sampler | [`backend/runner/story_sampler.py`](../backend/runner/story_sampler.py) |
+| `GET`/`DELETE /api/world/{id}/story-events` | [`backend/routers/story_events.py`](../backend/routers/story_events.py) |
+| Snapshot save/restore for every runner store | [`backend/runner_stores.py`](../backend/runner_stores.py) |
+
+Four decisions U7 should build on rather than re-litigate:
+
+1. **Records carry no wall-clock timestamp.** Every stored field is a function of
+   the sample, so a re-run or replay produces byte-identical events. Order by
+   `id`; place in time with `frame` / `simulation_time`.
+2. **Severity is the Board's closed set** (`info`, `insight`, `warning`,
+   `concern`), imported from `commentary_store`, so one feed can render world
+   facts and agent commentary without a translation table. The *distinction* U7
+   needs is the surface an item came from, not its severity.
+3. **The endpoint is read-only.** There is no `POST`: story events are measured.
+   Agent-authored observations still go to `/commentary`.
+4. **`replay_ref` is always `None` today.** Nothing wires replay segments to
+   events yet, so U7's "watch" affordance must stay disabled — as U7 already
+   requires — until something sets it.
 
 ## U7 — Living History feed and timeline
 

@@ -110,8 +110,8 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | 1 | E0 | Remove the inactive `TankTabs` / `TankPlayTab` navigation fork | DONE | — |
 | 2 | E1 | Fish inspector; transfer becomes secondary | DONE | — |
 | 3 | E2 | Selection persistence, highlight, and follow camera | DONE | E1 |
-| 4 | E3 | Structured story-event schema, store, API, and first three detectors | QUEUED | — |
-| 5 | E4 | Living History feed and event timeline markers | QUEUED | E1, E3 |
+| 4 | E3 | Structured story-event schema, store, API, and first three detectors | DONE | — |
+| 5 | E4 | Living History feed and event timeline markers | NEXT | E1, E3 |
 | 6 | E5 | “Since your last visit” recap | QUEUED | E3, E4 |
 | 7 | E6 | Notable-organism and lineage legends | QUEUED | E1, E3 |
 | 8 | E7 | Observe / Design / Lab shell; Observe becomes default | QUEUED | E1, E4 |
@@ -119,9 +119,13 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | 10 | E9 | Trust states and intervention provenance | QUEUED | E7 |
 | 11 | E10 | Hypothesis-led clone-and-compare design flow | DEFERRED | E9 |
 
-E0 and E1 may be developed independently but should remain separate PRs. E3 should begin
-with only three detectors—population danger/recovery, generation milestone, and lineage
-share threshold—so the event contract can stabilize before detector breadth grows.
+E0 and E1 may be developed independently but should remain separate PRs. E3 shipped with
+exactly the three detectors it was scoped to—population danger/recovery, generation
+milestone, and lineage share threshold—so the event contract could stabilize before
+detector breadth grows. It stays at three until E4 has rendered them and shown what a
+viewer actually needs; adding a fourth is a versioned change to `EVENT_TYPES`, not a
+drive-by addition. See U6 in [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) for what landed and
+the four contract decisions E4 should build on.
 
 A parallel **skill progression track** (S1–S4) makes in-tank evolution visible against
 frozen references: live ladder evaluation of evolved fish, a Skill Progress panel,
@@ -140,12 +144,12 @@ reconnects. Transfer is available only through an explicit inspector action.
 
 ### Phase 1: the world remembers
 
-Complete E3–E6. A story record contains a stable id, type, frame, simulation time,
-severity, involved entity/lineage ids, before/after metrics, detector threshold, and
-replay availability. Detectors observe state without consuming RNG or mutating the
-simulation. Events persist with the world, appear in Insights and on a compact timeline,
-and can link back to the inspector. Recaps are computed from records since the client's
-last-seen event id.
+Complete E3–E6. **E3 is done (2026-09)**; E4 is next. A story record contains a stable
+id, type, frame, simulation time, severity, involved entity/lineage ids, before/after
+metrics, detector threshold, and replay availability. Detectors observe state without
+consuming RNG or mutating the simulation. Events persist with the world, appear in
+Insights and on a compact timeline, and can link back to the inspector. Recaps are
+computed from records since the client's last-seen event id.
 
 Legends are promoted by explicit criteria such as longevity record, surviving
 descendants, tournament result, migration success, cross-domain ability, lineage
