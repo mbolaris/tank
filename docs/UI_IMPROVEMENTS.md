@@ -19,7 +19,7 @@ incorrectly described several shipped foundations as future work.
 | U5 | Persistent selection and follow camera | DONE | Selection reconciles across merged deltas/full resync; follow is opt-in and stops when an entity disappears |
 | U6 | Structured story-event service | DONE | Store, detectors, service, REST API, and persistence; three detectors as specified |
 | U7 | Living History feed and timeline | DONE | World events merged into the Board + a keyboard-navigable timeline under the canvas |
-| U8 | Return recap and legends | NEXT | U6 and U7 are both DONE; still split into separate PRs (U8a, U8b) |
+| U8 | Return recap and legends | PARTLY SHIPPED | U8a (recap) is DONE; U8b (legends) is NEXT |
 | U9 | Observe / Design / Lab presentation shell | QUEUED | Depends on U4 and U7 |
 | U10 | Contextual overlays and intervention toolbelt | QUEUED | Depends on U9 |
 | U11 | Trust states and intervention provenance | QUEUED | Depends on U9 |
@@ -220,7 +220,7 @@ conversation; a named topic filter therefore hides them.
 
 This row intentionally produces **two PRs**.
 
-### U8a: Since your last visit
+### U8a: Since your last visit — SHIPPED (2026-09)
 
 Persist the client's last-seen event id per world. On return, summarize only structured
 events after that id. Begin with deterministic templates; optional generated prose can
@@ -230,7 +230,41 @@ come later and must cite the source event ids.
 and no-new-event cases all have explicit behavior. The recap never claims causality that
 the event records do not establish.
 
-### U8b: In-world legends
+![Since your last visit](assets/since-your-last-visit.png)
+
+| Piece | File |
+|---|---|
+| Recap summarisation, all five acceptance cases (pure) | [`frontend/src/utils/storyRecap.ts`](../frontend/src/utils/storyRecap.ts) |
+| Per-world baseline + arrival ceiling | [`frontend/src/hooks/useLastSeenStoryEvent.ts`](../frontend/src/hooks/useLastSeenStoryEvent.ts) |
+| The recap card | [`frontend/src/components/StoryRecap.tsx`](../frontend/src/components/StoryRecap.tsx) |
+| Recap + timeline composed as one surface | [`frontend/src/components/LivingHistory.tsx`](../frontend/src/components/LivingHistory.tsx) |
+
+Each acceptance case, and the behaviour chosen for it:
+
+| Case | Behaviour |
+|---|---|
+| First visit | No recap; the baseline is seeded silently so the *next* visit has one |
+| Cleared storage | Identical to a first visit — an unreadable value is treated as absent |
+| Expired buffer entries | The gap is counted and stated. Ids are dense, so the distance from the baseline to the oldest retained event is exactly how many records were dropped |
+| Multiple worlds | One `localStorage` key per world; a world switch never carries a baseline across |
+| No new events | No recap |
+
+**No causality, by construction.** The summary is a count list ordered by event-type
+name — never by time, never joined with "because", "so", or "after". A test asserts
+those connectives are absent. The headline picks the highest-severity event only to
+decide what to *show first*; it asserts no relationship between events.
+
+**A visit ends when you leave.** The baseline advances on `pagehide` and on unmount, not
+only on an explicit dismissal. Without that, a reload two events later would present
+"since your last visit" to someone who never left. This was found by running the real
+app, not by a test.
+
+**Deliberately per-viewer and local.** A recap is a property of *this* person's visit,
+not of the world, so it lives in `localStorage` rather than the shared world snapshot.
+Every access is guarded: storage that is unavailable or throws degrades to "no baseline",
+which shows no recap rather than a wrong one.
+
+### U8b: In-world legends — NEXT
 
 Promote only notable organisms or lineages using explicit criteria: longevity record,
 surviving descendants, tournament result, migration success, cross-domain performance,

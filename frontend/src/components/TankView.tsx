@@ -22,7 +22,7 @@ import { arenaStateFromConnection } from './soccerArenaState';
 import { TankSoccerPanel } from './TankSoccerPanel';
 import { Panel, PanelLoading } from './TankPanel';
 import { CommentaryFeed } from './CommentaryFeed';
-import { StoryTimeline } from './StoryTimeline';
+import { LivingHistory } from './LivingHistory';
 import { useStoryEvents } from '../hooks/useStoryEvents';
 import { ControlPanel } from './ControlPanel';
 import { BuildMode } from './BuildMode';
@@ -503,7 +503,8 @@ export function TankView({ worldId }: TankViewProps) {
             {/* Under the canvas, not beside it: sceneWorkspace is a flex row, so
                 the timeline sits after it and centres itself on the same column. */}
             {!watchMode && (
-                <StoryTimeline
+                <LivingHistory
+                    worldId={effectiveWorldId}
                     events={storyEvents}
                     currentFrame={state?.snapshot?.frame ?? state?.frame ?? 0}
                     liveEntityIds={liveEntityIds}
