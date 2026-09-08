@@ -178,6 +178,16 @@ export const config = {
     storyEventsUrl(worldId: string): string {
         return `${this.apiBaseUrl}/api/world/${worldId}/story-events`;
     },
+
+    /**
+     * Get API URL for a world's in-world legends (U8b).
+     * Read-only: legends are promoted by backend criteria, never posted.
+     * These are not benchmark champions - that registry is served elsewhere.
+     * @param worldId - The world ID (or "default")
+     */
+    legendsUrl(worldId: string): string {
+        return `${this.apiBaseUrl}/api/world/${worldId}/legends`;
+    },
 } as const;
 
 export type Config = typeof config;

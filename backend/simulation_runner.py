@@ -14,20 +14,21 @@ if TYPE_CHECKING:
     from core.entities import Fish
 
 from backend.commentary_store import CommentaryStore
+from backend.legend_service import LegendService
 from backend.metrics_history import MetricsHistory
 from backend.runner import (
     CommandHandlerMixin,
     evolution_benchmark,
     loop,
     stats_collector,
-    story_sampler,
+    telemetry_samplers,
     world_switch,
 )
 from backend.runner.perf_tracker import PerfTracker
 from backend.runner.state_builders import collect_poker_stats_payload
 from backend.runner.state_publisher import StatePublisher
 from backend.runner.world_hooks import get_hooks_for_world
-from backend.runner_stores import rebind_runner_stores
+from backend.runner_stores import init_runner_stores, rebind_runner_stores
 from backend.state_payloads import EntitySnapshot, PokerStatsPayload, StatsPayload
 from backend.story_event_service import StoryEventService
 from backend.world_registry import create_world, get_world_metadata
@@ -43,6 +44,13 @@ class SimulationRunner(CommandHandlerMixin):
 
     Inherits command handling from CommandHandlerMixin to reduce class size.
     """
+
+    # Constructed together by ``init_runner_stores``; declared so the contract
+    # stays visible and checkable despite being assigned from another module.
+    metrics_history: MetricsHistory
+    commentary: CommentaryStore
+    story_events: StoryEventService
+    legends: LegendService
 
     def __init__(
         self,
@@ -148,14 +156,8 @@ class SimulationRunner(CommandHandlerMixin):
         # Inject migration support into environment for fish to access
         self._update_environment_migration_context()
 
-        # Initialize metrics history tracking
-        self.metrics_history = MetricsHistory(world_id=self.world_id)
-
-        # Initialize agent commentary buffer (the "Insights" feed)
-        self.commentary = CommentaryStore(world_id=self.world_id)
-
-        # Initialize the structured story-event service (deterministic world facts)
-        self.story_events = StoryEventService(world_id=self.world_id)
+        # Metrics history, Board commentary, story events, in-world legends
+        init_runner_stores(self, self.world_id)
 
     def _require_hook_attr(self, attr: str) -> None:
         """Raise AttributeError if the world hooks don't support the attribute."""
@@ -435,9 +437,7 @@ class SimulationRunner(CommandHandlerMixin):
                 self.world_type, seed=self.seed, config=self._config
             )
             self.world.runner = self
-            self.metrics_history = MetricsHistory(world_id=self.world_id)
-            self.commentary = CommentaryStore(world_id=self.world_id)
-            self.story_events = StoryEventService(world_id=self.world_id)
+            init_runner_stores(self, self.world_id)
             # Use getattr/setattr or direct access if known to be an adapter
             if hasattr(self.world, "frame_count"):
                 self.world.frame_count = 0
@@ -513,8 +513,8 @@ class SimulationRunner(CommandHandlerMixin):
         if frame > 0 and frame % self.metrics_history.sample_interval_frames == 0:
             self._collect_stats(frame, include_distributions=False)
             self._check_noteworthy_pursuit_variants(frame)
-        # Story-event detection runs on its own (finer) frame cadence.
-        story_sampler.observe_if_due(self)
+        # Story events and legends each run on their own frame cadence.
+        telemetry_samplers.observe_all_if_due(self)
 
     def _check_noteworthy_pursuit_variants(self, frame: int) -> None:
         """Scan population to identify and announce spread of new pursuit module variants."""

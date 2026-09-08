@@ -77,3 +77,25 @@ test('a first visit shows no recap - there is nothing to have missed', async ({ 
     // been away from anything, and an empty recap would be a false claim.
     await expect(page.getByTestId('story-recap')).toHaveCount(0);
 });
+
+test('the legends endpoint backs the roster with a real contract', async ({ page }) => {
+    const worldId = await createScratchWorld(page);
+    const response = await page.request.get(`${API}/api/world/${worldId}/legends`);
+    expect(response.ok()).toBeTruthy();
+
+    const body = await response.json();
+    expect(Array.isArray(body.legends)).toBeTruthy();
+    // The closed promotion set the roster renders. If it drifts, unknown kinds
+    // silently fall back to a generic "Legend" label.
+    expect(new Set(body.kinds)).toEqual(
+        new Set(['longevity_record', 'lineage_founder', 'collapse_survivor']),
+    );
+});
+
+test('a fresh tank has no legends and shows no roster', async ({ page }) => {
+    const worldId = await createScratchWorld(page);
+    await page.goto(`/tank/${worldId}`);
+    await expect(page.getByTestId('story-timeline')).toBeVisible();
+    // Nothing has earned a title yet, so the roster is absent rather than empty.
+    await expect(page.getByTestId('legends-roster')).toHaveCount(0);
+});
