@@ -66,3 +66,14 @@ test('the Board offers a World events filter next to the topics', async ({ page 
 
     await expect(page.getByRole('button', { name: /world events/i })).toBeVisible();
 });
+
+test('a first visit shows no recap - there is nothing to have missed', async ({ page }) => {
+    const worldId = await createScratchWorld(page);
+    await page.goto(`/tank/${worldId}`);
+
+    // The Living History surface is present...
+    await expect(page.getByTestId('story-timeline')).toBeVisible();
+    // ...but the "since your last visit" card is not: a first visitor has not
+    // been away from anything, and an empty recap would be a false claim.
+    await expect(page.getByTestId('story-recap')).toHaveCount(0);
+});
