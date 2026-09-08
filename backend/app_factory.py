@@ -315,6 +315,7 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
         commentary,
         connections,
         discovery,
+        legends,
         metrics,
         servers,
         skill,
@@ -373,6 +374,10 @@ def _setup_routers(app: FastAPI, ctx: AppContext) -> None:
     # Setup structured story-event router (deterministic world facts)
     story_events_router = story_events.setup_router(ctx.world_manager)
     app.include_router(story_events_router)
+
+    # Setup in-world legends router (promoted organisms and lineages)
+    legends_router = legends.setup_router(ctx.world_manager)
+    app.include_router(legends_router)
 
     # Setup skill-ladder standings router (reads the champion registry)
     if ctx.skill_evaluation_service is None:

@@ -52,7 +52,7 @@ def observe_if_due(runner: SimulationRunner) -> list[dict[str, Any]]:
 
 def build_sample(runner: SimulationRunner, frame: int) -> StorySample:
     """Read the living population and its founder lineages into a sample."""
-    living = _living_agents(runner)
+    living = living_agents(runner)
     population = len(living)
     max_generation = max((int(getattr(a, "generation", 0) or 0) for a in living), default=0)
 
@@ -61,11 +61,11 @@ def build_sample(runner: SimulationRunner, frame: int) -> StorySample:
         simulation_time=frame / FRAME_RATE if FRAME_RATE else 0.0,
         population=population,
         max_generation=max_generation,
-        lineage_members=_lineage_members(runner, living),
+        lineage_members=lineage_members_for(runner, living),
     )
 
 
-def _living_agents(runner: SimulationRunner) -> list[Any]:
+def living_agents(runner: SimulationRunner) -> list[Any]:
     """The living, reproducing agents — the population a viewer would count.
 
     Identified structurally (a heritable genome plus a stable ``fish_id``) so
@@ -75,8 +75,11 @@ def _living_agents(runner: SimulationRunner) -> list[Any]:
     return [e for e in entities if hasattr(e, "genome") and getattr(e, "fish_id", None) is not None]
 
 
-def _lineage_members(runner: SimulationRunner, living: list[Any]) -> dict[str, list[int]]:
+def lineage_members_for(runner: SimulationRunner, living: list[Any]) -> dict[str, list[int]]:
     """Group living agents by the founder each one descends from.
+
+    Shared with the legend sampler: a "founder" must mean the same thing to the
+    lineage-share detector and to the lineage-founder legend criterion.
 
     A founder is the oldest recorded ancestor: walk ``parent_id`` up the lineage
     log until it hits ``"root"`` or an id the log does not contain. An agent with

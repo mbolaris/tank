@@ -113,8 +113,8 @@ explicitly says otherwise. Detailed acceptance criteria are in
 | 4 | E3 | Structured story-event schema, store, API, and first three detectors | DONE | — |
 | 5 | E4 | Living History feed and event timeline markers | DONE | E1, E3 |
 | 6 | E5 | “Since your last visit” recap | DONE | E3, E4 |
-| 7 | E6 | Notable-organism and lineage legends | NEXT | E1, E3 |
-| 8 | E7 | Observe / Design / Lab shell; Observe becomes default | QUEUED | E1, E4 |
+| 7 | E6 | Notable-organism and lineage legends | DONE | E1, E3 |
+| 8 | E7 | Observe / Design / Lab shell; Observe becomes default | NEXT | E1, E4 |
 | 9 | E8 | Contextual overlays and intervention toolbelt | QUEUED | E7 |
 | 10 | E9 | Trust states and intervention provenance | QUEUED | E7 |
 | 11 | E10 | Hypothesis-led clone-and-compare design flow | DEFERRED | E9 |
@@ -144,7 +144,7 @@ reconnects. Transfer is available only through an explicit inspector action.
 
 ### Phase 1: the world remembers
 
-Complete E3–E6. **E3, E4 and E5 are done (2026-09)**; E6 is next. A story record contains a stable
+Complete E3–E6. **Phase 1 is complete (2026-09).** A story record contains a stable
 id, type, frame, simulation time, severity, involved entity/lineage ids, before/after
 metrics, detector threshold, and replay availability. Detectors observe state without
 consuming RNG or mutating the simulation. Events persist with the world, appear in

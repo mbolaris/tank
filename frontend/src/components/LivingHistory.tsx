@@ -8,11 +8,16 @@
  * This component owns the *visit* state - the viewer's stored baseline and the
  * arrival ceiling - keeping both out of the timeline, which only ever renders
  * the events it is handed.
+ *
+ * The legends roster joins it here (U8b): legends are the same history at a
+ * longer timescale - what the tank remembers rather than what just happened.
  */
 
 import { useEffect, useRef } from 'react';
 import type { StoryEvent } from '../types/story';
 import { useFrozenCeiling, useLastSeenStoryEvent } from '../hooks/useLastSeenStoryEvent';
+import { useLegends } from '../hooks/useLegends';
+import { LegendsRoster } from './LegendsRoster';
 import { StoryRecap } from './StoryRecap';
 import { StoryTimeline } from './StoryTimeline';
 
@@ -32,6 +37,7 @@ export function LivingHistory({
     onInspectEntity,
 }: LivingHistoryProps) {
     const { baselineId, ready, markSeen } = useLastSeenStoryEvent(worldId);
+    const { legends } = useLegends(worldId);
     const ceilingId = useFrozenCeiling(events, ready);
 
     // A first visit (or cleared storage) shows no recap - the viewer has not
@@ -82,6 +88,11 @@ export function LivingHistory({
             <StoryTimeline
                 events={events}
                 currentFrame={currentFrame}
+                liveEntityIds={liveEntityIds}
+                onInspectEntity={onInspectEntity}
+            />
+            <LegendsRoster
+                legends={legends}
                 liveEntityIds={liveEntityIds}
                 onInspectEntity={onInspectEntity}
             />

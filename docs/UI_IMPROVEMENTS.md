@@ -19,8 +19,8 @@ incorrectly described several shipped foundations as future work.
 | U5 | Persistent selection and follow camera | DONE | Selection reconciles across merged deltas/full resync; follow is opt-in and stops when an entity disappears |
 | U6 | Structured story-event service | DONE | Store, detectors, service, REST API, and persistence; three detectors as specified |
 | U7 | Living History feed and timeline | DONE | World events merged into the Board + a keyboard-navigable timeline under the canvas |
-| U8 | Return recap and legends | PARTLY SHIPPED | U8a (recap) is DONE; U8b (legends) is NEXT |
-| U9 | Observe / Design / Lab presentation shell | QUEUED | Depends on U4 and U7 |
+| U8 | Return recap and legends | DONE | U8a (recap) and U8b (legends) both shipped |
+| U9 | Observe / Design / Lab presentation shell | NEXT | U4 and U7 are DONE; this opens Phase 2 |
 | U10 | Contextual overlays and intervention toolbelt | QUEUED | Depends on U9 |
 | U11 | Trust states and intervention provenance | QUEUED | Depends on U9 |
 | U12 | Fixed-baseline soccer evaluation | QUEUED | Metrics follow-up; current baseline field is a placeholder |
@@ -264,7 +264,7 @@ not of the world, so it lives in `localStorage` rather than the shared world sna
 Every access is guarded: storage that is unavailable or throws degrades to "no baseline",
 which shows no recap rather than a wrong one.
 
-### U8b: In-world legends — NEXT
+### U8b: In-world legends — SHIPPED (2026-09)
 
 Promote only notable organisms or lineages using explicit criteria: longevity record,
 surviving descendants, tournament result, migration success, cross-domain performance,
@@ -272,6 +272,49 @@ lineage founding, or collapse survival. Store why each legend qualified.
 
 **Acceptance:** names are stable across reloads, promotion is deterministic, duplicates
 are prevented, and benchmark champions are not mixed with in-world legends.
+
+![Legends of this tank](assets/legends-roster.png)
+
+| Piece | File |
+|---|---|
+| Record contract, naming, bounded deduplicated store | [`backend/legends.py`](../backend/legends.py) |
+| The promotion criteria (pure) | [`backend/legend_criteria.py`](../backend/legend_criteria.py) |
+| Store/criteria seam + frame cadence | [`backend/legend_service.py`](../backend/legend_service.py) |
+| Read-only sampler | [`backend/runner/legend_sampler.py`](../backend/runner/legend_sampler.py) |
+| `GET`/`DELETE /api/world/{id}/legends` | [`backend/routers/legends.py`](../backend/routers/legends.py) |
+| The roster UI | [`frontend/src/components/LegendsRoster.tsx`](../frontend/src/components/LegendsRoster.tsx) |
+
+**Three of the seven named criteria are implemented**, covering four of the listed
+qualifications:
+
+| Criterion | Qualification | Threshold |
+|---|---|---|
+| `longevity_record` | longevity record | Older than any fish recorded, and past `LIFE_STAGE_MATURE_MAX` (an Elder) |
+| `lineage_founder` | lineage founding + surviving descendants | ≥40% of the living population and ≥8 members |
+| `collapse_survivor` | collapse survival | Alive on both sides of a crash, with hysteresis |
+
+Tournament result, migration success, and cross-domain performance need per-fish
+measurement the world does not record yet. They are **left out rather than
+approximated** — a legend whose stated reason is a guess is worse than no legend.
+
+How each acceptance clause is met:
+
+- **Names stable across reloads** — a name is a pure function of the subject id.
+  `hash()` is deliberately avoided (it is salted per process, so names would
+  change on every server restart); a test runs the namer under three
+  `PYTHONHASHSEED` values and asserts one answer.
+- **Promotion deterministic** — criteria are pure functions of a sample, iterate
+  sorted, and identical sample sequences produce identical ordered promotions.
+- **Duplicates prevented** — deduplicated on `(kind, subject)`. The dedup set is
+  persisted separately from the records, so a legend that scrolls out of the
+  bounded buffer still cannot be re-promoted.
+- **Not benchmark champions** — enforced over the AST: no legend module may
+  reference champion data by any identifier. The UI says so on screen too.
+
+**Thresholds are measured, not invented.** The longevity bar was first set to an
+arbitrary 3000 frames, which a real run showed to be unreachable — the oldest fish
+over 12k frames on seed 42 reached 2271, making the criterion dead code. It is now
+`LIFE_STAGE_MATURE_MAX`: the simulation's own definition of old.
 
 ## U9 — Observe / Design / Lab shell
 
