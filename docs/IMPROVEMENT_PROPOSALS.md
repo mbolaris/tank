@@ -399,7 +399,7 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **651 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **653 plain `Any` occurrences** across `core/`. Both
 
 
 went *up* since earlier counts — `core/` grew faster than the
@@ -1166,7 +1166,10 @@ Both champions were re-baselined since the tank practice ball is present in
 both regardless of `soccer_enabled` (see the `tank_practice_enabled` gotcha).
 
 **The acceptance measurement (recorded).** `tools/compare_graph_arm.py` runs
-the arms defined in `core/foraging/arms.py` on the 11.3 foraging gym. Each arm
+the arms defined in `core/foraging/arms.py` on the 11.3 foraging gym.
+`core/foraging/gym.py` itself is untouched — it is a locked path, so the arms
+attach what the production arbiter reads to its fish at evaluation time rather
+than growing the ruler to fit a new experiment. Each arm
 is scored as gross food energy over the oracle ceiling, averaged over 8 founder
 genomes x 8 episode seeds (64 episodes per arm); every arm hands its desired
 velocity to the same production kinematics, so no arm wins or loses on output

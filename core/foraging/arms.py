@@ -33,6 +33,13 @@ neither wins or loses on output magnitude.
         The behavior graph as the sole controller, with no composable
         fallback - the head-to-head 12.4 asks for.
 
+``core/foraging/gym.py`` is a **locked path** (see ``DEFAULT_LOCKED_PATHS`` in
+``tools/check_locked_paths.py``): it is the frozen ruler this benchmark's
+published scores rest on. So the arms adapt to the gym rather than the other
+way round - :func:`_install_arbiter_surface` grows the gym's deliberately
+minimal fish and environment into something the production arbiter can read,
+at evaluation time, without the ruler changing at all.
+
 **A warning about the ``graph`` arm.** The default foraging graph routes to
 social cohesion above its urgency threshold, and the gym is single-fish by
 construction, so its cohesion vector is always zero. Above the threshold the
@@ -189,6 +196,34 @@ def _with_urgency_threshold(graph: BehaviorGraph, threshold: float) -> BehaviorG
     return _BehaviorGraph.from_dict(payload)
 
 
+def _install_arbiter_surface(fish: Any) -> None:
+    """Give the gym's minimal fish and environment the surface a tank fish has.
+
+    The gym models exactly what its own frozen composable ruler reads and no
+    more, and it is a locked path, so the extra attributes the production
+    movement arbiter and the graph observation builder touch are attached here
+    instead. Every value is the gym's own truth rather than a stub of
+    convenience: the gym is single-fish, so there is never a school; nothing
+    kills the fish; and there is no code pool or poker table to consult.
+
+    Called exactly once per episode, from the owning policy's first frame -
+    the attributes then carry real state forward, which is what ``vel`` and
+    ``age`` are for.
+    """
+    fish.vel = Vector2(0.0, 0.0)
+    fish.age = 0
+    fish.fish_id = 1
+    fish.poker_cooldown = 0
+    fish.can_play_poker = False
+    fish.movement_policy = None
+    fish.is_dead = lambda: False
+    # Read by build_tank_behavior_observation. Empty means "no memory decision
+    # this frame", which is what target_memory_enabled=False produces in
+    # production too.
+    fish.last_target_memory_decisions = {}
+    fish.environment.nearby_evolving_agents = lambda *_args, **_kwargs: []
+
+
 class _ArmPolicy:
     """Shared plumbing: bind the genome and config, then apply real kinematics."""
 
@@ -202,6 +237,10 @@ class _ArmPolicy:
         # scoring the wander rather than the controller, and the no-food frames
         # are where two controllers most visibly differ.
         self._wander = _RandomWalkPolicy(seed)
+        # One policy drives exactly one episode over exactly one gym fish, so
+        # "have I set this fish up yet" is the policy's own state rather than
+        # something to probe for on the fish.
+        self._installed = False
 
     def _bind(self, fish: _GymFish) -> Any:
         """Attach this arm's genome and flags, and advance the fish's age.
@@ -212,12 +251,15 @@ class _ArmPolicy:
         different cache schedule and stop being comparable.
         """
         fish_any: Any = fish
+        if not self._installed:
+            _install_arbiter_surface(fish_any)
+            self._installed = True
         fish_any.genome = self._genome
         fish_any.age += 1
-        fish.environment.simulation_config = self._config
+        fish_any.environment.simulation_config = self._config
         return fish_any
 
-    def _kinematics(self, fish: _GymFish, desired: tuple[float, float]) -> Vector2:
+    def _kinematics(self, fish: Any, desired: tuple[float, float]) -> Vector2:
         apply_movement_kinematics(fish.vel, desired, float(fish.speed), fish.environment.rng)
         return Vector2(float(fish.vel.x), float(fish.vel.y))
 
@@ -227,7 +269,7 @@ class _ComposableArmPolicy(_ArmPolicy):
 
     def __init__(self, genome: Genome, seed: int, config: SimulationConfig) -> None:
         super().__init__(genome, seed, config)
-        trait = getattr(genome.behavioral, "behavior", None)
+        trait = genome.behavioral.behavior
         self._behavior = trait.value if trait is not None else None
 
     def velocity(self, fish: _GymFish, active_food: tuple[_GymFood, ...]) -> Vector2:
@@ -248,7 +290,7 @@ class _GraphArmPolicy(_ArmPolicy):
         urgency_threshold: float | None = None,
     ) -> None:
         super().__init__(genome, seed, config)
-        trait = getattr(genome.behavioral, "behavior_graph", None)
+        trait = genome.behavioral.behavior_graph
         graph = trait.value if trait is not None else None
         if graph is not None and urgency_threshold is not None:
             graph = _with_urgency_threshold(graph, urgency_threshold)
@@ -283,7 +325,7 @@ class _ProductionArmPolicy(_ArmPolicy):
 
     def velocity(self, fish: _GymFish, active_food: tuple[_GymFood, ...]) -> Vector2:
         fish_any = self._bind(fish)
-        fish.environment.genome_code_pool = self._genome_code_pool
+        fish_any.environment.genome_code_pool = self._genome_code_pool
         arbitration = self._strategy._arbiter.arbitrate(self._strategy, cast("Fish", fish_any))
         selected = arbitration.selected
         desired = selected.velocity if selected is not None else None
