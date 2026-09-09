@@ -7,13 +7,19 @@ This module provides movement behaviors for fish:
 from __future__ import annotations
 
 import logging
-import math
 from typing import TYPE_CHECKING
 
 from core.collision_system import default_collision_detector
 from core.config.fish import RANDOM_MOVE_PROBABILITIES, RANDOM_VELOCITY_DIVISOR
 from core.entities import Food
 from core.math_utils import Vector2
+from core.movement.kinematics import (
+    ALGORITHMIC_MAX_SPEED_MULTIPLIER,
+    ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ,
+    ALGORITHMIC_MOVEMENT_SMOOTHING,
+    MAX_ACTION_VELOCITY,
+    apply_movement_kinematics,
+)
 from core.policies.interfaces import build_movement_observation
 
 if TYPE_CHECKING:
@@ -25,29 +31,19 @@ from core.movement.intents import MovementArbitration
 
 logger = logging.getLogger(__name__)
 
-# Movement smoothing constants (lower = smoother, higher = more responsive)
-# INCREASED from 0.02 to 0.10 - fish were too sluggish to catch food
-# At 2% per frame, it took ~150 frames (5s) to reach target velocity
-# At 10% per frame, it takes ~30 frames (1s) - much better for food pursuit
-ALGORITHMIC_MOVEMENT_SMOOTHING = 0.10
-ALGORITHMIC_MAX_SPEED_MULTIPLIER = 1.0  # Cap at base speed (was 0.6)
-ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ = (
-    ALGORITHMIC_MAX_SPEED_MULTIPLIER * ALGORITHMIC_MAX_SPEED_MULTIPLIER
-)
-
-# Kinematic action bound for tank-like worlds, mirroring
-# TankLikeActionTranslator(max_velocity=5.0). The internal movement path clamps
-# inline rather than round-tripping every fish every frame through the
-# external-brain action-translation registry, which only re-applied this same
-# clamp while allocating an Action object. The translation layer is still the
-# correct seam for *external* brains; it is just not needed on the internal
-# composable-behavior path. See ADR-007 (silent-fallback removal).
-MAX_ACTION_VELOCITY = 5.0
-
-
-def _clamp_action_velocity(value: float) -> float:
-    """Clamp one velocity component to the kinematic action bound."""
-    return max(-MAX_ACTION_VELOCITY, min(MAX_ACTION_VELOCITY, value))
+# The kinematics constants above are re-exported: they were part of this
+# module's public surface long before core.movement.kinematics existed, and
+# backend/tool code still imports them from here.
+__all__ = [
+    "ALGORITHMIC_MAX_SPEED_MULTIPLIER",
+    "ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ",
+    "ALGORITHMIC_MOVEMENT_SMOOTHING",
+    "MAX_ACTION_VELOCITY",
+    "AlgorithmicMovement",
+    "MovementStrategy",
+    "VelocityComponents",
+    "apply_movement_kinematics",
+]
 
 
 VelocityComponents = tuple[float, float]
@@ -136,49 +132,12 @@ class AlgorithmicMovement(MovementStrategy):
             super().move(fish)
             return
 
-        # Clamp the desired velocity to the kinematic action bound, then scale by
-        # speed below. This is the internal fast path: on the composable-behavior
-        # path the external-brain action-translation registry only re-applied this
-        # same clamp (allocating an Action per fish per frame), so it is bypassed
-        # here. External brains still translate through core.actions.
-        desired_vx = _clamp_action_velocity(float(desired_velocity[0]))
-        desired_vy = _clamp_action_velocity(float(desired_velocity[1]))
-
-        # Apply algorithm decision - scale by speed to get actual velocity
-        speed = fish.speed
-        target_vx = desired_vx * speed
-        target_vy = desired_vy * speed
-
-        # Smoothly interpolate toward desired velocity - inline for performance
-        vel = fish.vel
-        vel.x += (target_vx - vel.x) * ALGORITHMIC_MOVEMENT_SMOOTHING
-        vel.y += (target_vy - vel.y) * ALGORITHMIC_MOVEMENT_SMOOTHING
-
-        # Normalize velocity to maintain consistent speed
-        # Performance: Use squared comparison to avoid sqrt when not needed
-        vel_x = vel.x
-        vel_y = vel.y
-        vel_length_sq = vel_x * vel_x + vel_y * vel_y
-
-        # Anti-stuck mechanism: if velocity is very low, add small random nudge
-        # This prevents fish from getting permanently stuck at (0,0)
-        if vel_length_sq < 0.01:
-            rng = fish.environment.rng
-            angle = rng.random() * 6.283185307
-            nudge_speed = speed * 0.3  # Small nudge to get unstuck
-            vel.x = nudge_speed * math.cos(angle)
-            vel.y = nudge_speed * math.sin(angle)
-            vel_length_sq = vel.x * vel.x + vel.y * vel.y
-
-        if vel_length_sq > 0:
-            # Only normalize if speed exceeds max allowed
-            max_speed_sq = speed * speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER_SQ
-            if vel_length_sq > max_speed_sq:
-                # Normalize and scale in one step
-                max_speed = speed * ALGORITHMIC_MAX_SPEED_MULTIPLIER
-                scale = max_speed / math.sqrt(vel_length_sq)
-                vel.x = vel_x * scale
-                vel.y = vel_y * scale
+        # Turn the winning drive's desired velocity into actual motion. This is
+        # the internal fast path: on the composable-behavior path the
+        # external-brain action-translation registry only re-applied the same
+        # kinematic clamp (allocating an Action per fish per frame), so it is
+        # bypassed here. External brains still translate through core.actions.
+        apply_movement_kinematics(fish.vel, desired_velocity, fish.speed, fish.environment.rng)
 
         super().move(fish)
 

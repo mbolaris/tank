@@ -106,6 +106,10 @@ class _BehavioralTraits:
     pursuit_aggression: _Trait = field(default_factory=lambda: _Trait(0.5))
     prediction_skill: _Trait = field(default_factory=lambda: _Trait(0.5))
     hunting_stamina: _Trait = field(default_factory=lambda: _Trait(0.5))
+    # None for the composable arm; the graph arm installs the production
+    # founder defaults, exactly as core.behavior.feature_flags would.
+    behavior_graph: object | None = None
+    target_pursuit_module: object | None = None
 
 
 @dataclass
@@ -126,11 +130,22 @@ class _GymFood:
 
 
 class _GymEnvironment:
-    """Minimal production-behavior adapter over the episode's active food."""
+    """Minimal production-behavior adapter over the episode's active food.
+
+    The attributes below the food list exist so that arms which run the real
+    production movement arbiter (see ``core.foraging.arms``) find the same
+    environment surface a tank fish would, instead of monkey-patching one on
+    at evaluation time. ``simulation_config`` is what the graph and
+    pursuit-module feature flags are read from; leaving it None - the default,
+    and what the frozen composable ruler always uses - keeps every
+    experimental controller switched off.
+    """
 
     def __init__(self, rng: random.Random) -> None:
         self.rng = rng
         self.active_food: list[_GymFood] = []
+        self.simulation_config: object | None = None
+        self.genome_code_pool: object | None = None
 
     def get_detection_modifier(self) -> float:
         return 1.0
@@ -143,6 +158,10 @@ class _GymEnvironment:
     ) -> list[_GymFood]:
         return self.active_food if agent_type is Food else []
 
+    def nearby_evolving_agents(self, _fish: object, _radius: float) -> list[object]:
+        """The gym is single-fish by construction, so there is never a school."""
+        return []
+
 
 @dataclass
 class _GymFish:
@@ -152,6 +171,19 @@ class _GymFish:
     energy: float = 200.0
     max_energy: float = 1_000.0
     genome: _GymGenome = field(default_factory=_GymGenome)
+    # Read by the graph observation builder. The composable arm never reads
+    # these, so adding them leaves its frozen scores byte-identical - a test
+    # pins that.
+    vel: Vector2 = field(default_factory=lambda: Vector2(0.0, 0.0))
+    fish_id: int = 0
+    age: int = 0
+    poker_cooldown: int = 0
+    can_play_poker: bool = False
+    movement_policy: object | None = None
+    last_target_memory_decisions: dict[str, object] = field(default_factory=dict)
+
+    def is_dead(self) -> bool:
+        return False
 
     def get_energy_ratio(self) -> float:
         return self.energy / self.max_energy

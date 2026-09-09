@@ -399,7 +399,7 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **644 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **651 plain `Any` occurrences** across `core/`. Both
 
 
 went *up* since earlier counts — `core/` grew faster than the
@@ -1118,8 +1118,10 @@ the interpretability that is the project's best advertisement.
 
 **Status as of the 2026-07-25 audit.** 12.1, 12.2, and 12.3 have shipped, and
 12.4 has landed behind a default-off flag — further than this section's prose
-suggested. **12.5 is the next real step, and it is the go/no-go gate for the
-whole theme.** The ADR (`docs/adr/`) recording the encoding decision is still
+suggested — and its acceptance comparison is now measured and recorded below:
+the graph's food branch beats `ComposableBehavior` on the foraging gym, but the
+flag as wired captures none of that gain. **12.5 is the next real step, and it
+is the go/no-go gate for the whole theme.** The ADR (`docs/adr/`) recording the encoding decision is still
 unwritten; it belongs with 12.5's result, not before it.
 
 ### 12.1 Extract steering/sensor primitives into a shared library — `M` · ★★★ — SHIPPED
@@ -1131,7 +1133,7 @@ unwritten; it belongs with 12.5's result, not before it.
 i.e. all three domains plus the graph node set share one implementation, which
 was the point.
 
-### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★ — LANDED, UNPROVEN
+### 12.4 Foraging graph that reproduces `ComposableBehavior` — `M` · ★★★ — MEASURED; FLAG STAYS OFF
 **Layer 1.** The graph controller exists: `default_foraging_graph()` in
 `core/behavior/tank_adapter.py`, installed for founders by
 `core/behavior/feature_flags.py` only when `tank.graph_behavior_enabled` is
@@ -1163,12 +1165,52 @@ every fish the shared skill-transfer substrate" - not on a claimed score win.
 Both champions were re-baselined since the tank practice ball is present in
 both regardless of `soccer_enabled` (see the `tank_practice_enabled` gotcha).
 
-**What is not done:** the flag is off, so nothing selects the graph in
-production, and there is no recorded **11.3 foraging-gym** score for the graph
-arm vs. the `ComposableBehavior` arm. That comparison is the acceptance
-criterion this task was written around — run it and record the result before
-treating 12.4 as finished. `ComposableBehavior` stays the reference oracle
-either way; do not delete it here.
+**The acceptance measurement (recorded).** `tools/compare_graph_arm.py` runs
+the arms defined in `core/foraging/arms.py` on the 11.3 foraging gym. Each arm
+is scored as gross food energy over the oracle ceiling, averaged over 8 founder
+genomes x 8 episode seeds (64 episodes per arm); every arm hands its desired
+velocity to the same production kinematics, so no arm wins or loses on output
+magnitude. Reproduce with:
+
+```bash
+python tools/compare_graph_arm.py                                        # cohort A
+python tools/compare_graph_arm.py --arms "composable graph" --urgency-threshold 1.0
+python tools/compare_graph_arm.py --genome-seeds "9 10 11 12 13 14 15 16" \
+    --episode-seeds "2 3 8 13 17 23 29 37"                               # cohort B
+```
+
+| arm | cohort A (genomes 1-8, seeds 42/7/31/38/1/5/0/41) | cohort B (genomes 9-16, seeds 2/3/8/13/17/23/29/37) |
+|---|---|---|
+| `composable` — `ComposableBehavior` alone | 0.983036 | 0.959093 |
+| `graph` — behavior graph alone, default urgency 0.35 | 0.300032 | 0.300232 |
+| `graph` — behavior graph alone, urgency pinned to 1.0 | **1.000000** | **1.000000** |
+| `production` — full arbiter, flag off | 0.983036 | 0.959093 |
+| `production_graph` — full arbiter, flag on | 0.986095 (+0.0031) | 0.953582 (-0.0055) |
+
+Two conclusions, and they point in opposite directions:
+
+1. **The graph's food branch out-forages `ComposableBehavior`.** Pinned on food
+   pursuit it collects the oracle's full energy on all 128 episodes across both
+   cohorts, with and without the shared pursuit module, while the composable
+   behavior falls short of the ceiling on 4/8 and 5/8 founder genomes. That is
+   the head-to-head this task asked for, and it replicates.
+2. **Flipping `graph_behavior_enabled` today captures almost none of that**:
+   +0.0031 on cohort A, -0.0055 on cohort B, with per-genome deltas in both
+   directions - noise around zero, not a win. Instrumenting the arbiter says
+   why: with the flag on, the graph steers only **11.2%** of frames. Above its
+   0.35 urgency threshold the graph selects social cohesion,
+   `GraphBehaviorConsideration` classifies that as leisure-tier and yields, and
+   the composable behavior drives the other 88.8%.
+
+So the flag stays off, and the blocker is now specific rather than vague: it is
+the urgency gate, not the graph's steering. The gym's own geometry is half the
+story - it is single-fish, so the cohesion branch is a permanent zero vector,
+which is the whole of the 0.300 default-urgency score and is a statement about
+the gym rather than about the controller. Before 12.5 spends mutation budget on
+this topology, decide whether an energy-gated hand-off to a second controller is
+the intended design at all; if it is, the threshold and the cohesion branch need
+a multi-fish instrument (the gym cannot see them). `ComposableBehavior` stays
+the reference oracle either way; do not delete it here.
 
 ### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
 **Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
