@@ -14,17 +14,48 @@ from core.movement.kinematics import (
     apply_movement_kinematics,
 )
 
-# Gross energy the neutral composable ruler collects on these seeds. Recorded
-# before the gym's fish/environment grew the surface the arbiter-driven arms
-# need; the point of pinning them is that growing that surface must not move
-# the frozen ruler this benchmark's published scores rest on.
+# Gross energy the neutral composable ruler collects on these seeds.
+# core/foraging/gym.py is a locked path precisely because these numbers are
+# the benchmark's published scale, so the arms attach what they need to the
+# gym's fish at evaluation time instead of editing the ruler.
 FROZEN_COMPOSABLE_ENERGY = {42: 748.0, 7: 820.0, 123: 766.0}
 
 
 def test_frozen_composable_ruler_is_untouched_by_the_arm_surface():
+    """Running arms must not move the ruler, before or after."""
     for seed, energy in FROZEN_COMPOSABLE_ENERGY.items():
-        evaluation = evaluate_foraging_gym(seed)
-        assert evaluation.composable.energy_collected == energy
+        assert evaluate_foraging_gym(seed).composable.energy_collected == energy
+
+    config = arms.gym_config(graph=True, pursuit_module=True)
+    genome = arms.make_founder_genome(1, config)
+    for arm in arms.ARM_NAMES:
+        arms.evaluate_arm(arm, genome, 42, config)
+
+    for seed, energy in FROZEN_COMPOSABLE_ENERGY.items():
+        assert evaluate_foraging_gym(seed).composable.energy_collected == energy
+
+
+def test_arms_do_not_edit_the_locked_gym_module():
+    """The gym is a frozen ruler; arms adapt to it, never the reverse.
+
+    core/foraging/gym.py sits in tools/check_locked_paths.py's
+    DEFAULT_LOCKED_PATHS, so an arm that needed a new field on _GymFish would
+    fail CI rather than quietly re-baseline the benchmark. This pins the
+    direction of that dependency in code, where it is easy to violate by
+    reflex.
+    """
+    from dataclasses import fields
+
+    from core.foraging.gym import _GymFish
+
+    assert {field.name for field in fields(_GymFish)} == {
+        "pos",
+        "environment",
+        "speed",
+        "energy",
+        "max_energy",
+        "genome",
+    }
 
 
 class _StuckRng:
