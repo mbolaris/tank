@@ -444,7 +444,7 @@ actionable starter task.
 The reviewer's point is that in a system built for AI agents to *modify* code,
 typing is not cosmetic — it is the guardrail that catches a bad edit before CI
 does. Re-measured 2026-07-28: **227 simple `Any` annotation hits** (`: Any`,
-`-> Any`, `[Any]`) and **658 plain `Any` occurrences** across `core/`. Both
+`-> Any`, `[Any]`) and **663 plain `Any` occurrences** across `core/`. Both
 
 
 went *up* since earlier counts — `core/` grew faster than the
@@ -1302,9 +1302,8 @@ So on foraging, the cohesion branch does not earn its place, and the shipped
 **Read that with its boundary, though.** This gym rewards dispersal by
 construction and contains no predator, which is the thing schooling is
 actually for. What is shown is narrow and solid: cohesion is a *foraging*
-cost, monotonically. What is not shown is whether it pays for itself in
-survival — that needs a predator instrument, and this one cannot stand in for
-it. The `greedy_shoal` row is the same point from the other side: at 33px mean
+cost, monotonically. Whether it pays for itself in survival needed a predator
+instrument — **which now exists, and closes the question; see below**. The `greedy_shoal` row is the same point from the other side: at 33px mean
 separation it is the clumping failure mode made visible, and it scores 0.63
 against an attainable 1.0.
 
@@ -1315,20 +1314,84 @@ scores half of either. The difference is entirely
 handing back to the composable behavior — the design 12.4 flagged as the
 bottleneck is also what keeps the flag from being harmful.
 
+#### The predator half: cohesion has no constituency, but the threat branch does
+
+`core/foraging/predator_gym.py` is the instrument the school gym said it
+needed. Food spawns *inside* a patrolling crab's lane and fish burn energy
+every frame, so hiding starves and feeding without looking down gets you
+eaten — `reference_pressures()` asserts both before any arm is scored,
+because an instrument with an inert pressure reports confident numbers about
+nothing. The predator is not invented for the occasion: `_GymCrab` subclasses
+the production `Crab` (the adapters find threats by `isinstance`, so only a
+real subclass is visible to the branch under test) and imports
+`CRAB_ATTACK_COOLDOWN`. That cooldown *is* dilution — a crab that takes one
+fish cannot take another for 15 frames — which is precisely the mechanism by
+which grouping could have paid off.
+
+```bash
+python tools/compare_predator_arms.py --urgency-sweep "0.0 0.2 0.35 0.5 0.7 1.0"
+```
+
+8 genomes x 8 episode seeds; deaths are per 4-fish school:
+
+| arm | survival A / B | eaten A / B | starved A / B |
+|---|---|---|---|
+| `hide` | 0.8471 / 0.8471 | 0.00 | 4.00 |
+| `feed_ignoring_predator` | 0.3601 / 0.3530 | 4.00 | 0.00 |
+| `feed_and_flee` | 0.9034 / 0.9139 | 0.00 / 0.25 | 1.50 / 1.25 |
+| `composable` = `production` | 0.6938 / 0.7877 | **1.94 / 1.39** | 0.27 / 0.56 |
+| `graph` | 0.9114 / 0.8876 | **0.25 / 0.00** | 2.00 / 3.12 |
+| `production_graph` | **0.9137 / 0.9134** | 0.17 / 0.06 | 1.73 / 2.12 |
+
+**Two findings, and the second is the new one.**
+
+1. **Cohesion still earns nothing.** The urgency sweep is *flat* from 0.20 to
+   1.00 (0.9114 throughout on cohort A), which is exactly what the topology
+   predicts: `priority` picks threat whenever the threat vector is nonzero,
+   *before* `urgency` is consulted, so the threshold only decides what happens
+   when nothing is hunting you. The one apparent exception is a trap worth
+   naming — threshold 0.00 scores *highest* (0.9409) while starving all four
+   fish and eating none. That is `hide` with extra steps: survival-frames
+   reward starving slowly over being eaten quickly. It is not evidence that
+   cohesion protects. Taken with the foraging result, **cohesion is a cost in
+   one gym and neutral in the other, so it has no constituency in this tank.**
+
+2. **The graph's *threat* branch is excellent, and had never been measured.**
+   No previous instrument contained a predator, so `threat_away_vector` was
+   always zero and the branch that dominates the entire topology was untested.
+   Under predation it cuts deaths-by-predation from **1.94 to 0.25** against
+   `ComposableBehavior`, and `production_graph` beats `production` by **+0.22
+   survival** — two orders of magnitude more than the +0.003 the foraging gym
+   measured. Instrumenting why: with a crab within 200px, the composable
+   behavior moves away on only **48%** of frames while the graph does on
+   **89%**. The graph gives threat absolute priority; the composable blends it
+   with food and loses.
+
+**The pressure caveat, which decides how much of this to bank.** This gym puts
+food inside the hazard on purpose, so its predation pressure is far above the
+tank's: `survival_5k` on master records 164 starvation deaths, 25 old-age and
+**1 predation**. So finding 2 does not overturn 12.4's verdict on the flag —
+at the tank's actual predation rate the foraging result dominates. What it
+changes is that the flag's value is now a *quantified trade-off against
+predation pressure* rather than an unknown, and a tank tuned for more
+predation would flip the sign.
+
 ### 12.5 Graph mutation + type-safe subgraph crossover — `L` · ★★★
 **Layer 1.** Add param mutation (gauss, as today), node-swap mutation (like the
 enum switch / policy-ID swap), and low-probability *structural* mutation
 (add/remove/rewire an edge, splice a subgraph) behind a heritable
 `structural_mutation_rate` meta-gene (reuse `core/genetics/trait.py`).
 
-*Before spending mutation budget on this topology:* 12.4's school-gym sweep
-found the graph's social-cohesion branch monotonically harmful to foraging,
-with the shipped 0.35 urgency threshold near the bad end of its range. Either
-let mutation reach the threshold (it is already an evolvable
-`NodeParameterSpec`, so selection can find this itself — which is the more
-interesting experiment), or fix the topology first and say why. Do not
-structurally evolve around a branch already measured as a cost without a
-predator instrument that shows what it buys.
+*Before spending mutation budget on this topology:* the cohesion branch is now
+measured on both axes and earns nothing on either — a monotonic foraging cost
+in the school gym, and flat under predation, where `priority` pre-empts the
+urgency gate entirely. The predator instrument that was the outstanding
+prerequisite has been built and reported (see 12.4), so this is no longer
+blocked on evidence. Either let mutation reach the threshold (it is already an
+evolvable `NodeParameterSpec`, so selection can find this itself — the more
+interesting experiment), or simplify the topology first and say why. What the
+same instrument *does* argue for keeping is the **threat** branch: it cuts
+predation deaths from 1.94 to 0.25 per school against `ComposableBehavior`.
 
 Add
 type-safe subgraph crossover — spliceable only where port types match, which
